@@ -70,7 +70,7 @@ has_labels <- function(.tdy_dag) {
 #   })
 # }
 
-tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, layout = "auto", ...) {
+tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, layout = "nicely", ...) {
   if (!is.null(seed)) set.seed(seed)
 
   dagitty:::.supportsTypes(.dagitty, c("dag"))
@@ -333,7 +333,7 @@ activate_collider_paths <- function(.tdy_dag, adjust_for) {
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
   collider_lines <- purrr::map_df(activated_pairs, function(.pairs_df) {
-    .pairs_df %>% purrr::rowwise() %>% dplyr::do({
+    .pairs_df %>% dplyr::rowwise() %>% dplyr::do({
       df <- .
       name <- df[["Var1"]]
       to <- df[["Var2"]]
@@ -403,8 +403,8 @@ ggdag_status <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
     geom_dag_edges(cap = cap) +
     geom_dag_node() +
     geom_dag_text(col = "white") +
-    theme_dag(breaks = c("exposure", "outcome", "latent")) +
-    scale_dag()
+    theme_dag() +
+    scale_dag(breaks = c("exposure", "outcome", "latent"))
 }
 
 node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
@@ -424,8 +424,8 @@ ggdag_children <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
       geom_dag_edges(cap = cap) +
       geom_dag_node() +
       geom_dag_text(col = "white") +
-      theme_dag(breaks  = c("parent", "child")) +
-      scale_dag()
+      theme_dag() +
+      scale_dag(breaks  = c("parent", "child"))
 }
 
 
@@ -446,8 +446,8 @@ ggdag_parents <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
       geom_dag_edges(cap = cap) +
       geom_dag_node() +
       geom_dag_text(col = "white") +
-      theme_dag(breaks  = c("parent", "child")) +
-      scale_dag()
+      theme_dag() +
+      scale_dag(breaks  = c("parent", "child"))
 }
 
 node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
@@ -467,8 +467,8 @@ ggdag_ancestors <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) 
     geom_dag_edges(cap = cap) +
     geom_dag_node() +
     geom_dag_text(col = "white") +
-    theme_dag(breaks  = c("ancestor", "descendant")) +
-    scale_dag()
+    theme_dag() +
+    scale_dag(breaks  = c("ancestor", "descendant"))
 }
 
 node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
@@ -488,8 +488,8 @@ ggdag_descendants <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...
       geom_dag_edges(cap = cap) +
       geom_dag_node() +
       geom_dag_text(col = "white") +
-      theme_dag(breaks  = c("ancestor", "descendant")) +
-      scale_dag()
+      theme_dag() +
+      scale_dag(breaks  = c("ancestor", "descendant"))
 }
 
 node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
@@ -568,7 +568,7 @@ ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, cap = g
                       controlling_for = controlling_for, cap = cap, ...)
 }
 
-ggdag_dconnected <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, cap = cap, ...)
 }
