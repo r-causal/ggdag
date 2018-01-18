@@ -8,4 +8,15 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
-    ggraph
+    ggraph,
+    dagitty,
+    ggplot2,
+    dplyr,
+    purrr,
+    stringr,
+    tibble,
+    forcats,
+    ggnetwork,
+    ggrepel,
+    igraph
+RoxygenNote: 6.0.1
