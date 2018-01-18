@@ -1,8 +1,4 @@
-library(ggnetwork)
-library(network)
-library(sna)
-library(ggplot2)
-library(purrr)
+
 
 geom_dag_node <- function(mapping = NULL, data = NULL,
                           position = "identity",
@@ -30,10 +26,10 @@ geom_dag_node <- function(mapping = NULL, data = NULL,
 }
 
 
-GeomDagNode <- ggproto("GeomDagNode", Geom,
+GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                        required_aes = c("x", "y"),
                        non_missing_aes = c("size", "shape", "colour", "internal_colour"),
-                       default_aes = aes(
+                       default_aes = ggplot2::aes(
                          shape = 19, colour = "black", size = 16, fill = NA,
                          alpha = NA, stroke = 0.5, internal_colour = "white"
                        ),
@@ -83,7 +79,7 @@ GeomDagNode <- ggproto("GeomDagNode", Geom,
                          )
                        },
 
-                       draw_key = draw_key_point
+                       draw_key = ggplot2::draw_key_point
 )
 
 geom_dag_text <- function(mapping = NULL, data = NULL,
@@ -102,16 +98,16 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
       stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
     }
 
-    position <- position_nudge(nudge_x, nudge_y)
+    position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) mapping <- aes(label = name)
+  if (is.null(mapping)) mapping <- ggplot2::aes(label = name)
   if (is.null(mapping$label)) mapping$label <- substitute(name)
   # if (is.null(mapping)) mapping <- aes(x = node_x, y = node_y, label = name)
   # if (is.null(mapping$x)) mapping$x <- substitute(node_x)
   # if (is.null(mapping$y)) mapping$y <- substitute(node_y)
 
-  layer(
+  ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = ggnetwork:::StatNodes,
@@ -128,7 +124,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
   )
 }
 
-GeomDagText <- ggproto("GeomDagText", GeomText, default_aes = aes(
+GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = ggplot2::aes(
   colour = "white", size = 3.88, angle = 0, hjust = 0.5,
   vjust = 0.5, alpha = NA, family = "", fontface = "bold", lineheight = 1.2
 ))
@@ -187,10 +183,10 @@ geom_dag_label_repel <- function(
   mapping = NULL, data = NULL,
   parse = FALSE,
   ...,
-  box.padding = unit(0.35, "lines"),
-  label.padding = unit(0.25, "lines"),
-  point.padding = unit(1.5, "lines"),
-  label.r = unit(0.15, "lines"),
+  box.padding = grid::unit(0.35, "lines"),
+  label.padding = grid::unit(0.25, "lines"),
+  point.padding = grid::unit(1.5, "lines"),
+  label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
   segment.color = "grey50",
   segment.size = 0.5,
@@ -208,7 +204,7 @@ geom_dag_label_repel <- function(
   # if (is.null(mapping$x)) mapping$x <- substitute(node_x)
   # if (is.null(mapping$y)) mapping$y <- substitute(node_y)
 
-  layer(
+  ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = ggnetwork:::StatNodes,
@@ -243,43 +239,117 @@ geom_dag_label_repel <- function(
 
 geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
                            size = .6,
-                           curvature = 0.1,
-                           scale_by = .5,
-                           arrow_directed = arrow(length = unit(5, "pt"), type = "closed"),
-                           arrow_bidirected = arrow(length = unit(5, "pt"), ends = "both", type = "closed"),
-                           position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
+                           curvature = 0.2,
+                           cap = ggraph::circle(8, 'mm'),
+                           arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                           arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
+                           position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
                             ...) {
 
   if (is.null(data_directed)) data_directed <- function(x) {
     if (suppressWarnings(is.null(x$collider_line))) {
-      filter(x, direction != "<->")
+      dplyr::filter(x, direction != "<->")
     } else {
-      filter(x, direction != "<->", !collider_line)
+      dplyr::filter(x, direction != "<->", !collider_line)
     }
   }
   if (is.null(data_bidirected)) data_bidirected <- function(x) {
     if (suppressWarnings(is.null(x$collider_line))) {
-      filter(x, direction == "<->")
+      dplyr::filter(x, direction == "<->")
     } else {
-      filter(x, direction == "<->", !collider_line)
+      dplyr::filter(x, direction == "<->", !collider_line)
     }
+  }
+  # list(
+  #   ggplot2::layer(mapping = mapping,
+  #         geom = ggplot2::GeomSegment,
+  #         data = data_directed,
+  #         stat = StatScaleEdges,
+  #         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+  #         params = list(scale_by = -scale_by, arrow = arrow_directed, size = size, na.rm = na.rm), ...),
+  #   ggplot2::layer(mapping = mapping,
+  #         geom = ggplot2::GeomCurve,
+  #         data = data_bidirected,
+  #         stat = StatScaleEdges,
+  #         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+  #         params = list(scale_by = -scale_by, arrow = arrow_bidirected, size = size, curvature = curvature, na.rm = na.rm, ...))
+  # )
+
+  if (is.null(mapping)) {
+    arc_mapping <- ggplot2::aes(circular = circular)
+  } else {
+    arc_mapping <- mapping
+    if (is.null(arc_mapping$circular)) arc_mapping$circular <- substitute(circular)
   }
 
   list(
-    layer(mapping = mapping,
-          geom = GeomSegment,
-          data = data_directed,
-          stat = StatScaleEdges,
-          position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-          params = list(scale_by = -scale_by, arrow = arrow_directed, size = size, na.rm = na.rm), ...),
-    layer(mapping = mapping,
-          geom = GeomCurve,
-          data = data_bidirected,
-          stat = StatScaleEdges,
-          position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-          params = list(scale_by = -scale_by, arrow = arrow_bidirected, size = size, curvature = curvature, na.rm = na.rm, ...))
+    ggplot2::layer(mapping = mapping,
+                   geom = ggraph::GeomEdgePath,
+                   data = data_directed,
+                   stat = StatEdgeLink,
+                   position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+                   params = list(start_cap = cap, end_cap = cap, arrow = arrow_directed, edge_width = size, interpolate = FALSE, na.rm = na.rm), ...),
+    ggplot2::layer(mapping = arc_mapping,
+                   geom = ggraph::GeomEdgePath,
+                   data =  data_bidirected,
+                   stat = ggraph::StatEdgeArc,
+                   position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+                   params = list(start_cap = cap, end_cap = cap, arrow = arrow_bidirected,
+                                 edge_width = size, curvature = curvature,
+                                 interpolate = FALSE, fold = fold, na.rm = na.rm,
+                                 n = 100, lineend = "butt",
+                                 linejoin = "round", linemitre = 1,
+                                 label_colour = 'black',  label_alpha = 1,
+                                 label_parse = FALSE, check_overlap = FALSE,
+                                 angle_calc = 'rot', force_flip = TRUE,
+                                 label_dodge = NULL, label_push = NULL, ...))
   )
 }
+
+StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggforce::StatLink,
+                        setup_data = function(data, params) {
+                          data <- data[!is.na(data$xend), ]
+                          ggforce::StatLink$setup_data(data, params)
+                        },
+                        default_aes = ggplot2::aes(filter = TRUE)
+
+)
+
+
+geom_dag_edges_link <- function(mapping = NULL, data = NULL,
+                                                    position = "identity", arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"), n = 100,
+                                                    lineend = "butt", linejoin = "round", linemitre = 1,
+                                                    label_colour = 'black',  label_alpha = 1,
+                                                    label_parse = FALSE, check_overlap = FALSE,
+                                                    angle_calc = 'rot', force_flip = TRUE,
+                                                    label_dodge = NULL, label_push = NULL,
+                                                    show.legend = NA,
+                                                    start_cap = ggraph::circle(8, 'mm'),
+                                                    end_cap = ggraph::circle(8, 'mm'),
+                                                    ...) {
+
+
+  # mapping <- ggraph:::completeEdgeAes(mapping)
+  # mapping <- ggraph:::aesIntersect(mapping, ggplot2::aes_(x=~x, y=~y, xend=~xend, yend=~yend))
+  #if (is.null(mapping)) mapping <- ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+  ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeLink,
+        geom = ggraph:::GeomEdgePath, position = position, show.legend = show.legend,
+        inherit.aes = TRUE,
+        params = ggraph:::expand_edge_aes(
+          list(arrow = arrow, lineend = lineend, linejoin = linejoin,
+               linemitre = linemitre, na.rm = FALSE, n = n,
+               interpolate = FALSE,
+               label_colour = label_colour, label_alpha = label_alpha,
+               label_parse = label_parse, check_overlap = check_overlap,
+               angle_calc = angle_calc, force_flip = force_flip,
+               label_dodge = label_dodge, label_push = label_push,
+               start_cap = start_cap,
+               end_cap = end_cap,
+               ...)
+        )
+  )
+}
+
 
 StatScaleEdges <-
   ggplot2::ggproto("StatScaleEdges", ggplot2::Stat,
@@ -309,14 +379,14 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                        inherit.aes = TRUE) {
 
   if (is.null(data)) data <- function(x) filter(x, direction == "<->", collider_line)
-  if (is.null(mapping)) mapping <- aes(linetype = factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
+  if (is.null(mapping)) mapping <- ggplot2::aes(linetype = factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
   if (is.null(mapping$linetype)) mapping$linetype <- substitute(factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
 
-  layer(
+  ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = stat,
-    geom = GeomCurve,
+    geom = ggplot2::GeomCurve,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
@@ -335,15 +405,8 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 
 theme_dag <- function(base_size = 12, base_family = "", ...) {
   list(
-  scale_linetype_manual(name = NULL, values = "dashed"),
-  scale_shape_manual(name = "", drop = FALSE, values = c("unadjusted" = 19, "adjusted" = 15)),
-  scale_alpha_manual(name = " ", drop = FALSE, values = c("adjusted" = .1, "unadjusted" = 1)),
-  scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks),
-  scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50"),
-  scale_x_continuous(expand = expand_x),
-  scale_y_continuous(expand = expand_y),
-  theme_minimal(base_size = base_size, base_family = base_family),
-  theme(strip.background = element_rect(color = "grey85", fill = "grey85"),
+    ggplot2::theme_minimal(base_size = base_size, base_family = base_family),
+    ggplot2::theme(strip.background = ggplot2::element_rect(color = "grey85", fill = "grey85"),
         axis.text = ggplot2::element_blank(),
         axis.title = ggplot2::element_blank(),
         panel.grid = ggplot2::element_blank(),
@@ -351,17 +414,18 @@ theme_dag <- function(base_size = 12, base_family = "", ...) {
   )
 }
 
-scale_dag <- function(expand_x = expand_scale(c(.25, .25)),
-                      expand_y = expand_scale(c(.10, .10)),
-                      breaks = waiver()) {
+scale_dag <- function(expand_x = ggplot2::expand_scale(c(.10, .10)),
+                      expand_y = ggplot2::expand_scale(c(.10, .10)),
+                      breaks = ggplot2::waiver()) {
   list(
-    scale_linetype_manual(name = NULL, values = "dashed"),
-    scale_shape_manual(name = "", drop = FALSE, values = c("unadjusted" = 19, "adjusted" = 15)),
-    scale_alpha_manual(name = " ", drop = FALSE, values = c("adjusted" = .1, "unadjusted" = 1)),
-    scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks),
-    scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50"),
-    scale_x_continuous(expand = expand_x),
-    scale_y_continuous(expand = expand_y)
+    ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
+    ggplot2::scale_shape_manual(name = "", drop = FALSE, values = c("unadjusted" = 19, "adjusted" = 15)),
+    ggplot2::scale_alpha_manual(name = " ", drop = FALSE, values = c("adjusted" = .1, "unadjusted" = 1)),
+    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("adjusted" = .1, "unadjusted" = 1)),
+    ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks),
+    ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50"),
+    ggplot2::scale_x_continuous(expand = expand_x),
+    ggplot2::scale_y_continuous(expand = expand_y)
   )
 }
 
@@ -380,37 +444,37 @@ scale_line <- function(start_x, start_y, end_x, end_y, scale_by) {
   }
   df <- data.frame(start_x, start_y, end_x, end_y)
   df <- df %>%
-    add_row(start_x = 0, end_x = 0, start_y = 1, end_y = -1) %>%
-    add_row(start_x = 1, end_x = 1, start_y = -1, end_y = 1) %>%
-    add_row(start_x = -1, end_x = 1, start_y = 0, end_y = 0) %>%
-    add_row(start_x = 1, end_x = -1, start_y = 1, end_y = 1)
+    dplyr::add_row(start_x = 0, end_x = 0, start_y = 1, end_y = -1) %>%
+    dplyr::add_row(start_x = 1, end_x = 1, start_y = -1, end_y = 1) %>%
+    dplyr::add_row(start_x = -1, end_x = 1, start_y = 0, end_y = 0) %>%
+    dplyr::add_row(start_x = 1, end_x = -1, start_y = 1, end_y = 1)
   df2 <- df %>%
-    mutate(dx = end_x - start_x, dy = end_y - start_y,
+    dplyr::mutate(dx = end_x - start_x, dy = end_y - start_y,
            flat_along_x = dy == 0, flat_along_y = dx == 0,
            length = sqrt(dx^2 + dy^2),
            scale = (length + scale_by) / length,
            dx = dx * scale_by,
            dy = dy * scale_by) %>%
 
-    mutate(scaled_end_x = ifelse(flat_along_x & end_x < start_x, end_x + scale_by, NA),
+    dplyr::mutate(scaled_end_x = ifelse(flat_along_x & end_x < start_x, end_x + scale_by, NA),
            scaled_end_x = ifelse(is.na(scaled_end_x) & flat_along_x & end_x > start_x, end_x - scale_by, scaled_end_x),
            scaled_end_x = ifelse(is.na(scaled_end_x), start_x + dx, scaled_end_x)) %>%
 
-    mutate(scaled_end_y = ifelse(flat_along_y & end_y < start_y, end_y + scale_by, NA),
+    dplyr::mutate(scaled_end_y = ifelse(flat_along_y & end_y < start_y, end_y + scale_by, NA),
            scaled_end_y = ifelse(is.na(scaled_end_y) & flat_along_y & end_y > start_y, end_y - scale_by, scaled_end_y),
            scaled_end_y = ifelse(is.na(scaled_end_y), start_y + dy, scaled_end_y)) %>%
 
-    mutate(scaled_start_x = ifelse(flat_along_x & end_x < start_x, start_x - scale_by, NA),
+    dplyr::mutate(scaled_start_x = ifelse(flat_along_x & end_x < start_x, start_x - scale_by, NA),
            scaled_start_x = ifelse(is.na(scaled_start_x) & flat_along_x & end_x > start_x, start_x + scale_by, scaled_start_x),
            scaled_start_x = ifelse(is.na(scaled_start_x), end_x + dx, scaled_start_x)) %>%
 
-    mutate(scaled_start_y = ifelse(flat_along_y & end_y < start_y, start_y - scale_by, NA),
+    dplyr::mutate(scaled_start_y = ifelse(flat_along_y & end_y < start_y, start_y - scale_by, NA),
            scaled_start_y = ifelse(is.na(scaled_start_y) & flat_along_y & end_y > start_y, start_y + scale_by, scaled_start_y),
            scaled_start_y = ifelse(is.na(scaled_start_y), end_y + dy, scaled_start_y)) %>%
 
-    select(start_x = scaled_start_x, start_y = scaled_start_y, end_x = scaled_end_x, end_y = scaled_end_y)
+    dplyr::select(start_x = scaled_start_x, start_y = scaled_start_y, end_x = scaled_end_x, end_y = scaled_end_y)
 
-    gglines(df) + gglines(df2)
+    #gglines(df) + gglines(df2)
 
   dx <- end_x - start_x
   dy <- end_y - start_y
