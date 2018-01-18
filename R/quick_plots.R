@@ -121,6 +121,35 @@ collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FAL
   .dag
 }
 
+mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
+  coords <- tibble::tribble(
+    ~name, ~x, ~y,
+    "x", 0, 0,
+    "y", 2, 0,
+    "m", 1, 1
+  )
+
+  if (x_y_associated) {
+    .dag <- dagify(
+      m ~ x,
+      y ~ x + m,
+      exposure = x,
+      outcome = y,
+      coords = coords)
+  } else {
+    .dag <- dagify(
+      m ~ x,
+      y ~ m,
+      exposure = x,
+      outcome = y,
+      coords = coords)
+  }
+
+  if (!is.null(c(x, y, m))) label(.dag) <- c(x = x, y = y, m = m)
+
+  .dag
+}
+
 ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
   ggdag(m_bias(x, y, a, b, m, x_y_associated))
 }
@@ -135,4 +164,8 @@ ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associat
 
 ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
   ggdag(collider_triangle(x, y, m, x_y_associated))
+}
+
+ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
+  ggdag(mediation_triangle(x, y, m, x_y_associated))
 }
