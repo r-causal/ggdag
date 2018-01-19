@@ -331,7 +331,7 @@ geom_dag_label_repel <- function(
 geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
                            size = .6,
                            curvature = 0.2,
-                           cap = ggraph::circle(8, 'mm'),
+                           cap = ggraph::circle(9, 'mm'),
                            arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
@@ -435,7 +435,7 @@ geom_dag_edges_link <- function(mapping = NULL, data = NULL,
 
 
   ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeLink,
-        geom = ggraph:::GeomEdgePath, position = position, show.legend = show.legend,
+        geom = ggraph::GeomEdgePath, position = position, show.legend = show.legend,
         inherit.aes = TRUE,
         params = ggraph:::expand_edge_aes(
           list(arrow = arrow, lineend = lineend, linejoin = linejoin,

@@ -9,30 +9,30 @@
 #' @examples
 #'
 
-`label<-` <- function(x, values) {
+`label<-` <- function(x, value) {
   UseMethod("label<-")
 }
 
 #' Title
 #'
 #' @param x
-#' @param values
+#' @param value
 #'
 #' @return
 #' @export
 #'
 #' @examples
-`label<-.dagitty` <- function(x, values) {
-  attr(x, "labels") <- values
+`label<-.dagitty` <- function(x, value) {
+  attr(x, "labels") <- value
   x
 }
 
-`label<-.tidy_dagitty` <- function(x, values) {
-  attr(x, "labels") <- values
+`label<-.tidy_dagitty` <- function(x, value) {
+  attr(x, "labels") <- value
 
   if (!is.null(x$data[["label"]])) x$data <- x$data %>% dplyr::select(-label)
 
-  x$data <- dplyr::left_join(x$data, tibble::enframe(values, value = "label"), by = "name")
+  x$data <- dplyr::left_join(x$data, tibble::enframe(value, value = "label"), by = "name")
   x
 }
 
@@ -144,45 +144,67 @@ tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, l
 #' @export
 #'
 #' @examples
+#' @importFrom methods is
 is.tidy_dagitty <- function(x) {
   is(x, "tidy_dagitty")
 }
 
 
-#' @export
-#' @importFrom broom tidy
-tidy.tidy_dagitty <- function(.tdy_dag) {
-  .tdy_dag$data
-}
 
-
+#' Title
+#'
+#' @param .tdy_dag
+#'
 #' @export
 #' @importFrom ggplot2 fortify
 fortify.tidy_dagitty <- function(.tdy_dag) {
   .tdy_dag$data
 }
 
-
+#' Title
+#'
+#' @param .tdy_dag
+#'
+#' @param ...
+#'
 #' @export
 as.data.frame.tidy_dagitty <- function(.tdy_dag, ...) {
   as.data.frame(.tdy_dag$data, ...)
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#'
 #' @export
 #' @importFrom dplyr tbl_df
 tbl_df.tidy_daggity <- function(.tdy_dag) {
   .tdy_dag$data
 }
 
+#' Title
+#'
+#' @param x
+#'
+#' @param row.names
+#' @param optional
+#' @param ...
+#'
 #' @export
 #' @importFrom dplyr as.tbl
-as.tbl.tidy_daggity <- function(.tdy_dag, ...) {
-  dplyr::as.tbl(.tdy_dag$data, ...)
+as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
+  dplyr::as.tbl(x$data, row.names = row.names, optional = optional, ...)
 }
 
+#' Title
+#'
+#' @param x
+#'
+#' @param ...
+#'
 #' @export
-print.tidy_dagitty <- function(.tdy_dag) {
-  print(.tdy_dag$data)
+print.tidy_dagitty <- function(x, ...) {
+  print(x$data, ...)
 }
 
 #' Title
@@ -196,6 +218,7 @@ print.tidy_dagitty <- function(.tdy_dag) {
 #' @export
 #'
 #' @examples
+#' @importFrom utils capture.output
 adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   sets <- dagitty::adjustmentSets(.tdy_dag$dag, exposure = exposure, outcome = outcome, ...)
   is_empty_set <- purrr::is_empty(sets)
@@ -449,8 +472,8 @@ activate_collider_paths <- function(.tdy_dag, adjust_for) {
       df <- .
       name <- df[["Var1"]]
       to <- df[["Var2"]]
-      start_coords <- .tdy_dag$data %>% filter(name == df[["Var1"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
-      end_coords <- .tdy_dag$data %>% filter(name == df[["Var2"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
+      start_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var1"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
+      end_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var2"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
 
       .tdy_dag$data %>% dplyr::add_row(.before = 1, name = name, from = name, x = start_coords[[1, 1]], y = start_coords[[1, 2]],
                                 to = to, xend = end_coords[[1, 1]], yend = end_coords[[1, 2]],

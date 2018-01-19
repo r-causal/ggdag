@@ -1,10 +1,10 @@
 Package: ggdag
-Title: What the Package Does (one line, title case)
+Title: A Package for Working with Directed Acyclic Graphs
 Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Authors@R: person("Malcolm", "Barrett", email = "malcolmbarrett@gmail.com", role = c("aut", "cre"))
+Description: `ggdag` is a package to simplify working with directed acyclic graphs (DAGs) in R. `ggdag` is built on top of `dagitty`, an R package that uses the dagitty web tool for creating and analyzing DAGs. `ggdag` provides functionality for tidying and plotting `dagitty` objects using `ggplot2` and `ggraph`, as well as common analytic and graphical functions, such as determining adjustment sets and node relartionships. 
 Depends: R (>= 3.4.3)
-License: What license is it under?
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
@@ -19,5 +19,8 @@ Imports:
     ggnetwork,
     ggrepel,
     igraph,
-    magrittr
+    magrittr,
+    methods
 RoxygenNote: 6.0.1
+Suggests: 
+    broom

@@ -4,7 +4,7 @@
 \alias{label<-}
 \title{Title}
 \usage{
-label(x, values) <- value
+label(x) <- value
 }
 \arguments{
 \item{values}{}
