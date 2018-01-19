@@ -1,7 +1,27 @@
+#' Title
+#'
+#' @param x
+#' @param values
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+
 `label<-` <- function(x, values) {
   UseMethod("label<-")
 }
 
+#' Title
+#'
+#' @param x
+#' @param values
+#'
+#' @return
+#' @export
+#'
+#' @examples
 `label<-.dagitty` <- function(x, values) {
   attr(x, "labels") <- values
   x
@@ -16,6 +36,15 @@
   x
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param labels
+#'
+#' @return
+#' @export
+#'
+#' @examples
 dag_label <- function(.tdy_dag, labels = NULL) {
 
   if (!is.null(labels)) .tdy_dag$data <- .tdy_dag$data %>% dplyr::select(-label)
@@ -28,6 +57,14 @@ dag_label <- function(.tdy_dag, labels = NULL) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#'
+#' @return
+#' @export
+#'
+#' @examples
 label <- function(.tdy_dag) {
   attr(.tdy_dag, "labels")
 }
@@ -37,39 +74,19 @@ has_labels <- function(.tdy_dag) {
 }
 
 
-# dag_control_point <- function(x, y, xend, yend, acode, asp) {
-#   dagitty:::.autoControlPoint(x, y, xend, yend, asp, 0.2 * as.integer(acode == 3))
-# }
 
-# dag_line_segment <- function(.x, .y, .wx, .wy, .a, .b, .c, .d, cap = ggraph::circle(8, 'mm')) {
-#
-#   .args <- list(.x, .y, .wx, .wy, .a, .b, .c, .d, scale_by)
-#
-#   purrr::pmap_df(.args, function(.x, .y, .wx, .wy, .a, .b, .c, .d, scale_by) {
-#     .vals <- c(.x, .y, .wx, .wy, .a, .b, .c, .d)
-#     if (any(is.na(.vals))) return(list(x = NA, y = NA))
-#     results <- suppressWarnings(dagitty:::.lineSegBoxIntersect(.x - (.wx/scale_by),
-#                                                     .y - (.wy/scale_by),
-#                                                     .x + (.wx/scale_by),
-#                                                     .y + (.wy/scale_by),
-#                                                     .a, .b, .c, .d))
-#     need_warning <- is.null(results)
-#     iter <- 1
-#     while (is.null(results) & iter <= 100) {
-#       scale_by <- scale_by + .1
-#       results <- suppressWarnings(dagitty:::.lineSegBoxIntersect(.x - (.wx/scale_by),
-#                                                                  .y - (.wy/scale_by),
-#                                                                  .x + (.wx/scale_by),
-#                                                                  .y + (.wy/scale_by),
-#                                                                  .a, .b, .c, .d))
-#       iter = iter + 1
-#     }
-#
-#     if (need_warning) warning(paste("`scale_by` resized to ", round(1/scale_by, 3)), call. = FALSE)
-#     results
-#   })
-# }
-
+#' Title
+#'
+#' @param .dagitty
+#' @param cap
+#' @param seed
+#' @param layout
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, layout = "nicely", ...) {
   if (!is.null(seed)) set.seed(seed)
 
@@ -86,17 +103,11 @@ tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, l
     {suppressMessages(ggraph::create_layout(., layout, ...))}
 
   if (no_existing_coords) {
-    #.dagitty <- dagitty::as.dagitty(dagitty::graphLayout(.dagitty))
     dagitty::coordinates(.dagitty) <- coords2list(ggraph_layout)
   }
   coords <- dagitty::coordinates(.dagitty)
   labels <- names(coords$x)
 
-  # wx <- purrr::map_df(labels, ~tibble(name = .x, wx = strwidth(paste0("xxxxxx", .x), "figure", cex = 2)))
-  # wy <- purrr::map_df(labels, ~tibble(name = .x, wy = strheight(paste0("\n\n\n", .x), "figure", cex = 2)))
-  # asp <- par("pin")[1]/diff(par("usr")[1:2])/(par("pin")[2]/diff(par("usr")[3:4]))
-  #
-  # scale_by <- 1/scale_by
   dag_edges <- dagitty::edges(.dagitty)
 
   tidy_dag <- dplyr::left_join(tibble::enframe(coords$x, value = "x"),
@@ -113,37 +124,8 @@ tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, l
     dplyr::left_join(tidy_dag, ., by = c("name" = "v")) %>%
     dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
     dplyr::mutate(from = name) %>%
-    #dplyr::rename() %>%
     dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
     dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name")
-    #dplyr::mutate(y = -y, yend = -yend)
-
-  # tidy_dag <- dag_edges %>%
-  #   rename(cp_x = x, cp_y = y) %>%
-  #   mutate(v = as.character(v), w = as.character(w)) %>%
-  #   left_join(tidy_dag, ., by = c("name" = "v")) %>%
-  #   left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
-  #   mutate(acode = ifelse(e == "<->", 3, ifelse(e == "--", 0, 2)),
-  #          acode = factor(acode, levels = 0:3, labels = c("undirected", "?", "directed", "bidirected")),
-  #          cp_x = ifelse(is.na(cp_x),
-  #                        dag_control_point(x, y, xend, yend, acode, asp)$x,
-  #                        cp_x),
-  #          cp_y = ifelse(is.na(cp_y),
-  #                        dag_control_point(x, y, xend, yend, acode, asp)$y,
-  #                        cp_y)) %>%
-  #   left_join(wx, by = "name") %>%
-  #   left_join(wy, by = "name") %>%
-  #   left_join(wx, by = c("w" = "name"),  suffix = c("", "end")) %>%
-  #   left_join(wy, by = c("w" = "name"),  suffix = c("", "end")) %>%
-  #   mutate(b_x = dag_line_segment(x, y, wx, wy, x, y, cp_x, cp_y, scale_by)$x,
-  #          b_y = dag_line_segment(x, y, wx, wy, x, y, cp_x, cp_y, scale_by)$y,
-  #          b_xend = dag_line_segment(xend, yend, wxend, wyend, cp_x, cp_y, xend, yend, scale_by)$x,
-  #          b_yend = dag_line_segment(xend, yend, wxend, wyend, cp_x, cp_y, xend, yend, scale_by)$y,
-  #          direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
-  #          type = factor(as.character(acode), levels = c("directed", "bidirected"), exclude = NA)) %>%
-  #   rename(going_to = w) %>%
-  #   select(name, node_x = x, node_y = y, x = b_x, y = b_y, going_to, -e, -acode, direction, type, xend = b_xend, yend = b_yend) %>%
-  #   mutate(node_y = -node_y, y = -y, yend = -yend)
 
   .tdy_dag <- list(data = tidy_dag, dag = .dag)
   class(.tdy_dag) <- "tidy_dagitty"
@@ -154,32 +136,66 @@ tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, l
     .tdy_dag
 }
 
-is.tidy_dagitty <- function(x) is(x, "tidy_dagitty")
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+is.tidy_dagitty <- function(x) {
+  is(x, "tidy_dagitty")
+}
 
+
+#' @export
+#' @importFrom broom tidy
 tidy.tidy_dagitty <- function(.tdy_dag) {
   .tdy_dag$data
 }
 
+
+#' @export
+#' @importFrom ggplot2 fortify
 fortify.tidy_dagitty <- function(.tdy_dag) {
   .tdy_dag$data
 }
 
+
+#' @export
 as.data.frame.tidy_dagitty <- function(.tdy_dag, ...) {
   as.data.frame(.tdy_dag$data, ...)
 }
 
+#' @export
+#' @importFrom dplyr tbl_df
 tbl_df.tidy_daggity <- function(.tdy_dag) {
   .tdy_dag$data
 }
 
+#' @export
+#' @importFrom dplyr as.tbl
 as.tbl.tidy_daggity <- function(.tdy_dag, ...) {
   dplyr::as.tbl(.tdy_dag$data, ...)
 }
 
+#' @export
 print.tidy_dagitty <- function(.tdy_dag) {
   print(.tdy_dag$data)
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param exposure
+#' @param outcome
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   sets <- dagitty::adjustmentSets(.tdy_dag$dag, exposure = exposure, outcome = outcome, ...)
   is_empty_set <- purrr::is_empty(sets)
@@ -206,6 +222,15 @@ if_not_tidy_daggity <- function(.dagitty) {
   .dagitty
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag <- function(.tdy_dag, cap = ggraph::circle(8, 'mm')) {
   if_not_tidy_daggity(.tdy_dag) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -216,6 +241,18 @@ ggdag <- function(.tdy_dag, cap = ggraph::circle(8, 'mm')) {
       scale_dag()
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param exposure
+#' @param outcome
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_adjustment_set <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), exposure = NULL, outcome = NULL, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
@@ -241,16 +278,32 @@ formula2char <- function(fmla) {
   # paste(char_dag_fmla, collapse = "\n")
 }
 
+#' Title
+#'
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 dag <- function(...) {
   dag_string <- paste(..., sep = "; ")
-  paste0("dag{", dag_string, "}")
-
-  #dag_list <- rlang::enquos(..., .unquote_names = FALSE)
-  #browser()
-  #dag_list
-  #purrr::map_chr(dag_list, rlang::expr_name(dag_list))
+  dagitty::dagitty(paste0("dag{", dag_string, "}"))
 }
 
+#' Title
+#'
+#' @param ...
+#' @param exposure
+#' @param outcome
+#' @param latent
+#' @param labels
+#' @param coords
+#'
+#' @return
+#' @export
+#'
+#' @examples
 dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels = NULL, coords = NULL) {
   fmlas <- list(...)
   dag_txt <- purrr::map_chr(fmlas, formula2char)
@@ -273,6 +326,15 @@ dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels =
   dgty
 }
 
+#' Title
+#'
+#' @param .dag
+#' @param .var
+#'
+#' @return
+#' @export
+#'
+#' @examples
 is_collider <- function(.dag, .var) {
   if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
   n_parents <- dagitty::parents(.dag, .var)
@@ -280,8 +342,30 @@ is_collider <- function(.dag, .var) {
 }
 
 
-is_acyclic <- function(g) dagitty::isAcyclic(g)
+#' Title
+#'
+#' @param g
+#'
+#' @return
+#' @export
+#'
+#' @examples
+is_acyclic <- function(g) {
+  dagitty::isAcyclic(g)
+}
 
+#' Title
+#'
+#' @param g
+#' @param z
+#' @param x
+#' @param y
+#' @param direct
+#'
+#' @return
+#' @export
+#'
+#' @examples
 is_confounder <- function(g, z, x, y, direct = FALSE) {
    if (direct) {
      z_descendants <- dagitty::children(g, z)
@@ -291,6 +375,15 @@ is_confounder <- function(g, z, x, y, direct = FALSE) {
    all(c(x, y) %in% z_descendants)
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_collider <- function(.tdy_dag, as_factor = TRUE) {
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
@@ -302,6 +395,16 @@ node_collider <- function(.tdy_dag, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_collider <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_collider(...) %>%
@@ -321,6 +424,15 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
   pairs[!duplicated(t(apply(pairs, 1, sort))), ]
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param adjust_for
+#'
+#' @return
+#' @export
+#'
+#' @examples
 activate_collider_paths <- function(.tdy_dag, adjust_for) {
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
@@ -352,6 +464,16 @@ activate_collider_paths <- function(.tdy_dag, adjust_for) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param adjust_for
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE) {
   .tdy_dag <- activate_collider_paths(.tdy_dag, adjust_for)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% adjust_for, "adjusted", "unadjusted"))
@@ -359,6 +481,17 @@ control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param adjust_for
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_adjust <- function(.tdy_dag, adjust_for, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     control_for(adjust_for, ...) %>%
@@ -371,18 +504,43 @@ ggdag_adjust <- function(.tdy_dag, adjust_for, cap = ggraph::circle(8, 'mm'), ..
       scale_dag()
 }
 
+#' Title
+#'
+#' @param coord_list
+#'
+#' @return
+#' @export
+#'
+#' @examples
 coords2df <- function(coord_list) {
   coord_df <- purrr::map(coord_list, tibble::enframe) %>% purrr::reduce(dplyr::left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df
 }
 
+#' Title
+#'
+#' @param coord_df
+#'
+#' @return
+#' @export
+#'
+#' @examples
 coords2list <- function(coord_df) {
   x <- coord_df %>% dplyr::select(name, x) %>% tibble::deframe()
   y <- coord_df %>% dplyr::select(name, y) %>% tibble::deframe()
   list(x = x, y = y)
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_status <- function(.tdy_dag, as_factor = TRUE) {
   .exposures <- dagitty::exposures(.tdy_dag$dag)
   .outcomes <- dagitty::outcomes(.tdy_dag$dag)
@@ -396,6 +554,16 @@ node_status <- function(.tdy_dag, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_status <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_status(...) %>%
@@ -407,6 +575,16 @@ ggdag_status <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
     scale_dag(breaks = c("exposure", "outcome", "latent"))
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
   .children <- dagitty::children(.tdy_dag$dag, .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
@@ -417,6 +595,17 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_children <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_children(.var, ...) %>%
@@ -429,6 +618,16 @@ ggdag_children <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
 }
 
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
   .parent <- dagitty::parents(.tdy_dag$dag, .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
@@ -439,6 +638,17 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_parents <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_parents(.var, ...) %>%
@@ -450,6 +660,16 @@ ggdag_parents <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
       scale_dag(breaks  = c("parent", "child"))
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
   .ancestors <- dagitty::ancestors(.tdy_dag$dag, .var)[-1]
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
@@ -460,6 +680,17 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_ancestors <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_ancestors(.var, ...) %>%
@@ -471,6 +702,16 @@ ggdag_ancestors <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) 
     scale_dag(breaks  = c("ancestor", "descendant"))
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .descendants <- dagitty::descendants(.tdy_dag$dag, .var)[-1]
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
@@ -481,6 +722,17 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param .var
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_descendants <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_descendants(.var, ...) %>%
@@ -492,6 +744,18 @@ ggdag_descendants <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...
       scale_dag(breaks  = c("ancestor", "descendant"))
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param from
+#' @param to
+#' @param controlling_for
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -512,6 +776,18 @@ node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_facto
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param from
+#' @param to
+#' @param controlling_for
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -531,6 +807,18 @@ node_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, as_facto
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param from
+#' @param to
+#' @param controlling_for
+#' @param as_factor
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -551,6 +839,19 @@ node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_fa
   .tdy_dag
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param from
+#' @param to
+#' @param controlling_for
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
@@ -563,11 +864,37 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, cap 
       scale_dag()
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param from
+#' @param to
+#' @param controlling_for
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, cap = cap, ...)
 }
 
+#' Title
+#'
+#' @param .tdy_dag
+#' @param from
+#' @param to
+#' @param controlling_for
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, cap = cap, ...)

@@ -1,16 +1,27 @@
 
 
+#' Title
+#'
+#' @param mapping
+#' @param data
+#' @param position
+#' @param ...
+#' @param na.rm
+#' @param show.legend
+#' @param inherit.aes
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geom_dag_node <- function(mapping = NULL, data = NULL,
                           position = "identity",
                           ...,
                           na.rm = FALSE,
                           show.legend = NA,
                           inherit.aes = TRUE) {
-  # if (is.null(mapping)) mapping <- aes(x = node_x, y = node_y)
-  # if (is.null(mapping$x)) mapping$x <- substitute(node_x)
-  # if (is.null(mapping$y)) mapping$y <- substitute(node_y)
 
-  layer(
+  ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = ggnetwork:::StatNodes,
@@ -82,6 +93,25 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                        draw_key = ggplot2::draw_key_point
 )
 
+#' Title
+#'
+#' @param mapping
+#' @param data
+#' @param stat
+#' @param position
+#' @param ...
+#' @param parse
+#' @param nudge_x
+#' @param nudge_y
+#' @param check_overlap
+#' @param na.rm
+#' @param show.legend
+#' @param inherit.aes
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geom_dag_text <- function(mapping = NULL, data = NULL,
                       stat = "identity", position = "identity",
                       ...,
@@ -131,6 +161,31 @@ GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = 
 
 
 
+#' Title
+#'
+#' @param mapping
+#' @param data
+#' @param parse
+#' @param ...
+#' @param box.padding
+#' @param point.padding
+#' @param segment.color
+#' @param fontface
+#' @param segment.size
+#' @param arrow
+#' @param force
+#' @param max.iter
+#' @param nudge_x
+#' @param nudge_y
+#' @param na.rm
+#' @param show.legend
+#' @param inherit.aes
+#'
+#' @return
+#' @importFrom purrr %||%
+#' @export
+#'
+#' @examples
 geom_dag_text_repel <- function(mapping = NULL,
                                 data = NULL,
                                 parse = FALSE,
@@ -149,10 +204,7 @@ geom_dag_text_repel <- function(mapping = NULL,
                                 show.legend = NA,
                                 inherit.aes = TRUE) {
 
-  # if (is.null(mapping)) mapping <- aes(x = node_x, y = node_y)
-  # if (is.null(mapping$x)) mapping$x <- substitute(node_x)
-  # if (is.null(mapping$y)) mapping$y <- substitute(node_y)
-  #
+
   ggplot2::layer(data = data,
                  mapping = mapping,
                  stat = ggnetwork:::StatNodes,
@@ -179,6 +231,32 @@ geom_dag_text_repel <- function(mapping = NULL,
 
 }
 
+#' Title
+#'
+#' @param mapping
+#' @param data
+#' @param parse
+#' @param ...
+#' @param box.padding
+#' @param label.padding
+#' @param point.padding
+#' @param label.r
+#' @param label.size
+#' @param segment.color
+#' @param segment.size
+#' @param arrow
+#' @param force
+#' @param max.iter
+#' @param nudge_x
+#' @param nudge_y
+#' @param na.rm
+#' @param show.legend
+#' @param inherit.aes
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geom_dag_label_repel <- function(
   mapping = NULL, data = NULL,
   parse = FALSE,
@@ -199,10 +277,6 @@ geom_dag_label_repel <- function(
   show.legend = NA,
   inherit.aes = TRUE
 ) {
-
-  # if (is.null(mapping)) mapping <- aes(x = node_x, y = node_y)
-  # if (is.null(mapping$x)) mapping$x <- substitute(node_x)
-  # if (is.null(mapping$y)) mapping$y <- substitute(node_y)
 
   ggplot2::layer(
     data = data,
@@ -232,11 +306,28 @@ geom_dag_label_repel <- function(
   )
 }
 
-# GeomScaledSegment <- ggproto("GeomScaledSegment", GeomSegment,
-#                        required_aes = c("x", "y", "xend", "yend"),
-#                        non_missing_aes = c("linetype", "size", "shape"),
-#                        default_aes = aes(colour = "black", size = 0.5, linetype = 1, alpha = NA, scale_by = -.5))
 
+#' Title
+#'
+#' @param mapping
+#' @param data_directed
+#' @param data_bidirected
+#' @param size
+#' @param curvature
+#' @param cap
+#' @param arrow_directed
+#' @param arrow_bidirected
+#' @param position
+#' @param na.rm
+#' @param show.legend
+#' @param inherit.aes
+#' @param fold
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
                            size = .6,
                            curvature = 0.2,
@@ -260,20 +351,6 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
       dplyr::filter(x, direction == "<->", !collider_line)
     }
   }
-  # list(
-  #   ggplot2::layer(mapping = mapping,
-  #         geom = ggplot2::GeomSegment,
-  #         data = data_directed,
-  #         stat = StatScaleEdges,
-  #         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-  #         params = list(scale_by = -scale_by, arrow = arrow_directed, size = size, na.rm = na.rm), ...),
-  #   ggplot2::layer(mapping = mapping,
-  #         geom = ggplot2::GeomCurve,
-  #         data = data_bidirected,
-  #         stat = StatScaleEdges,
-  #         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-  #         params = list(scale_by = -scale_by, arrow = arrow_bidirected, size = size, curvature = curvature, na.rm = na.rm, ...))
-  # )
 
   if (is.null(mapping)) {
     arc_mapping <- ggplot2::aes(circular = circular)
@@ -316,6 +393,33 @@ StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggforce::StatLink,
 )
 
 
+#' Title
+#'
+#' @param mapping
+#' @param data
+#' @param position
+#' @param arrow
+#' @param n
+#' @param lineend
+#' @param linejoin
+#' @param linemitre
+#' @param label_colour
+#' @param label_alpha
+#' @param label_parse
+#' @param check_overlap
+#' @param angle_calc
+#' @param force_flip
+#' @param label_dodge
+#' @param label_push
+#' @param show.legend
+#' @param start_cap
+#' @param end_cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geom_dag_edges_link <- function(mapping = NULL, data = NULL,
                                                     position = "identity", arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"), n = 100,
                                                     lineend = "butt", linejoin = "round", linemitre = 1,
@@ -329,9 +433,7 @@ geom_dag_edges_link <- function(mapping = NULL, data = NULL,
                                                     ...) {
 
 
-  # mapping <- ggraph:::completeEdgeAes(mapping)
-  # mapping <- ggraph:::aesIntersect(mapping, ggplot2::aes_(x=~x, y=~y, xend=~xend, yend=~yend))
-  #if (is.null(mapping)) mapping <- ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+
   ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeLink,
         geom = ggraph:::GeomEdgePath, position = position, show.legend = show.legend,
         inherit.aes = TRUE,
@@ -355,7 +457,7 @@ StatScaleEdges <-
   ggplot2::ggproto("StatScaleEdges", ggplot2::Stat,
                    required_aes = "scale_by",
                    compute_group = function(data, scales, params, scale_by) {
-                     #browser()
+
                      data <- unique(subset(data, !(x == xend & y == yend)))
                      dplyr::mutate(data,
                             x = scale_line(xend, yend, x, y, scale_by)$end_x,
@@ -365,6 +467,27 @@ StatScaleEdges <-
                    }
   )
 
+#' Title
+#'
+#' @param mapping
+#' @param data
+#' @param stat
+#' @param position
+#' @param ...
+#' @param size
+#' @param curvature
+#' @param angle
+#' @param ncp
+#' @param arrow
+#' @param lineend
+#' @param na.rm
+#' @param show.legend
+#' @param inherit.aes
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                        stat = "identity", position = "identity",
                        ...,
@@ -378,7 +501,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                        show.legend = NA,
                        inherit.aes = TRUE) {
 
-  if (is.null(data)) data <- function(x) filter(x, direction == "<->", collider_line)
+  if (is.null(data)) data <- function(x) dplyr::filter(x, direction == "<->", collider_line)
   if (is.null(mapping)) mapping <- ggplot2::aes(linetype = factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
   if (is.null(mapping$linetype)) mapping$linetype <- substitute(factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
 
@@ -403,6 +526,16 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
   )
 }
 
+#' Title
+#'
+#' @param base_size
+#' @param base_family
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 theme_dag <- function(base_size = 12, base_family = "", ...) {
   list(
     ggplot2::theme_minimal(base_size = base_size, base_family = base_family),
@@ -414,6 +547,16 @@ theme_dag <- function(base_size = 12, base_family = "", ...) {
   )
 }
 
+#' Title
+#'
+#' @param expand_x
+#' @param expand_y
+#' @param breaks
+#'
+#' @return
+#' @export
+#'
+#' @examples
 scale_dag <- function(expand_x = ggplot2::expand_scale(c(.10, .10)),
                       expand_y = ggplot2::expand_scale(c(.10, .10)),
                       breaks = ggplot2::waiver()) {
@@ -428,99 +571,3 @@ scale_dag <- function(expand_x = ggplot2::expand_scale(c(.10, .10)),
     ggplot2::scale_y_continuous(expand = expand_y)
   )
 }
-
-# theme_dag_facet <- function(base_size = 12, base_family = "", expand = c(.25, .25), breaks = waiver(), ...)
-# {
-#   list(
-#     theme_dag(base_size = base_size, base_family = base_family, breaks = breaks),
-#     theme(panel.border = ggplot2::element_rect(fill = NA, color = "grey50"), ...)
-#   )
-# }
-
-scale_line <- function(start_x, start_y, end_x, end_y, scale_by) {
-  if (any(start_x == end_x && start_y == end_y)) {
-    warning("Scaling failed: returning original coordinates")
-    return(list(start_x = start_x, start_y = start_y, end_x = end_x, end_y = end_y))
-  }
-  df <- data.frame(start_x, start_y, end_x, end_y)
-  df <- df %>%
-    dplyr::add_row(start_x = 0, end_x = 0, start_y = 1, end_y = -1) %>%
-    dplyr::add_row(start_x = 1, end_x = 1, start_y = -1, end_y = 1) %>%
-    dplyr::add_row(start_x = -1, end_x = 1, start_y = 0, end_y = 0) %>%
-    dplyr::add_row(start_x = 1, end_x = -1, start_y = 1, end_y = 1)
-  df2 <- df %>%
-    dplyr::mutate(dx = end_x - start_x, dy = end_y - start_y,
-           flat_along_x = dy == 0, flat_along_y = dx == 0,
-           length = sqrt(dx^2 + dy^2),
-           scale = (length + scale_by) / length,
-           dx = dx * scale_by,
-           dy = dy * scale_by) %>%
-
-    dplyr::mutate(scaled_end_x = ifelse(flat_along_x & end_x < start_x, end_x + scale_by, NA),
-           scaled_end_x = ifelse(is.na(scaled_end_x) & flat_along_x & end_x > start_x, end_x - scale_by, scaled_end_x),
-           scaled_end_x = ifelse(is.na(scaled_end_x), start_x + dx, scaled_end_x)) %>%
-
-    dplyr::mutate(scaled_end_y = ifelse(flat_along_y & end_y < start_y, end_y + scale_by, NA),
-           scaled_end_y = ifelse(is.na(scaled_end_y) & flat_along_y & end_y > start_y, end_y - scale_by, scaled_end_y),
-           scaled_end_y = ifelse(is.na(scaled_end_y), start_y + dy, scaled_end_y)) %>%
-
-    dplyr::mutate(scaled_start_x = ifelse(flat_along_x & end_x < start_x, start_x - scale_by, NA),
-           scaled_start_x = ifelse(is.na(scaled_start_x) & flat_along_x & end_x > start_x, start_x + scale_by, scaled_start_x),
-           scaled_start_x = ifelse(is.na(scaled_start_x), end_x + dx, scaled_start_x)) %>%
-
-    dplyr::mutate(scaled_start_y = ifelse(flat_along_y & end_y < start_y, start_y - scale_by, NA),
-           scaled_start_y = ifelse(is.na(scaled_start_y) & flat_along_y & end_y > start_y, start_y + scale_by, scaled_start_y),
-           scaled_start_y = ifelse(is.na(scaled_start_y), end_y + dy, scaled_start_y)) %>%
-
-    dplyr::select(start_x = scaled_start_x, start_y = scaled_start_y, end_x = scaled_end_x, end_y = scaled_end_y)
-
-    #gglines(df) + gglines(df2)
-
-  dx <- end_x - start_x
-  dy <- end_y - start_y
-  if (dx == 0) {
-    # vertical line:
-      if (end_y < start_y) {
-        scaled_end_y = end_y - scale_by
-    } else {
-        scaled_end_y = end_y + scale_by
-    }
-  } else if (dy == 0) {
-    # horizontal line:
-      if (end_x < start_x) {
-        scaled_end_x = end_x - scale_by
-      } else {
-        scaled_end_x = end_x + scale_by
-    }
-  } else {
-    # non-horizontal, non-vertical line:
-      length = sqrt(dx^2 + dy^2)
-      scale = (length + scale_by) / length
-
-      dx = ifelse(dx == 0 & end_y < start_y, scale,
-                  ifelse(dx == 0 & end_y > start_y, -scale,
-                                       dx * scale))
-      dy = ifelse(dy == 0 & end_x < start_x, scale,
-                  ifelse(dy == 0 & end_x > start_x, -scale,
-                         dy * scale))
-      scaled_end_x =  ifelse(abs(dy) == abs(scale), end_x + dx, start_x + dx)
-      scaled_end_y = start_y + dy
-      scaled_start_x = end_x + dx
-      scaled_start_y = end_y + dy
-  }
-
-  list(start_x = scaled_start_x, start_y = scaled_start_y, end_x = scaled_end_x, end_y = scaled_end_y)
-}
-
-# scale_line <- function(start_x, start_y, end_x, end_y, scale_by) {
-#
-#   line_dist <- sqrt((end_x - start_x)^2 + (end_y - start_y)^2)
-#
-#   scale_by <-  line_dist / scale_by
-#
-#   scaled_end_x <- ((1 - scale_by) * start_x) + (scale_by * end_x)
-#   scaled_end_y <- ((1 - scale_by) * start_y) + (scale_by * end_y)
-#
-#   list(start_x = start_x, start_y = start_y, end_x = scaled_end_x, end_y = scaled_end_y)
-# }
-

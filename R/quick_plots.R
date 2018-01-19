@@ -1,3 +1,17 @@
+#' Quickly create a DAG with M-shaped bias
+#'
+#' @param x Character vector. Optional label. Default is null.
+#' @param y Character vector. Optional label. Default is null.
+#' @param a Character vector. Optional label. Default is null.
+#' @param b Character vector. Optional label. Default is null.
+#' @param m Character vector. Optional label. Default is null.
+#' @param x_y_associated Logical. Are x and y associated? Default is `FALSE`.
+#'
+#' @return a DAG of class `dagitty`
+#' @export
+#'
+#' @examples
+
 m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
   coords <- tibble::tribble(
     ~name, ~x, ~y,
@@ -31,6 +45,19 @@ m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associa
   .dag
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param a
+#' @param b
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
   coords <- tibble::tribble(
     ~name, ~x, ~y,
@@ -64,6 +91,17 @@ butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y
   .dag
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param z
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE) {
   coords <- tibble::tribble(
     ~name, ~x, ~y,
@@ -93,6 +131,17 @@ confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = F
   .dag
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
   coords <- tibble::tribble(
     ~name, ~x, ~y,
@@ -121,6 +170,17 @@ collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FAL
   .dag
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
   coords <- tibble::tribble(
     ~name, ~x, ~y,
@@ -150,22 +210,81 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
   .dag
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param a
+#' @param b
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
   ggdag(m_bias(x, y, a, b, m, x_y_associated))
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param a
+#' @param b
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
   ggdag(butterfly_bias(x, y, a, b, m, x_y_associated))
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param z
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE) {
   ggdag(confounder_triangle(x, y, z, x_y_associated))
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
   ggdag(collider_triangle(x, y, m, x_y_associated))
 }
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param m
+#' @param x_y_associated
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
   ggdag(mediation_triangle(x, y, m, x_y_associated))
 }

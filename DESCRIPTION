@@ -18,5 +18,6 @@ Imports:
     forcats,
     ggnetwork,
     ggrepel,
-    igraph
+    igraph,
+    magrittr
 RoxygenNote: 6.0.1
