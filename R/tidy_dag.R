@@ -366,6 +366,21 @@ is_collider <- function(.dag, .var) {
   length(n_parents) > 1
 }
 
+#' Title
+#'
+#' @param .dag
+#' @param .var
+#'
+#' @return
+#' @export
+#'
+#' @examples
+is_downstream_collider <- function(.dag, .var) {
+  if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
+  var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
+  any(purrr::map_lgl(var_ancestors, ~is_collider(.dag, .x)))
+}
+
 
 #' Title
 #'
@@ -461,11 +476,12 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
 activate_collider_paths <- function(.tdy_dag, adjust_for) {
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
-  collider_names <- vars[colliders]
+  downstream_colliders <- purrr::map_lgl(vars, ~is_downstream_collider(.tdy_dag, .x))
+  collider_names <- unique(c(vars[colliders], vars[downstream_colliders]))
 
   if (!any((collider_names %in% adjust_for))) return(.tdy_dag)
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
-  collider_paths <- purrr::map(adjusted_colliders, ~dagitty::parents(.tdy_dag$dag, .x))
+  collider_paths <- purrr::map(adjusted_colliders, ~dagitty::ancestors(.tdy_dag$dag, .x)[-1])
 
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
