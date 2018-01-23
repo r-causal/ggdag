@@ -220,14 +220,16 @@ print.tidy_dagitty <- function(x, ...) {
 #' @examples
 #' @importFrom utils capture.output
 adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
   sets <- dagitty::adjustmentSets(.tdy_dag$dag, exposure = exposure, outcome = outcome, ...)
   is_empty_set <- purrr::is_empty(sets)
-  if (is_empty_set) stop("dagitty failed to process sets. Check that it is a DAG with `IsAcyclic()`")
+  if (is_empty_set) stop("dagitty failed to process sets. Check that it is a DAG with `is_acyclic()`")
   sets <- sets %>%
     capture.output() %>%
     stringr::str_replace(" \\{\\}", "(Unconditionally Independent)") %>%
     stringr::str_replace("\\{ ", "") %>%
     stringr::str_replace(" \\}", "") %>%
+    stringr::str_trim() %>%
     purrr::map(~stringr::str_split(.x, ", ") %>%
     purrr::pluck(1))
 
