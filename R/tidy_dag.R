@@ -1088,11 +1088,13 @@ ggdag_equivalent_dags <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) 
 
 node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag)
-  dag_edges <- dagitty::equivalenceClass(.dag$dag) %>%
+  .dag$data <- dagitty::equivalenceClass(.dag$dag) %>%
     dagitty::edges(.) %>%
     dplyr::filter(e == "--") %>%
     dplyr::select(name = v, reversable = e) %>%
-    dplyr::mutate(reversable = reversable == "--")
+    dplyr::mutate(name = as.character(name)) %>%
+    dplyr::left_join(.dag$data, .,  by = "name") %>%
+    dplyr::mutate(reversable = !is.na(reversable))
 
   .dag
 }
