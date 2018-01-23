@@ -536,7 +536,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #' @export
 #'
 #' @examples
-theme_dag <- function(base_size = 12, base_family = "", ...) {
+theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
   list(
     ggplot2::theme_minimal(base_size = base_size, base_family = base_family),
     ggplot2::theme(strip.background = ggplot2::element_rect(color = "grey85", fill = "grey85"),
@@ -546,6 +546,53 @@ theme_dag <- function(base_size = 12, base_family = "", ...) {
         ...)
   )
 }
+
+#' Title
+#'
+#' @param base_size
+#' @param base_family
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
+  list(
+    ggplot2::theme_grey(base_size = base_size, base_family = base_family),
+    ggplot2::theme(axis.text = ggplot2::element_blank(),
+                   axis.title = ggplot2::element_blank(),
+                   axis.ticks = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_line(colour = "grey92"),
+                   panel.grid.minor = ggplot2::element_line(colour = "grey92"),
+                   #panel.grid = ggplot2::element_blank(),
+                   ...)
+  )
+}
+
+#' Title
+#'
+#' @param base_size
+#' @param base_family
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+theme_dag_gray <- theme_dag_grey
+
+#' Title
+#'
+#' @param base_size
+#' @param base_family
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+theme_dag <- theme_dag_grey
 
 #' Title
 #'

@@ -412,7 +412,7 @@ node_collider <- function(.tdy_dag, as_factor = TRUE) {
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
   names(colliders) <- vars
   .tdy_dag$data <- dplyr::left_join(.tdy_dag$data,
-                             tibble::enframe(colliders, value = "colliders"))
+                             tibble::enframe(colliders, value = "colliders"), by = "name")
   purrr::map(vars[colliders], ~dagitty::parents(.tdy_dag$dag, .x))
   if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, colliders = factor(as.numeric(colliders), levels = 0:1, labels = c("Non-Collider", "Collider")))
   .tdy_dag
@@ -921,4 +921,178 @@ ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, cap = g
 ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, cap = cap, ...)
+}
+
+#' Title
+#'
+#' @param .dag
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+node_canonical <- function(.dag, ...) {
+  .dag <- if_not_tidy_daggity(.dag)
+  dagitty::canonicalize(.dag$dag)$g %>% tidy_dagitty(...)
+}
+
+#' Title
+#'
+#' @param .tdy_dag
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdag_canonical <- function(.tdy_dag, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  node_canonical(.tdy_dag) %>% ggdag(...)
+}
+
+#' Title
+#'
+#' @param .dag
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+node_exogenous <- function(.dag, ...) {
+  .dag <- if_not_tidy_daggity(.dag)
+  exogenous_vars <- dagitty::exogenousVariables(.dag$dag)
+  .dag$data <- .dag$data %>% dplyr::mutate(exogenous = ifelse(name %in% exogenous_vars, "exogenous", NA))
+  .dag
+}
+
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdag_exogenous <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
+  if_not_tidy_daggity(.tdy_dag) %>%
+    node_exogenous() %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = exogenous)) +
+    geom_dag_edges(cap = cap) +
+    geom_dag_node() +
+    geom_dag_text(col = "white") +
+    theme_dag() +
+    scale_dag(breaks  = "exogenous")
+}
+
+#' Title
+#'
+#' @param .dag
+#' @param exposure
+#' @param outcome
+#'
+#' @return
+#' @export
+#'
+#' @examples
+node_instrumental <- function(.dag, exposure = NULL, outcome = NULL) {
+  .dag <- if_not_tidy_daggity(.dag)
+  instrumental_vars <- dagitty::instrumentalVariables(.dag$dag,
+                                                      exposure = exposure,
+                                                      outcome = outcome)
+
+
+  i_vars <- purrr::map(instrumental_vars, "I")
+  adjust_for_vars <- purrr::map(instrumental_vars, "Z")
+
+  .dag$data <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
+      conditional_vars <- ifelse(is.null(.z), "", paste("|", paste(.z, collapse = ", ")))
+      .dag$data$instrumental_name <- paste(.i, conditional_vars) %>% stringr::str_trim()
+      if (!is.null(adjust_for_vars)) {
+        .dag <- .dag %>% control_for(adjust_for_vars)
+      } else {
+        .dag$data$adjusted <- factor("unadjusted", levels = c("unadjusted", "adjusted"), exclude = NA)
+      }
+      .dag$data <- .dag$data %>% dplyr::mutate(instrumental = ifelse(name == .i, "instrumental", NA))
+      .dag$data
+  })
+    .dag
+}
+
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, cap = ggraph::circle(8, 'mm'), ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+    node_instrumental(exposure = exposure, outcome = outcome, ...)
+  p <- .tdy_dag %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = instrumental, shape = adjusted)) +
+      geom_dag_edges(cap = cap) +
+      geom_dag_node() +
+      geom_dag_text(col = "white") +
+      theme_dag() +
+      scale_dag(breaks  = "instrumental")
+
+  if (dplyr::n_distinct(.tdy_dag$data$instrumental_name) > 1) p <- p + ggplot2::facet_wrap(~instrumental_name)
+  p
+}
+
+#' Title
+#'
+#' @param .dag
+#' @param n
+#'
+#' @return
+#' @export
+#'
+#' @examples
+node_equivalent_dags <- function(.dag, n = 100, layout = "auto") {
+  .dag <- if_not_tidy_daggity(.dag)
+  .dag$data <- dagitty::equivalentDAGs(.dag$dag, n = n) %>%
+    purrr::map_df(~as.data.frame(tidy_dagitty(.x, layout = layout)), .id = "dag") %>%
+    dplyr::as.tbl()
+  .dag
+}
+
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdag_equivalent_dags <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
+
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+    node_equivalent_dags(...)
+
+  p <- ggdag(.tdy_dag)
+
+  if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) p <- p + ggplot2::facet_wrap(~dag)
+
+  p
+}
+
+node_equivalent_class <- function(.dag, layout = "auto") {
+  .dag <- if_not_tidy_daggity(.dag)
+  dag_edges <- dagitty::equivalenceClass(.dag$dag) %>%
+    dagitty::edges(.) %>%
+    dplyr::filter(e == "--") %>%
+    dplyr::select(name = v, reversable = e) %>%
+    dplyr::mutate(reversable = reversable == "--")
+
+  .dag
 }
