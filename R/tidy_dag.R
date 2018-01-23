@@ -240,8 +240,8 @@ adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   .tdy_dag
 }
 
-if_not_tidy_daggity <- function(.dagitty) {
-  if (!is.tidy_dagitty(.dagitty)) return(tidy_dagitty(.dagitty))
+if_not_tidy_daggity <- function(.dagitty, ...) {
+  if (!is.tidy_dagitty(.dagitty)) return(tidy_dagitty(.dagitty, ...))
   .dagitty
 }
 
@@ -1086,8 +1086,17 @@ ggdag_equivalent_dags <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) 
   p
 }
 
+#' Title
+#'
+#' @param .dag
+#' @param layout
+#'
+#' @return
+#' @export
+#'
+#' @examples
 node_equivalent_class <- function(.dag, layout = "auto") {
-  .dag <- if_not_tidy_daggity(.dag)
+  .dag <- if_not_tidy_daggity(.dag, layout = layout)
   .dag$data <- dagitty::equivalenceClass(.dag$dag) %>%
     dagitty::edges(.) %>%
     dplyr::filter(e == "--") %>%
@@ -1097,4 +1106,42 @@ node_equivalent_class <- function(.dag, layout = "auto") {
     dplyr::mutate(reversable = !is.na(reversable))
 
   .dag
+}
+
+#' Title
+#'
+#' @param .tdy_dag
+#' @param cap
+#' @param ...
+#' @param expand_x
+#' @param expand_y
+#' @param breaks
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdag_equivalent_class <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'),
+                                   expand_x = ggplot2::expand_scale(c(.10, .10)),
+                                   expand_y = ggplot2::expand_scale(c(.10, .10)),
+                                   breaks = ggplot2::waiver(), ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+    node_equivalent_class(...)
+
+  reversable_lines <- dplyr::filter(.tdy_dag$data, reversable)
+  non_reversable_lines <- dplyr::filter(.tdy_dag$data, !reversable)
+  .tdy_dag %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, edge_alpha = reversable)) +
+      geom_dag_edges(data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
+                     data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->"),
+                     cap = cap) +
+      ggraph::geom_edge_link(data = reversable_lines, start_cap = cap, end_cap = cap) +
+      geom_dag_node() +
+      geom_dag_text(col = "white") +
+      theme_dag() +
+      ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks) +
+      ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50") +
+      ggplot2::scale_x_continuous(expand = expand_x) +
+      ggplot2::scale_y_continuous(expand = expand_y) +
+      ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.1, 1))
 }
