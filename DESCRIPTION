@@ -20,7 +20,9 @@ Imports:
     ggrepel,
     igraph,
     magrittr,
-    methods
+    methods,
+    ggforce,
+    V8
 RoxygenNote: 6.0.1
 Suggests: 
     broom
