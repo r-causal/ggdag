@@ -4,10 +4,13 @@
 \alias{ggdag_equivalent_class}
 \title{Title}
 \usage{
-ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"), ...)
+ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"),
+  expand_x = ggplot2::expand_scale(c(0.1, 0.1)),
+  expand_y = ggplot2::expand_scale(c(0.1, 0.1)), breaks = ggplot2::waiver(),
+  ...)
 }
 \arguments{
-\item{...}{}
+\item{breaks}{}
 }
 \description{
 Title

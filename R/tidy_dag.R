@@ -168,8 +168,8 @@ fortify.tidy_dagitty <- function(.tdy_dag) {
 #' @param ...
 #'
 #' @export
-as.data.frame.tidy_dagitty <- function(.tdy_dag, ...) {
-  as.data.frame(.tdy_dag$data, ...)
+as.data.frame.tidy_dagitty <- function(x, row.names, optional, ...) {
+  as.data.frame(x$data, row.names, optional, ...)
 }
 
 #' Title

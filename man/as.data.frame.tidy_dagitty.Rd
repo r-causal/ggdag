@@ -4,12 +4,12 @@
 \alias{as.data.frame.tidy_dagitty}
 \title{Title}
 \usage{
-\method{as.data.frame}{tidy_dagitty}(.tdy_dag, ...)
+\method{as.data.frame}{tidy_dagitty}(x, row.names, optional, ...)
 }
 \arguments{
-\item{.tdy_dag}{}
-
 \item{...}{}
+
+\item{.tdy_dag}{}
 }
 \description{
 Title
