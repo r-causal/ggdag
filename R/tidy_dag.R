@@ -308,7 +308,7 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...)
       geom_dag_text(col = "white") +
       ggplot2::facet_wrap(~set) +
       theme_dag() +
-      scale_dag()
+      scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
 }
 
 
