@@ -4,7 +4,7 @@
 \alias{ggdag_equivalent_dags}
 \title{Title}
 \usage{
-ggdag_equivalent_dags(.tdy_dag, cap = ggraph::circle(8, "mm"), ...)
+ggdag_equivalent_dags(.tdy_dag, ...)
 }
 \arguments{
 \item{...}{}

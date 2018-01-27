@@ -4,8 +4,7 @@
 \alias{ggdag_drelationship}
 \title{Title}
 \usage{
-ggdag_drelationship(.tdy_dag, from, to, controlling_for = NULL,
-  cap = ggraph::circle(8, "mm"), ...)
+ggdag_drelationship(.tdy_dag, from, to, controlling_for = NULL, ...)
 }
 \arguments{
 \item{...}{}

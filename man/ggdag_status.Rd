@@ -4,7 +4,7 @@
 \alias{ggdag_status}
 \title{Title}
 \usage{
-ggdag_status(.tdy_dag, cap = ggraph::circle(8, "mm"), ...)
+ggdag_status(.tdy_dag, ...)
 }
 \arguments{
 \item{...}{}

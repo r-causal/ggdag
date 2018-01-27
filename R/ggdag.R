@@ -329,68 +329,155 @@ geom_dag_label_repel <- function(
 #'
 #' @examples
 geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
-                           size = .6,
                            curvature = 0.2,
-                           cap = ggraph::circle(9, 'mm'),
                            arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
                             ...) {
 
-  if (is.null(data_directed)) data_directed <- function(x) {
-    if (suppressWarnings(is.null(x$collider_line))) {
-      dplyr::filter(x, direction != "<->")
-    } else {
-      dplyr::filter(x, direction != "<->", !collider_line)
-    }
-  }
-  if (is.null(data_bidirected)) data_bidirected <- function(x) {
-    if (suppressWarnings(is.null(x$collider_line))) {
-      dplyr::filter(x, direction == "<->")
-    } else {
-      dplyr::filter(x, direction == "<->", !collider_line)
-    }
-  }
-
+  # if (is.null(data_directed)) data_directed <- function(x) {
+  #   if (suppressWarnings(is.null(x$collider_line))) {
+  #     df <- dplyr::filter(x, direction != "<->")
+  #   } else {
+  #     df <- dplyr::filter(x, direction != "<->", !collider_line)
+  #   }
+  #   df
+  # }
+  # if (is.null(data_bidirected)) data_bidirected <- function(x) {
+  #   return_aes_na <- function(.df) {
+  #     dplyr::mutate(.df, start_cap = NA, end_cap = NA)
+  #   }
+  #   if (suppressWarnings(is.null(x$collider_line))) {
+  #     browser()
+  #     x %>% dplyr::filter(direction == "<->")
+  #     #%>% dplyr::add_row(circular = FALSE)
+  #   } else {
+  #     df <- dplyr::filter(x, direction == "<->", !collider_line)
+  #   }
+  # }
+  # if (is.null(mapping)) {
+  #   mapping <- ggplot2::aes(start_cap = ggraph::circle(9, 'mm'), end_cap = ggraph::circle(9, 'mm'))
+  # } else {
+  #   if (is.null(mapping$start_cap)) mapping$start_cap <- substitute(ggraph::circle(9, 'mm'))
+  #   if (is.null(mapping$end_cap)) mapping$end_cap <- substitute(ggraph::circle(9, 'mm'))
+  # }
   if (is.null(mapping)) {
-    arc_mapping <- ggplot2::aes(circular = circular)
-  } else {
-    arc_mapping <- mapping
-    if (is.null(arc_mapping$circular)) arc_mapping$circular <- substitute(circular)
+    mapping <- ggplot2::aes(direction = direction)
+  } else if (is.null(mapping$direction)){
+    mapping$direction <- substitute(direction)
   }
+  arc_mapping <- ggplot2::aes(circular = circular)
+  if (!is.null(mapping)) arc_mapping[names(mapping)] <- mapping
+  # if (is.null(arc_mapping$start_cap)) arc_mapping$start_cap <- eval(ggraph::circle(9, 'mm'))
+  # if (is.null(arc_mapping$end_cap)) arc_mapping$end_cap <- eval(ggraph::circle(9, 'mm'))
+  # #arc_mapping <- mapping
+  # if (is.null(arc_mapping$circular)) arc_mapping$circular <- substitute(circular)
 
   list(
     ggplot2::layer(mapping = mapping,
-                   geom = ggraph::GeomEdgePath,
+                   geom = GeomDAGEdgePath,
                    data = data_directed,
                    stat = StatEdgeLink,
                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-                   params = list(start_cap = cap, end_cap = cap, arrow = arrow_directed, edge_width = size, interpolate = FALSE, na.rm = na.rm), ...),
+                   check.aes = FALSE,
+                   params = list(arrow = arrow_directed, interpolate = FALSE, na.rm = na.rm, direction_type = "->", ...)),
     ggplot2::layer(mapping = arc_mapping,
-                   geom = ggraph::GeomEdgePath,
+                   geom = GeomDAGEdgePath,
                    data =  data_bidirected,
-                   stat = ggraph::StatEdgeArc,
+                   stat = StatEdgeArc,
+                   check.aes = FALSE,
                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-                   params = list(start_cap = cap, end_cap = cap, arrow = arrow_bidirected,
-                                 edge_width = size, curvature = curvature,
+                   params = list(arrow = arrow_bidirected, curvature = curvature,
                                  interpolate = FALSE, fold = fold, na.rm = na.rm,
                                  n = 100, lineend = "butt",
                                  linejoin = "round", linemitre = 1,
                                  label_colour = 'black',  label_alpha = 1,
                                  label_parse = FALSE, check_overlap = FALSE,
                                  angle_calc = 'rot', force_flip = TRUE,
-                                 label_dodge = NULL, label_push = NULL, ...))
+                                 label_dodge = NULL, label_push = NULL, direction_type = "<->", ...))
   )
 }
 
-StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggforce::StatLink,
-                        setup_data = function(data, params) {
-                          data <- data[!is.na(data$xend), ]
-                          ggforce::StatLink$setup_data(data, params)
-                        },
-                        default_aes = ggplot2::aes(filter = TRUE)
+# StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggforce::StatLink,
+#                         setup_data = function(data, params) {
+#                           data <- data[!is.na(data$xend), ]
+#                           ggforce::StatLink$setup_data(data, params)
+#                         },
+#                         default_aes = ggplot2::aes(filter = TRUE)
+#
+# )
+
+StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
+                                setup_data = function(data, params) {
+                                 data <- data[!is.na(data$direction) &
+                                                 data$direction == "->", ]
+
+                                  if (nrow(data) > 0) {
+                                    data <- ggraph::StatEdgeLink$setup_data(data, params)
+                                  } else {
+                                    data <- NULL
+                                  }
+                                  data
+                                },
+                                compute_panel = function(data, scales, n = 100) {
+                                  if (is.null(data)) return(data)
+                                  ggraph::StatEdgeLink$compute_panel(data, scales, n = n)
+                                },
+                                default_aes = ggplot2::aes(filter = TRUE)
 
 )
+
+StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
+                                 setup_data = function(data, params) {
+                                   #browser()
+                                   data <- data[!is.na(data$direction) &
+                                                  data$direction == "<->" &
+                                                  !is.na(data$circular), ]
+
+                                   if (nrow(data) > 0) {
+                                     data <- ggraph::StatEdgeArc$setup_data(data, params)
+                                   } else {
+                                      data <- NULL
+                                    }
+                                   data
+                                 },
+                                 default_aes = ggplot2::aes(filter = TRUE)
+
+)
+
+GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
+                                    setup_data = function(data, params) {
+                                      #browser()
+                                      ggraph::GeomEdgePath$setup_data(data, params)
+                                    },
+                                    use_defaults = function(self, data, params = list()) {
+                                      # Fill in missing aesthetics with their defaults
+
+                                        missing_aes <- setdiff(names(self$default_aes), names(data))
+                                      if (purrr::is_empty(data)) {
+
+                                        data <- plyr::quickdf(self$default_aes[missing_aes])
+                                      } else {
+                                        if ("start_cap" %in% missing_aes) data$start_cap <- ggraph::circle(8, "mm")
+                                        if ("end_cap" %in% missing_aes) data$end_cap <- ggraph::circle(8, "mm")
+                                        missing_aes <- missing_aes[!(missing_aes %in% c("start_cap", "end_cap"))]
+                                        data[missing_aes] <- self$default_aes[missing_aes]
+                                      }
+
+                                      # Override mappings with params
+                                      aes_params <- intersect(self$aesthetics(), names(params))
+                                      ggplot2:::check_aesthetics(params[aes_params], nrow(data))
+                                      data[aes_params] <- params[aes_params]
+                                      data
+                                      #dplyr::filter(data, direction == direction_type)
+                                    },
+                                    non_missing_aes = c("direction", "direction_type"),
+                                    default_aes = ggplot2::aes(edge_colour = 'black', edge_width = 0.6, edge_linetype = 'solid',
+                                                               edge_alpha = NA, start_cap = NA, end_cap = NA, label = NA,
+                                                               label_pos = 0.5, label_size = 3.88, angle = 0,
+                                                               hjust = 0.5, vjust = 0.5, family = '', fontface = 1,
+                                                               lineheight = 1.2, direction = "->", direction_type = "->")
+                                    )
 
 
 #' Title

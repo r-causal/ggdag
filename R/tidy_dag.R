@@ -87,10 +87,10 @@ has_labels <- function(.tdy_dag) {
 #' @export
 #'
 #' @examples
-tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, layout = "nicely", ...) {
+tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   if (!is.null(seed)) set.seed(seed)
 
-  dagitty:::.supportsTypes(.dagitty, c("dag"))
+  if (dagitty::graphType(.dagitty) != "dag") stop("`.dagitty` must be of graph type `dag`")
   .dag <- .dagitty
 
   no_existing_coords <- dagitty::coordinates(.dagitty) %>%
@@ -103,9 +103,11 @@ tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, l
     {suppressMessages(ggraph::create_layout(., layout, ...))}
 
   if (no_existing_coords) {
-    dagitty::coordinates(.dagitty) <- coords2list(ggraph_layout)
+    coords <- coords2list(ggraph_layout)
+  } else {
+    coords <- dagitty::coordinates(.dagitty)
   }
-  coords <- dagitty::coordinates(.dagitty)
+
   labels <- names(coords$x)
 
   dag_edges <- dagitty::edges(.dagitty)
@@ -125,7 +127,8 @@ tidy_dagitty <- function(.dagitty, cap = ggraph::circle(8, 'mm'), seed = NULL, l
     dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
     dplyr::mutate(from = name) %>%
     dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
-    dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name")
+    dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name") %>%
+    dplyr::arrange(.ggraph.orig_index)
 
   .tdy_dag <- list(data = tidy_dag, dag = .dag)
   class(.tdy_dag) <- "tidy_dagitty"
@@ -250,16 +253,15 @@ if_not_tidy_daggity <- function(.dagitty, ...) {
 #' Title
 #'
 #' @param .tdy_dag
-#' @param cap
 #'
 #' @return
 #' @export
 #'
 #' @examples
-ggdag <- function(.tdy_dag, cap = ggraph::circle(8, 'mm')) {
+ggdag <- function(.tdy_dag) {
   if_not_tidy_daggity(.tdy_dag) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_node() +
       geom_dag_text() +
       theme_dag() +
@@ -269,7 +271,26 @@ ggdag <- function(.tdy_dag, cap = ggraph::circle(8, 'mm')) {
 #' Title
 #'
 #' @param .tdy_dag
-#' @param cap
+#' @param size
+#' @param label_rect_size
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ggdag_classic <- function(.tdy_dag, size = 8, label_rect_size = NULL, ...) {
+  if_not_tidy_daggity(.tdy_dag, ...) %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = size * 3.57),
+                                end_cap = ggraph::label_rect(to, fontsize = size * 3.57))) +
+    ggplot2::geom_text(ggplot2::aes(label = name), size = size) +
+    theme_dag() +
+    scale_dag()
+}
+
+#' Title
+#'
+#' @param .tdy_dag
 #' @param exposure
 #' @param outcome
 #' @param ...
@@ -278,11 +299,11 @@ ggdag <- function(.tdy_dag, cap = ggraph::circle(8, 'mm')) {
 #' @export
 #'
 #' @examples
-ggdag_adjustment_set <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), exposure = NULL, outcome = NULL, ...) {
+ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = adjusted)) +
-      geom_dag_edges(ggplot2::aes(edge_alpha = adjusted), cap = cap) +
+      geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
       geom_dag_node() +
       geom_dag_text(col = "white") +
       ggplot2::facet_wrap(~set) +
@@ -445,11 +466,11 @@ node_collider <- function(.tdy_dag, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_collider <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_collider <- function(.tdy_dag, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_collider(...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = forcats::fct_rev(colliders))) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_node() +
       geom_dag_text(col = "white") +
       theme_dag() +
@@ -533,11 +554,11 @@ control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_adjust <- function(.tdy_dag, adjust_for, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_adjust <- function(.tdy_dag, adjust_for, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     control_for(adjust_for, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
-      geom_dag_edges(ggplot2::aes(edge_alpha = adjusted), cap = cap) +
+      geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
       geom_dag_collider_edges() +
       geom_dag_node() +
       geom_dag_text() +
@@ -605,11 +626,11 @@ node_status <- function(.tdy_dag, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_status <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_status <- function(.tdy_dag, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_status(...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = status)) +
-    geom_dag_edges(cap = cap) +
+    geom_dag_edges() +
     geom_dag_node() +
     geom_dag_text(col = "white") +
     theme_dag() +
@@ -647,11 +668,11 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_children <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_children <- function(.tdy_dag, .var, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_children(.var, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_node() +
       geom_dag_text(col = "white") +
       theme_dag() +
@@ -690,11 +711,11 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_parents <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_parents <- function(.tdy_dag, .var, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_parents(.var, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_node() +
       geom_dag_text(col = "white") +
       theme_dag() +
@@ -732,11 +753,11 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_ancestors <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_ancestors <- function(.tdy_dag, .var, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_ancestors(.var, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = ancestor)) +
-    geom_dag_edges(cap = cap) +
+    geom_dag_edges() +
     geom_dag_node() +
     geom_dag_text(col = "white") +
     theme_dag() +
@@ -774,11 +795,11 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 #'
 #' @examples
-ggdag_descendants <- function(.tdy_dag, .var, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_descendants <- function(.tdy_dag, .var, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_descendants(.var, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = descendant)) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_node() +
       geom_dag_text(col = "white") +
       theme_dag() +
@@ -893,11 +914,11 @@ node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_fa
 #' @export
 #'
 #' @examples
-ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_collider_edges() +
       geom_dag_node() +
       geom_dag_text(col = "white") +
@@ -918,9 +939,9 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, cap 
 #' @export
 #'
 #' @examples
-ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, cap = cap, ...)
+                      controlling_for = controlling_for, ...)
 }
 
 #' Title
@@ -936,9 +957,9 @@ ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, cap = g
 #' @export
 #'
 #' @examples
-ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, cap = cap, ...)
+                      controlling_for = controlling_for, ...)
 }
 
 #' Title
@@ -995,11 +1016,11 @@ node_exogenous <- function(.dag, ...) {
 #' @export
 #'
 #' @examples
-ggdag_exogenous <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_exogenous <- function(.tdy_dag, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_exogenous() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = exogenous)) +
-    geom_dag_edges(cap = cap) +
+    geom_dag_edges() +
     geom_dag_node() +
     geom_dag_text(col = "white") +
     theme_dag() +
@@ -1050,12 +1071,12 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL) {
 #' @export
 #'
 #' @examples
-ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = instrumental, shape = adjusted)) +
-      geom_dag_edges(cap = cap) +
+      geom_dag_edges() +
       geom_dag_node() +
       geom_dag_text(col = "white") +
       theme_dag() +
@@ -1092,7 +1113,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto") {
 #' @export
 #'
 #' @examples
-ggdag_equivalent_dags <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'), ...) {
+ggdag_equivalent_dags <- function(.tdy_dag, ...) {
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_dags(...)
@@ -1151,8 +1172,7 @@ ggdag_equivalent_class <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'),
   .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, edge_alpha = reversable)) +
       geom_dag_edges(data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
-                     data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->"),
-                     cap = cap) +
+                     data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")) +
       ggraph::geom_edge_link(data = reversable_lines, start_cap = cap, end_cap = cap) +
       geom_dag_node() +
       geom_dag_text(col = "white") +

@@ -4,8 +4,7 @@
 \alias{ggdag_dconnected}
 \title{Title}
 \usage{
-ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL,
-  cap = ggraph::circle(8, "mm"), ...)
+ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL, ...)
 }
 \arguments{
 \item{...}{}

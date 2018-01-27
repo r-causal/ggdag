@@ -4,8 +4,7 @@
 \alias{ggdag_instrumental}
 \title{Title}
 \usage{
-ggdag_instrumental(.tdy_dag, exposure = NULL, outcome = NULL,
-  cap = ggraph::circle(8, "mm"), ...)
+ggdag_instrumental(.tdy_dag, exposure = NULL, outcome = NULL, ...)
 }
 \arguments{
 \item{...}{}

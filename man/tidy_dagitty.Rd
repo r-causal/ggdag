@@ -4,8 +4,7 @@
 \alias{tidy_dagitty}
 \title{Title}
 \usage{
-tidy_dagitty(.dagitty, cap = ggraph::circle(8, "mm"), seed = NULL,
-  layout = "nicely", ...)
+tidy_dagitty(.dagitty, seed = NULL, layout = "nicely", ...)
 }
 \arguments{
 \item{...}{}

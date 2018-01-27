@@ -1,0 +1,512 @@
+geom_dag_text(col = "white") +
+theme_dag()  + scale_dag(expand_x = ggplot2::expand_scale(c(0.5, 0.5)))
+g <- dagitty("dag{{x1 x2 x3 x4} <- x <-> y -> {y1 y2 y3 y4}}")
+latents(g) <- c("x","y")
+nrow(vanishingTetrads(g))
+nrow(vanishingTetrads(g,"within"))
+nrow(vanishingTetrads(g,"between"))
+nrow(vanishingTetrads(g,"epistemic"))
+vanishingTetrads(g,"within")
+ggdag(g)
+ggm::isAcyclic(g)
+?dagitty::moralize()
+moralize( "dag{ x->m<-y }" ) %>% tidy_dagitty() %>% ggdag()
+moralize( "dag{ x->m<-y }" ) %>% dagitty() %>% ggdag()
+moralize( "dag{ x->m<-y }" ) %>% dagitty()
+install.packages("dagitty")
+?usethis::use_travis
+usethis::use_package("ggforce")
+usethis::use_package("V8")
+library(ggraph)
+library(ggdag)
+library(dagitty)
+library(dplyr)
+library(ggplot2)
+library(ggraph)
+g2 %>% tidy_dagitty()
+g2 <- dagitty( "dag {
+Y <- X <- Z1 <- V -> Z2 -> Y
+Z1 <- W1 <-> W2 -> Z2
+X <- W1 -> Y
+X <- W2 -> Y
+X [exposure]
+Y [outcome]
+}")
+g2 %>% tidy_dagitty()
+g2 %>% tidy_dagitty() %>% ggraph()
+g2 %>% dagitty::graphType()
+usethis::use_appveyor()
+devtools::install_github("abresler/markovifyR")
+g
+devtools::document()
+library(ggdag)
+g2 <- dagitty( "dag {
+Y <- X <- Z1 <- V -> Z2 -> Y
+Z1 <- W1 <-> W2 -> Z2
+X <- W1 -> Y
+X <- W2 -> Y
+X [exposure]
+Y [outcome]
+}")
+library(dagitty)
+library(dplyr)
+library(ggplot2)
+library(ggraph)
+g2 <- dagitty( "dag {
+Y <- X <- Z1 <- V -> Z2 -> Y
+Z1 <- W1 <-> W2 -> Z2
+X <- W1 -> Y
+X <- W2 -> Y
+X [exposure]
+Y [outcome]
+}")
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+tidy_dagitty(g2)
+library(ggdag)
+tidy_dagitty(g2)
+tidy_dagitty(g2)
+ggdag_classic(g2)
+Q
+library(ggdag)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggraph::label_rect("hello")
+?ggraph::label_rect()
+label_rect(c('some', 'different', 'words'), fontsize = 18)
+library(dagitty)
+library(dplyr)
+library(ggplot2)
+library(ggraph)
+label_rect(c('some', 'different', 'words'), fontsize = 18)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+g2 <- dagitty( "dag {
+Y <- X <- Z1 <- V -> Z2 -> Y
+Z1 <- W1 <-> W2 -> Z2
+X <- W1 -> Y
+X <- W2 -> Y
+X [exposure]
+Y [outcome]
+}")
+ggdag_classic(g2)
+tidy_dagitty(g2) %>% ggraph::label_rect(.$data$name)
+tidy_dagitty(g2) %>% .$data$name %>% ggraph::label_rect()
+tidy_dagitty(g2) %>% .$data %>% .$name %>% ggraph::label_rect()
+tidy_dagitty(g2) %>% .$data %>% .$name %>% unique() %>% ggraph::label_rect()
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggdag(g2)
+dagify(m ~ a + b, x ~ a, y ~ b) %>% tidy_dagitty() %>% control_for("m") %>%
+ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
+geom_dag_edges(aes(edge_alpha = adjusted, label = name),
+angle_calc = 'along',
+label_dodge = unit(2.5, 'mm')) +
+geom_dag_collider_edges() +
+geom_dag_node() +
+geom_dag_text() +
+theme_dag() + scale_dag()
+ggraph::circle(9, 'mm')
+library(ggdag)
+ggdag_classic(g2)
+ggdag_classic(g2)\
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggplot2::layer(mapping = mapping,
+geom = ggraph::GeomEdgePath,
+data = data_directed,
+stat = ggraph::StatEdgeLink,
+position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+params = list(start_cap = cap, end_cap = cap, arrow = arrow_directed, edge_width = size, interpolate = FALSE, na.rm = na.rm))
+ggplot2::layer(mapping = arc_mapping,
+geom = ggraph::GeomEdgePath,
+data =  data_bidirected,
+stat = ggraph::StatEdgeArc,
+position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+params = list(start_cap = cap, end_cap = cap, arrow = arrow_bidirected,
+edge_width = size, curvature = curvature,
+interpolate = FALSE, fold = fold, na.rm = na.rm,
+n = 100, lineend = "butt",
+linejoin = "round", linemitre = 1,
+label_colour = 'black',  label_alpha = 1,
+label_parse = FALSE, check_overlap = FALSE,
+angle_calc = 'rot', force_flip = TRUE,
+label_dodge = NULL, label_push = NULL))
+ggdag_classic(dagify(m ~ x + y))
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(node1.name),
+end_cap = label_rect(node2.name)),
+arrow = arrow(length = unit(4, 'mm')))
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name),
+end_cap = label_rect(to)),
+arrow = arrow(length = unit(4, 'mm')))
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name),
+end_cap = label_rect(to)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name))
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name),
+end_cap = label_rect(to)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name), size = 14)
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name, fontsize = 14),
+end_cap = label_rect(to)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name), size = 14)
+?label_rect
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name, fontsize = 14),
+end_cap = label_rect(to, fontsize = 14)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name), size = 14)
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name, fontsize = 50),
+end_cap = label_rect(to, fontsize = 50)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name), size = 14)
+50/14
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name, fontsize = 10*3.57),
+end_cap = label_rect(to, fontsize = 10*3.57)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name), size = 10)
+tidy_dagitty(g2) %>% ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+geom_edge_link(data = NULL, aes(start_cap = label_rect(name, fontsize = 25*3.57),
+end_cap = label_rect(to, fontsize = 25*3.57)),
+arrow = arrow(length = unit(4, 'mm'))) + geom_text(aes(label = name), size = 25)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggdag_classic(g2)
+library(ggdag)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggdag_classic(g2)
+library(ggdag)
+library(ggdag)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+mapping
+mapping$start_cap
+library(ggdag)
+ggdag_classic(g2)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+?ggproto
+library(ggdag)
+?ggproto
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+ggraph::circle(8, 'mm')
+ggraph::GeomEdgePath
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+ggraph::circle(8, 'mm')
+library(ggdag)
+ggraph::circle(8, 'mm')
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+str(ggraph::circle(8, 'mm'))
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+library(dagitty)
+library(dplyr)
+library(ggplot2)
+library(ggraph)
+ggdag::dag("y <- x", "a <-> b") %>% ggdag() + theme_dag_gray()
+g2 <- dagitty( "dag {
+Y <- X <- Z1 <- V -> Z2 -> Y
+Z1 <- W1 <-> W2 -> Z2
+X <- W1 -> Y
+X <- W2 -> Y
+X [exposure]
+Y [outcome]
+}")
+ggdag_classic(g2)
+library(ggdag)
+library(ggdag)
+ggdag(g2)
+devtools::document()
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+library(ggdag)
+ggdag(g2)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+library(ggdag)
+ggdag_classic(g2)
+ggdag_classic(g2)
+ggdag_classic(getExample("Schier"))
+?getExample
+ggdag_classic(getExample("Shrier"))
+ggdag_classic(getExample("Shrier"))
+getExample("Shrier")
+ggdag(getExample("Shrier"))
+ggdag(g2)
+getExample("Shrier") %>% tidy_dagitty()
+ggdag(getExample("Shrier"))
+ggdag(getExample(M-bias"))
+ggdag(getExample("M-bias"))
+getExample("M-bias")
+getExample("M-bias") %>% ggdag()
+getExample("M-bias") %>% ggdag_classic()
+library(ggdag)
+library(dagitty)
+library(dplyr)
+library(ggplot2)
+library(ggraph)
+getExample("M-bias") %>% ggdag_classic()
+getExample("M-bias") %>% ggdag()
+g2 <- dagitty( "dag {
+Y <- X <- Z1 <- V -> Z2 -> Y
+Z1 <- W1 <-> W2 -> Z2
+X <- W1 -> Y
+X <- W2 -> Y
+X [exposure]
+Y [outcome]
+}")
+ggdag(g2)
+tidy_dagitty(g2)
+tidy_dagitty(getExample("M-bias"))
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+g2
+ggdag(g2)
+ggdag_m_bias()
+m_bias()
+randomDAG(10, .5)
+ggdag(randomDAG(10, .5))
+library(ggdag)
+ggdag(randomDAG(10, .5))
+library(ggdag)
+ggdag(randomDAG(10, .5))
+ggdag(randomDAG(10, .5))
+library(ggdag)
+ggdag(randomDAG(10, .5))
+ggdag(g2)
+ggdag(randomDAG(10, .5))
+randomDAG(10, .5) %>% tidy_dagitty()
+randomDAG(10, .5) %>% tidy_dagitty(layout = "auto")
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+g2 %>% tidy_dagitty(layout = "fr")
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+randomDAG(10, .5) %>% edges()
+randomDAG(10, .5) %>% coordinates()
+dagitty::coordinates(randomDAG(10, .5)) %>%
+purrr::map_lgl(~all(is.na(.x))) %>%
+all()
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., layout, ...))}
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., layout = "nicely"))}
+library(ggdag)
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+coords
+no_existing_coords
+ggraph_layout
+coords2list(ggraph_layout)
+dagitty::coordinates(.dagitty)
+dagitty::coordinates(.dagitty) <- coords2list(ggraph_layout)
+dagitty::coordinates(.dagitty)
+library(ggdag)
+library(ggdag)
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+dagitty::coordinates(.dagitty)
+coords2list(ggraph_layout)
+.dagitty
+.dagitty
+coords
+dagitty::coordinates(.dagitty) <- coords2list(ggraph_layout)
+coords <- dagitty::coordinates(.dagitty)
+coords
+library(ggdag)
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+library(ggdag)
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+ggraph_layout
+if (no_existing_coords) {
+dagitty::coordinates(.dagitty) <- coords2list(ggraph_layout)
+}
+coords <- dagitty::coordinates(.dagitty)
+coords
+coords
+dagitty::coordinates(.dagitty) <- coords2list(ggraph_layout)
+dagitty::coordinates(.dagitty)
+coords2list(ggraph_layout)
+library(ggdag)
+library(dagitty)
+library(dplyr)
+library(ggplot2)
+library(ggraph)
+ggdag::dag("y <- x", "a <-> b") %>% ggdag() + theme_dag_gray()
+library(ggdag)
+ggdag::dag("y <- x", "a <-> b") %>% ggdag() + theme_dag_gray()
+dag_edges %>%
+dplyr::select(-x, -y) %>%
+dplyr::mutate(v = as.character(v),
+w = as.character(w),
+direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
+type = ifelse(e == "<->", "bidirected", "directed"),
+type = factor(type, levels = c("directed", "bidirected"), exclude = NA)) %>%
+dplyr::left_join(tidy_dag, ., by = c("name" = "v")) %>%
+dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
+dplyr::mutate(from = name) %>%
+dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
+dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name")
+dag_edges %>%
+dplyr::select(-x, -y) %>%
+dplyr::mutate(v = as.character(v),
+w = as.character(w),
+direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
+type = ifelse(e == "<->", "bidirected", "directed"),
+type = factor(type, levels = c("directed", "bidirected"), exclude = NA)) %>%
+dplyr::left_join(tidy_dag, ., by = c("name" = "v")) %>%
+dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
+dplyr::mutate(from = name) %>%
+dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
+dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name") %>%
+dplyr::arrange(.ggraph.orig_index)
+library(ggdag)
+ggdag::dag("y <- x", "a <-> b") %>% ggdag() + theme_dag_gray()
+randomDAG(10, .5) %>% tidy_dagitty(layout = "fr")
+randomDAG(10, .5) %>% tidy_dagitty()
+randomDAG(10, .5) %>% tidy_dagitty()
+randomDAG(10, .5) %>% tidy_dagitty()
+randomDAG(10, .5) %>% tidy_dagitty()
+randomDAG(5, .5) %>% tidy_dagitty()
+randomDAG(2, .5) %>% tidy_dagitty()
+randomDAG(3, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+dagitty::edges(randomDAG(4, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., layout))}
+dagitty::edges(randomDAG(4, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., layout))}
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., layout))}
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame()
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(.))}
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., "nicelt"))}
+dagitty::edges(randomDAG(10, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., "nicely"))}
+dagitty::edges(randomDAG(5, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., "nicely"))}
+dagitty::edges(randomDAG(5, .5)) %>%
+dplyr::select(v, w) %>%
+igraph::graph_from_data_frame() %>%
+{suppressMessages(ggraph::create_layout(., "nicely"))}
+library(ggdag)
+randomDAG(4, .5) %>% tidy_dagitty()
+dagitty::coordinates(.dagitty)
+ggraph_layout
+no_existing_coords
+library(ggdag)
+randomDAG(4, .5) %>% tidy_dagitty()
+library(ggdag)
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+library(ggdag)
+randomDAG(4, .5) %>% tidy_dagitty()
+library(ggdag)
+library(ggdag)
+library(ggdag)
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()
+randomDAG(4, .5) %>% tidy_dagitty()

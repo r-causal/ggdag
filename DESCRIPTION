@@ -22,7 +22,8 @@ Imports:
     magrittr,
     methods,
     ggforce,
-    V8
+    V8,
+    plyr
 RoxygenNote: 6.0.1
 Suggests: 
     broom

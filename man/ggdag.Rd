@@ -4,10 +4,10 @@
 \alias{ggdag}
 \title{Title}
 \usage{
-ggdag(.tdy_dag, cap = ggraph::circle(8, "mm"))
+ggdag(.tdy_dag)
 }
 \arguments{
-\item{cap}{}
+\item{.tdy_dag}{}
 }
 \description{
 Title

@@ -4,7 +4,7 @@
 \alias{ggdag_collider}
 \title{Title}
 \usage{
-ggdag_collider(.tdy_dag, cap = ggraph::circle(8, "mm"), ...)
+ggdag_collider(.tdy_dag, ...)
 }
 \arguments{
 \item{...}{}

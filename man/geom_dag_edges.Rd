@@ -5,11 +5,10 @@
 \title{Title}
 \usage{
 geom_dag_edges(mapping = NULL, data_directed = NULL,
-  data_bidirected = NULL, size = 0.6, curvature = 0.2,
-  cap = ggraph::circle(9, "mm"), arrow_directed = grid::arrow(length =
-  grid::unit(5, "pt"), type = "closed"), arrow_bidirected = grid::arrow(length
-  = grid::unit(5, "pt"), ends = "both", type = "closed"),
-  position = "identity", na.rm = TRUE, show.legend = NA,
+  data_bidirected = NULL, curvature = 0.2, cap = ggraph::circle(9, "mm"),
+  arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+  arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both",
+  type = "closed"), position = "identity", na.rm = TRUE, show.legend = NA,
   inherit.aes = TRUE, fold = FALSE, ...)
 }
 \arguments{

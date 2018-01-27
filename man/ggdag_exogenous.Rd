@@ -4,7 +4,7 @@
 \alias{ggdag_exogenous}
 \title{Title}
 \usage{
-ggdag_exogenous(.tdy_dag, cap = ggraph::circle(8, "mm"), ...)
+ggdag_exogenous(.tdy_dag, ...)
 }
 \arguments{
 \item{...}{}

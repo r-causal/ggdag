@@ -4,8 +4,7 @@
 \alias{ggdag_adjustment_set}
 \title{Title}
 \usage{
-ggdag_adjustment_set(.tdy_dag, cap = ggraph::circle(8, "mm"),
-  exposure = NULL, outcome = NULL, ...)
+ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...)
 }
 \arguments{
 \item{...}{}

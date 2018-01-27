@@ -4,7 +4,7 @@
 \alias{ggdag_parents}
 \title{Title}
 \usage{
-ggdag_parents(.tdy_dag, .var, cap = ggraph::circle(8, "mm"), ...)
+ggdag_parents(.tdy_dag, .var, ...)
 }
 \arguments{
 \item{...}{}

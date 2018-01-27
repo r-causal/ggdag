@@ -4,7 +4,7 @@
 \alias{ggdag_adjust}
 \title{Title}
 \usage{
-ggdag_adjust(.tdy_dag, adjust_for, cap = ggraph::circle(8, "mm"), ...)
+ggdag_adjust(.tdy_dag, adjust_for, ...)
 }
 \arguments{
 \item{...}{}
