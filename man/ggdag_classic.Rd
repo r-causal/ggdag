@@ -4,7 +4,7 @@
 \alias{ggdag_classic}
 \title{Title}
 \usage{
-ggdag_classic(.tdy_dag, size = 8, label_rect_size = NULL)
+ggdag_classic(.tdy_dag, size = 8, label_rect_size = NULL, ...)
 }
 \arguments{
 \item{label_rect_size}{}
