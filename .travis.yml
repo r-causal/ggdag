@@ -8,4 +8,4 @@ addons:
   apt:
     packages:
       - libv8-3.14-dev
-      - libudunits2-dev-dev
+      - libudunits2-dev
