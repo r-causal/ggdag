@@ -6,3 +6,4 @@ cache: packages
 apt_packages:
   - libudunits2-dev
 warnings_are_errors: false
+github_packages: devtools
