@@ -20,7 +20,7 @@ devtools::install_github("malcolmbarrett/ggdag")
 Example
 -------
 
-`ggdag` makes it easy to use the powerful `dagitty` package in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create using in a more R-like formula.
+`ggdag` makes it easy to use the powerful `dagitty` package in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax.
 
 ``` r
 library(ggdag)
