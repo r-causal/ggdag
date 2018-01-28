@@ -3,11 +3,9 @@
 language: r
 sudo: false
 cache: packages
-r_github_packages:
-  - jtextor/dagitty/r
-  - thomasp85/ggraph
-  - thomasp85/ggforce
-  - jeroen/V8
-before_install:
-  - sudo apt-get install -y libv8-3.14-dev
 
+addons:
+  apt:
+    packages:
+      - libv8-3.14-dev
+      - libudunits2-dev-dev
