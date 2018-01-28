@@ -6,4 +6,4 @@ cache: packages
 apt_packages:
   - libudunits2-dev
 warnings_are_errors: false
-github_packages: devtools
+r_github_packages: hadley/devtools
