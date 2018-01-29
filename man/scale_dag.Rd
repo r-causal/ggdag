@@ -4,8 +4,8 @@
 \alias{scale_dag}
 \title{Common scale adjustments for DAGs}
 \usage{
-scale_dag(expand_x = ggplot2::expand_scale(c(0.1, 0.1)),
-  expand_y = ggplot2::expand_scale(c(0.1, 0.1)), breaks = ggplot2::waiver())
+scale_dag(expand_x = expand_scale(c(0.1, 0.1)),
+  expand_y = expand_scale(c(0.1, 0.1)), breaks = ggplot2::waiver())
 }
 \arguments{
 \item{expand_x, expand_y}{Vector of range expansion constants used to add some

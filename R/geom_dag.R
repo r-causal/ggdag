@@ -508,8 +508,8 @@ theme_dag <- theme_dag_grey
 #'
 #' @return
 #' @export
-scale_dag <- function(expand_x = ggplot2::expand_scale(c(.10, .10)),
-                      expand_y = ggplot2::expand_scale(c(.10, .10)),
+scale_dag <- function(expand_x = expand_scale(c(.10, .10)),
+                      expand_y = expand_scale(c(.10, .10)),
                       breaks = ggplot2::waiver()) {
   list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
