@@ -25,6 +25,9 @@ Imports:
     plyr
 RoxygenNote: 6.0.1
 Suggests: 
-    broom
+    spelling,
+    broom,
+    testthat
 URL: https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
+Language: en-US

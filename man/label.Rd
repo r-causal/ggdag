@@ -35,7 +35,7 @@ has_labels(.tdy_dag)
 \code{label} returns the label attribute of x
 }
 \description{
-Label or otherwise retrieve labeles from objects of either class
+Label or otherwise retrieve labels from objects of either class
 \code{tidy_dagitty} or \code{dagitty}
 }
 \examples{

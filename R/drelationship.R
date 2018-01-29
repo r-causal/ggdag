@@ -1,16 +1,58 @@
-#' Title
+#' D-relationship between variables
 #'
-#' @param .tdy_dag
-#' @param from
-#' @param to
-#' @param controlling_for
-#' @param as_factor
+#' D-relationship
 #'
-#' @return
+#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param from a character vector, the starting variable (must by in DAG)
+#' @param to a character vector, the ending variable (must by in DAG)
+#' @param controlling_for a character vector, variables in the DAG to control for.
+#' @param as_factor logical. Should the \code{d_relationship} variable be a factor?
+#'
+#' @return a \code{tidy_dagitty} with an \code{d_relationship} column for
+#'   variable D relationship or a \code{ggplot}
 #' @export
 #'
 #' @examples
-node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
+#' dag <- dagify(m ~ x + y)
+#' dag %>% ggdag_drelationship("x", "y")
+#' dag %>% ggdag_drelationship("x", "y", controlling_for = "m")
+#'
+#' dag %>%
+#'   node_dseparated("x", "y") %>%
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+#'   geom_dag_edges() +
+#'   geom_dag_collider_edges() +
+#'   geom_dag_node() +
+#'   geom_dag_text(col = "white") +
+#'   theme_dag() + scale_dag()
+#'
+#' dag %>%
+#'   node_dconnected("x", "y", controlling_for = "m") %>%
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+#'   geom_dag_edges() +
+#'   geom_dag_collider_edges() +
+#'   geom_dag_node() +
+#'   geom_dag_text(col = "white") +
+#'   theme_dag() +
+#'   scale_dag()
+#'
+#' dagify(m ~ x + y, m_jr ~ m) %>%
+#'   tidy_dagitty(layout = "nicely") %>%
+#'   node_dconnected("x", "y", controlling_for = "m_jr") %>%
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+#'   geom_dag_edges() +
+#'   geom_dag_collider_edges() +
+#'   geom_dag_node() +
+#'   geom_dag_text(col = "white") +
+#'   theme_dag() +
+#'   scale_dag()
+#' @rdname d_relationship
+#' @name Assess D-separation between variables
+node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
@@ -30,19 +72,11 @@ node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_facto
   .tdy_dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param from
-#' @param to
-#' @param controlling_for
-#' @param as_factor
-#'
-#' @return
+#' @rdname d_relationship
 #' @export
-#'
-#' @examples
 node_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
@@ -61,19 +95,11 @@ node_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, as_facto
   .tdy_dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param from
-#' @param to
-#' @param controlling_for
-#' @param as_factor
-#'
-#' @return
+#' @rdname d_relationship
 #' @export
-#'
-#' @examples
 node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
@@ -93,19 +119,8 @@ node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_fa
   .tdy_dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param from
-#' @param to
-#' @param controlling_for
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname d_relationship
 #' @export
-#'
-#' @examples
 ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
@@ -118,37 +133,15 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...)
     scale_dag()
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param from
-#' @param to
-#' @param controlling_for
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname d_relationship
 #' @export
-#'
-#' @examples
 ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, ...)
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param from
-#' @param to
-#' @param controlling_for
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname d_relationship
 #' @export
-#'
-#' @examples
 ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, ...)

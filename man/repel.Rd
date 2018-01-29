@@ -96,7 +96,7 @@ passing \code{unit(x, "units")}).}
 \item{label.size}{Size of label border, in mm.}
 }
 \description{
-These functions are minor modifications of thos in the \code{ggrepel}
+These functions are minor modifications of those in the \code{ggrepel}
 package. geom_dag_text_repel adds text directly to the plot.
 geom_dag_label_repel draws a rectangle underneath the text, making it easier
 to read. The text labels repel away from each other and away from the data
