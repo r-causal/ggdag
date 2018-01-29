@@ -2,13 +2,36 @@
 % Please edit documentation in R/ggdag.R
 \name{ggdag}
 \alias{ggdag}
-\title{Title}
+\title{Quickly plot a DAG in ggplot2}
 \usage{
 ggdag(.tdy_dag, ...)
 }
 \arguments{
-\item{.tdy_dag}{}
+\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
+\code{dagitty}}
+
+\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+}
+\value{
+a \code{ggplot}
 }
 \description{
-Title
+\code{ggdag()} is a wrapper to quickly plot DAGs.
+}
+\examples{
+
+dag  <- dagify(y ~ x + z2 + w2 + w1,
+  x ~ z1 + w1,
+  z1 ~ w1 + v,
+  z2 ~ w2 + v,
+  w1 ~~ w2)
+
+ggdag(dag)
+ggdag(dag) + theme_dag_blank()
+
+ggdag(dagitty::randomDAG(5, .5))
+
+}
+\seealso{
+\code{\link{ggdag_classic}}
 }

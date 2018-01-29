@@ -2,13 +2,43 @@
 % Please edit documentation in R/ggdag.R
 \name{ggdag_classic}
 \alias{ggdag_classic}
-\title{Title}
+\title{Quickly plot a DAG in ggplot2}
 \usage{
 ggdag_classic(.tdy_dag, size = 8, label_rect_size = NULL, ...)
 }
 \arguments{
-\item{label_rect_size}{}
+\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
+\code{dagitty}}
+
+\item{size}{text size, with a default of 8.}
+
+\item{label_rect_size}{specify the \code{fontsize} argument in
+\code{ggraph::label_rect}; default is \code{NULL}, in which case it is
+scaled relative ti \code{size}}
+
+\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+}
+\value{
+a \code{ggplot}
 }
 \description{
-Title
+\code{ggdag_classic()} is a wrapper to quickly plot DAGs in a more
+traditional style.
+}
+\examples{
+
+dag  <- dagify(y ~ x + z2 + w2 + w1,
+  x ~ z1 + w1,
+  z1 ~ w1 + v,
+  z2 ~ w2 + v,
+  w1 ~~ w2)
+
+ggdag_classic(dag)
+ggdag_classic(dag) + theme_dag_blank()
+
+ggdag_classic(dagitty::randomDAG(5, .5))
+
+}
+\seealso{
+\code{\link{ggdag}}
 }

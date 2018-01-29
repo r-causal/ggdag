@@ -21,7 +21,7 @@ dag <- function(...) {
 #'
 #' \code{dagify()} creates dagitty DAGs using a more R-like syntax. It currently
 #' accepts formulas in the usual R style, e.g. \code{y ~ x + z}, which gets
-#' convered to \code{y <- {x z}}, as well as using a double tilde (\code{~~}) to
+#' translated to \code{y <- {x z}}, as well as using a double tilde (\code{~~}) to
 #' graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \code{x1
 #' <-> x2}.
 #'
