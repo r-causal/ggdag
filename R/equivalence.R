@@ -73,8 +73,8 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 #'
 #' @examples
 ggdag_equivalent_class <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'),
-                                   expand_x = ggplot2::expand_scale(c(.10, .10)),
-                                   expand_y = ggplot2::expand_scale(c(.10, .10)),
+                                   expand_x = expand_scale(c(.10, .10)),
+                                   expand_y = expand_scale(c(.10, .10)),
                                    breaks = ggplot2::waiver(), ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)
