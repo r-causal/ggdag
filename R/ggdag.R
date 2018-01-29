@@ -6,8 +6,8 @@
 #' @export
 #'
 #' @examples
-ggdag <- function(.tdy_dag) {
-  if_not_tidy_daggity(.tdy_dag) %>%
+ggdag <- function(.tdy_dag, ...) {
+  if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_node() +

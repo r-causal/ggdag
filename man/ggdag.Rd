@@ -4,7 +4,7 @@
 \alias{ggdag}
 \title{Title}
 \usage{
-ggdag(.tdy_dag)
+ggdag(.tdy_dag, ...)
 }
 \arguments{
 \item{.tdy_dag}{}
