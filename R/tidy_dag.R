@@ -71,8 +71,9 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     dplyr::mutate(from = name) %>%
     dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
     dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name") %>%
-    dplyr::arrange(.ggraph.orig_index) %>%
     {warning(print(.))}
+    #dplyr::arrange(.ggraph.orig_index) %>%
+
 
   .tdy_dag <- list(data = tidy_dag, dag = .dag)
   class(.tdy_dag) <- "tidy_dagitty"
