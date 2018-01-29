@@ -1,14 +1,28 @@
-
-#' Title
+#' Find colliders
 #'
-#' @param .tdy_dag
-#' @param as_factor
+#' Detects any colliders given a DAG.
+#' \code{node_collider} tags colliders and \code{ggdag_collider} plots all
+#' exogenous variables.
 #'
-#' @return
+#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param as_factor treat \code{collider} variable as factor
+#'
+#' @return a \code{tidy_dagitty} with an \code{collider} column for
+#'   colliders or a \code{ggplot}
 #' @export
 #'
 #' @examples
-node_collider <- function(.tdy_dag, as_factor = TRUE) {
+#' dag <- dagify(m ~ x + y, y ~ x)
+#'
+#' node_collider(dag)
+#' ggdag_collider(dag)
+#'
+#' @rdname colliders
+#' @name Colliders
+node_collider <- function(.tdy_dag, as_factor = TRUE, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
   names(colliders) <- vars
@@ -19,19 +33,11 @@ node_collider <- function(.tdy_dag, as_factor = TRUE) {
   .tdy_dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname colliders
 #' @export
-#'
-#' @examples
 ggdag_collider <- function(.tdy_dag, ...) {
-  if_not_tidy_daggity(.tdy_dag) %>%
-    node_collider(...) %>%
+  if_not_tidy_daggity(.tdy_dag, ...) %>%
+    node_collider() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = forcats::fct_rev(colliders))) +
     geom_dag_edges() +
     geom_dag_node() +
@@ -40,16 +46,31 @@ ggdag_collider <- function(.tdy_dag, ...) {
     scale_dag()
 }
 
-#' Title
+#' Activate paths opened by stratifying on a collider
 #'
-#' @param .tdy_dag
+#' Stratifying on colliders can open biasing pathways between variables.
+#' \code{activate_collider_paths} activates any such pathways given a variable
+#' or set of variables to adjust for and adds them to the \code{tidy_dagitty}.
+#'
+#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
 #' @param adjust_for
+#' @param ... additional arguments passed to \code{tidy_dagitty()}
 #'
-#' @return
+#' @return a \code{tidy_dagitty} with additional rows for collider-activated
+#'   pathways
 #' @export
 #'
 #' @examples
-activate_collider_paths <- function(.tdy_dag, adjust_for) {
+#' dag <- dagify(m ~ x + y, x ~ y)
+#'
+#' collided_dag <- activate_collider_paths(dag, adjust_for = "m")
+#' collided_dag
+#'
+#' @seealso \code{\link{control_for}}, \code{\link{ggdag_adjust}},
+#'   \code{\link{geom_dag_collider_edges}}
+activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
   downstream_colliders <- purrr::map_lgl(vars, ~is_downstream_collider(.tdy_dag, .x))
@@ -81,30 +102,37 @@ activate_collider_paths <- function(.tdy_dag, adjust_for) {
   .tdy_dag
 }
 
-#' Title
+#' Detecting colliders in DAGs
 #'
-#' @param .dag
-#' @param .var
+#' @param .dag an input graph, an object of class \code{tidy_dagitty} or \code{dagitty}
+#' @param .var a character vector of length 1, the potential collider to check
 #'
-#' @return
+#' @return Logical. Is the variable a collider or downstream collider?
 #' @export
 #'
 #' @examples
+#' dag <- dagify(m ~ x + y, m_jr ~ m)
+#' is_collider(dag, "m")
+#' is_downstream_collider(dag, "m_jr")
+#'
+#' #  a downstream collider is also treated as a collider
+#' is_collider(dag, "m_jr")
+#'
+#' #  but a direct collider is not treated as a downstream collider
+#' is_downstream_collider(dag, "m")
+#'
+#' @rdname is_collider
+#' @name Test if Variable Is Collider
 is_collider <- function(.dag, .var) {
   if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
   n_parents <- dagitty::parents(.dag, .var)
-  length(n_parents) > 1
+  collider <- length(n_parents) > 1
+  downstream_collider <- is_downstream_collider(.dag, .var)
+  any(c(collider, downstream_collider))
 }
 
-#' Title
-#'
-#' @param .dag
-#' @param .var
-#'
-#' @return
+#' @rdname is_collider
 #' @export
-#'
-#' @examples
 is_downstream_collider <- function(.dag, .var) {
   if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
   var_ancestors <- dagitty::ancestors(.dag, .var)[-1]

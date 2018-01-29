@@ -2,13 +2,33 @@
 % Please edit documentation in R/colliders.R
 \name{activate_collider_paths}
 \alias{activate_collider_paths}
-\title{Title}
+\title{Activate paths opened by stratifying on a collider}
 \usage{
-activate_collider_paths(.tdy_dag, adjust_for)
+activate_collider_paths(.tdy_dag, adjust_for, ...)
 }
 \arguments{
-\item{adjust_for}{}
+\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
+\code{dagitty}}
+
+\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+}
+\value{
+a \code{tidy_dagitty} with additional rows for collider-activated
+  pathways
 }
 \description{
-Title
+Stratifying on colliders can open biasing pathways between variables.
+\code{activate_collider_paths} activates any such pathways given a variable
+or set of variables to adjust for and adds them to the \code{tidy_dagitty}.
+}
+\examples{
+dag <- dagify(m ~ x + y, x ~ y)
+
+collided_dag <- activate_collider_paths(dag, adjust_for = "m")
+collided_dag
+
+}
+\seealso{
+\code{\link{control_for}}, \code{\link{ggdag_adjust}},
+  \code{\link{geom_dag_collider_edges}}
 }
