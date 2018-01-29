@@ -2,7 +2,7 @@
 #'
 #' Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
 #' input DAG. CPDAGs are Markov equivalent to the input graph. See
-#' \code{dagitty::\link[dagitty]{equivalentDAGs()}} for details.
+#' \code{dagitty::\link[dagitty]{equivalentDAGs}()} for details.
 #' \code{node_equivalent_dags()} returns a set of DAGS, while
 #' \code{node_equivalent_class()} tags reversable edges.
 #' \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
@@ -26,27 +26,37 @@
 #' g_ex <- getExample("Shrier")
 #'
 #' g_ex %>%
-#' node_equivalent_dags() %>%
+#'   node_equivalent_dags() %>%
 #'   ggplot(aes(x, y, xend = xend, yend = yend)) +
-#'   geom_dag_node(size = 10) +
-#'   geom_dag_edges() +
-#'   geom_dag_label_repel(aes(label = name), col = "black", size = 2) +
-#'   theme_dag() + scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
+#'     geom_dag_node(size = 10) +
+#'     geom_dag_edges() +
+#'     geom_dag_label_repel(aes(label = name), col = "black", size = 2) +
+#'     theme_dag() +
+#'     scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
 #'                           expand_y = expand_scale(c(0.25, 0.25))) +
 #'   facet_wrap(~dag)
 #'
-#' m_bias() %>% ggdag_equivalent_dags()
+#' confounder_triangle(x_y_associated = TRUE) %>% ggdag_equivalent_dags()
 #'
 #' g_ex %>% node_equivalent_class()
 #'
-#' mediation_triangle() %>% ggdag_equivalent_class()
+#' dagify(y ~ x + z, x ~ z) %>% ggdag_equivalent_dags()
 #'
 #' @rdname equivalent
 #' @export
 node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
-  .dag <- if_not_tidy_daggity(.dag)
+
+  .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
+
+  layout_coords <- .dag$data %>%
+    dplyr::select(name, x, y) %>%
+    dplyr::distinct() %>%
+    coords2list()
+
+  dagitty::coordinates(.dag$dag) <- layout_coords
+
   .dag$data <- dagitty::equivalentDAGs(.dag$dag, n = n) %>%
-    purrr::map_df(~as.data.frame(tidy_dagitty(.x, layout = layout, ...)), .id = "dag") %>%
+    purrr::map_df(~as.data.frame(tidy_dagitty(.dagitty = .x)), .id = "dag") %>%
     dplyr::as.tbl()
   .dag
 }

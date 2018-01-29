@@ -31,6 +31,7 @@
 #'     theme_dag() +
 #'     scale_dag()
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
+
   if (!is.null(seed)) set.seed(seed)
 
   if (dagitty::graphType(.dagitty) != "dag") stop("`.dagitty` must be of graph type `dag`")
