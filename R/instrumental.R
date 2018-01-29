@@ -14,7 +14,7 @@
 #'   exposure.
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #'
-#' @return a \code{tidy_dagitty} with a \code{instrumental} column for
+#' @return a \code{tidy_dagitty} with an \code{instrumental} column for
 #'   instrumental variables or a \code{ggplot}
 #' @export
 #'

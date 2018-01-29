@@ -25,7 +25,7 @@ exposure.}
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 }
 \value{
-a \code{tidy_dagitty} with a \code{instrumental} column for
+a \code{tidy_dagitty} with an \code{instrumental} column for
   instrumental variables or a \code{ggplot}
 }
 \description{
