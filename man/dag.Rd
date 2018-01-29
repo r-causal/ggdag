@@ -2,13 +2,22 @@
 % Please edit documentation in R/dagify.R
 \name{dag}
 \alias{dag}
-\title{Title}
+\title{Create a dagitty DAG}
 \usage{
 dag(...)
 }
 \arguments{
-\item{...}{}
+\item{...}{a character vector in the style of dagitty. See
+\code{dagitty::\link[dagitty]{dagitty}} for details.}
+}
+\value{
+a \code{dagitty}
 }
 \description{
-Title
+A convenience wrapper for dagitty::dagitty("dag{...}")
+}
+\examples{
+dag("{x m} -> y")
+
+
 }

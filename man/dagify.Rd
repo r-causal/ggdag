@@ -2,14 +2,75 @@
 % Please edit documentation in R/dagify.R
 \name{dagify}
 \alias{dagify}
-\title{Title}
+\title{Create a dagitty DAG using R-like syntax}
 \usage{
 dagify(..., exposure = NULL, outcome = NULL, latent = NULL,
   labels = NULL, coords = NULL)
 }
 \arguments{
-\item{coords}{}
+\item{...}{formulas, which are converted to \code{dagitty} syntax}
+
+\item{exposure}{a character vector for the exposure (must be a variable name
+in the DAG)}
+
+\item{outcome}{a character vector for the outcome (must be a variable name in
+the DAG)}
+
+\item{latent}{a character vector for any latent variables (must be a variable
+name in the DAG)}
+
+\item{labels}{a named character vector, labels for variables in the DAG}
+
+\item{coords}{coordinates for the DAG nodes. Can be a named list or a
+\code{data.frame} with columns x, y, and name}
+}
+\value{
+a \code{dagitty} DAG
 }
 \description{
-Title
+\code{dagify()} creates dagitty DAGs using a more R-like syntax. It currently
+accepts formulas in the usual R style, e.g. \code{y ~ x + z}, which gets
+convered to \code{y <- {x z}}, as well as using a double tilde (\code{~~}) to
+graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \code{x1
+<-> x2}.
+}
+\examples{
+
+dagify(y ~ x + z, x~ z)
+
+coords <- list(
+    x = c(A = 1, B = 2, D = 3, C = 3, F = 3, E = 4, G = 5, H = 5, I = 5),
+    y = c(A = 0, B = 0, D = 1, C = 0, F = -1, E = 0, G = 1, H = 0, I = -1)
+    )
+
+dag <- dagify(G ~~ H,
+       G ~~ I,
+       I ~~ G,
+       H ~~ I,
+       D ~ B,
+       C ~ B,
+       I ~ C + F,
+       F ~ B,
+       B ~ A,
+       H ~ E,
+       C ~ E + G,
+       G ~ D, coords = coords)
+
+dagitty::is.dagitty(dag)
+
+ggdag(dag)
+
+dag2 <- dagify(y ~ x + z2 + w2 + w1,
+             x ~ z1 + w1,
+             z1 ~ w1 + v,
+             z2 ~ w2 + v,
+             w1 ~~ w2,
+             exposure = "x",
+             outcome = "y")
+
+ggdag(dag2)
+
+}
+\seealso{
+\code{\link{dag}}, \code{\link{coords2df}}, \code{\link{coords2list}}
 }
