@@ -14,9 +14,13 @@ from the axes. Use the convenience function \code{expand_scale()} to
 generate the values for the expand argument.}
 
 \item{breaks}{One of:
+
 - NULL for no breaks
+
 - waiver() for the default breaks computed by the transformation object
+
 - A numeric vector of positions
+
 - A function that takes the limits as input and returns breaks as output}
 }
 \description{

@@ -1,30 +1,58 @@
-#' Title
+#' Generating Equivalent Models
 #'
-#' @param .dag
-#' @param n
+#' Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
+#' input DAG. CPDAGs are Markov equivalent to the input graph. See
+#' \code{dagitty::\link[dagitty]{equivalentDAGs()}} for details.
+#' \code{node_equivalent_dags()} returns a set of DAGS, while
+#' \code{node_equivalent_class()} tags reversable edges.
+#' \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
+#' \code{ggdag_equivalent_class()} plots all reversable edges as undirected.
 #'
-#' @return
+#' @param .dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param n maximal number of returned graphs.
+#' @param .tdy_dag an object of class \code{tidy_dagitty} or \code{dagitty}
+#' @inheritParams tidy_dagitty
+#' @inheritParams scale_dag
+#'
+#' @return a \code{tidy_dagitty} with at least one DAG, including a \code{dag}
+#'   column to identify graph set for equivalent DAGs or a \code{reversable}
+#'   column for equivalent classes
 #' @export
 #'
 #' @examples
-node_equivalent_dags <- function(.dag, n = 100, layout = "auto") {
+#'
+#' library(dagitty)
+#' g_ex <- getExample("Shrier")
+#'
+#' g_ex %>%
+#' node_equivalent_dags() %>%
+#'   ggplot(aes(x, y, xend = xend, yend = yend)) +
+#'   geom_dag_node(size = 10) +
+#'   geom_dag_edges() +
+#'   geom_dag_label_repel(aes(label = name), col = "black", size = 2) +
+#'   theme_dag() + scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
+#'                           expand_y = expand_scale(c(0.25, 0.25))) +
+#'   facet_wrap(~dag)
+#'
+#' m_bias() %>% ggdag_equivalent_dags()
+#'
+#' g_ex %>% node_equivalent_class()
+#'
+#' mediation_triangle() %>% ggdag_equivalent_class()
+#'
+#' @rdname equivalent
+#' @export
+node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
   .dag <- if_not_tidy_daggity(.dag)
   .dag$data <- dagitty::equivalentDAGs(.dag$dag, n = n) %>%
-    purrr::map_df(~as.data.frame(tidy_dagitty(.x, layout = layout)), .id = "dag") %>%
+    purrr::map_df(~as.data.frame(tidy_dagitty(.x, layout = layout, ...)), .id = "dag") %>%
     dplyr::as.tbl()
   .dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname equivalent
 #' @export
-#'
-#' @examples
 ggdag_equivalent_dags <- function(.tdy_dag, ...) {
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -37,15 +65,8 @@ ggdag_equivalent_dags <- function(.tdy_dag, ...) {
   p
 }
 
-#' Title
-#'
-#' @param .dag
-#' @param layout
-#'
-#' @return
+#' @rdname equivalent
 #' @export
-#'
-#' @examples
 node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
   .dag$data <- dagitty::equivalenceClass(.dag$dag) %>%
@@ -59,19 +80,8 @@ node_equivalent_class <- function(.dag, layout = "auto") {
   .dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param cap
-#' @param ...
-#' @param expand_x
-#' @param expand_y
-#' @param breaks
-#'
-#' @return
+#' @rdname equivalent
 #' @export
-#'
-#' @examples
 ggdag_equivalent_class <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'),
                                    expand_x = expand_scale(c(.10, .10)),
                                    expand_y = expand_scale(c(.10, .10)),
