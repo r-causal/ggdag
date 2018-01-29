@@ -57,7 +57,7 @@
 #'   theme_dag() +
 #'   scale_dag()
 #' @rdname d_relationship
-#' @name Assess D-separation between variables
+#' @name Assess d-separation between variables
 node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
