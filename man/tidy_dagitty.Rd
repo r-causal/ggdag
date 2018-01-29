@@ -15,6 +15,9 @@ tidy_dagitty(.dagitty, seed = NULL, layout = "nicely", ...)
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 }
+\value{
+a \code{tidy_dagitty} object
+}
 \description{
 Tidy a \code{dagitty} object
 }
