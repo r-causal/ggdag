@@ -1,15 +1,33 @@
-#' Title
+#' Find Instrumental Variables
 #'
-#' @param .dag
-#' @param exposure
-#' @param outcome
+#' \code{node_instrumental} tags instrumental variables given an exposure and
+#' outcome. \code{ggdag_instrumental} plots all instrumental variables. See
+#' \code{dagitty::\link[dagitty]{instrumentalVariables}} for details.
 #'
-#' @return
+#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param exposure character vector of length 1, name of exposure variable.
+#'   Default is \code{NULL}, in which case it will check the input DAG for
+#'   exposure.
+#' @param outcome character vector of length 1, name of exposure variable.
+#'   Default is \code{NULL}, in which case it will check the input DAG for
+#'   exposure.
+#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#'
+#' @return a \code{tidy_dagitty} with a \code{instrumental} column for
+#'   instrumental variables or a \code{ggplot}
 #' @export
 #'
 #' @examples
-node_instrumental <- function(.dag, exposure = NULL, outcome = NULL) {
-  .dag <- if_not_tidy_daggity(.dag)
+#' library(dagitty)
+#'
+#' node_instrumental(dagitty("dag{ i->x->y; x<->y }"), "x", "y")
+#' ggdag_instrumental(dagitty("dag{ i->x->y; i2->x->y; x<->y }"), "x", "y")
+#'
+#' @rdname instrumental
+#' @name Instrumental Variables
+node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
+  .dag <- if_not_tidy_daggity(.dag, ...)
   instrumental_vars <- dagitty::instrumentalVariables(.dag$dag,
                                                       exposure = exposure,
                                                       outcome = outcome)
@@ -32,16 +50,8 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL) {
   .dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname instrumental
 #' @export
-#'
-#' @examples
 ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)

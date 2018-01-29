@@ -1,5 +1,8 @@
 #' DAG labels
 #'
+#' Label or otherwise retrieve labeles from objects of either class
+#' \code{tidy_dagitty} or \code{dagitty}
+#'
 #' @param x an object of either class \code{tidy_dagitty} or \code{dagitty}
 #' @param values a character vector
 #' @param .tdy_dag an object of class \code{tidy_dagitty}
@@ -14,11 +17,7 @@
 #'
 #'  has_labels(labelled_dag)
 #' @rdname label
-#' @name label
-NULL
-
-#' @rdname label
-#' @export
+#' @name DAG Labels
 `label<-` <- function(x, value) {
   UseMethod("label<-")
 }

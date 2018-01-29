@@ -170,7 +170,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'     theme_dag() +
 #'     scale_dag()
 #' @rdname repel
-#' @name repel
+#' @name ggrepel functions
 geom_dag_text_repel <- function(mapping = NULL,
                                 data = NULL,
                                 parse = FALSE,

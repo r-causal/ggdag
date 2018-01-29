@@ -14,7 +14,7 @@
 #' ggdag_confounder_triangle()
 #'
 #' @rdname quick_plot
-#' @name quick_plot
+#' @name Quick Plots for Common DAGs
 
 m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
   coords <- tibble::tribble(
