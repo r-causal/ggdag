@@ -33,9 +33,11 @@ ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL, ...)
 
 \item{to}{a character vector, the ending variable (must by in DAG)}
 
-\item{controlling_for}{a character vector, variables in the DAG to control for.}
+\item{controlling_for}{a character vector, variables in the DAG to control
+for.}
 
-\item{as_factor}{logical. Should the \code{d_relationship} variable be a factor?}
+\item{as_factor}{logical. Should the \code{d_relationship} variable be a
+factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 }
@@ -44,7 +46,13 @@ a \code{tidy_dagitty} with an \code{d_relationship} column for
   variable D relationship or a \code{ggplot}
 }
 \description{
-D-relationship
+D-separation is a key concept in causal structural models. Variables are
+d-separated if there are no open paths between them. The \code{node_d*()}
+functions label variables as d-connected or d-separated. The
+\code{ggdag_d*()} functions plot the results. The \code{*_dconnected()},
+\code{*_dseparated()}, and \code{*_drelationship()} functions essentially
+produce the same output and are just different ways of thinking about the
+relationship. See \code{dagitty::\link[dagitty]{dseparated}} for details.
 }
 \examples{
 dag <- dagify(m ~ x + y)
