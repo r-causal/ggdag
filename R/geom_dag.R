@@ -394,6 +394,8 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #' @export
 #'
 #' @examples
+#' library(dagitty)
+#'
 #' dagify(m ~ a + b, x ~ a, y ~ b) %>%
 #'   tidy_dagitty() %>%
 #'   control_for("m") %>%

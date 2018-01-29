@@ -41,7 +41,6 @@ NULL
   x
 }
 
-
 #' @param labels a character vector
 #'
 #' @rdname label
