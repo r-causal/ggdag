@@ -5,12 +5,12 @@ Authors@R: person("Malcolm", "Barrett", email = "malcolmbarrett@gmail.com", role
 Description: `ggdag` is a package to simplify working with directed acyclic graphs (DAGs) in R. `ggdag` is built on top of `dagitty`, an R package that uses the dagitty web tool for creating and analyzing DAGs. `ggdag` provides functionality for tidying and plotting `dagitty` objects using `ggplot2` and `ggraph`, as well as common analytic and graphical functions, such as determining adjustment sets and node relartionships. 
 Depends: 
     R (>= 3.0.0),
-    ggplot2
+    ggplot2,
+    ggraph
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports: 
-    ggraph,
     dagitty,
     dplyr,
     purrr,
