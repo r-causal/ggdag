@@ -5,7 +5,7 @@
 #' @param layout a layout available in \code{ggraph}. See \code{ggraph::\link[ggraph]{create_layout}} for details.
 #' @param ... optional arguments passed to \code{ggraph::create_layout()}
 #'
-#' @return
+#' @return a \code{tidy_dagitty} object
 #' @export
 #'
 #' @examples
@@ -44,6 +44,8 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     dplyr::select(v, w) %>%
     igraph::graph_from_data_frame() %>%
     {suppressMessages(ggraph::create_layout(., layout, ...))}
+
+  warning(print(ggraph_layout))
 
   if (no_existing_coords) {
     coords <- coords2list(ggraph_layout)
