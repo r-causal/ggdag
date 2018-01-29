@@ -45,8 +45,6 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     igraph::graph_from_data_frame() %>%
     {suppressMessages(ggraph::create_layout(., layout, ...))}
 
-  warning(print(ggraph_layout))
-
   if (no_existing_coords) {
     coords <- coords2list(ggraph_layout)
   } else {
@@ -72,8 +70,10 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
     dplyr::mutate(from = name) %>%
     dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
-    dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name") %>%
-    dplyr::arrange(.ggraph.orig_index)
+    {warning(print(.))}
+  # %>%
+  #   dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name") %>%
+  #   dplyr::arrange(.ggraph.orig_index)
 
   .tdy_dag <- list(data = tidy_dag, dag = .dag)
   class(.tdy_dag) <- "tidy_dagitty"
