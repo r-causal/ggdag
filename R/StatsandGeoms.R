@@ -92,7 +92,7 @@ StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
 
 StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
                                 setup_data = function(data, params) {
-                                  #browser()
+
                                   data <- data[!is.na(data$direction) &
                                                  data$direction == "<->" &
                                                  !is.na(data$circular), ]
@@ -110,7 +110,7 @@ StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
 
 GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                     setup_data = function(data, params) {
-                                      #browser()
+
                                       ggraph::GeomEdgePath$setup_data(data, params)
                                     },
                                     use_defaults = function(self, data, params = list()) {
