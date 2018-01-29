@@ -392,13 +392,6 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #' @inheritParams ggplot2::geom_curve
 #'
 #' @export
-#'
-#' @examples
-#' library(dplyr)
-#' library(ggraph)
-#'
-#' dagify(m ~ a + b, x ~ a, y ~ b) %>%
-#'   tidy_dagitty()
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     stat = "identity", position = "identity",
                                     ...,
