@@ -58,6 +58,8 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   tidy_dag <- dplyr::left_join(tibble::enframe(coords$x, value = "x"),
                         tibble::enframe(coords$y, value = "y"),
                         by = "name")
+  dplyr::select(ggraph_layout, -x, -y) %>% dplyr::as.tbl() %>%
+  {warning(print(.))}
 
   tidy_dag <- dag_edges %>%
     dplyr::select(-x, -y) %>%
@@ -71,8 +73,7 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     dplyr::mutate(from = name) %>%
     dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
     dplyr::left_join(dplyr::select(ggraph_layout, -x, -y), by = "name") %>%
-    {warning(print(.))}
-    #dplyr::arrange(.ggraph.orig_index) %>%
+    dplyr::arrange(.ggraph.orig_index)
 
 
   .tdy_dag <- list(data = tidy_dag, dag = .dag)
