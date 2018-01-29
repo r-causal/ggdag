@@ -2,15 +2,15 @@
 % Please edit documentation in R/tidy_dag.R
 \name{print.tidy_dagitty}
 \alias{print.tidy_dagitty}
-\title{Title}
+\title{Print a \code{tidy_dagitty}}
 \usage{
 \method{print}{tidy_dagitty}(x, ...)
 }
 \arguments{
-\item{x}{}
+\item{x}{an object of class \code{tidy_dagitty}}
 
-\item{...}{}
+\item{...}{optional arguments passed to \code{print()}}
 }
 \description{
-Title
+Print a \code{tidy_dagitty}
 }

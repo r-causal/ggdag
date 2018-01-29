@@ -2,13 +2,42 @@
 % Please edit documentation in R/tidy_dag.R
 \name{tidy_dagitty}
 \alias{tidy_dagitty}
-\title{Title}
+\title{Tidy a \code{dagitty} object}
 \usage{
 tidy_dagitty(.dagitty, seed = NULL, layout = "nicely", ...)
 }
 \arguments{
-\item{...}{}
+\item{.dagitty}{a \code{dagitty}}
+
+\item{seed}{a numeric seed for reproducible layout generation}
+
+\item{layout}{a layout available in \code{ggraph}. See \code{ggraph::\link[ggraph]{create_layout}} for details.}
+
+\item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 }
 \description{
-Title
+Tidy a \code{dagitty} object
+}
+\examples{
+library(dagitty)
+library(ggplot2)
+
+dag <- dagitty( "dag {
+  Y <- X <- Z1 <- V -> Z2 -> Y
+  Z1 <- W1 <-> W2 -> Z2
+  X <- W1 -> Y
+  X <- W2 -> Y
+  X [exposure]
+  Y [outcome]
+  }")
+
+tidy_dagitty(dag)
+
+tidy_dagitty(dag, layout = "fr") \%>\%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_node() +
+    geom_dag_text() +
+    geom_dag_edges() +
+    theme_dag() +
+    scale_dag()
 }

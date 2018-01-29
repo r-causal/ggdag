@@ -2,13 +2,13 @@
 % Please edit documentation in R/tidy_dag.R
 \name{tbl_df.tidy_daggity}
 \alias{tbl_df.tidy_daggity}
-\title{Title}
+\title{Convert a \code{tidy_dagitty} object to tbl_df}
 \usage{
 tbl_df.tidy_daggity(.tdy_dag)
 }
 \arguments{
-\item{.tdy_dag}{}
+\item{.tdy_dag}{an object of class \code{tidy_dagitty}}
 }
 \description{
-Title
+Convert a \code{tidy_dagitty} object to tbl_df
 }

@@ -2,15 +2,23 @@
 % Please edit documentation in R/tidy_dag.R
 \name{as.tbl.tidy_daggity}
 \alias{as.tbl.tidy_daggity}
-\title{Title}
+\title{Convert a \code{tidy_dagitty} object to tbl}
 \usage{
 \method{as.tbl}{tidy_daggity}(x, row.names = NULL, optional = FALSE, ...)
 }
 \arguments{
-\item{x}{}
+\item{x}{an object of class \code{tidy_dagitty}}
 
-\item{...}{}
+\item{row.names}{NULL or a character vector giving the row names for the data
+frame. Missing values are not allowed.}
+
+\item{optional}{logical. If TRUE, setting row names and converting column
+  names (to syntactic names: see make.names) is optional. Note that all of
+  R's base package \code{as.data.frame()} methods use optional only for column names
+  treatment, basically with the meaning of \code{data.frame(*, check.names =
+  !optional)}
+#' @param ... optional arguments passed to \code{as.tbl()}}
 }
 \description{
-Title
+Convert a \code{tidy_dagitty} object to tbl
 }

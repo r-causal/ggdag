@@ -2,13 +2,13 @@
 % Please edit documentation in R/tidy_dag.R
 \name{is.tidy_dagitty}
 \alias{is.tidy_dagitty}
-\title{Title}
+\title{Test for object class for tidy_dagitty}
 \usage{
 is.tidy_dagitty(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{object to be tested}
 }
 \description{
-Title
+Test for object class for tidy_dagitty
 }
