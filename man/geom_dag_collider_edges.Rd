@@ -74,10 +74,3 @@ the default plot specification, e.g. \code{\link[=borders]{borders()}}.}
 \description{
 Edges for paths activated by stratification on colliders
 }
-\examples{
-library(dplyr)
-library(ggraph)
-
-dagify(m ~ a + b, x ~ a, y ~ b) \%>\%
-  tidy_dagitty()
-}
