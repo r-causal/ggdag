@@ -18,7 +18,7 @@
 #' @param as_factor logical. Should the \code{d_relationship} variable be a
 #'   factor?
 #'
-#' @return a \code{tidy_dagitty} with an \code{d_relationship} column for
+#' @return a \code{tidy_dagitty} with a \code{d_relationship} column for
 #'   variable D relationship or a \code{ggplot}
 #' @export
 #'

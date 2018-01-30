@@ -1,15 +1,41 @@
-#' Title
+#' Covariate Adjustment Sets
 #'
-#' @param .tdy_dag
-#' @param exposure
-#' @param outcome
-#' @param ...
+#' See \code{dagitty::\link[dagitty]{adjustmentSets}} for details.
 #'
-#' @return
+#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param exposure a character vector, the exposure variable. Default is
+#'   \code{NULL}, in which case it will be determined from the DAG.
+#' @param outcome a character vector, the outcome variable. Default is
+#'   \code{NULL}, in which case it will be determined from the DAG.
+#' @param ... additional arguments to \code{adjustmentSets}
+#'
+#' @return a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}
+#'   column, indicating adjustment status and DAG ID, respectively, for the
+#'   adjustment sets or a \code{ggplot}
 #' @export
 #'
 #' @examples
+#' dag <- dagify(y ~ x + z2 + w2 + w1,
+#'   x ~ z1 + w1,
+#'   z1 ~ w1 + v,
+#'   z2 ~ w2 + v,
+#'   w1 ~~ w2,
+#'   exposure = "x",
+#'   outcome = "y")
+#'
+#' tidy_dagitty(dag) %>% dag_adjustment_sets()
+#'
+#' ggdag_adjustment_set(dag)
+#'
+#' ggdag_adjustment_set(dagitty::randomDAG(10, .5),
+#'   exposure = "x3",
+#'   outcome = "x5")
+#'
 #' @importFrom utils capture.output
+#'
+#' @rdname adjustment_sets
+#' @name Covariate Adjustment Sets
 dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
   sets <- dagitty::adjustmentSets(.tdy_dag$dag, exposure = exposure, outcome = outcome, ...)
@@ -34,17 +60,8 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 }
 
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param exposure
-#' @param outcome
-#' @param ...
-#'
-#' @return
+#' @rdname adjustment_sets
 #' @export
-#'
-#' @examples
 ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
   if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
@@ -57,58 +74,68 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...)
     scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
 }
 
-#' Title
+#' Assess if a variable confounds a relationship
 #'
-#' @param g
-#' @param z
-#' @param x
-#' @param y
-#' @param direct
+#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param z a character vector, the potential confounder
+#' @param x,y a character vector, the variables z may confound.
+#' @param direct logical. Only consider direct confounding? Default is
+#'   \code{FALSE}
 #'
-#' @return
+#' @return Logical. Is the variable a confounder?
 #' @export
 #'
 #' @examples
-is_confounder <- function(g, z, x, y, direct = FALSE) {
+#' dag <- dagify(y ~ z, x ~ z)
+#'
+#' is_confounder(dag, "z", "x", "y")
+#' is_confounder(dag, "x", "z", "y")
+#'
+is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
+  dag <- if_not_tidy_daggity(.tdy_dag)$dag
+
   if (direct) {
-    z_descendants <- dagitty::children(g, z)
+    z_descendants <- dagitty::children(dag, z)
   } else {
-    z_descendants <- dagitty::descendants(g, z)[-1]
+    z_descendants <- dagitty::descendants(dag, z)[-1]
   }
   all(c(x, y) %in% z_descendants)
 }
 
-#' Title
+#' Adjust for variables and activate any biasing paths that result
 #'
-#' @param .tdy_dag
-#' @param adjust_for
-#' @param as_factor
+#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
+#'   \code{dagitty}
+#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param adjust_for a character vector, the variable(s) to adjust for.
+#' @param as_factor logical. Should the \code{adjusted} column be a factor?
 #'
-#' @return
+#' @return a \code{tidy_dagitty} with a \code{adjusted} column for adjusted
+#'   variables, as well as any biasing paths that arise, or a \code{ggplot}
 #' @export
 #'
 #' @examples
-control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE) {
+#' dag <- dagify(m ~ a + b, x ~ a, y ~ b)
+#'
+#' control_for(dag, adjust_for = "m")
+#' ggdag_adjust(dag, adjust_for = "m")
+#'
+#' @rdname control_for
+#' @name Adjust for variables
+control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   .tdy_dag <- activate_collider_paths(.tdy_dag, adjust_for)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% adjust_for, "adjusted", "unadjusted"))
   if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = factor(adjusted, exclude = NA))
   .tdy_dag
 }
 
-#' Title
-#'
-#' @param .tdy_dag
-#' @param adjust_for
-#' @param cap
-#' @param ...
-#'
-#' @return
+#' @rdname control_for
 #' @export
-#'
-#' @examples
 ggdag_adjust <- function(.tdy_dag, adjust_for, ...) {
-  if_not_tidy_daggity(.tdy_dag) %>%
-    control_for(adjust_for, ...) %>%
+  if_not_tidy_daggity(.tdy_dag, ...) %>%
+    control_for(adjust_for) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
     geom_dag_collider_edges() +

@@ -11,7 +11,7 @@
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #' @param as_factor treat \code{status} variable as factor
 #'
-#' @return a \code{tidy_dagitty} with an \code{status} column for
+#' @return a \code{tidy_dagitty} with a \code{status} column for
 #'   variable status or a \code{ggplot}
 #' @export
 #'

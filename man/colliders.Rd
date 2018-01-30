@@ -19,7 +19,7 @@ ggdag_collider(.tdy_dag, ...)
 \code{dagitty}}
 }
 \value{
-a \code{tidy_dagitty} with an \code{collider} column for
+a \code{tidy_dagitty} with a \code{collider} column for
   colliders or a \code{ggplot}
 }
 \description{

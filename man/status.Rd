@@ -19,7 +19,7 @@ ggdag_status(.tdy_dag, ...)
 \code{dagitty}}
 }
 \value{
-a \code{tidy_dagitty} with an \code{status} column for
+a \code{tidy_dagitty} with a \code{status} column for
   variable status or a \code{ggplot}
 }
 \description{

@@ -2,13 +2,31 @@
 % Please edit documentation in R/adjustment_sets.R
 \name{is_confounder}
 \alias{is_confounder}
-\title{Title}
+\title{Assess if a variable confounds a relationship}
 \usage{
-is_confounder(g, z, x, y, direct = FALSE)
+is_confounder(.tdy_dag, z, x, y, direct = FALSE)
 }
 \arguments{
-\item{direct}{}
+\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
+\code{dagitty}}
+
+\item{z}{a character vector, the potential confounder}
+
+\item{x, y}{a character vector, the variables z may confound.}
+
+\item{direct}{logical. Only consider direct confounding? Default is
+\code{FALSE}}
+}
+\value{
+Logical. Is the variable a confounder?
 }
 \description{
-Title
+Assess if a variable confounds a relationship
+}
+\examples{
+dag <- dagify(y ~ z, x ~ z)
+
+is_confounder(dag, "z", "x", "y")
+is_confounder(dag, "x", "z", "y")
+
 }
