@@ -6,17 +6,17 @@
 \alias{ggdag_status}
 \title{Find variable status}
 \usage{
-node_status(.tdy_dag, as_factor = TRUE, ...)
+node_status(.dag, as_factor = TRUE, ...)
 
 ggdag_status(.tdy_dag, ...)
 }
 \arguments{
+\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
+\code{dagitty}}
+
 \item{as_factor}{treat \code{status} variable as factor}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
-
-\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
 }
 \value{
 a \code{tidy_dagitty} with a \code{status} column for

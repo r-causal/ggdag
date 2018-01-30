@@ -16,3 +16,7 @@ theme_dag_blank(base_size = 12, base_family = "", ...)
 \description{
 A minimalist DAG theme
 }
+\examples{
+ggdag(m_bias()) + theme_dag_blank()
+
+}

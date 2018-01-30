@@ -56,6 +56,8 @@ specified by passing \code{unit(x, "units")}).}
 as the text. In the unlikely event you specify both US and UK spellings of colour, the
 US spelling will take precedence.}
 
+\item{fontface}{A character vector. Default is "bold"}
+
 \item{segment.size}{Width of line segment connecting the data point to
 the text label, in mm.}
 

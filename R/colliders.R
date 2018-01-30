@@ -21,8 +21,8 @@
 #'
 #' @rdname colliders
 #' @name Colliders
-node_collider <- function(.tdy_dag, as_factor = TRUE, ...) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+node_collider <- function(.dag, as_factor = TRUE, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.dag, ...)
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~is_collider(.tdy_dag, .x))
   names(colliders) <- vars
@@ -54,7 +54,7 @@ ggdag_collider <- function(.tdy_dag, ...) {
 #'
 #' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
-#' @param adjust_for
+#' @param adjust_for a character vector, the variable(s) to adjust for.
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #'
 #' @return a \code{tidy_dagitty} with additional rows for collider-activated

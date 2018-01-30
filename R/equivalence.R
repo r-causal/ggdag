@@ -12,6 +12,9 @@
 #'   \code{dagitty}
 #' @param n maximal number of returned graphs.
 #' @param .tdy_dag an object of class \code{tidy_dagitty} or \code{dagitty}
+#' @param cap a geometry object from the \code{ggraph} object to shorten the
+#'   edge. Default is ggraph::circle(8, 'mm'). See
+#'   \code{ggraph::\link[ggraph]{geometry}} for details.
 #' @inheritParams tidy_dagitty
 #' @inheritParams scale_dag
 #'

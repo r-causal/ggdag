@@ -27,8 +27,8 @@
 #'
 #' @rdname status
 #' @name Variable Status
-node_status <- function(.tdy_dag, as_factor = TRUE, ...) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+node_status <- function(.dag, as_factor = TRUE, ...) {
+  .tdy_dag <- if_not_tidy_daggity(.dag, ...)
   .exposures <- dagitty::exposures(.tdy_dag$dag)
   .outcomes <- dagitty::outcomes(.tdy_dag$dag)
   .latents <- dagitty::latents(.tdy_dag$dag)

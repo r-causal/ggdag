@@ -10,6 +10,8 @@ activate_collider_paths(.tdy_dag, adjust_for, ...)
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
 
+\item{adjust_for}{a character vector, the variable(s) to adjust for.}
+
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 }
 \value{

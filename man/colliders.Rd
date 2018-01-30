@@ -6,17 +6,17 @@
 \alias{ggdag_collider}
 \title{Find colliders}
 \usage{
-node_collider(.tdy_dag, as_factor = TRUE, ...)
+node_collider(.dag, as_factor = TRUE, ...)
 
 ggdag_collider(.tdy_dag, ...)
 }
 \arguments{
+\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
+\code{dagitty}}
+
 \item{as_factor}{treat \code{collider} variable as factor}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
-
-\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
 }
 \value{
 a \code{tidy_dagitty} with a \code{collider} column for

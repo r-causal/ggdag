@@ -30,6 +30,10 @@ ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"),
 
 \item{.tdy_dag}{an object of class \code{tidy_dagitty} or \code{dagitty}}
 
+\item{cap}{a geometry object from the \code{ggraph} object to shorten the
+edge. Default is ggraph::circle(8, 'mm'). See
+\code{ggraph::\link[ggraph]{geometry}} for details.}
+
 \item{expand_x}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
 from the axes. Use the convenience function \code{expand_scale()} to

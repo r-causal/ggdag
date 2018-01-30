@@ -4,7 +4,7 @@
 #' \code{tidy_dagitty} or \code{dagitty}
 #'
 #' @param x an object of either class \code{tidy_dagitty} or \code{dagitty}
-#' @param values a character vector
+#' @param value a character vector
 #' @param .tdy_dag an object of class \code{tidy_dagitty}
 #'
 #' @return \code{label} returns the label attribute of x

@@ -13,11 +13,12 @@
 frame. Missing values are not allowed.}
 
 \item{optional}{logical. If TRUE, setting row names and converting column
-  names (to syntactic names: see make.names) is optional. Note that all of
-  R's base package \code{as.data.frame()} methods use optional only for column names
-  treatment, basically with the meaning of \code{data.frame(*, check.names =
-  !optional)}
-#' @param ... optional arguments passed to \code{as.tbl()}}
+names (to syntactic names: see make.names) is optional. Note that all of
+R's base package \code{as.data.frame()} methods use optional only for column names
+treatment, basically with the meaning of \code{data.frame(*, check.names =
+!optional)}}
+
+\item{...}{optional arguments passed to \code{as.tbl()}}
 }
 \description{
 Convert a \code{tidy_dagitty} object to tbl

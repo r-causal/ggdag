@@ -40,6 +40,8 @@ often aesthetics, used to set an aesthetic to a fixed value, like
 \code{color = "red"} or \code{size = 3}. They may also be parameters
 to the paired geom/stat.}
 
+\item{size}{a numeric vector of length 1. Edge width}
+
 \item{curvature}{A numeric value giving the amount of curvature.
     Negative values produce left-hand curves, positive values
     produce right-hand curves, and zero produces a straight line.}

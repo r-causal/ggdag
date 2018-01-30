@@ -1,6 +1,5 @@
 #' DAG Nodes
 #'
-#' @return
 #' @export
 #'
 #' @inheritParams ggplot2::geom_point
@@ -73,7 +72,6 @@ geom_dag_node <- function(mapping = NULL, data = NULL,
 #' - size
 #' - vjust
 #'
-#' @return
 #' @export
 #'
 #' @examples
@@ -136,8 +134,8 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'
 #' @inheritParams ggrepel::geom_text_repel
 #' @inheritParams ggrepel::geom_label_repel
+#' @param fontface A character vector. Default is "bold"
 #'
-#' @return
 #' @importFrom purrr %||%
 #' @export
 #'
@@ -304,7 +302,6 @@ geom_dag_label_repel <- function(
 #'   different directions. Default to FALSE.
 #' @param ... Other arguments passed to ggraph::geom_edge_*()
 #'
-#' @return
 #' @export
 #'
 #' @examples
@@ -390,6 +387,7 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #' Edges for paths activated by stratification on colliders
 #'
 #' @inheritParams ggplot2::geom_curve
+#' @param size a numeric vector of length 1. Edge width
 #'
 #' @export
 #'
@@ -448,10 +446,11 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #' @inheritParams ggplot2::theme_minimal
 #' @param ... additional arguments passed to \code{theme()}
 #'
-#' @return
 #' @export
 #'
 #' @examples
+#' ggdag(m_bias()) + theme_dag_blank()
+#'
 theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
   list(
     ggplot2::theme_minimal(base_size = base_size, base_family = base_family),
@@ -468,11 +467,13 @@ theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
 #' @inheritParams ggplot2::theme_grey
 #' @param ... additional arguments passed to \code{theme()}
 #'
-#' @return
 #' @export
 #'
 #' @rdname theme_dag_grey
 #' @rdname theme_dag_grey
+#'
+#' ggdag(m_bias()) + theme_dag_grey() #the default
+#'
 theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
   list(
     ggplot2::theme_grey(base_size = base_size, base_family = base_family),
@@ -508,9 +509,7 @@ theme_dag <- theme_dag_grey
 #' - A numeric vector of positions
 #'
 #' - A function that takes the limits as input and returns breaks as output
-
 #'
-#' @return
 #' @export
 scale_dag <- function(expand_x = expand_scale(c(.10, .10)),
                       expand_y = expand_scale(c(.10, .10)),

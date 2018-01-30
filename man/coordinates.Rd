@@ -15,6 +15,9 @@ coords2list(coord_df)
 
 \item{coord_df}{a data.frame with columns x, y, and name}
 }
+\value{
+either a list or a data.frame with DAG node coordinates
+}
 \description{
 Manipulate DAG coordinates
 }

@@ -128,7 +128,7 @@ fortify.dagitty <- function(model, data = NULL, ...) {
 #'   R's base package \code{as.data.frame()} methods use optional only for column names
 #'   treatment, basically with the meaning of \code{data.frame(*, check.names =
 #'   !optional)}
-#' #' @param ... optional arguments passed to \code{as.data.frame()}
+#' @param ... optional arguments passed to \code{as.data.frame()}
 #'
 #' @export
 as.data.frame.tidy_dagitty <- function(x, row.names, optional, ...) {
@@ -155,7 +155,7 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
 #'   R's base package \code{as.data.frame()} methods use optional only for column names
 #'   treatment, basically with the meaning of \code{data.frame(*, check.names =
 #'   !optional)}
-#' #' @param ... optional arguments passed to \code{as.tbl()}
+#' @param ... optional arguments passed to \code{as.tbl()}
 #'
 #' @export
 #' @importFrom dplyr as.tbl
@@ -183,7 +183,7 @@ print.tidy_dagitty <- function(x, ...) {
 #' @param coord_list a named list of coordinates
 #' @param coord_df a data.frame with columns x, y, and name
 #'
-#' @return
+#' @return either a list or a data.frame with DAG node coordinates
 #' @export
 #'
 #' @examples
