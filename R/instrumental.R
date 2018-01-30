@@ -34,6 +34,11 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 
 
   i_vars <- purrr::map(instrumental_vars, "I")
+  if (purrr::is_empty(i_vars)) {
+    .dag$data$adjusted <- factor("unadjusted", levels = c("unadjusted", "adjusted"), exclude = NA)
+    .dag$data$instrumental <- NA
+    return(.dag)
+  }
   adjust_for_vars <- purrr::map(instrumental_vars, "Z")
 
   .dag$data <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
