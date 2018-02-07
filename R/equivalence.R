@@ -72,9 +72,19 @@ ggdag_equivalent_dags <- function(.tdy_dag, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_dags(...)
 
-  p <- ggdag(.tdy_dag)
+  p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges() +
+    geom_dag_node() +
+    geom_dag_text() +
+    theme_dag()
 
-  if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) p <- p + ggplot2::facet_wrap(~dag)
+  if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
+    p <- p +
+      ggplot2::facet_wrap(~dag) +
+      scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
+  } else {
+    p <- p + scale_dag()
+  }
 
   p
 }
