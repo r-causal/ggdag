@@ -72,7 +72,7 @@ ggdag(tidy_ggdag)
 ggdag_adjustment_set(tidy_ggdag)
 ```
 
-As well as geoms and for plotting them directly in `ggplot2`:
+As well as geoms and other functions for plotting them directly in `ggplot2`:
 
 ```{r ggdag_geoms, dpi=300}
 dagify(m ~ x + y) %>% 

@@ -108,7 +108,7 @@ ggdag_adjustment_set(tidy_ggdag)
 
 <img src="man/figures/README-ggdag-2.png" width="100%" />
 
-As well as geoms and for plotting them directly in `ggplot2`:
+As well as geoms and other functions for plotting them directly in `ggplot2`:
 
 ``` r
 dagify(m ~ x + y) %>% 
