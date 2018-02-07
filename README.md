@@ -20,10 +20,18 @@ devtools::install_github("malcolmbarrett/ggdag")
 Example
 -------
 
-`ggdag` makes it easy to use the powerful `dagitty` package in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax.
+`ggdag` makes it easy to use the powerful `dagitty` package in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax:
 
 ``` r
 library(ggdag)
+#> 
+#> Attaching package: 'ggdag'
+#> The following object is masked from 'package:ggplot2':
+#> 
+#>     expand_scale
+#> The following object is masked from 'package:stats':
+#> 
+#>     filter
 
 #  example from the dagitty package
 dag <- dagitty::dagitty( "dag {
@@ -41,22 +49,23 @@ tidy_dag
 #> # A tibble: 13 x 12
 #>    name  from      x     y direction type       to     xend  yend
 #>    <chr> <chr> <dbl> <dbl> <fct>     <fct>      <chr> <dbl> <dbl>
-#>  1 v     v      12.3  6.20 ->        directed   z1     10.9  6.31
-#>  2 v     v      12.3  6.20 ->        directed   z2     12.1  4.78
-#>  3 w1    w1     10.7  5.29 ->        directed   x      10.1  5.09
-#>  4 w1    w1     10.7  5.29 ->        directed   y      11.2  4.48
-#>  5 w1    w1     10.7  5.29 ->        directed   z1     10.9  6.31
-#>  6 w1    w1     10.7  5.29 <->       bidirected w2     10.7  4.16
-#>  7 w2    w2     10.7  4.16 ->        directed   x      10.1  5.09
-#>  8 w2    w2     10.7  4.16 ->        directed   y      11.2  4.48
-#>  9 w2    w2     10.7  4.16 ->        directed   z2     12.1  4.78
-#> 10 x     x      10.1  5.09 ->        directed   y      11.2  4.48
-#> 11 z1    z1     10.9  6.31 ->        directed   x      10.1  5.09
-#> 12 z2    z2     12.1  4.78 ->        directed   y      11.2  4.48
-#> 13 y     y      11.2  4.48 <NA>      <NA>       <NA>   NA   NA   
+#>  1 v     v     11.8   8.03 ->        directed   z1    10.4   7.77
+#>  2 v     v     11.8   8.03 ->        directed   z2    12.1   6.66
+#>  3 w1    w1    10.2   6.85 ->        directed   x      9.95  6.28
+#>  4 w1    w1    10.2   6.85 ->        directed   y     11.1   6.39
+#>  5 w1    w1    10.2   6.85 ->        directed   z1    10.4   7.77
+#>  6 w1    w1    10.2   6.85 <->       bidirected w2    10.9   5.75
+#>  7 w2    w2    10.9   5.75 ->        directed   x      9.95  6.28
+#>  8 w2    w2    10.9   5.75 ->        directed   y     11.1   6.39
+#>  9 w2    w2    10.9   5.75 ->        directed   z2    12.1   6.66
+#> 10 x     x      9.95  6.28 ->        directed   y     11.1   6.39
+#> 11 z1    z1    10.4   7.77 ->        directed   x      9.95  6.28
+#> 12 z2    z2    12.1   6.66 ->        directed   y     11.1   6.39
+#> 13 y     y     11.1   6.39 <NA>      <NA>       <NA>  NA    NA   
 #> # ... with 3 more variables: .ggraph.orig_index <int>, circular <lgl>,
 #> #   .ggraph.index <int>
 
+#  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(y ~ x + z2 + w2 + w1,
              x ~ z1 + w1,
              z1 ~ w1 + v,
@@ -69,23 +78,23 @@ tidy_ggdag
 #> # A tibble: 12 x 12
 #>    name  from      x     y direction type       to     xend  yend
 #>    <chr> <chr> <dbl> <dbl> <fct>     <fct>      <chr> <dbl> <dbl>
-#>  1 v     v      14.2  15.4 ->        directed   z1     13.1  14.6
-#>  2 v     v      14.2  15.4 ->        directed   z2     15.0  14.3
-#>  3 w1    w1     13.4  13.2 ->        directed   x      12.7  13.7
-#>  4 w1    w1     13.4  13.2 ->        directed   y      14.1  13.6
-#>  5 w1    w1     13.4  13.2 ->        directed   z1     13.1  14.6
-#>  6 w1    w1     13.4  13.2 <->       bidirected w2     14.8  13.1
-#>  7 w2    w2     14.8  13.1 ->        directed   y      14.1  13.6
-#>  8 w2    w2     14.8  13.1 ->        directed   z2     15.0  14.3
-#>  9 x     x      12.7  13.7 ->        directed   y      14.1  13.6
-#> 10 z1    z1     13.1  14.6 ->        directed   x      12.7  13.7
-#> 11 z2    z2     15.0  14.3 ->        directed   y      14.1  13.6
-#> 12 y     y      14.1  13.6 <NA>      <NA>       <NA>   NA    NA  
+#>  1 v     v      7.25  17.2 ->        directed   z1     7.59  18.5
+#>  2 v     v      7.25  17.2 ->        directed   z2     8.57  16.8
+#>  3 w1    w1     9.03  18.7 ->        directed   x      8.35  19.3
+#>  4 w1    w1     9.03  18.7 ->        directed   y      8.93  18.0
+#>  5 w1    w1     9.03  18.7 ->        directed   z1     7.59  18.5
+#>  6 w1    w1     9.03  18.7 <->       bidirected w2     9.68  17.5
+#>  7 w2    w2     9.68  17.5 ->        directed   y      8.93  18.0
+#>  8 w2    w2     9.68  17.5 ->        directed   z2     8.57  16.8
+#>  9 x     x      8.35  19.3 ->        directed   y      8.93  18.0
+#> 10 z1    z1     7.59  18.5 ->        directed   x      8.35  19.3
+#> 11 z2    z2     8.57  16.8 ->        directed   y      8.93  18.0
+#> 12 y     y      8.93  18.0 <NA>      <NA>       <NA>  NA     NA  
 #> # ... with 3 more variables: .ggraph.orig_index <int>, circular <lgl>,
 #> #   .ggraph.index <int>
 ```
 
-`ggdag` also provides functionality for analyzing DAGs and plotting them in `ggplot2`.
+`ggdag` also provides functionality for analyzing DAGs and plotting them in `ggplot2`:
 
 ``` r
 ggdag(tidy_ggdag)
@@ -99,7 +108,7 @@ ggdag_adjustment_set(tidy_ggdag)
 
 <img src="man/figures/README-ggdag-2.png" width="100%" />
 
-As well as geoms and for plotting them directly in `ggplot2`.
+As well as geoms and for plotting them directly in `ggplot2`:
 
 ``` r
 dagify(m ~ x + y) %>% 
@@ -115,3 +124,18 @@ dagify(m ~ x + y) %>%
 ```
 
 <img src="man/figures/README-ggdag_geoms-1.png" width="100%" />
+
+And common structures of bias:
+
+``` r
+ggdag_equivalent_dags(confounder_triangle())
+```
+
+<img src="man/figures/README-ggdag_common-1.png" width="100%" />
+
+``` r
+
+ggdag_butterfly_bias()
+```
+
+<img src="man/figures/README-ggdag_common-2.png" width="100%" />
