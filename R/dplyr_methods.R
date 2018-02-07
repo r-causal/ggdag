@@ -113,7 +113,49 @@ semi_join.tidy_daggity <- function(x, y, by = NULL, copy = FALSE, ...) {
 
 #' @export
 #' @importFrom dplyr slice
-slice.tidy_daggity <- function(.data, ...) {
+slice.tidy_daggity <- function(.data, ..., .dots = list()) {
   .data$data <- dplyr::slice(.data$data, ...)
+  .data
+}
+
+#' @export
+#' @importFrom dplyr select_
+select_.tidy_daggity <- function(.data, ..., .dots = list()) {
+  .data$data <- dplyr::select_(.data$data, ...)
+  .data
+}
+
+#' @export
+#' @importFrom dplyr filter_
+filter_.tidy_daggity <- function(.data, ..., .dots = list()) {
+  .data$data <- dplyr::filter_(.data$data, ...)
+  .data
+}
+
+#' @export
+#' @importFrom dplyr mutate_
+mutate_.tidy_daggity <- function(.data, ..., .dots = list()) {
+  .data$data <- dplyr::mutate_(.data$data, ...)
+  .data
+}
+
+#' @export
+#' @importFrom dplyr summarise_
+summarise_.tidy_daggity <- function(.data, ..., .dots = list()) {
+  .data$data <- dplyr::summarise_(.data$data, ...)
+  .data
+}
+
+#' @export
+#' @importFrom dplyr arrange_
+arrange_.tidy_daggity <- function(.data, ..., .dots = list()) {
+  .data$data <- dplyr::arrange_(.data$data, ...)
+  .data
+}
+
+#' @export
+#' @importFrom dplyr slice_
+slice_.tidy_daggity <- function(.data, ..., .dots = list()) {
+  .data$data <- dplyr::slice_(.data$data, ...)
   .data
 }
