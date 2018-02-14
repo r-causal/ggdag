@@ -91,10 +91,8 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 #'
 #' @param x object to be tested
 #' @export
-#'
-#' @importFrom methods is
 is.tidy_dagitty <- function(x) {
-  is(x, "tidy_dagitty")
+  inherits(x, "tidy_dagitty")
 }
 
 #' Fortify a \code{tidy_dagitty} object for \code{ggplot2}
