@@ -8,6 +8,13 @@
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #' @param as_factor treat \code{collider} variable as factor
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #'
 #' @return a \code{tidy_dagitty} with a \code{collider} column for
 #'   colliders or a \code{ggplot}
@@ -35,15 +42,23 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
 
 #' @rdname colliders
 #' @export
-ggdag_collider <- function(.tdy_dag, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_collider <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+                           text_col = "white", node = TRUE, text = TRUE,
+                           use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_collider() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = forcats::fct_rev(colliders))) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag()
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "colliders"),
+                           col = "white", show.legend = FALSE)
+  p
 }
 
 #' Activate paths opened by stratifying on a collider

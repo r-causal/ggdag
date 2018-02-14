@@ -28,24 +28,42 @@ collider_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 mediation_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 
 ggdag_m_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE)
+  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE)
+  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_confounder_triangle(x = NULL, y = NULL, z = NULL,
-  x_y_associated = FALSE)
+  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_collider_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE)
+  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_mediation_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE)
+  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{x, y, a, b, m, z}{Character vector. Optional label. Default is \code{NULL}}
 
 \item{x_y_associated}{Logical. Are x and y associated? Default is \code{FALSE}.}
+
+\item{node_size}{size of DAG node}
+
+\item{text_size}{size of DAG text}
+
+\item{text_col}{color of DAG text}
+
+\item{node}{logical. Should nodes be included in the DAG?}
+
+\item{text}{logical. Should text be included in the DAG?}
+
+\item{use_labels}{a string. Variable to use for
+\code{geom_dag_repel_label()}. Default is \code{NULL}.}
 }
 \value{
 a DAG of class \code{dagitty} or a \code{ggplot}

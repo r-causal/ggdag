@@ -8,7 +8,8 @@ simulate_data(.tdy_dag, b.default = NULL, b.lower = -0.6, b.upper = 0.6,
   eps = 1, N = 500, standardized = TRUE)
 }
 \arguments{
-\item{.tdy_dag}{the input DAG, which can be a \code{tidy_dagitty} or \code{dagitty} object.}
+\item{.tdy_dag}{the input DAG, which can be a \code{tidy_dagitty} or
+\code{dagitty} object.}
 
 \item{b.default}{default path coefficient applied to arrows for which no
 coefficient is defined in the model syntax.}
@@ -29,10 +30,11 @@ have variance 1).}
 a \code{tbl}with N values for each variable in .tdy_dag
 }
 \description{
-This is a thin wrapper for the \code{simulateSEM()}function in \code{dagitty} that works
-with tidied dagitty objects. It treats the input DAG as a structural equation
-model, generating random path coefficients and simulating corresponding data.
-See \code{dagitty::\link[dagitty]{simulateSEM}} for details.
+This is a thin wrapper for the \code{simulateSEM()}function in \code{dagitty}
+that works with tidied dagitty objects. It treats the input DAG as a
+structural equation model, generating random path coefficients and simulating
+corresponding data. See \code{dagitty::\link[dagitty]{simulateSEM}} for
+details.
 }
 \examples{
 dagify(y ~ z, x ~ z) \%>\%

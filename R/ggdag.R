@@ -5,6 +5,13 @@
 #' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #'
 #' @return a \code{ggplot}
 #' @export
@@ -23,14 +30,21 @@
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
 #' @seealso \code{\link{ggdag_classic}}
-ggdag <- function(.tdy_dag, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+                  text_col = "white", node = TRUE, text = TRUE,
+                  use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text() +
     theme_dag() +
     scale_dag()
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels),
+                           show.legend = FALSE)
+  p
 }
 
 #' Quickly plot a DAG in ggplot2
@@ -45,6 +59,8 @@ ggdag <- function(.tdy_dag, ...) {
 #' @param label_rect_size specify the \code{fontsize} argument in
 #'   \code{ggraph::label_rect}; default is \code{NULL}, in which case it is
 #'   scaled relative ti \code{size}
+#' @param text_label text variable, with a default of "name"
+#' @param text_col text color, with a default of "black"
 #'
 #' @return a \code{ggplot}
 #' @export
@@ -63,12 +79,16 @@ ggdag <- function(.tdy_dag, ...) {
 #' ggdag_classic(dagitty::randomDAG(5, .5))
 #'
 #' @seealso \code{\link{ggdag}}
-ggdag_classic <- function(.tdy_dag, size = 8, label_rect_size = NULL, ...) {
+ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
+                          text_label = "name", text_col = "black") {
+
+  fontsize <- ifelse(!is.null(label_rect_size), label_rect_size, size * 3.57)
+
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = size * 3.57),
-                                end_cap = ggraph::label_rect(to, fontsize = size * 3.57))) +
-    ggplot2::geom_text(ggplot2::aes(label = name), size = size) +
+    geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),
+                                end_cap = ggraph::label_rect(to, fontsize = fontsize))) +
+    ggplot2::geom_text(ggplot2::aes_string(label = text_label), size = size, col = text_col) +
     theme_dag() +
     scale_dag()
 }

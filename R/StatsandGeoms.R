@@ -66,7 +66,7 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
 )
 
 GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = ggplot2::aes(
-  colour = "white", size = 3.88, angle = 0, hjust = 0.5,
+  colour = "white", size = 4, angle = 0, hjust = 0.5,
   vjust = 0.5, alpha = NA, family = "", fontface = "bold", lineheight = 1.2
 ))
 

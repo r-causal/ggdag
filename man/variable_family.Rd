@@ -20,13 +20,17 @@ node_ancestors(.tdy_dag, .var, as_factor = TRUE)
 
 node_descendants(.tdy_dag, .var, as_factor = TRUE)
 
-ggdag_children(.tdy_dag, .var, ...)
+ggdag_children(.tdy_dag, .var, ..., node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
-ggdag_parents(.tdy_dag, .var, ...)
+ggdag_parents(.tdy_dag, .var, ..., node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
-ggdag_ancestors(.tdy_dag, .var, ...)
+ggdag_ancestors(.tdy_dag, .var, ..., node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
-ggdag_descendants(.tdy_dag, .var, ...)
+ggdag_descendants(.tdy_dag, .var, ..., node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -37,6 +41,19 @@ ggdag_descendants(.tdy_dag, .var, ...)
 \item{as_factor}{logical. Should the relationship variable be a factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
+
+\item{node_size}{size of DAG node}
+
+\item{text_size}{size of DAG text}
+
+\item{text_col}{color of DAG text}
+
+\item{node}{logical. Should nodes be included in the DAG?}
+
+\item{text}{logical. Should text be included in the DAG?}
+
+\item{use_labels}{a string. Variable to use for
+\code{geom_dag_repel_label()}. Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with an column related to the given

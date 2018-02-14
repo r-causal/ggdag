@@ -11,6 +11,13 @@
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #' @param .var a character vector, the variable to be assessed (must by in DAG)
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #' @param as_factor logical. Should the relationship variable be a factor?
 #'
 #' @return a \code{tidy_dagitty} with an column related to the given
@@ -108,47 +115,73 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 
 #' @rdname variable_family
 #' @export
-ggdag_children <- function(.tdy_dag, .var, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_children <- function(.tdy_dag, .var, ...,
+                           node_size = 16, text_size = 3.88, text_col = "white",
+                           node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_children(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag(breaks  = c("parent", "child"))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "children"),
+                           col = "white", show.legend = FALSE)
+  p
 }
 
 #' @rdname variable_family
 #' @export
-ggdag_parents <- function(.tdy_dag, .var, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_parents <- function(.tdy_dag, .var, ...,
+                          node_size = 16, text_size = 3.88, text_col = "white",
+                          node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_parents(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag(breaks  = c("parent", "child"))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "parent"),
+                           col = "white", show.legend = FALSE)
+  p
 }
 
 #' @rdname variable_family
 #' @export
-ggdag_ancestors <- function(.tdy_dag, .var, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_ancestors <- function(.tdy_dag, .var, ...,
+                            node_size = 16, text_size = 3.88, text_col = "white",
+                            node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_ancestors(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = ancestor)) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag(breaks  = c("ancestor", "descendant"))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "ancestor"),
+                           col = "white", show.legend = FALSE)
+  p
 }
 
 #' @rdname variable_family
 #' @export
-ggdag_descendants <- function(.tdy_dag, .var, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_descendants <- function(.tdy_dag, .var, ...,
+                              node_size = 16, text_size = 3.88, text_col = "white",
+                              node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_descendants(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = descendant)) +
     geom_dag_edges() +
@@ -156,4 +189,12 @@ ggdag_descendants <- function(.tdy_dag, .var, ...) {
     geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag(breaks  = c("ancestor", "descendant"))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "descendant"),
+                           col = "white", show.legend = FALSE)
+  p
 }

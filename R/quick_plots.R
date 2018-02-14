@@ -5,6 +5,13 @@
 #'
 #' @param x,y,a,b,m,z Character vector. Optional label. Default is \code{NULL}
 #' @param x_y_associated Logical. Are x and y associated? Default is \code{FALSE}.
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #'
 #' @return a DAG of class \code{dagitty} or a \code{ggplot}
 #' @export
@@ -178,30 +185,50 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
 
 #' @rdname quick_plot
 #' @export
-ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
-  ggdag(m_bias(x, y, a, b, m, x_y_associated))
+ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE,
+                         node_size = 16, text_size = 3.88, text_col = "white",
+                         node = TRUE, text = TRUE, use_labels = NULL) {
+  ggdag(m_bias(x, y, a, b, m, x_y_associated),
+        node_size = node_size, text_size = text_size, text_col = text_col,
+        node = node, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
-ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
-  ggdag(butterfly_bias(x, y, a, b, m, x_y_associated))
+ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE,
+                                 node_size = 16, text_size = 3.88, text_col = "white",
+                                 node = TRUE, text = TRUE, use_labels = NULL) {
+  ggdag(butterfly_bias(x, y, a, b, m, x_y_associated),
+        node_size = node_size, text_size = text_size, text_col = text_col,
+        node = node, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
-ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE) {
-  ggdag(confounder_triangle(x, y, z, x_y_associated))
+ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE,
+                                      node_size = 16, text_size = 3.88, text_col = "white",
+                                      node = TRUE, text = TRUE, use_labels = NULL) {
+  ggdag(confounder_triangle(x, y, z, x_y_associated),
+        node_size = node_size, text_size = text_size, text_col = text_col,
+        node = node, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
-ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
-  ggdag(collider_triangle(x, y, m, x_y_associated))
+ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
+                                    node_size = 16, text_size = 3.88, text_col = "white",
+                                    node = TRUE, text = TRUE, use_labels = NULL) {
+  ggdag(collider_triangle(x, y, m, x_y_associated),
+        node_size = node_size, text_size = text_size, text_col = text_col,
+        node = node, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
-ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
-  ggdag(mediation_triangle(x, y, m, x_y_associated))
+ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
+                                     node_size = 16, text_size = 3.88, text_col = "white",
+                                     node = TRUE, text = TRUE, use_labels = NULL) {
+  ggdag(mediation_triangle(x, y, m, x_y_associated),
+        node_size = node_size, text_size = text_size, text_col = text_col,
+        node = node, text = text, use_labels = use_labels)
 }

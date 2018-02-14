@@ -10,13 +10,16 @@
 \usage{
 node_equivalent_dags(.dag, n = 100, layout = "auto", ...)
 
-ggdag_equivalent_dags(.tdy_dag, ...)
+ggdag_equivalent_dags(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 node_equivalent_class(.dag, layout = "auto")
 
 ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"),
   expand_x = expand_scale(c(0.1, 0.1)), expand_y = expand_scale(c(0.1,
-  0.1)), breaks = ggplot2::waiver(), ...)
+  0.1)), breaks = ggplot2::waiver(), ..., node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 }
 \arguments{
 \item{.dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -29,6 +32,19 @@ ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"),
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 
 \item{.tdy_dag}{an object of class \code{tidy_dagitty} or \code{dagitty}}
+
+\item{node_size}{size of DAG node}
+
+\item{text_size}{size of DAG text}
+
+\item{text_col}{color of DAG text}
+
+\item{node}{logical. Should nodes be included in the DAG?}
+
+\item{text}{logical. Should text be included in the DAG?}
+
+\item{use_labels}{a string. Variable to use for
+\code{geom_dag_repel_label()}. Default is \code{NULL}.}
 
 \item{cap}{a geometry object from the \code{ggraph} object to shorten the
 edge. Default is ggraph::circle(8, 'mm'). See

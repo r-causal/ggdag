@@ -4,11 +4,14 @@
 \alias{ggdag_classic}
 \title{Quickly plot a DAG in ggplot2}
 \usage{
-ggdag_classic(.tdy_dag, size = 8, label_rect_size = NULL, ...)
+ggdag_classic(.tdy_dag, ..., size = 8, label_rect_size = NULL,
+  text_label = "name", text_col = "black")
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
+
+\item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
 \item{size}{text size, with a default of 8.}
 
@@ -16,7 +19,9 @@ ggdag_classic(.tdy_dag, size = 8, label_rect_size = NULL, ...)
 \code{ggraph::label_rect}; default is \code{NULL}, in which case it is
 scaled relative ti \code{size}}
 
-\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+\item{text_label}{text variable, with a default of "name"}
+
+\item{text_col}{text color, with a default of "black"}
 }
 \value{
 a \code{ggplot}

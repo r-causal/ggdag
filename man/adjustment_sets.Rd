@@ -8,7 +8,9 @@
 \usage{
 dag_adjustment_sets(.tdy_dag, exposure = NULL, outcome = NULL, ...)
 
-ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...)
+ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...,
+  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
+  text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -21,6 +23,19 @@ ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...)
 \code{NULL}, in which case it will be determined from the DAG.}
 
 \item{...}{additional arguments to \code{adjustmentSets}}
+
+\item{node_size}{size of DAG node}
+
+\item{text_size}{size of DAG text}
+
+\item{text_col}{color of DAG text}
+
+\item{node}{logical. Should nodes be included in the DAG?}
+
+\item{text}{logical. Should text be included in the DAG?}
+
+\item{use_labels}{a string. Variable to use for
+\code{geom_dag_repel_label()}. Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}

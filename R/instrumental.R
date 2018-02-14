@@ -13,6 +13,13 @@
 #'   Default is \code{NULL}, in which case it will check the input DAG for
 #'   exposure.
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #'
 #' @return a \code{tidy_dagitty} with an \code{instrumental} column for
 #'   instrumental variables or a \code{ggplot}
@@ -57,17 +64,23 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 
 #' @rdname instrumental
 #' @export
-ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
+ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
+                               node_size = 16, text_size = 3.88, text_col = "white",
+                               node = TRUE, text = TRUE, use_labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = instrumental, shape = adjusted)) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag(breaks  = "instrumental")
 
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                             fill = "instrumental"),
+                         col = "white", show.legend = FALSE)
   if (dplyr::n_distinct(.tdy_dag$data$instrumental_name) > 1) p <- p + ggplot2::facet_wrap(~instrumental_name)
   p
 }

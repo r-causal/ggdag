@@ -19,11 +19,17 @@ node_dseparated(.tdy_dag, from, to, controlling_for = NULL,
 node_drelationship(.tdy_dag, from, to, controlling_for = NULL,
   as_factor = TRUE)
 
-ggdag_drelationship(.tdy_dag, from, to, controlling_for = NULL, ...)
+ggdag_drelationship(.tdy_dag, from, to, controlling_for = NULL, ...,
+  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
+  text = TRUE, use_labels = NULL)
 
-ggdag_dseparated(.tdy_dag, from, to, controlling_for = NULL, ...)
+ggdag_dseparated(.tdy_dag, from, to, controlling_for = NULL, ...,
+  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
+  text = TRUE, use_labels = NULL)
 
-ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL, ...)
+ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL, ...,
+  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
+  text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -40,6 +46,19 @@ for.}
 factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
+
+\item{node_size}{size of DAG node}
+
+\item{text_size}{size of DAG text}
+
+\item{text_col}{color of DAG text}
+
+\item{node}{logical. Should nodes be included in the DAG?}
+
+\item{text}{logical. Should text be included in the DAG?}
+
+\item{use_labels}{a string. Variable to use for
+\code{geom_dag_repel_label()}. Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{d_relationship} column for

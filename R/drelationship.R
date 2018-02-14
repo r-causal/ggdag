@@ -15,6 +15,13 @@
 #' @param to a character vector, the ending variable (must by in DAG)
 #' @param controlling_for a character vector, variables in the DAG to control
 #'   for.
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #' @param as_factor logical. Should the \code{d_relationship} variable be a
 #'   factor?
 #'
@@ -136,28 +143,47 @@ node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_fa
 
 #' @rdname d_relationship
 #' @export
-ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
-  if_not_tidy_daggity(.tdy_dag) %>%
+ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
+                                node_size = 16, text_size = 3.88, text_col = "white",
+                                node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
-    geom_dag_edges() +
+    geom_dag_edges(ggplot2::aes(start_cap = ggraph::circle(10, "mm"),
+                       end_cap = ggraph::circle(10, "mm"))) +
     geom_dag_collider_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
-    scale_dag()
+    scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "d_relationship"),
+                           col = "white", show.legend = FALSE)
+  p
 }
 
 #' @rdname d_relationship
 #' @export
-ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
+ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
+                             node_size = 16, text_size = 3.88, text_col = "white",
+                             node = TRUE, text = TRUE, use_labels = NULL) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, ...)
+                      controlling_for = controlling_for, ...,
+                      node_size = node_size, text_size = text_size,
+                      text_col = text_col, node = node, text = text,
+                      use_labels = use_labels)
 }
 
 #' @rdname d_relationship
 #' @export
-ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ...) {
+ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
+                             node_size = 16, text_size = 3.88, text_col = "white",
+                             node = TRUE, text = TRUE, use_labels = NULL) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, ...)
+                      controlling_for = controlling_for, ...,
+                      node_size = node_size, text_size = text_size,
+                      text_col = text_col, node = node, text = text,
+                      use_labels = use_labels)
 }

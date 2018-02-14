@@ -9,6 +9,13 @@
 #' @param outcome a character vector, the outcome variable. Default is
 #'   \code{NULL}, in which case it will be determined from the DAG.
 #' @param ... additional arguments to \code{adjustmentSets}
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #'
 #' @return a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}
 #'   column, indicating adjustment status and DAG ID, respectively, for the
@@ -62,16 +69,24 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 
 #' @rdname adjustment_sets
 #' @export
-ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
-  if_not_tidy_daggity(.tdy_dag) %>%
+ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
+                                 node_size = 16, text_size = 3.88, text_col = "white",
+                                 node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = adjusted)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     ggplot2::facet_wrap(~set) +
     theme_dag() +
     scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "adjusted"),
+                           col = "white", show.legend = FALSE)
+  p
 }
 
 #' Assess if a variable confounds a relationship
@@ -107,8 +122,15 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #'
 #' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
 #' @param adjust_for a character vector, the variable(s) to adjust for.
+#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #' @param as_factor logical. Should the \code{adjusted} column be a factor?
 #'
 #' @return a \code{tidy_dagitty} with a \code{adjusted} column for adjusted
@@ -133,14 +155,22 @@ control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE, ...) {
 
 #' @rdname control_for
 #' @export
-ggdag_adjust <- function(.tdy_dag, adjust_for, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_adjust <- function(.tdy_dag, adjust_for, ...,
+                         node_size = 16, text_size = 3.88, text_col = "white",
+                         node = TRUE, text = TRUE, use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     control_for(adjust_for) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
     geom_dag_collider_edges() +
-    geom_dag_node() +
-    geom_dag_text() +
     theme_dag() +
     scale_dag()
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "adjusted"),
+                           col = "white", show.legend = FALSE)
+  p
 }

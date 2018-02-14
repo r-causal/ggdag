@@ -7,6 +7,13 @@
 #' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param node_size size of DAG node
+#' @param text_size size of DAG text
+#' @param text_col color of DAG text
+#' @param node logical. Should nodes be included in the DAG?
+#' @param text logical. Should text be included in the DAG?
+#' @param use_labels a string. Variable to use for
+#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
 #'
 #' @return a \code{tidy_dagitty} with an \code{exogenous} column for
 #'   exogenous variables or a \code{ggplot}
@@ -28,13 +35,21 @@ node_exogenous <- function(.dag, ...) {
 
 #' @rdname exogenous
 #' @export
-ggdag_exogenous <- function(.tdy_dag, ...) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+                            text_col = "white", node = TRUE, text = TRUE,
+                            use_labels = NULL) {
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_exogenous() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = exogenous)) +
     geom_dag_edges() +
-    geom_dag_node() +
-    geom_dag_text(col = "white") +
     theme_dag() +
     scale_dag(breaks  = "exogenous")
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "exogenous"),
+                           col = "white", show.legend = FALSE)
+  p
 }
