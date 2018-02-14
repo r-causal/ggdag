@@ -149,8 +149,8 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
-    geom_dag_edges(ggplot2::aes(start_cap = ggraph::circle(10, "mm"),
-                       end_cap = ggraph::circle(10, "mm"))) +
+    geom_dag_edges(start_cap = ggraph::circle(10, "mm"),
+                       end_cap = ggraph::circle(10, "mm")) +
     geom_dag_collider_edges() +
     theme_dag() +
     scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
