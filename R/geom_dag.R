@@ -280,7 +280,7 @@ geom_dag_label_repel <- function(
 #'   object, will override the plot data. All objects will be fortified to
 #'   produce a data frame. See fortify() for which variables will be created. A
 #'   function will be called with a single argument, the plot data. The return
-#'   value must be a data.frame., and will be used as the layer data.#'
+#'   value must be a data.frame., and will be used as the layer data.
 #' @param curvature The bend of the curve. 1 approximates a halfcircle while 0
 #'   will give a straight line. Negative number will change the direction of the
 #'   curve. Only used if layout circular = FALSE.
@@ -325,7 +325,7 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(direction = direction)
-  } else if (is.null(mapping$direction)){
+  } else if (is.null(mapping$direction)) {
     mapping$direction <- substitute(direction)
   }
   arc_mapping <- ggplot2::aes(circular = circular)
@@ -357,31 +357,140 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 }
 
 
-# geom_dag_edges_link <- function(mapping = NULL, data = NULL,
-#                                 position = "identity", arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"), n = 100,
-#                                 lineend = "butt", linejoin = "round", linemitre = 1,
-#                                 label_colour = 'black',  label_alpha = 1,
-#                                 label_parse = FALSE, check_overlap = FALSE,
-#                                 angle_calc = 'rot', force_flip = TRUE,
-#                                 label_dodge = NULL, label_push = NULL,
-#                                 show.legend = NA,
-#                                 ...) {
-#
-#   ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeLink,
-#                  geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
-#                  inherit.aes = TRUE,
-#                  params =
-#                    list(arrow = arrow, lineend = lineend, linejoin = linejoin,
-#                         linemitre = linemitre, na.rm = FALSE, n = n,
-#                         interpolate = FALSE,
-#                         label_colour = label_colour, label_alpha = label_alpha,
-#                         label_parse = label_parse, check_overlap = check_overlap,
-#                         angle_calc = angle_calc, force_flip = force_flip,
-#                         label_dodge = label_dodge, label_push = label_push,
-#                         ...)
-#
-#   )
-# }
+#' Directed DAG edges
+#'
+#' @param mapping Set of aesthetic mappings created by aes() or aes_(). If
+#'   specified and inherit.aes = TRUE (the default), it is combined with the
+#'   default mapping at the top level of the plot. You must supply mapping if
+#'   there is no plot mapping.
+#' @param data The data to be displayed in this layer.
+#'   There are three options: If NULL, the default, the data is inherited from
+#'   the plot data as specified in the call to ggplot(). A data.frame, or other
+#'   object, will override the plot data. All objects will be fortified to
+#'   produce a data frame. See fortify() for which variables will be created. A
+#'   function will be called with a single argument, the plot data. The return
+#'   value must be a data.frame., and will be used as the layer data.
+#' @param curvature The bend of the curve. 1 approximates a halfcircle while 0
+#'   will give a straight line. Negative number will change the direction of the
+#'   curve. Only used if layout circular = FALSE.
+#' @param arrow specification for arrow heads, as created by arrow()
+#' @param position Position adjustment, either as a string, or the result of a
+#'   call to a position adjustment function.
+#' @param na.rm If FALSE (the default), removes missing values with a warning.
+#'   If TRUE silently removes missing values
+#' @param show.legend logical. Should this layer be included in the legends? NA,
+#'   the default, includes if any aesthetics are mapped. FALSE never includes,
+#'   and TRUE always includes. It can also be a named logical vector to finely
+#'   select the aesthetics to display.
+#' @param inherit.aes If FALSE, overrides the default aesthetics, rather than
+#'   combining with them. This is most useful for helper functions that define
+#'   both data and aesthetics and shouldn't inherit behaviour from the default
+#'   plot specification, e.g. borders().
+#' @param fold Logical. Should arcs appear on the same side of the nodes despite
+#'   different directions. Default to FALSE.
+#' @param ... Other arguments passed to ggraph::geom_edge_*()
+#'
+#' @export
+#'
+#' @examples
+#' p <- dagify(y ~ x + z2 + w2 + w1,
+#'   x ~ z1 + w1,
+#'   z1 ~ w1 + v,
+#'   z2 ~ w2 + v,
+#'   L ~ w1 + w2) %>%
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'     geom_dag_node() +
+#'     geom_dag_text() +
+#'     theme_dag() +
+#'     scale_dag()
+#'
+#' p + geom_dag_edges_link()
+#' p + geom_dag_edges_arc()
+#' p + geom_dag_edges_diagonal()
+#'
+#' @rdname geom_dag_edge_functions
+#' @name DAG Edges
+geom_dag_edges_link <- function(mapping = NULL, data = NULL,
+                           arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                           position = "identity", na.rm = TRUE, show.legend = NA,
+                           inherit.aes = TRUE, ...) {
+
+    ggplot2::layer(mapping = mapping,
+                   geom = GeomDAGEdgePath,
+                   data = data,
+                   stat = ggraph::StatEdgeLink,
+                   position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+                   check.aes = FALSE,
+                   params = list(arrow = arrow, interpolate = FALSE, na.rm = na.rm, ...))
+}
+
+#' @rdname geom_dag_edge_functions
+#' @export
+geom_dag_edges_arc <- function(mapping = NULL, data = NULL, curvature = .5,
+                                arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                                position = "identity", na.rm = TRUE, show.legend = NA,
+                                inherit.aes = TRUE, fold = FALSE,
+                                n = 100, lineend = "butt",
+                                linejoin = "round", linemitre = 1,
+                                label_colour = "black",  label_alpha = 1,
+                                label_parse = FALSE, check_overlap = FALSE,
+                                angle_calc = "rot", force_flip = TRUE,
+                                label_dodge = NULL, label_push = NULL, ...) {
+
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes(circular = circular)
+  } else if (is.null(mapping$circular)) {
+    mapping$circular <- substitute(circular)
+  }
+
+  ggplot2::layer(mapping = mapping,
+                 geom = GeomDAGEdgePath,
+                 data = data,
+                 stat = ggraph::StatEdgeArc,
+                 check.aes = FALSE,
+                 position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+                 params = list(arrow = arrow, curvature = curvature,
+                               interpolate = FALSE, fold = fold, na.rm = na.rm,
+                               n = n, lineend = lineend,
+                               linejoin = linejoin, linemitre = linemitre,
+                               label_colour = label_colour,  label_alpha = label_alpha,
+                               label_parse = label_parse, check_overlap = check_overlap,
+                               angle_calc = angle_calc, force_flip = force_flip,
+                               label_dodge = label_dodge, label_push = label_push, ...))
+}
+
+#' @inheritParams ggraph::geom_edge_diagonal
+#'
+#' @rdname geom_dag_edge_functions
+#' @export
+geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "identity",
+                               arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                               na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
+                               n = 100, lineend = "butt",
+                               linejoin = "round", linemitre = 1,
+                               label_colour = "black",  label_alpha = 1,
+                               label_parse = FALSE, check_overlap = FALSE,
+                               angle_calc = "rot", force_flip = TRUE,
+                               label_dodge = NULL, label_push = NULL, ...) {
+
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes(circular = circular)
+  } else if (is.null(mapping$circular)) {
+    mapping$circular <- substitute(circular)
+  }
+
+  ggplot2::layer(data = data, mapping = mapping, stat = ggraph::StatEdgeDiagonal,
+        geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
+        inherit.aes = inherit.aes,
+        params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
+               n = n, lineend = lineend, flipped = FALSE,
+               linejoin = linejoin, linemitre = linemitre,
+               label_colour = label_colour,  label_alpha = label_alpha,
+               label_parse = label_parse, check_overlap = check_overlap,
+               angle_calc = angle_calc, force_flip = force_flip,
+               label_dodge = label_dodge, label_push = label_push, ...)
+  )
+}
 
 
 #' Edges for paths activated by stratification on colliders

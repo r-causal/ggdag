@@ -23,7 +23,7 @@ the plot data as specified in the call to ggplot(). A data.frame, or other
 object, will override the plot data. All objects will be fortified to
 produce a data frame. See fortify() for which variables will be created. A
 function will be called with a single argument, the plot data. The return
-value must be a data.frame., and will be used as the layer data.#'}
+value must be a data.frame., and will be used as the layer data.}
 
 \item{curvature}{The bend of the curve. 1 approximates a halfcircle while 0
 will give a straight line. Negative number will change the direction of the

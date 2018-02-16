@@ -26,7 +26,6 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                                                        gp = grid::gpar(
                                                          col = alpha(coords$colour, coords$alpha),
                                                          fill = alpha(coords$fill, coords$alpha),
-                                                         # Stroke is added around the outside of the point
                                                          fontsize = coords$size * .pt + coords$stroke * .stroke / 2,
                                                          lwd = coords$stroke * .stroke / 2
                                                        )
@@ -39,7 +38,6 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                                                        gp = grid::gpar(
                                                          col = alpha(coords$internal_colour, coords$alpha),
                                                          fill = alpha(coords$fill, coords$alpha),
-                                                         # Stroke is added around the outside of the point
                                                          fontsize = (coords$size - 1) * .pt + coords$stroke * .stroke / 2,
                                                          lwd = coords$stroke * .stroke / 2
                                                        )
@@ -52,8 +50,6 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                                                        gp = grid::gpar(
                                                          col = alpha(coords$colour, coords$alpha),
                                                          fill = alpha(coords$fill, coords$alpha),
-
-                                                         # Stroke is added around the outside of the point
                                                          fontsize = (coords$size - 2) * .pt + coords$stroke * .stroke / 2,
                                                          lwd = coords$stroke * .stroke / 2
                                                        )
@@ -109,10 +105,6 @@ StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
 )
 
 GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
-                                    setup_data = function(data, params) {
-
-                                      ggraph::GeomEdgePath$setup_data(data, params)
-                                    },
                                     use_defaults = function(self, data, params = list()) {
                                       # Fill in missing aesthetics with their defaults
 
