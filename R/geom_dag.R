@@ -405,8 +405,6 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #'     scale_dag()
 #'
 #' p + geom_dag_edges_link()
-#' p + geom_dag_edges_arc()
-#' p + geom_dag_edges_diagonal()
 #'
 #' @rdname geom_dag_edge_functions
 #' @name DAG Edges
@@ -494,6 +492,9 @@ geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "ide
 
 
 #' Edges for paths activated by stratification on colliders
+#'
+#' Adjusting for a collider activates pathways between the parent of the
+#' collider. This geom adds a curved edge between any such parent nodes.
 #'
 #' @inheritParams ggplot2::geom_curve
 #' @param size a numeric vector of length 1. Edge width
