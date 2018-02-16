@@ -406,7 +406,7 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #'
 #' p + geom_dag_edges_link()
 #' p + geom_dag_edges_arc()
-#' p + geom_dag_edges_diagonal()
+#' p + ggraph::geom_edge_diagonal(data = NULL)
 #'
 #' @rdname geom_dag_edge_functions
 #' @name DAG Edges
