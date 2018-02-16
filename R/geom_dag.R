@@ -405,6 +405,8 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #'     scale_dag()
 #'
 #' p + geom_dag_edges_link()
+#' p + geom_dag_edges_arc()
+#' p + geom_dag_edges_diagonal()
 #'
 #' @rdname geom_dag_edge_functions
 #' @name DAG Edges

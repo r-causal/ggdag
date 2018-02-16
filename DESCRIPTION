@@ -21,7 +21,7 @@ Imports:
     igraph,
     magrittr,
     methods,
-    ggforce,
+    ggforce (>= 0.1.1),
     plyr
 RoxygenNote: 6.0.1
 Suggests: 
