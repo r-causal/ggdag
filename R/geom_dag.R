@@ -405,7 +405,6 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #'     scale_dag()
 #'
 #' p + geom_dag_edges_link()
-#' p + geom_dag_edges_arc()
 #' p + ggraph::geom_edge_diagonal(data = NULL)
 #'
 #' @rdname geom_dag_edge_functions
@@ -485,7 +484,7 @@ geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "ide
         params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
                n = n, lineend = lineend, flipped = FALSE,
                linejoin = linejoin, linemitre = linemitre,
-               label_colour = label_colour,  label_alpha = label_alpha,
+               label_colour = label_colour, label_alpha = label_alpha,
                label_parse = label_parse, check_overlap = check_overlap,
                angle_calc = angle_calc, force_flip = force_flip,
                label_dodge = label_dodge, label_push = label_push, ...)
