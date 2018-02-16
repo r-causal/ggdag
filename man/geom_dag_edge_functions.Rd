@@ -120,6 +120,7 @@ p <- dagify(y ~ x + z2 + w2 + w1,
     scale_dag()
 
 p + geom_dag_edges_link()
-p + ggraph::geom_edge_diagonal(data = NULL)
+p + geom_dag_edges_arc()
+p + geom_dag_edges_diagonal()
 
 }

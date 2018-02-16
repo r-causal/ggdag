@@ -66,8 +66,9 @@ GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = 
   vjust = 0.5, alpha = NA, family = "", fontface = "bold", lineheight = 1.2
 ))
 
-StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
+StatEdgeLinkDirected <- ggplot2::ggproto('StatEdgeLinkDirected', ggraph::StatEdgeLink,
                                  setup_data = function(data, params) {
+
                                    data <- data[!is.na(data$direction) &
                                                   data$direction == "->", ]
 
@@ -86,7 +87,7 @@ StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
 
 )
 
-StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
+StatEdgeArcBiDirected <- ggplot2::ggproto('StatEdgeArcBiDirected', ggraph::StatEdgeArc,
                                 setup_data = function(data, params) {
 
                                   data <- data[!is.na(data$direction) &
@@ -104,7 +105,60 @@ StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
 
 )
 
+StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
+                                setup_data = function(data, params) {
+
+                                  data <- data[!is.na(data$direction), ]
+
+                                  if (nrow(data) > 0) {
+                                    data <- ggraph::StatEdgeLink$setup_data(data, params)
+                                  } else {
+                                    data <- NULL
+                                  }
+                                  data
+                                },
+                                default_aes = ggplot2::aes(filter = TRUE)
+
+)
+
+StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
+                                 setup_data = function(data, params) {
+                                   data <- data[!is.na(data$xend) &
+                                                  !is.na(data$circular), ]
+
+                                   if (nrow(data) > 0) {
+                                     data <- ggraph::StatEdgeArc$setup_data(data, params)
+                                   } else {
+                                     data <- NULL
+                                   }
+                                   data
+                                 },
+                                 default_aes = ggplot2::aes(filter = TRUE)
+
+)
+
+StatEdgeDiagonal <- ggplot2::ggproto('StatEdgeDiagonal', ggraph::StatEdgeDiagonal,
+                                      setup_data = function(data, params) {
+
+                                        data <- data[!is.na(data$xend) &
+                                                       !is.na(data$circular), ]
+
+                                        if (nrow(data) > 0) {
+                                          data <- ggraph::StatEdgeDiagonal$setup_data(data, params)
+                                        } else {
+                                          data <- NULL
+                                        }
+                                        data
+                                      },
+                                      default_aes = ggplot2::aes(filter = TRUE)
+
+)
+
+
 GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
+                                    setup_data = function(data, params) {
+                                      ggraph::GeomEdgePath$setup_data(data, params)
+                                    },
                                     use_defaults = function(self, data, params = list()) {
                                       # Fill in missing aesthetics with their defaults
 
@@ -123,6 +177,19 @@ GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                       aes_params <- intersect(self$aesthetics(), names(params))
                                       ggplot2:::check_aesthetics(params[aes_params], nrow(data))
                                       data[aes_params] <- params[aes_params]
+                                      data
+                                    },
+                                    handle_na = function(data, params) {
+
+                                      if (all(c("x", "y", "edge_width", "edge_colour", "edge_linetype") %in% names(data))) {
+                                        data <- ggraph::GeomEdgePath$handle_na(data, params)
+                                      } else {
+                                        # data <- NULL
+                                        data$edge_colour <- 'black'
+                                        data$edge_width <- 0.6
+                                        data$edge_linetype <- 'solid'
+                                        data <- ggraph::GeomEdgePath$handle_na(data, params)
+                                      }
                                       data
                                     },
                                     non_missing_aes = c("direction", "direction_type"),

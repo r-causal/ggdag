@@ -335,14 +335,14 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
     ggplot2::layer(mapping = mapping,
                    geom = GeomDAGEdgePath,
                    data = data_directed,
-                   stat = StatEdgeLink,
+                   stat = StatEdgeLinkDirected,
                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
                    check.aes = FALSE,
                    params = list(arrow = arrow_directed, interpolate = FALSE, na.rm = na.rm, direction_type = "->", ...)),
     ggplot2::layer(mapping = arc_mapping,
                    geom = GeomDAGEdgePath,
                    data =  data_bidirected,
-                   stat = StatEdgeArc,
+                   stat = StatEdgeArcBiDirected,
                    check.aes = FALSE,
                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
                    params = list(arrow = arrow_bidirected, curvature = curvature,
@@ -405,7 +405,8 @@ geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected
 #'     scale_dag()
 #'
 #' p + geom_dag_edges_link()
-#' p + ggraph::geom_edge_diagonal(data = NULL)
+#' p + geom_dag_edges_arc()
+#' p + geom_dag_edges_diagonal()
 #'
 #' @rdname geom_dag_edge_functions
 #' @name DAG Edges
@@ -445,7 +446,7 @@ geom_dag_edges_arc <- function(mapping = NULL, data = NULL, curvature = .5,
   ggplot2::layer(mapping = mapping,
                  geom = GeomDAGEdgePath,
                  data = data,
-                 stat = ggraph::StatEdgeArc,
+                 stat = StatEdgeArc,
                  check.aes = FALSE,
                  position = position, show.legend = show.legend, inherit.aes = inherit.aes,
                  params = list(arrow = arrow, curvature = curvature,
@@ -478,7 +479,7 @@ geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "ide
     mapping$circular <- substitute(circular)
   }
 
-  ggplot2::layer(data = data, mapping = mapping, stat = ggraph::StatEdgeDiagonal,
+  ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeDiagonal,
         geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
         inherit.aes = inherit.aes,
         params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
