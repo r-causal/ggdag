@@ -74,7 +74,8 @@ that define both data and aesthetics and shouldn't inherit behaviour from
 the default plot specification, e.g. \code{\link[=borders]{borders()}}.}
 }
 \description{
-Edges for paths activated by stratification on colliders
+Adjusting for a collider activates pathways between the parent of the
+collider. This geom adds a curved edge between any such parent nodes.
 }
 \examples{
 library(dagitty)
