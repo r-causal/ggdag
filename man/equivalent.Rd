@@ -15,11 +15,10 @@ ggdag_equivalent_dags(.tdy_dag, ..., node_size = 16, text_size = 3.88,
 
 node_equivalent_class(.dag, layout = "auto")
 
-ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"),
-  expand_x = expand_scale(c(0.1, 0.1)), expand_y = expand_scale(c(0.1,
-  0.1)), breaks = ggplot2::waiver(), ..., node_size = 16,
-  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
-  use_labels = NULL)
+ggdag_equivalent_class(.tdy_dag, expand_x = expand_scale(c(0.1, 0.1)),
+  expand_y = expand_scale(c(0.1, 0.1)), breaks = ggplot2::waiver(), ...,
+  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
+  text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -45,10 +44,6 @@ ggdag_equivalent_class(.tdy_dag, cap = ggraph::circle(8, "mm"),
 
 \item{use_labels}{a string. Variable to use for
 \code{geom_dag_repel_label()}. Default is \code{NULL}.}
-
-\item{cap}{a geometry object from the \code{ggraph} object to shorten the
-edge. Default is ggraph::circle(8, 'mm'). See
-\code{ggraph::\link[ggraph]{geometry}} for details.}
 
 \item{expand_x}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
@@ -93,7 +88,8 @@ g_ex \%>\%
   node_equivalent_dags() \%>\%
   ggplot(aes(x, y, xend = xend, yend = yend)) +
     geom_dag_node(size = 10) +
-    geom_dag_edges() +
+    geom_dag_edges(start_cap = ggraph::circle(5, "mm"),
+                   end_cap = ggraph::circle(5, "mm")) +
     geom_dag_label_repel(aes(label = name), col = "black", size = 2) +
     theme_dag() +
     scale_dag(expand_x = expand_scale(c(0.25, 0.25)),

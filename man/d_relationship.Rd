@@ -20,16 +20,16 @@ node_drelationship(.tdy_dag, from, to, controlling_for = NULL,
   as_factor = TRUE)
 
 ggdag_drelationship(.tdy_dag, from, to, controlling_for = NULL, ...,
-  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
-  text = TRUE, use_labels = NULL)
+  edge_type = "link_arc", node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_dseparated(.tdy_dag, from, to, controlling_for = NULL, ...,
-  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
-  text = TRUE, use_labels = NULL)
+  edge_type = "link_arc", node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL, ...,
-  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
-  text = TRUE, use_labels = NULL)
+  edge_type = "link_arc", node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -46,6 +46,10 @@ for.}
 factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
+
+\item{edge_type}{a character vector, the edge geom to use. One of:
+"link_arc", which accounts for directed and bidirected edges, "link",
+"arc", or "diagonal"}
 
 \item{node_size}{size of DAG node}
 

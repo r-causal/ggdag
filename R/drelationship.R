@@ -11,6 +11,9 @@
 #' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param edge_type a character vector, the edge geom to use. One of:
+#'   "link_arc", which accounts for directed and bidirected edges, "link",
+#'   "arc", or "diagonal"
 #' @param from a character vector, the starting variable (must by in DAG)
 #' @param to a character vector, the ending variable (must by in DAG)
 #' @param controlling_for a character vector, variables in the DAG to control
@@ -143,13 +146,15 @@ node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_fa
 
 #' @rdname d_relationship
 #' @export
-ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
+ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ..., edge_type = "link_arc",
                                 node_size = 16, text_size = 3.88, text_col = "white",
                                 node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
-    geom_dag_edges(start_cap = ggraph::circle(10, "mm"),
+    edge_function(start_cap = ggraph::circle(10, "mm"),
                        end_cap = ggraph::circle(10, "mm")) +
     geom_dag_collider_edges() +
     theme_dag() +
@@ -166,11 +171,11 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
 
 #' @rdname d_relationship
 #' @export
-ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
+ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, text_col = "white",
                              node = TRUE, text = TRUE, use_labels = NULL) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, ...,
+                      controlling_for = controlling_for, ..., edge_type = edge_type,
                       node_size = node_size, text_size = text_size,
                       text_col = text_col, node = node, text = text,
                       use_labels = use_labels)
@@ -178,11 +183,11 @@ ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
 
 #' @rdname d_relationship
 #' @export
-ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
+ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, text_col = "white",
                              node = TRUE, text = TRUE, use_labels = NULL) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, ...,
+                      controlling_for = controlling_for, ..., edge_type = edge_type,
                       node_size = node_size, text_size = text_size,
                       text_col = text_col, node = node, text = text,
                       use_labels = use_labels)

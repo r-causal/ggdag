@@ -9,6 +9,9 @@
 #' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param edge_type a character vector, the edge geom to use. One of:
+#'   "link_arc", which accounts for directed and bidirected edges, "link",
+#'   "arc", or "diagonal"
 #' @param as_factor treat \code{status} variable as factor
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
@@ -50,13 +53,16 @@ node_status <- function(.dag, as_factor = TRUE, ...) {
 
 #' @rdname status
 #' @export
-ggdag_status <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                          text_col = "white", node = TRUE, text = TRUE,
                          use_labels = NULL) {
+
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_status(...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = status)) +
-    geom_dag_edges() +
+    edge_function() +
     theme_dag() +
     scale_dag(breaks = c("exposure", "outcome", "latent"))
 

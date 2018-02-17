@@ -1,14 +1,17 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-[![Travis-CI Build Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag)
 
-ggdag: An R Package for visualizing and analyzing directed acyclic graphs
-=========================================================================
+[![Travis-CI Build
+Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag)
+[![AppVeyor Build
+status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag)
 
-Built on top of `dagitty`, `ggplot2`, and `ggraph`, with influences from `ggnetwork`. Still in early development.
+# ggdag: An R Package for visualizing and analyzing directed acyclic graphs
 
-Installation
-------------
+Built on top of `dagitty`, `ggplot2`, and `ggraph`, with influences from
+`ggnetwork`. Still in early development.
+
+## Installation
 
 You can install ggdag from GitHub with:
 
@@ -17,10 +20,11 @@ You can install ggdag from GitHub with:
 devtools::install_github("malcolmbarrett/ggdag")
 ```
 
-Example
--------
+## Example
 
-`ggdag` makes it easy to use the powerful `dagitty` package in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax:
+`ggdag` makes it easy to use the powerful `dagitty` package in the
+context of the tidyverse. You can directly tidy `dagitty` objects or use
+convenience functions to create DAGs using a more R-like syntax:
 
 ``` r
 library(ggdag)
@@ -94,7 +98,8 @@ tidy_ggdag
 #> #   .ggraph.index <int>
 ```
 
-`ggdag` also provides functionality for analyzing DAGs and plotting them in `ggplot2`:
+`ggdag` also provides functionality for analyzing DAGs and plotting them
+in `ggplot2`:
 
 ``` r
 ggdag(tidy_ggdag)
@@ -108,7 +113,8 @@ ggdag_adjustment_set(tidy_ggdag)
 
 <img src="man/figures/README-ggdag-2.png" width="100%" />
 
-As well as geoms and other functions for plotting them directly in `ggplot2`:
+As well as geoms and other functions for plotting them directly in
+`ggplot2`:
 
 ``` r
 dagify(m ~ x + y) %>% 
@@ -135,7 +141,7 @@ ggdag_equivalent_dags(confounder_triangle())
 
 ``` r
 
-ggdag_butterfly_bias()
+ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
 <img src="man/figures/README-ggdag_common-2.png" width="100%" />

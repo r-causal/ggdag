@@ -8,6 +8,9 @@
 #' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param edge_type a character vector, the edge geom to use. One of:
+#'   "link_arc", which accounts for directed and bidirected edges, "link",
+#'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
@@ -36,12 +39,14 @@ node_canonical <- function(.dag, ...) {
 
 #' @rdname canonicalize
 #' @export
-ggdag_canonical <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+ggdag_canonical <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                             text_col = "white", node = TRUE, text = TRUE,
                             use_labels = NULL) {
+
+
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_canonical() %>%
-    ggdag(node_size = node_size, text_size = text_size,
+    ggdag(node_size = node_size, text_size = text_size, edge_type = edge_type,
           text_col = text_col, node = node, text = text,
           use_labels = use_labels)
 }

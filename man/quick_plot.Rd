@@ -28,29 +28,38 @@ collider_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 mediation_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 
 ggdag_m_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 
 ggdag_butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 
 ggdag_confounder_triangle(x = NULL, y = NULL, z = NULL,
-  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 
 ggdag_collider_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 
 ggdag_mediation_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE, node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 }
 \arguments{
 \item{x, y, a, b, m, z}{Character vector. Optional label. Default is \code{NULL}}
 
 \item{x_y_associated}{Logical. Are x and y associated? Default is \code{FALSE}.}
+
+\item{edge_type}{a character vector, the edge geom to use. One of:
+"link_arc", which accounts for directed and bidirected edges, "link",
+"arc", or "diagonal"}
 
 \item{node_size}{size of DAG node}
 

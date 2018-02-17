@@ -9,8 +9,8 @@
 dag_adjustment_sets(.tdy_dag, exposure = NULL, outcome = NULL, ...)
 
 ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...,
-  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
-  text = TRUE, use_labels = NULL)
+  edge_type = "link_arc", node_size = 16, text_size = 3.88,
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -23,6 +23,10 @@ ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...,
 \code{NULL}, in which case it will be determined from the DAG.}
 
 \item{...}{additional arguments to \code{adjustmentSets}}
+
+\item{edge_type}{a character vector, the edge geom to use. One of:
+"link_arc", which accounts for directed and bidirected edges, "link",
+"arc", or "diagonal"}
 
 \item{node_size}{size of DAG node}
 

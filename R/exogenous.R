@@ -7,6 +7,9 @@
 #' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param edge_type a character vector, the edge geom to use. One of:
+#'   "link_arc", which accounts for directed and bidirected edges, "link",
+#'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
@@ -36,12 +39,16 @@ node_exogenous <- function(.dag, ...) {
 #' @rdname exogenous
 #' @export
 ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+                            edge_type = "link_arc",
                             text_col = "white", node = TRUE, text = TRUE,
                             use_labels = NULL) {
+
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_exogenous() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = exogenous)) +
-    geom_dag_edges() +
+    edge_function() +
     theme_dag() +
     scale_dag(breaks  = "exogenous")
 

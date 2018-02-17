@@ -9,6 +9,9 @@
 #'
 #' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
+#' @param edge_type a character vector, the edge geom to use. One of:
+#'   "link_arc", which accounts for directed and bidirected edges, "link",
+#'   "arc", or "diagonal"
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #' @param .var a character vector, the variable to be assessed (must by in DAG)
 #' @param node_size size of DAG node
@@ -115,13 +118,15 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 
 #' @rdname variable_family
 #' @export
-ggdag_children <- function(.tdy_dag, .var, ...,
+ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                            node_size = 16, text_size = 3.88, text_col = "white",
                            node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_children(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
-    geom_dag_edges() +
+    edge_function() +
     theme_dag() +
     scale_dag(breaks  = c("parent", "child"))
 
@@ -136,13 +141,15 @@ ggdag_children <- function(.tdy_dag, .var, ...,
 
 #' @rdname variable_family
 #' @export
-ggdag_parents <- function(.tdy_dag, .var, ...,
+ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                           node_size = 16, text_size = 3.88, text_col = "white",
                           node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_parents(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
-    geom_dag_edges() +
+    edge_function() +
     theme_dag() +
     scale_dag(breaks  = c("parent", "child"))
 
@@ -157,13 +164,15 @@ ggdag_parents <- function(.tdy_dag, .var, ...,
 
 #' @rdname variable_family
 #' @export
-ggdag_ancestors <- function(.tdy_dag, .var, ...,
+ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                             node_size = 16, text_size = 3.88, text_col = "white",
                             node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_ancestors(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = ancestor)) +
-    geom_dag_edges() +
+    edge_function() +
     theme_dag() +
     scale_dag(breaks  = c("ancestor", "descendant"))
 
@@ -178,13 +187,15 @@ ggdag_ancestors <- function(.tdy_dag, .var, ...,
 
 #' @rdname variable_family
 #' @export
-ggdag_descendants <- function(.tdy_dag, .var, ...,
+ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                               node_size = 16, text_size = 3.88, text_col = "white",
                               node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_descendants(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = descendant)) +
-    geom_dag_edges() +
+    edge_function() +
     geom_dag_node() +
     geom_dag_text(col = "white") +
     theme_dag() +

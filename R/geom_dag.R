@@ -267,6 +267,9 @@ geom_dag_label_repel <- function(
   )
 }
 
+filter_direction <- function(.direction) {
+  function(x) dplyr::filter(x, direction == .direction)
+}
 
 #' Directed and bidirected DAG edges
 #'
@@ -316,45 +319,64 @@ geom_dag_label_repel <- function(
 #'     geom_dag_text() +
 #'     theme_dag() +
 #'     scale_dag()
-geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
-                           curvature = 0.2,
+geom_dag_edges <- function(mapping = NULL,
+                           data_directed = filter_direction("->"),
+                           data_bidirected = filter_direction("<->"),
+                           curvature = 0.3,
                            arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
                            ...) {
-
-  if (is.null(mapping)) {
-    mapping <- ggplot2::aes(direction = direction)
-  } else if (is.null(mapping$direction)) {
-    mapping$direction <- substitute(direction)
-  }
-  arc_mapping <- ggplot2::aes(circular = circular)
-  if (!is.null(mapping)) arc_mapping[names(mapping)] <- mapping
-
-  list(
-    ggplot2::layer(mapping = mapping,
-                   geom = GeomDAGEdgePath,
-                   data = data_directed,
-                   stat = StatEdgeLinkDirected,
-                   position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-                   check.aes = FALSE,
-                   params = list(arrow = arrow_directed, interpolate = FALSE, na.rm = na.rm, direction_type = "->", ...)),
-    ggplot2::layer(mapping = arc_mapping,
-                   geom = GeomDAGEdgePath,
-                   data =  data_bidirected,
-                   stat = StatEdgeArcBiDirected,
-                   check.aes = FALSE,
-                   position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-                   params = list(arrow = arrow_bidirected, curvature = curvature,
-                                 interpolate = FALSE, fold = fold, na.rm = na.rm,
-                                 n = 100, lineend = "butt",
-                                 linejoin = "round", linemitre = 1,
-                                 label_colour = 'black',  label_alpha = 1,
-                                 label_parse = FALSE, check_overlap = FALSE,
-                                 angle_calc = 'rot', force_flip = TRUE,
-                                 label_dodge = NULL, label_push = NULL, direction_type = "<->", ...))
+  list(geom_dag_edges_link(mapping, data = data_directed, arrow = arrow_directed,
+                           position = position, na.rm = na.rm,
+                           show.legend = show.legend, inherit.aes = inherit.aes,
+                           ...),
+       geom_dag_edges_arc(mapping, data = data_bidirected, arrow = arrow_bidirected,
+                          curvature = curvature, position = position,
+                          na.rm = na.rm, show.legend = show.legend,
+                          inherit.aes = inherit.aes, fold = fold,
+                          ...)
   )
 }
+# geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
+#                            curvature = 0.2,
+#                            arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+#                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
+#                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
+#                            ...) {
+#
+#   if (is.null(mapping)) {
+#     mapping <- ggplot2::aes(direction = direction)
+#   } else if (is.null(mapping$direction)) {
+#     mapping$direction <- substitute(direction)
+#   }
+#   arc_mapping <- ggplot2::aes(circular = circular)
+#   if (!is.null(mapping)) arc_mapping[names(mapping)] <- mapping
+#
+#   list(
+#     ggplot2::layer(mapping = mapping,
+#                    geom = GeomDAGEdgePath,
+#                    data = data_directed,
+#                    stat = StatEdgeLinkDirected,
+#                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+#                    check.aes = FALSE,
+#                    params = list(arrow = arrow_directed, interpolate = FALSE, na.rm = na.rm, direction_type = "->", ...)),
+#     ggplot2::layer(mapping = arc_mapping,
+#                    geom = GeomDAGEdgePath,
+#                    data =  data_bidirected,
+#                    stat = StatEdgeArcBiDirected,
+#                    check.aes = FALSE,
+#                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+#                    params = list(arrow = arrow_bidirected, curvature = curvature,
+#                                  interpolate = FALSE, fold = fold, na.rm = na.rm,
+#                                  n = 100, lineend = "butt",
+#                                  linejoin = "round", linemitre = 1,
+#                                  label_colour = 'black',  label_alpha = 1,
+#                                  label_parse = FALSE, check_overlap = FALSE,
+#                                  angle_calc = 'rot', force_flip = TRUE,
+#                                  label_dodge = NULL, label_push = NULL, direction_type = "<->", ...))
+#   )
+# }
 
 
 #' Directed DAG edges
@@ -418,7 +440,7 @@ geom_dag_edges_link <- function(mapping = NULL, data = NULL,
     ggplot2::layer(mapping = mapping,
                    geom = GeomDAGEdgePath,
                    data = data,
-                   stat = ggraph::StatEdgeLink,
+                   stat = StatEdgeLink,
                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
                    check.aes = FALSE,
                    params = list(arrow = arrow, interpolate = FALSE, na.rm = na.rm, ...))

@@ -12,9 +12,6 @@
 #'   \code{dagitty}
 #' @param n maximal number of returned graphs.
 #' @param .tdy_dag an object of class \code{tidy_dagitty} or \code{dagitty}
-#' @param cap a geometry object from the \code{ggraph} object to shorten the
-#'   edge. Default is ggraph::circle(8, 'mm'). See
-#'   \code{ggraph::\link[ggraph]{geometry}} for details.
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
@@ -39,7 +36,8 @@
 #'   node_equivalent_dags() %>%
 #'   ggplot(aes(x, y, xend = xend, yend = yend)) +
 #'     geom_dag_node(size = 10) +
-#'     geom_dag_edges() +
+#'     geom_dag_edges(start_cap = ggraph::circle(5, "mm"),
+#'                    end_cap = ggraph::circle(5, "mm")) +
 #'     geom_dag_label_repel(aes(label = name), col = "black", size = 2) +
 #'     theme_dag() +
 #'     scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
@@ -120,7 +118,7 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 
 #' @rdname equivalent
 #' @export
-ggdag_equivalent_class <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'),
+ggdag_equivalent_class <- function(.tdy_dag,
                                    expand_x = expand_scale(c(.10, .10)),
                                    expand_y = expand_scale(c(.10, .10)),
                                    breaks = ggplot2::waiver(), ...,
@@ -135,7 +133,7 @@ ggdag_equivalent_class <- function(.tdy_dag, cap = ggraph::circle(8, 'mm'),
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, edge_alpha = reversable)) +
     geom_dag_edges(data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
                    data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")) +
-    ggraph::geom_edge_link(data = reversable_lines, start_cap = cap, end_cap = cap) +
+    geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
     theme_dag() +
     ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks) +
     ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50") +

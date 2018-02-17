@@ -5,6 +5,9 @@
 #' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param edge_type a character vector, the edge geom to use. One of:
+#'   "link_arc", which accounts for directed and bidirected edges, "link",
+#'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
@@ -30,12 +33,14 @@
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
 #' @seealso \code{\link{ggdag_classic}}
-ggdag <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
+ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                   text_col = "white", node = TRUE, text = TRUE,
                   use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_edges() +
+    edge_function() +
     theme_dag() +
     scale_dag()
 
@@ -81,14 +86,23 @@ ggdag <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
 #' @seealso \code{\link{ggdag}}
 ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
                           text_label = "name", text_col = "black") {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
 
   fontsize <- ifelse(!is.null(label_rect_size), label_rect_size, size * 3.57)
 
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+  p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),
-                                end_cap = ggraph::label_rect(to, fontsize = fontsize))) +
     ggplot2::geom_text(ggplot2::aes_string(label = text_label), size = size, col = text_col) +
     theme_dag() +
     scale_dag()
+
+  if (any(.tdy_dag$data$direction == "<->" & !is.na(.tdy_dag$data$direction))) {
+    p <- p + geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(from, fontsize = fontsize),
+                                end_cap = ggraph::label_rect(to, fontsize = fontsize)))
+  } else {
+    p <- p + geom_dag_edges_link(ggplot2::aes(start_cap = ggraph::label_rect(from, fontsize = fontsize),
+                                         end_cap = ggraph::label_rect(to, fontsize = fontsize)))
+  }
+
+  p
 }

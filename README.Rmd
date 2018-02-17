@@ -91,5 +91,5 @@ And common structures of bias:
 ```{r ggdag_common, dpi=300}
 ggdag_equivalent_dags(confounder_triangle())
 
-ggdag_butterfly_bias()
+ggdag_butterfly_bias(edge_type = "diagonal")
 ```

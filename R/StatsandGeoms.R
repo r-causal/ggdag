@@ -66,49 +66,48 @@ GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = 
   vjust = 0.5, alpha = NA, family = "", fontface = "bold", lineheight = 1.2
 ))
 
-StatEdgeLinkDirected <- ggplot2::ggproto('StatEdgeLinkDirected', ggraph::StatEdgeLink,
-                                 setup_data = function(data, params) {
-
-                                   data <- data[!is.na(data$direction) &
-                                                  data$direction == "->", ]
-
-                                   if (nrow(data) > 0) {
-                                     data <- ggraph::StatEdgeLink$setup_data(data, params)
-                                   } else {
-                                     data <- NULL
-                                   }
-                                   data
-                                 },
-                                 compute_panel = function(data, scales, n = 100) {
-                                   if (is.null(data)) return(data)
-                                   ggraph::StatEdgeLink$compute_panel(data, scales, n = n)
-                                 },
-                                 default_aes = ggplot2::aes(filter = TRUE)
-
-)
-
-StatEdgeArcBiDirected <- ggplot2::ggproto('StatEdgeArcBiDirected', ggraph::StatEdgeArc,
-                                setup_data = function(data, params) {
-
-                                  data <- data[!is.na(data$direction) &
-                                                 data$direction == "<->" &
-                                                 !is.na(data$circular), ]
-
-                                  if (nrow(data) > 0) {
-                                    data <- ggraph::StatEdgeArc$setup_data(data, params)
-                                  } else {
-                                    data <- NULL
-                                  }
-                                  data
-                                },
-                                default_aes = ggplot2::aes(filter = TRUE)
-
-)
+# StatEdgeLinkDirected <- ggplot2::ggproto('StatEdgeLinkDirected', ggraph::StatEdgeLink,
+#                                  setup_data = function(data, params) {
+#
+#                                    data <- data[!is.na(data$direction) &
+#                                                   data$direction == "->", ]
+#
+#                                    if (nrow(data) > 0) {
+#                                      data <- ggraph::StatEdgeLink$setup_data(data, params)
+#                                    } else {
+#                                      data <- NULL
+#                                    }
+#                                    data
+#                                  },
+#                                  compute_panel = function(data, scales, n = 100) {
+#                                    if (is.null(data)) return(data)
+#                                    ggraph::StatEdgeLink$compute_panel(data, scales, n = n)
+#                                  },
+#                                  default_aes = ggplot2::aes(filter = TRUE)
+#
+# )
+#
+# StatEdgeArcBiDirected <- ggplot2::ggproto('StatEdgeArcBiDirected', ggraph::StatEdgeArc,
+#                                 setup_data = function(data, params) {
+#
+#                                   data <- data[!is.na(data$direction) &
+#                                                  data$direction == "<->" &
+#                                                  !is.na(data$circular), ]
+#
+#                                   if (nrow(data) > 0) {
+#                                     data <- ggraph::StatEdgeArc$setup_data(data, params)
+#                                   } else {
+#                                     data <- NULL
+#                                   }
+#                                   data
+#                                 },
+#                                 default_aes = ggplot2::aes(filter = TRUE)
+#
+# )
 
 StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
                                 setup_data = function(data, params) {
-
-                                  data <- data[!is.na(data$direction), ]
+                                  data <- data[!is.na(data$xend), ]
 
                                   if (nrow(data) > 0) {
                                     data <- ggraph::StatEdgeLink$setup_data(data, params)
@@ -116,8 +115,7 @@ StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
                                     data <- NULL
                                   }
                                   data
-                                },
-                                default_aes = ggplot2::aes(filter = TRUE)
+                                }
 
 )
 
@@ -195,7 +193,7 @@ GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                     non_missing_aes = c("direction", "direction_type"),
                                     default_aes = ggplot2::aes(edge_colour = 'black', edge_width = 0.6, edge_linetype = 'solid',
                                                                edge_alpha = NA, start_cap = NA, end_cap = NA, label = NA,
-                                                               label_pos = 0.5, label_size = 3.88, angle = 0,
-                                                               hjust = 0.5, vjust = 0.5, family = '', fontface = 1,
+                                                               label_pos = 0.5, label_size = 3.88, angle = 0, hjust = 0.5,
+                                                               vjust = 0.5, family = '', fontface = 1,
                                                                lineheight = 1.2, direction = "->", direction_type = "->")
 )

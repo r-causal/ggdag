@@ -60,6 +60,13 @@ formula2char <- function(fmla) {
   paste(char_fmla[[2]], arrows, rhs_vars_coll)
 }
 
+edge_type_switch <- function(edge_type) {
+  switch(edge_type, "link_arc" = geom_dag_edges,
+         "link" = geom_dag_edges_link,
+         "arc" = geom_dag_edges_arc,
+         "diagonal" = geom_dag_edges_diagonal)
+}
+
 #' Generate expansion vector for scales.
 #'
 #' This is a convenience function for generating scale expansion vectors
@@ -104,3 +111,4 @@ expand_scale <- function(mult = 0, add = 0) {
   add <- rep(add, length.out = 2)
   c(mult[1], add[1], mult[2], add[2])
 }
+
