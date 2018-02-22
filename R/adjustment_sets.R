@@ -9,9 +9,6 @@
 #' @param outcome a character vector, the outcome variable. Default is
 #'   \code{NULL}, in which case it will be determined from the DAG.
 #' @param ... additional arguments to \code{adjustmentSets}
-#' @param edge_type a character vector, the edge geom to use. One of:
-#'   "link_arc", which accounts for directed and bidirected edges, "link",
-#'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
@@ -78,16 +75,15 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 
 #' @rdname adjustment_sets
 #' @export
-ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ..., edge_type = "link_arc",
+ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                                  node_size = 16, text_size = 3.88, text_col = "white",
                                  node = TRUE, text = TRUE, use_labels = NULL) {
 
-  edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = adjusted)) +
-    edge_function(ggplot2::aes(edge_alpha = adjusted)) +
+    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
     ggplot2::facet_wrap(~set) +
     theme_dag() +
     scale_dag(expand_x = expand_scale(c(0.25, 0.25)))

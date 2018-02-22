@@ -152,6 +152,22 @@ StatEdgeDiagonal <- ggplot2::ggproto('StatEdgeDiagonal', ggraph::StatEdgeDiagona
 
 )
 
+StatEdgeFan <- ggplot2::ggproto('StatEdgeFan', ggraph::StatEdgeFan,
+                                     setup_data = function(data, params) {
+
+                                       data <- data[!is.na(data$xend), ]
+
+                                       if (nrow(data) > 0) {
+                                         data <- ggraph::StatEdgeFan$setup_data(data, params)
+                                       } else {
+                                         data <- NULL
+                                       }
+                                       data
+                                     },
+                                     default_aes = ggplot2::aes(filter = TRUE)
+
+)
+
 
 GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                     setup_data = function(data, params) {

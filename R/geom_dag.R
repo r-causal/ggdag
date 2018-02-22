@@ -338,46 +338,6 @@ geom_dag_edges <- function(mapping = NULL,
                           ...)
   )
 }
-# geom_dag_edges <- function(mapping = NULL, data_directed = NULL, data_bidirected = NULL,
-#                            curvature = 0.2,
-#                            arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-#                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
-#                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
-#                            ...) {
-#
-#   if (is.null(mapping)) {
-#     mapping <- ggplot2::aes(direction = direction)
-#   } else if (is.null(mapping$direction)) {
-#     mapping$direction <- substitute(direction)
-#   }
-#   arc_mapping <- ggplot2::aes(circular = circular)
-#   if (!is.null(mapping)) arc_mapping[names(mapping)] <- mapping
-#
-#   list(
-#     ggplot2::layer(mapping = mapping,
-#                    geom = GeomDAGEdgePath,
-#                    data = data_directed,
-#                    stat = StatEdgeLinkDirected,
-#                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-#                    check.aes = FALSE,
-#                    params = list(arrow = arrow_directed, interpolate = FALSE, na.rm = na.rm, direction_type = "->", ...)),
-#     ggplot2::layer(mapping = arc_mapping,
-#                    geom = GeomDAGEdgePath,
-#                    data =  data_bidirected,
-#                    stat = StatEdgeArcBiDirected,
-#                    check.aes = FALSE,
-#                    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-#                    params = list(arrow = arrow_bidirected, curvature = curvature,
-#                                  interpolate = FALSE, fold = fold, na.rm = na.rm,
-#                                  n = 100, lineend = "butt",
-#                                  linejoin = "round", linemitre = 1,
-#                                  label_colour = 'black',  label_alpha = 1,
-#                                  label_parse = FALSE, check_overlap = FALSE,
-#                                  angle_calc = 'rot', force_flip = TRUE,
-#                                  label_dodge = NULL, label_push = NULL, direction_type = "<->", ...))
-#   )
-# }
-
 
 #' Directed DAG edges
 #'
@@ -511,6 +471,40 @@ geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "ide
                label_parse = label_parse, check_overlap = check_overlap,
                angle_calc = angle_calc, force_flip = force_flip,
                label_dodge = label_dodge, label_push = label_push, ...)
+  )
+}
+
+#' @inheritParams ggraph::geom_edge_fan
+#'
+#' @rdname geom_dag_edge_functions
+#' @export
+geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity",
+                                    arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                                    na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
+                                    spread = .7, n = 100, lineend = "butt",
+                                    linejoin = "round", linemitre = 1,
+                                    label_colour = "black",  label_alpha = 1,
+                                    label_parse = FALSE, check_overlap = FALSE,
+                                    angle_calc = "rot", force_flip = TRUE,
+                                    label_dodge = NULL, label_push = NULL, ...) {
+
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes(from = from, to = to)
+  } else if (is.null(mapping$from)) {
+    mapping$from <- substitute(from)
+    mapping$to <- substitute(to)
+  }
+
+  ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeFan,
+                 geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
+                 inherit.aes = inherit.aes,
+                 params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
+                               n = n, lineend = lineend, spread = spread,
+                               linejoin = linejoin, linemitre = linemitre,
+                               label_colour = label_colour, label_alpha = label_alpha,
+                               label_parse = label_parse, check_overlap = check_overlap,
+                               angle_calc = angle_calc, force_flip = force_flip,
+                               label_dodge = label_dodge, label_push = label_push, ...)
   )
 }
 

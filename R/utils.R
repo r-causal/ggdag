@@ -1,3 +1,4 @@
+#  variables used in various NSE calls
 utils::globalVariables(
   c(
     ".",
@@ -35,7 +36,14 @@ utils::globalVariables(
     'type',
     "v",
     "w",
-    ".ggraph.orig_index"
+    ".ggraph.orig_index",
+    ".ggraph.index",
+    "from",
+    ".from",
+    ".to",
+    "path",
+    "paths",
+    "set"
   )
 )
 

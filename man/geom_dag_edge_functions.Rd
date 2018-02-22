@@ -5,6 +5,7 @@
 \alias{geom_dag_edges_link}
 \alias{geom_dag_edges_arc}
 \alias{geom_dag_edges_diagonal}
+\alias{geom_dag_edges_fan}
 \title{Directed DAG edges}
 \usage{
 geom_dag_edges_link(mapping = NULL, data = NULL,
@@ -24,6 +25,14 @@ geom_dag_edges_arc(mapping = NULL, data = NULL, curvature = 0.5,
 geom_dag_edges_diagonal(mapping = NULL, data = NULL,
   position = "identity", arrow = grid::arrow(length = grid::unit(5, "pt"),
   type = "closed"), na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
+  n = 100, lineend = "butt", linejoin = "round", linemitre = 1,
+  label_colour = "black", label_alpha = 1, label_parse = FALSE,
+  check_overlap = FALSE, angle_calc = "rot", force_flip = TRUE,
+  label_dodge = NULL, label_push = NULL, ...)
+
+geom_dag_edges_fan(mapping = NULL, data = NULL, position = "identity",
+  arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+  na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, spread = 0.7,
   n = 100, lineend = "butt", linejoin = "round", linemitre = 1,
   label_colour = "black", label_alpha = 1, label_parse = FALSE,
   check_overlap = FALSE, angle_calc = "rot", force_flip = TRUE,
@@ -103,6 +112,9 @@ to add to the label in case of \code{angle_calc} is either 'along' or 'across'}
 
 \item{label_push}{A \code{\link[grid:unit]{grid::unit()}} giving a fixed horizontal shift
 to add to the label in case of \code{angle_calc} is either 'along' or 'across'}
+
+\item{spread}{Modify the width of the fans \code{spread &gt; 1} will create
+wider fans while the reverse will make them more narrow.}
 }
 \description{
 Directed DAG edges
