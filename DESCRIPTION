@@ -27,13 +27,12 @@ Imports:
     ggrepel,
     igraph,
     magrittr,
-    methods,
     ggforce,
-    plyr
+    plyr,
+    tidygraph
 RoxygenNote: 6.0.1
 Suggests: 
     spelling,
-    broom,
     testthat
 URL: https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues

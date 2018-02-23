@@ -15,7 +15,7 @@ ggdag_paths(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
   text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_paths_fan(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
-  directed = FALSE, ..., spread = 0.7, node_size = 16, text_size = 3.88,
+  directed = FALSE, ..., spread = 0.7, node_size = 16, text_size = 2,
   text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
@@ -62,14 +62,7 @@ outcome. \code{ggdag_paths} plots all pathways. See
 \code{dagitty::\link[dagitty]{paths}} for details.
 }
 \examples{
-dag  <- dagify(y ~ x + z2 + w2 + w1,
-  x ~ z1 + w1,
-  z1 ~ w1 + v,
-  z2 ~ w2 + v,
-  w1 ~~ w2, exposure = "x", outcome = "y")
-
-  dag \%>\%
-    tidy_dagitty(layout = "fr") \%>\%
-    ggdag_paths()
+confounder_triangle(x_y_associated = TRUE) \%>\%
+  ggdag_paths(from = "x", to = "y")
 
 }

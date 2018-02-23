@@ -30,15 +30,8 @@
 #' @export
 #'
 #' @examples
-#' dag  <- dagify(y ~ x + z2 + w2 + w1,
-#'   x ~ z1 + w1,
-#'   z1 ~ w1 + v,
-#'   z2 ~ w2 + v,
-#'   w1 ~~ w2, exposure = "x", outcome = "y")
-#'
-#'   dag %>%
-#'     tidy_dagitty(layout = "fr") %>%
-#'     ggdag_paths()
+#' confounder_triangle(x_y_associated = TRUE) %>%
+#'   ggdag_paths(from = "x", to = "y")
 #'
 #' @rdname paths
 #' @name Pathways
@@ -69,6 +62,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
                .to = as.character(.to),
                path = "open path") %>%
         dplyr::left_join(.tdy_dag$data, ., by = c("from" = ".from", "to" = ".to"))
+
       path_df <- path_df %>%
         filter(name == vars[[1]]) %>%
         dplyr::slice(1) %>%
@@ -77,6 +71,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
                        .ggraph.orig_index = .ggraph.orig_index,
                        circular = circular, .ggraph.index = .ggraph.index,
                        path = "open path")
+
       path_df %>%
         filter(name == vars[[2]]) %>%
         dplyr::slice(1) %>%
@@ -102,7 +97,7 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
     dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
-    ggplot2::facet_wrap(~set) +
+    ggplot2::facet_wrap(~forcats::fct_inorder(as.factor(set), ordered = TRUE)) +
     theme_dag() +
     ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .1, breaks = "open path") +
     ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .1, breaks = "open path") +
@@ -125,7 +120,7 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
 #' @rdname paths
 #' @export
 ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...,
-                        spread = .7, node_size = 16, text_size = 3.88, text_col = "white",
+                        spread = .7, node_size = 16, text_size = 2, text_col = "white",
                         node = TRUE, text = TRUE, use_labels = NULL) {
 
 
