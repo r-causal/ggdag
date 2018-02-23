@@ -1,20 +1,21 @@
 #' Find Pathways Between Variables
 #'
-#' \code{node_paths} finds the pathways between a given exposure and
-#' outcome. \code{ggdag_paths} plots all pathways. See
+#' \code{node_paths} finds the pathways between a given exposure and outcome.
+#' \code{ggdag_paths} plots all pathways. See
 #' \code{dagitty::\link[dagitty]{paths}} for details.
 #'
 #' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
 #'   \code{dagitty}
-#' @param from character vector of length 1, name of exposure variable.
-#'   Default is \code{NULL}, in which case it will check the input DAG for
-#'   exposure.
-#' @param to character vector of length 1, name of exposure variable.
-#'   Default is \code{NULL}, in which case it will check the input DAG for
-#'   exposure.
+#' @param from character vector of length 1, name of exposure variable. Default
+#'   is \code{NULL}, in which case it will check the input DAG for exposure.
+#' @param to character vector of length 1, name of exposure variable. Default is
+#'   \code{NULL}, in which case it will check the input DAG for exposure.
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is \code{NULL}.
 #' @param directed logical. Should only directed paths be shown?
+#' @param paths_only logical. Should only open paths be returned? Default is
+#'   \code{FALSE}, which includes every variable and edge in the DAG regardless
+#'   if they are part of the path.
 #' @param ... additional arguments passed to \code{tidy_dagitty()}
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
@@ -22,11 +23,11 @@
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for
-#' @param spread the width of the fan spread
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param spread the width of the fan spread \code{geom_dag_repel_label()}.
+#'   Default is \code{NULL}.
 #'
-#' @return a \code{tidy_dagitty} with a \code{path} column for
-#'   path variables and a \code{set} grouping column or a \code{ggplot}
+#' @return a \code{tidy_dagitty} with a \code{path} column for path variables
+#'   and a \code{set} grouping column or a \code{ggplot}
 #' @export
 #'
 #' @examples
@@ -36,7 +37,7 @@
 #' @rdname paths
 #' @name Pathways
 #' @importFrom magrittr %$%
-dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...) {
+dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, paths_only = FALSE, ...) {
 
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
 
@@ -82,19 +83,21 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
                        path = "open path")
     }, .id = "set")
 
+  if (paths_only) .tdy_dag$data <- filter(.tdy_dag$data, path == "open path")
+
   .tdy_dag
 }
 
 
 #' @rdname paths
 #' @export
-ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...,
+ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, paths_only = FALSE, ...,
                                  node_size = 16, text_size = 3.88, text_col = "white",
                                  node = TRUE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed) %>%
+    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed, paths_only = paths_only) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~forcats::fct_inorder(as.factor(set), ordered = TRUE)) +

@@ -8,11 +8,12 @@
 \title{Find Pathways Between Variables}
 \usage{
 dag_paths(.dag, from = NULL, to = NULL, adjust_for = NULL,
-  directed = FALSE, ...)
+  directed = FALSE, paths_only = FALSE, ...)
 
 ggdag_paths(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
-  directed = FALSE, ..., node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  directed = FALSE, paths_only = FALSE, ..., node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 
 ggdag_paths_fan(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
   directed = FALSE, ..., spread = 0.7, node_size = 16, text_size = 2,
@@ -22,18 +23,20 @@ ggdag_paths_fan(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
 \item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
 
-\item{from}{character vector of length 1, name of exposure variable.
-Default is \code{NULL}, in which case it will check the input DAG for
-exposure.}
+\item{from}{character vector of length 1, name of exposure variable. Default
+is \code{NULL}, in which case it will check the input DAG for exposure.}
 
-\item{to}{character vector of length 1, name of exposure variable.
-Default is \code{NULL}, in which case it will check the input DAG for
-exposure.}
+\item{to}{character vector of length 1, name of exposure variable. Default is
+\code{NULL}, in which case it will check the input DAG for exposure.}
 
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}
 
 \item{directed}{logical. Should only directed paths be shown?}
+
+\item{paths_only}{logical. Should only open paths be returned? Default is
+\code{FALSE}, which includes every variable and edge in the DAG regardless
+if they are part of the path.}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
@@ -49,16 +52,16 @@ Default is \code{NULL}.}
 
 \item{use_labels}{a string. Variable to use for}
 
-\item{spread}{the width of the fan spread
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{spread}{the width of the fan spread \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
-a \code{tidy_dagitty} with a \code{path} column for
-  path variables and a \code{set} grouping column or a \code{ggplot}
+a \code{tidy_dagitty} with a \code{path} column for path variables
+  and a \code{set} grouping column or a \code{ggplot}
 }
 \description{
-\code{node_paths} finds the pathways between a given exposure and
-outcome. \code{ggdag_paths} plots all pathways. See
+\code{node_paths} finds the pathways between a given exposure and outcome.
+\code{ggdag_paths} plots all pathways. See
 \code{dagitty::\link[dagitty]{paths}} for details.
 }
 \examples{
