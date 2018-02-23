@@ -27,7 +27,7 @@
 #' @name as_tbl_graph
 as_tbl_graph.tidy_dagitty <- function(x, directed = TRUE, ...) {
   x <- dplyr::filter(x, !is.na(to))
-  tidygraph::as_tbl_graph(directed = directed, ...)
+  tidygraph::as_tbl_graph(x$data, directed = directed, ...)
 }
 
 #' @export
