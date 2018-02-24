@@ -5,7 +5,7 @@
 #' @param ... a character vector in the style of dagitty. See
 #' \code{dagitty::\link[dagitty]{dagitty}} for details.
 #'
-#' @return a \code{dagitty}
+#' @return a `dagitty`
 #' @export
 #'
 #' @examples
@@ -19,13 +19,13 @@ dag <- function(...) {
 
 #' Create a dagitty DAG using R-like syntax
 #'
-#' \code{dagify()} creates dagitty DAGs using a more R-like syntax. It currently
-#' accepts formulas in the usual R style, e.g. \code{y ~ x + z}, which gets
-#' translated to \code{y <- {x z}}, as well as using a double tilde (\code{~~}) to
-#' graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \code{x1
-#' <-> x2}.
+#' `dagify()` creates dagitty DAGs using a more R-like syntax. It currently
+#' accepts formulas in the usual R style, e.g. `y ~ x + z`, which gets
+#' translated to `y <- {x z}`, as well as using a double tilde (`~~`) to
+#' graph bidirected variables, e.g. `x1 ~~ x2` is translated to `x1
+#' <-> x2`.
 #'
-#' @param ... formulas, which are converted to \code{dagitty} syntax
+#' @param ... formulas, which are converted to `dagitty` syntax
 #' @param exposure a character vector for the exposure (must be a variable name
 #'   in the DAG)
 #' @param outcome a character vector for the outcome (must be a variable name in
@@ -34,9 +34,9 @@ dag <- function(...) {
 #'   name in the DAG)
 #' @param labels a named character vector, labels for variables in the DAG
 #' @param coords coordinates for the DAG nodes. Can be a named list or a
-#'   \code{data.frame} with columns x, y, and name
+#'   `data.frame` with columns x, y, and name
 #'
-#' @return a \code{dagitty} DAG
+#' @return a `dagitty` DAG
 #' @export
 #'
 #' @examples
@@ -75,7 +75,7 @@ dag <- function(...) {
 #'
 #' ggdag(dag2)
 #'
-#' @seealso \code{\link{dag}}, \code{\link{coords2df}}, \code{\link{coords2list}}
+#' @seealso [dag()], [coords2df()], [coords2list()]
 dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels = NULL, coords = NULL) {
   fmlas <- list(...)
   dag_txt <- purrr::map_chr(fmlas, formula2char)

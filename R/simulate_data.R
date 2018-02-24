@@ -1,13 +1,13 @@
 #' Simulate Data from Structural Equation Model
 #'
-#' This is a thin wrapper for the \code{simulateSEM()}function in \code{dagitty}
+#' This is a thin wrapper for the `simulateSEM()`function in `dagitty`
 #' that works with tidied dagitty objects. It treats the input DAG as a
 #' structural equation model, generating random path coefficients and simulating
-#' corresponding data. See \code{dagitty::\link[dagitty]{simulateSEM}} for
+#' corresponding data. See [dagitty::simulateSEM()] for
 #' details.
 #'
-#' @param .tdy_dag the input DAG, which can be a \code{tidy_dagitty} or
-#'   \code{dagitty} object.
+#' @param .tdy_dag the input DAG, which can be a `tidy_dagitty` or
+#'   `dagitty` object.
 #' @param b.default default path coefficient applied to arrows for which no
 #'   coefficient is defined in the model syntax.
 #' @param b.lower lower bound for random path coefficients, applied if b.default
@@ -18,7 +18,7 @@
 #' @param standardized whether a standardized output is desired (all variables
 #'   have variance 1).
 #'
-#' @return a \code{tbl}with N values for each variable in .tdy_dag
+#' @return a `tbl`with N values for each variable in .tdy_dag
 #' @export
 #'
 #' @examples

@@ -36,7 +36,7 @@ ggdag_adjust(.tdy_dag, adjust_for, ..., node_size = 16, text_size = 3.88,
 }
 \value{
 a \code{tidy_dagitty} with a \code{adjusted} column for adjusted
-  variables, as well as any biasing paths that arise, or a \code{ggplot}
+variables, as well as any biasing paths that arise, or a \code{ggplot}
 }
 \description{
 Adjust for variables and activate any biasing paths that result

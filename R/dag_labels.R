@@ -1,13 +1,13 @@
 #' DAG labels
 #'
 #' Label or otherwise retrieve labels from objects of either class
-#' \code{tidy_dagitty} or \code{dagitty}
+#' `tidy_dagitty` or `dagitty`
 #'
-#' @param x an object of either class \code{tidy_dagitty} or \code{dagitty}
+#' @param x an object of either class `tidy_dagitty` or `dagitty`
 #' @param value a character vector
-#' @param .tdy_dag an object of class \code{tidy_dagitty}
+#' @param .tdy_dag an object of class `tidy_dagitty`
 #'
-#' @return \code{label} returns the label attribute of x
+#' @return `label` returns the label attribute of x
 #' @export
 #'
 #' @examples

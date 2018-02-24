@@ -1,16 +1,16 @@
 #' D-relationship between variables
 #'
 #' D-separation is a key concept in causal structural models. Variables are
-#' d-separated if there are no open paths between them. The \code{node_d*()}
+#' d-separated if there are no open paths between them. The `node_d*()`
 #' functions label variables as d-connected or d-separated. The
-#' \code{ggdag_d*()} functions plot the results. The \code{*_dconnected()},
-#' \code{*_dseparated()}, and \code{*_drelationship()} functions essentially
+#' `ggdag_d*()` functions plot the results. The `*_dconnected()`,
+#' `*_dseparated()`, and `*_drelationship()` functions essentially
 #' produce the same output and are just different ways of thinking about the
-#' relationship. See \code{dagitty::\link[dagitty]{dseparated}} for details.
+#' relationship. See [dagitty::dseparated()] for details.
 #'
-#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
@@ -23,13 +23,13 @@
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
-#' @param as_factor logical. Should the \code{d_relationship} variable be a
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
+#' @param as_factor logical. Should the `d_relationship` variable be a
 #'   factor?
 #'
-#' @return a \code{tidy_dagitty} with a \code{d_relationship} column for
-#'   variable D relationship or a \code{ggplot}
+#' @return a `tidy_dagitty` with a `d_relationship` column for
+#'   variable D relationship or a `ggplot`
 #' @export
 #'
 #' @examples

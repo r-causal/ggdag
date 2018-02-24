@@ -1,12 +1,12 @@
 #' Find Exogenous Variables
 #'
-#' \code{node_exogenous} tags exogenous variables given an exposure and
-#' outcome. \code{ggdag_exogenous} plots all exogenous variables. See
-#' \code{dagitty::\link[dagitty]{exogenousVariables}} for details.
+#' `node_exogenous` tags exogenous variables given an exposure and
+#' outcome. `ggdag_exogenous` plots all exogenous variables. See
+#' [dagitty::exogenousVariables()] for details.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
@@ -15,11 +15,11 @@
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
 #'
-#' @return a \code{tidy_dagitty} with an \code{exogenous} column for
-#'   exogenous variables or a \code{ggplot}
+#' @return a `tidy_dagitty` with an `exogenous` column for
+#'   exogenous variables or a `ggplot`
 #' @export
 #'
 #' @examples

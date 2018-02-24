@@ -71,14 +71,14 @@ ggdag_mediation_triangle(x = NULL, y = NULL, m = NULL,
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a DAG of class \code{dagitty} or a \code{ggplot}
 }
 \description{
-base functions create an object of class \code{dagitty}; \code{ggdag_* } functions
+base functions create an object of class \code{dagitty}; \code{ggdag_*} functions
 are wrappers that also call \code{ggdag()} on the \code{dagitty} object.
 }
 \examples{

@@ -28,8 +28,8 @@ ggdag(.tdy_dag, ..., edge_type = "link_arc", node_size = 16,
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a \code{ggplot}
@@ -52,5 +52,5 @@ ggdag(dagitty::randomDAG(5, .5))
 
 }
 \seealso{
-\code{\link{ggdag_classic}}
+\code{\link[=ggdag_classic]{ggdag_classic()}}
 }

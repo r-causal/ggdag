@@ -31,8 +31,7 @@ a \code{dagitty} DAG
 \code{dagify()} creates dagitty DAGs using a more R-like syntax. It currently
 accepts formulas in the usual R style, e.g. \code{y ~ x + z}, which gets
 translated to \code{y <- {x z}}, as well as using a double tilde (\code{~~}) to
-graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \code{x1
-<-> x2}.
+graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \code{x1 <-> x2}.
 }
 \examples{
 
@@ -72,5 +71,5 @@ ggdag(dag2)
 
 }
 \seealso{
-\code{\link{dag}}, \code{\link{coords2df}}, \code{\link{coords2list}}
+\code{\link[=dag]{dag()}}, \code{\link[=coords2df]{coords2df()}}, \code{\link[=coords2list]{coords2list()}}
 }

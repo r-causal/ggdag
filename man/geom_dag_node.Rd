@@ -54,18 +54,19 @@ DAG Nodes
 }
 \section{Aesthetics}{
 
-`geom_dag_node` understand the following aesthetics (required aesthetics are in bold):
-
-- **x**
-- **y**
-- alpha
-- colour
-- internal_colour
-- fill
-- shape
-- size
-- stroke
-- filter
+\code{geom_dag_node} understand the following aesthetics (required aesthetics are in bold):
+\itemize{
+\item \strong{x}
+\item \strong{y}
+\item alpha
+\item colour
+\item internal_colour
+\item fill
+\item shape
+\item size
+\item stroke
+\item filter
+}
 }
 
 \examples{

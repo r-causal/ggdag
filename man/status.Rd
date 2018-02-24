@@ -34,16 +34,16 @@ ggdag_status(.tdy_dag, ..., edge_type = "link_arc", node_size = 16,
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{status} column for
-  variable status or a \code{ggplot}
+variable status or a \code{ggplot}
 }
 \description{
 Detects variable status given a DAG (exposure, outcome, latent). See
-\code{dagitty::\link[dagitty]{VariableStatus}} for details.
+\code{\link[dagitty:VariableStatus]{dagitty::VariableStatus()}} for details.
 }
 \details{
 \code{node_collider} tags variable status and \code{ggdag_collider} plots all

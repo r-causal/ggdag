@@ -1,12 +1,12 @@
 ## dplyr methods:
 
-#' Dplyr verb methods for \code{tidy_dagitty} objects
+#' Dplyr verb methods for `tidy_dagitty` objects
 #'
-#' Dplyr verb methods for \code{tidy_dagitty} objects.
-#' @param .data data object of class \code{tidy_dagitty}
+#' Dplyr verb methods for `tidy_dagitty` objects.
+#' @param .data data object of class `tidy_dagitty`
 #' @param .dots,x,y,by,copy,suffix,.keep_all see corresponding function in
-#'   package \code{dplyr}
-#' @param ... other arguments passed to the \code{dplyr} function
+#'   package `dplyr`
+#' @param ... other arguments passed to the `dplyr` function
 #'
 #' @name dplyr
 #' @examples

@@ -1,10 +1,10 @@
 #' Quickly plot a DAG in ggplot2
 #'
-#' \code{ggdag()} is a wrapper to quickly plot DAGs.
+#' `ggdag()` is a wrapper to quickly plot DAGs.
 #'
-#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
@@ -13,10 +13,10 @@
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
 #'
-#' @return a \code{ggplot}
+#' @return a `ggplot`
 #' @export
 #'
 #' @examples
@@ -32,7 +32,7 @@
 #'
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
-#' @seealso \code{\link{ggdag_classic}}
+#' @seealso [ggdag_classic()]
 ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                   text_col = "white", node = TRUE, text = TRUE,
                   use_labels = NULL) {
@@ -54,20 +54,20 @@ ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_si
 
 #' Quickly plot a DAG in ggplot2
 #'
-#' \code{ggdag_classic()} is a wrapper to quickly plot DAGs in a more
+#' `ggdag_classic()` is a wrapper to quickly plot DAGs in a more
 #' traditional style.
 #'
-#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param size text size, with a default of 8.
-#' @param label_rect_size specify the \code{fontsize} argument in
-#'   \code{ggraph::label_rect}; default is \code{NULL}, in which case it is
-#'   scaled relative ti \code{size}
+#' @param label_rect_size specify the `fontsize` argument in
+#'   `ggraph::label_rect`; default is `NULL`, in which case it is
+#'   scaled relative ti `size`
 #' @param text_label text variable, with a default of "name"
 #' @param text_col text color, with a default of "black"
 #'
-#' @return a \code{ggplot}
+#' @return a `ggplot`
 #' @export
 #'
 #' @examples
@@ -83,7 +83,7 @@ ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_si
 #'
 #' ggdag_classic(dagitty::randomDAG(5, .5))
 #'
-#' @seealso \code{\link{ggdag}}
+#' @seealso [ggdag()]
 ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
                           text_label = "name", text_col = "black") {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)

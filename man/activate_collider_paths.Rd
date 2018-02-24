@@ -16,7 +16,7 @@ activate_collider_paths(.tdy_dag, adjust_for, ...)
 }
 \value{
 a \code{tidy_dagitty} with additional rows for collider-activated
-  pathways
+pathways
 }
 \description{
 Stratifying on colliders can open biasing pathways between variables.
@@ -31,6 +31,6 @@ collided_dag
 
 }
 \seealso{
-\code{\link{control_for}}, \code{\link{ggdag_adjust}},
-  \code{\link{geom_dag_collider_edges}}
+\code{\link[=control_for]{control_for()}}, \code{\link[=ggdag_adjust]{ggdag_adjust()}},
+\code{\link[=geom_dag_collider_edges]{geom_dag_collider_edges()}}
 }

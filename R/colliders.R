@@ -1,26 +1,26 @@
 #' Find colliders
 #'
 #' Detects any colliders given a DAG.
-#' \code{node_collider} tags colliders and \code{ggdag_collider} plots all
+#' `node_collider` tags colliders and `ggdag_collider` plots all
 #' exogenous variables.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
-#' @param as_factor treat \code{collider} variable as factor
+#' @param as_factor treat `collider` variable as factor
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
 #'
-#' @return a \code{tidy_dagitty} with a \code{collider} column for
-#'   colliders or a \code{ggplot}
+#' @return a `tidy_dagitty` with a `collider` column for
+#'   colliders or a `ggplot`
 #' @export
 #'
 #' @examples
@@ -70,15 +70,15 @@ ggdag_collider <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16
 #' Activate paths opened by stratifying on a collider
 #'
 #' Stratifying on colliders can open biasing pathways between variables.
-#' \code{activate_collider_paths} activates any such pathways given a variable
-#' or set of variables to adjust for and adds them to the \code{tidy_dagitty}.
+#' `activate_collider_paths` activates any such pathways given a variable
+#' or set of variables to adjust for and adds them to the `tidy_dagitty`.
 #'
-#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
+#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
 #' @param adjust_for a character vector, the variable(s) to adjust for.
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #'
-#' @return a \code{tidy_dagitty} with additional rows for collider-activated
+#' @return a `tidy_dagitty` with additional rows for collider-activated
 #'   pathways
 #' @export
 #'
@@ -88,8 +88,8 @@ ggdag_collider <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16
 #' collided_dag <- activate_collider_paths(dag, adjust_for = "m")
 #' collided_dag
 #'
-#' @seealso \code{\link{control_for}}, \code{\link{ggdag_adjust}},
-#'   \code{\link{geom_dag_collider_edges}}
+#' @seealso [control_for()], [ggdag_adjust()],
+#'   [geom_dag_collider_edges()]
 activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(.tdy_dag$data$name)
@@ -125,7 +125,7 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
 
 #' Detecting colliders in DAGs
 #'
-#' @param .dag an input graph, an object of class \code{tidy_dagitty} or \code{dagitty}
+#' @param .dag an input graph, an object of class `tidy_dagitty` or `dagitty`
 #' @param .var a character vector of length 1, the potential collider to check
 #'
 #' @return Logical. Is the variable a collider or downstream collider?

@@ -25,7 +25,7 @@ a \code{tbl_graph}
 \description{
 A thin wrapper to convert \code{tidy_dagitty} and \code{dagitty} objects to
 \code{tbl_graph}, which can then be used to work in \code{tidygraph} and
-\code{ggraph} directly.
+\code{ggraph} directly. See \code{\link[tidygraph:as_tbl_graph]{tidygraph::as_tbl_graph()}}.
 }
 \examples{
 

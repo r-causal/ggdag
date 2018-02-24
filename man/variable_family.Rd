@@ -65,7 +65,7 @@ ggdag_descendants(.tdy_dag, .var, ..., edge_type = "link_arc",
 }
 \value{
 a \code{tidy_dagitty} with an column related to the given
-  relationship for variable D relationship or a \code{ggplot}
+relationship for variable D relationship or a \code{ggplot}
 }
 \description{
 Parents and children are those nodes that either directly cause or are caused

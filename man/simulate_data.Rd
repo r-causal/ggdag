@@ -33,7 +33,7 @@ a \code{tbl}with N values for each variable in .tdy_dag
 This is a thin wrapper for the \code{simulateSEM()}function in \code{dagitty}
 that works with tidied dagitty objects. It treats the input DAG as a
 structural equation model, generating random path coefficients and simulating
-corresponding data. See \code{dagitty::\link[dagitty]{simulateSEM}} for
+corresponding data. See \code{\link[dagitty:simulateSEM]{dagitty::simulateSEM()}} for
 details.
 }
 \examples{

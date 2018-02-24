@@ -1,15 +1,15 @@
 #' Convert DAGS to tidygraph
 #'
-#' A thin wrapper to convert \code{tidy_dagitty} and \code{dagitty} objects to
-#' \code{tbl_graph}, which can then be used to work in \code{tidygraph} and
-#' \code{ggraph} directly.
+#' A thin wrapper to convert `tidy_dagitty` and `dagitty` objects to
+#' `tbl_graph`, which can then be used to work in `tidygraph` and
+#' `ggraph` directly. See [tidygraph::as_tbl_graph()].
 #'
-#' @param x an object of class \code{tidy_dagitty} or \code{dagitty}
+#' @param x an object of class `tidy_dagitty` or `dagitty`
 #' @param directed logical. Should the constructed graph be directed? Default
-#'   is \code{TRUE}
-#' @param ... other arguments passed to \code{as_tbl_graph}
+#'   is `TRUE`
+#' @param ... other arguments passed to `as_tbl_graph`
 #'
-#' @return a \code{tbl_graph}
+#' @return a `tbl_graph`
 #' @export
 #'
 #' @examples

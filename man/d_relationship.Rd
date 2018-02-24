@@ -61,12 +61,12 @@ factor?}
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{d_relationship} column for
-  variable D relationship or a \code{ggplot}
+variable D relationship or a \code{ggplot}
 }
 \description{
 D-separation is a key concept in causal structural models. Variables are
@@ -75,7 +75,7 @@ functions label variables as d-connected or d-separated. The
 \code{ggdag_d*()} functions plot the results. The \code{*_dconnected()},
 \code{*_dseparated()}, and \code{*_drelationship()} functions essentially
 produce the same output and are just different ways of thinking about the
-relationship. See \code{dagitty::\link[dagitty]{dseparated}} for details.
+relationship. See \code{\link[dagitty:dseparated]{dagitty::dseparated()}} for details.
 }
 \examples{
 dag <- dagify(m ~ x + y)

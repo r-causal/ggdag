@@ -45,5 +45,5 @@ ggdag_classic(dagitty::randomDAG(5, .5))
 
 }
 \seealso{
-\code{\link{ggdag}}
+\code{\link[=ggdag]{ggdag()}}
 }

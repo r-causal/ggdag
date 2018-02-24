@@ -78,22 +78,22 @@ edge_type_switch <- function(edge_type) {
 #' Generate expansion vector for scales.
 #'
 #' This is a convenience function for generating scale expansion vectors
-#' for the \code{expand} argument of
-#' \code{\link[=scale_x_continuous]{scale_*_continuous}} and
-#' \code{\link[=scale_x_discrete]{scale_*_discrete}}.
+#' for the `expand` argument of
+#' `scale_*_continuous()` and
+#' `scale_*_discrete()`.
 #' The expansions vectors are used to add some space between
 #' the data and the axes.
 #'
 #' @export
 #' @param mult vector of multiplicative range expansion factors.
 #'   If length 1, both the lower and upper limits of the scale
-#'   are expanded outwards by \code{mult}. If length 2, the lower limit
-#'   is expanded by \code{mult[1]} and the upper limit by \code{mult[2]}.
+#'   are expanded outwards by `mult`. If length 2, the lower limit
+#'   is expanded by `mult[1]` and the upper limit by `mult[2]`.
 #' @param add vector of additive range expansion constants.
 #'   If length 1, both the lower and upper limits of the scale
-#'   are expanded outwards by \code{add} units. If length 2, the
-#'   lower limit is expanded by \code{add[1]} and the upper
-#'   limit by \code{add[2]}.
+#'   are expanded outwards by `add` units. If length 2, the
+#'   lower limit is expanded by `add[1]` and the upper
+#'   limit by `add[2]`.
 #' @examples
 #' # No space below the bars but 10% above them
 #' ggplot(mtcars) +

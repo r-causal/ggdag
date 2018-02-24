@@ -34,16 +34,16 @@ ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...,
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}
-  column, indicating adjustment status and DAG ID, respectively, for the
-  adjustment sets or a \code{ggplot}
+column, indicating adjustment status and DAG ID, respectively, for the
+adjustment sets or a \code{ggplot}
 }
 \description{
-See \code{dagitty::\link[dagitty]{adjustmentSets}} for details.
+See \code{\link[dagitty:adjustmentSets]{dagitty::adjustmentSets()}} for details.
 }
 \examples{
 dag <- dagify(y ~ x + z2 + w2 + w1,

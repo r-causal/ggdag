@@ -1,10 +1,10 @@
 #' Quickly create a DAGs with common structures of bias
 #'
-#' base functions create an object of class \code{dagitty}; \code{ggdag_* } functions
-#' are wrappers that also call \code{ggdag()} on the \code{dagitty} object.
+#' base functions create an object of class `dagitty`; `ggdag_* ` functions
+#' are wrappers that also call `ggdag()` on the `dagitty` object.
 #'
-#' @param x,y,a,b,m,z Character vector. Optional label. Default is \code{NULL}
-#' @param x_y_associated Logical. Are x and y associated? Default is \code{FALSE}.
+#' @param x,y,a,b,m,z Character vector. Optional label. Default is `NULL`
+#' @param x_y_associated Logical. Are x and y associated? Default is `FALSE`.
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
@@ -13,10 +13,10 @@
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
 #'
-#' @return a DAG of class \code{dagitty} or a \code{ggplot}
+#' @return a DAG of class `dagitty` or a `ggplot`
 #' @export
 #'
 #' @examples

@@ -1,28 +1,28 @@
 #' Find Instrumental Variables
 #'
-#' \code{node_instrumental} tags instrumental variables given an exposure and
-#' outcome. \code{ggdag_instrumental} plots all instrumental variables. See
-#' \code{dagitty::\link[dagitty]{instrumentalVariables}} for details.
+#' `node_instrumental` tags instrumental variables given an exposure and
+#' outcome. `ggdag_instrumental` plots all instrumental variables. See
+#' [dagitty::instrumentalVariables()] for details.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
+#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
 #' @param exposure character vector of length 1, name of exposure variable.
-#'   Default is \code{NULL}, in which case it will check the input DAG for
+#'   Default is `NULL`, in which case it will check the input DAG for
 #'   exposure.
 #' @param outcome character vector of length 1, name of exposure variable.
-#'   Default is \code{NULL}, in which case it will check the input DAG for
+#'   Default is `NULL`, in which case it will check the input DAG for
 #'   exposure.
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
 #'
-#' @return a \code{tidy_dagitty} with an \code{instrumental} column for
-#'   instrumental variables or a \code{ggplot}
+#' @return a `tidy_dagitty` with an `instrumental` column for
+#'   instrumental variables or a `ggplot`
 #' @export
 #'
 #' @examples

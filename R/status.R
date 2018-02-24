@@ -1,28 +1,28 @@
 #' Find variable status
 #'
 #' Detects variable status given a DAG (exposure, outcome, latent). See
-#' \code{dagitty::\link[dagitty]{VariableStatus}} for details.
+#' [dagitty::VariableStatus()] for details.
 #'
-#' \code{node_collider} tags variable status and \code{ggdag_collider} plots all
+#' `node_collider` tags variable status and `ggdag_collider` plots all
 #' variable statuses.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
-#' @param as_factor treat \code{status} variable as factor
+#' @param as_factor treat `status` variable as factor
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
 #'
-#' @return a \code{tidy_dagitty} with a \code{status} column for
-#'   variable status or a \code{ggplot}
+#' @return a `tidy_dagitty` with a `status` column for
+#'   variable status or a `ggplot`
 #' @export
 #'
 #' @examples

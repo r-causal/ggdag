@@ -2,17 +2,17 @@
 #'
 #' Parents and children are those nodes that either directly cause or are caused
 #' by the variable, respectively. Ancestors and descendants are those nodes that
-#' are on the path to or descend from the variable. The \code{node_*()}
+#' are on the path to or descend from the variable. The `node_*()`
 #' functions label variables depending on their relationship. The
-#' \code{ggdag_*()} functions plot the results. See
+#' `ggdag_*()` functions plot the results. See
 #' \code{dagitty::\link[dagitty]{children}} for details.
 #'
-#' @param .tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
+#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param .var a character vector, the variable to be assessed (must by in DAG)
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
@@ -20,11 +20,11 @@
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for
-#'   \code{geom_dag_repel_label()}. Default is \code{NULL}.
+#'   `geom_dag_repel_label()`. Default is `NULL`.
 #' @param as_factor logical. Should the relationship variable be a factor?
 #'
-#' @return a \code{tidy_dagitty} with an column related to the given
-#'   relationship for variable D relationship or a \code{ggplot}
+#' @return a `tidy_dagitty` with an column related to the given
+#'   relationship for variable D relationship or a `ggplot`
 #' @export
 #'
 #' @examples

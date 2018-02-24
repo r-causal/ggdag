@@ -1,11 +1,11 @@
-#' Tidy a \code{dagitty} object
+#' Tidy a `dagitty` object
 #'
-#' @param .dagitty a \code{dagitty}
+#' @param .dagitty a `dagitty`
 #' @param seed a numeric seed for reproducible layout generation
-#' @param layout a layout available in \code{ggraph}. See \code{ggraph::\link[ggraph]{create_layout}} for details.
-#' @param ... optional arguments passed to \code{ggraph::create_layout()}
+#' @param layout a layout available in `ggraph`. See [ggraph::create_layout()] for details.
+#' @param ... optional arguments passed to `ggraph::create_layout()`
 #'
-#' @return a \code{tidy_dagitty} object
+#' @return a `tidy_dagitty` object
 #' @export
 #'
 #' @examples
@@ -95,9 +95,9 @@ is.tidy_dagitty <- function(x) {
   inherits(x, "tidy_dagitty")
 }
 
-#' Fortify a \code{tidy_dagitty} object for \code{ggplot2}
+#' Fortify a `tidy_dagitty` object for `ggplot2`
 #'
-#' @param model an object of class \code{tidy_dagitty} or \code{dagitty}
+#' @param model an object of class `tidy_dagitty` or `dagitty`
 #' @param data (not used)
 #' @param ... (not used)
 #'
@@ -116,26 +116,26 @@ fortify.dagitty <- function(model, data = NULL, ...) {
   model %>% tidy_dagitty() %>% .$data
 }
 
-#' Convert a \code{tidy_dagitty} object to data.frame
+#' Convert a `tidy_dagitty` object to data.frame
 #'
-#' @param x an object of class \code{tidy_dagitty}
+#' @param x an object of class `tidy_dagitty`
 #' @param row.names NULL or a character vector giving the row names for the data
 #'   frame. Missing values are not allowed.
 #' @param optional logical. If TRUE, setting row names and converting column
 #'   names (to syntactic names: see make.names) is optional. Note that all of
-#'   R's base package \code{as.data.frame()} methods use optional only for column names
-#'   treatment, basically with the meaning of \code{data.frame(*, check.names =
-#'   !optional)}
-#' @param ... optional arguments passed to \code{as.data.frame()}
+#'   R's base package `as.data.frame()` methods use optional only for column names
+#'   treatment, basically with the meaning of `data.frame(*, check.names =
+#'   !optional)`
+#' @param ... optional arguments passed to `as.data.frame()`
 #'
 #' @export
 as.data.frame.tidy_dagitty <- function(x, row.names, optional, ...) {
   as.data.frame(x$data, row.names, optional, ...)
 }
 
-#' Convert a \code{tidy_dagitty} object to tbl_df
+#' Convert a `tidy_dagitty` object to tbl_df
 #'
-#' @param .tdy_dag an object of class \code{tidy_dagitty}
+#' @param .tdy_dag an object of class `tidy_dagitty`
 #'
 #' @export
 #' @importFrom dplyr tbl_df
@@ -143,17 +143,17 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
   .tdy_dag$data
 }
 
-#' Convert a \code{tidy_dagitty} object to tbl
+#' Convert a `tidy_dagitty` object to tbl
 #'
-#' @param x an object of class \code{tidy_dagitty}
+#' @param x an object of class `tidy_dagitty`
 #' @param row.names NULL or a character vector giving the row names for the data
 #'   frame. Missing values are not allowed.
 #' @param optional logical. If TRUE, setting row names and converting column
 #'   names (to syntactic names: see make.names) is optional. Note that all of
-#'   R's base package \code{as.data.frame()} methods use optional only for column names
-#'   treatment, basically with the meaning of \code{data.frame(*, check.names =
-#'   !optional)}
-#' @param ... optional arguments passed to \code{as.tbl()}
+#'   R's base package `as.data.frame()` methods use optional only for column names
+#'   treatment, basically with the meaning of `data.frame(*, check.names =
+#'   !optional)`
+#' @param ... optional arguments passed to `as.tbl()`
 #'
 #' @export
 #' @importFrom dplyr as.tbl
@@ -161,10 +161,10 @@ as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
   dplyr::as.tbl(x$data, row.names = row.names, optional = optional, ...)
 }
 
-#' Print a \code{tidy_dagitty}
+#' Print a `tidy_dagitty`
 #'
-#' @param x an object of class \code{tidy_dagitty}
-#' @param ... optional arguments passed to \code{print()}
+#' @param x an object of class `tidy_dagitty`
+#' @param ... optional arguments passed to `print()`
 #'
 #' @export
 print.tidy_dagitty <- function(x, ...) {

@@ -71,21 +71,22 @@ Node text
 }
 \section{Aesthetics}{
 
-`geom_dag_text` understand the following aesthetics (required aesthetics are in bold):
-
-- **x**
-- **y**
-- **label**
-- alpha
-- angle
-- colour
-- family
-- fontface
-- group
-- hjust
-- lineheight
-- size
-- vjust
+\code{geom_dag_text} understand the following aesthetics (required aesthetics are in bold):
+\itemize{
+\item \strong{x}
+\item \strong{y}
+\item \strong{label}
+\item alpha
+\item angle
+\item colour
+\item family
+\item fontface
+\item group
+\item hjust
+\item lineheight
+\item size
+\item vjust
+}
 }
 
 \examples{

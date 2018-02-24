@@ -32,17 +32,17 @@ ggdag_exogenous(.tdy_dag, ..., node_size = 16, text_size = 3.88,
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{exogenous} column for
-  exogenous variables or a \code{ggplot}
+exogenous variables or a \code{ggplot}
 }
 \description{
 \code{node_exogenous} tags exogenous variables given an exposure and
 outcome. \code{ggdag_exogenous} plots all exogenous variables. See
-\code{dagitty::\link[dagitty]{exogenousVariables}} for details.
+\code{\link[dagitty:exogenousVariables]{dagitty::exogenousVariables()}} for details.
 }
 \examples{
 dag <- dagify(y ~ x1 + x2 + x3, b ~ x1 + x2)

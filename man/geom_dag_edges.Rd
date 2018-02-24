@@ -56,6 +56,36 @@ different directions. Default to FALSE.}
 \description{
 Directed and bidirected DAG edges
 }
+\section{Aesthetics}{
+
+\code{geom_dag_edges} understand the following aesthetics. Bold aesthetics are
+required.
+\itemize{
+\item \strong{x}
+\item \strong{y}
+\item \strong{xend}
+\item \strong{yend}
+\item edge_colour
+\item edge_width
+\item edge_linetype
+\item edge_alpha
+\item start_cap
+\item end_cap
+\item label
+\item label_pos
+\item label_size
+\item angle
+\item hjust
+\item vjust
+\item family
+\item fontface
+\item lineheight
+}
+
+\code{geom_dag_edges} also uses \code{geom_dag_edges_arc}, which requires the
+\strong{circular} aesthetic, but this is automatically set.
+}
+
 \examples{
 dagify(y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,

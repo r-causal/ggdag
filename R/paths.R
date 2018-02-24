@@ -1,33 +1,32 @@
 #' Find Pathways Between Variables
 #'
-#' \code{node_paths} finds the pathways between a given exposure and outcome.
-#' \code{ggdag_paths} plots all pathways. See
-#' \code{dagitty::\link[dagitty]{paths}} for details.
+#' `node_paths` finds the pathways between a given exposure and outcome.
+#' `ggdag_paths` plots all pathways. See [dagitty::paths()] for details.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class \code{tidy_dagitty} or
-#'   \code{dagitty}
+#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
 #' @param from character vector of length 1, name of exposure variable. Default
-#'   is \code{NULL}, in which case it will check the input DAG for exposure.
+#'   is `NULL`, in which case it will check the input DAG for exposure.
 #' @param to character vector of length 1, name of exposure variable. Default is
-#'   \code{NULL}, in which case it will check the input DAG for exposure.
+#'   `NULL`, in which case it will check the input DAG for exposure.
 #' @param adjust_for character vector, a set of variables to control for.
-#'   Default is \code{NULL}.
+#'   Default is `NULL`.
 #' @param directed logical. Should only directed paths be shown?
 #' @param paths_only logical. Should only open paths be returned? Default is
-#'   \code{FALSE}, which includes every variable and edge in the DAG regardless
+#'   `FALSE`, which includes every variable and edge in the DAG regardless
 #'   if they are part of the path.
-#' @param ... additional arguments passed to \code{tidy_dagitty()}
+#' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param text_col color of DAG text
 #' @param node logical. Should nodes be included in the DAG?
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#' @param spread the width of the fan spread \code{geom_dag_repel_label()}.
-#'   Default is \code{NULL}.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
+#'   Default is `NULL`.
+#' @param spread the width of the fan spread
 #'
-#' @return a \code{tidy_dagitty} with a \code{path} column for path variables
-#'   and a \code{set} grouping column or a \code{ggplot}
+#' @return a `tidy_dagitty` with a `path` column for path variables
+#'   and a `set` grouping column or a `ggplot`
 #' @export
 #'
 #' @examples

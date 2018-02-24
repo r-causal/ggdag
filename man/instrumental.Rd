@@ -36,17 +36,17 @@ exposure.}
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{instrumental} column for
-  instrumental variables or a \code{ggplot}
+instrumental variables or a \code{ggplot}
 }
 \description{
 \code{node_instrumental} tags instrumental variables given an exposure and
 outcome. \code{ggdag_instrumental} plots all instrumental variables. See
-\code{dagitty::\link[dagitty]{instrumentalVariables}} for details.
+\code{\link[dagitty:instrumentalVariables]{dagitty::instrumentalVariables()}} for details.
 }
 \examples{
 library(dagitty)

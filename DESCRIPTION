@@ -37,3 +37,4 @@ Suggests:
 URL: https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
 Language: en-US
+Roxygen: list(markdown = TRUE)

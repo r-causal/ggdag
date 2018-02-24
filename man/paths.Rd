@@ -50,19 +50,18 @@ if they are part of the path.}
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for}
-
-\item{spread}{the width of the fan spread \code{geom_dag_repel_label()}.
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
 Default is \code{NULL}.}
+
+\item{spread}{the width of the fan spread}
 }
 \value{
 a \code{tidy_dagitty} with a \code{path} column for path variables
-  and a \code{set} grouping column or a \code{ggplot}
+and a \code{set} grouping column or a \code{ggplot}
 }
 \description{
 \code{node_paths} finds the pathways between a given exposure and outcome.
-\code{ggdag_paths} plots all pathways. See
-\code{dagitty::\link[dagitty]{paths}} for details.
+\code{ggdag_paths} plots all pathways. See \code{\link[dagitty:paths]{dagitty::paths()}} for details.
 }
 \examples{
 confounder_triangle(x_y_associated = TRUE) \%>\%

@@ -126,7 +126,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 
 #' Repulsive textual annotations
 #'
-#' These functions are minor modifications of those in the \code{ggrepel}
+#' These functions are minor modifications of those in the `ggrepel`
 #' package. geom_dag_text_repel adds text directly to the plot.
 #' geom_dag_label_repel draws a rectangle underneath the text, making it easier
 #' to read. The text labels repel away from each other and away from the data
@@ -305,6 +305,33 @@ filter_direction <- function(.direction) {
 #'   different directions. Default to FALSE.
 #' @param ... Other arguments passed to ggraph::geom_edge_*()
 #'
+#' @section Aesthetics:
+#' `geom_dag_edges` understand the following aesthetics. Bold aesthetics are
+#' required.
+#'
+#' - **x**
+#' - **y**
+#' - **xend**
+#' - **yend**
+#' - edge_colour
+#' - edge_width
+#' - edge_linetype
+#' - edge_alpha
+#' - start_cap
+#' - end_cap
+#' - label
+#' - label_pos
+#' - label_size
+#' - angle
+#' - hjust
+#' - vjust
+#' - family
+#' - fontface
+#' - lineheight
+#'
+#' `geom_dag_edges` also uses `geom_dag_edges_arc`, which requires the
+#' **circular** aesthetic, but this is automatically set.
+#'
 #' @export
 #'
 #' @examples
@@ -371,6 +398,37 @@ geom_dag_edges <- function(mapping = NULL,
 #' @param fold Logical. Should arcs appear on the same side of the nodes despite
 #'   different directions. Default to FALSE.
 #' @param ... Other arguments passed to ggraph::geom_edge_*()
+#'
+#' @section Aesthetics:
+#' `geom_dag_edges_link`, `geom_dag_edges_arc`, `geom_dag_edges_diagonal`, and
+#' `geom_dag_edges_fan` understand the following aesthetics. Bold aesthetics are
+#' required.
+#'
+#' - **x**
+#' - **y**
+#' - **xend**
+#' - **yend**
+#' - edge_colour
+#' - edge_width
+#' - edge_linetype
+#' - edge_alpha
+#' - start_cap
+#' - end_cap
+#' - label
+#' - label_pos
+#' - label_size
+#' - angle
+#' - hjust
+#' - vjust
+#' - family
+#' - fontface
+#' - lineheight
+#'
+#' `geom_dag_edges_arc` and `geom_dag_edges_diagonal` also require
+#' **circular**, but this is automatically set.
+#'
+#' `geom_dag_edges_fan` requires **to** and **from**, but these are also
+#' automatically set.
 #'
 #' @export
 #'
@@ -572,7 +630,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #' A minimalist DAG theme
 #'
 #' @inheritParams ggplot2::theme_minimal
-#' @param ... additional arguments passed to \code{theme()}
+#' @param ... additional arguments passed to `theme()`
 #'
 #' @export
 #'
@@ -593,7 +651,7 @@ theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
 #' Simple grey theme for DAGs
 #'
 #' @inheritParams ggplot2::theme_grey
-#' @param ... additional arguments passed to \code{theme()}
+#' @param ... additional arguments passed to `theme()`
 #'
 #' @export
 #'
@@ -626,7 +684,7 @@ theme_dag <- theme_dag_grey
 #'
 #' @param expand_x,expand_y Vector of range expansion constants used to add some
 #'   padding around the data, to ensure that they are placed some distance away
-#'   from the axes. Use the convenience function \code{expand_scale()} to
+#'   from the axes. Use the convenience function `expand_scale()` to
 #'   generate the values for the expand argument.
 #' @param breaks One of:
 #'

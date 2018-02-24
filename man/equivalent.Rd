@@ -21,12 +21,11 @@ ggdag_equivalent_class(.tdy_dag, expand_x = expand_scale(c(0.1, 0.1)),
   text = TRUE, use_labels = NULL)
 }
 \arguments{
-\item{.dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.dag}{input graph, an object of class \code{tidy_dagitty} or \code{dagitty}}
 
 \item{n}{maximal number of returned graphs.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{ggraph::\link[ggraph]{create_layout}} for details.}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}} for details.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 
@@ -42,8 +41,8 @@ ggdag_equivalent_class(.tdy_dag, expand_x = expand_scale(c(0.1, 0.1)),
 
 \item{text}{logical. Should text be included in the DAG?}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
+Default is \code{NULL}.}
 
 \item{expand_x}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
@@ -56,24 +55,22 @@ from the axes. Use the convenience function \code{expand_scale()} to
 generate the values for the expand argument.}
 
 \item{breaks}{One of:
-
-- NULL for no breaks
-
-- waiver() for the default breaks computed by the transformation object
-
-- A numeric vector of positions
-
-- A function that takes the limits as input and returns breaks as output}
+\itemize{
+\item NULL for no breaks
+\item waiver() for the default breaks computed by the transformation object
+\item A numeric vector of positions
+\item A function that takes the limits as input and returns breaks as output
+}}
 }
 \value{
 a \code{tidy_dagitty} with at least one DAG, including a \code{dag}
-  column to identify graph set for equivalent DAGs or a \code{reversable}
-  column for equivalent classes, or a \code{ggplot}
+column to identify graph set for equivalent DAGs or a \code{reversable}
+column for equivalent classes, or a \code{ggplot}
 }
 \description{
 Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
 input DAG. CPDAGs are Markov equivalent to the input graph. See
-\code{dagitty::\link[dagitty]{equivalentDAGs}} for details.
+\code{\link[dagitty:equivalentDAGs]{dagitty::equivalentDAGs()}} for details.
 \code{node_equivalent_dags()} returns a set of DAGs, while
 \code{node_equivalent_class()} tags reversable edges.
 \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
