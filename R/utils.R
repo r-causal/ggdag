@@ -43,7 +43,9 @@ utils::globalVariables(
     ".to",
     "path",
     "paths",
-    "set"
+    "set",
+    "adjacent",
+    "blanket"
   )
 )
 

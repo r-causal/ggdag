@@ -51,8 +51,8 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   .dag$data <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
     conditional_vars <- ifelse(is.null(.z), "", paste("|", paste(.z, collapse = ", ")))
     .dag$data$instrumental_name <- paste(.i, conditional_vars) %>% stringr::str_trim()
-    if (!is.null(adjust_for_vars)) {
-      .dag <- .dag %>% control_for(adjust_for_vars)
+    if (!is.null(.z)) {
+      .dag <- .dag %>% control_for(.z)
     } else {
       .dag$data$adjusted <- factor("unadjusted", levels = c("unadjusted", "adjusted"), exclude = NA)
     }
