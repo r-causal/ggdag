@@ -5,7 +5,7 @@
 #' are on the path to or descend from the variable. The `node_*()`
 #' functions label variables depending on their relationship. The
 #' `ggdag_*()` functions plot the results. See
-#' \code{dagitty::\link[dagitty]{children}} for details.
+#' [dagitty::children] for details.
 #'
 #' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
@@ -118,6 +118,34 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 
 #' @rdname variable_family
 #' @export
+node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
+  .blanket <- dagitty::markovBlanket(.tdy_dag$dag, .var)
+  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
+                                 blanket = ifelse(name %in% .blanket, "Markov blanket",
+                                                     ifelse(name == .var, "center variable",
+                                                            NA)))
+  if (as_factor) .tdy_dag$data$blanket <- factor(.tdy_dag$data$blanket, exclude = NA)
+  .tdy_dag
+}
+
+#' @rdname variable_family
+#' @export
+node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
+  .adjacent <- dagitty::adjacentNodes(.tdy_dag$dag, .var)
+  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
+                                 adjacent = ifelse(name %in% .adjacent, "adjacent",
+                                                  ifelse(name == .var, "center variable",
+                                                         NA)))
+  if (as_factor) .tdy_dag$data$adjacent <- factor(.tdy_dag$data$adjacent, exclude = NA)
+  .tdy_dag
+}
+
+#' @rdname variable_family
+#' @export
 ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                            node_size = 16, text_size = 3.88, text_col = "white",
                            node = TRUE, text = TRUE, use_labels = NULL) {
@@ -207,5 +235,55 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
                                                fill = "descendant"),
                            col = "white", show.legend = FALSE)
+  p
+}
+
+#' @rdname variable_family
+#' @export
+ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
+                              node_size = 16, text_size = 3.88, text_col = "white",
+                              node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
+    node_markov_blanket(.var) %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = blanket)) +
+    edge_function() +
+    geom_dag_node() +
+    geom_dag_text(col = "white") +
+    theme_dag() +
+    scale_dag(breaks  = c("Markov blanket", "center variable"))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                             fill = "blanket"),
+                         col = "white", show.legend = FALSE)
+  p
+}
+
+#' @rdname variable_family
+#' @export
+ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
+                                 node_size = 16, text_size = 3.88, text_col = "white",
+                                 node = TRUE, text = TRUE, use_labels = NULL) {
+  edge_function <- edge_type_switch(edge_type)
+
+  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
+    node_adjacent(.var) %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = adjacent)) +
+    edge_function() +
+    geom_dag_node() +
+    geom_dag_text(col = "white") +
+    theme_dag() +
+    scale_dag(breaks  = c("adjacent", "center variable"))
+
+  if (node) p <- p + geom_dag_node(size = node_size)
+  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  if (!is.null(use_labels)) p <- p +
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                             fill = "adjacent"),
+                         col = "white", show.legend = FALSE)
   p
 }

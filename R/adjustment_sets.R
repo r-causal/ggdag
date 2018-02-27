@@ -155,6 +155,7 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' @name Adjust for variables
 control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+  dagitty::adjustedNodes(.tdy_dag$dag) <- adjust_for
   .tdy_dag <- activate_collider_paths(.tdy_dag, adjust_for)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% adjust_for, "adjusted", "unadjusted"))
   if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = factor(adjusted, exclude = NA))

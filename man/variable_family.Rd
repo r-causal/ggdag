@@ -6,10 +6,14 @@
 \alias{node_parents}
 \alias{node_ancestors}
 \alias{node_descendants}
+\alias{node_markov_blanket}
+\alias{node_adjacent}
 \alias{ggdag_children}
 \alias{ggdag_parents}
 \alias{ggdag_ancestors}
 \alias{ggdag_descendants}
+\alias{ggdag_markov_blanket}
+\alias{ggdag_adjacent}
 \title{Familial relationships between variables}
 \usage{
 node_children(.tdy_dag, .var, as_factor = TRUE)
@@ -19,6 +23,10 @@ node_parents(.tdy_dag, .var, as_factor = TRUE)
 node_ancestors(.tdy_dag, .var, as_factor = TRUE)
 
 node_descendants(.tdy_dag, .var, as_factor = TRUE)
+
+node_markov_blanket(.tdy_dag, .var, as_factor = TRUE)
+
+node_adjacent(.tdy_dag, .var, as_factor = TRUE)
 
 ggdag_children(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
   text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
@@ -35,6 +43,14 @@ ggdag_ancestors(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
 ggdag_descendants(.tdy_dag, .var, ..., edge_type = "link_arc",
   node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
   text = TRUE, use_labels = NULL)
+
+ggdag_markov_blanket(.tdy_dag, .var, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
+  text = TRUE, use_labels = NULL)
+
+ggdag_adjacent(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -73,7 +89,7 @@ by the variable, respectively. Ancestors and descendants are those nodes that
 are on the path to or descend from the variable. The \code{node_*()}
 functions label variables depending on their relationship. The
 \code{ggdag_*()} functions plot the results. See
-\code{dagitty::\link[dagitty]{children}} for details.
+\link[dagitty:children]{dagitty::children} for details.
 }
 \examples{
 dag <- dagify(y ~ x + z2 + w2 + w1,
