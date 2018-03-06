@@ -1,3 +1,7 @@
+template:
+  params:
+    bootswatch: sandstone
+
 reference:
 - title: Create and Tidy Dags
   contents:
@@ -10,18 +14,15 @@ reference:
     - has_labels
     - simulate_data
 
-- title: Analyzing DAGs
+- title: Analyzing and Plotting DAGs
   contents:
     - starts_with("node_")
     - starts_with("dag_")
+    - starts_with("ggdag")
     - control_for
     - activate_collider_paths
     - starts_with("is_")
     - is.tidy_dagitty
-
-- title: Quick Plots
-  contents:
-    - starts_with("ggdag")
 
 - title: ggplot2 geoms, themes, and scales
   contents:

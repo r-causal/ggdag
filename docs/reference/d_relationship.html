@@ -11,8 +11,8 @@
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
+<link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/sandstone/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
-<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
@@ -135,15 +135,17 @@ relationship. See <code><a href='http://www.rdocumentation.org/packages/dagitty/
 <span class='fu'>ggdag_drelationship</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>from</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>to</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>controlling_for</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>, <span class='kw'>edge_type</span> <span class='kw'>=</span> <span class='st'>"link_arc"</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>,
   <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)
+  <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>collider_lines</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)
 
 <span class='fu'>ggdag_dseparated</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>from</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>to</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>controlling_for</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='no'>...</span>, <span class='kw'>edge_type</span> <span class='kw'>=</span> <span class='st'>"link_arc"</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>,
-  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)
+  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>collider_lines</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)
 
 <span class='fu'>ggdag_dconnected</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>from</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>to</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>controlling_for</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='no'>...</span>, <span class='kw'>edge_type</span> <span class='kw'>=</span> <span class='st'>"link_arc"</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>,
-  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>collider_lines</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
     <table class="ref-arguments">
@@ -207,6 +209,11 @@ factor?</p></td>
       <th>use_labels</th>
       <td><p>a string. Variable to use for <code>geom_dag_repel_label()</code>.
 Default is <code>NULL</code>.</p></td>
+    </tr>
+    <tr>
+      <th>collider_lines</th>
+      <td><p>logical. Should the plot show paths activated by
+adjusting for a collider?</p></td>
     </tr>
     </table>
     

@@ -51,9 +51,9 @@ dagified <- dagify(x ~ z,
 tidy_dagitty(dagified)
 ```
 
-Currently, `ggdag` supports directed (`x ~ y`) and bidirected (`a ~~ b`) relationships
+Currently, `ggdag` supports directed (`x ~ y`) and bi-directed (`a ~~ b`) relationships
 
-`tidy_dagitty()` uses layout functions from `ggraph` and `igraph` for coordinates if none are provided, which can be specfied with the `layout` argument. Objects of class `tidy_dagitty` or `dagitty` can be plotted quickly with `ggdag()`. If the DAG is not yet tidied, `ggdag()` and most other quick plotting functions in `ggdag` do so internally.
+`tidy_dagitty()` uses layout functions from `ggraph` and `igraph` for coordinates if none are provided, which can be specified with the `layout` argument. Objects of class `tidy_dagitty` or `dagitty` can be plotted quickly with `ggdag()`. If the DAG is not yet tidied, `ggdag()` and most other quick plotting functions in `ggdag` do so internally.
 
 ```{r ggdag_layout}
 ggdag(dag, layout = "circle")
@@ -137,9 +137,9 @@ bigger_dag %>%
       scale_dag(breaks  = c("parent", "child")) #  ignores NA in legend
 ```
 
-The heavy lifters in `ggdag` are `geom_dag_node()`, `geom_dag_edges()`, `geom_dag_text()`, `theme_dag()`, and `scale_dag()`. `geom_dag_node()` and `geom_dag_text()` plot the nodes and text, respectively, and are only modifications of `geom_point()` and `geom_text()`. `theme_dag()` removes all axes and ticks, since those have little meaning in a causal model, and also makes a few other changes. `scale_dag()` is a convenience function that makes modifications to the scale of the plot to make them more ameniable to nodes with large points and text, as well as providing defaults for common analyses in DAGs, e.g. setting `scale_alpha_manual()` to work with an adjusted variables.
+The heavy lifters in `ggdag` are `geom_dag_node()`, `geom_dag_edges()`, `geom_dag_text()`, `theme_dag()`, and `scale_dag()`. `geom_dag_node()` and `geom_dag_text()` plot the nodes and text, respectively, and are only modifications of `geom_point()` and `geom_text()`. `theme_dag()` removes all axes and ticks, since those have little meaning in a causal model, and also makes a few other changes. `scale_dag()` is a convenience function that makes modifications to the scale of the plot to make them more amenable to nodes with large points and text, as well as providing defaults for common analyses in DAGs, e.g. setting `scale_alpha_manual()` to work with an adjusted variables.
 
-`geom_dag_edges()` is also a convencience function that plots directed and bidirected edges with different geoms and arrows. Directed edges are straight lines with a single arrow head, while bidirected lines, which are a shorthand for a latent parent variable between the two bidirected variables (e.g. a <- L -> b), are plotted as an arc with arrow heads on either side. 
+`geom_dag_edges()` is also a convenience function that plots directed and bi-directed edges with different geoms and arrows. Directed edges are straight lines with a single arrow head, while bi-directed lines, which are a shorthand for a latent parent variable between the two bi-directed variables (e.g. a <- L -> b), are plotted as an arc with arrow heads on either side. 
 
 You can also call edge functions directly, particularly if you only have directed edges. Much of `ggdag`'s edge functionality comes from `ggraph`, with defaults (e.g. arrow heads, truncated lines) set with DAGs in mind. Currently, `ggdag` has four type of edge geoms: `geom_dag_edges_link()`, which plots straight lines, `geom_dag_edges_arc()`, `geom_dag_edges_diagonal()`, and `geom_dag_edges_fan()`.
 
@@ -155,7 +155,7 @@ dagify(y ~ x,
 ```
 
 
-If you have bidirected edges but would like to plot them as directed, `node_canonical()` will automatically insert the latent variable for you.
+If you have bi-directed edges but would like to plot them as directed, `node_canonical()` will automatically insert the latent variable for you.
 
 ```{r canonical}
 dagify(y ~ x + z,
@@ -169,5 +169,5 @@ dagify(y ~ x + z,
       scale_dag()
 ```
 
-There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom caled `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.
+There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.
 
