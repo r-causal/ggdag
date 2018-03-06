@@ -76,13 +76,13 @@ dagitty::exogenousVariables() for details." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
-    </li>
-    <li>
-      <a href="../articles/intro-to-dags.html">An Introduction to Directed Acyclic Graphs</a>
-    </li>
-    <li>
       <a href="../articles/intro-to-ggdag.html">An Introduction to ggdag</a>
+    </li>
+    <li>
+      <a href="../articles/intro-to-dags.html">An Introduction to DAGs</a>
+    </li>
+    <li>
+      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
     </li>
   </ul>
 </li>
@@ -177,13 +177,13 @@ exogenous variables or a <code>ggplot</code></p>
 <span class='fu'>ggdag_exogenous</span>(<span class='no'>dag</span>)</div><div class='img'><img src='exogenous-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'><span class='fu'>node_exogenous</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 7 x 13
 #&gt;   name  from      x     y direction type    to     xend  yend .ggraph.orig_ind…
 #&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;             &lt;int&gt;
-#&gt; 1 x1    x1     8.06  22.2 -&gt;        direct… b      7.73  21.1                 1
-#&gt; 2 x1    x1     8.06  22.2 -&gt;        direct… y      6.99  22.9                 1
-#&gt; 3 x2    x2     6.72  21.7 -&gt;        direct… b      7.73  21.1                 2
-#&gt; 4 x2    x2     6.72  21.7 -&gt;        direct… y      6.99  22.9                 2
-#&gt; 5 x3    x3     6.51  24.2 -&gt;        direct… y      6.99  22.9                 3
-#&gt; 6 b     b      7.73  21.1 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;  NA     NA                   4
-#&gt; 7 y     y      6.99  22.9 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;  NA     NA                   5
+#&gt; 1 x1    x1     18.6  9.44 -&gt;        direct… b      17.9  8.56                 1
+#&gt; 2 x1    x1     18.6  9.44 -&gt;        direct… y      18.0 10.6                  1
+#&gt; 3 x2    x2     17.2  9.50 -&gt;        direct… b      17.9  8.56                 2
+#&gt; 4 x2    x2     17.2  9.50 -&gt;        direct… y      18.0 10.6                  2
+#&gt; 5 x3    x3     18.1 11.9  -&gt;        direct… y      18.0 10.6                  3
+#&gt; 6 b     b      17.9  8.56 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;   NA   NA                    4
+#&gt; 7 y     y      18.0 10.6  &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;   NA   NA                    5
 #&gt; # ... with 3 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;,
 #&gt; #   exogenous &lt;chr&gt;</div><div class='input'>
 </div></pre>

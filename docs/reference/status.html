@@ -75,13 +75,13 @@ dagitty::VariableStatus() for details." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
-    </li>
-    <li>
-      <a href="../articles/intro-to-dags.html">An Introduction to Directed Acyclic Graphs</a>
-    </li>
-    <li>
       <a href="../articles/intro-to-ggdag.html">An Introduction to ggdag</a>
+    </li>
+    <li>
+      <a href="../articles/intro-to-dags.html">An Introduction to DAGs</a>
+    </li>
+    <li>
+      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
     </li>
   </ul>
 </li>
@@ -187,12 +187,12 @@ variable statuses.</p>
   <span class='kw'>latent</span> <span class='kw'>=</span> <span class='st'>"l"</span>)
 
 <span class='fu'>node_status</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 13
-#&gt;   name  from      x     y direction type    to     xend  yend .ggraph.orig_ind…
-#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;             &lt;int&gt;
-#&gt; 1 x     x      5.34  6.79 -&gt;        direct… l      5.52  7.78                 1
-#&gt; 2 x     x      5.34  6.79 -&gt;        direct… y      4.57  7.44                 1
-#&gt; 3 y     y      4.57  7.44 -&gt;        direct… l      5.52  7.78                 2
-#&gt; 4 l     l      5.52  7.78 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;  NA    NA                    3
+#&gt;   name  from      x      y direction type  to     xend    yend .ggraph.orig_in…
+#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt; &lt;chr&gt; &lt;dbl&gt;   &lt;dbl&gt;            &lt;int&gt;
+#&gt; 1 x     x      2.66  0.388 -&gt;        dire… l      3.41  -0.264                1
+#&gt; 2 x     x      2.66  0.388 -&gt;        dire… y      3.60   0.715                1
+#&gt; 3 y     y      3.60  0.715 -&gt;        dire… l      3.41  -0.264                2
+#&gt; 4 l     l      3.41 -0.264 &lt;NA&gt;      &lt;NA&gt;  &lt;NA&gt;  NA     NA                    3
 #&gt; # ... with 3 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;, status &lt;fct&gt;</div><div class='input'><span class='fu'>ggdag_status</span>(<span class='no'>dag</span>)</div><div class='img'><img src='status-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 </div></pre>
   </div>

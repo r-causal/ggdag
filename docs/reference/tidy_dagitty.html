@@ -74,13 +74,13 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
-    </li>
-    <li>
-      <a href="../articles/intro-to-dags.html">An Introduction to Directed Acyclic Graphs</a>
-    </li>
-    <li>
       <a href="../articles/intro-to-ggdag.html">An Introduction to ggdag</a>
+    </li>
+    <li>
+      <a href="../articles/intro-to-dags.html">An Introduction to DAGs</a>
+    </li>
+    <li>
+      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
     </li>
   </ul>
 </li>
@@ -155,19 +155,19 @@
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 13 x 12
 #&gt;    name  from      x     y direction type    to     xend  yend .ggraph.orig_in…
 #&gt;    &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;            &lt;int&gt;
-#&gt;  1 V     V      16.0  15.4 -&gt;        direct… Z1     14.9  16.2                1
-#&gt;  2 V     V      16.0  15.4 -&gt;        direct… Z2     15.2  14.3                1
-#&gt;  3 W1    W1     14.2  15.5 -&gt;        direct… X      13.6  15.6                2
-#&gt;  4 W1    W1     14.2  15.5 -&gt;        direct… Y      13.7  14.5                2
-#&gt;  5 W1    W1     14.2  15.5 -&gt;        direct… Z1     14.9  16.2                2
-#&gt;  6 W1    W1     14.2  15.5 &lt;-&gt;       bidire… W2     14.3  14.5                2
-#&gt;  7 W2    W2     14.3  14.5 -&gt;        direct… X      13.6  15.6                3
-#&gt;  8 W2    W2     14.3  14.5 -&gt;        direct… Y      13.7  14.5                3
-#&gt;  9 W2    W2     14.3  14.5 -&gt;        direct… Z2     15.2  14.3                3
-#&gt; 10 X     X      13.6  15.6 -&gt;        direct… Y      13.7  14.5                4
-#&gt; 11 Z1    Z1     14.9  16.2 -&gt;        direct… X      13.6  15.6                5
-#&gt; 12 Z2    Z2     15.2  14.3 -&gt;        direct… Y      13.7  14.5                6
-#&gt; 13 Y     Y      13.7  14.5 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;   NA    NA                  7
+#&gt;  1 V     V      9.16  17.7 -&gt;        direct… Z1    10.5   17.2                1
+#&gt;  2 V     V      9.16  17.7 -&gt;        direct… Z2     8.63  16.4                1
+#&gt;  3 W1    W1    10.6   15.7 -&gt;        direct… X     10.3   16.2                2
+#&gt;  4 W1    W1    10.6   15.7 -&gt;        direct… Y      9.40  15.8                2
+#&gt;  5 W1    W1    10.6   15.7 -&gt;        direct… Z1    10.5   17.2                2
+#&gt;  6 W1    W1    10.6   15.7 &lt;-&gt;       bidire… W2     9.58  15.2                2
+#&gt;  7 W2    W2     9.58  15.2 -&gt;        direct… X     10.3   16.2                3
+#&gt;  8 W2    W2     9.58  15.2 -&gt;        direct… Y      9.40  15.8                3
+#&gt;  9 W2    W2     9.58  15.2 -&gt;        direct… Z2     8.63  16.4                3
+#&gt; 10 X     X     10.3   16.2 -&gt;        direct… Y      9.40  15.8                4
+#&gt; 11 Z1    Z1    10.5   17.2 -&gt;        direct… X     10.3   16.2                5
+#&gt; 12 Z2    Z2     8.63  16.4 -&gt;        direct… Y      9.40  15.8                6
+#&gt; 13 Y     Y      9.40  15.8 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;  NA     NA                  7
 #&gt; # ... with 2 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;</div><div class='input'>
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"fr"</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/ggplot'>ggplot</a></span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/aes'>aes</a></span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>x</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +

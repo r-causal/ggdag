@@ -22,15 +22,17 @@ node_drelationship(.tdy_dag, from = NULL, to = NULL,
 ggdag_drelationship(.tdy_dag, from = NULL, to = NULL,
   controlling_for = NULL, ..., edge_type = "link_arc", node_size = 16,
   text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
-  use_labels = NULL)
+  use_labels = NULL, collider_lines = TRUE)
 
 ggdag_dseparated(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
   ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL,
+  collider_lines = TRUE)
 
 ggdag_dconnected(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
   ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL,
+  collider_lines = TRUE)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -66,6 +68,9 @@ factor?}
 
 \item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
 Default is \code{NULL}.}
+
+\item{collider_lines}{logical. Should the plot show paths activated by
+adjusting for a collider?}
 }
 \value{
 a \code{tidy_dagitty} with a \code{d_relationship} column for

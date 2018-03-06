@@ -48,13 +48,13 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
-    </li>
-    <li>
-      <a href="../articles/intro-to-dags.html">An Introduction to Directed Acyclic Graphs</a>
-    </li>
-    <li>
       <a href="../articles/intro-to-ggdag.html">An Introduction to ggdag</a>
+    </li>
+    <li>
+      <a href="../articles/intro-to-dags.html">An Introduction to DAGs</a>
+    </li>
+    <li>
+      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
     </li>
   </ul>
 </li>
@@ -81,7 +81,7 @@
       <h1>An Introduction to ggdag</h1>
                         <h4 class="author">Malcolm Barrett</h4>
             
-            <h4 class="date">2018-03-05</h4>
+            <h4 class="date">2018-03-06</h4>
           </div>
 
     
@@ -206,7 +206,7 @@
 </section><section id="plotting-dags" class="level1"><h1>Plotting DAGs</h1>
 <p>Most <code>dag_*()</code> and <code>node_*()</code> functions have corresponding <code>ggdag_*()</code> for quickly plotting the results. They call the corresponding <code>dag_*()</code> or <code>node_*()</code> function internally and plot the results in <code>ggplot2</code>.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw"><a href="../reference/paths.html">ggdag_paths</a></span>(bigger_dag)</a></code></pre></div>
-<p><img src="intro-to-ggdag_files/figure-html/ggdag_path-1.png" width="576" style="display: block; margin: auto;"></p>
+<p><img src="intro-to-ggdag_files/figure-html/ggdag_path-1.png" width="624" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw"><a href="../reference/variable_family.html">ggdag_parents</a></span>(bigger_dag, <span class="st">"x"</span>)</a></code></pre></div>
 <p><img src="intro-to-ggdag_files/figure-html/ggdag_parents-1.png" width="480" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="co">#  quickly get the miniminally sufficient adjustment sets to adjust for when </span></a>

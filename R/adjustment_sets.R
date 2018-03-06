@@ -139,6 +139,8 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for
 #'   `geom_dag_repel_label()`. Default is `NULL`.
+#' @param collider_lines logical. Should the plot show paths activated by
+#'   adjusting for a collider?
 #' @param as_factor logical. Should the `adjusted` column be a factor?
 #'
 #' @return a `tidy_dagitty` with a `adjusted` column for adjusted
@@ -166,7 +168,7 @@ control_for <- function(.tdy_dag, var, as_factor = TRUE, ...) {
 #' @export
 ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
                          node_size = 16, text_size = 3.88, text_col = "white",
-                         node = TRUE, text = TRUE, use_labels = NULL) {
+                         node = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)
@@ -177,12 +179,13 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
   }
 
   p <- .tdy_dag %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = adjusted, shape = adjusted)) +
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend,
+                                 col = adjusted, shape = adjusted)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
-    geom_dag_collider_edges() +
     theme_dag() +
-    scale_dag()
+    scale_dag(expand_x = expand_scale(c(0.2, 0.2)))
 
+  if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) p <- p + geom_dag_node(size = node_size)
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
   if (!is.null(use_labels)) p <- p +

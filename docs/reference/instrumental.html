@@ -76,13 +76,13 @@ dagitty::instrumentalVariables() for details." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
-    </li>
-    <li>
-      <a href="../articles/intro-to-dags.html">An Introduction to Directed Acyclic Graphs</a>
-    </li>
-    <li>
       <a href="../articles/intro-to-ggdag.html">An Introduction to ggdag</a>
+    </li>
+    <li>
+      <a href="../articles/intro-to-dags.html">An Introduction to DAGs</a>
+    </li>
+    <li>
+      <a href="../articles/bias-structures.html">Common Structures of Bias</a>
     </li>
   </ul>
 </li>
@@ -184,10 +184,10 @@ instrumental variables or a <code>ggplot</code></p>
 <span class='fu'>node_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 15
 #&gt;   name  from      x     y direction type     to     xend  yend .ggraph.orig_in…
 #&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;            &lt;int&gt;
-#&gt; 1 i     i      11.4  16.2 -&gt;        directed x      11.4  15.0                1
-#&gt; 2 x     x      11.4  15.0 -&gt;        directed y      11.4  14.1                2
-#&gt; 3 x     x      11.4  15.0 &lt;-&gt;       bidirec… y      11.4  14.1                2
-#&gt; 4 y     y      11.4  14.1 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA                  3
+#&gt; 1 i     i      13.0  11.1 -&gt;        directed x      14.2  11.1                1
+#&gt; 2 x     x      14.2  11.1 -&gt;        directed y      15.1  11.1                2
+#&gt; 3 x     x      14.2  11.1 &lt;-&gt;       bidirec… y      15.1  11.1                2
+#&gt; 4 y     y      15.1  11.1 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA                  3
 #&gt; # ... with 5 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;,
 #&gt; #   instrumental_name &lt;chr&gt;, adjusted &lt;fct&gt;, instrumental &lt;chr&gt;</div><div class='input'><span class='fu'>ggdag_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; i2-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='img'><img src='instrumental-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 </div></pre>

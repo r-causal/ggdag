@@ -105,7 +105,7 @@ bigger_dag %>%
 
 Most `dag_*()` and `node_*()` functions have corresponding `ggdag_*()` for quickly plotting the results. They call the corresponding `dag_*()` or `node_*()` function internally and plot the results in `ggplot2`.
 
-```{r ggdag_path, fig.width=6}
+```{r ggdag_path, fig.width=6.5}
 ggdag_paths(bigger_dag)
 ```
 

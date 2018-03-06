@@ -27,6 +27,8 @@
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
+#' @param collider_lines logical. Should the plot show paths activated by
+#'   adjusting for a collider?
 #' @param as_factor logical. Should the `d_relationship` variable be a
 #'   factor?
 #'
@@ -162,7 +164,7 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
 #' @export
 ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                                 node_size = 16, text_size = 3.88, text_col = "white",
-                                node = TRUE, text = TRUE, use_labels = NULL) {
+                                node = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -170,10 +172,11 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
     edge_function(start_cap = ggraph::circle(10, "mm"),
                        end_cap = ggraph::circle(10, "mm")) +
-    geom_dag_collider_edges() +
+
     theme_dag() +
     scale_dag(expand_y = expand_scale(c(0.2, 0.2)), breaks = c("d-connected", "d-separated"))
 
+  if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) p <- p + geom_dag_node(size = node_size)
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
   if (!is.null(use_labels)) p <- p +
@@ -187,22 +190,22 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
 #' @export
 ggdag_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, text_col = "white",
-                             node = TRUE, text = TRUE, use_labels = NULL) {
+                             node = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, ..., edge_type = edge_type,
                       node_size = node_size, text_size = text_size,
                       text_col = text_col, node = node, text = text,
-                      use_labels = use_labels)
+                      use_labels = use_labels, collider_lines = collider_lines)
 }
 
 #' @rdname d_relationship
 #' @export
 ggdag_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, text_col = "white",
-                             node = TRUE, text = TRUE, use_labels = NULL) {
+                             node = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, ..., edge_type = edge_type,
                       node_size = node_size, text_size = text_size,
                       text_col = text_col, node = node, text = text,
-                      use_labels = use_labels)
+                      use_labels = use_labels, collider_lines = collider_lines)
 }

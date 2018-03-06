@@ -9,7 +9,8 @@
 control_for(.tdy_dag, var, as_factor = TRUE, ...)
 
 ggdag_adjust(.tdy_dag, var = NULL, ..., node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
+  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL,
+  collider_lines = TRUE)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -33,6 +34,9 @@ ggdag_adjust(.tdy_dag, var = NULL, ..., node_size = 16, text_size = 3.88,
 
 \item{use_labels}{a string. Variable to use for
 \code{geom_dag_repel_label()}. Default is \code{NULL}.}
+
+\item{collider_lines}{logical. Should the plot show paths activated by
+adjusting for a collider?}
 }
 \value{
 a \code{tidy_dagitty} with a \code{adjusted} column for adjusted
