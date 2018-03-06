@@ -130,7 +130,7 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #'
 #' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
-#' @param adjust_for a character vector, the variable(s) to adjust for.
+#' @param var a character vector, the variable(s) to adjust for.
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
@@ -148,28 +148,36 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' @examples
 #' dag <- dagify(m ~ a + b, x ~ a, y ~ b)
 #'
-#' control_for(dag, adjust_for = "m")
-#' ggdag_adjust(dag, adjust_for = "m")
+#' control_for(dag, var = "m")
+#' ggdag_adjust(dag, var = "m")
 #'
 #' @rdname control_for
 #' @name Adjust for variables
-control_for <- function(.tdy_dag, adjust_for, as_factor = TRUE, ...) {
+control_for <- function(.tdy_dag, var, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
-  dagitty::adjustedNodes(.tdy_dag$dag) <- adjust_for
-  .tdy_dag <- activate_collider_paths(.tdy_dag, adjust_for)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% adjust_for, "adjusted", "unadjusted"))
+  dagitty::adjustedNodes(.tdy_dag$dag) <- var
+  .tdy_dag <- activate_collider_paths(.tdy_dag, var)
+  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% var, "adjusted", "unadjusted"))
   if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = factor(adjusted, exclude = NA))
   .tdy_dag
 }
 
 #' @rdname control_for
 #' @export
-ggdag_adjust <- function(.tdy_dag, adjust_for, ...,
+ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
                          node_size = 16, text_size = 3.88, text_col = "white",
                          node = TRUE, text = TRUE, use_labels = NULL) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    control_for(adjust_for) %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+  if (!is.null(var)) {
+    .tdy_dag <- .tdy_dag %>% control_for(var)
+  } else {
+    var <- dagitty::adjustedNodes(.tdy_dag$dag)
+    if (is.null(var)) stop("an adjusting variable needs to be set, either via `var` or `control_for()`")
+    if (is.null(.tdy_dag$data$adjusted)) .tdy_dag <- .tdy_dag %>% control_for(var)
+  }
+
+  p <- .tdy_dag %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = adjusted, shape = adjusted)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
     geom_dag_collider_edges() +
     theme_dag() +

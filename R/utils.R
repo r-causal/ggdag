@@ -77,6 +77,10 @@ edge_type_switch <- function(edge_type) {
          "diagonal" = geom_dag_edges_diagonal)
 }
 
+is_empty_or_null <- function(x) {
+  is.null(x) || purrr::is_empty(x)
+}
+
 #' Generate expansion vector for scales.
 #'
 #' This is a convenience function for generating scale expansion vectors

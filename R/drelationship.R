@@ -14,8 +14,10 @@
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
-#' @param from a character vector, the starting variable (must by in DAG)
-#' @param to a character vector, the ending variable (must by in DAG)
+#' @param from a character vector, the starting variable (must by in DAG). If
+#'   `NULL`, checks DAG for exposure variable.
+#' @param to a character vector, the ending variable (must by in DAG). If
+#'   `NULL`, checks DAG for outcome variable.
 #' @param controlling_for a character vector, variables in the DAG to control
 #'   for.
 #' @param node_size size of DAG node
@@ -68,8 +70,12 @@
 #'   scale_dag()
 #' @rdname d_relationship
 #' @name Assess d-separation between variables
-node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE, ...) {
+node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
+  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
+  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -95,8 +101,12 @@ node_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, as_facto
 
 #' @rdname d_relationship
 #' @export
-node_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
+node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
+  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
+  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -121,8 +131,12 @@ node_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, as_facto
 
 #' @rdname d_relationship
 #' @export
-node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_factor = TRUE) {
+node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+
+  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
+  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -146,7 +160,7 @@ node_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, as_fa
 
 #' @rdname d_relationship
 #' @export
-ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ..., edge_type = "link_arc",
+ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                                 node_size = 16, text_size = 3.88, text_col = "white",
                                 node = TRUE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
@@ -158,7 +172,7 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
                        end_cap = ggraph::circle(10, "mm")) +
     geom_dag_collider_edges() +
     theme_dag() +
-    scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
+    scale_dag(expand_y = expand_scale(c(0.2, 0.2)), breaks = c("d-connected", "d-separated"))
 
   if (node) p <- p + geom_dag_node(size = node_size)
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
@@ -171,7 +185,7 @@ ggdag_drelationship <- function(.tdy_dag, from, to, controlling_for = NULL, ...,
 
 #' @rdname d_relationship
 #' @export
-ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ..., edge_type = "link_arc",
+ggdag_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, text_col = "white",
                              node = TRUE, text = TRUE, use_labels = NULL) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
@@ -183,7 +197,7 @@ ggdag_dseparated <- function(.tdy_dag, from, to, controlling_for = NULL, ..., ed
 
 #' @rdname d_relationship
 #' @export
-ggdag_dconnected <- function(.tdy_dag, from, to, controlling_for = NULL, ..., edge_type = "link_arc",
+ggdag_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, text_col = "white",
                              node = TRUE, text = TRUE, use_labels = NULL) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,

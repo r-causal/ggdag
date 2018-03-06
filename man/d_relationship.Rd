@@ -10,34 +10,37 @@
 \alias{ggdag_dconnected}
 \title{D-relationship between variables}
 \usage{
-node_dconnected(.tdy_dag, from, to, controlling_for = NULL,
+node_dconnected(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
   as_factor = TRUE, ...)
 
-node_dseparated(.tdy_dag, from, to, controlling_for = NULL,
+node_dseparated(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
   as_factor = TRUE)
 
-node_drelationship(.tdy_dag, from, to, controlling_for = NULL,
-  as_factor = TRUE)
+node_drelationship(.tdy_dag, from = NULL, to = NULL,
+  controlling_for = NULL, as_factor = TRUE)
 
-ggdag_drelationship(.tdy_dag, from, to, controlling_for = NULL, ...,
-  edge_type = "link_arc", node_size = 16, text_size = 3.88,
+ggdag_drelationship(.tdy_dag, from = NULL, to = NULL,
+  controlling_for = NULL, ..., edge_type = "link_arc", node_size = 16,
+  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  use_labels = NULL)
+
+ggdag_dseparated(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
+  ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
   text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 
-ggdag_dseparated(.tdy_dag, from, to, controlling_for = NULL, ...,
-  edge_type = "link_arc", node_size = 16, text_size = 3.88,
-  text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
-
-ggdag_dconnected(.tdy_dag, from, to, controlling_for = NULL, ...,
-  edge_type = "link_arc", node_size = 16, text_size = 3.88,
+ggdag_dconnected(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
+  ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
   text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
 
-\item{from}{a character vector, the starting variable (must by in DAG)}
+\item{from}{a character vector, the starting variable (must by in DAG). If
+\code{NULL}, checks DAG for exposure variable.}
 
-\item{to}{a character vector, the ending variable (must by in DAG)}
+\item{to}{a character vector, the ending variable (must by in DAG). If
+\code{NULL}, checks DAG for outcome variable.}
 
 \item{controlling_for}{a character vector, variables in the DAG to control
 for.}

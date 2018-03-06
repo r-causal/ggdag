@@ -41,16 +41,16 @@ m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associa
       m ~ a + b,
       x ~ a,
       y ~ b + x,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   } else {
   .dag <- dagify(
     m ~ a + b,
     x ~ a,
     y ~ b,
-    exposure = x,
-    outcome = y,
+    exposure = "x",
+    outcome = "y",
     coords = coords)
   }
 
@@ -76,16 +76,16 @@ butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y
       m ~ a + b,
       x ~ a + m,
       y ~ b + x + m,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   } else {
     .dag <- dagify(
       m ~ a + b,
       x ~ a + m,
       y ~ b + m,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   }
 
@@ -108,15 +108,15 @@ confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = F
     .dag <- dagify(
       x ~ z,
       y ~ x + z,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   } else {
     .dag <- dagify(
       x ~ z,
       y ~ z,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   }
 
@@ -139,14 +139,14 @@ collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FAL
     .dag <- dagify(
       m ~ x + y,
       y ~ x,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   } else {
     .dag <- dagify(
       m ~ x + y,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   }
 
@@ -169,15 +169,15 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
     .dag <- dagify(
       m ~ x,
       y ~ x + m,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   } else {
     .dag <- dagify(
       m ~ x,
       y ~ m,
-      exposure = x,
-      outcome = y,
+      exposure = "x",
+      outcome = "y",
       coords = coords)
   }
 

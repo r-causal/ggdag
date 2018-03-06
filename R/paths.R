@@ -63,23 +63,33 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
                path = "open path") %>%
         dplyr::left_join(.tdy_dag$data, ., by = c("from" = ".from", "to" = ".to"))
 
-      path_df <- path_df %>%
-        filter(name == vars[[1]]) %>%
-        dplyr::slice(1) %>%
-        dplyr::select(name, x, y, .ggraph.orig_index, circular, .ggraph.index) %$%
-        dplyr::add_row(path_df, name = name, x = x, y = y,
-                       .ggraph.orig_index = .ggraph.orig_index,
-                       circular = circular, .ggraph.index = .ggraph.index,
-                       path = "open path")
+     any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
+     if (any_x_unopend) {
+       x_has_no_children <- any(path_df$name == vars[[1]] & is.na(path_df$to))
+       if (x_has_no_children) {
+         path_df[path_df$name == vars[[1]], "path"] <- "open path"
+       } else {
+       path_df <- path_df %>%
+         filter(name == vars[[1]]) %>%
+         dplyr::slice(1) %>%
+         dplyr::mutate(direction = NA, type = NA, to = NA, xend = NA, yend = NA, path = "open path") %>%
+         dplyr::bind_rows(path_df, .)
+       }
+     }
 
-      path_df %>%
-        filter(name == vars[[2]]) %>%
-        dplyr::slice(1) %>%
-        dplyr::select(name, x, y, .ggraph.orig_index, circular, .ggraph.index) %$%
-        dplyr::add_row(path_df, name = name, x = x, y = y,
-                       .ggraph.orig_index = .ggraph.orig_index,
-                       circular = circular, .ggraph.index = .ggraph.index,
-                       path = "open path")
+
+     y_has_no_children <- any(path_df$name == vars[[2]] & is.na(path_df$to))
+     if (y_has_no_children) {
+       path_df[path_df$name == vars[[2]], "path"] <- "open path"
+     } else {
+       path_df <-  path_df %>%
+         filter(name == vars[[2]]) %>%
+         dplyr::slice(1) %>%
+         dplyr::mutate(direction = NA, type = NA, to = NA, xend = NA, yend = NA, path = "open path") %>%
+         dplyr::bind_rows(path_df, .)
+     }
+
+     path_df
     }, .id = "set")
 
   if (paths_only) .tdy_dag$data <- filter(.tdy_dag$data, path == "open path")

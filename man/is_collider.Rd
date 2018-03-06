@@ -6,7 +6,7 @@
 \alias{is_downstream_collider}
 \title{Detecting colliders in DAGs}
 \usage{
-is_collider(.dag, .var)
+is_collider(.dag, .var, downstream = TRUE)
 
 is_downstream_collider(.dag, .var)
 }
@@ -14,6 +14,8 @@ is_downstream_collider(.dag, .var)
 \item{.dag}{an input graph, an object of class \code{tidy_dagitty} or \code{dagitty}}
 
 \item{.var}{a character vector of length 1, the potential collider to check}
+
+\item{downstream}{Logical. Check for downstream colliders? Default is \code{TRUE}.}
 }
 \value{
 Logical. Is the variable a collider or downstream collider?

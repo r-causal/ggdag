@@ -190,7 +190,7 @@ geom_dag_text_repel <- function(mapping = NULL,
 
   ggplot2::layer(data = data,
                  mapping = mapping,
-                 stat = StatNodes,
+                 stat = StatNodesRepel,
                  geom = ggrepel::GeomTextRepel,
                  position = "identity",
                  show.legend = show.legend,
@@ -242,7 +242,7 @@ geom_dag_label_repel <- function(
   ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodes,
+    stat = StatNodesRepel,
     geom = ggrepel::GeomLabelRepel,
     position = "identity",
     show.legend = show.legend,

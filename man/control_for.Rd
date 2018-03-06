@@ -6,16 +6,16 @@
 \alias{ggdag_adjust}
 \title{Adjust for variables and activate any biasing paths that result}
 \usage{
-control_for(.tdy_dag, adjust_for, as_factor = TRUE, ...)
+control_for(.tdy_dag, var, as_factor = TRUE, ...)
 
-ggdag_adjust(.tdy_dag, adjust_for, ..., node_size = 16, text_size = 3.88,
+ggdag_adjust(.tdy_dag, var = NULL, ..., node_size = 16, text_size = 3.88,
   text_col = "white", node = TRUE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
 
-\item{adjust_for}{a character vector, the variable(s) to adjust for.}
+\item{var}{a character vector, the variable(s) to adjust for.}
 
 \item{as_factor}{logical. Should the \code{adjusted} column be a factor?}
 
@@ -44,7 +44,7 @@ Adjust for variables and activate any biasing paths that result
 \examples{
 dag <- dagify(m ~ a + b, x ~ a, y ~ b)
 
-control_for(dag, adjust_for = "m")
-ggdag_adjust(dag, adjust_for = "m")
+control_for(dag, var = "m")
+ggdag_adjust(dag, var = "m")
 
 }

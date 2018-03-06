@@ -85,7 +85,6 @@ dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels =
   if (!is.null(exposure)) dagitty::exposures(dgty) <- exposure
   if (!is.null(outcome)) dagitty::outcomes(dgty) <- outcome
   if (!is.null(latent)) dagitty::latents(dgty) <- latent
-  if (!is.null(labels)) label(dgty) <- labels
   if (!is.null(coords)) {
     if (is.data.frame(coords)) {
       dagitty::coordinates(dgty) <- coords2list(coords)
@@ -95,5 +94,6 @@ dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels =
       stop("`coords` must be of class `list` or `data.frame`")
     }
   }
+  if (!is.null(labels)) label(dgty) <- labels
   dgty
 }

@@ -97,9 +97,10 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   downstream_colliders <- purrr::map_lgl(vars, ~is_downstream_collider(.tdy_dag, .x))
   collider_names <- unique(c(vars[colliders], vars[downstream_colliders]))
 
-  if (!any((collider_names %in% adjust_for))) return(.tdy_dag)
+  if (!any((collider_names %in% adjust_for))) return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
   collider_paths <- purrr::map(adjusted_colliders, ~dagitty::ancestors(.tdy_dag$dag, .x)[-1])
+
 
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
@@ -127,6 +128,7 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
 #'
 #' @param .dag an input graph, an object of class `tidy_dagitty` or `dagitty`
 #' @param .var a character vector of length 1, the potential collider to check
+#' @param downstream Logical. Check for downstream colliders? Default is `TRUE`.
 #'
 #' @return Logical. Is the variable a collider or downstream collider?
 #' @export
@@ -144,12 +146,16 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
 #'
 #' @rdname is_collider
 #' @name Test if Variable Is Collider
-is_collider <- function(.dag, .var) {
+is_collider <- function(.dag, .var, downstream = TRUE) {
   if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
   n_parents <- dagitty::parents(.dag, .var)
   collider <- length(n_parents) > 1
   downstream_collider <- is_downstream_collider(.dag, .var)
-  any(c(collider, downstream_collider))
+  if (downstream) {
+    any(c(collider, downstream_collider))
+  } else {
+    collider
+  }
 }
 
 #' @rdname is_collider

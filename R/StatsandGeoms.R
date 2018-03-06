@@ -8,6 +8,26 @@ StatNodes <- ggplot2::ggproto("StatNodes", ggplot2::Stat,
                               }
 )
 
+StatNodesRepel <- ggplot2::ggproto("StatNodesRepel", ggplot2::Stat,
+                              compute_layer = function(data, scales, params) {
+                                if (all(c("xend", "yend") %in% names(data))) {
+                                  data <- unique(dplyr::select(data, -xend, -yend))
+
+                                    if ("alpha" %in% names(data)) {
+                                      data %>%
+                                        filter(!is.na(alpha))
+                                    } else {
+                                      data %>%
+                                        group_by(PANEL) %>%
+                                        dplyr::distinct(label, .keep_all = TRUE) %>%
+                                        ungroup()
+                                    }
+                                } else {
+                                  unique(data)
+                                }
+                              }
+)
+
 GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                                 required_aes = c("x", "y"),
                                 non_missing_aes = c("size", "shape", "colour", "internal_colour"),
