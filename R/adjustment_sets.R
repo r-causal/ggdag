@@ -83,10 +83,13 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = adjusted)) +
-    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
+    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
+                   start_cap = ggraph::circle(10, "mm"),
+                   end_cap = ggraph::circle(10, "mm")) +
     ggplot2::facet_wrap(~set) +
     theme_dag() +
-    scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
+    scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
+              expand_y = expand_scale(c(0.2, 0.2)))
 
   if (node) p <- p + geom_dag_node(size = node_size)
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
@@ -181,9 +184,11 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend,
                                  col = adjusted, shape = adjusted)) +
-    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted)) +
+    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
+                   start_cap = ggraph::circle(10, "mm"),
+                   end_cap = ggraph::circle(10, "mm")) +
     theme_dag() +
-    scale_dag(expand_x = expand_scale(c(0.2, 0.2)))
+    scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) p <- p + geom_dag_node(size = node_size)
