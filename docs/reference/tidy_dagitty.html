@@ -155,23 +155,23 @@
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 13 x 12
 #&gt;    name  from      x     y direction type    to     xend  yend .ggraph.orig_in…
 #&gt;    &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;            &lt;int&gt;
-#&gt;  1 V     V      16.0  15.4 -&gt;        direct… Z1     14.9  16.2                1
-#&gt;  2 V     V      16.0  15.4 -&gt;        direct… Z2     15.2  14.3                1
-#&gt;  3 W1    W1     14.2  15.5 -&gt;        direct… X      13.6  15.6                2
-#&gt;  4 W1    W1     14.2  15.5 -&gt;        direct… Y      13.7  14.5                2
-#&gt;  5 W1    W1     14.2  15.5 -&gt;        direct… Z1     14.9  16.2                2
-#&gt;  6 W1    W1     14.2  15.5 &lt;-&gt;       bidire… W2     14.3  14.5                2
-#&gt;  7 W2    W2     14.3  14.5 -&gt;        direct… X      13.6  15.6                3
-#&gt;  8 W2    W2     14.3  14.5 -&gt;        direct… Y      13.7  14.5                3
-#&gt;  9 W2    W2     14.3  14.5 -&gt;        direct… Z2     15.2  14.3                3
-#&gt; 10 X     X      13.6  15.6 -&gt;        direct… Y      13.7  14.5                4
-#&gt; 11 Z1    Z1     14.9  16.2 -&gt;        direct… X      13.6  15.6                5
-#&gt; 12 Z2    Z2     15.2  14.3 -&gt;        direct… Y      13.7  14.5                6
-#&gt; 13 Y     Y      13.7  14.5 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;   NA    NA                  7
+#&gt;  1 V     V      13.8  9.87 -&gt;        direct… Z1     14.6  8.72                1
+#&gt;  2 V     V      13.8  9.87 -&gt;        direct… Z2     12.6  9.07                1
+#&gt;  3 W1    W1     13.9  7.99 -&gt;        direct… X      13.9  7.37                2
+#&gt;  4 W1    W1     13.9  7.99 -&gt;        direct… Y      13.0  8.16                2
+#&gt;  5 W1    W1     13.9  7.99 -&gt;        direct… Z1     14.6  8.72                2
+#&gt;  6 W1    W1     13.9  7.99 &lt;-&gt;       bidire… W2     12.8  7.57                2
+#&gt;  7 W2    W2     12.8  7.57 -&gt;        direct… X      13.9  7.37                3
+#&gt;  8 W2    W2     12.8  7.57 -&gt;        direct… Y      13.0  8.16                3
+#&gt;  9 W2    W2     12.8  7.57 -&gt;        direct… Z2     12.6  9.07                3
+#&gt; 10 X     X      13.9  7.37 -&gt;        direct… Y      13.0  8.16                4
+#&gt; 11 Z1    Z1     14.6  8.72 -&gt;        direct… X      13.9  7.37                5
+#&gt; 12 Z2    Z2     12.6  9.07 -&gt;        direct… Y      13.0  8.16                6
+#&gt; 13 Y     Y      13.0  8.16 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;   NA   NA                   7
 #&gt; # ... with 2 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;</div><div class='input'>
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"fr"</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/ggplot'>ggplot</a></span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/aes'>aes</a></span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>x</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +
-    <span class='fu'><a href='geom_dag_node.html'>geom_dag_node</a></span>() +
+    <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
     <span class='fu'><a href='geom_dag_text.html'>geom_dag_text</a></span>() +
     <span class='fu'><a href='geom_dag_edges.html'>geom_dag_edges</a></span>() +
     <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +

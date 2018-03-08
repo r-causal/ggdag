@@ -28,6 +28,13 @@ StatNodesRepel <- ggplot2::ggproto("StatNodesRepel", ggplot2::Stat,
                               }
 )
 
+GeomDagPoint <- ggplot2::ggproto("GeomDagPoint", ggplot2::GeomPoint,
+                                default_aes = ggplot2::aes(
+                                  shape = 19, colour = "black", size = 16, fill = NA,
+                                  alpha = NA, stroke = 0.5
+                                )
+)
+
 GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
                                 required_aes = c("x", "y"),
                                 non_missing_aes = c("size", "shape", "colour", "internal_colour"),

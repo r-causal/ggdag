@@ -25,7 +25,7 @@ set.seed(2939)
 
 # Directed Acyclic Graphs
 
-A DAG displays assumptions about the relationship between variables, often called nodes in the context of graphs. The assumptions we make take the form of lines (or edges) to go from one node to another. These edges are *directed*, which means to say that they have a single arrowhead indicating their effect. Here's a simple DAG where we assume that x affects y:
+A DAG displays assumptions about the relationship between variables, often called nodes in the context of graphs. The assumptions we make take the form of lines (or edges) to go from one node to another. These edges are *directed*, which means to say that they have a single arrowhead indicating their effect. Here's a simple DAG where we assume that *x* affects *y*:
 
 ```{r, fig.width = 4}
 library(ggdag)
@@ -163,7 +163,7 @@ Collider-stratification bias is responsible for many cases of bias, and it is of
 
 # Mediation
 
-Controlling for intermediate variables also induces bias, because it decomposes the total effect of x on y into its parts. Depending on the research question, that may be exactly what you want, in which case you should use mediation analysis, e.g. via SEM, which can estimate direct, indirect, and total effects. However, returning to the smoking example, we only care about how smoking affects cardiac arrest, not the pathways through cholesterol it may take. Moreover, since cholesterol (at least in our DAG) intercepts the only directed pathway from smoking to cardiac arrest, controlling for it will block that relationship; smoking and cardiac arrest will appear unassociated (note that I'm not including the paths opened by controlling for a collider in this plot for clarity):
+Controlling for intermediate variables also induces bias, because it decomposes the total effect of *x* on *y* into its parts. Depending on the research question, that may be exactly what you want, in which case you should use mediation analysis, e.g. via SEM, which can estimate direct, indirect, and total effects. However, returning to the smoking example, we only care about how smoking affects cardiac arrest, not the pathways through cholesterol it may take. Moreover, since cholesterol (at least in our DAG) intercepts the only directed pathway from smoking to cardiac arrest, controlling for it will block that relationship; smoking and cardiac arrest will appear unassociated (note that I'm not including the paths opened by controlling for a collider in this plot for clarity):
 
 ```{r}
 ggdag_dseparated(smoking_ca_dag, controlling_for = c("weight", "cholesterol"), 
@@ -173,7 +173,7 @@ ggdag_dseparated(smoking_ca_dag, controlling_for = c("weight", "cholesterol"),
 
 # Resources
 
-* Miguel Hernán, who has written extensively on the subject of causal inference and DAGs, has an accessible course on edx that teaches the use of DAGs for causal inference: [Causal Diagrams: Draw Your Assumptions Before Your Conclusions](https://www.edx.org/course/causal-diagrams-draw-assumptions-harvardx-ph559x). Also see his article [The Hazard of Hazard Ratios](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3653612/) for more on non-collapsible estimates of effect.
+* Miguel Hernán, who has written extensively on the subject of causal inference and DAGs, has an accessible course on edx that teaches the use of DAGs for causal inference: [Causal Diagrams: Draw Your Assumptions Before Your Conclusions](https://www.edx.org/course/causal-diagrams-draw-assumptions-harvardx-ph559x). Also see his article [The Hazard of Hazard Ratios](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3653612/) for more on issues with hazard ratios in causal inference.
 * Julia Rohrer has a very readable paper introducing DAGs, mostly from the perspective of psychology: [Thinking Clearly About Correlations and Causation: Graphical Causal Models for Observational Data](http://journals.sagepub.com/doi/abs/10.1177/2515245917745629)
-* Judea Pearl also has a number of texts on the subject of varying technical difficulty. A good place to start is [Causal Inference in Statistics: A Primer](http://bayes.cs.ucla.edu/PRIMER/)
+* Judea Pearl also has a number of texts on the subject of varying technical difficulty. A good place to start is [Causal Inference in Statistics: A Primer](http://bayes.cs.ucla.edu/PRIMER/). See also his article with Sander Greenland and James Robins on collapsibility: [Confounding and Collapsibility in Causal Inference](https://www.jstor.org/stable/2676645?seq=1#page_scan_tab_contents).
 * If you're an epidemiologist, I also recommend the chapter on DAGs in [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC).

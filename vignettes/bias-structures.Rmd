@@ -25,7 +25,7 @@ set.seed(2939)
 
 # Introduction
 
-In addition to helping identify causal effects, the consistency of directed acyclic graphs (DAGs) are very useful in thinking about different forms of bias. Often, many seemingly unrelated types of bias take the same form in a DAG. Methodological issues in a study often reduce to a problem of 1) not adequately blocking a back-door path or 2) selecting on some variable that turns out to be a collider. 
+In addition to helping identify causal effects, the consistency of directed acyclic graphs (DAGs) is very useful in thinking about different forms of bias. Often, many seemingly unrelated types of bias take the same form in a DAG. Methodological issues in a study often reduce to a problem of 1) not adequately blocking a back-door path or 2) selecting on some variable that turns out to be a collider. 
 
 # Confounders and confounding
 
@@ -62,14 +62,14 @@ Focusing on individual confounders, rather than confounding pathways, is a commo
 
 # Colliders, M-bias, and butterfly bias
 
-Collider-stratification bias is a major culprit in systematic bias. Controlling for a collider--a node where two or more arrow heads meet--induces an association between its parents, through which confounding can flow:
+Stratifying on a collider is a major culprit in systematic bias. Controlling for a collider--a node where two or more arrow heads meet--induces an association between its parents, through which confounding can flow:
 
 ```{r}
 collider_triangle() %>% 
   ggdag_dseparated(controlling_for = "m")
 ```
 
-Here the example is fairly simple and easy to deal with: m is a child of x and y and just shouldn't be adjusted for. It can get more complicated, though, when m is something that seems like it is a confounder or when it represents a variable that contributes to whether or not a person enters the study. Often this takes the form of M-shaped bias, or M-bias. Let's consider an example from [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC): the association between education and diabetes. Let's assume that lack of education isn't a direct cause of diabetes. When we are putting together our analysis, we ask: should we adjust for the participant's mother's history of diabetes? It's linked to education via income and to participant's diabetes status via genetic risk, so it looks like this:
+Here the example is fairly simple and easy to deal with: *m* is a child of *x* and *y* and just shouldn't be adjusted for. It can get more complicated, though, when *m* is something that seems like it is a confounder or when it represents a variable that contributes to whether or not a person enters the study. Often this takes the form of M-shaped bias, or M-bias. Let's consider an example from [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC): the association between education and diabetes. Let's assume that lack of education isn't a direct cause of diabetes. When we are putting together our analysis, we ask: should we adjust for the participant's mother's history of diabetes? It's linked to education via income and to participant's diabetes status via genetic risk, so it looks like this:
 
 ```{r}
 m_bias(x = "Education", y = "Diabetes", a = "Income during Childhood", 
@@ -77,7 +77,7 @@ m_bias(x = "Education", y = "Diabetes", a = "Income during Childhood",
   ggdag(use_labels = "label")
 ```
 
-From a classical confounding perspective, it seems like the mother's diabetes status might be a confounder: it's associated with both the exposure and outcome, and it's not a descendant of either. However, the association is not direct for either; it's due to confounding by a and b. Drawing it as a DAG makes it clear that the mother's diabetes status is a collider, and adjusting for it will induce an association between genetic risk and childhood income, thus opening a back-door path from education to diabetes status:
+From a classical confounding perspective, it seems like the mother's diabetes status might be a confounder: it's associated with both the exposure and outcome, and it's not a descendant of either. However, the association is not direct for either; it's due to confounding by genetic risk and childhood income. Drawing it as a DAG makes it clear that the mother's diabetes status is a collider, and adjusting for it will induce an association between genetic risk and childhood income, thus opening a back-door path from education to diabetes status:
 
 ```{r, fig.width = 7.5}
 m_bias(x = "Education", y = "Diabetes", a = "Income during \nChildhood", 
@@ -85,7 +85,7 @@ m_bias(x = "Education", y = "Diabetes", a = "Income during \nChildhood",
   ggdag_dseparated(controlling_for = "m", use_labels = "label")
 ```
 
-Again, this is relatively easy--just don't control for the collider. But what about when your study design already stratifies on m? Let's consider an example where m represents having surgery. Let's say we are conducting a study involving participants who had surgery due to back pain. We suspect that people who are ready to commit to physical therapy and changes in their daily life will have a greater decrease in pain after a year than those who aren't. We've developed a psychometric tool that measures readiness for surgery, and we are going to look at the association between readiness and change in pain. The readiness scale depends on an underlying latent variable that is true readiness, which we are measuring with some error. Change in pain depends on baseline pain. Both underlying readiness and baseline pain are also predictive of whether or not someone has surgery. By definition, we are selecting on surgical status: we feel it's unethical to withhold it and irresponsible to force all participants to have surgery. So, we can't know how people who didn't have surgery would react. Surgical status is inherently stratified for, because we're only looking at people who have had it (note that from here on out, I'm not going to show the paths opened by adjusting for a collider, the default in `ggdag`, for clarity): 
+Again, this is relatively easy--just don't control for the collider. But what about when your study design already stratifies on *m*? Let's consider an example where *m* represents having surgery. Let's say we are conducting a study involving participants who had surgery due to back pain. We suspect that people who are ready to commit to physical therapy and changes in their daily life will have a greater decrease in pain after a year than those who aren't. We've developed a psychometric tool that measures readiness for surgery, and we are going to look at the association between readiness and change in pain. The readiness scale depends on an underlying latent variable that is true readiness, which we are measuring with some error. Change in pain depends on baseline pain. Both underlying readiness and baseline pain are also predictive of whether or not someone has surgery. By definition, we are selecting on surgical status: we feel it's unethical to withhold it and irresponsible to force all participants to have surgery. So, we can't know how people who didn't have surgery would react. Surgical status is inherently stratified for, because we're only looking at people who have had it (note that from here on out, I'm not going to show the paths opened by adjusting for a collider, the default in `ggdag`, for clarity): 
 
 ```{r}
 coords <- dagitty::coordinates(m_bias()) %>% 
@@ -115,7 +115,7 @@ We can't unstratify by surgical status, so our best bet is to block the back-doo
 ggdag_adjustment_set(surgical_dag, text = FALSE, use_labels = "label")
 ```
 
-What about if a variable is both a collider and a cause of the exposure and outcome (a classical confounder)? This is an extension of M-bias sometimes called butterfly bias or bow-tie bias. The variable is a part of two paths: one that it's blocking as a collider *and* a back-door path that is confounding the relationship between x and y. What to do?
+What about if a variable is both a collider and a cause of the exposure and outcome (a classical confounder)? This is an extension of M-bias sometimes called butterfly bias or bow-tie bias. The variable is a part of two paths: one that it's blocking as a collider *and* a back-door path that is confounding the relationship between *x* and *y*. What to do?
 
 ```{r}
 ggdag_butterfly_bias(edge_type = "diagonal")
@@ -241,5 +241,5 @@ dagify(follow_up ~ symptoms,
 
 Many, if not all, forms of systematic bias can be drawn as DAGs. Here are a few sources with interesting examples:
 
-* Miguel Hernán's course on DAGs includes a number of examples on common structures of bias: [Causal Diagrams: Draw Your Assumptions Before Your Conclusions](https://www.edx.org/course/causal-diagrams-draw-assumptions-harvardx-ph559x). Also see his article [A structural approach to selection bias](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3653612/).
+* Miguel Hernán's course on DAGs includes a number of examples on common structures of bias: [Causal Diagrams: Draw Your Assumptions Before Your Conclusions](https://www.edx.org/course/causal-diagrams-draw-assumptions-harvardx-ph559x). Also see his article [A structural approach to selection bias](https://www.ncbi.nlm.nih.gov/pubmed/15308962).
 * The chapter on DAGs in [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC) includes a couple of the examples here and many more directly related to conducting observational research, including measurement error, selection bias, residual confounding, and missing data.

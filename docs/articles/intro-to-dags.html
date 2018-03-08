@@ -81,14 +81,14 @@
       <h1>An Introduction to Directed Acyclic Graphs</h1>
                         <h4 class="author">Malcolm Barrett</h4>
             
-            <h4 class="date">2018-03-06</h4>
+            <h4 class="date">2018-03-08</h4>
           </div>
 
     
     
 <div class="contents">
 <section id="directed-acyclic-graphs" class="level1"><h1>Directed Acyclic Graphs</h1>
-<p>A DAG displays assumptions about the relationship between variables, often called nodes in the context of graphs. The assumptions we make take the form of lines (or edges) to go from one node to another. These edges are <em>directed</em>, which means to say that they have a single arrowhead indicating their effect. Here’s a simple DAG where we assume that x affects y:</p>
+<p>A DAG displays assumptions about the relationship between variables, often called nodes in the context of graphs. The assumptions we make take the form of lines (or edges) to go from one node to another. These edges are <em>directed</em>, which means to say that they have a single arrowhead indicating their effect. Here’s a simple DAG where we assume that <em>x</em> affects <em>y</em>:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(ggdag)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw"><a href="../reference/dagify.html">dagify</a></span>(y <span class="op">~</span><span class="st"> </span>x) <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="st">  </span><span class="kw"><a href="../reference/ggdag.html">ggdag</a></span>()</a></code></pre></div>
@@ -176,17 +176,16 @@
 <p><img src="intro-to-dags_files/figure-html/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;"></p>
 <p>Collider-stratification bias is responsible for many cases of bias, and it is often not dealt with appropriately. Selection bias, missing data, and publication bias can all be thought of as collider-stratification bias. It becomes trickier in more complicated DAGs; sometimes colliders are also confounders, and we need to either come up with a strategy to adjust for the resulting bias from adjusting the collider, or we need to pick the strategy that’s likely to result in the least amount of bias. See the vignette on <a href="bias-structures.html">common structures of bias</a> for more.</p>
 </section><section id="mediation" class="level1"><h1>Mediation</h1>
-<p>Controlling for intermediate variables also induces bias, because it decomposes the total effect of x on y into its parts. Depending on the research question, that may be exactly what you want, in which case you should use mediation analysis, e.g. via SEM, which can estimate direct, indirect, and total effects. However, returning to the smoking example, we only care about how smoking affects cardiac arrest, not the pathways through cholesterol it may take. Moreover, since cholesterol (at least in our DAG) intercepts the only directed pathway from smoking to cardiac arrest, controlling for it will block that relationship; smoking and cardiac arrest will appear unassociated (note that I’m not including the paths opened by controlling for a collider in this plot for clarity):</p>
+<p>Controlling for intermediate variables also induces bias, because it decomposes the total effect of <em>x</em> on <em>y</em> into its parts. Depending on the research question, that may be exactly what you want, in which case you should use mediation analysis, e.g. via SEM, which can estimate direct, indirect, and total effects. However, returning to the smoking example, we only care about how smoking affects cardiac arrest, not the pathways through cholesterol it may take. Moreover, since cholesterol (at least in our DAG) intercepts the only directed pathway from smoking to cardiac arrest, controlling for it will block that relationship; smoking and cardiac arrest will appear unassociated (note that I’m not including the paths opened by controlling for a collider in this plot for clarity):</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span>(smoking_ca_dag, <span class="dt">controlling_for =</span> <span class="kw">c</span>(<span class="st">"weight"</span>, <span class="st">"cholesterol"</span>), </a>
 <a class="sourceLine" id="cb12-2" data-line-number="2">                 <span class="dt">text =</span> <span class="ot">FALSE</span>, <span class="dt">use_labels =</span> <span class="st">"label"</span>, <span class="dt">collider_lines =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
 <p><img src="intro-to-dags_files/figure-html/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;"></p>
 </section><section id="resources" class="level1"><h1>Resources</h1>
 <ul>
-<li>Miguel Hernán, who has written extensively on the subject of causal inference and DAGs, has an accessible course on edx that teaches the use of DAGs for causal inference: <a href="https://www.edx.org/course/causal-diagrams-draw-assumptions-harvardx-ph559x">Causal Diagrams: Draw Your Assumptions Before Your Conclusions</a>. Also see his article <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3653612/">The Hazard of Hazard Ratios</a> for more on non-collapsible estimates of effect.</li>
+<li>Miguel Hernán, who has written extensively on the subject of causal inference and DAGs, has an accessible course on edx that teaches the use of DAGs for causal inference: <a href="https://www.edx.org/course/causal-diagrams-draw-assumptions-harvardx-ph559x">Causal Diagrams: Draw Your Assumptions Before Your Conclusions</a>. Also see his article <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3653612/">The Hazard of Hazard Ratios</a> for more on issues with hazard ratios in causal inference.</li>
 <li>Julia Rohrer has a very readable paper introducing DAGs, mostly from the perspective of psychology: <a href="http://journals.sagepub.com/doi/abs/10.1177/2515245917745629">Thinking Clearly About Correlations and Causation: Graphical Causal Models for Observational Data</a>
 </li>
-<li>Judea Pearl also has a number of texts on the subject of varying technical difficulty. A good place to start is <a href="http://bayes.cs.ucla.edu/PRIMER/">Causal Inference in Statistics: A Primer</a>
-</li>
+<li>Judea Pearl also has a number of texts on the subject of varying technical difficulty. A good place to start is <a href="http://bayes.cs.ucla.edu/PRIMER/">Causal Inference in Statistics: A Primer</a>. See also his article with Sander Greenland and James Robins on collapsibility: <a href="https://www.jstor.org/stable/2676645?seq=1#page_scan_tab_contents">Confounding and Collapsibility in Causal Inference</a>.</li>
 <li>If you’re an epidemiologist, I also recommend the chapter on DAGs in <a href="https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC">Modern Epidemiology</a>.</li>
 </ul></section>
 </div>

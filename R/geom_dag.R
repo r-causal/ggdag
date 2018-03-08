@@ -1,33 +1,36 @@
 #' DAG Nodes
 #'
+#' `geom_dag_node` and `geom_dag_point` are very similar to
+#' [ggplot2::geom_point] but with a few defaults changed. `geom_dag_node` is
+#' slightly stylized and includes an internal white circle, while
+#' `geom_dag_point` plots a single point.
+#'
 #' @export
 #'
 #' @inheritParams ggplot2::geom_point
 #'
-#' @section Aesthetics:
-#' `geom_dag_node` understand the following aesthetics (required aesthetics are in bold):
+#' @section Aesthetics: `geom_dag_node` and `geom_dag_point`understand the
+#'   following aesthetics (required aesthetics are in bold):
 #'
-#' - **x**
-#' - **y**
-#' - alpha
-#' - colour
-#' - internal_colour
-#' - fill
-#' - shape
-#' - size
-#' - stroke
-#' - filter
+#'   - **x** - **y** - alpha - colour - fill - shape - size - stroke - filter
+#'
+#'   `geom_dag_node` also accepts:
+#'
+#'   - internal_colour
 #'
 #' @examples
 #' g <- dagify(m ~ x + y, y ~ x)
-#' g %>%
+#' p <- g %>%
 #' tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_node() +
 #'     geom_dag_edges() +
-#'     geom_dag_text(col = "black") +
+#'     geom_dag_text() +
 #'     theme_dag() +
 #'     scale_dag()
+#' p + geom_dag_node()
+#' p + geom_dag_point()
+#' @rdname node_point
+#' @name Nodes
 geom_dag_node <- function(mapping = NULL, data = NULL,
                           position = "identity",
                           ...,
@@ -50,6 +53,29 @@ geom_dag_node <- function(mapping = NULL, data = NULL,
   )
 }
 
+#' @export
+#' @rdname node_point
+geom_dag_point <- function(mapping = NULL, data = NULL,
+                          position = "identity",
+                          ...,
+                          na.rm = FALSE,
+                          show.legend = NA,
+                          inherit.aes = TRUE) {
+
+  ggplot2::layer(
+    data = data,
+    mapping = mapping,
+    stat = StatNodes,
+    geom = GeomDagPoint,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      na.rm = na.rm,
+      ...
+    )
+  )
+}
 
 #' Node text
 #'
