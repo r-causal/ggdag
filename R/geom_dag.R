@@ -9,10 +9,18 @@
 #'
 #' @inheritParams ggplot2::geom_point
 #'
-#' @section Aesthetics: `geom_dag_node` and `geom_dag_point`understand the
+#' @section Aesthetics: `geom_dag_node` and `geom_dag_point` understand the
 #'   following aesthetics (required aesthetics are in bold):
 #'
-#'   - **x** - **y** - alpha - colour - fill - shape - size - stroke - filter
+#'   - **x**
+#'   - **y**
+#'   - alpha
+#'   - colour
+#'   - fill
+#'   - shape
+#'   - size
+#'   - stroke
+#'   - filter
 #'
 #'   `geom_dag_node` also accepts:
 #'

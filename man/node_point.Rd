@@ -61,10 +61,18 @@ slightly stylized and includes an internal white circle, while
 \code{geom_dag_point} plots a single point.
 }
 \section{Aesthetics}{
- \code{geom_dag_node} and \code{geom_dag_point}understand the
+ \code{geom_dag_node} and \code{geom_dag_point} understand the
 following aesthetics (required aesthetics are in bold):
 \itemize{
-\item \strong{x} - \strong{y} - alpha - colour - fill - shape - size - stroke - filter
+\item \strong{x}
+\item \strong{y}
+\item alpha
+\item colour
+\item fill
+\item shape
+\item size
+\item stroke
+\item filter
 }
 
 \code{geom_dag_node} also accepts:
@@ -76,12 +84,17 @@ following aesthetics (required aesthetics are in bold):
 \examples{
 g <- dagify(m ~ x + y, y ~ x)
 p <- g \%>\%
-tidy_dagitty() \%>\%
+  tidy_dagitty() \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
-    geom_dag_text() +
     theme_dag() +
     scale_dag()
-p + geom_dag_node()
-p + geom_dag_point()
+
+p +
+  geom_dag_node() +
+  geom_dag_text()
+
+p +
+  geom_dag_point() +
+  geom_dag_text()
 }
