@@ -21,14 +21,19 @@
 #' @examples
 #' g <- dagify(m ~ x + y, y ~ x)
 #' p <- g %>%
-#' tidy_dagitty() %>%
+#'   tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_edges() +
-#'     geom_dag_text() +
 #'     theme_dag() +
 #'     scale_dag()
-#' p + geom_dag_node()
-#' p + geom_dag_point()
+#'
+#' p +
+#'   geom_dag_node() +
+#'   geom_dag_text()
+#'
+#' p +
+#'   geom_dag_point() +
+#'   geom_dag_text()
 #' @rdname node_point
 #' @name Nodes
 geom_dag_node <- function(mapping = NULL, data = NULL,

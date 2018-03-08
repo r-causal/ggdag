@@ -187,13 +187,14 @@ variable statuses.</p>
   <span class='kw'>latent</span> <span class='kw'>=</span> <span class='st'>"l"</span>)
 
 <span class='fu'>node_status</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 13
-#&gt;   name  from      x     y direction type    to     xend  yend .ggraph.orig_ind…
-#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;             &lt;int&gt;
-#&gt; 1 x     x      2.93  2.07 -&gt;        direct… l      1.94  1.89                 1
-#&gt; 2 x     x      2.93  2.07 -&gt;        direct… y      2.59  1.12                 1
-#&gt; 3 y     y      2.59  1.12 -&gt;        direct… l      1.94  1.89                 2
-#&gt; 4 l     l      1.94  1.89 &lt;NA&gt;      &lt;NA&gt;    &lt;NA&gt;  NA    NA                    3
-#&gt; # ... with 3 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;, status &lt;fct&gt;</div><div class='input'><span class='fu'>ggdag_status</span>(<span class='no'>dag</span>)</div><div class='img'><img src='status-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+#&gt;   name  from      x       y direction type     to      xend     yend
+#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt;  &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 x     x     1.46   0.862  -&gt;        directed l      0.471   0.675 
+#&gt; 2 x     x     1.46   0.862  -&gt;        directed y      1.12   -0.0845
+#&gt; 3 y     y     1.12  -0.0845 -&gt;        directed l      0.471   0.675 
+#&gt; 4 l     l     0.471  0.675  &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;  NA      NA     
+#&gt; # ... with 4 more variables: .ggraph.orig_index &lt;int&gt;, circular &lt;lgl&gt;,
+#&gt; #   .ggraph.index &lt;int&gt;, status &lt;fct&gt;</div><div class='input'><span class='fu'>ggdag_status</span>(<span class='no'>dag</span>)</div><div class='img'><img src='status-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
