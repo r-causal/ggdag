@@ -81,7 +81,7 @@
       <h1>Common Structures of Bias</h1>
                         <h4 class="author">Malcolm Barrett</h4>
             
-            <h4 class="date">2018-03-08</h4>
+            <h4 class="date">2018-03-10</h4>
           </div>
 
     
@@ -110,7 +110,7 @@
 <p>Which one is the confounder, addictive behavior or smoking? Only one or the other needs to be controlled for to block the path:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw"><a href="../reference/adjustment_sets.html">ggdag_adjustment_set</a></span>(coffee_dag, <span class="dt">text =</span> <span class="ot">FALSE</span>, <span class="dt">use_labels =</span> <span class="st">"label"</span>)</a></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-3-1.png" width="720" style="display: block; margin: auto;"></p>
-<p>Focusing on individual confounders, rather than confounding pathways, is a common error in thinking about adjusting our estimates. We should be more concerned blocking all confounding pathways than with including any particular variable <em>along</em> those pathways.</p>
+<p>Focusing on individual confounders, rather than confounding pathways, is a common error in thinking about adjusting our estimates. We should be more concerned blocking all confounding pathways than with including any particular variable <em>along</em> those pathways. (It’s worth noting, though, that when I say you only need one variable to block a path, that assumes you are measuring and modeling the variable correctly. If, for example, there is measurement error, controlling for that variable may still leave residual confounding, necessitating a more subtle level of control with other variables on the pathway; see the section on measurement error below. Moreover, it’s important to know that you expect to block the path <em>on average</em>; normal sampling issues, e.g. sample size, still come into play.)</p>
 </section><section id="colliders-m-bias-and-butterfly-bias" class="level1"><h1>Colliders, M-bias, and butterfly bias</h1>
 <p>Stratifying on a collider is a major culprit in systematic bias. Controlling for a collider–a node where two or more arrow heads meet–induces an association between its parents, through which confounding can flow:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw"><a href="../reference/quick_plot.html">collider_triangle</a></span>() <span class="op">%&gt;%</span><span class="st"> </span></a>
@@ -236,7 +236,7 @@
 <a class="sourceLine" id="cb13-19" data-line-number="19"><span class="st">  </span><span class="kw"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span>(<span class="st">"glioma"</span>, <span class="st">"smoking"</span>, <span class="dt">controlling_for =</span> <span class="st">"hospitalized"</span>, </a>
 <a class="sourceLine" id="cb13-20" data-line-number="20">                   <span class="dt">text =</span> <span class="ot">FALSE</span>, <span class="dt">use_labels =</span> <span class="st">"label"</span>, <span class="dt">collider_lines =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-13-1.png" width="672" style="display: block; margin: auto;"></p>
-<p>Let’s also consider how bias in loss-to-follow-up arises. In a randomized clinical trial or cohort study, the main threat of selection bias is not through who enters the study (although that may affect generalizability) but who leaves it. If loss-to-follow-up is associated with the exposure or outcome, the relationship between the two may be biased. Let’s consider a trial where we are testing a new HIV drug and its effect on CD4 white blood cell count. If the treatment causes symptoms, participants may leave the trial. Similarly, there may be those whose HIV is getting worse and thus more symptomatic, which also may cause people to leave the trial. If we only have information on people who stay in the study, we are stratifying by follow-up status:</p>
+<p>Let’s also consider how bias arises in loss-to-follow-up. In a randomized clinical trial or cohort study, the main threat of selection bias is not through who enters the study (although that may affect generalizability) but who leaves it. If loss-to-follow-up is associated with the exposure or outcome, the relationship between the two may be biased. Let’s consider a trial where we are testing a new HIV drug and its effect on CD4 white blood cell count. If the treatment causes symptoms, participants may leave the trial. Similarly, there may be those whose HIV is getting worse and thus more symptomatic, which also may cause people to leave the trial. If we only have information on people who stay in the study, we are stratifying by follow-up status:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw"><a href="../reference/dagify.html">dagify</a></span>(follow_up <span class="op">~</span><span class="st"> </span>symptoms,</a>
 <a class="sourceLine" id="cb14-2" data-line-number="2">       symptoms <span class="op">~</span><span class="st"> </span>new_rx <span class="op">+</span><span class="st"> </span>dx_severity,</a>
 <a class="sourceLine" id="cb14-3" data-line-number="3">       cd4 <span class="op">~</span><span class="st"> </span>dx_severity,</a>
@@ -250,6 +250,7 @@
 <a class="sourceLine" id="cb14-11" data-line-number="11"><span class="st">  </span><span class="kw"><a href="../reference/control_for.html">ggdag_adjust</a></span>(<span class="st">"follow_up"</span>, <span class="dt">layout =</span> <span class="st">"mds"</span>, <span class="dt">text =</span> <span class="ot">FALSE</span>, </a>
 <a class="sourceLine" id="cb14-12" data-line-number="12">               <span class="dt">use_labels =</span> <span class="st">"label"</span>, <span class="dt">collider_lines =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;"></p>
+<p>But follow-up is downstream from a collider, symptoms. Controlling for a downstream collider induces bias and, because we only have information on people who remain in the study, we are inadvertently stratifying on follow-up status (see the <a href="intro-to-dags.html">vignette introducing DAGs</a> for more on downstream colliders). Thus, the effect estimate between the HIV drug and CD4 count will be biased.</p>
 </section><section id="resources" class="level1"><h1>Resources</h1>
 <p>Many, if not all, forms of systematic bias can be drawn as DAGs. Here are a few sources with interesting examples:</p>
 <ul>

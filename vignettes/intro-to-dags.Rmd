@@ -91,7 +91,7 @@ Forks and chains are two of the three main types of paths:
 
 1. Chains
 1. Forks
-1. Inverted forks
+1. Inverted forks (paths with colliders)
 
 An inverted fork is when two arrowheads meet at a node, which we'll discuss shortly.
 

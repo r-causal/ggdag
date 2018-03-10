@@ -58,7 +58,7 @@ Which one is the confounder, addictive behavior or smoking? Only one or the othe
 ggdag_adjustment_set(coffee_dag, text = FALSE, use_labels = "label")
 ```
 
-Focusing on individual confounders, rather than confounding pathways, is a common error in thinking about adjusting our estimates. We should be more concerned blocking all confounding pathways than with including any particular variable *along* those pathways.
+Focusing on individual confounders, rather than confounding pathways, is a common error in thinking about adjusting our estimates. We should be more concerned blocking all confounding pathways than with including any particular variable *along* those pathways. (It's worth noting, though, that when I say you only need one variable to block a path, that assumes you are measuring and modeling the variable correctly. If, for example, there is measurement error, controlling for that variable may still leave residual confounding, necessitating a more subtle level of control with other variables on the pathway; see the section on measurement error below. Moreover, it's important to know that you expect to block the path *on average*; normal sampling issues, e.g. sample size, still come into play.)
 
 # Colliders, M-bias, and butterfly bias
 
@@ -220,7 +220,7 @@ dagify(hospitalized ~ broken_bone + glioma,
                    text = FALSE, use_labels = "label", collider_lines = FALSE)
 ```
 
-Let's also consider how bias in loss-to-follow-up arises. In a randomized clinical trial or cohort study, the main threat of selection bias is not through who enters the study (although that may affect generalizability) but who leaves it. If loss-to-follow-up is associated with the exposure or outcome, the relationship between the two may be biased. Let's consider a trial where we are testing a new HIV drug and its effect on CD4 white blood cell count. If the treatment causes symptoms, participants may leave the trial. Similarly, there may be those whose HIV is getting worse and thus more symptomatic, which also may cause people to leave the trial. If we only have information on people who stay in the study, we are stratifying by follow-up status:
+Let's also consider how bias arises in loss-to-follow-up. In a randomized clinical trial or cohort study, the main threat of selection bias is not through who enters the study (although that may affect generalizability) but who leaves it. If loss-to-follow-up is associated with the exposure or outcome, the relationship between the two may be biased. Let's consider a trial where we are testing a new HIV drug and its effect on CD4 white blood cell count. If the treatment causes symptoms, participants may leave the trial. Similarly, there may be those whose HIV is getting worse and thus more symptomatic, which also may cause people to leave the trial. If we only have information on people who stay in the study, we are stratifying by follow-up status:
 
 ```{r}
 dagify(follow_up ~ symptoms,
@@ -236,6 +236,8 @@ dagify(follow_up ~ symptoms,
   ggdag_adjust("follow_up", layout = "mds", text = FALSE, 
                use_labels = "label", collider_lines = FALSE)
 ```
+
+But follow-up is downstream from a collider, symptoms. Controlling for a downstream collider induces bias and, because we only have information on people who remain in the study, we are inadvertently stratifying on follow-up status (see the [vignette introducing DAGs](intro-to-dags.html) for more on downstream colliders). Thus, the effect estimate between the HIV drug and CD4 count will be biased.
 
 # Resources
 
