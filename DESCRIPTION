@@ -36,7 +36,7 @@ Suggests:
     testthat,
     knitr,
     rmarkdown
-URL: https://github.com/malcolmbarrett/ggdag
+URL: https://ggdag.netlify.com https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
 Language: en-US
 Roxygen: list(markdown = TRUE)
