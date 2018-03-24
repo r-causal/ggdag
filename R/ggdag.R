@@ -39,7 +39,7 @@
 #' @seealso [ggdag_classic()]
 ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                   label_size = text_size,
-                  text_col = "white", label_col = text_col,
+                  text_col = "white", label_col = "black",
                   node = TRUE, stylized = TRUE, text = TRUE,
                   use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)

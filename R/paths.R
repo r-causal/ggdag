@@ -89,7 +89,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
        path_df <-  path_df %>%
          filter(name == vars[[2]]) %>%
          dplyr::slice(1) %>%
-         dplyr::mutate(direction = NA, type = NA, to = NA, xend = NA, yend = NA, path = "open path") %>%
+         dplyr::mutate(direction = NA, to = NA, xend = NA, yend = NA, path = "open path") %>%
          dplyr::bind_rows(path_df, .)
      }
 
