@@ -121,7 +121,7 @@ What about if a variable is both a collider and a cause of the exposure and outc
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
-The strategy is basically the same as above; we need to control for m to block the back-door path, but that opens up a relationship between a and b, so we need to black that path, too. 
+The strategy is basically the same as above; we need to control for m to block the back-door path, but that opens up a relationship between a and b, so we need to block that path, too. 
 
 ```{r}
 ggdag_adjustment_set(butterfly_bias())
