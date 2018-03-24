@@ -61,7 +61,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
         dplyr::mutate(.from = as.character(.from),
                .to = as.character(.to),
                path = "open path") %>%
-        dplyr::left_join(.tdy_dag$data, ., by = c("from" = ".from", "to" = ".to"))
+        dplyr::left_join(.tdy_dag$data, ., by = c("name" = ".from", "to" = ".to"))
 
      any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
      if (any_x_unopend) {
@@ -111,8 +111,8 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~forcats::fct_inorder(as.factor(set), ordered = TRUE)) +
     theme_dag() +
-    ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .1, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .1, breaks = "open path") +
+    ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
+    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
     ggraph::scale_edge_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
     ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
     ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
@@ -141,8 +141,8 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges_fan(ggplot2::aes(edge_colour = set, edge_alpha = path), spread = spread) +
     theme_dag() +
-    ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .1, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .1, breaks = "open path") +
+    ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
+    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
     ggraph::scale_edge_color_brewer(drop = FALSE, palette = "Set2", na.value = "grey50") +
     ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
     ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +

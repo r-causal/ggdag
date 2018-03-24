@@ -96,7 +96,7 @@ library(dplyr)
 bigger_dag %>% 
   dag_paths() %>%
   group_by(set) %>%
-  filter(!is.na(path) & !is.na(from)) %>% 
+  filter(!is.na(path) & !is.na(name)) %>% 
   summarize(n_vars_between = n() - 1L)
 ```
 

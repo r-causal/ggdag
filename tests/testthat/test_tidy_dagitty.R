@@ -5,14 +5,12 @@ test_that("tidied dags are in good shape", {
   expect_true(dagitty::is.dagitty(tidy_dag$dag))
   expect_true(dplyr::is.tbl(tidy_dag$data))
   dag_col_names <- names(tidy_dag$data)
-  expected_names <- c("x", "y", "xend", "yend", "name", "from", "direction",
-                      "type", "to", ".ggraph.orig_index", "circular",
-                      ".ggraph.index")
+  expected_names <- c("x", "y", "xend", "yend", "name", "direction",
+                      "to", "circular")
   expect_true(all(expected_names %in% dag_col_names))
   expect_equal(unique(tidy_dag$data$name), c("x", "z", "y"))
   expect_equal(tidy_dag$data$direction,
                factor(c("->", "->", "->", NA), levels = c("<-", "->", "<->")))
-  expect_equal(unique(tidy_dag$data$.ggraph.orig_index), 1:3)
   expect_true(is.logical(tidy_dag$data$circular))
   expect_true(is.numeric(tidy_dag$data$x))
   expect_true(is.numeric(tidy_dag$data$y))

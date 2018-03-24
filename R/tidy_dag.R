@@ -73,10 +73,10 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
            type = factor(type, levels = c("directed", "bidirected"), exclude = NA)) %>%
     dplyr::left_join(tidy_dag, ., by = c("name" = "v")) %>%
     dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
-    dplyr::mutate(from = name) %>%
-    dplyr::select(name, from, x, y, direction, type, to = w, xend, yend) %>%
+    dplyr::select(name, x, y, direction, type, to = w, xend, yend) %>%
     dplyr::left_join(layout_info, by = "name") %>%
-    dplyr::arrange(.ggraph.orig_index)
+    dplyr::arrange(.ggraph.orig_index) %>%
+    dplyr::select(-.ggraph.orig_index, -.ggraph.index, -type)
 
   .tdy_dag <- list(data = tidy_dag, dag = .dag)
   class(.tdy_dag) <- "tidy_dagitty"

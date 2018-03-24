@@ -112,10 +112,9 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
       start_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var1"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
       end_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var2"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
 
-      .tdy_dag$data %>% dplyr::add_row(.before = 1, name = name, from = name, x = start_coords[[1, 1]], y = start_coords[[1, 2]],
+      .tdy_dag$data %>% dplyr::add_row(.before = 1, name = name, x = start_coords[[1, 1]], y = start_coords[[1, 2]],
                                        to = to, xend = end_coords[[1, 1]], yend = end_coords[[1, 2]],
-                                       direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA),
-                                       type = factor("bidirected", levels = c("directed", "bidirected"), exclude = NA)) %>% dplyr::slice(1)
+                                       direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)) %>% dplyr::slice(1)
     })
   })
   collider_lines$collider_line <- TRUE

@@ -97,10 +97,10 @@ ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
     scale_dag()
 
   if (any(.tdy_dag$data$direction == "<->" & !is.na(.tdy_dag$data$direction))) {
-    p <- p + geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(from, fontsize = fontsize),
+    p <- p + geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),
                                 end_cap = ggraph::label_rect(to, fontsize = fontsize)))
   } else {
-    p <- p + geom_dag_edges_link(ggplot2::aes(start_cap = ggraph::label_rect(from, fontsize = fontsize),
+    p <- p + geom_dag_edges_link(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),
                                          end_cap = ggraph::label_rect(to, fontsize = fontsize)))
   }
 
