@@ -12,12 +12,12 @@ StatNodesRepel <- ggplot2::ggproto("StatNodesRepel", ggplot2::Stat,
                               compute_layer = function(data, scales, params) {
                                 if (all(c("xend", "yend") %in% names(data))) {
                                   data <- unique(dplyr::select(data, -xend, -yend))
-
                                     if ("alpha" %in% names(data)) {
                                       data %>%
-                                        filter(!is.na(alpha))
+                                        dplyr::filter(!is.na(alpha), !is.na(label))
                                     } else {
                                       data %>%
+                                        dplyr::filter(!is.na(label)) %>%
                                         group_by(PANEL) %>%
                                         dplyr::distinct(label, .keep_all = TRUE) %>%
                                         ungroup()
