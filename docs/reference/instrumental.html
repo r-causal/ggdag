@@ -193,10 +193,10 @@ instrumental variables or a <code>ggplot</code></p>
 <span class='fu'>node_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 11
 #&gt;   name      x     y direction to     xend  yend circular instrumental_name
 #&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;            
-#&gt; 1 i      8.59  8.08 -&gt;        x      7.46  7.79 FALSE    i                
-#&gt; 2 x      7.46  7.79 -&gt;        y      6.59  7.58 FALSE    i                
-#&gt; 3 x      7.46  7.79 &lt;-&gt;       y      6.59  7.58 FALSE    i                
-#&gt; 4 y      6.59  7.58 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    i                
+#&gt; 1 i      2.59  5.51 -&gt;        x      2.55  4.35 FALSE    i                
+#&gt; 2 x      2.55  4.35 -&gt;        y      2.51  3.45 FALSE    i                
+#&gt; 3 x      2.55  4.35 &lt;-&gt;       y      2.51  3.45 FALSE    i                
+#&gt; 4 y      2.51  3.45 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    i                
 #&gt; # ... with 2 more variables: adjusted &lt;fct&gt;, instrumental &lt;chr&gt;</div><div class='input'><span class='fu'>ggdag_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; i2-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='img'><img src='instrumental-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 </div></pre>
   </div>

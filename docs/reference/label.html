@@ -151,8 +151,9 @@ tidy_dagitty or dagitty" />
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='no'>labelled_dag</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>z</span>, <span class='no'>x</span> ~ <span class='no'>z</span>) <span class='kw'>%&gt;%</span>
  <span class='fu'><a href='tidy_dagitty.html'>tidy_dagitty</a></span>() <span class='kw'>%&gt;%</span>
- <span class='fu'>dag_label</span>(<span class='kw'>labels</span> <span class='kw'>=</span> <span class='fu'>c</span>(<span class='st'>"x"</span> <span class='kw'>=</span> <span class='st'>"exposure"</span>, <span class='st'>"y"</span> <span class='kw'>=</span> <span class='st'>"outcome"</span>, <span class='st'>"z"</span> <span class='kw'>=</span> <span class='st'>"confounder"</span>))</div><div class='output co'>#&gt; <span class='warning'>Warning: Unknown or uninitialised column: 'label'.</span></div><div class='input'>
- <span class='fu'>has_labels</span>(<span class='no'>labelled_dag</span>)</div><div class='output co'>#&gt; [1] FALSE</div></pre>
+ <span class='fu'>dag_label</span>(<span class='kw'>labels</span> <span class='kw'>=</span> <span class='fu'>c</span>(<span class='st'>"x"</span> <span class='kw'>=</span> <span class='st'>"exposure"</span>, <span class='st'>"y"</span> <span class='kw'>=</span> <span class='st'>"outcome"</span>, <span class='st'>"z"</span> <span class='kw'>=</span> <span class='st'>"confounder"</span>))
+
+ <span class='fu'>has_labels</span>(<span class='no'>labelled_dag</span>)</div><div class='output co'>#&gt; [1] TRUE</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>

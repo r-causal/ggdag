@@ -45,12 +45,12 @@
 #' @rdname label
 #' @export
 dag_label <- function(.tdy_dag, labels = NULL) {
-  if (!is.null(labels) & !is.null(.tdy_dag$data$label)) .tdy_dag$data <- .tdy_dag$data %>% dplyr::select(-label)
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  if (!is.null(labels) & !is.null(.tdy_dag$data[["label"]])) .tdy_dag$data <- .tdy_dag$data %>% dplyr::select(-label)
   if (is.null(labels)) labels <- label(.tdy_dag$dag)
   if (is.null(labels)) { warning("no labels provided"); return(.tdy_dag) }
 
-  .tdy_dag$data <- dplyr::left_join(.tdy_dag$data, tibble::enframe(labels, value = "label"), by = "name")
-
+  label(.tdy_dag) <- labels
 
   .tdy_dag
 }

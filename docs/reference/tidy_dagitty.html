@@ -150,19 +150,19 @@
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 13 x 8
 #&gt;    name      x     y direction to     xend  yend circular
 #&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   
-#&gt;  1 V      3.82 11.7  -&gt;        Z1     2.53 11.2  FALSE   
-#&gt;  2 V      3.82 11.7  -&gt;        Z2     4.41 10.5  FALSE   
-#&gt;  3 W1     2.75 10.2  -&gt;        X      2.42  9.66 FALSE   
-#&gt;  4 W1     2.75 10.2  -&gt;        Y      3.63  9.85 FALSE   
-#&gt;  5 W1     2.75 10.2  -&gt;        Z1     2.53 11.2  FALSE   
-#&gt;  6 W1     2.75 10.2  &lt;-&gt;       W2     3.51  9.24 FALSE   
-#&gt;  7 W2     3.51  9.24 -&gt;        X      2.42  9.66 FALSE   
-#&gt;  8 W2     3.51  9.24 -&gt;        Y      3.63  9.85 FALSE   
-#&gt;  9 W2     3.51  9.24 -&gt;        Z2     4.41 10.5  FALSE   
-#&gt; 10 X      2.42  9.66 -&gt;        Y      3.63  9.85 FALSE   
-#&gt; 11 Z1     2.53 11.2  -&gt;        X      2.42  9.66 FALSE   
-#&gt; 12 Z2     4.41 10.5  -&gt;        Y      3.63  9.85 FALSE   
-#&gt; 13 Y      3.63  9.85 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE   </div><div class='input'>
+#&gt;  1 V      20.2  5.81 -&gt;        Z1     19.1  4.83 FALSE   
+#&gt;  2 V      20.2  5.81 -&gt;        Z2     19.2  6.84 FALSE   
+#&gt;  3 W1     18.3  5.33 -&gt;        X      17.7  5.29 FALSE   
+#&gt;  4 W1     18.3  5.33 -&gt;        Y      18.4  6.27 FALSE   
+#&gt;  5 W1     18.3  5.33 -&gt;        Z1     19.1  4.83 FALSE   
+#&gt;  6 W1     18.3  5.33 &lt;-&gt;       W2     17.8  6.46 FALSE   
+#&gt;  7 W2     17.8  6.46 -&gt;        X      17.7  5.29 FALSE   
+#&gt;  8 W2     17.8  6.46 -&gt;        Y      18.4  6.27 FALSE   
+#&gt;  9 W2     17.8  6.46 -&gt;        Z2     19.2  6.84 FALSE   
+#&gt; 10 X      17.7  5.29 -&gt;        Y      18.4  6.27 FALSE   
+#&gt; 11 Z1     19.1  4.83 -&gt;        X      17.7  5.29 FALSE   
+#&gt; 12 Z2     19.2  6.84 -&gt;        Y      18.4  6.27 FALSE   
+#&gt; 13 Y      18.4  6.27 &lt;NA&gt;      &lt;NA&gt;   NA   NA    FALSE   </div><div class='input'>
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"fr"</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/ggplot'>ggplot</a></span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/aes'>aes</a></span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>x</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
