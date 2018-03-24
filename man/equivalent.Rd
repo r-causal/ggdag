@@ -86,26 +86,10 @@ input DAG. CPDAGs are Markov equivalent to the input graph. See
 \code{ggdag_equivalent_class()} plots all reversable edges as undirected.
 }
 \examples{
-
-library(dagitty)
-g_ex <- getExample("Shrier")
-
-g_ex \%>\%
-  node_equivalent_dags() \%>\%
-  ggplot(aes(x, y, xend = xend, yend = yend)) +
-    geom_dag_node(size = 10) +
-    geom_dag_edges(start_cap = ggraph::circle(5, "mm"),
-                   end_cap = ggraph::circle(5, "mm")) +
-    geom_dag_label_repel(aes(label = name), col = "black", size = 2) +
-    theme_dag() +
-    scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
-                          expand_y = expand_scale(c(0.25, 0.25))) +
-  facet_wrap(~dag)
-
-confounder_triangle(x_y_associated = TRUE) \%>\% ggdag_equivalent_dags()
+g_ex <- dagify(y ~ x + z, x ~ z)
 
 g_ex \%>\% node_equivalent_class()
 
-dagify(y ~ x + z, x ~ z) \%>\% ggdag_equivalent_dags()
+g_ex \%>\% ggdag_equivalent_dags()
 
 }

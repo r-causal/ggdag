@@ -226,37 +226,17 @@ column for equivalent classes, or a <code>ggplot</code></p>
     
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'>
-<span class='fu'>library</span>(<span class='no'>dagitty</span>)
-<span class='no'>g_ex</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/getExample'>getExample</a></span>(<span class='st'>"Shrier"</span>)
+    <pre class="examples"><div class='input'><span class='no'>g_ex</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>x</span> + <span class='no'>z</span>, <span class='no'>x</span> ~ <span class='no'>z</span>)
 
-<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span>
-  <span class='fu'>node_equivalent_dags</span>() <span class='kw'>%&gt;%</span>
-  <span class='fu'>ggplot</span>(<span class='fu'>aes</span>(<span class='no'>x</span>, <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +
-    <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>(<span class='kw'>size</span> <span class='kw'>=</span> <span class='fl'>10</span>) +
-    <span class='fu'><a href='geom_dag_edges.html'>geom_dag_edges</a></span>(<span class='kw'>start_cap</span> <span class='kw'>=</span> <span class='kw pkg'>ggraph</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/ggraph/topics/geometry'>circle</a></span>(<span class='fl'>5</span>, <span class='st'>"mm"</span>),
-                   <span class='kw'>end_cap</span> <span class='kw'>=</span> <span class='kw pkg'>ggraph</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/ggraph/topics/geometry'>circle</a></span>(<span class='fl'>5</span>, <span class='st'>"mm"</span>)) +
-    <span class='fu'><a href='repel.html'>geom_dag_label_repel</a></span>(<span class='fu'>aes</span>(<span class='kw'>label</span> <span class='kw'>=</span> <span class='no'>name</span>), <span class='kw'>col</span> <span class='kw'>=</span> <span class='st'>"black"</span>, <span class='kw'>size</span> <span class='kw'>=</span> <span class='fl'>2</span>) +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>(<span class='kw'>expand_x</span> <span class='kw'>=</span> <span class='fu'><a href='expand_scale.html'>expand_scale</a></span>(<span class='fu'>c</span>(<span class='fl'>0.25</span>, <span class='fl'>0.25</span>)),
-                          <span class='kw'>expand_y</span> <span class='kw'>=</span> <span class='fu'><a href='expand_scale.html'>expand_scale</a></span>(<span class='fu'>c</span>(<span class='fl'>0.25</span>, <span class='fl'>0.25</span>))) +
-  <span class='fu'>facet_wrap</span>(~<span class='no'>dag</span>)</div><div class='img'><img src='equivalent-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
-<span class='fu'><a href='quick_plot.html'>confounder_triangle</a></span>(<span class='kw'>x_y_associated</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>) <span class='kw'>%&gt;%</span> <span class='fu'>ggdag_equivalent_dags</span>()</div><div class='img'><img src='equivalent-2.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
-<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>node_equivalent_class</span>()</div><div class='output co'>#&gt; # A tibble: 23 x 9
-#&gt;    name            x     y direction to         xend   yend circular reversable
-#&gt;    &lt;chr&gt;       &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;     &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt;    &lt;lgl&gt;     
-#&gt;  1 Coach       -4.39 -7.91 -&gt;        FitnessL… -1.49 -4.53  FALSE    TRUE      
-#&gt;  2 Coach       -4.39 -7.91 -&gt;        TeamMoti… -7.18 -0.950 FALSE    TRUE      
-#&gt;  3 Connective…  3.49 -5.10 -&gt;        Neuromus…  1.50 -1.24  FALSE    TRUE      
-#&gt;  4 Connective…  3.49 -5.10 -&gt;        Neuromus…  1.50 -1.24  FALSE    TRUE      
-#&gt;  5 Connective…  3.49 -5.10 -&gt;        TissueWe…  4.24  1.86  FALSE    TRUE      
-#&gt;  6 Connective…  3.49 -5.10 -&gt;        TissueWe…  4.24  1.86  FALSE    TRUE      
-#&gt;  7 ContactSpo… -1.16  2.55 -&gt;        IntraGam… -1.20  8.49  FALSE    FALSE     
-#&gt;  8 ContactSpo… -1.16  2.55 -&gt;        Previous… -4.29  4.18  FALSE    FALSE     
-#&gt;  9 FitnessLev… -1.49 -4.53 -&gt;        Neuromus…  1.50 -1.24  FALSE    FALSE     
-#&gt; 10 FitnessLev… -1.49 -4.53 -&gt;        PreGameP… -3.64 -1.24  FALSE    FALSE     
-#&gt; # ... with 13 more rows</div><div class='input'>
-<span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>x</span> + <span class='no'>z</span>, <span class='no'>x</span> ~ <span class='no'>z</span>) <span class='kw'>%&gt;%</span> <span class='fu'>ggdag_equivalent_dags</span>()</div><div class='img'><img src='equivalent-3.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>node_equivalent_class</span>()</div><div class='output co'>#&gt; # A tibble: 5 x 9
+#&gt;   name      x     y direction to      xend  yend circular reversable
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;lgl&gt;     
+#&gt; 1 x     0.       2. -&gt;        y      0.500    1. FALSE    TRUE      
+#&gt; 2 x     0.       2. -&gt;        y      0.500    1. FALSE    TRUE      
+#&gt; 3 z     0.500    3. -&gt;        x      0.       2. FALSE    FALSE     
+#&gt; 4 z     0.500    3. -&gt;        y      0.500    1. FALSE    FALSE     
+#&gt; 5 y     0.500    1. &lt;NA&gt;      &lt;NA&gt;  NA       NA  FALSE    TRUE      </div><div class='input'>
+<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>ggdag_equivalent_dags</span>()</div><div class='img'><img src='equivalent-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
