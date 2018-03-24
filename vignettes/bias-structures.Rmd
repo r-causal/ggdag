@@ -23,6 +23,8 @@ knitr::opts_chunk$set(
 set.seed(2939)
 ```
 
+*A quick note on terminology: I use the terms confounding and selection bias below, the terms of choice in epidemiology. The terms, however, depend on the field. In some fields, confounding is referred to as omitted variable bias or selection bias. Selection bias also sometimes refers to* variable *selection bias, a related issue that refers to misspecified models.*
+
 # Introduction
 
 In addition to helping identify causal effects, the consistency of directed acyclic graphs (DAGs) is very useful in thinking about different forms of bias. Often, many seemingly unrelated types of bias take the same form in a DAG. Methodological issues in a study often reduce to a problem of 1) not adequately blocking a back-door path or 2) selecting on some variable that turns out to be a collider. 
@@ -69,7 +71,7 @@ collider_triangle() %>%
   ggdag_dseparated(controlling_for = "m")
 ```
 
-Here the example is fairly simple and easy to deal with: *m* is a child of *x* and *y* and just shouldn't be adjusted for. It can get more complicated, though, when *m* is something that seems like it is a confounder or when it represents a variable that contributes to whether or not a person enters the study. Often this takes the form of M-shaped bias, or M-bias. Let's consider an example from [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC): the association between education and diabetes. Let's assume that lack of education isn't a direct cause of diabetes. When we are putting together our analysis, we ask: should we adjust for the participant's mother's history of diabetes? It's linked to education via income and to participant's diabetes status via genetic risk, so it looks like this:
+Here, the example is fairly simple and easy to deal with: *m* is a child of *x* and *y* and just shouldn't be adjusted for. It can get more complicated, though, when *m* is something that seems like it is a confounder or when it represents a variable that contributes to whether or not a person enters the study. Often this takes the form of M-shaped bias, or M-bias. Let's consider an example from [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC): the association between education and diabetes. Let's assume that lack of education isn't a direct cause of diabetes. When we are putting together our analysis, we ask: should we adjust for the participant's mother's history of diabetes? It's linked to education via income and to participant's diabetes status via genetic risk, so it looks like this:
 
 ```{r}
 m_bias(x = "Education", y = "Diabetes", a = "Income during Childhood", 
@@ -77,7 +79,7 @@ m_bias(x = "Education", y = "Diabetes", a = "Income during Childhood",
   ggdag(use_labels = "label")
 ```
 
-From a classical confounding perspective, it seems like the mother's diabetes status might be a confounder: it's associated with both the exposure and outcome, and it's not a descendant of either. However, the association is not direct for either; it's due to confounding by genetic risk and childhood income. Drawing it as a DAG makes it clear that the mother's diabetes status is a collider, and adjusting for it will induce an association between genetic risk and childhood income, thus opening a back-door path from education to diabetes status:
+From a classical confounding perspective, it seems like the mother's diabetes status might be a confounder: it's associated with both the exposure and outcome, and it's not a descendant of either. However, the association with the outcome and exposure is not direct for either; it's due to confounding by genetic risk and childhood income, respectively. Drawing it as a DAG makes it clear that the mother's diabetes status is a collider, and adjusting for it will induce an association between genetic risk and childhood income, thus opening a back-door path from education to diabetes status:
 
 ```{r, fig.width = 7.5}
 m_bias(x = "Education", y = "Diabetes", a = "Income during \nChildhood", 
@@ -121,11 +123,13 @@ What about if a variable is both a collider and a cause of the exposure and outc
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
-The strategy is basically the same as above; we need to control for m to block the back-door path, but that opens up a relationship between a and b, so we need to block that path, too. 
+The strategy is basically the same as above; we need to control for *m* to block the back-door path, but that opens up a relationship between *a* and *b*, so we need to block that path, too. 
 
 ```{r}
 ggdag_adjustment_set(butterfly_bias())
 ```
+
+Adjusting for either set, {*a*, *m*} or {*b*, *m*}, will give allow us to estimate the causal effect of *x* on *y*.
 
 # Measurement error
 
@@ -195,7 +199,7 @@ cesd_dag %>%
 Because both the baseline score and the change are due, in part, to measurement error at baseline, controlling for baseline CES-D score (a collider) causes change in CES-D and receiving an honors degree to be d-connected. 
 
 # Selection bias
-We have already seen a few examples of selection bias, but let's consider a couple more that are risks in common design types. Let's say we're doing a case-control study and want to assess the effect of smoking on glioma, a type of brain cancer. We have a group of glioma patients at a hospital and want to compare them to a group of controls, so we pick people in the hospital with a broken bone, since that seems to have nothing to do with brain cancer. However, perhaps there is some unknown confounding between smoking and being in the hospital with a broken bone, like being prone to reckless behavior. In the normal population, there is no causal effect of smoking on glioma, but in our case, we're selecting on people who have been hospitalized, which opens up a back-door path:
+We have already seen a few examples of selection bias, but let's consider a couple more that are potential pitfalls in common design types. Let's say we're doing a case-control study and want to assess the effect of smoking on glioma, a type of brain cancer. We have a group of glioma patients at a hospital and want to compare them to a group of controls, so we pick people in the hospital with a broken bone, since that seems to have nothing to do with brain cancer. However, perhaps there is some unknown confounding between smoking and being in the hospital with a broken bone, like being prone to reckless behavior. In the normal population, there is no causal effect of smoking on glioma, but in our case, we're selecting on people who have been hospitalized, which opens up a back-door path:
 
 ```{r}
 coords <- tibble::tribble(
@@ -219,6 +223,8 @@ dagify(hospitalized ~ broken_bone + glioma,
   ggdag_dconnected("glioma", "smoking", controlling_for = "hospitalized", 
                    text = FALSE, use_labels = "label", collider_lines = FALSE)
 ```
+
+Even though smoking doesn't actually cause glioma, it will appear as if there is an association. Actually, in this case, it may make smoking appear to be *protective* against glioma, since controls are more likely to be smokers.
 
 Let's also consider how bias arises in loss-to-follow-up. In a randomized clinical trial or cohort study, the main threat of selection bias is not through who enters the study (although that may affect generalizability) but who leaves it. If loss-to-follow-up is associated with the exposure or outcome, the relationship between the two may be biased. Let's consider a trial where we are testing a new HIV drug and its effect on CD4 white blood cell count. If the treatment causes symptoms, participants may leave the trial. Similarly, there may be those whose HIV is getting worse and thus more symptomatic, which also may cause people to leave the trial. If we only have information on people who stay in the study, we are stratifying by follow-up status:
 

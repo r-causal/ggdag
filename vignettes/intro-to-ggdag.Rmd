@@ -25,7 +25,7 @@ set.seed(2939)
 
 # Overview
 
-`ggdag` extends the powerful `dagitty` package to work in the context of the tidyverse by using `dagitty`'s algorithms for analyzing structural causal graphs to produce tidy results, which can then be used in `ggplot2` and `ggraph` and manipulated with other tools from the tidyverse, like `dplyr`.  
+`ggdag` extends the powerful `dagitty` package to work in the context of the tidyverse. It uses `dagitty`'s algorithms for analyzing structural causal graphs to produce tidy results, which can then be used in `ggplot2` and `ggraph` and manipulated with other tools from the tidyverse, like `dplyr`.  
 
 # Creating Directed Acyclic Graphs
 
