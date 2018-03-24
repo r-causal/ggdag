@@ -89,12 +89,7 @@ dagitty::instrumentalVariables() for details." />
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        <li>
-  <a href="https://github.com/malcolmbarrett/ggdag">
-    <span class="fa fa-github fa-lg"></span>
-     
-  </a>
-</li>
+        
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -118,8 +113,9 @@ outcome. <code>ggdag_instrumental</code> plots all instrumental variables. See
     <pre class="usage"><span class='fu'>node_instrumental</span>(<span class='no'>.dag</span>, <span class='kw'>exposure</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)
 
 <span class='fu'>ggdag_instrumental</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>exposure</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>,
-  <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+  <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>,
+  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
     <table class="ref-arguments">
@@ -154,12 +150,25 @@ exposure.</p></td>
       <td><p>size of DAG text</p></td>
     </tr>
     <tr>
+      <th>label_size</th>
+      <td><p>size of label text</p></td>
+    </tr>
+    <tr>
       <th>text_col</th>
       <td><p>color of DAG text</p></td>
     </tr>
     <tr>
+      <th>label_col</th>
+      <td><p>color of label text</p></td>
+    </tr>
+    <tr>
       <th>node</th>
       <td><p>logical. Should nodes be included in the DAG?</p></td>
+    </tr>
+    <tr>
+      <th>stylized</th>
+      <td><p>logical. Should DAG nodes be stylized? If so, use
+<code>geom_dag_nodes</code> and if not use <code>geom_dag_point</code></p></td>
     </tr>
     <tr>
       <th>text</th>
@@ -181,15 +190,14 @@ instrumental variables or a <code>ggplot</code></p>
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>library</span>(<span class='no'>dagitty</span>)
 
-<span class='fu'>node_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 15
-#&gt;   name  from      x     y direction type     to     xend  yend .ggraph.orig_in…
-#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;            &lt;int&gt;
-#&gt; 1 i     i      2.59  5.51 -&gt;        directed x      2.55  4.35                1
-#&gt; 2 x     x      2.55  4.35 -&gt;        directed y      2.51  3.45                2
-#&gt; 3 x     x      2.55  4.35 &lt;-&gt;       bidirec… y      2.51  3.45                2
-#&gt; 4 y     y      2.51  3.45 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;  NA    NA                   3
-#&gt; # ... with 5 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;,
-#&gt; #   instrumental_name &lt;chr&gt;, adjusted &lt;fct&gt;, instrumental &lt;chr&gt;</div><div class='input'><span class='fu'>ggdag_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; i2-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='img'><img src='instrumental-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+<span class='fu'>node_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 11
+#&gt;   name      x     y direction to     xend  yend circular instrumental_name
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;            
+#&gt; 1 i      8.59  8.08 -&gt;        x      7.46  7.79 FALSE    i                
+#&gt; 2 x      7.46  7.79 -&gt;        y      6.59  7.58 FALSE    i                
+#&gt; 3 x      7.46  7.79 &lt;-&gt;       y      6.59  7.58 FALSE    i                
+#&gt; 4 y      6.59  7.58 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    i                
+#&gt; # ... with 2 more variables: adjusted &lt;fct&gt;, instrumental &lt;chr&gt;</div><div class='input'><span class='fu'>ggdag_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; i2-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='img'><img src='instrumental-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">

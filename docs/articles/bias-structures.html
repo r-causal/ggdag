@@ -59,14 +59,7 @@
   </ul>
 </li>
       </ul>
-<ul class="nav navbar-nav navbar-right">
-<li>
-  <a href="https://github.com/malcolmbarrett/ggdag">
-    <span class="fa fa-github fa-lg"></span>
-     
-  </a>
-</li>
-      </ul>
+<ul class="nav navbar-nav navbar-right"></ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -81,7 +74,7 @@
       <h1>Common Structures of Bias</h1>
                         <h4 class="author">Malcolm Barrett</h4>
             
-            <h4 class="date">2018-03-10</h4>
+            <h4 class="date">2018-03-23</h4>
           </div>
 
     
@@ -153,7 +146,7 @@
 <p>What about if a variable is both a collider and a cause of the exposure and outcome (a classical confounder)? This is an extension of M-bias sometimes called butterfly bias or bow-tie bias. The variable is a part of two paths: one that it’s blocking as a collider <em>and</em> a back-door path that is confounding the relationship between <em>x</em> and <em>y</em>. What to do?</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw"><a href="../reference/quick_plot.html">ggdag_butterfly_bias</a></span>(<span class="dt">edge_type =</span> <span class="st">"diagonal"</span>)</a></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;"></p>
-<p>The strategy is basically the same as above; we need to control for m to block the back-door path, but that opens up a relationship between a and b, so we need to black that path, too.</p>
+<p>The strategy is basically the same as above; we need to control for m to block the back-door path, but that opens up a relationship between a and b, so we need to block that path, too.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw"><a href="../reference/adjustment_sets.html">ggdag_adjustment_set</a></span>(<span class="kw"><a href="../reference/quick_plot.html">butterfly_bias</a></span>())</a></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;"></p>
 </section><section id="measurement-error" class="level1"><h1>Measurement error</h1>

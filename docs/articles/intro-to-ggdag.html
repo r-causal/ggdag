@@ -59,14 +59,7 @@
   </ul>
 </li>
       </ul>
-<ul class="nav navbar-nav navbar-right">
-<li>
-  <a href="https://github.com/malcolmbarrett/ggdag">
-    <span class="fa fa-github fa-lg"></span>
-     
-  </a>
-</li>
-      </ul>
+<ul class="nav navbar-nav navbar-right"></ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -81,7 +74,7 @@
       <h1>An Introduction to ggdag</h1>
                         <h4 class="author">Malcolm Barrett</h4>
             
-            <h4 class="date">2018-03-10</h4>
+            <h4 class="date">2018-03-23</h4>
           </div>
 
     
@@ -96,15 +89,13 @@
 <a class="sourceLine" id="cb1-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb1-4" data-line-number="4">dag &lt;-<span class="st"> </span><span class="kw"><a href="http://www.rdocumentation.org/packages/dagitty/topics/dagitty">dagitty</a></span>(<span class="st">"dag{y &lt;- z -&gt; x}"</span>)</a>
 <a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span>(dag)</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="co">#&gt; # A tibble: 4 x 12</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="co">#&gt;   name  from      x     y direction type     to     xend  yend</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co">#&gt; 1 z     z      28.5  23.3 -&gt;        directed x      28.5  24.4</span></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co">#&gt; 2 z     z      28.5  23.3 -&gt;        directed y      28.5  22.1</span></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="co">#&gt; 3 x     x      28.5  24.4 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="co">#&gt; 4 y     y      28.5  22.1 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb1-13" data-line-number="13"><span class="co">#&gt; # ... with 3 more variables: .ggraph.orig_index &lt;int&gt;, circular &lt;lgl&gt;,</span></a>
-<a class="sourceLine" id="cb1-14" data-line-number="14"><span class="co">#&gt; #   .ggraph.index &lt;int&gt;</span></a></code></pre></div>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="co">#&gt; # A tibble: 4 x 8</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="co">#&gt;   name      x     y direction to     xend  yend circular</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="co">#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   </span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co">#&gt; 1 z      28.5  23.3 -&gt;        x      28.5  24.4 FALSE   </span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co">#&gt; 2 z      28.5  23.3 -&gt;        y      28.5  22.1 FALSE   </span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="co">#&gt; 3 x      28.5  24.4 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE   </span></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="co">#&gt; 4 y      28.5  22.1 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE</span></a></code></pre></div>
 <p>Note that, while <code>dagitty</code> supports a number of graph types, <code>ggdag</code> currently only supports DAGs.</p>
 <p><code>dagitty</code> uses a syntax similar to the <a href="https://graphviz.gitlab.io/_pages/doc/info/lang.html">dot language of graphviz</a>. This syntax has the advantage of being compact, but <code>ggdag</code> also provides the ability to create a <code>dagitty</code> object using a more R-like formula syntax through the <code><a href="../reference/dagify.html">dagify()</a></code> function. <code><a href="../reference/dagify.html">dagify()</a></code> accepts any number of formulas to create a DAG. It also has options for declaring which variables are exposures, outcomes, or latent, as well as coordinates and labels for each node.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">dagified &lt;-<span class="st"> </span><span class="kw"><a href="../reference/dagify.html">dagify</a></span>(x <span class="op">~</span><span class="st"> </span>z,</a>
@@ -112,15 +103,13 @@
 <a class="sourceLine" id="cb2-3" data-line-number="3">                   <span class="dt">exposure =</span> <span class="st">"x"</span>,</a>
 <a class="sourceLine" id="cb2-4" data-line-number="4">                   <span class="dt">outcome =</span> <span class="st">"y"</span>)</a>
 <a class="sourceLine" id="cb2-5" data-line-number="5"><span class="kw"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span>(dagified)</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt; # A tibble: 4 x 12</span></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">#&gt;   name  from      x     y direction type     to     xend  yend</span></a>
-<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">#&gt; 1 z     z      23.6  20.4 -&gt;        directed x      23.6  21.5</span></a>
-<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">#&gt; 2 z     z      23.6  20.4 -&gt;        directed y      23.6  19.2</span></a>
-<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt; 3 x     x      23.6  21.5 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt; 4 y     y      23.6  19.2 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="co">#&gt; # ... with 3 more variables: .ggraph.orig_index &lt;int&gt;, circular &lt;lgl&gt;,</span></a>
-<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="co">#&gt; #   .ggraph.index &lt;int&gt;</span></a></code></pre></div>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt; # A tibble: 4 x 8</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">#&gt;   name      x     y direction to     xend  yend circular</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="co">#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   </span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">#&gt; 1 z      23.6  20.4 -&gt;        x      23.6  21.5 FALSE   </span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">#&gt; 2 z      23.6  20.4 -&gt;        y      23.6  19.2 FALSE   </span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt; 3 x      23.6  21.5 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE   </span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt; 4 y      23.6  19.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE</span></a></code></pre></div>
 <p>Currently, <code>ggdag</code> supports directed (<code>x ~ y</code>) and bi-directed (<code>a ~~ b</code>) relationships</p>
 <p><code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> uses layout functions from <code>ggraph</code> and <code>igraph</code> for coordinates if none are provided, which can be specified with the <code>layout</code> argument. Objects of class <code>tidy_dagitty</code> or <code>dagitty</code> can be plotted quickly with <code><a href="../reference/ggdag.html">ggdag()</a></code>. If the DAG is not yet tidied, <code><a href="../reference/ggdag.html">ggdag()</a></code> and most other quick plotting functions in <code>ggdag</code> do so internally.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw"><a href="../reference/ggdag.html">ggdag</a></span>(dag, <span class="dt">layout =</span> <span class="st">"circle"</span>)</a></code></pre></div>
@@ -129,33 +118,27 @@
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">tidy_dag &lt;-<span class="st"> </span><span class="kw"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span>(dagified)</a>
 <a class="sourceLine" id="cb4-2" data-line-number="2"><span class="kw">str</span>(tidy_dag)</a>
 <a class="sourceLine" id="cb4-3" data-line-number="3"><span class="co">#&gt; List of 2</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="co">#&gt;  $ data:Classes 'tbl_df', 'tbl' and 'data.frame':    4 obs. of  12 variables:</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">#&gt;   ..$ name              : chr [1:4] "z" "z" "x" "y"</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co">#&gt;   ..$ from              : chr [1:4] "z" "z" "x" "y"</span></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">#&gt;   ..$ x                 : num [1:4] 23.3 23.3 22.9 23.7</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="co">#&gt;   ..$ y                 : num [1:4] 25.5 25.5 26.6 24.4</span></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="co">#&gt;   ..$ direction         : Factor w/ 3 levels "&lt;-","-&gt;","&lt;-&gt;": 2 2 NA NA</span></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="co">#&gt;   ..$ type              : Factor w/ 2 levels "directed","bidirected": 1 1 NA NA</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11"><span class="co">#&gt;   ..$ to                : chr [1:4] "x" "y" NA NA</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12"><span class="co">#&gt;   ..$ xend              : num [1:4] 22.9 23.7 NA NA</span></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13"><span class="co">#&gt;   ..$ yend              : num [1:4] 26.6 24.4 NA NA</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14"><span class="co">#&gt;   ..$ .ggraph.orig_index: int [1:4] 1 1 2 3</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15"><span class="co">#&gt;   ..$ circular          : logi [1:4] FALSE FALSE FALSE FALSE</span></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16"><span class="co">#&gt;   ..$ .ggraph.index     : int [1:4] 1 1 2 3</span></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17"><span class="co">#&gt;  $ dag :Class 'dagitty'  chr "dag {\nx [exposure]\ny [outcome]\nz\nz -&gt; x\nz -&gt; y\n}\n"</span></a>
-<a class="sourceLine" id="cb4-18" data-line-number="18"><span class="co">#&gt;  - attr(*, "class")= chr "tidy_dagitty"</span></a></code></pre></div>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="co">#&gt;  $ data:Classes 'tbl_df', 'tbl' and 'data.frame':    4 obs. of  8 variables:</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">#&gt;   ..$ name     : chr [1:4] "z" "z" "x" "y"</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co">#&gt;   ..$ x        : num [1:4] 23.3 23.3 22.9 23.7</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">#&gt;   ..$ y        : num [1:4] 25.5 25.5 26.6 24.4</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="co">#&gt;   ..$ direction: Factor w/ 3 levels "&lt;-","-&gt;","&lt;-&gt;": 2 2 NA NA</span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="co">#&gt;   ..$ to       : chr [1:4] "x" "y" NA NA</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="co">#&gt;   ..$ xend     : num [1:4] 22.9 23.7 NA NA</span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11"><span class="co">#&gt;   ..$ yend     : num [1:4] 26.6 24.4 NA NA</span></a>
+<a class="sourceLine" id="cb4-12" data-line-number="12"><span class="co">#&gt;   ..$ circular : logi [1:4] FALSE FALSE FALSE FALSE</span></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13"><span class="co">#&gt;  $ dag :Class 'dagitty'  chr "dag {\nx [exposure]\ny [outcome]\nz\nz -&gt; x\nz -&gt; y\n}\n"</span></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14"><span class="co">#&gt;  - attr(*, "class")= chr "tidy_dagitty"</span></a></code></pre></div>
 </section><section id="working-with-dags" class="level1"><h1>Working with DAGs</h1>
 <p>Most of the analytic functions in <code>dagitty</code> have extensions in <code>ggdag</code> and are named <code>dag_*()</code> or <code>node_*()</code>, depending on if they are working with specific nodes or the entire DAG. A simple example is <code><a href="../reference/variable_family.html">node_parents()</a></code>, which adds a column to the to the <code>tidy_dagitty</code> object about the parents of a given variable:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw"><a href="../reference/variable_family.html">node_parents</a></span>(tidy_dag, <span class="st">"x"</span>)</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="co">#&gt; # A tibble: 4 x 13</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="co">#&gt;   name  from      x     y direction type     to     xend  yend</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt; 1 z     z      23.3  25.5 -&gt;        directed x      22.9  26.6</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt; 2 z     z      23.3  25.5 -&gt;        directed y      23.7  24.4</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt; 3 x     x      22.9  26.6 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; 4 y     y      23.7  24.4 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; # ... with 4 more variables: .ggraph.orig_index &lt;int&gt;, circular &lt;lgl&gt;,</span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt; #   .ggraph.index &lt;int&gt;, parent &lt;fct&gt;</span></a></code></pre></div>
+<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="co">#&gt; # A tibble: 4 x 9</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="co">#&gt;   name      x     y direction to     xend  yend circular parent</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;fct&gt; </span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt; 1 z      23.3  25.5 -&gt;        x      22.9  26.6 FALSE    parent</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt; 2 z      23.3  25.5 -&gt;        y      23.7  24.4 FALSE    parent</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt; 3 x      22.9  26.6 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    child </span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; 4 y      23.7  24.4 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    &lt;NA&gt;</span></a></code></pre></div>
 <p>Or working with the entire DAG to produce a <code>tidy_dagitty</code> that has all pathways between two variables:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">bigger_dag &lt;-<span class="st"> </span><span class="kw"><a href="../reference/dagify.html">dagify</a></span>(y <span class="op">~</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span>a <span class="op">+</span><span class="st"> </span>b,</a>
 <a class="sourceLine" id="cb6-2" data-line-number="2">                     x <span class="op">~</span><span class="st"> </span>a <span class="op">+</span><span class="st"> </span>b,</a>
@@ -164,38 +147,37 @@
 <a class="sourceLine" id="cb6-5" data-line-number="5"><span class="co">#  automatically searches the paths between the variables labelled exposure and </span></a>
 <a class="sourceLine" id="cb6-6" data-line-number="6"><span class="co">#  outcome</span></a>
 <a class="sourceLine" id="cb6-7" data-line-number="7"><span class="kw"><a href="../reference/paths.html">dag_paths</a></span>(bigger_dag)  </a>
-<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="co">#&gt; # A tibble: 20 x 14</span></a>
-<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="co">#&gt;    set   name  from      x     y direction type     to     xend  yend</span></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#&gt;    &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
-<a class="sourceLine" id="cb6-11" data-line-number="11"><span class="co">#&gt;  1 1     a     a      17.3  19.2 -&gt;        directed x      16.8  18.2</span></a>
-<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="co">#&gt;  2 1     a     a      17.3  19.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-13" data-line-number="13"><span class="co">#&gt;  3 1     b     b      17.3  17.2 -&gt;        directed x      16.8  18.2</span></a>
-<a class="sourceLine" id="cb6-14" data-line-number="14"><span class="co">#&gt;  4 1     b     b      17.3  17.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-15" data-line-number="15"><span class="co">#&gt;  5 1     x     x      16.8  18.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-16" data-line-number="16"><span class="co">#&gt;  6 1     y     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17"><span class="co">#&gt;  7 2     a     a      17.3  19.2 -&gt;        directed x      16.8  18.2</span></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18"><span class="co">#&gt;  8 2     a     a      17.3  19.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-19" data-line-number="19"><span class="co">#&gt;  9 2     b     b      17.3  17.2 -&gt;        directed x      16.8  18.2</span></a>
-<a class="sourceLine" id="cb6-20" data-line-number="20"><span class="co">#&gt; 10 2     b     b      17.3  17.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-21" data-line-number="21"><span class="co">#&gt; 11 2     x     x      16.8  18.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-22" data-line-number="22"><span class="co">#&gt; 12 2     y     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb6-23" data-line-number="23"><span class="co">#&gt; 13 2     x     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="co">#&gt; 14 3     a     a      17.3  19.2 -&gt;        directed x      16.8  18.2</span></a>
-<a class="sourceLine" id="cb6-25" data-line-number="25"><span class="co">#&gt; 15 3     a     a      17.3  19.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-26" data-line-number="26"><span class="co">#&gt; 16 3     b     b      17.3  17.2 -&gt;        directed x      16.8  18.2</span></a>
-<a class="sourceLine" id="cb6-27" data-line-number="27"><span class="co">#&gt; 17 3     b     b      17.3  17.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-28" data-line-number="28"><span class="co">#&gt; 18 3     x     x      16.8  18.2 -&gt;        directed y      17.7  18.2</span></a>
-<a class="sourceLine" id="cb6-29" data-line-number="29"><span class="co">#&gt; 19 3     y     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb6-30" data-line-number="30"><span class="co">#&gt; 20 3     x     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;   NA    NA  </span></a>
-<a class="sourceLine" id="cb6-31" data-line-number="31"><span class="co">#&gt; # ... with 4 more variables: .ggraph.orig_index &lt;int&gt;, circular &lt;lgl&gt;,</span></a>
-<a class="sourceLine" id="cb6-32" data-line-number="32"><span class="co">#&gt; #   .ggraph.index &lt;int&gt;, path &lt;chr&gt;</span></a></code></pre></div>
+<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="co">#&gt; # A tibble: 20 x 11</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="co">#&gt;    set   name      x     y direction to     xend  yend circular path     </span></a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#&gt;    &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;    </span></a>
+<a class="sourceLine" id="cb6-11" data-line-number="11"><span class="co">#&gt;  1 1     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="co">#&gt;  2 1     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-13" data-line-number="13"><span class="co">#&gt;  3 1     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-14" data-line-number="14"><span class="co">#&gt;  4 1     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-15" data-line-number="15"><span class="co">#&gt;  5 1     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-16" data-line-number="16"><span class="co">#&gt;  6 1     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-17" data-line-number="17"><span class="co">#&gt;  7 2     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-18" data-line-number="18"><span class="co">#&gt;  8 2     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-19" data-line-number="19"><span class="co">#&gt;  9 2     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-20" data-line-number="20"><span class="co">#&gt; 10 2     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-21" data-line-number="21"><span class="co">#&gt; 11 2     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-22" data-line-number="22"><span class="co">#&gt; 12 2     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-23" data-line-number="23"><span class="co">#&gt; 13 2     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="co">#&gt; 14 3     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-25" data-line-number="25"><span class="co">#&gt; 15 3     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-26" data-line-number="26"><span class="co">#&gt; 16 3     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-27" data-line-number="27"><span class="co">#&gt; 17 3     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-28" data-line-number="28"><span class="co">#&gt; 18 3     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
+<a class="sourceLine" id="cb6-29" data-line-number="29"><span class="co">#&gt; 19 3     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-30" data-line-number="30"><span class="co">#&gt; 20 3     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
+<a class="sourceLine" id="cb6-31" data-line-number="31"><span class="co">#&gt; # ... with 1 more variable: type &lt;lgl&gt;</span></a></code></pre></div>
 <p><code>ggdag</code> also supports <a href="http://r4ds.had.co.nz/pipes.html">piping</a> of functions and includes the pipe internally (so you don’t need to load <code>dplyr</code> or <code>magrittr</code>). Basic <code>dplyr</code> verbs are also supported (and anything more complex can be done directly on the <code>data</code> object).</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"><span class="co">#  find how many variables are in between x and y in each path</span></a>
 <a class="sourceLine" id="cb7-3" data-line-number="3">bigger_dag <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb7-4" data-line-number="4"><span class="st">  </span><span class="kw"><a href="../reference/paths.html">dag_paths</a></span>() <span class="op">%&gt;%</span></a>
 <a class="sourceLine" id="cb7-5" data-line-number="5"><span class="st">  </span><span class="kw"><a href="http://dplyr.tidyverse.org/reference/group_by.html">group_by</a></span>(set) <span class="op">%&gt;%</span></a>
-<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="st">  </span><span class="kw"><a href="http://dplyr.tidyverse.org/reference/filter.html">filter</a></span>(<span class="op">!</span><span class="kw">is.na</span>(path) <span class="op">&amp;</span><span class="st"> </span><span class="op">!</span><span class="kw">is.na</span>(from)) <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="st">  </span><span class="kw"><a href="http://dplyr.tidyverse.org/reference/filter.html">filter</a></span>(<span class="op">!</span><span class="kw">is.na</span>(path) <span class="op">&amp;</span><span class="st"> </span><span class="op">!</span><span class="kw">is.na</span>(name)) <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb7-7" data-line-number="7"><span class="st">  </span><span class="kw"><a href="http://dplyr.tidyverse.org/reference/summarise.html">summarize</a></span>(<span class="dt">n_vars_between =</span> <span class="kw"><a href="http://dplyr.tidyverse.org/reference/n.html">n</a></span>() <span class="op">-</span><span class="st"> </span>1L)</a>
 <a class="sourceLine" id="cb7-8" data-line-number="8"><span class="co">#&gt; # A tibble: 3 x 2</span></a>
 <a class="sourceLine" id="cb7-9" data-line-number="9"><span class="co">#&gt;   set   n_vars_between</span></a>

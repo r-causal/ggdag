@@ -18,8 +18,12 @@
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col label color
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
@@ -101,8 +105,8 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
 #' @rdname paths
 #' @export
 ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, paths_only = FALSE, ...,
-                                 node_size = 16, text_size = 3.88, text_col = "white",
-                                 node = TRUE, text = TRUE, use_labels = NULL) {
+                                 node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
+                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -120,20 +124,26 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
     ggplot2::scale_y_continuous(expand = expand_scale(c(0.1, 0.1)))
 
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "path"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "path"), size = label_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
 #' @rdname paths
 #' @export
 ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...,
-                        spread = .7, node_size = 16, text_size = 2, text_col = "white",
-                        node = TRUE, text = TRUE, use_labels = NULL) {
+                        spread = .7, node_size = 16, text_size = 2, label_size = text_size, text_col = "white", label_col = text_col,
+                        node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -149,12 +159,20 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
     ggplot2::scale_x_continuous(expand = expand_scale(c(0.25, 0.25))) +
     ggplot2::scale_y_continuous(expand = expand_scale(c(0.1, 0.1)))
 
-  if (node) p <- p + geom_dag_node(size = node_size, col = "black")
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size, col = "black")
+      } else {
+        p <- p + geom_dag_point(size = node_size, col = "black")
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "path"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "path"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 

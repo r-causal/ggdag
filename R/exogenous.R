@@ -12,8 +12,12 @@
 #'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col color of label text
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
@@ -40,7 +44,9 @@ node_exogenous <- function(.dag, ...) {
 #' @export
 ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
                             edge_type = "link_arc",
-                            text_col = "white", node = TRUE, text = TRUE,
+                            label_size = text_size,
+                            text_col = "white", label_col = text_col,
+                            node = TRUE, stylized = TRUE, text = TRUE,
                             use_labels = NULL) {
 
   edge_function <- edge_type_switch(edge_type)
@@ -52,11 +58,19 @@ ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
     theme_dag() +
     scale_dag(breaks  = "exogenous")
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "exogenous"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "exogenous"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }

@@ -16,8 +16,12 @@
 #' @param .var a character vector, the variable to be assessed (must by in DAG)
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col color of label text
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for
 #'   `geom_dag_repel_label()`. Default is `NULL`.
@@ -147,8 +151,9 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @rdname variable_family
 #' @export
 ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                           node_size = 16, text_size = 3.88, text_col = "white",
-                           node = TRUE, text = TRUE, use_labels = NULL) {
+                           node_size = 16, text_size = 3.88, label_size = text_size,
+                          text_col = "white", label_col = text_col,
+                          node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -158,20 +163,30 @@ ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     theme_dag() +
     scale_dag(breaks  = c("parent", "child"))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "children"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "children"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                          node_size = 16, text_size = 3.88, text_col = "white",
-                          node = TRUE, text = TRUE, use_labels = NULL) {
+                          node_size = 16, text_size = 3.88, label_size = text_size,
+                          text_col = "white", label_col = text_col,
+                          node = TRUE, stylized = TRUE,
+                          text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -181,20 +196,29 @@ ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     theme_dag() +
     scale_dag(breaks  = c("parent", "child"))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "parent"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "parent"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                            node_size = 16, text_size = 3.88, text_col = "white",
-                            node = TRUE, text = TRUE, use_labels = NULL) {
+                            node_size = 16, text_size = 3.88, label_size = text_size,
+                          text_col = "white", label_col = text_col,
+                          node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -204,20 +228,29 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     theme_dag() +
     scale_dag(breaks  = c("ancestor", "descendant"))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "ancestor"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "ancestor"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                              node_size = 16, text_size = 3.88, text_col = "white",
-                              node = TRUE, text = TRUE, use_labels = NULL) {
+                              node_size = 16, text_size = 3.88, label_size = text_size,
+                          text_col = "white", label_col = text_col,
+                          node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -229,20 +262,29 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     theme_dag() +
     scale_dag(breaks  = c("ancestor", "descendant"))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "descendant"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "descendant"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                              node_size = 16, text_size = 3.88, text_col = "white",
-                              node = TRUE, text = TRUE, use_labels = NULL) {
+                              node_size = 16, text_size = 3.88, label_size = text_size,
+                              text_col = "white", label_col = text_col,
+                              node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -254,20 +296,29 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     theme_dag() +
     scale_dag(breaks  = c("Markov blanket", "center variable"))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
-    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                             fill = "blanket"),
-                         col = "white", show.legend = FALSE)
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "blanket"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                                 node_size = 16, text_size = 3.88, text_col = "white",
-                                 node = TRUE, text = TRUE, use_labels = NULL) {
+                                 node_size = 16, text_size = 3.88, label_size = text_size,
+                                 text_col = "white", label_col = text_col,
+                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -279,11 +330,19 @@ ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     theme_dag() +
     scale_dag(breaks  = c("adjacent", "center variable"))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
-    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                             fill = "adjacent"),
-                         col = "white", show.legend = FALSE)
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                               fill = "adjacent"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }

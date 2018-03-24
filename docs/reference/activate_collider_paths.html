@@ -89,12 +89,7 @@ or set of variables to adjust for and adds them to the tidy_dagitty." />
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        <li>
-  <a href="https://github.com/malcolmbarrett/ggdag">
-    <span class="fa fa-github fa-lg"></span>
-     
-  </a>
-</li>
+        
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -150,16 +145,14 @@ pathways</p>
     <pre class="examples"><div class='input'><span class='no'>dag</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>m</span> ~ <span class='no'>x</span> + <span class='no'>y</span>, <span class='no'>x</span> ~ <span class='no'>y</span>)
 
 <span class='no'>collided_dag</span> <span class='kw'>&lt;-</span> <span class='fu'>activate_collider_paths</span>(<span class='no'>dag</span>, <span class='kw'>adjust_for</span> <span class='kw'>=</span> <span class='st'>"m"</span>)
-<span class='no'>collided_dag</span></div><div class='output co'>#&gt; # A tibble: 5 x 13
-#&gt;   name  from      x     y direction type     to     xend  yend .ggraph.orig_in…
-#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;            &lt;int&gt;
-#&gt; 1 x     x      2.68  2.44 -&gt;        directed m      2.49  1.46                1
-#&gt; 2 y     y      1.74  2.11 -&gt;        directed m      2.49  1.46                2
-#&gt; 3 y     y      1.74  2.11 -&gt;        directed x      2.68  2.44                2
-#&gt; 4 m     m      2.49  1.46 &lt;NA&gt;      &lt;NA&gt;     &lt;NA&gt;  NA    NA                   3
-#&gt; 5 x     x      2.68  2.44 &lt;-&gt;       bidirec… y      1.74  2.11               NA
-#&gt; # ... with 3 more variables: circular &lt;lgl&gt;, .ggraph.index &lt;int&gt;,
-#&gt; #   collider_line &lt;lgl&gt;</div><div class='input'>
+<span class='no'>collided_dag</span></div><div class='output co'>#&gt; # A tibble: 5 x 9
+#&gt;   name      x     y direction to     xend  yend circular collider_line
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;lgl&gt;        
+#&gt; 1 x      2.68  2.44 -&gt;        m      2.49  1.46 FALSE    FALSE        
+#&gt; 2 y      1.74  2.11 -&gt;        m      2.49  1.46 FALSE    FALSE        
+#&gt; 3 y      1.74  2.11 -&gt;        x      2.68  2.44 FALSE    FALSE        
+#&gt; 4 m      2.49  1.46 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    FALSE        
+#&gt; 5 x      2.68  2.44 &lt;-&gt;       y      1.74  2.11 NA       TRUE         </div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">

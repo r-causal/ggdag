@@ -11,8 +11,12 @@
 #' @param ... additional arguments to `adjustmentSets`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col color of label text
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
@@ -76,8 +80,9 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 #' @rdname adjustment_sets
 #' @export
 ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
-                                 node_size = 16, text_size = 3.88, text_col = "white",
-                                 node = TRUE, text = TRUE, use_labels = NULL) {
+                                 node_size = 16, text_size = 3.88, label_size = text_size,
+                                 text_col = "white", label_col = text_col,
+                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -91,12 +96,20 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
     scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
               expand_y = expand_scale(c(0.2, 0.2)))
 
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "adjusted"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "adjusted"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }
 
@@ -137,8 +150,12 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col color of label text
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for
 #'   `geom_dag_repel_label()`. Default is `NULL`.
@@ -170,8 +187,9 @@ control_for <- function(.tdy_dag, var, as_factor = TRUE, ...) {
 #' @rdname control_for
 #' @export
 ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
-                         node_size = 16, text_size = 3.88, text_col = "white",
-                         node = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                         node_size = 16, text_size = 3.88, label_size = text_size,
+                         text_col = "white", label_col = text_col,
+                         node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)
@@ -191,11 +209,19 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
     scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
-  if (node) p <- p + geom_dag_node(size = node_size)
+  if (node) {
+    if (stylized) {
+        p <- p + geom_dag_node(size = node_size)
+      } else {
+        p <- p + geom_dag_point(size = node_size)
+      }
+    }
+
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+
   if (!is.null(use_labels)) p <- p +
       geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "adjusted"),
-                           col = "white", show.legend = FALSE)
+                                               fill = "adjusted"), size = text_size,
+                           col = label_col, show.legend = FALSE)
   p
 }

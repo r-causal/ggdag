@@ -87,12 +87,7 @@
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        <li>
-  <a href="https://github.com/malcolmbarrett/ggdag">
-    <span class="fa fa-github fa-lg"></span>
-     
-  </a>
-</li>
+        
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -114,8 +109,9 @@
     <pre class="usage"><span class='fu'>dag_adjustment_sets</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>exposure</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)
 
 <span class='fu'>ggdag_adjustment_set</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>exposure</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>,
-  <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+  <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>,
+  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
     <table class="ref-arguments">
@@ -148,12 +144,25 @@
       <td><p>size of DAG text</p></td>
     </tr>
     <tr>
+      <th>label_size</th>
+      <td><p>size of label text</p></td>
+    </tr>
+    <tr>
       <th>text_col</th>
       <td><p>color of DAG text</p></td>
     </tr>
     <tr>
+      <th>label_col</th>
+      <td><p>color of label text</p></td>
+    </tr>
+    <tr>
       <th>node</th>
       <td><p>logical. Should nodes be included in the DAG?</p></td>
+    </tr>
+    <tr>
+      <th>stylized</th>
+      <td><p>logical. Should DAG nodes be stylized? If so, use
+<code>geom_dag_nodes</code> and if not use <code>geom_dag_point</code></p></td>
     </tr>
     <tr>
       <th>text</th>
@@ -182,26 +191,25 @@ adjustment sets or a <code>ggplot</code></p>
   <span class='kw'>exposure</span> <span class='kw'>=</span> <span class='st'>"x"</span>,
   <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='st'>"y"</span>)
 
-<span class='fu'><a href='tidy_dagitty.html'>tidy_dagitty</a></span>(<span class='no'>dag</span>) <span class='kw'>%&gt;%</span> <span class='fu'>dag_adjustment_sets</span>()</div><div class='output co'>#&gt; # A tibble: 36 x 14
-#&gt;    name  from      x     y direction type    to     xend  yend .ggraph.orig_in…
-#&gt;    &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;            &lt;int&gt;
-#&gt;  1 v     v      7.21  14.3 -&gt;        direct… z1     6.29  15.4                1
-#&gt;  2 v     v      7.21  14.3 -&gt;        direct… z2     6.20  13.4                1
-#&gt;  3 w1    w1     4.94  14.9 -&gt;        direct… x      5.25  15.7                2
-#&gt;  4 w1    w1     4.94  14.9 -&gt;        direct… y      5.32  14.2                2
-#&gt;  5 w1    w1     4.94  14.9 -&gt;        direct… z1     6.29  15.4                2
-#&gt;  6 w1    w1     4.94  14.9 &lt;-&gt;       bidire… w2     4.92  13.4                2
-#&gt;  7 w2    w2     4.92  13.4 -&gt;        direct… y      5.32  14.2                3
-#&gt;  8 w2    w2     4.92  13.4 -&gt;        direct… z2     6.20  13.4                3
-#&gt;  9 x     x      5.25  15.7 -&gt;        direct… y      5.32  14.2                4
-#&gt; 10 z1    z1     6.29  15.4 -&gt;        direct… x      5.25  15.7                5
-#&gt; # ... with 26 more rows, and 4 more variables: circular &lt;lgl&gt;,
-#&gt; #   .ggraph.index &lt;int&gt;, adjusted &lt;chr&gt;, set &lt;chr&gt;</div><div class='input'>
+<span class='fu'><a href='tidy_dagitty.html'>tidy_dagitty</a></span>(<span class='no'>dag</span>) <span class='kw'>%&gt;%</span> <span class='fu'>dag_adjustment_sets</span>()</div><div class='output co'>#&gt; # A tibble: 36 x 10
+#&gt;    name      x     y direction to     xend  yend circular adjusted   set       
+#&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;      &lt;chr&gt;     
+#&gt;  1 v      7.21  14.3 -&gt;        z1     6.29  15.4 FALSE    unadjusted w1, w2, z2
+#&gt;  2 v      7.21  14.3 -&gt;        z2     6.20  13.4 FALSE    unadjusted w1, w2, z2
+#&gt;  3 w1     4.94  14.9 -&gt;        x      5.25  15.7 FALSE    adjusted   w1, w2, z2
+#&gt;  4 w1     4.94  14.9 -&gt;        y      5.32  14.2 FALSE    adjusted   w1, w2, z2
+#&gt;  5 w1     4.94  14.9 -&gt;        z1     6.29  15.4 FALSE    adjusted   w1, w2, z2
+#&gt;  6 w1     4.94  14.9 &lt;-&gt;       w2     4.92  13.4 FALSE    adjusted   w1, w2, z2
+#&gt;  7 w2     4.92  13.4 -&gt;        y      5.32  14.2 FALSE    adjusted   w1, w2, z2
+#&gt;  8 w2     4.92  13.4 -&gt;        z2     6.20  13.4 FALSE    adjusted   w1, w2, z2
+#&gt;  9 x      5.25  15.7 -&gt;        y      5.32  14.2 FALSE    unadjusted w1, w2, z2
+#&gt; 10 z1     6.29  15.4 -&gt;        x      5.25  15.7 FALSE    unadjusted w1, w2, z2
+#&gt; # ... with 26 more rows</div><div class='input'>
 <span class='fu'>ggdag_adjustment_set</span>(<span class='no'>dag</span>)</div><div class='img'><img src='adjustment_sets-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
 <span class='fu'>ggdag_adjustment_set</span>(<span class='kw pkg'>dagitty</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/randomDAG'>randomDAG</a></span>(<span class='fl'>10</span>, <span class='fl'>.5</span>),
   <span class='kw'>exposure</span> <span class='kw'>=</span> <span class='st'>"x3"</span>,
-  <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='st'>"x5"</span>)</div><div class='output co'>#&gt; <span class='error'>Error in grid.Call.graphics(C_upviewport, as.integer(n)): cannot pop the top-level viewport ('grid' and 'graphics' output mixed?)</span></div><div class='input'>
-</div><div class='img'><img src='adjustment_sets-2.png' alt='' width='700' height='432.632880098887' /></div></pre>
+  <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='st'>"x5"</span>)</div><div class='img'><img src='adjustment_sets-2.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>

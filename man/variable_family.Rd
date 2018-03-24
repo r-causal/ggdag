@@ -29,27 +29,33 @@ node_markov_blanket(.tdy_dag, .var, as_factor = TRUE)
 node_adjacent(.tdy_dag, .var, as_factor = TRUE)
 
 ggdag_children(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  text_size = 3.88, label_size = text_size, text_col = "white",
+  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
   use_labels = NULL)
 
 ggdag_parents(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  text_size = 3.88, label_size = text_size, text_col = "white",
+  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
   use_labels = NULL)
 
 ggdag_ancestors(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  text_size = 3.88, label_size = text_size, text_col = "white",
+  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
   use_labels = NULL)
 
 ggdag_descendants(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
-  text = TRUE, use_labels = NULL)
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_markov_blanket(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, text_col = "white", node = TRUE,
-  text = TRUE, use_labels = NULL)
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = TRUE, text = TRUE, use_labels = NULL)
 
 ggdag_adjacent(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, text_col = "white", node = TRUE, text = TRUE,
+  text_size = 3.88, label_size = text_size, text_col = "white",
+  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
   use_labels = NULL)
 }
 \arguments{
@@ -70,9 +76,16 @@ ggdag_adjacent(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
 
 \item{text_size}{size of DAG text}
 
+\item{label_size}{size of label text}
+
 \item{text_col}{color of DAG text}
 
+\item{label_col}{color of label text}
+
 \item{node}{logical. Should nodes be included in the DAG?}
+
+\item{stylized}{logical. Should DAG nodes be stylized? If so, use
+\code{geom_dag_nodes} and if not use \code{geom_dag_point}}
 
 \item{text}{logical. Should text be included in the DAG?}
 

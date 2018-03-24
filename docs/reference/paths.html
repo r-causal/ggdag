@@ -88,12 +88,7 @@ ggdag_paths plots all pathways. See dagitty::paths() for details." />
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        <li>
-  <a href="https://github.com/malcolmbarrett/ggdag">
-    <span class="fa fa-github fa-lg"></span>
-     
-  </a>
-</li>
+        
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -118,12 +113,14 @@ ggdag_paths plots all pathways. See dagitty::paths() for details." />
 
 <span class='fu'>ggdag_paths</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>from</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>to</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>adjust_for</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>directed</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>paths_only</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='no'>...</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>,
-  <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>,
+  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)
 
 <span class='fu'>ggdag_paths_fan</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>from</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>to</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>adjust_for</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>directed</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='no'>...</span>, <span class='kw'>spread</span> <span class='kw'>=</span> <span class='fl'>0.7</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>2</span>,
-  <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+  <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>,
+  <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
     <table class="ref-arguments">
@@ -171,12 +168,25 @@ if they are part of the path.</p></td>
       <td><p>size of DAG text</p></td>
     </tr>
     <tr>
+      <th>label_size</th>
+      <td><p>size of label text</p></td>
+    </tr>
+    <tr>
       <th>text_col</th>
       <td><p>color of DAG text</p></td>
     </tr>
     <tr>
+      <th>label_col</th>
+      <td><p>label color</p></td>
+    </tr>
+    <tr>
       <th>node</th>
       <td><p>logical. Should nodes be included in the DAG?</p></td>
+    </tr>
+    <tr>
+      <th>stylized</th>
+      <td><p>logical. Should DAG nodes be stylized? If so, use
+<code>geom_dag_nodes</code> and if not use <code>geom_dag_point</code></p></td>
     </tr>
     <tr>
       <th>text</th>

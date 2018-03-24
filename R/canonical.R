@@ -13,8 +13,12 @@
 #'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col color of label text
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
@@ -40,13 +44,15 @@ node_canonical <- function(.dag, ...) {
 #' @rdname canonicalize
 #' @export
 ggdag_canonical <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
-                            text_col = "white", node = TRUE, text = TRUE,
+                            label_size = text_size,
+                            text_col = "white", label_col = text_col,
+                            node = TRUE, stylized = TRUE, text = TRUE,
                             use_labels = NULL) {
 
 
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_canonical() %>%
-    ggdag(node_size = node_size, text_size = text_size, edge_type = edge_type,
-          text_col = text_col, node = node, text = text,
-          use_labels = use_labels)
+    ggdag(node_size = node_size, text_size = text_size, label_size,
+          edge_type = edge_type, text_col = text_col, label_col = label_col,
+          node = node, stylized = stylized, text = text, use_labels = use_labels)
 }

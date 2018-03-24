@@ -9,7 +9,8 @@
 node_exogenous(.dag, ...)
 
 ggdag_exogenous(.tdy_dag, ..., node_size = 16, text_size = 3.88,
-  edge_type = "link_arc", text_col = "white", node = TRUE, text = TRUE,
+  edge_type = "link_arc", label_size = text_size, text_col = "white",
+  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
   use_labels = NULL)
 }
 \arguments{
@@ -26,9 +27,16 @@ ggdag_exogenous(.tdy_dag, ..., node_size = 16, text_size = 3.88,
 "link_arc", which accounts for directed and bidirected edges, "link",
 "arc", or "diagonal"}
 
+\item{label_size}{size of label text}
+
 \item{text_col}{color of DAG text}
 
+\item{label_col}{color of label text}
+
 \item{node}{logical. Should nodes be included in the DAG?}
+
+\item{stylized}{logical. Should DAG nodes be stylized? If so, use
+\code{geom_dag_nodes} and if not use \code{geom_dag_point}}
 
 \item{text}{logical. Should text be included in the DAG?}
 

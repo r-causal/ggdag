@@ -10,8 +10,12 @@
 #'   "arc", or "diagonal"
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
+#' @param label_size size of label text
 #' @param text_col color of DAG text
+#' @param label_col color of label text
 #' @param node logical. Should nodes be included in the DAG?
+#' @param stylized logical. Should DAG nodes be stylized? If so, use
+#'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
@@ -189,49 +193,54 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
 #' @rdname quick_plot
 #' @export
 ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE,
-                         edge_type = "link_arc", node_size = 16, text_size = 3.88, text_col = "white",
-                         node = TRUE, text = TRUE, use_labels = NULL) {
+                         edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
+                         text_col = "white", label_col = text_col,
+                         node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   ggdag(m_bias(x, y, a, b, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col,
-        node = node, text = text, use_labels = use_labels)
+        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+        node = node, stylized = stylized, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
 ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE,
-                                 edge_type = "link_arc", node_size = 16, text_size = 3.88, text_col = "white",
-                                 node = TRUE, text = TRUE, use_labels = NULL) {
+                                 edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
+                                 text_col = "white", label_col = text_col,
+                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   ggdag(butterfly_bias(x, y, a, b, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col,
-        node = node, text = text, use_labels = use_labels)
+        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+        node = node, stylized = stylized, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
 ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE,
-                                      edge_type = "link_arc", node_size = 16, text_size = 3.88, text_col = "white",
-                                      node = TRUE, text = TRUE, use_labels = NULL) {
+                                      edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
+                                      text_col = "white", label_col = text_col,
+                                      node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   ggdag(confounder_triangle(x, y, z, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col,
-        node = node, text = text, use_labels = use_labels)
+        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+        node = node, stylized = stylized, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
 ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
-                                    edge_type = "link_arc",  node_size = 16, text_size = 3.88, text_col = "white",
-                                    node = TRUE, text = TRUE, use_labels = NULL) {
+                                    edge_type = "link_arc",  node_size = 16, text_size = 3.88, label_size = text_size,
+                                    text_col = "white", label_col = text_col,
+                                    node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   ggdag(collider_triangle(x, y, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col,
-        node = node, text = text, use_labels = use_labels)
+        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+        node = node, stylized = stylized, text = text, use_labels = use_labels)
 }
 
 #' @rdname quick_plot
 #' @export
 ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
-                                     edge_type = "link_arc", node_size = 16, text_size = 3.88, text_col = "white",
-                                     node = TRUE, text = TRUE, use_labels = NULL) {
+                                     edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
+                                     text_col = "white", label_col = text_col,
+                                     node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
   ggdag(mediation_triangle(x, y, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col,
-        node = node, text = text, use_labels = use_labels)
+        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+        node = node, stylized = stylized, text = text, use_labels = use_labels)
 }
