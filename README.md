@@ -52,24 +52,22 @@ dag <- dagitty::dagitty( "dag {
 tidy_dag <- tidy_dagitty(dag)
 
 tidy_dag 
-#> # A tibble: 13 x 12
-#>    name  from      x     y direction type       to     xend  yend
-#>    <chr> <chr> <dbl> <dbl> <fct>     <fct>      <chr> <dbl> <dbl>
-#>  1 v     v     11.8   8.03 ->        directed   z1    10.4   7.77
-#>  2 v     v     11.8   8.03 ->        directed   z2    12.1   6.66
-#>  3 w1    w1    10.2   6.85 ->        directed   x      9.95  6.28
-#>  4 w1    w1    10.2   6.85 ->        directed   y     11.1   6.39
-#>  5 w1    w1    10.2   6.85 ->        directed   z1    10.4   7.77
-#>  6 w1    w1    10.2   6.85 <->       bidirected w2    10.9   5.75
-#>  7 w2    w2    10.9   5.75 ->        directed   x      9.95  6.28
-#>  8 w2    w2    10.9   5.75 ->        directed   y     11.1   6.39
-#>  9 w2    w2    10.9   5.75 ->        directed   z2    12.1   6.66
-#> 10 x     x      9.95  6.28 ->        directed   y     11.1   6.39
-#> 11 z1    z1    10.4   7.77 ->        directed   x      9.95  6.28
-#> 12 z2    z2    12.1   6.66 ->        directed   y     11.1   6.39
-#> 13 y     y     11.1   6.39 <NA>      <NA>       <NA>  NA    NA   
-#> # ... with 3 more variables: .ggraph.orig_index <int>, circular <lgl>,
-#> #   .ggraph.index <int>
+#> # A tibble: 13 x 8
+#>    name      x     y direction to     xend  yend circular
+#>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
+#>  1 v     11.8   8.03 ->        z1    10.4   7.77 FALSE   
+#>  2 v     11.8   8.03 ->        z2    12.1   6.66 FALSE   
+#>  3 w1    10.2   6.85 ->        x      9.95  6.28 FALSE   
+#>  4 w1    10.2   6.85 ->        y     11.1   6.39 FALSE   
+#>  5 w1    10.2   6.85 ->        z1    10.4   7.77 FALSE   
+#>  6 w1    10.2   6.85 <->       w2    10.9   5.75 FALSE   
+#>  7 w2    10.9   5.75 ->        x      9.95  6.28 FALSE   
+#>  8 w2    10.9   5.75 ->        y     11.1   6.39 FALSE   
+#>  9 w2    10.9   5.75 ->        z2    12.1   6.66 FALSE   
+#> 10 x      9.95  6.28 ->        y     11.1   6.39 FALSE   
+#> 11 z1    10.4   7.77 ->        x      9.95  6.28 FALSE   
+#> 12 z2    12.1   6.66 ->        y     11.1   6.39 FALSE   
+#> 13 y     11.1   6.39 <NA>      <NA>  NA    NA    FALSE
 
 #  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(y ~ x + z2 + w2 + w1,
@@ -81,23 +79,21 @@ tidy_ggdag <- dagify(y ~ x + z2 + w2 + w1,
              outcome = "y") %>% tidy_dagitty()
 
 tidy_ggdag
-#> # A tibble: 12 x 12
-#>    name  from      x     y direction type       to     xend  yend
-#>    <chr> <chr> <dbl> <dbl> <fct>     <fct>      <chr> <dbl> <dbl>
-#>  1 v     v      7.25  17.2 ->        directed   z1     7.59  18.5
-#>  2 v     v      7.25  17.2 ->        directed   z2     8.57  16.8
-#>  3 w1    w1     9.03  18.7 ->        directed   x      8.35  19.3
-#>  4 w1    w1     9.03  18.7 ->        directed   y      8.93  18.0
-#>  5 w1    w1     9.03  18.7 ->        directed   z1     7.59  18.5
-#>  6 w1    w1     9.03  18.7 <->       bidirected w2     9.68  17.5
-#>  7 w2    w2     9.68  17.5 ->        directed   y      8.93  18.0
-#>  8 w2    w2     9.68  17.5 ->        directed   z2     8.57  16.8
-#>  9 x     x      8.35  19.3 ->        directed   y      8.93  18.0
-#> 10 z1    z1     7.59  18.5 ->        directed   x      8.35  19.3
-#> 11 z2    z2     8.57  16.8 ->        directed   y      8.93  18.0
-#> 12 y     y      8.93  18.0 <NA>      <NA>       <NA>  NA     NA  
-#> # ... with 3 more variables: .ggraph.orig_index <int>, circular <lgl>,
-#> #   .ggraph.index <int>
+#> # A tibble: 12 x 8
+#>    name      x     y direction to     xend  yend circular
+#>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
+#>  1 v      7.25  17.2 ->        z1     7.59  18.5 FALSE   
+#>  2 v      7.25  17.2 ->        z2     8.57  16.8 FALSE   
+#>  3 w1     9.03  18.7 ->        x      8.35  19.3 FALSE   
+#>  4 w1     9.03  18.7 ->        y      8.93  18.0 FALSE   
+#>  5 w1     9.03  18.7 ->        z1     7.59  18.5 FALSE   
+#>  6 w1     9.03  18.7 <->       w2     9.68  17.5 FALSE   
+#>  7 w2     9.68  17.5 ->        y      8.93  18.0 FALSE   
+#>  8 w2     9.68  17.5 ->        z2     8.57  16.8 FALSE   
+#>  9 x      8.35  19.3 ->        y      8.93  18.0 FALSE   
+#> 10 z1     7.59  18.5 ->        x      8.35  19.3 FALSE   
+#> 11 z2     8.57  16.8 ->        y      8.93  18.0 FALSE   
+#> 12 y      8.93  18.0 <NA>      <NA>  NA     NA   FALSE
 ```
 
 `ggdag` also provides functionality for analyzing DAGs and plotting them
