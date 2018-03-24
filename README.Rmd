@@ -35,7 +35,7 @@ devtools::install_github("malcolmbarrett/ggdag")
 
 `ggdag` makes it easy to use `dagitty` in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax:
 
-```{r tidydag, dpi=300}
+```{r tidydag, dpi=300, message=FALSE}
 library(ggdag)
 
 #  example from the dagitty package

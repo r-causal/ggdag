@@ -30,14 +30,6 @@ create DAGs using a more R-like syntax:
 
 ``` r
 library(ggdag)
-#> 
-#> Attaching package: 'ggdag'
-#> The following object is masked from 'package:ggplot2':
-#> 
-#>     expand_scale
-#> The following object is masked from 'package:stats':
-#> 
-#>     filter
 
 #  example from the dagitty package
 dag <- dagitty::dagitty( "dag {
