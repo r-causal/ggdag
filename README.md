@@ -15,7 +15,13 @@ easy manner.
 
 ## Installation
 
-You can install ggdag from GitHub with:
+You can install `ggdag` with:
+
+``` r
+install.packages("ggdag")
+```
+
+Or you can install the development version from GitHub with:
 
 ``` r
 # install.packages("devtools")

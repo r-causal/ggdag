@@ -24,7 +24,13 @@ Tidy, analyze, and plot directed acyclic graphs (DAGs). `ggdag` uses the powerfu
 
 ## Installation
 
-You can install ggdag from GitHub with:
+You can install `ggdag` with:
+
+```{r cran-installation, eval = FALSE}
+install.packages("ggdag")
+```
+
+Or you can install the development version from GitHub with:
 
 ```{r gh-installation, eval = FALSE}
 # install.packages("devtools")
