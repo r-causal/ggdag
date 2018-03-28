@@ -4,7 +4,8 @@
 [![Travis-CI Build
 Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag)
 [![AppVeyor Build
-status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag)[![CRAN
+status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag)
+[![CRAN
 status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 
 # ggdag: An R Package for visualizing and analyzing directed acyclic graphs
