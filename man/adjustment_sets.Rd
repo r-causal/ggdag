@@ -11,7 +11,9 @@ dag_adjustment_sets(.tdy_dag, exposure = NULL, outcome = NULL, ...)
 ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   node_size = 16, text_size = 3.88, label_size = text_size,
   text_col = "white", label_col = text_col, node = TRUE,
-  stylized = TRUE, text = TRUE, use_labels = NULL)
+  stylized = FALSE, text = TRUE, use_labels = NULL,
+  expand_x = expand_scale(c(0.25, 0.25)), expand_y = expand_scale(c(0.2,
+  0.2)))
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -44,6 +46,16 @@ ggdag_adjustment_set(.tdy_dag, exposure = NULL, outcome = NULL, ...,
 
 \item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
 Default is \code{NULL}.}
+
+\item{expand_x}{Vector of range expansion constants used to add some
+padding around the data, to ensure that they are placed some distance away
+from the axes. Use the convenience function \code{expand_scale()} to
+generate the values for the expand argument.}
+
+\item{expand_y}{Vector of range expansion constants used to add some
+padding around the data, to ensure that they are placed some distance away
+from the axes. Use the convenience function \code{expand_scale()} to
+generate the values for the expand argument.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}

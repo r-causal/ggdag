@@ -53,16 +53,6 @@ ggdag_equivalent_class(.tdy_dag, expand_x = expand_scale(c(0.1, 0.1)),
 \item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
 Default is \code{NULL}.}
 
-\item{expand_x}{Vector of range expansion constants used to add some
-padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
-generate the values for the expand argument.}
-
-\item{expand_y}{Vector of range expansion constants used to add some
-padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
-generate the values for the expand argument.}
-
 \item{breaks}{One of:
 \itemize{
 \item NULL for no breaks

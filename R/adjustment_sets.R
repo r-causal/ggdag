@@ -20,6 +20,7 @@
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
+#' @inheritParams theme_dag
 #'
 #' @return a `tidy_dagitty` with an `adjusted` column and `set`
 #'   column, indicating adjustment status and DAG ID, respectively, for the
@@ -82,7 +83,9 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                                  node_size = 16, text_size = 3.88, label_size = text_size,
                                  text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
+                                 expand_x = expand_scale(c(0.25, 0.25)),
+                                 expand_y = expand_scale(c(0.2, 0.2))) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -92,9 +95,8 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                    start_cap = ggraph::circle(10, "mm"),
                    end_cap = ggraph::circle(10, "mm")) +
     ggplot2::facet_wrap(~set) +
-    theme_dag() +
-    scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
-              expand_y = expand_scale(c(0.2, 0.2)))
+    theme_dag(expand_x = expand_x, expand_y = expand_y) +
+    scale_dag()
 
   if (node) {
     if (stylized) {
@@ -205,8 +207,8 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
                    start_cap = ggraph::circle(10, "mm"),
                    end_cap = ggraph::circle(10, "mm")) +
-    theme_dag() +
-    scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
+    theme_dag(expand_y = expand_scale(c(0.2, 0.2))) +
+    scale_dag()
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {

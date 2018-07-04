@@ -81,11 +81,11 @@ different directions. Default to FALSE.}
 
 \item{n}{The number of points to create along the path.}
 
-\item{lineend}{Line end style (round, butt, square)}
+\item{lineend}{Line end style (round, butt, square).}
 
-\item{linejoin}{Line join style (round, mitre, bevel)}
+\item{linejoin}{Line join style (round, mitre, bevel).}
 
-\item{linemitre}{Line mitre limit (number greater than 1)}
+\item{linemitre}{Line mitre limit (number greater than 1).}
 
 \item{label_colour}{The colour of the edge label. If \code{NA} it will use
 the colour of the edge.}
