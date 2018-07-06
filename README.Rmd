@@ -74,12 +74,12 @@ tidy_ggdag
 
 ```{r ggdag, dpi=300}
 ggdag(tidy_ggdag)
-ggdag_adjustment_set(tidy_ggdag)
+ggdag_adjustment_set(tidy_ggdag, node_size = 14)
 ```
 
 As well as geoms and other functions for plotting them directly in `ggplot2`:
 
-```{r ggdag_geoms, dpi=300}
+```{r ggdag_geoms, dpi=300} 
 dagify(m ~ x + y) %>% 
   tidy_dagitty() %>% 
   node_dconnected("x", "y", controlling_for = "m") %>%

@@ -71,7 +71,7 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 
   .tdy_dag$data <-
     purrr::map_df(sets,
-                  ~dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste(.x, collapse = ", "))
+                  ~dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste0("{", paste(.x, collapse = ", "), "}"))
     )
 
   .tdy_dag

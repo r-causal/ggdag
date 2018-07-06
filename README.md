@@ -106,7 +106,7 @@ ggdag(tidy_ggdag)
 <img src="man/figures/README-ggdag-1.png" width="100%" />
 
 ``` r
-ggdag_adjustment_set(tidy_ggdag)
+ggdag_adjustment_set(tidy_ggdag, node_size = 14)
 ```
 
 <img src="man/figures/README-ggdag-2.png" width="100%" />
