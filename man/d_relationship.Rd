@@ -22,19 +22,19 @@ node_drelationship(.tdy_dag, from = NULL, to = NULL,
 ggdag_drelationship(.tdy_dag, from = NULL, to = NULL,
   controlling_for = NULL, ..., edge_type = "link_arc", node_size = 16,
   text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
+  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
   use_labels = NULL, collider_lines = TRUE)
 
 ggdag_dseparated(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
   ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
   label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL,
+  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
   collider_lines = TRUE)
 
 ggdag_dconnected(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
   ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
   label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL,
+  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
   collider_lines = TRUE)
 }
 \arguments{
@@ -107,7 +107,7 @@ dag \%>\%
   geom_dag_collider_edges() +
   geom_dag_node() +
   geom_dag_text(col = "white") +
-  theme_dag() + scale_dag()
+  theme_dag() + scale_adjusted()
 
 dag \%>\%
   node_dconnected("x", "y", controlling_for = "m") \%>\%
@@ -117,7 +117,7 @@ dag \%>\%
   geom_dag_node() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_dag()
+  scale_adjusted()
 
 dagify(m ~ x + y, m_jr ~ m) \%>\%
   tidy_dagitty(layout = "nicely") \%>\%
@@ -128,5 +128,5 @@ dagify(m ~ x + y, m_jr ~ m) \%>\%
   geom_dag_node() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_dag()
+  scale_adjusted()
 }

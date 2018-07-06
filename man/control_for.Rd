@@ -10,7 +10,7 @@ control_for(.tdy_dag, var, as_factor = TRUE, ...)
 
 ggdag_adjust(.tdy_dag, var = NULL, ..., node_size = 16, text_size = 3.88,
   label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL,
+  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
   collider_lines = TRUE)
 }
 \arguments{

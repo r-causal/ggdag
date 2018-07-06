@@ -60,7 +60,7 @@ node_status <- function(.dag, as_factor = TRUE, ...) {
 ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                          label_size = text_size,
                          text_col = "white", label_col = text_col,
-                         node = TRUE, stylized = TRUE, text = TRUE,
+                         node = TRUE, stylized = FALSE, text = TRUE,
                          use_labels = NULL) {
 
   edge_function <- edge_type_switch(edge_type)
@@ -70,7 +70,7 @@ ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, 
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = status)) +
     edge_function() +
     theme_dag() +
-    scale_dag(breaks = c("exposure", "outcome", "latent"))
+    scale_adjusted(breaks = c("exposure", "outcome", "latent"))
 
   if (node) {
     if (stylized) {

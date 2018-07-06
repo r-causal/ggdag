@@ -106,7 +106,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
 #' @export
 ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, paths_only = FALSE, ...,
                                  node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -143,7 +143,7 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
 #' @export
 ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...,
                         spread = .7, node_size = 16, text_size = 2, label_size = text_size, text_col = "white", label_col = text_col,
-                        node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                        node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%

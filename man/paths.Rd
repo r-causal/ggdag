@@ -13,13 +13,13 @@ dag_paths(.dag, from = NULL, to = NULL, adjust_for = NULL,
 ggdag_paths(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
   directed = FALSE, paths_only = FALSE, ..., node_size = 16,
   text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
+  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
   use_labels = NULL)
 
 ggdag_paths_fan(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
   directed = FALSE, ..., spread = 0.7, node_size = 16, text_size = 2,
   label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL)
+  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or

@@ -96,7 +96,7 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                    end_cap = ggraph::circle(10, "mm")) +
     ggplot2::facet_wrap(~set) +
     theme_dag(expand_x = expand_x, expand_y = expand_y) +
-    scale_dag()
+    scale_adjusted()
 
   if (node) {
     if (stylized) {
@@ -191,7 +191,7 @@ control_for <- function(.tdy_dag, var, as_factor = TRUE, ...) {
 ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
                          node_size = 16, text_size = 3.88, label_size = text_size,
                          text_col = "white", label_col = text_col,
-                         node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                         node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)
@@ -208,7 +208,7 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
                    start_cap = ggraph::circle(10, "mm"),
                    end_cap = ggraph::circle(10, "mm")) +
     theme_dag(expand_y = expand_scale(c(0.2, 0.2))) +
-    scale_dag()
+    scale_adjusted()
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {

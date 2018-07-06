@@ -23,7 +23,7 @@
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
 #' @inheritParams tidy_dagitty
-#' @inheritParams scale_dag
+#' @inheritParams scale_adjusted
 #'
 #' @return a `tidy_dagitty` with at least one DAG, including a `dag`
 #'   column to identify graph set for equivalent DAGs or a `reversable`
@@ -61,7 +61,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 #' @export
 ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
                                   label_size = text_size, text_col = "white", label_col = text_col,
-                                  node = TRUE, stylized = TRUE, text = TRUE,
+                                  node = TRUE, stylized = FALSE, text = TRUE,
                                   use_labels = NULL) {
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -88,9 +88,9 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
   if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
     p <- p +
       ggplot2::facet_wrap(~dag) +
-      scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
+      scale_adjusted(expand_x = expand_scale(c(0.25, 0.25)))
   } else {
-    p <- p + scale_dag()
+    p <- p + scale_adjusted()
   }
 
   p
@@ -119,7 +119,7 @@ ggdag_equivalent_class <- function(.tdy_dag,
                                    breaks = ggplot2::waiver(), ...,
                                    node_size = 16, text_size = 3.88, label_size = text_size,
                                    text_col = "white", label_col = text_col,
-                                   node = TRUE, stylized = TRUE,
+                                   node = TRUE, stylized = FALSE,
                                    text = TRUE, use_labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)

@@ -52,7 +52,7 @@
 #'   geom_dag_collider_edges() +
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
-#'   theme_dag() + scale_dag()
+#'   theme_dag() + scale_adjusted()
 #'
 #' dag %>%
 #'   node_dconnected("x", "y", controlling_for = "m") %>%
@@ -62,7 +62,7 @@
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
 #'   theme_dag() +
-#'   scale_dag()
+#'   scale_adjusted()
 #'
 #' dagify(m ~ x + y, m_jr ~ m) %>%
 #'   tidy_dagitty(layout = "nicely") %>%
@@ -73,7 +73,7 @@
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
 #'   theme_dag() +
-#'   scale_dag()
+#'   scale_adjusted()
 #' @rdname d_relationship
 #' @name Assess d-separation between variables
 node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE, ...) {
@@ -169,7 +169,7 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
 ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                                 node_size = 16, text_size = 3.88, label_size = text_size,
                                 text_col = "white", label_col = text_col,
-                                node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                                node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -179,7 +179,7 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
                        end_cap = ggraph::circle(10, "mm")) +
 
     theme_dag() +
-    scale_dag(expand_y = expand_scale(c(0.2, 0.2)), breaks = c("d-connected", "d-separated"))
+    scale_adjusted(expand_y = expand_scale(c(0.2, 0.2)), breaks = c("d-connected", "d-separated"))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {
@@ -204,7 +204,7 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
 ggdag_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, label_size = text_size,
                              text_col = "white", label_col = text_col,
-                             node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                             node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, ..., edge_type = edge_type,
                       node_size = node_size, text_size = text_size, label_size = label_size,
@@ -217,7 +217,7 @@ ggdag_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for =
 ggdag_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, ..., edge_type = "link_arc",
                              node_size = 16, text_size = 3.88, label_size = text_size,
                              text_col = "white", label_col = text_col,
-                             node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                             node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
                       controlling_for = controlling_for, ..., edge_type = edge_type,
                       node_size = node_size, text_size = text_size, label_size = label_size,

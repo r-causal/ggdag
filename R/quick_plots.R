@@ -195,7 +195,7 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
 ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE,
                          edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                          text_col = "white", label_col = text_col,
-                         node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                         node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   ggdag(m_bias(x, y, a, b, m, x_y_associated), edge_type = edge_type,
         node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
         node = node, stylized = stylized, text = text, use_labels = use_labels)
@@ -206,7 +206,7 @@ ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_a
 ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE,
                                  edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                  text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   ggdag(butterfly_bias(x, y, a, b, m, x_y_associated), edge_type = edge_type,
         node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
         node = node, stylized = stylized, text = text, use_labels = use_labels)
@@ -217,7 +217,7 @@ ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NUL
 ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE,
                                       edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                       text_col = "white", label_col = text_col,
-                                      node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                      node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   ggdag(confounder_triangle(x, y, z, x_y_associated), edge_type = edge_type,
         node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
         node = node, stylized = stylized, text = text, use_labels = use_labels)
@@ -228,7 +228,7 @@ ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associat
 ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
                                     edge_type = "link_arc",  node_size = 16, text_size = 3.88, label_size = text_size,
                                     text_col = "white", label_col = text_col,
-                                    node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                    node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   ggdag(collider_triangle(x, y, m, x_y_associated), edge_type = edge_type,
         node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
         node = node, stylized = stylized, text = text, use_labels = use_labels)
@@ -239,7 +239,7 @@ ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated
 ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
                                      edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                      text_col = "white", label_col = text_col,
-                                     node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                     node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   ggdag(mediation_triangle(x, y, m, x_y_associated), edge_type = edge_type,
         node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
         node = node, stylized = stylized, text = text, use_labels = use_labels)
