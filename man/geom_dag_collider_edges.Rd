@@ -88,5 +88,5 @@ dagify(m ~ a + b, x ~ a, y ~ b) \%>\%
     geom_dag_node() +
     geom_dag_text() +
     theme_dag() +
-    scale_dag()
+    scale_adjusted()
 }

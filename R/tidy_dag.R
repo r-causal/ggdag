@@ -28,8 +28,7 @@
 #'     geom_dag_node() +
 #'     geom_dag_text() +
 #'     geom_dag_edges() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 
   if (!is.null(seed)) set.seed(seed)

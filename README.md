@@ -123,8 +123,8 @@ dagify(m ~ x + y) %>%
     geom_dag_collider_edges() +
     geom_dag_node() +
     geom_dag_text(col = "white") +
-    theme_dag() + 
-    scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
+    theme_dag(expand_y = expand_scale(c(0.2, 0.2))) + 
+    scale_adjusted()
 ```
 
 <img src="man/figures/README-ggdag_geoms-1.png" width="100%" />

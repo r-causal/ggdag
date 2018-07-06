@@ -202,3 +202,62 @@ GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                                                vjust = 0.5, family = '', fontface = 1,
                                                                lineheight = 1.2, direction = "->", direction_type = "->")
 )
+
+
+
+
+scales_list_quiet <- function() {
+  ggplot2::ggproto(NULL, ScalesListQuiet)
+}
+
+ScalesListQuiet <- ggplot2::ggproto("ScalesListQuiet", NULL,
+  scales = NULL,
+
+  find = function(self, aesthetic) {
+    vapply(self$scales, function(x) any(aesthetic %in% x$aesthetics), logical(1))
+  },
+
+  has_scale = function(self, aesthetic) {
+    any(self$find(aesthetic))
+  },
+
+  add = function(self, scale) {
+    if (is.null(scale)) {
+      return()
+    }
+
+    prev_aes <- self$find(scale$aesthetics)
+    if (any(prev_aes)) {
+      # Get only the first aesthetic name in the returned vector -- it can
+      # sometimes be c("x", "xmin", "xmax", ....)
+      scalename <- self$scales[prev_aes][[1]]$aesthetics[1]
+    }
+
+    # Remove old scale for this aesthetic (if it exists)
+    self$scales <- c(self$scales[!prev_aes], list(scale))
+  },
+
+  n = function(self) {
+    length(self$scales)
+  },
+
+  input = function(self) {
+    unlist(lapply(self$scales, "[[", "aesthetics"))
+  },
+
+  # This actually makes a descendant of self, which is functionally the same
+  # as a actually clone for most purposes.
+  clone = function(self) {
+    ggproto(NULL, self, scales = lapply(self$scales, function(s) s$clone()))
+  },
+
+  non_position_scales = function(self) {
+    ggproto(NULL, self, scales = self$scales[!self$find("x") & !self$find("y")])
+  },
+
+  get_scales = function(self, output) {
+    scale <- self$scales[self$find(output)]
+    if (length(scale) == 0) return()
+    scale[[1]]
+  }
+)

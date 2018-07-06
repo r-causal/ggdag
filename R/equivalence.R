@@ -88,7 +88,8 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
   if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
     p <- p +
       ggplot2::facet_wrap(~dag) +
-      scale_adjusted(expand_x = expand_scale(c(0.25, 0.25)))
+      scale_adjusted() +
+      expand_plot(expand_x = expand_scale(c(0.25, 0.25)))
   } else {
     p <- p + scale_adjusted()
   }
@@ -112,6 +113,7 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 }
 
 #' @rdname equivalent
+#' @inheritParams expand_plot
 #' @export
 ggdag_equivalent_class <- function(.tdy_dag,
                                    expand_x = expand_scale(c(.10, .10)),

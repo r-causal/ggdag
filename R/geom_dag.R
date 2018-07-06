@@ -32,8 +32,7 @@
 #'   tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_edges() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 #'
 #' p +
 #'   geom_dag_node() +
@@ -121,8 +120,7 @@ geom_dag_point <- function(mapping = NULL, data = NULL,
 #'     geom_dag_node() +
 #'     geom_dag_edges() +
 #'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 geom_dag_text <- function(mapping = NULL, data = NULL,
                           stat = "identity", position = "identity",
                           ...,
@@ -191,8 +189,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'     geom_dag_edges() +
 #'     geom_dag_node() +
 #'     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 #'
 #' g %>% tidy_dagitty() %>%
 #'   dag_label(labels = c("x" = "This is the exposure",
@@ -204,8 +201,8 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'     geom_dag_text() +
 #'     geom_dag_label_repel(aes(label = label, fill = label),
 #'       col = "white", show.legend = FALSE) +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
+#'
 #' @rdname repel
 #' @name ggrepel functions
 geom_dag_text_repel <- function(mapping = NULL,
@@ -383,8 +380,8 @@ filter_direction <- function(.direction) {
 #'     geom_dag_edges() +
 #'     geom_dag_node() +
 #'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
+#'
 geom_dag_edges <- function(mapping = NULL,
                            data_directed = filter_direction("->"),
                            data_bidirected = filter_direction("<->"),
@@ -480,8 +477,7 @@ geom_dag_edges <- function(mapping = NULL,
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_node() +
 #'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 #'
 #' p + geom_dag_edges_link()
 #' p + geom_dag_edges_arc()
@@ -627,7 +623,7 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #'     geom_dag_node() +
 #'     geom_dag_text() +
 #'     theme_dag() +
-#'     scale_dag()
+#'     scale_adjusted()
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     stat = "identity", position = "identity",
                                     ...,
@@ -665,3 +661,22 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     )
   )
 }
+
+#' Create a new ggplot
+#'
+#' @inheritParams ggplot2::ggplot
+#' @export
+#' @rdname ggplot.tidy_dagitty
+#' @importFrom ggplot2 ggplot
+ggplot.tidy_dagitty <- function(data = NULL, ...) {
+
+  p <- ggplot2::ggplot(fortify(data), ...)
+
+  p$scales <- scales_list_quiet()
+
+  p
+}
+
+#' @rdname ggplot.tidy_dagitty
+#' @export
+ggplot.dagitty <- ggplot.tidy_dagitty

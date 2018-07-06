@@ -162,8 +162,7 @@ p <- dagify(y ~ x + z2 + w2 + w1,
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_node() +
     geom_dag_text() +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
 
 p + geom_dag_edges_link()
 p + geom_dag_edges_arc()

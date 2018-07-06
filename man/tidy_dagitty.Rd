@@ -41,6 +41,5 @@ tidy_dagitty(dag, layout = "fr") \%>\%
     geom_dag_node() +
     geom_dag_text() +
     geom_dag_edges() +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
 }

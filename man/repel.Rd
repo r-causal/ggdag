@@ -117,8 +117,7 @@ g \%>\% tidy_dagitty() \%>\%
     geom_dag_edges() +
     geom_dag_node() +
     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
 
 g \%>\% tidy_dagitty() \%>\%
   dag_label(labels = c("x" = "This is the exposure",
@@ -130,6 +129,6 @@ g \%>\% tidy_dagitty() \%>\%
     geom_dag_text() +
     geom_dag_label_repel(aes(label = label, fill = label),
       col = "white", show.legend = FALSE) +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
+
 }

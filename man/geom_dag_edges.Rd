@@ -96,6 +96,6 @@ dagify(y ~ x + z2 + w2 + w1,
     geom_dag_edges() +
     geom_dag_node() +
     geom_dag_text() +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
+
 }
