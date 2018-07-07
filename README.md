@@ -106,7 +106,8 @@ ggdag(tidy_ggdag)
 <img src="man/figures/README-ggdag-1.png" width="100%" />
 
 ``` r
-ggdag_adjustment_set(tidy_ggdag, node_size = 14)
+ggdag_adjustment_set(tidy_ggdag, node_size = 14) + 
+  theme(legend.position = "bottom")
 ```
 
 <img src="man/figures/README-ggdag-2.png" width="100%" />
@@ -121,10 +122,11 @@ dagify(m ~ x + y) %>%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
     geom_dag_edges(aes(end_cap = ggraph::circle(10, "mm"))) +
     geom_dag_collider_edges() +
-    geom_dag_node() +
+    geom_dag_point() +
     geom_dag_text(col = "white") +
     theme_dag(expand_y = expand_scale(c(0.2, 0.2))) + 
-    scale_adjusted()
+    scale_adjusted() +
+    scale_color_hue(name = NULL)
 ```
 
 <img src="man/figures/README-ggdag_geoms-1.png" width="100%" />
