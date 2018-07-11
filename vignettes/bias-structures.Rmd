@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
   fig.width = 7, 
   fig.height = 5, 
   fig.align = "center",
-  fig.dpi = 200,
+  fig.dpi = 320,
   warning = FALSE,
   message = FALSE
 )
@@ -24,6 +24,12 @@ set.seed(2939)
 ```
 
 *A quick note on terminology: I use the terms confounding and selection bias below, the terms of choice in epidemiology. The terms, however, depend on the field. In some fields, confounding is referred to as omitted variable bias or selection bias. Selection bias also sometimes refers to* variable *selection bias, a related issue that refers to misspecified models.*
+
+```{r set_theme}
+#  set theme of all DAGs to `theme_dag()`
+library(ggdag)
+theme_set(theme_dag())
+```
 
 # Introduction
 
@@ -34,7 +40,6 @@ In addition to helping identify causal effects, the consistency of directed acyc
 Classical confounding is simple. A confounder is associated with both the exposure and the outcome. Let's consider a classic example: coffee, smoking, and cancer. Smoking is a risk factor for a number of cancers, and people who drink coffee are more likely to smoke. Coffee doesn't actually cause lung cancer, but they are d-connected through smoking, so they will appear to be associated:
 
 ```{r}
-library(ggdag)
 confounder_triangle(x = "Coffee", y = "Lung Cancer", z = "Smoking") %>% 
   ggdag_dconnected(text = FALSE, use_labels = "label")
 ```
@@ -57,7 +62,7 @@ ggdag(coffee_dag, text = FALSE, use_labels = "label")
 Which one is the confounder, addictive behavior or smoking? Only one or the other needs to be controlled for to block the path:
 
 ```{r, fig.width = 7.5}
-ggdag_adjustment_set(coffee_dag, text = FALSE, use_labels = "label")
+ggdag_adjustment_set(coffee_dag, text = FALSE, use_labels = "label", shadow = TRUE)
 ```
 
 Focusing on individual confounders, rather than confounding pathways, is a common error in thinking about adjusting our estimates. We should be more concerned blocking all confounding pathways than with including any particular variable *along* those pathways. (It's worth noting, though, that when I say you only need one variable to block a path, that assumes you are measuring and modeling the variable correctly. If, for example, there is measurement error, controlling for that variable may still leave residual confounding, necessitating a more subtle level of control with other variables on the pathway; see the section on measurement error below. Moreover, it's important to know that you expect to block the path *on average*; normal sampling issues, e.g. sample size, still come into play.)
@@ -114,7 +119,7 @@ ggdag_adjust(surgical_dag, text = FALSE, use_labels = "label", collider_lines = 
 We can't unstratify by surgical status, so our best bet is to block the back-door path opened by stratifying on it. We can't adjust for the latent variable (and, if we're measuring it really well, the latent variable and the tool are one in the same), so all we can do is control for baseline pain. Note that, technically, surgical status is part of the adjustment set:
 
 ```{r}
-ggdag_adjustment_set(surgical_dag, text = FALSE, use_labels = "label")
+ggdag_adjustment_set(surgical_dag, text = FALSE, use_labels = "label", shadow = TRUE)
 ```
 
 What about if a variable is both a collider and a cause of the exposure and outcome (a classical confounder)? This is an extension of M-bias sometimes called butterfly bias or bow-tie bias. The variable is a part of two paths: one that it's blocking as a collider *and* a back-door path that is confounding the relationship between *x* and *y*. What to do?
@@ -126,7 +131,7 @@ ggdag_butterfly_bias(edge_type = "diagonal")
 The strategy is basically the same as above; we need to control for *m* to block the back-door path, but that opens up a relationship between *a* and *b*, so we need to block that path, too. 
 
 ```{r}
-ggdag_adjustment_set(butterfly_bias())
+ggdag_adjustment_set(butterfly_bias(), shadow = TRUE)
 ```
 
 Adjusting for either set, {*a*, *m*} or {*b*, *m*}, will give allow us to estimate the causal effect of *x* on *y*.

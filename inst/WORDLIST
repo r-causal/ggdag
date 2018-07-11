@@ -14,7 +14,9 @@ confounders
 Confounders
 CPDAGs
 dagitty
+DAGitty
 DAGs
+de
 df
 Dplyr
 edx
@@ -29,10 +31,11 @@ graphviz
 grey
 halfcircle
 Hernán
-Hern&aacute;n
 Hernán's
+Hern&aacute;n
 Hern&aacute;n's
 hjust
+http
 knitr
 lineheight
 linetype
@@ -62,5 +65,3 @@ VignetteIndexEntry
 vjust
 xend
 yend
-DAGitty
-http

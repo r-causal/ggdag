@@ -47,7 +47,9 @@
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
 #'   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
-#'   theme_dag() + scale_adjusted(breaks  = c("parent", "child"))
+#'   theme_dag() +
+#'   scale_adjusted() +
+#'   scale_color_hue(breaks  = c("parent", "child"))
 #'
 #' ggdag_parents(dag, "y")
 #'
@@ -59,10 +61,12 @@
 #'   node_parents("y") %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
 #'   geom_dag_edges() +
-#'   geom_dag_node() +
+#'   geom_dag_point() +
 #'   geom_dag_text(col = "white") +
 #'   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
-#'   theme_dag() + scale_adjusted(breaks  = c("parent", "child"))
+#'   theme_dag() +
+#'   scale_adjusted() +
+#'   scale_color_hue(breaks  = c("parent", "child"))
 #'
 #' @rdname variable_family
 #' @name Assess familial relationships between variables
@@ -160,8 +164,9 @@ ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_children(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
     edge_function() +
-    theme_dag() +
-    scale_adjusted(breaks  = c("parent", "child"))
+    remove_axes() +
+    scale_adjusted() +
+    breaks(c("parent", "child"))
 
   if (node) {
     if (stylized) {
@@ -193,8 +198,9 @@ ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_parents(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
     edge_function() +
-    theme_dag() +
-    scale_adjusted(breaks  = c("parent", "child"))
+    remove_axes() +
+    scale_adjusted() +
+    breaks(c("parent", "child"))
 
   if (node) {
     if (stylized) {
@@ -225,8 +231,9 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_ancestors(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = ancestor)) +
     edge_function() +
-    theme_dag() +
-    scale_adjusted(breaks  = c("ancestor", "descendant"))
+    remove_axes() +
+    scale_adjusted() +
+    breaks(c("ancestor", "descendant"))
 
   if (node) {
     if (stylized) {
@@ -257,10 +264,10 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_descendants(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = descendant)) +
     edge_function() +
-    geom_dag_node() +
     geom_dag_text(col = "white") +
-    theme_dag() +
-    scale_adjusted(breaks  = c("ancestor", "descendant"))
+    remove_axes() +
+    scale_adjusted() +
+    breaks(c("ancestor", "descendant"))
 
   if (node) {
     if (stylized) {
@@ -291,10 +298,10 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_markov_blanket(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = blanket)) +
     edge_function() +
-    geom_dag_node() +
     geom_dag_text(col = "white") +
-    theme_dag() +
-    scale_adjusted(breaks  = c("Markov blanket", "center variable"))
+    remove_axes() +
+    scale_adjusted() +
+    breaks(c("Markov blanket", "center variable"))
 
   if (node) {
     if (stylized) {
@@ -325,10 +332,10 @@ ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_adjacent(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = adjacent)) +
     edge_function() +
-    geom_dag_node() +
     geom_dag_text(col = "white") +
-    theme_dag() +
-    scale_adjusted(breaks  = c("adjacent", "center variable"))
+    remove_axes() +
+    scale_adjusted() +
+    breaks(c("adjacent", "center variable"))
 
   if (node) {
     if (stylized) {

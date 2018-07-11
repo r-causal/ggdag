@@ -55,8 +55,9 @@ ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
     node_exogenous() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = exogenous)) +
     edge_function() +
-    theme_dag() +
-    scale_adjusted(breaks  = "exogenous")
+    remove_axes() +
+    scale_adjusted() +
+    breaks("exogenous")
 
   if (node) {
     if (stylized) {

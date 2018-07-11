@@ -29,8 +29,9 @@ Imports:
     magrittr,
     ggforce,
     plyr,
-    tidygraph
-RoxygenNote: 6.0.1
+    tidygraph,
+    pillar
+RoxygenNote: 6.0.1.9000
 Suggests: 
     spelling,
     testthat,

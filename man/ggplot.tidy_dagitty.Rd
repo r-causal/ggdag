@@ -5,14 +5,17 @@
 \alias{ggplot.dagitty}
 \title{Create a new ggplot}
 \usage{
-\method{ggplot}{tidy_dagitty}(data = NULL, ...)
+\method{ggplot}{tidy_dagitty}(data = NULL, mapping = aes(), ...)
 
-\method{ggplot}{dagitty}(data = NULL, ...)
+\method{ggplot}{dagitty}(data = NULL, mapping = aes(), ...)
 }
 \arguments{
 \item{data}{Default dataset to use for plot. If not already a data.frame,
 will be converted to one by \code{\link[=fortify]{fortify()}}. If not specified,
 must be supplied in each layer added to the plot.}
+
+\item{mapping}{Default list of aesthetic mappings to use for plot.
+If not specified, must be supplied in each layer added to the plot.}
 
 \item{...}{Other arguments passed on to methods. Not currently used.}
 }

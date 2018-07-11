@@ -7,21 +7,13 @@
 \alias{theme_dag_gray_grid}
 \title{Simple grey themes for DAGs}
 \usage{
-theme_dag_grey(base_size = 12, base_family = "", ...,
-  expand_x = expand_scale(c(0.1, 0.1)), expand_y = expand_scale(c(0.1,
-  0.1)))
+theme_dag_grey(base_size = 12, base_family = "", ...)
 
-theme_dag_gray(base_size = 12, base_family = "", ...,
-  expand_x = expand_scale(c(0.1, 0.1)), expand_y = expand_scale(c(0.1,
-  0.1)))
+theme_dag_gray(base_size = 12, base_family = "", ...)
 
-theme_dag_grey_grid(base_size = 12, base_family = "", ...,
-  expand_x = expand_scale(c(0.1, 0.1)), expand_y = expand_scale(c(0.1,
-  0.1)))
+theme_dag_grey_grid(base_size = 12, base_family = "", ...)
 
-theme_dag_gray_grid(base_size = 12, base_family = "", ...,
-  expand_x = expand_scale(c(0.1, 0.1)), expand_y = expand_scale(c(0.1,
-  0.1)))
+theme_dag_gray_grid(base_size = 12, base_family = "", ...)
 }
 \arguments{
 \item{base_size}{base font size}
@@ -29,11 +21,6 @@ theme_dag_gray_grid(base_size = 12, base_family = "", ...,
 \item{base_family}{base font family}
 
 \item{...}{additional arguments passed to \code{theme()}}
-
-\item{expand_x, expand_y}{Vector of range expansion constants used to add some
-padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
-generate the values for the expand argument.}
 }
 \description{
 Simple grey themes for DAGs

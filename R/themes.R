@@ -4,7 +4,10 @@
 #' ggplot, as the large node sizes in a DAG will often get clipped in themes
 #' that don't have DAGs in mind.
 #'
-#' @inheritParams theme_dag_blank
+#' @param expand_x,expand_y Vector of range expansion constants used to add some
+#'   padding around the data, to ensure that they are placed some distance away
+#'   from the axes. Use the convenience function `expand_scale()` to
+#'   generate the values for the expand argument.
 #' @export
 expand_plot <- function(expand_x = expand_scale(c(.10, .10)),
                         expand_y = expand_scale(c(.10, .10))) {
@@ -18,10 +21,6 @@ expand_plot <- function(expand_x = expand_scale(c(.10, .10)),
 #'
 #' @inheritParams ggplot2::theme_minimal
 #' @param ... additional arguments passed to `theme()`
-#' @param expand_x,expand_y Vector of range expansion constants used to add some
-#'   padding around the data, to ensure that they are placed some distance away
-#'   from the axes. Use the convenience function `expand_scale()` to
-#'   generate the values for the expand argument.
 #'
 #' @export
 #'
@@ -31,18 +30,13 @@ expand_plot <- function(expand_x = expand_scale(c(.10, .10)),
 #' @rdname theme_dag_blank
 #'
 #' @importFrom ggplot2 %+replace%
-theme_dag_blank <- function(base_size = 12, base_family = "", ...,
-                            expand_x = expand_scale(c(.10, .10)),
-                            expand_y = expand_scale(c(.10, .10))) {
-  list(
+theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
     ggplot2::theme_minimal(base_size = base_size, base_family = base_family) %+replace%
     ggplot2::theme(strip.text = ggplot2::element_text(face = "bold"),
                    axis.text = ggplot2::element_blank(),
                    axis.title = ggplot2::element_blank(),
                    panel.grid = ggplot2::element_blank(),
-                   ..., complete = TRUE),
-    expand_plot(expand_x = expand_x, expand_y = expand_y)
-  )
+                   ..., complete = TRUE)
 }
 
 #' @rdname theme_dag_blank
@@ -52,26 +46,17 @@ theme_dag <- theme_dag_blank
 #' @rdname theme_dag_blank
 #' @export
 #' @importFrom ggplot2 %+replace%
-theme_dag_grid <- function(base_size = 12, base_family = "", ...,
-                            expand_x = expand_scale(c(.10, .10)),
-                            expand_y = expand_scale(c(.10, .10))) {
-    list(
+theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
       ggplot2::theme_minimal(base_size = base_size, base_family = base_family) %+replace%
       ggplot2::theme(axis.text = ggplot2::element_blank(),
                      axis.title = ggplot2::element_blank(),
-                     ..., complete = TRUE),
-      expand_plot(expand_x = expand_x, expand_y = expand_y)
-    )
+                     ..., complete = TRUE)
 }
 
 #' Simple grey themes for DAGs
 #'
 #' @inheritParams ggplot2::theme_grey
 #' @param ... additional arguments passed to `theme()`
-#' @param expand_x,expand_y Vector of range expansion constants used to add some
-#'   padding around the data, to ensure that they are placed some distance away
-#'   from the axes. Use the convenience function `expand_scale()` to
-#'   generate the values for the expand argument.
 #'
 #' @export
 #'
@@ -82,19 +67,14 @@ theme_dag_grid <- function(base_size = 12, base_family = "", ...,
 #' ggdag(m_bias()) + theme_dag_grey()
 #'
 #' @importFrom ggplot2 %+replace%
-theme_dag_grey <- function(base_size = 12, base_family = "", ...,
-                            expand_x = expand_scale(c(.10, .10)),
-                            expand_y = expand_scale(c(.10, .10))) {
-  list(
+theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
     ggplot2::theme_grey(base_size = base_size, base_family = base_family) %+replace%
     ggplot2::theme(axis.text = ggplot2::element_blank(),
                    axis.title = ggplot2::element_blank(),
                    axis.ticks = ggplot2::element_blank(),
                    panel.grid.major = ggplot2::element_line(colour = "grey92"),
                    panel.grid.minor = ggplot2::element_line(colour = "grey92"),
-                   ..., complete = TRUE),
-    expand_plot(expand_x = expand_x, expand_y = expand_y)
-  )
+                   ..., complete = TRUE)
 }
 
 #' @rdname theme_dag_grey
@@ -103,17 +83,12 @@ theme_dag_gray <- theme_dag_grey
 
 #' @rdname theme_dag_grey
 #' @export
-theme_dag_grey_grid <- function(base_size = 12, base_family = "", ...,
-                            expand_x = expand_scale(c(.10, .10)),
-                            expand_y = expand_scale(c(.10, .10))) {
-  list(
+theme_dag_grey_grid <- function(base_size = 12, base_family = "", ...) {
     ggplot2::theme_grey(base_size = base_size, base_family = base_family) %+replace%
     ggplot2::theme(axis.text = ggplot2::element_blank(),
                    axis.title = ggplot2::element_blank(),
                    axis.ticks = ggplot2::element_blank(),
-                   ..., complete = TRUE),
-    expand_plot(expand_x = expand_x, expand_y = expand_y)
-  )
+                   ..., complete = TRUE)
 }
 
 #' @rdname theme_dag_grey
@@ -144,12 +119,19 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #'
 #' @export
 #' @rdname scale_adjusted
-scale_adjusted <- function(breaks = ggplot2::waiver()) {
+scale_adjusted <- function() {
   list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
     ggplot2::scale_shape_manual(drop = FALSE, values = c("unadjusted" = 19, "adjusted" = 15)),
-    ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .25, "unadjusted" = 1)),
-    ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .25, "unadjusted" = 1))
+    ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1)),
+    ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1))
+  )
+}
+
+breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver()) {
+  list(
+    ggplot2::scale_color_hue(name = name, drop = FALSE, breaks = breaks),
+    ggplot2::scale_fill_hue(name = name, drop = FALSE, breaks = breaks)
   )
 }
 
@@ -157,14 +139,17 @@ scale_adjusted <- function(breaks = ggplot2::waiver()) {
 #' @export
 scale_dag <- function(breaks = ggplot2::waiver()) {
   .Deprecated("scale_adjusted")
-  scale_adjusted(breaks = breaks)
+  list(
+      scale_adjusted(),
+      breaks(breaks = breaks)
+    )
 }
 
 #' Quickly remove plot axes and grids
 #'
-#' `remove_axes_grids()` is a convenience function that removes the axes and
-#' grids from a ggplot. This is useful when you want to use an existing theme,
-#' e.g. those included in `ggplot2`, for a DAG.
+#' `remove_axes()` and `remove_grid()` are convenience functions that removes
+#' the axes and grids from a ggplot, respectively. This is useful when you want
+#' to use an existing theme, e.g. those included in `ggplot2`, for a DAG.
 #'
 #' @export
 #'
@@ -172,10 +157,17 @@ scale_dag <- function(breaks = ggplot2::waiver()) {
 #'
 #' ggdag(confounder_triangle()) +
 #' theme_bw() +
-#' remove_axes_grids()
-remove_axes_grids <- function() {
+#' remove_axes()
+#'
+#' @rdname remove_axes
+remove_axes <- function() {
   ggplot2::theme(axis.text = ggplot2::element_blank(),
                  axis.title = ggplot2::element_blank(),
-                 axis.ticks = ggplot2::element_blank(),
-                 panel.grid = ggplot2::element_blank())
+                 axis.ticks = ggplot2::element_blank())
+}
+
+#' @rdname remove_axes
+#' @export
+remove_grid <- function() {
+  ggplot2::theme(panel.grid = ggplot2::element_blank())
 }

@@ -4,7 +4,8 @@
 \alias{as.tbl.tidy_daggity}
 \title{Convert a \code{tidy_dagitty} object to tbl}
 \usage{
-\method{as.tbl}{tidy_daggity}(x, row.names = NULL, optional = FALSE, ...)
+\method{as.tbl}{tidy_daggity}(x, row.names = NULL, optional = FALSE,
+  ...)
 }
 \arguments{
 \item{x}{an object of class \code{tidy_dagitty}}

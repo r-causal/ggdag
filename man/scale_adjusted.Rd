@@ -5,7 +5,7 @@
 \alias{scale_dag}
 \title{Common scale adjustments for DAGs}
 \usage{
-scale_adjusted(breaks = ggplot2::waiver())
+scale_adjusted()
 
 scale_dag(breaks = ggplot2::waiver())
 }

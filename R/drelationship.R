@@ -175,11 +175,11 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
-    edge_function(start_cap = ggraph::circle(10, "mm"),
+      edge_function(start_cap = ggraph::circle(10, "mm"),
                        end_cap = ggraph::circle(10, "mm")) +
-
-    theme_dag() +
-      scale_adjusted(breaks = c("d-connected", "d-separated")) +
+      remove_axes() +
+      scale_adjusted() +
+      breaks(c("d-connected", "d-separated"), name = "d-relationship") +
       expand_plot(expand_y = expand_scale(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()

@@ -119,12 +119,12 @@ As well as geoms and other functions for plotting them directly in
 dagify(m ~ x + y) %>% 
   tidy_dagitty() %>% 
   node_dconnected("x", "y", controlling_for = "m") %>%
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship), expand_y = expand_scale(c(0.2, 0.2))) +
     geom_dag_edges(aes(end_cap = ggraph::circle(10, "mm"))) +
     geom_dag_collider_edges() +
     geom_dag_point() +
     geom_dag_text(col = "white") +
-    theme_dag(expand_y = expand_scale(c(0.2, 0.2))) + 
+    theme_dag() + 
     scale_adjusted() +
     scale_color_hue(name = NULL)
 ```

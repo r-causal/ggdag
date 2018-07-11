@@ -23,9 +23,11 @@ butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
 confounder_triangle(x = NULL, y = NULL, z = NULL,
   x_y_associated = FALSE)
 
-collider_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
+collider_triangle(x = NULL, y = NULL, m = NULL,
+  x_y_associated = FALSE)
 
-mediation_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
+mediation_triangle(x = NULL, y = NULL, m = NULL,
+  x_y_associated = FALSE)
 
 ggdag_m_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
   x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
@@ -33,11 +35,11 @@ ggdag_m_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
   label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
   use_labels = NULL)
 
-ggdag_butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag_butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL,
+  m = NULL, x_y_associated = FALSE, edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 
 ggdag_confounder_triangle(x = NULL, y = NULL, z = NULL,
   x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,

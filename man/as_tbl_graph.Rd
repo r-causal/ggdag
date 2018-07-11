@@ -3,7 +3,6 @@
 \name{as_tbl_graph}
 \alias{as_tbl_graph}
 \alias{as_tbl_graph.tidy_dagitty}
-\alias{as_tbl_graph}
 \alias{as_tbl_graph.dagitty}
 \title{Convert DAGS to tidygraph}
 \usage{

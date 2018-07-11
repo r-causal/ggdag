@@ -10,31 +10,34 @@
 \alias{ggdag_dconnected}
 \title{D-relationship between variables}
 \usage{
-node_dconnected(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
-  as_factor = TRUE, ...)
+node_dconnected(.tdy_dag, from = NULL, to = NULL,
+  controlling_for = NULL, as_factor = TRUE, ...)
 
-node_dseparated(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
-  as_factor = TRUE)
+node_dseparated(.tdy_dag, from = NULL, to = NULL,
+  controlling_for = NULL, as_factor = TRUE)
 
 node_drelationship(.tdy_dag, from = NULL, to = NULL,
   controlling_for = NULL, as_factor = TRUE)
 
 ggdag_drelationship(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL, collider_lines = TRUE)
-
-ggdag_dseparated(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
-  ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
-  label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
+  controlling_for = NULL, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL,
   collider_lines = TRUE)
 
-ggdag_dconnected(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL,
-  ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
-  label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
+ggdag_dseparated(.tdy_dag, from = NULL, to = NULL,
+  controlling_for = NULL, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL,
+  collider_lines = TRUE)
+
+ggdag_dconnected(.tdy_dag, from = NULL, to = NULL,
+  controlling_for = NULL, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL,
   collider_lines = TRUE)
 }
 \arguments{

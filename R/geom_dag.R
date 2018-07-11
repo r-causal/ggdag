@@ -390,11 +390,12 @@ geom_dag_edges <- function(mapping = NULL,
                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
                            ...) {
-  list(geom_dag_edges_link(mapping, data = data_directed, arrow = arrow_directed,
+  list(
+    geom_dag_edges_link(mapping, data = data_directed, arrow = arrow_directed,
                            position = position, na.rm = na.rm,
                            show.legend = show.legend, inherit.aes = inherit.aes,
                            ...),
-       geom_dag_edges_arc(mapping, data = data_bidirected, arrow = arrow_bidirected,
+    geom_dag_edges_arc(mapping, data = data_bidirected, arrow = arrow_bidirected,
                           curvature = curvature, position = position,
                           na.rm = na.rm, show.legend = show.legend,
                           inherit.aes = inherit.aes, fold = fold,
@@ -667,16 +668,18 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #' @inheritParams ggplot2::ggplot
 #' @export
 #' @rdname ggplot.tidy_dagitty
-#' @importFrom ggplot2 ggplot
-ggplot.tidy_dagitty <- function(data = NULL, ...) {
+#' @importFrom ggplot2 ggplot aes
+ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
 
-  p <- ggplot2::ggplot(fortify(data), ...)
+  p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
 
   p$scales <- scales_list_quiet()
 
-  p
+  p + expand_plot(expand_x = expand_scale(c(.10, .10)),
+                  expand_y = expand_scale(c(.10, .10)))
 }
 
 #' @rdname ggplot.tidy_dagitty
 #' @export
 ggplot.dagitty <- ggplot.tidy_dagitty
+
