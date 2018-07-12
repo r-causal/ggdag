@@ -215,10 +215,10 @@ instrumental variables or a <code>ggplot</code></p>
 #&gt; # A tibble: 4 x 11
 #&gt;   name      x     y direction to     xend  yend circular instrumental_name
 #&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;            
-#&gt; 1 i      7.33  6.40 -&gt;        x      6.42  5.67 FALSE    i                
-#&gt; 2 x      6.42  5.67 -&gt;        y      5.73  5.11 FALSE    i                
-#&gt; 3 x      6.42  5.67 &lt;-&gt;       y      5.73  5.11 FALSE    i                
-#&gt; 4 y      5.73  5.11 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    i                
+#&gt; 1 i     11.1   7.64 -&gt;        x      9.96  7.64 FALSE    i                
+#&gt; 2 x      9.96  7.64 -&gt;        y      9.07  7.64 FALSE    i                
+#&gt; 3 x      9.96  7.64 &lt;-&gt;       y      9.07  7.64 FALSE    i                
+#&gt; 4 y      9.07  7.64 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    i                
 #&gt; # ... with 2 more variables: adjusted &lt;fct&gt;, instrumental &lt;chr&gt;</div><div class='input'><span class='fu'>ggdag_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; i2-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='img'><img src='instrumental-1.png' alt='' width='700' height='433' /></div><div class='input'>
 </div></pre>
   </div>
