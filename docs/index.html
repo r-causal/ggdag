@@ -179,10 +179,10 @@
 <p><code>ggdag</code> also provides functionality for analyzing DAGs and plotting them in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw"><a href="reference/ggdag.html">ggdag</a></span>(tidy_ggdag) <span class="op">+</span></a>
 <a class="sourceLine" id="cb4-2" data-line-number="2"><span class="st">  </span><span class="kw"><a href="reference/theme_dag_blank.html">theme_dag</a></span>()</a></code></pre></div>
-<p><img src="../../../../Active/r_packages/ggdag/man/figures/README-ggdag-1.png" width="100%"></p>
+<p><img src="../../../../reference/figures/README-ggdag-1.png" width="100%"></p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw"><a href="reference/adjustment_sets.html">ggdag_adjustment_set</a></span>(tidy_ggdag, <span class="dt">node_size =</span> <span class="dv">14</span>) <span class="op">+</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb5-2" data-line-number="2"><span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">"bottom"</span>)</a></code></pre></div>
-<p><img src="../../../../Active/r_packages/ggdag/man/figures/README-ggdag-2.png" width="100%"></p>
+<p><img src="../../../../reference/figures/README-ggdag-2.png" width="100%"></p>
 <p>As well as geoms and other functions for plotting them directly in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw"><a href="reference/dagify.html">dagify</a></span>(m <span class="op">~</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span>y) <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb6-2" data-line-number="2"><span class="st">  </span><span class="kw"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span>() <span class="op">%&gt;%</span><span class="st"> </span></a>
@@ -196,13 +196,13 @@
 <a class="sourceLine" id="cb6-10" data-line-number="10"><span class="st">    </span><span class="kw"><a href="reference/scale_adjusted.html">scale_adjusted</a></span>() <span class="op">+</span></a>
 <a class="sourceLine" id="cb6-11" data-line-number="11"><span class="st">    </span><span class="kw"><a href="reference/expand_plot.html">expand_plot</a></span>(<span class="dt">expand_y =</span> <span class="kw"><a href="reference/expand_scale.html">expand_scale</a></span>(<span class="kw">c</span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>))) <span class="op">+</span></a>
 <a class="sourceLine" id="cb6-12" data-line-number="12"><span class="st">    </span><span class="kw">scale_color_hue</span>(<span class="dt">name =</span> <span class="st">"d-relationship"</span>) </a></code></pre></div>
-<p><img src="../../../../Active/r_packages/ggdag/man/figures/README-ggdag_geoms-1.png" width="100%"></p>
+<p><img src="../../../../reference/figures/README-ggdag_geoms-1.png" width="100%"></p>
 <p>And common structures of bias:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw"><a href="reference/equivalent.html">ggdag_equivalent_dags</a></span>(<span class="kw"><a href="reference/quick_plot.html">confounder_triangle</a></span>())</a></code></pre></div>
-<p><img src="../../../../Active/r_packages/ggdag/man/figures/README-ggdag_common-1.png" width="100%"></p>
+<p><img src="../../../../reference/figures/README-ggdag_common-1.png" width="100%"></p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"></a>
 <a class="sourceLine" id="cb8-2" data-line-number="2"><span class="kw"><a href="reference/quick_plot.html">ggdag_butterfly_bias</a></span>(<span class="dt">edge_type =</span> <span class="st">"diagonal"</span>)</a></code></pre></div>
-<p><img src="../../../../Active/r_packages/ggdag/man/figures/README-ggdag_common-2.png" width="100%"></p>
+<p><img src="../../../../reference/figures/README-ggdag_common-2.png" width="100%"></p>
 </div>
 </div>
   </div>
