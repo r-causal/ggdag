@@ -21,12 +21,15 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Simulate Data from Structural Equation Model — simulate_data" />
 
 <meta property="og:description" content="This is a thin wrapper for the simulateSEM()function in dagitty
@@ -35,6 +38,9 @@ structural equation model, generating random path coefficients and simulating
 corresponding data. See dagitty::simulateSEM() for
 details." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -57,8 +63,12 @@ details." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -98,6 +108,7 @@ details." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -105,12 +116,15 @@ details." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Simulate Data from Structural Equation Model</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/simulate_data.R'><code>R/simulate_data.R</code></a></small>
+    <div class="hidden name"><code>simulate_data.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>This is a thin wrapper for the <code>simulateSEM()</code>function in <code>dagitty</code>
 that works with tidied dagitty objects. It treats the input DAG as a
@@ -118,11 +132,12 @@ structural equation model, generating random path coefficients and simulating
 corresponding data. See <code><a href='http://www.rdocumentation.org/packages/dagitty/topics/simulateSEM'>dagitty::simulateSEM()</a></code> for
 details.</p>
     
+    </div>
 
-    <pre class="usage"><span class='fu'>simulate_data</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>b.default</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>b.lower</span> <span class='kw'>=</span> -<span class='fl'>0.6</span>, <span class='kw'>b.upper</span> <span class='kw'>=</span> <span class='fl'>0.6</span>,
-  <span class='kw'>eps</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>N</span> <span class='kw'>=</span> <span class='fl'>500</span>, <span class='kw'>standardized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
+    <pre class="usage"><span class='fu'>simulate_data</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>b.default</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>b.lower</span> <span class='kw'>=</span> -<span class='fl'>0.6</span>,
+  <span class='kw'>b.upper</span> <span class='kw'>=</span> <span class='fl'>0.6</span>, <span class='kw'>eps</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>N</span> <span class='kw'>=</span> <span class='fl'>500</span>, <span class='kw'>standardized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -168,18 +183,18 @@ have variance 1).</p></td>
     <pre class="examples"><div class='input'><span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>z</span>, <span class='no'>x</span> ~ <span class='no'>z</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='tidy_dagitty.html'>tidy_dagitty</a></span>() <span class='kw'>%&gt;%</span>
   <span class='fu'>simulate_data</span>()</div><div class='output co'>#&gt; # A tibble: 500 x 3
-#&gt;         x      y       z
-#&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
-#&gt;  1  0.746  0.929 -0.316 
-#&gt;  2  0.999 -0.932 -1.02  
-#&gt;  3 -0.566 -1.35   0.171 
-#&gt;  4  1.55  -0.959 -0.818 
-#&gt;  5  1.09   0.643 -1.27  
-#&gt;  6  0.261  0.855  0.425 
-#&gt;  7 -0.980 -1.20   0.0292
-#&gt;  8 -0.366 -1.80  -0.253 
-#&gt;  9 -0.268  0.859  1.02  
-#&gt; 10 -0.259 -1.46  -0.964 
+#&gt;         x        y       z
+#&gt;     &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;
+#&gt;  1  0.610  0.0224  -0.741 
+#&gt;  2 -1.64  -0.589   -0.264 
+#&gt;  3  0.683  0.613    0.644 
+#&gt;  4  0.255 -1.44    -0.0738
+#&gt;  5 -0.277  0.951   -0.878 
+#&gt;  6 -0.776  0.536   -1.11  
+#&gt;  7 -2.02   0.00196  0.819 
+#&gt;  8 -1.67   1.34    -1.42  
+#&gt;  9 -0.843  1.31    -1.03  
+#&gt; 10 -1.01   1.42     0.112 
 #&gt; # ... with 490 more rows</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -207,5 +222,8 @@ have variance 1).</p></td>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

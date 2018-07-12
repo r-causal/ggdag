@@ -21,16 +21,22 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Directed DAG edges — DAG Edges" />
 
 <meta property="og:description" content="Directed DAG edges" />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -53,8 +59,12 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -94,6 +104,7 @@
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -101,15 +112,19 @@
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Directed DAG edges</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/geom_dag.R'><code>R/geom_dag.R</code></a></small>
+    <div class="hidden name"><code>geom_dag_edge_functions.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Directed DAG edges</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>geom_dag_edges_link</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
   <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/arrow'>arrow</a></span>(<span class='kw'>length</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>5</span>, <span class='st'>"pt"</span>), <span class='kw'>type</span> <span class='kw'>=</span> <span class='st'>"closed"</span>),
@@ -126,22 +141,24 @@
   <span class='kw'>label_push</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)
 
 <span class='fu'>geom_dag_edges_diagonal</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/arrow'>arrow</a></span>(<span class='kw'>length</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>5</span>, <span class='st'>"pt"</span>),
-  <span class='kw'>type</span> <span class='kw'>=</span> <span class='st'>"closed"</span>), <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>n</span> <span class='kw'>=</span> <span class='fl'>100</span>, <span class='kw'>lineend</span> <span class='kw'>=</span> <span class='st'>"butt"</span>, <span class='kw'>linejoin</span> <span class='kw'>=</span> <span class='st'>"round"</span>, <span class='kw'>linemitre</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>label_colour</span> <span class='kw'>=</span> <span class='st'>"black"</span>, <span class='kw'>label_alpha</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>label_parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>check_overlap</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>angle_calc</span> <span class='kw'>=</span> <span class='st'>"rot"</span>, <span class='kw'>force_flip</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>label_dodge</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>label_push</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)
+  <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/arrow'>arrow</a></span>(<span class='kw'>length</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>5</span>,
+  <span class='st'>"pt"</span>), <span class='kw'>type</span> <span class='kw'>=</span> <span class='st'>"closed"</span>), <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>,
+  <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>n</span> <span class='kw'>=</span> <span class='fl'>100</span>, <span class='kw'>lineend</span> <span class='kw'>=</span> <span class='st'>"butt"</span>,
+  <span class='kw'>linejoin</span> <span class='kw'>=</span> <span class='st'>"round"</span>, <span class='kw'>linemitre</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>label_colour</span> <span class='kw'>=</span> <span class='st'>"black"</span>,
+  <span class='kw'>label_alpha</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>label_parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>check_overlap</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
+  <span class='kw'>angle_calc</span> <span class='kw'>=</span> <span class='st'>"rot"</span>, <span class='kw'>force_flip</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>label_dodge</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>label_push</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)
 
-<span class='fu'>geom_dag_edges_fan</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>,
-  <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/arrow'>arrow</a></span>(<span class='kw'>length</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>5</span>, <span class='st'>"pt"</span>), <span class='kw'>type</span> <span class='kw'>=</span> <span class='st'>"closed"</span>),
-  <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>spread</span> <span class='kw'>=</span> <span class='fl'>0.7</span>,
-  <span class='kw'>n</span> <span class='kw'>=</span> <span class='fl'>100</span>, <span class='kw'>lineend</span> <span class='kw'>=</span> <span class='st'>"butt"</span>, <span class='kw'>linejoin</span> <span class='kw'>=</span> <span class='st'>"round"</span>, <span class='kw'>linemitre</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>label_colour</span> <span class='kw'>=</span> <span class='st'>"black"</span>, <span class='kw'>label_alpha</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>label_parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>check_overlap</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>angle_calc</span> <span class='kw'>=</span> <span class='st'>"rot"</span>, <span class='kw'>force_flip</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>label_dodge</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>label_push</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)</pre>
+<span class='fu'>geom_dag_edges_fan</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/arrow'>arrow</a></span>(<span class='kw'>length</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>5</span>,
+  <span class='st'>"pt"</span>), <span class='kw'>type</span> <span class='kw'>=</span> <span class='st'>"closed"</span>), <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>,
+  <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>spread</span> <span class='kw'>=</span> <span class='fl'>0.7</span>, <span class='kw'>n</span> <span class='kw'>=</span> <span class='fl'>100</span>, <span class='kw'>lineend</span> <span class='kw'>=</span> <span class='st'>"butt"</span>,
+  <span class='kw'>linejoin</span> <span class='kw'>=</span> <span class='st'>"round"</span>, <span class='kw'>linemitre</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>label_colour</span> <span class='kw'>=</span> <span class='st'>"black"</span>,
+  <span class='kw'>label_alpha</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>label_parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>check_overlap</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
+  <span class='kw'>angle_calc</span> <span class='kw'>=</span> <span class='st'>"rot"</span>, <span class='kw'>force_flip</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>label_dodge</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>label_push</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='no'>...</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -210,15 +227,15 @@ different directions. Default to FALSE.</p></td>
     </tr>
     <tr>
       <th>lineend</th>
-      <td><p>Line end style (round, butt, square)</p></td>
+      <td><p>Line end style (round, butt, square).</p></td>
     </tr>
     <tr>
       <th>linejoin</th>
-      <td><p>Line join style (round, mitre, bevel)</p></td>
+      <td><p>Line join style (round, mitre, bevel).</p></td>
     </tr>
     <tr>
       <th>linemitre</th>
-      <td><p>Line mitre limit (number greater than 1)</p></td>
+      <td><p>Line mitre limit (number greater than 1).</p></td>
     </tr>
     <tr>
       <th>label_colour</th>
@@ -271,6 +288,7 @@ wider fans while the reverse will make them more narrow.</p></td>
     
     <h2 class="hasAnchor" id="aesthetics"><a class="anchor" href="#aesthetics"></a>Aesthetics</h2>
 
+    
     <p><code>geom_dag_edges_link</code>, <code>geom_dag_edges_arc</code>, <code>geom_dag_edges_diagonal</code>, and
 <code>geom_dag_edges_fan</code> understand the following aesthetics. Bold aesthetics are
 required.</p><ul>
@@ -293,9 +311,10 @@ required.</p><ul>
 <li><p>family</p></li>
 <li><p>fontface</p></li>
 <li><p>lineheight</p></li>
-</ul><p><code>geom_dag_edges_arc</code> and <code>geom_dag_edges_diagonal</code> also require
-<strong>circular</strong>, but this is automatically set.
-    <code>geom_dag_edges_fan</code> requires <strong>to</strong> and <strong>from</strong>, but these are also
+</ul>
+    <p><code>geom_dag_edges_arc</code> and <code>geom_dag_edges_diagonal</code> also require
+<strong>circular</strong>, but this is automatically set.</p>
+<p><code>geom_dag_edges_fan</code> requires <strong>to</strong> and <strong>from</strong>, but these are also
 automatically set.</p>
     
 
@@ -308,10 +327,9 @@ automatically set.</p>
   <span class='fu'>ggplot</span>(<span class='fu'>aes</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>x</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
     <span class='fu'><a href='geom_dag_text.html'>geom_dag_text</a></span>() +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>()
+    <span class='fu'><a href='theme_dag_blank.html'>theme_dag</a></span>()
 
-<span class='no'>p</span> + <span class='fu'>geom_dag_edges_link</span>()</div><div class='img'><img src='geom_dag_edge_functions-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'><span class='no'>p</span> + <span class='fu'>geom_dag_edges_arc</span>()</div><div class='img'><img src='geom_dag_edge_functions-2.png' alt='' width='700' height='432.632880098887' /></div><div class='input'><span class='no'>p</span> + <span class='fu'>geom_dag_edges_diagonal</span>()</div><div class='img'><img src='geom_dag_edge_functions-3.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+<span class='no'>p</span> + <span class='fu'>geom_dag_edges_link</span>()</div><div class='img'><img src='geom_dag_edge_functions-1.png' alt='' width='700' height='433' /></div><div class='input'><span class='no'>p</span> + <span class='fu'>geom_dag_edges_arc</span>()</div><div class='img'><img src='geom_dag_edge_functions-2.png' alt='' width='700' height='433' /></div><div class='input'><span class='no'>p</span> + <span class='fu'>geom_dag_edges_diagonal</span>()</div><div class='img'><img src='geom_dag_edge_functions-3.png' alt='' width='700' height='433' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -339,5 +357,8 @@ automatically set.</p>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

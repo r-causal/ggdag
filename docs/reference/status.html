@@ -21,17 +21,23 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Find variable status — Variable Status" />
 
 <meta property="og:description" content="Detects variable status given a DAG (exposure, outcome, latent). See
 dagitty::VariableStatus() for details." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -54,8 +60,12 @@ dagitty::VariableStatus() for details." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -95,6 +105,7 @@ dagitty::VariableStatus() for details." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -102,25 +113,29 @@ dagitty::VariableStatus() for details." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Find variable status</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/status.R'><code>R/status.R</code></a></small>
+    <div class="hidden name"><code>status.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Detects variable status given a DAG (exposure, outcome, latent). See
 <code><a href='http://www.rdocumentation.org/packages/dagitty/topics/VariableStatus'>dagitty::VariableStatus()</a></code> for details.</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>node_status</span>(<span class='no'>.dag</span>, <span class='kw'>as_factor</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='no'>...</span>)
 
 <span class='fu'>ggdag_status</span>(<span class='no'>.tdy_dag</span>, <span class='no'>...</span>, <span class='kw'>edge_type</span> <span class='kw'>=</span> <span class='st'>"link_arc"</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>,
   <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>,
-  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -200,13 +215,19 @@ variable statuses.</p>
   <span class='kw'>outcome</span> <span class='kw'>=</span> <span class='st'>"y"</span>,
   <span class='kw'>latent</span> <span class='kw'>=</span> <span class='st'>"l"</span>)
 
-<span class='fu'>node_status</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 4 x 9
-#&gt;   name      x     y direction to     xend  yend circular status  
-#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;fct&gt;   
-#&gt; 1 x      7.55  6.43 -&gt;        l      6.57  6.25 FALSE    exposure
-#&gt; 2 x      7.55  6.43 -&gt;        y      7.21  5.49 FALSE    exposure
-#&gt; 3 y      7.21  5.49 -&gt;        l      6.57  6.25 FALSE    outcome 
-#&gt; 4 l      6.57  6.25 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    latent  </div><div class='input'><span class='fu'>ggdag_status</span>(<span class='no'>dag</span>)</div><div class='img'><img src='status-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+<span class='fu'>node_status</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A DAG with 3 nodes and 3 edges
+#&gt; #
+#&gt; # Exposure: x
+#&gt; # Outcome: y
+#&gt; # Latent Variable: l
+#&gt; #
+#&gt; # A tibble: 4 x 9
+#&gt;   name      x     y direction to      xend  yend circular status  
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;fct&gt;   
+#&gt; 1 x     1.97   2.74 -&gt;        l      1.63   1.80 FALSE    exposure
+#&gt; 2 x     1.97   2.74 -&gt;        y      0.986  2.56 FALSE    exposure
+#&gt; 3 y     0.986  2.56 -&gt;        l      1.63   1.80 FALSE    outcome 
+#&gt; 4 l     1.63   1.80 &lt;NA&gt;      &lt;NA&gt;  NA     NA    FALSE    latent  </div><div class='input'><span class='fu'>ggdag_status</span>(<span class='no'>dag</span>)</div><div class='img'><img src='status-1.png' alt='' width='700' height='433' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -236,5 +257,8 @@ variable statuses.</p>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

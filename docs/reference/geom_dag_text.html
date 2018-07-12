@@ -21,16 +21,22 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Node text — geom_dag_text" />
 
 <meta property="og:description" content="Node text" />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -53,8 +59,12 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -94,6 +104,7 @@
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -101,22 +112,26 @@
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Node text</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/geom_dag.R'><code>R/geom_dag.R</code></a></small>
+    <div class="hidden name"><code>geom_dag_text.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Node text</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>geom_dag_text</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>stat</span> <span class='kw'>=</span> <span class='st'>"identity"</span>,
-  <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='no'>...</span>, <span class='kw'>parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>nudge_x</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>nudge_y</span> <span class='kw'>=</span> <span class='fl'>0</span>,
-  <span class='kw'>check_overlap</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>,
-  <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
+  <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='no'>...</span>, <span class='kw'>parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>nudge_x</span> <span class='kw'>=</span> <span class='fl'>0</span>,
+  <span class='kw'>nudge_y</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>check_overlap</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
+  <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -151,14 +166,14 @@ a call to a position adjustment function.</p></td>
     </tr>
     <tr>
       <th>...</th>
-      <td><p>other arguments passed on to <code>layer()</code>. These are
+      <td><p>Other arguments passed on to <code>layer()</code>. These are
 often aesthetics, used to set an aesthetic to a fixed value, like
 <code>color = "red"</code> or <code>size = 3</code>. They may also be parameters
 to the paired geom/stat.</p></td>
     </tr>
     <tr>
       <th>parse</th>
-      <td><p>If TRUE, the labels will be parsed into expressions and
+      <td><p>If <code>TRUE</code>, the labels will be parsed into expressions and
 displayed as described in ?plotmath</p></td>
     </tr>
     <tr>
@@ -200,6 +215,7 @@ the default plot specification, e.g. <code>borders()</code>.</p></td>
     
     <h2 class="hasAnchor" id="aesthetics"><a class="anchor" href="#aesthetics"></a>Aesthetics</h2>
 
+    
     <p><code>geom_dag_text</code> understand the following aesthetics (required aesthetics are in bold):</p><ul>
 <li><p><strong>x</strong></p></li>
 <li><p><strong>y</strong></p></li>
@@ -225,8 +241,7 @@ the default plot specification, e.g. <code>borders()</code>.</p></td>
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
     <span class='fu'><a href='geom_dag_edges.html'>geom_dag_edges</a></span>() +
     <span class='fu'>geom_dag_text</span>() +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>()</div><div class='img'><img src='geom_dag_text-1.png' alt='' width='700' height='432.632880098887' /></div></pre>
+    <span class='fu'><a href='theme_dag_blank.html'>theme_dag</a></span>()</div><div class='img'><img src='geom_dag_text-1.png' alt='' width='700' height='433' /></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -253,5 +268,8 @@ the default plot specification, e.g. <code>borders()</code>.</p></td>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

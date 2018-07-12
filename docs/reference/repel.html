@@ -21,12 +21,15 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Repulsive textual annotations — ggrepel functions" />
 
 <meta property="og:description" content="These functions are minor modifications of those in the ggrepel
@@ -35,6 +38,9 @@ geom_dag_label_repel draws a rectangle underneath the text, making it easier
 to read. The text labels repel away from each other and away from the data
 points." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -57,8 +63,12 @@ points." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -98,6 +108,7 @@ points." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -105,12 +116,15 @@ points." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Repulsive textual annotations</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/geom_dag.R'><code>R/geom_dag.R</code></a></small>
+    <div class="hidden name"><code>repel.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>These functions are minor modifications of those in the <code>ggrepel</code>
 package. geom_dag_text_repel adds text directly to the plot.
@@ -118,6 +132,7 @@ geom_dag_label_repel draws a rectangle underneath the text, making it easier
 to read. The text labels repel away from each other and away from the data
 points.</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>geom_dag_text_repel</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='no'>...</span>,
   <span class='kw'>box.padding</span> <span class='kw'>=</span> <span class='fl'>0.35</span>, <span class='kw'>point.padding</span> <span class='kw'>=</span> <span class='fl'>1.5</span>, <span class='kw'>segment.color</span> <span class='kw'>=</span> <span class='st'>"#666666"</span>,
@@ -126,14 +141,15 @@ points.</p>
   <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)
 
 <span class='fu'>geom_dag_label_repel</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>parse</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='no'>...</span>,
-  <span class='kw'>box.padding</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>0.35</span>, <span class='st'>"lines"</span>), <span class='kw'>label.padding</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>0.25</span>,
-  <span class='st'>"lines"</span>), <span class='kw'>point.padding</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>1.5</span>, <span class='st'>"lines"</span>),
-  <span class='kw'>label.r</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>0.15</span>, <span class='st'>"lines"</span>), <span class='kw'>label.size</span> <span class='kw'>=</span> <span class='fl'>0.25</span>,
-  <span class='kw'>segment.color</span> <span class='kw'>=</span> <span class='st'>"grey50"</span>, <span class='kw'>segment.size</span> <span class='kw'>=</span> <span class='fl'>0.5</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>force</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>max.iter</span> <span class='kw'>=</span> <span class='fl'>2000</span>, <span class='kw'>nudge_x</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>nudge_y</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
+  <span class='kw'>box.padding</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>0.35</span>, <span class='st'>"lines"</span>),
+  <span class='kw'>label.padding</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>0.25</span>, <span class='st'>"lines"</span>),
+  <span class='kw'>point.padding</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>1.5</span>, <span class='st'>"lines"</span>), <span class='kw'>label.r</span> <span class='kw'>=</span> <span class='kw pkg'>grid</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/grid/topics/unit'>unit</a></span>(<span class='fl'>0.15</span>,
+  <span class='st'>"lines"</span>), <span class='kw'>label.size</span> <span class='kw'>=</span> <span class='fl'>0.25</span>, <span class='kw'>segment.color</span> <span class='kw'>=</span> <span class='st'>"grey50"</span>,
+  <span class='kw'>segment.size</span> <span class='kw'>=</span> <span class='fl'>0.5</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>force</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>max.iter</span> <span class='kw'>=</span> <span class='fl'>2000</span>,
+  <span class='kw'>nudge_x</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>nudge_y</span> <span class='kw'>=</span> <span class='fl'>0</span>, <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>,
+  <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -267,8 +283,7 @@ passing <code>unit(x, "units")</code>).</p></td>
     <span class='fu'><a href='geom_dag_edges.html'>geom_dag_edges</a></span>() +
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
     <span class='fu'>geom_dag_text_repel</span>(<span class='fu'>aes</span>(<span class='kw'>label</span> <span class='kw'>=</span> <span class='no'>name</span>), <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>) +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>()</div><div class='img'><img src='repel-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+    <span class='fu'><a href='theme_dag_blank.html'>theme_dag</a></span>()</div><div class='img'><img src='repel-1.png' alt='' width='700' height='433' /></div><div class='input'>
 <span class='no'>g</span> <span class='kw'>%&gt;%</span> <span class='fu'><a href='tidy_dagitty.html'>tidy_dagitty</a></span>() <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='label.html'>dag_label</a></span>(<span class='kw'>labels</span> <span class='kw'>=</span> <span class='fu'>c</span>(<span class='st'>"x"</span> <span class='kw'>=</span> <span class='st'>"This is the exposure"</span>,
     <span class='st'>"y"</span> <span class='kw'>=</span> <span class='st'>"Here's the outcome"</span>,
@@ -279,8 +294,8 @@ passing <code>unit(x, "units")</code>).</p></td>
     <span class='fu'><a href='geom_dag_text.html'>geom_dag_text</a></span>() +
     <span class='fu'>geom_dag_label_repel</span>(<span class='fu'>aes</span>(<span class='kw'>label</span> <span class='kw'>=</span> <span class='no'>label</span>, <span class='kw'>fill</span> <span class='kw'>=</span> <span class='no'>label</span>),
       <span class='kw'>col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>) +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>()</div><div class='img'><img src='repel-2.png' alt='' width='700' height='432.632880098887' /></div></pre>
+    <span class='fu'><a href='theme_dag_blank.html'>theme_dag</a></span>()</div><div class='img'><img src='repel-2.png' alt='' width='700' height='433' /></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -305,5 +320,8 @@ passing <code>unit(x, "units")</code>).</p></td>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

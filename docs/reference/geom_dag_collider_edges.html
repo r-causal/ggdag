@@ -21,17 +21,23 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Edges for paths activated by stratification on colliders — geom_dag_collider_edges" />
 
 <meta property="og:description" content="Adjusting for a collider activates pathways between the parent of the
 collider. This geom adds a curved edge between any such parent nodes." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -54,8 +60,12 @@ collider. This geom adds a curved edge between any such parent nodes." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -95,6 +105,7 @@ collider. This geom adds a curved edge between any such parent nodes." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -102,23 +113,28 @@ collider. This geom adds a curved edge between any such parent nodes." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Edges for paths activated by stratification on colliders</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/geom_dag.R'><code>R/geom_dag.R</code></a></small>
+    <div class="hidden name"><code>geom_dag_collider_edges.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Adjusting for a collider activates pathways between the parent of the
 collider. This geom adds a curved edge between any such parent nodes.</p>
     
+    </div>
 
-    <pre class="usage"><span class='fu'>geom_dag_collider_edges</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>stat</span> <span class='kw'>=</span> <span class='st'>"identity"</span>,
-  <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='no'>...</span>, <span class='kw'>size</span> <span class='kw'>=</span> <span class='fl'>0.6</span>, <span class='kw'>curvature</span> <span class='kw'>=</span> <span class='fl'>0.5</span>, <span class='kw'>angle</span> <span class='kw'>=</span> <span class='fl'>90</span>,
-  <span class='kw'>ncp</span> <span class='kw'>=</span> <span class='fl'>5</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>lineend</span> <span class='kw'>=</span> <span class='st'>"butt"</span>, <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
+    <pre class="usage"><span class='fu'>geom_dag_collider_edges</span>(<span class='kw'>mapping</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>data</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>stat</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='kw'>position</span> <span class='kw'>=</span> <span class='st'>"identity"</span>, <span class='no'>...</span>, <span class='kw'>size</span> <span class='kw'>=</span> <span class='fl'>0.6</span>,
+  <span class='kw'>curvature</span> <span class='kw'>=</span> <span class='fl'>0.5</span>, <span class='kw'>angle</span> <span class='kw'>=</span> <span class='fl'>90</span>, <span class='kw'>ncp</span> <span class='kw'>=</span> <span class='fl'>5</span>, <span class='kw'>arrow</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>lineend</span> <span class='kw'>=</span> <span class='st'>"butt"</span>, <span class='kw'>na.rm</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>show.legend</span> <span class='kw'>=</span> <span class='fl'>NA</span>,
+  <span class='kw'>inherit.aes</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -153,7 +169,7 @@ a call to a position adjustment function.</p></td>
     </tr>
     <tr>
       <th>...</th>
-      <td><p>other arguments passed on to <code>layer()</code>. These are
+      <td><p>Other arguments passed on to <code>layer()</code>. These are
 often aesthetics, used to set an aesthetic to a fixed value, like
 <code>color = "red"</code> or <code>size = 3</code>. They may also be parameters
 to the paired geom/stat.</p></td>
@@ -222,8 +238,8 @@ the default plot specification, e.g. <code>borders()</code>.</p></td>
     <span class='fu'>geom_dag_collider_edges</span>() +
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
     <span class='fu'><a href='geom_dag_text.html'>geom_dag_text</a></span>() +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>()</div><div class='img'><img src='geom_dag_collider_edges-1.png' alt='' width='700' height='432.632880098887' /></div></pre>
+    <span class='fu'><a href='theme_dag_blank.html'>theme_dag</a></span>() +
+    <span class='fu'><a href='scale_adjusted.html'>scale_adjusted</a></span>()</div><div class='img'><img src='geom_dag_collider_edges-1.png' alt='' width='700' height='433' /></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -248,5 +264,8 @@ the default plot specification, e.g. <code>borders()</code>.</p></td>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

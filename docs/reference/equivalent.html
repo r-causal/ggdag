@@ -21,12 +21,15 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Generating Equivalent Models — Equivalent DAGs and Classes" />
 
 <meta property="og:description" content="Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
@@ -37,6 +40,9 @@ node_equivalent_class() tags reversable edges.
 ggdag_equivalent_dags() plots all equivalent DAGs, while
 ggdag_equivalent_class() plots all reversable edges as undirected." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -59,8 +65,12 @@ ggdag_equivalent_class() plots all reversable edges as undirected." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -100,6 +110,7 @@ ggdag_equivalent_class() plots all reversable edges as undirected." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -107,12 +118,15 @@ ggdag_equivalent_class() plots all reversable edges as undirected." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Generating Equivalent Models</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/equivalence.R'><code>R/equivalence.R</code></a></small>
+    <div class="hidden name"><code>equivalent.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
 input DAG. CPDAGs are Markov equivalent to the input graph. See
@@ -122,22 +136,23 @@ input DAG. CPDAGs are Markov equivalent to the input graph. See
 <code>ggdag_equivalent_dags()</code> plots all equivalent DAGs, while
 <code>ggdag_equivalent_class()</code> plots all reversable edges as undirected.</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>node_equivalent_dags</span>(<span class='no'>.dag</span>, <span class='kw'>n</span> <span class='kw'>=</span> <span class='fl'>100</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"auto"</span>, <span class='no'>...</span>)
 
 <span class='fu'>ggdag_equivalent_dags</span>(<span class='no'>.tdy_dag</span>, <span class='no'>...</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>,
   <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>,
-  <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)
+  <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)
 
 <span class='fu'>node_equivalent_class</span>(<span class='no'>.dag</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"auto"</span>)
 
 <span class='fu'>ggdag_equivalent_class</span>(<span class='no'>.tdy_dag</span>, <span class='kw'>expand_x</span> <span class='kw'>=</span> <span class='fu'><a href='expand_scale.html'>expand_scale</a></span>(<span class='fu'>c</span>(<span class='fl'>0.1</span>, <span class='fl'>0.1</span>)),
-  <span class='kw'>expand_y</span> <span class='kw'>=</span> <span class='fu'><a href='expand_scale.html'>expand_scale</a></span>(<span class='fu'>c</span>(<span class='fl'>0.1</span>, <span class='fl'>0.1</span>)), <span class='kw'>breaks</span> <span class='kw'>=</span> <span class='kw pkg'>ggplot2</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/waiver'>waiver</a></span>(), <span class='no'>...</span>,
-  <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>,
+  <span class='kw'>expand_y</span> <span class='kw'>=</span> <span class='fu'><a href='expand_scale.html'>expand_scale</a></span>(<span class='fu'>c</span>(<span class='fl'>0.1</span>, <span class='fl'>0.1</span>)), <span class='kw'>breaks</span> <span class='kw'>=</span> <span class='kw pkg'>ggplot2</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/waiver'>waiver</a></span>(),
+  <span class='no'>...</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>,
   <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>, <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
-  <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+  <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -233,15 +248,17 @@ column for equivalent classes, or a <code>ggplot</code></p>
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='no'>g_ex</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>x</span> + <span class='no'>z</span>, <span class='no'>x</span> ~ <span class='no'>z</span>)
 
-<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>node_equivalent_class</span>()</div><div class='output co'>#&gt; # A tibble: 5 x 9
-#&gt;   name      x     y direction to      xend  yend circular reversable
-#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;lgl&gt;     
-#&gt; 1 x     0.       2. -&gt;        y      0.500    1. FALSE    TRUE      
-#&gt; 2 x     0.       2. -&gt;        y      0.500    1. FALSE    TRUE      
-#&gt; 3 z     0.500    3. -&gt;        x      0.       2. FALSE    FALSE     
-#&gt; 4 z     0.500    3. -&gt;        y      0.500    1. FALSE    FALSE     
-#&gt; 5 y     0.500    1. &lt;NA&gt;      &lt;NA&gt;  NA       NA  FALSE    TRUE      </div><div class='input'>
-<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>ggdag_equivalent_dags</span>()</div><div class='img'><img src='equivalent-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>node_equivalent_class</span>()</div><div class='output co'>#&gt; # A DAG with 3 nodes and 4 edges
+#&gt; #
+#&gt; # A tibble: 5 x 9
+#&gt;   name      x     y direction to     xend  yend circular reversable
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;lgl&gt;     
+#&gt; 1 x       0       2 -&gt;        y       0.5     1 FALSE    TRUE      
+#&gt; 2 x       0       2 -&gt;        y       0.5     1 FALSE    TRUE      
+#&gt; 3 z       0.5     3 -&gt;        x       0       2 FALSE    FALSE     
+#&gt; 4 z       0.5     3 -&gt;        y       0.5     1 FALSE    FALSE     
+#&gt; 5 y       0.5     1 &lt;NA&gt;      &lt;NA&gt;   NA      NA FALSE    TRUE      </div><div class='input'>
+<span class='no'>g_ex</span> <span class='kw'>%&gt;%</span> <span class='fu'>ggdag_equivalent_dags</span>()</div><div class='img'><img src='equivalent-1.png' alt='' width='700' height='433' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -269,5 +286,8 @@ column for equivalent classes, or a <code>ggplot</code></p>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

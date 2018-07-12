@@ -21,16 +21,22 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Tidy a <code>dagitty</code> object — tidy_dagitty" />
 
 <meta property="og:description" content="Tidy a dagitty object" />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -53,8 +59,12 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -94,6 +104,7 @@
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -101,19 +112,23 @@
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Tidy a <code>dagitty</code> object</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/tidy_dag.R'><code>R/tidy_dag.R</code></a></small>
+    <div class="hidden name"><code>tidy_dagitty.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Tidy a <code>dagitty</code> object</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>tidy_dagitty</span>(<span class='no'>.dagitty</span>, <span class='kw'>seed</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"nicely"</span>, <span class='no'>...</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -152,29 +167,33 @@
   Y [outcome]
   }"</span>)
 
-<span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 13 x 8
+<span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A DAG with 7 nodes and 12 edges
+#&gt; #
+#&gt; # Exposure: X
+#&gt; # Outcome: Y
+#&gt; #
+#&gt; # A tibble: 13 x 8
 #&gt;    name      x     y direction to     xend  yend circular
 #&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   
-#&gt;  1 V      8.69  10.6 -&gt;        Z1     8.29  11.9 FALSE   
-#&gt;  2 V      8.69  10.6 -&gt;        Z2     7.34  10.2 FALSE   
-#&gt;  3 W1     7.30  11.8 -&gt;        X      6.81  12.2 FALSE   
-#&gt;  4 W1     7.30  11.8 -&gt;        Y      6.26  11.2 FALSE   
-#&gt;  5 W1     7.30  11.8 -&gt;        Z1     8.29  11.9 FALSE   
-#&gt;  6 W1     7.30  11.8 &lt;-&gt;       W2     6.86  11.0 FALSE   
-#&gt;  7 W2     6.86  11.0 -&gt;        X      6.81  12.2 FALSE   
-#&gt;  8 W2     6.86  11.0 -&gt;        Y      6.26  11.2 FALSE   
-#&gt;  9 W2     6.86  11.0 -&gt;        Z2     7.34  10.2 FALSE   
-#&gt; 10 X      6.81  12.2 -&gt;        Y      6.26  11.2 FALSE   
-#&gt; 11 Z1     8.29  11.9 -&gt;        X      6.81  12.2 FALSE   
-#&gt; 12 Z2     7.34  10.2 -&gt;        Y      6.26  11.2 FALSE   
-#&gt; 13 Y      6.26  11.2 &lt;NA&gt;      &lt;NA&gt;  NA     NA   FALSE   </div><div class='input'>
+#&gt;  1 V      7.54 10.2  -&gt;        Z1     6.16 10.0  FALSE   
+#&gt;  2 V      7.54 10.2  -&gt;        Z2     7.68  8.78 FALSE   
+#&gt;  3 W1     6.17  9.00 -&gt;        X      5.60  8.68 FALSE   
+#&gt;  4 W1     6.17  9.00 -&gt;        Y      6.39  7.90 FALSE   
+#&gt;  5 W1     6.17  9.00 -&gt;        Z1     6.16 10.0  FALSE   
+#&gt;  6 W1     6.17  9.00 &lt;-&gt;       W2     6.86  8.28 FALSE   
+#&gt;  7 W2     6.86  8.28 -&gt;        X      5.60  8.68 FALSE   
+#&gt;  8 W2     6.86  8.28 -&gt;        Y      6.39  7.90 FALSE   
+#&gt;  9 W2     6.86  8.28 -&gt;        Z2     7.68  8.78 FALSE   
+#&gt; 10 X      5.60  8.68 -&gt;        Y      6.39  7.90 FALSE   
+#&gt; 11 Z1     6.16 10.0  -&gt;        X      5.60  8.68 FALSE   
+#&gt; 12 Z2     7.68  8.78 -&gt;        Y      6.39  7.90 FALSE   
+#&gt; 13 Y      6.39  7.90 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE   </div><div class='input'>
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"fr"</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/ggplot'>ggplot</a></span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/ggplot2/topics/aes'>aes</a></span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>x</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
     <span class='fu'><a href='geom_dag_text.html'>geom_dag_text</a></span>() +
     <span class='fu'><a href='geom_dag_edges.html'>geom_dag_edges</a></span>() +
-    <span class='fu'><a href='theme_dag_grey.html'>theme_dag</a></span>() +
-    <span class='fu'><a href='scale_dag.html'>scale_dag</a></span>()</div><div class='img'><img src='tidy_dagitty-1.png' alt='' width='700' height='432.632880098887' /></div></pre>
+    <span class='fu'><a href='theme_dag_blank.html'>theme_dag</a></span>()</div><div class='img'><img src='tidy_dagitty-1.png' alt='' width='700' height='433' /></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -201,5 +220,8 @@
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

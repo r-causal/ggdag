@@ -21,13 +21,19 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Function reference" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -50,8 +56,12 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -91,6 +101,7 @@
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -98,268 +109,264 @@
       
       </header>
 
-      <div class="row">
-  <div class="col-md-9">
+<div class="row">
+  <div class="contents col-md-9">
     <div class="page-header">
-      <h1>
-        Reference
-        <small>version&nbsp;0.1.0</small>
-      </h1>
+      <h1>Reference</h1>
     </div>
 
-    <div class="contents">
-      <table class="ref-index">
+    <table class="ref-index">
 
-      <colgroup>
-        <col class="alias" />
-        <col class="title" />
-      </colgroup>
+    <colgroup>
+      
+      <col class="alias" />
+      <col class="title" />
+    </colgroup>
 
-      <tbody>
-        <tr>
-          <th colspan="2">
-            <h2 id="section-create-and-tidy-dags" class="hasAnchor"><a href="#section-create-and-tidy-dags" class="anchor"></a>Create and Tidy Dags</h2>
-            <p class="section-desc"></p>
-          </th>
-        </tr>
-        <tr>
-          <!--  -->
-          <td>
-            <p><code><a href="tidy_dagitty.html">tidy_dagitty</a></code> </p>
-          </td>
-          <td><p>Tidy a <code>dagitty</code> object</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="dagify.html">dagify</a></code> </p>
-          </td>
-          <td><p>Create a dagitty DAG using R-like syntax</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="dag.html">dag</a></code> </p>
-          </td>
-          <td><p>Create a dagitty DAG</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="coordinates.html">coords2df</a></code> <code><a href="coordinates.html">coords2list</a></code> </p>
-          </td>
-          <td><p>Manipulate DAG coordinates</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="label.html">label<-</a></code> <code><a href="label.html">dag_label</a></code> <code><a href="label.html">label</a></code> <code><a href="label.html">has_labels</a></code> </p>
-          </td>
-          <td><p>DAG labels</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="simulate_data.html">simulate_data</a></code> </p>
-          </td>
-          <td><p>Simulate Data from Structural Equation Model</p></td>
-        </tr>
-      </tbody><tbody>
-        <tr>
-          <th colspan="2">
-            <h2 id="section-analyzing-and-plotting-dags" class="hasAnchor"><a href="#section-analyzing-and-plotting-dags" class="anchor"></a>Analyzing and Plotting DAGs</h2>
-            <p class="section-desc"></p>
-          </th>
-        </tr>
-        <tr>
-          <!--  -->
-          <td>
-            <p><code><a href="canonicalize.html">node_canonical</a></code> <code><a href="canonicalize.html">ggdag_canonical</a></code> </p>
-          </td>
-          <td><p>Canonicalize a DAG</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="colliders.html">node_collider</a></code> <code><a href="colliders.html">ggdag_collider</a></code> </p>
-          </td>
-          <td><p>Find colliders</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="d_relationship.html">node_dconnected</a></code> <code><a href="d_relationship.html">node_dseparated</a></code> <code><a href="d_relationship.html">node_drelationship</a></code> <code><a href="d_relationship.html">ggdag_drelationship</a></code> <code><a href="d_relationship.html">ggdag_dseparated</a></code> <code><a href="d_relationship.html">ggdag_dconnected</a></code> </p>
-          </td>
-          <td><p>D-relationship between variables</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="equivalent.html">node_equivalent_dags</a></code> <code><a href="equivalent.html">ggdag_equivalent_dags</a></code> <code><a href="equivalent.html">node_equivalent_class</a></code> <code><a href="equivalent.html">ggdag_equivalent_class</a></code> </p>
-          </td>
-          <td><p>Generating Equivalent Models</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="exogenous.html">node_exogenous</a></code> <code><a href="exogenous.html">ggdag_exogenous</a></code> </p>
-          </td>
-          <td><p>Find Exogenous Variables</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="instrumental.html">node_instrumental</a></code> <code><a href="instrumental.html">ggdag_instrumental</a></code> </p>
-          </td>
-          <td><p>Find Instrumental Variables</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="status.html">node_status</a></code> <code><a href="status.html">ggdag_status</a></code> </p>
-          </td>
-          <td><p>Find variable status</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="variable_family.html">node_children</a></code> <code><a href="variable_family.html">node_parents</a></code> <code><a href="variable_family.html">node_ancestors</a></code> <code><a href="variable_family.html">node_descendants</a></code> <code><a href="variable_family.html">node_markov_blanket</a></code> <code><a href="variable_family.html">node_adjacent</a></code> <code><a href="variable_family.html">ggdag_children</a></code> <code><a href="variable_family.html">ggdag_parents</a></code> <code><a href="variable_family.html">ggdag_ancestors</a></code> <code><a href="variable_family.html">ggdag_descendants</a></code> <code><a href="variable_family.html">ggdag_markov_blanket</a></code> <code><a href="variable_family.html">ggdag_adjacent</a></code> </p>
-          </td>
-          <td><p>Familial relationships between variables</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="adjustment_sets.html">dag_adjustment_sets</a></code> <code><a href="adjustment_sets.html">ggdag_adjustment_set</a></code> </p>
-          </td>
-          <td><p>Covariate Adjustment Sets</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="label.html">label<-</a></code> <code><a href="label.html">dag_label</a></code> <code><a href="label.html">label</a></code> <code><a href="label.html">has_labels</a></code> </p>
-          </td>
-          <td><p>DAG labels</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="paths.html">dag_paths</a></code> <code><a href="paths.html">ggdag_paths</a></code> <code><a href="paths.html">ggdag_paths_fan</a></code> </p>
-          </td>
-          <td><p>Find Pathways Between Variables</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="control_for.html">control_for</a></code> <code><a href="control_for.html">ggdag_adjust</a></code> </p>
-          </td>
-          <td><p>Adjust for variables and activate any biasing paths that result</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="ggdag_classic.html">ggdag_classic</a></code> </p>
-          </td>
-          <td><p>Quickly plot a DAG in ggplot2</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="ggdag.html">ggdag</a></code> </p>
-          </td>
-          <td><p>Quickly plot a DAG in ggplot2</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="quick_plot.html">m_bias</a></code> <code><a href="quick_plot.html">butterfly_bias</a></code> <code><a href="quick_plot.html">confounder_triangle</a></code> <code><a href="quick_plot.html">collider_triangle</a></code> <code><a href="quick_plot.html">mediation_triangle</a></code> <code><a href="quick_plot.html">ggdag_m_bias</a></code> <code><a href="quick_plot.html">ggdag_butterfly_bias</a></code> <code><a href="quick_plot.html">ggdag_confounder_triangle</a></code> <code><a href="quick_plot.html">ggdag_collider_triangle</a></code> <code><a href="quick_plot.html">ggdag_mediation_triangle</a></code> </p>
-          </td>
-          <td><p>Quickly create a DAGs with common structures of bias</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="activate_collider_paths.html">activate_collider_paths</a></code> </p>
-          </td>
-          <td><p>Activate paths opened by stratifying on a collider</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="is_collider.html">is_collider</a></code> <code><a href="is_collider.html">is_downstream_collider</a></code> </p>
-          </td>
-          <td><p>Detecting colliders in DAGs</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="is_confounder.html">is_confounder</a></code> </p>
-          </td>
-          <td><p>Assess if a variable confounds a relationship</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="is.tidy_dagitty.html">is.tidy_dagitty</a></code> </p>
-          </td>
-          <td><p>Test for object class for tidy_dagitty</p></td>
-        </tr>
-      </tbody><tbody>
-        <tr>
-          <th colspan="2">
-            <h2 id="section-ggplot-geoms-themes-and-scales" class="hasAnchor"><a href="#section-ggplot-geoms-themes-and-scales" class="anchor"></a>ggplot2 geoms, themes, and scales</h2>
-            <p class="section-desc"></p>
-          </th>
-        </tr>
-        <tr>
-          <!--  -->
-          <td>
-            <p><code><a href="geom_dag_collider_edges.html">geom_dag_collider_edges</a></code> </p>
-          </td>
-          <td><p>Edges for paths activated by stratification on colliders</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="geom_dag_edge_functions.html">geom_dag_edges_link</a></code> <code><a href="geom_dag_edge_functions.html">geom_dag_edges_arc</a></code> <code><a href="geom_dag_edge_functions.html">geom_dag_edges_diagonal</a></code> <code><a href="geom_dag_edge_functions.html">geom_dag_edges_fan</a></code> </p>
-          </td>
-          <td><p>Directed DAG edges</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="geom_dag_edges.html">geom_dag_edges</a></code> </p>
-          </td>
-          <td><p>Directed and bidirected DAG edges</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="geom_dag_text.html">geom_dag_text</a></code> </p>
-          </td>
-          <td><p>Node text</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="node_point.html">geom_dag_node</a></code> <code><a href="node_point.html">geom_dag_point</a></code> </p>
-          </td>
-          <td><p>DAG Nodes</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="repel.html">geom_dag_text_repel</a></code> <code><a href="repel.html">geom_dag_label_repel</a></code> </p>
-          </td>
-          <td><p>Repulsive textual annotations</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="theme_dag_blank.html">theme_dag_blank</a></code> </p>
-          </td>
-          <td><p>A minimalist DAG theme</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="theme_dag_grey.html">theme_dag_grey</a></code> <code><a href="theme_dag_grey.html">theme_dag_gray</a></code> <code><a href="theme_dag_grey.html">theme_dag</a></code> </p>
-          </td>
-          <td><p>Simple grey theme for DAGs</p></td>
-        </tr><tr>
-          <!--  -->
-          <td>
-            <p><code><a href="scale_dag.html">scale_dag</a></code> </p>
-          </td>
-          <td><p>Common scale adjustments for DAGs</p></td>
-        </tr>
-      </tbody><tbody>
-        <tr>
-          <th colspan="2">
-            <h2 id="section-common-structures-of-bias" class="hasAnchor"><a href="#section-common-structures-of-bias" class="anchor"></a>Common Structures of Bias</h2>
-            <p class="section-desc"></p>
-          </th>
-        </tr>
-        <tr>
-          <!--  -->
-          <td>
-            <p><code><a href="quick_plot.html">m_bias</a></code> <code><a href="quick_plot.html">butterfly_bias</a></code> <code><a href="quick_plot.html">confounder_triangle</a></code> <code><a href="quick_plot.html">collider_triangle</a></code> <code><a href="quick_plot.html">mediation_triangle</a></code> <code><a href="quick_plot.html">ggdag_m_bias</a></code> <code><a href="quick_plot.html">ggdag_butterfly_bias</a></code> <code><a href="quick_plot.html">ggdag_confounder_triangle</a></code> <code><a href="quick_plot.html">ggdag_collider_triangle</a></code> <code><a href="quick_plot.html">ggdag_mediation_triangle</a></code> </p>
-          </td>
-          <td><p>Quickly create a DAGs with common structures of bias</p></td>
-        </tr>
-      </tbody>
-      </table>
-    </div>
+    <tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-create-and-tidy-dags" class="hasAnchor"><a href="#section-create-and-tidy-dags" class="anchor"></a>Create and Tidy Dags</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="tidy_dagitty.html">tidy_dagitty()</a></code> </p>
+        </td>
+        <td><p>Tidy a <code>dagitty</code> object</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="dagify.html">dagify()</a></code> </p>
+        </td>
+        <td><p>Create a dagitty DAG using R-like syntax</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="dag.html">dag()</a></code> </p>
+        </td>
+        <td><p>Create a dagitty DAG</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="coordinates.html">coords2df()</a></code> <code><a href="coordinates.html">coords2list()</a></code> </p>
+        </td>
+        <td><p>Manipulate DAG coordinates</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="label.html">`label<-`()</a></code> <code><a href="label.html">dag_label()</a></code> <code><a href="label.html">label()</a></code> <code><a href="label.html">has_labels()</a></code> </p>
+        </td>
+        <td><p>DAG labels</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="simulate_data.html">simulate_data()</a></code> </p>
+        </td>
+        <td><p>Simulate Data from Structural Equation Model</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-analyzing-and-plotting-dags" class="hasAnchor"><a href="#section-analyzing-and-plotting-dags" class="anchor"></a>Analyzing and Plotting DAGs</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="canonicalize.html">node_canonical()</a></code> <code><a href="canonicalize.html">ggdag_canonical()</a></code> </p>
+        </td>
+        <td><p>Canonicalize a DAG</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="colliders.html">node_collider()</a></code> <code><a href="colliders.html">ggdag_collider()</a></code> </p>
+        </td>
+        <td><p>Find colliders</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="d_relationship.html">node_dconnected()</a></code> <code><a href="d_relationship.html">node_dseparated()</a></code> <code><a href="d_relationship.html">node_drelationship()</a></code> <code><a href="d_relationship.html">ggdag_drelationship()</a></code> <code><a href="d_relationship.html">ggdag_dseparated()</a></code> <code><a href="d_relationship.html">ggdag_dconnected()</a></code> </p>
+        </td>
+        <td><p>D-relationship between variables</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="equivalent.html">node_equivalent_dags()</a></code> <code><a href="equivalent.html">ggdag_equivalent_dags()</a></code> <code><a href="equivalent.html">node_equivalent_class()</a></code> <code><a href="equivalent.html">ggdag_equivalent_class()</a></code> </p>
+        </td>
+        <td><p>Generating Equivalent Models</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="exogenous.html">node_exogenous()</a></code> <code><a href="exogenous.html">ggdag_exogenous()</a></code> </p>
+        </td>
+        <td><p>Find Exogenous Variables</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="instrumental.html">node_instrumental()</a></code> <code><a href="instrumental.html">ggdag_instrumental()</a></code> </p>
+        </td>
+        <td><p>Find Instrumental Variables</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="status.html">node_status()</a></code> <code><a href="status.html">ggdag_status()</a></code> </p>
+        </td>
+        <td><p>Find variable status</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="variable_family.html">node_children()</a></code> <code><a href="variable_family.html">node_parents()</a></code> <code><a href="variable_family.html">node_ancestors()</a></code> <code><a href="variable_family.html">node_descendants()</a></code> <code><a href="variable_family.html">node_markov_blanket()</a></code> <code><a href="variable_family.html">node_adjacent()</a></code> <code><a href="variable_family.html">ggdag_children()</a></code> <code><a href="variable_family.html">ggdag_parents()</a></code> <code><a href="variable_family.html">ggdag_ancestors()</a></code> <code><a href="variable_family.html">ggdag_descendants()</a></code> <code><a href="variable_family.html">ggdag_markov_blanket()</a></code> <code><a href="variable_family.html">ggdag_adjacent()</a></code> </p>
+        </td>
+        <td><p>Familial relationships between variables</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="adjustment_sets.html">dag_adjustment_sets()</a></code> <code><a href="adjustment_sets.html">ggdag_adjustment_set()</a></code> </p>
+        </td>
+        <td><p>Covariate Adjustment Sets</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="label.html">`label<-`()</a></code> <code><a href="label.html">dag_label()</a></code> <code><a href="label.html">label()</a></code> <code><a href="label.html">has_labels()</a></code> </p>
+        </td>
+        <td><p>DAG labels</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="paths.html">dag_paths()</a></code> <code><a href="paths.html">ggdag_paths()</a></code> <code><a href="paths.html">ggdag_paths_fan()</a></code> </p>
+        </td>
+        <td><p>Find Pathways Between Variables</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="control_for.html">control_for()</a></code> <code><a href="control_for.html">adjust_for()</a></code> <code><a href="control_for.html">ggdag_adjust()</a></code> </p>
+        </td>
+        <td><p>Adjust for variables and activate any biasing paths that result</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="ggdag.html">ggdag()</a></code> </p>
+        </td>
+        <td><p>Quickly plot a DAG in ggplot2</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="ggdag_classic.html">ggdag_classic()</a></code> </p>
+        </td>
+        <td><p>Quickly plot a DAG in ggplot2</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="quick_plot.html">m_bias()</a></code> <code><a href="quick_plot.html">butterfly_bias()</a></code> <code><a href="quick_plot.html">confounder_triangle()</a></code> <code><a href="quick_plot.html">collider_triangle()</a></code> <code><a href="quick_plot.html">mediation_triangle()</a></code> <code><a href="quick_plot.html">ggdag_m_bias()</a></code> <code><a href="quick_plot.html">ggdag_butterfly_bias()</a></code> <code><a href="quick_plot.html">ggdag_confounder_triangle()</a></code> <code><a href="quick_plot.html">ggdag_collider_triangle()</a></code> <code><a href="quick_plot.html">ggdag_mediation_triangle()</a></code> </p>
+        </td>
+        <td><p>Quickly create a DAGs with common structures of bias</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="activate_collider_paths.html">activate_collider_paths()</a></code> </p>
+        </td>
+        <td><p>Activate paths opened by stratifying on a collider</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="is_collider.html">is_collider()</a></code> <code><a href="is_collider.html">is_downstream_collider()</a></code> </p>
+        </td>
+        <td><p>Detecting colliders in DAGs</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="is_confounder.html">is_confounder()</a></code> </p>
+        </td>
+        <td><p>Assess if a variable confounds a relationship</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="is.tidy_dagitty.html">is.tidy_dagitty()</a></code> </p>
+        </td>
+        <td><p>Test for object class for tidy_dagitty</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-ggplot-geoms-themes-and-scales" class="hasAnchor"><a href="#section-ggplot-geoms-themes-and-scales" class="anchor"></a>ggplot2 geoms, themes, and scales</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="geom_dag_collider_edges.html">geom_dag_collider_edges()</a></code> </p>
+        </td>
+        <td><p>Edges for paths activated by stratification on colliders</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="geom_dag_edge_functions.html">geom_dag_edges_link()</a></code> <code><a href="geom_dag_edge_functions.html">geom_dag_edges_arc()</a></code> <code><a href="geom_dag_edge_functions.html">geom_dag_edges_diagonal()</a></code> <code><a href="geom_dag_edge_functions.html">geom_dag_edges_fan()</a></code> </p>
+        </td>
+        <td><p>Directed DAG edges</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="geom_dag_edges.html">geom_dag_edges()</a></code> </p>
+        </td>
+        <td><p>Directed and bidirected DAG edges</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="geom_dag_text.html">geom_dag_text()</a></code> </p>
+        </td>
+        <td><p>Node text</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="node_point.html">geom_dag_node()</a></code> <code><a href="node_point.html">geom_dag_point()</a></code> </p>
+        </td>
+        <td><p>DAG Nodes</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="repel.html">geom_dag_text_repel()</a></code> <code><a href="repel.html">geom_dag_label_repel()</a></code> </p>
+        </td>
+        <td><p>Repulsive textual annotations</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="theme_dag_blank.html">theme_dag_blank()</a></code> <code><a href="theme_dag_blank.html">theme_dag()</a></code> <code><a href="theme_dag_blank.html">theme_dag_grid()</a></code> </p>
+        </td>
+        <td><p>Minimalist DAG themes</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="theme_dag_grey.html">theme_dag_grey()</a></code> <code><a href="theme_dag_grey.html">theme_dag_gray()</a></code> <code><a href="theme_dag_grey.html">theme_dag_grey_grid()</a></code> <code><a href="theme_dag_grey.html">theme_dag_gray_grid()</a></code> </p>
+        </td>
+        <td><p>Simple grey themes for DAGs</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="scale_adjusted.html">scale_adjusted()</a></code> <code><a href="scale_adjusted.html">scale_dag()</a></code> </p>
+        </td>
+        <td><p>Common scale adjustments for DAGs</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-common-structures-of-bias" class="hasAnchor"><a href="#section-common-structures-of-bias" class="anchor"></a>Common Structures of Bias</h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="quick_plot.html">m_bias()</a></code> <code><a href="quick_plot.html">butterfly_bias()</a></code> <code><a href="quick_plot.html">confounder_triangle()</a></code> <code><a href="quick_plot.html">collider_triangle()</a></code> <code><a href="quick_plot.html">mediation_triangle()</a></code> <code><a href="quick_plot.html">ggdag_m_bias()</a></code> <code><a href="quick_plot.html">ggdag_butterfly_bias()</a></code> <code><a href="quick_plot.html">ggdag_confounder_triangle()</a></code> <code><a href="quick_plot.html">ggdag_collider_triangle()</a></code> <code><a href="quick_plot.html">ggdag_mediation_triangle()</a></code> </p>
+        </td>
+        <td><p>Quickly create a DAGs with common structures of bias</p></td>
+      </tr>
+    </tbody>
+    </table>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -385,5 +392,8 @@
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

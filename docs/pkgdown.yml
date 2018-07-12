@@ -1,0 +1,8 @@
+pandoc: 2.1.3
+pkgdown: 1.1.0
+pkgdown_sha: ~
+articles:
+  bias-structures: bias-structures.html
+  intro-to-dags: intro-to-dags.html
+  intro-to-ggdag: intro-to-ggdag.html
+

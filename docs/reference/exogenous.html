@@ -21,18 +21,24 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Find Exogenous Variables — Exogenous Variables" />
 
 <meta property="og:description" content="node_exogenous tags exogenous variables given an exposure and
 outcome. ggdag_exogenous plots all exogenous variables. See
 dagitty::exogenousVariables() for details." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -55,8 +61,12 @@ dagitty::exogenousVariables() for details." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -96,6 +106,7 @@ dagitty::exogenousVariables() for details." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -103,26 +114,30 @@ dagitty::exogenousVariables() for details." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Find Exogenous Variables</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/exogenous.R'><code>R/exogenous.R</code></a></small>
+    <div class="hidden name"><code>exogenous.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p><code>node_exogenous</code> tags exogenous variables given an exposure and
 outcome. <code>ggdag_exogenous</code> plots all exogenous variables. See
 <code><a href='http://www.rdocumentation.org/packages/dagitty/topics/exogenousVariables'>dagitty::exogenousVariables()</a></code> for details.</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>node_exogenous</span>(<span class='no'>.dag</span>, <span class='no'>...</span>)
 
 <span class='fu'>ggdag_exogenous</span>(<span class='no'>.tdy_dag</span>, <span class='no'>...</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>, <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>,
   <span class='kw'>edge_type</span> <span class='kw'>=</span> <span class='st'>"link_arc"</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>,
-  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -188,7 +203,9 @@ exogenous variables or a <code>ggplot</code></p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='no'>dag</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>x1</span> + <span class='no'>x2</span> + <span class='no'>x3</span>, <span class='no'>b</span> ~ <span class='no'>x1</span> + <span class='no'>x2</span>)
-<span class='fu'>ggdag_exogenous</span>(<span class='no'>dag</span>)</div><div class='img'><img src='exogenous-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'><span class='fu'>node_exogenous</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 7 x 9
+<span class='fu'>ggdag_exogenous</span>(<span class='no'>dag</span>)</div><div class='img'><img src='exogenous-1.png' alt='' width='700' height='433' /></div><div class='input'><span class='fu'>node_exogenous</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A DAG with 5 nodes and 5 edges
+#&gt; #
+#&gt; # A tibble: 7 x 9
 #&gt;   name      x     y direction to     xend  yend circular exogenous
 #&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;    
 #&gt; 1 x1     12.7  18.1 -&gt;        b      11.6  17.8 FALSE    exogenous
@@ -225,5 +242,8 @@ exogenous variables or a <code>ggplot</code></p>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+

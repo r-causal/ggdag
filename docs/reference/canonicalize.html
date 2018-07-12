@@ -21,19 +21,25 @@
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script>
 
+<!-- sticky kit -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
+
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
-<script src="../jquery.sticky-kit.min.js"></script>
 <script src="../pkgdown.js"></script>
-  
-  
+
+
+
 <meta property="og:title" content="Canonicalize a DAG — Canonicalize DAGs" />
 
 <meta property="og:description" content="Takes an input graph with bidirected edges and replaces every bidirected edge
-x &lt;-&gt; y with a substructure x &lt;- L -&gt; y, where L is a latent variable. See
+x &amp;lt;-&amp;gt; y with a substructure x &amp;lt;- L -&amp;gt; y, where L is a latent variable. See
 dagitty::canonicalize() for details. Undirected edges
 are not currently supported in ggdag." />
 <meta name="twitter:card" content="summary" />
+
+
+
 <!-- mathjax -->
 <script src='https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'></script>
 
@@ -56,8 +62,12 @@ are not currently supported in ggdag." />
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="../index.html">ggdag</a>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">ggdag</a>
+        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.1.5.9000</span>
+      </span>
     </div>
+
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
@@ -97,6 +107,7 @@ are not currently supported in ggdag." />
   </a>
 </li>
       </ul>
+      
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -104,27 +115,31 @@ are not currently supported in ggdag." />
       
       </header>
 
-      <div class="row">
+<div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Canonicalize a DAG</h1>
+    <small class="dont-index">Source: <a href='https://github.com/malcolmbarrett/ggdag/blob/master/R/canonical.R'><code>R/canonical.R</code></a></small>
+    <div class="hidden name"><code>canonicalize.Rd</code></div>
     </div>
 
+    <div class="ref-description">
     
     <p>Takes an input graph with bidirected edges and replaces every bidirected edge
 x &lt;-&gt; y with a substructure x &lt;- L -&gt; y, where L is a latent variable. See
 <code><a href='http://www.rdocumentation.org/packages/dagitty/topics/canonicalize'>dagitty::canonicalize()</a></code> for details. Undirected edges
 are not currently supported in <code>ggdag</code>.</p>
     
+    </div>
 
     <pre class="usage"><span class='fu'>node_canonical</span>(<span class='no'>.dag</span>, <span class='no'>...</span>)
 
 <span class='fu'>ggdag_canonical</span>(<span class='no'>.tdy_dag</span>, <span class='no'>...</span>, <span class='kw'>edge_type</span> <span class='kw'>=</span> <span class='st'>"link_arc"</span>, <span class='kw'>node_size</span> <span class='kw'>=</span> <span class='fl'>16</span>,
   <span class='kw'>text_size</span> <span class='kw'>=</span> <span class='fl'>3.88</span>, <span class='kw'>label_size</span> <span class='kw'>=</span> <span class='no'>text_size</span>, <span class='kw'>text_col</span> <span class='kw'>=</span> <span class='st'>"white"</span>,
-  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
+  <span class='kw'>label_col</span> <span class='kw'>=</span> <span class='no'>text_col</span>, <span class='kw'>node</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>, <span class='kw'>stylized</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>, <span class='kw'>text</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>,
   <span class='kw'>use_labels</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
     
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
@@ -190,15 +205,19 @@ Default is <code>NULL</code>.</p></td>
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='no'>dag</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>x</span> + <span class='no'>z</span>, <span class='no'>x</span> ~~ <span class='no'>z</span>)
 
-<span class='fu'><a href='ggdag.html'>ggdag</a></span>(<span class='no'>dag</span>)</div><div class='img'><img src='canonicalize-1.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
-<span class='fu'>node_canonical</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A tibble: 5 x 8
+<span class='fu'><a href='ggdag.html'>ggdag</a></span>(<span class='no'>dag</span>)</div><div class='img'><img src='canonicalize-1.png' alt='' width='700' height='433' /></div><div class='input'>
+<span class='fu'>node_canonical</span>(<span class='no'>dag</span>)</div><div class='output co'>#&gt; # A DAG with 4 nodes and 4 edges
+#&gt; #
+#&gt; # Latent Variable: L1
+#&gt; #
+#&gt; # A tibble: 5 x 8
 #&gt;   name      x     y direction to     xend  yend circular
 #&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   
 #&gt; 1 L1     5.94  8.11 -&gt;        x      5.89  6.96 FALSE   
 #&gt; 2 L1     5.94  8.11 -&gt;        z      4.79  8.14 FALSE   
 #&gt; 3 x      5.89  6.96 -&gt;        y      4.75  7.00 FALSE   
 #&gt; 4 z      4.79  8.14 -&gt;        y      4.75  7.00 FALSE   
-#&gt; 5 y      4.75  7.00 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE   </div><div class='input'><span class='fu'>ggdag_canonical</span>(<span class='no'>dag</span>)</div><div class='img'><img src='canonicalize-2.png' alt='' width='700' height='432.632880098887' /></div><div class='input'>
+#&gt; 5 y      4.75  7.00 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE   </div><div class='input'><span class='fu'>ggdag_canonical</span>(<span class='no'>dag</span>)</div><div class='img'><img src='canonicalize-2.png' alt='' width='700' height='433' /></div><div class='input'>
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -226,5 +245,8 @@ Default is <code>NULL</code>.</p></td>
       </footer>
    </div>
 
+  
+
   </body>
 </html>
+
