@@ -73,7 +73,8 @@ tidy_ggdag
 `ggdag` also provides functionality for analyzing DAGs and plotting them in `ggplot2`:
 
 ```{r ggdag, dpi=300}
-ggdag(tidy_ggdag)
+ggdag(tidy_ggdag) +
+  theme_dag()
 ggdag_adjustment_set(tidy_ggdag, node_size = 14) + 
   theme(legend.position = "bottom")
 
@@ -92,7 +93,7 @@ dagify(m ~ x + y) %>%
     geom_dag_text(col = "white") +
     theme_dag() + 
     scale_adjusted() +
-    scale_color_hue(name = NULL)
+    scale_color_hue(name = "d-relationship")
 ```
 
 And common structures of bias:

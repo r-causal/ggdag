@@ -52,6 +52,11 @@ dag <- dagitty::dagitty( "dag {
 tidy_dag <- tidy_dagitty(dag)
 
 tidy_dag 
+#> # A DAG with 7 nodes and 12 edges
+#> #
+#> # Exposure: x
+#> # Outcome: y
+#> #
 #> # A tibble: 13 x 8
 #>    name      x     y direction to     xend  yend circular
 #>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
@@ -79,6 +84,11 @@ tidy_ggdag <- dagify(y ~ x + z2 + w2 + w1,
              outcome = "y") %>% tidy_dagitty()
 
 tidy_ggdag
+#> # A DAG with 7 nodes and 11 edges
+#> #
+#> # Exposure: x
+#> # Outcome: y
+#> #
 #> # A tibble: 12 x 8
 #>    name      x     y direction to     xend  yend circular
 #>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
@@ -100,7 +110,8 @@ tidy_ggdag
 in `ggplot2`:
 
 ``` r
-ggdag(tidy_ggdag)
+ggdag(tidy_ggdag) +
+  theme_dag()
 ```
 
 <img src="man/figures/README-ggdag-1.png" width="100%" />
@@ -126,7 +137,7 @@ dagify(m ~ x + y) %>%
     geom_dag_text(col = "white") +
     theme_dag() + 
     scale_adjusted() +
-    scale_color_hue(name = NULL)
+    scale_color_hue(name = "d-relationship")
 ```
 
 <img src="man/figures/README-ggdag_geoms-1.png" width="100%" />
