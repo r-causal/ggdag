@@ -12,15 +12,15 @@ node_equivalent_dags(.dag, n = 100, layout = "auto", ...)
 
 ggdag_equivalent_dags(.tdy_dag, ..., node_size = 16, text_size = 3.88,
   label_size = text_size, text_col = "white", label_col = text_col,
-  node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL)
+  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL)
 
 node_equivalent_class(.dag, layout = "auto")
 
 ggdag_equivalent_class(.tdy_dag, expand_x = expand_scale(c(0.1, 0.1)),
-  expand_y = expand_scale(c(0.1, 0.1)), breaks = ggplot2::waiver(), ...,
-  node_size = 16, text_size = 3.88, label_size = text_size,
+  expand_y = expand_scale(c(0.1, 0.1)), breaks = ggplot2::waiver(),
+  ..., node_size = 16, text_size = 3.88, label_size = text_size,
   text_col = "white", label_col = text_col, node = TRUE,
-  stylized = TRUE, text = TRUE, use_labels = NULL)
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.dag}{input graph, an object of class \code{tidy_dagitty} or \code{dagitty}}

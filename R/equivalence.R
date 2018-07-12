@@ -23,7 +23,7 @@
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
 #' @inheritParams tidy_dagitty
-#' @inheritParams scale_dag
+#' @inheritParams scale_adjusted
 #'
 #' @return a `tidy_dagitty` with at least one DAG, including a `dag`
 #'   column to identify graph set for equivalent DAGs or a `reversable`
@@ -61,7 +61,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 #' @export
 ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
                                   label_size = text_size, text_col = "white", label_col = text_col,
-                                  node = TRUE, stylized = TRUE, text = TRUE,
+                                  node = TRUE, stylized = FALSE, text = TRUE,
                                   use_labels = NULL) {
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -69,7 +69,7 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
 
   p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
-    theme_dag()
+    remove_axes()
 
   if (node) {
     if (stylized) {
@@ -88,9 +88,8 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
   if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
     p <- p +
       ggplot2::facet_wrap(~dag) +
-      scale_dag(expand_x = expand_scale(c(0.25, 0.25)))
-  } else {
-    p <- p + scale_dag()
+      expand_plot(expand_x = expand_scale(c(0.25, 0.25)),
+                  expand_y = expand_scale(c(0.25, 0.25)))
   }
 
   p
@@ -112,6 +111,7 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 }
 
 #' @rdname equivalent
+#' @inheritParams expand_plot
 #' @export
 ggdag_equivalent_class <- function(.tdy_dag,
                                    expand_x = expand_scale(c(.10, .10)),
@@ -119,7 +119,7 @@ ggdag_equivalent_class <- function(.tdy_dag,
                                    breaks = ggplot2::waiver(), ...,
                                    node_size = 16, text_size = 3.88, label_size = text_size,
                                    text_col = "white", label_col = text_col,
-                                   node = TRUE, stylized = TRUE,
+                                   node = TRUE, stylized = FALSE,
                                    text = TRUE, use_labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)
@@ -131,12 +131,9 @@ ggdag_equivalent_class <- function(.tdy_dag,
     geom_dag_edges(data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
                    data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")) +
     geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
-    theme_dag() +
-    ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks) +
-    ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50") +
-    ggplot2::scale_x_continuous(expand = expand_x) +
-    ggplot2::scale_y_continuous(expand = expand_y) +
-    ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.1, 1))
+    remove_axes() +
+    breaks(breaks) +
+    ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.30, 1))
 
   if (node) {
     if (stylized) {

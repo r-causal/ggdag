@@ -15,6 +15,8 @@
 #' @param paths_only logical. Should only open paths be returned? Default is
 #'   `FALSE`, which includes every variable and edge in the DAG regardless
 #'   if they are part of the path.
+#' @param shadow logical. Show edges not in path? Ignored if `paths_only` is
+#'   `TRUE`
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
@@ -104,24 +106,23 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
 
 #' @rdname paths
 #' @export
-ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, paths_only = FALSE, ...,
+ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, shadow = FALSE, ...,
                                  node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed, paths_only = paths_only) %>%
+    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed, paths_only = !shadow) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~forcats::fct_inorder(as.factor(set), ordered = TRUE)) +
-    theme_dag() +
-    ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
-    ggraph::scale_edge_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
-    ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
-    ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
-    ggplot2::scale_x_continuous(expand = expand_scale(c(0.25, 0.25))) +
-    ggplot2::scale_y_continuous(expand = expand_scale(c(0.1, 0.1)))
+    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
+    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
+    ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
+    ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
+    remove_axes() +
+    expand_plot(expand_x = expand_scale(c(0.25, 0.25)),
+                expand_y = expand_scale(c(0.1, 0.1)))
 
 
   if (node) {
@@ -143,21 +144,20 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
 #' @export
 ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...,
                         spread = .7, node_size = 16, text_size = 2, label_size = text_size, text_col = "white", label_col = text_col,
-                        node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                        node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges_fan(ggplot2::aes(edge_colour = set, edge_alpha = path), spread = spread) +
-    theme_dag() +
-    ggplot2::scale_alpha_manual(name = "", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path") +
-    ggraph::scale_edge_color_brewer(drop = FALSE, palette = "Set2", na.value = "grey50") +
-    ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
-    ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = "open path") +
-    ggplot2::scale_x_continuous(expand = expand_scale(c(0.25, 0.25))) +
-    ggplot2::scale_y_continuous(expand = expand_scale(c(0.1, 0.1)))
+    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
+    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
+    ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
+    ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
+    remove_axes() +
+    expand_plot(expand_x = expand_scale(c(0.25, 0.25)),
+                expand_y = expand_scale(c(0.1, 0.1)))
 
   if (node) {
     if (stylized) {

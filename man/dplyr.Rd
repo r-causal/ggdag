@@ -3,47 +3,26 @@
 \name{dplyr}
 \alias{dplyr}
 \alias{select.tidy_dagitty}
-\alias{dplyr}
 \alias{filter.tidy_dagitty}
-\alias{dplyr}
 \alias{mutate.tidy_dagitty}
-\alias{dplyr}
 \alias{summarise.tidy_dagitty}
-\alias{dplyr}
-\alias{arrange.tidy_dagitty}
-\alias{dplyr}
-\alias{group_by.tidy_dagitty}
-\alias{dplyr}
-\alias{ungroup.tidy_dagitty}
-\alias{dplyr}
-\alias{transmute.tidy_dagitty}
-\alias{dplyr}
 \alias{distinct.tidy_dagitty}
-\alias{dplyr}
+\alias{arrange.tidy_dagitty}
+\alias{group_by.tidy_dagitty}
+\alias{ungroup.tidy_dagitty}
+\alias{transmute.tidy_dagitty}
 \alias{full_join.tidy_dagitty}
-\alias{dplyr}
 \alias{inner_join.tidy_dagitty}
-\alias{dplyr}
 \alias{left_join.tidy_dagitty}
-\alias{dplyr}
 \alias{right_join.tidy_dagitty}
-\alias{dplyr}
 \alias{anti_join.tidy_dagitty}
-\alias{dplyr}
 \alias{semi_join.tidy_dagitty}
-\alias{dplyr}
 \alias{slice.tidy_dagitty}
-\alias{dplyr}
 \alias{select_.tidy_dagitty}
-\alias{dplyr}
 \alias{filter_.tidy_dagitty}
-\alias{dplyr}
 \alias{mutate_.tidy_dagitty}
-\alias{dplyr}
 \alias{summarise_.tidy_dagitty}
-\alias{dplyr}
 \alias{arrange_.tidy_dagitty}
-\alias{dplyr}
 \alias{slice_.tidy_dagitty}
 \title{Dplyr verb methods for \code{tidy_dagitty} objects}
 \usage{
@@ -54,6 +33,8 @@
 \method{mutate}{tidy_dagitty}(.data, ...)
 
 \method{summarise}{tidy_dagitty}(.data, ...)
+
+\method{distinct}{tidy_dagitty}(.data, ..., .keep_all = FALSE)
 
 \method{arrange}{tidy_dagitty}(.data, ...)
 

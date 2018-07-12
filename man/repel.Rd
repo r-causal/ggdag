@@ -13,12 +13,13 @@ geom_dag_text_repel(mapping = NULL, data = NULL, parse = FALSE, ...,
   show.legend = NA, inherit.aes = TRUE)
 
 geom_dag_label_repel(mapping = NULL, data = NULL, parse = FALSE, ...,
-  box.padding = grid::unit(0.35, "lines"), label.padding = grid::unit(0.25,
-  "lines"), point.padding = grid::unit(1.5, "lines"),
-  label.r = grid::unit(0.15, "lines"), label.size = 0.25,
-  segment.color = "grey50", segment.size = 0.5, arrow = NULL, force = 1,
-  max.iter = 2000, nudge_x = 0, nudge_y = 0, na.rm = FALSE,
-  show.legend = NA, inherit.aes = TRUE)
+  box.padding = grid::unit(0.35, "lines"),
+  label.padding = grid::unit(0.25, "lines"),
+  point.padding = grid::unit(1.5, "lines"), label.r = grid::unit(0.15,
+  "lines"), label.size = 0.25, segment.color = "grey50",
+  segment.size = 0.5, arrow = NULL, force = 1, max.iter = 2000,
+  nudge_x = 0, nudge_y = 0, na.rm = FALSE, show.legend = NA,
+  inherit.aes = TRUE)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by \code{\link[ggplot2]{aes}} or
@@ -117,8 +118,7 @@ g \%>\% tidy_dagitty() \%>\%
     geom_dag_edges() +
     geom_dag_node() +
     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
 
 g \%>\% tidy_dagitty() \%>\%
   dag_label(labels = c("x" = "This is the exposure",
@@ -130,6 +130,6 @@ g \%>\% tidy_dagitty() \%>\%
     geom_dag_text() +
     geom_dag_label_repel(aes(label = label, fill = label),
       col = "white", show.legend = FALSE) +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
+
 }

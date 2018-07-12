@@ -32,8 +32,7 @@
 #'   tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_edges() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 #'
 #' p +
 #'   geom_dag_node() +
@@ -121,8 +120,7 @@ geom_dag_point <- function(mapping = NULL, data = NULL,
 #'     geom_dag_node() +
 #'     geom_dag_edges() +
 #'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 geom_dag_text <- function(mapping = NULL, data = NULL,
                           stat = "identity", position = "identity",
                           ...,
@@ -191,8 +189,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'     geom_dag_edges() +
 #'     geom_dag_node() +
 #'     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 #'
 #' g %>% tidy_dagitty() %>%
 #'   dag_label(labels = c("x" = "This is the exposure",
@@ -204,8 +201,8 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'     geom_dag_text() +
 #'     geom_dag_label_repel(aes(label = label, fill = label),
 #'       col = "white", show.legend = FALSE) +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
+#'
 #' @rdname repel
 #' @name ggrepel functions
 geom_dag_text_repel <- function(mapping = NULL,
@@ -383,8 +380,8 @@ filter_direction <- function(.direction) {
 #'     geom_dag_edges() +
 #'     geom_dag_node() +
 #'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
+#'
 geom_dag_edges <- function(mapping = NULL,
                            data_directed = filter_direction("->"),
                            data_bidirected = filter_direction("<->"),
@@ -393,11 +390,12 @@ geom_dag_edges <- function(mapping = NULL,
                            arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type = "closed"),
                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
                            ...) {
-  list(geom_dag_edges_link(mapping, data = data_directed, arrow = arrow_directed,
+  list(
+    geom_dag_edges_link(mapping, data = data_directed, arrow = arrow_directed,
                            position = position, na.rm = na.rm,
                            show.legend = show.legend, inherit.aes = inherit.aes,
                            ...),
-       geom_dag_edges_arc(mapping, data = data_bidirected, arrow = arrow_bidirected,
+    geom_dag_edges_arc(mapping, data = data_bidirected, arrow = arrow_bidirected,
                           curvature = curvature, position = position,
                           na.rm = na.rm, show.legend = show.legend,
                           inherit.aes = inherit.aes, fold = fold,
@@ -480,8 +478,7 @@ geom_dag_edges <- function(mapping = NULL,
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_node() +
 #'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 #'
 #' p + geom_dag_edges_link()
 #' p + geom_dag_edges_arc()
@@ -627,7 +624,7 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #'     geom_dag_node() +
 #'     geom_dag_text() +
 #'     theme_dag() +
-#'     scale_dag()
+#'     scale_adjusted()
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     stat = "identity", position = "identity",
                                     ...,
@@ -666,87 +663,23 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
   )
 }
 
-#' A minimalist DAG theme
+#' Create a new ggplot
 #'
-#' @inheritParams ggplot2::theme_minimal
-#' @param ... additional arguments passed to `theme()`
-#'
+#' @inheritParams ggplot2::ggplot
 #' @export
-#'
-#' @examples
-#' ggdag(m_bias()) + theme_dag_blank()
-#'
-theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
-  list(
-    ggplot2::theme_minimal(base_size = base_size, base_family = base_family),
-    ggplot2::theme(strip.background = ggplot2::element_rect(color = "grey85", fill = "grey85"),
-                   axis.text = ggplot2::element_blank(),
-                   axis.title = ggplot2::element_blank(),
-                   panel.grid = ggplot2::element_blank(),
-                   ...)
-  )
+#' @rdname ggplot.tidy_dagitty
+#' @importFrom ggplot2 ggplot aes
+ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
+
+  p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
+
+  p$scales <- scales_list_quiet()
+
+  p + expand_plot(expand_x = expand_scale(c(.10, .10)),
+                  expand_y = expand_scale(c(.10, .10)))
 }
 
-#' Simple grey theme for DAGs
-#'
-#' @inheritParams ggplot2::theme_grey
-#' @param ... additional arguments passed to `theme()`
-#'
+#' @rdname ggplot.tidy_dagitty
 #' @export
-#'
-#' @rdname theme_dag_grey
-#' @rdname theme_dag_grey
-#'
-#' ggdag(m_bias()) + theme_dag_grey() #the default
-#'
-theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
-  list(
-    ggplot2::theme_grey(base_size = base_size, base_family = base_family),
-    ggplot2::theme(axis.text = ggplot2::element_blank(),
-                   axis.title = ggplot2::element_blank(),
-                   axis.ticks = ggplot2::element_blank(),
-                   panel.grid.major = ggplot2::element_line(colour = "grey92"),
-                   panel.grid.minor = ggplot2::element_line(colour = "grey92"),
-                   ...)
-  )
-}
+ggplot.dagitty <- ggplot.tidy_dagitty
 
-#' @rdname theme_dag_grey
-#' @export
-theme_dag_gray <- theme_dag_grey
-
-#' @rdname theme_dag_grey
-#' @export
-theme_dag <- theme_dag_grey
-
-#' Common scale adjustments for DAGs
-#'
-#' @param expand_x,expand_y Vector of range expansion constants used to add some
-#'   padding around the data, to ensure that they are placed some distance away
-#'   from the axes. Use the convenience function `expand_scale()` to
-#'   generate the values for the expand argument.
-#' @param breaks One of:
-#'
-#' - NULL for no breaks
-#'
-#' - waiver() for the default breaks computed by the transformation object
-#'
-#' - A numeric vector of positions
-#'
-#' - A function that takes the limits as input and returns breaks as output
-#'
-#' @export
-scale_dag <- function(expand_x = expand_scale(c(.10, .10)),
-                      expand_y = expand_scale(c(.10, .10)),
-                      breaks = ggplot2::waiver()) {
-  list(
-    ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
-    ggplot2::scale_shape_manual(name = "", drop = FALSE, values = c("unadjusted" = 19, "adjusted" = 15)),
-    ggplot2::scale_alpha_manual(name = " ", drop = FALSE, values = c("adjusted" = .15, "unadjusted" = 1)),
-    ggraph::scale_edge_alpha_manual(name = " ", drop = FALSE, values = c("adjusted" = .15, "unadjusted" = 1)),
-    ggplot2::scale_color_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50", breaks = breaks),
-    ggplot2::scale_fill_brewer(name = "", drop = FALSE, palette = "Set2", na.value = "grey50"),
-    ggplot2::scale_x_continuous(expand = expand_x),
-    ggplot2::scale_y_continuous(expand = expand_y)
-  )
-}

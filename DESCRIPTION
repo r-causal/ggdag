@@ -1,6 +1,6 @@
 Package: ggdag
 Title: Analyze and Create Elegant Directed Acyclic Graphs
-Version: 0.1.1.9000
+Version: 0.1.5.9000
 Authors@R: person("Malcolm", "Barrett", 
     email = "malcolmbarrett@gmail.com", 
     role = c("aut", "cre"))
@@ -12,7 +12,7 @@ Description: Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is
     adjustment sets and node relationships. 
 Depends: 
     R (>= 3.0.0),
-    ggplot2
+    ggplot2 (>= 3.0.0)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -29,8 +29,9 @@ Imports:
     magrittr,
     ggforce,
     plyr,
-    tidygraph
-RoxygenNote: 6.0.1
+    tidygraph,
+    pillar
+RoxygenNote: 6.0.1.9000
 Suggests: 
     spelling,
     testthat,

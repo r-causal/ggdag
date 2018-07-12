@@ -40,15 +40,14 @@
 ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
                   label_size = text_size,
                   text_col = "white", label_col = "black",
-                  node = TRUE, stylized = TRUE, text = TRUE,
+                  node = TRUE, stylized = FALSE, text = TRUE,
                   use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
     edge_function() +
-    theme_dag() +
-    scale_dag()
+    remove_axes()
 
   if (node) {
     if (stylized) {
@@ -107,8 +106,7 @@ ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
     ggplot2::geom_text(ggplot2::aes_string(label = text_label), size = size, col = text_col) +
-    theme_dag() +
-    scale_dag()
+    remove_axes()
 
   if (any(.tdy_dag$data$direction == "<->" & !is.na(.tdy_dag$data$direction))) {
     p <- p + geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),

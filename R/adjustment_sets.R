@@ -9,6 +9,7 @@
 #' @param outcome a character vector, the outcome variable. Default is
 #'   `NULL`, in which case it will be determined from the DAG.
 #' @param ... additional arguments to `adjustmentSets`
+#' @param shadow logical. Show paths blocked by adjustment?
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
 #' @param label_size size of label text
@@ -20,6 +21,11 @@
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
+#' @param expand_x,expand_y Vector of range expansion constants used to add some
+#'   padding around the data, to ensure that they are placed some distance away
+#'   from the axes. Use the convenience function `expand_scale()` to
+#'   generate the values for the expand argument.
+#' @inheritParams theme_dag
 #'
 #' @return a `tidy_dagitty` with an `adjusted` column and `set`
 #'   column, indicating adjustment status and DAG ID, respectively, for the
@@ -70,7 +76,7 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 
   .tdy_dag$data <-
     purrr::map_df(sets,
-                  ~dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste(.x, collapse = ", "))
+                  ~dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste0("{", paste(.x, collapse = ", "), "}"))
     )
 
   .tdy_dag
@@ -79,22 +85,37 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 
 #' @rdname adjustment_sets
 #' @export
-ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
+ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ..., shadow = FALSE,
                                  node_size = 16, text_size = 3.88, label_size = text_size,
                                  text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL) {
+                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
+                                 expand_x = expand_scale(c(0.25, 0.25)),
+                                 expand_y = expand_scale(c(0.2, 0.2))) {
 
 
-  p <- if_not_tidy_daggity(.tdy_dag) %>%
-    dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = adjusted)) +
-    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
-                   start_cap = ggraph::circle(10, "mm"),
-                   end_cap = ggraph::circle(10, "mm")) +
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+    dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
+
+   p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend,
+                                         yend = yend, shape = adjusted,
+                                         col = adjusted)) +
     ggplot2::facet_wrap(~set) +
-    theme_dag() +
-    scale_dag(expand_x = expand_scale(c(0.25, 0.25)),
-              expand_y = expand_scale(c(0.2, 0.2)))
+    remove_axes() +
+    scale_adjusted() +
+    expand_plot(expand_x = expand_x, expand_y = expand_y)
+
+  if (shadow) {
+    p <- p + geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
+                   start_cap = ggraph::circle(10, "mm"),
+                   end_cap = ggraph::circle(10, "mm"))
+  } else {
+    p <- p + geom_dag_edges(ggplot2::aes(edge_colour = adjusted),
+                   show.legend = FALSE) +
+             ggraph::scale_edge_colour_manual(drop = FALSE,
+                     values = c("unadjusted" = "black",
+                                "adjusted" = "#FFFFFF00"))
+
+  }
 
   if (node) {
     if (stylized) {
@@ -186,10 +207,14 @@ control_for <- function(.tdy_dag, var, as_factor = TRUE, ...) {
 
 #' @rdname control_for
 #' @export
+adjust_for <- control_for
+
+#' @rdname control_for
+#' @export
 ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
                          node_size = 16, text_size = 3.88, label_size = text_size,
                          text_col = "white", label_col = text_col,
-                         node = TRUE, stylized = TRUE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                         node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)
@@ -205,8 +230,9 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
                    start_cap = ggraph::circle(10, "mm"),
                    end_cap = ggraph::circle(10, "mm")) +
-    theme_dag() +
-    scale_dag(expand_y = expand_scale(c(0.2, 0.2)))
+    remove_axes() +
+    scale_adjusted() +
+    expand_plot(expand_y = expand_scale(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {

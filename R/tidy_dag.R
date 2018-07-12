@@ -28,8 +28,7 @@
 #'     geom_dag_node() +
 #'     geom_dag_text() +
 #'     geom_dag_edges() +
-#'     theme_dag() +
-#'     scale_dag()
+#'     theme_dag()
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 
   if (!is.null(seed)) set.seed(seed)
@@ -168,7 +167,24 @@ as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
 #'
 #' @export
 print.tidy_dagitty <- function(x, ...) {
+  cat_subtle <- function(...) cat(pillar::style_subtle(paste(...)))
+  coll <- function(x, ...) paste(x, collapse = ", ", ...)
+
+  cat_subtle("# A DAG with ", n_nodes(x), " nodes and ", n_edges(x), " edges\n", sep = "")
+  cat_subtle("#\n")
+  if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(x$dag)), "\n", sep = "")
+  if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(x$dag)), "\n", sep = "")
+  if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(x$dag)), "\n", sep = "")
+  if (has_collider_path(x)) cat_subtle("# Paths opened by conditioning on a collider: ",
+                                       coll(collider_paths(x)), "\n", sep = "")
+  if (any(c(has_collider_path(x),
+          has_exposure(x),
+          has_outcome(x),
+          has_latent(x)
+          ))) cat_subtle("#\n")
+
   print(x$data, ...)
+  invisible(x)
 }
 
 #  not available in the current CRAN version of dagitty

@@ -52,7 +52,7 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
 ggdag_collider <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16,
                            text_size = 3.88, label_size = text_size,
                            text_col = "white", label_col = text_col,
-                           node = TRUE, stylized = TRUE, text = TRUE,
+                           node = TRUE, stylized = FALSE, text = TRUE,
                            use_labels = NULL) {
 
   edge_function <- edge_type_switch(edge_type)
@@ -61,8 +61,8 @@ ggdag_collider <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16
     node_collider() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = forcats::fct_rev(colliders))) +
     edge_function() +
-    theme_dag() +
-    scale_dag()
+    remove_axes() +
+    scale_adjusted()
 
   if (node) {
     if (stylized) {

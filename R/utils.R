@@ -45,7 +45,8 @@ utils::globalVariables(
     "paths",
     "set",
     "adjacent",
-    "blanket"
+    "blanket",
+    "collider_path_nodes"
   )
 )
 
@@ -79,6 +80,48 @@ edge_type_switch <- function(edge_type) {
 
 is_empty_or_null <- function(x) {
   is.null(x) || purrr::is_empty(x)
+}
+
+has_exposure <- function(x) {
+  isFALSE(purrr::is_empty(dagitty::exposures(x$dag)))
+}
+
+has_outcome <- function(x) {
+  isFALSE(purrr::is_empty(dagitty::outcomes(x$dag)))
+}
+
+has_latent <- function(x) {
+  isFALSE(purrr::is_empty(dagitty::latents(x$dag)))
+}
+
+has_collider_path <- function(x) {
+  x <- if_not_tidy_daggity(x)
+  suppressWarnings(isFALSE(is.null(x$data$collider_line)))
+}
+
+n_nodes <- function(x) {
+  dplyr::n_distinct(x$data$name)
+}
+
+n_edges <- function(x) {
+  sum(!is.na(x$data$direction)) - n_collder_paths(x)
+}
+
+n_collder_paths <- function(x) {
+  if (has_collider_path(x)) n <- sum(x$data$collider_line) else n <- 0
+  n
+}
+
+collider_paths <- function(x) {
+  if (has_collider_path(x)) {
+    paths <- x$data %>%
+      dplyr::filter(collider_line) %>%
+      dplyr::mutate(collider_path_nodes = paste(name, "<->", to)) %>%
+      dplyr::pull(collider_path_nodes)
+  } else {
+    paths <- c()
+  }
+  paths
 }
 
 #' Generate expansion vector for scales.

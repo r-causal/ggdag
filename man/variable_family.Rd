@@ -28,35 +28,35 @@ node_markov_blanket(.tdy_dag, .var, as_factor = TRUE)
 
 node_adjacent(.tdy_dag, .var, as_factor = TRUE)
 
-ggdag_children(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
-  use_labels = NULL)
+ggdag_children(.tdy_dag, .var, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 
-ggdag_parents(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
-  use_labels = NULL)
+ggdag_parents(.tdy_dag, .var, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 
-ggdag_ancestors(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
-  use_labels = NULL)
+ggdag_ancestors(.tdy_dag, .var, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 
 ggdag_descendants(.tdy_dag, .var, ..., edge_type = "link_arc",
   node_size = 16, text_size = 3.88, label_size = text_size,
   text_col = "white", label_col = text_col, node = TRUE,
-  stylized = TRUE, text = TRUE, use_labels = NULL)
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 
 ggdag_markov_blanket(.tdy_dag, .var, ..., edge_type = "link_arc",
   node_size = 16, text_size = 3.88, label_size = text_size,
   text_col = "white", label_col = text_col, node = TRUE,
-  stylized = TRUE, text = TRUE, use_labels = NULL)
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 
-ggdag_adjacent(.tdy_dag, .var, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = TRUE, text = TRUE,
-  use_labels = NULL)
+ggdag_adjacent(.tdy_dag, .var, ..., edge_type = "link_arc",
+  node_size = 16, text_size = 3.88, label_size = text_size,
+  text_col = "white", label_col = text_col, node = TRUE,
+  stylized = FALSE, text = TRUE, use_labels = NULL)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -120,7 +120,9 @@ dag \%>\%
   geom_dag_node() +
   geom_dag_text(col = "white") +
   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
-  theme_dag() + scale_dag(breaks  = c("parent", "child"))
+  theme_dag() +
+  scale_adjusted() +
+  scale_color_hue(breaks  = c("parent", "child"))
 
 ggdag_parents(dag, "y")
 
@@ -132,9 +134,11 @@ dag \%>\%
   node_parents("y") \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
   geom_dag_edges() +
-  geom_dag_node() +
+  geom_dag_point() +
   geom_dag_text(col = "white") +
   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
-  theme_dag() + scale_dag(breaks  = c("parent", "child"))
+  theme_dag() +
+  scale_adjusted() +
+  scale_color_hue(breaks  = c("parent", "child"))
 
 }

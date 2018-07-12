@@ -4,10 +4,11 @@
 \alias{geom_dag_collider_edges}
 \title{Edges for paths activated by stratification on colliders}
 \usage{
-geom_dag_collider_edges(mapping = NULL, data = NULL, stat = "identity",
-  position = "identity", ..., size = 0.6, curvature = 0.5, angle = 90,
-  ncp = 5, arrow = NULL, lineend = "butt", na.rm = FALSE,
-  show.legend = NA, inherit.aes = TRUE)
+geom_dag_collider_edges(mapping = NULL, data = NULL,
+  stat = "identity", position = "identity", ..., size = 0.6,
+  curvature = 0.5, angle = 90, ncp = 5, arrow = NULL,
+  lineend = "butt", na.rm = FALSE, show.legend = NA,
+  inherit.aes = TRUE)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by \code{\link[=aes]{aes()}} or
@@ -35,7 +36,7 @@ layer, as a string.}
 \item{position}{Position adjustment, either as a string, or the result of
 a call to a position adjustment function.}
 
-\item{...}{other arguments passed on to \code{\link[=layer]{layer()}}. These are
+\item{...}{Other arguments passed on to \code{\link[=layer]{layer()}}. These are
 often aesthetics, used to set an aesthetic to a fixed value, like
 \code{color = "red"} or \code{size = 3}. They may also be parameters
 to the paired geom/stat.}
@@ -88,5 +89,5 @@ dagify(m ~ a + b, x ~ a, y ~ b) \%>\%
     geom_dag_node() +
     geom_dag_text() +
     theme_dag() +
-    scale_dag()
+    scale_adjusted()
 }

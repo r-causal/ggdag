@@ -6,11 +6,11 @@
 \alias{geom_dag_point}
 \title{DAG Nodes}
 \usage{
-geom_dag_node(mapping = NULL, data = NULL, position = "identity", ...,
-  na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
+geom_dag_node(mapping = NULL, data = NULL, position = "identity",
+  ..., na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
 
-geom_dag_point(mapping = NULL, data = NULL, position = "identity", ...,
-  na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
+geom_dag_point(mapping = NULL, data = NULL, position = "identity",
+  ..., na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by \code{\link[=aes]{aes()}} or
@@ -35,7 +35,7 @@ will be used as the layer data.}
 \item{position}{Position adjustment, either as a string, or the result of
 a call to a position adjustment function.}
 
-\item{...}{other arguments passed on to \code{\link[=layer]{layer()}}. These are
+\item{...}{Other arguments passed on to \code{\link[=layer]{layer()}}. These are
 often aesthetics, used to set an aesthetic to a fixed value, like
 \code{color = "red"} or \code{size = 3}. They may also be parameters
 to the paired geom/stat.}
@@ -87,8 +87,7 @@ p <- g \%>\%
   tidy_dagitty() \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
 
 p +
   geom_dag_node() +

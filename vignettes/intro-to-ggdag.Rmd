@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
   fig.width = 5, 
   fig.height = 5, 
   fig.align = "center",
-  fig.dpi = 200,
+  fig.dpi = 320,
   warning=FALSE,
   message=FALSE
 )
@@ -130,14 +130,14 @@ ggdag_adjustment_set(bigger_dag)
 bigger_dag %>% 
     node_parents("x") %>%
     ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
-      geom_dag_node() +
+      geom_dag_point() +
       geom_dag_edges() +
       geom_dag_text(col = "white") +
       theme_dag() +
-      scale_dag(breaks  = c("parent", "child")) #  ignores NA in legend
+      scale_color_hue(breaks  = c("parent", "child")) #  ignores NA in legend
 ```
 
-The heavy lifters in `ggdag` are `geom_dag_node()`/`geom_dag_point()`, `geom_dag_edges()`, `geom_dag_text()`, `theme_dag()`, and `scale_dag()`. `geom_dag_node()` and `geom_dag_text()` plot the nodes and text, respectively, and are only modifications of `geom_point()` and `geom_text()`. `geom_dag_node()` is slightly stylized (it has an internal white circle), while `geom_dag_point()` looks more like `geom_point()` with a larger size. `theme_dag()` removes all axes and ticks, since those have little meaning in a causal model, and also makes a few other changes. `scale_dag()` is a convenience function that makes modifications to the scale of the plot to make them more amenable to nodes with large points and text, as well as providing defaults for common analyses in DAGs, e.g. setting `scale_alpha_manual()` to work with an adjusted variables.
+The heavy lifters in `ggdag` are `geom_dag_node()`/`geom_dag_point()`, `geom_dag_edges()`, `geom_dag_text()`, `theme_dag()`, and `scale_adjusted()`. `geom_dag_node()` and `geom_dag_text()` plot the nodes and text, respectively, and are only modifications of `geom_point()` and `geom_text()`. `geom_dag_node()` is slightly stylized (it has an internal white circle), while `geom_dag_point()` looks more like `geom_point()` with a larger size. `theme_dag()` removes all axes and ticks, since those have little meaning in a causal model, and also makes a few other changes. `expand_plot()` is a convenience function that makes modifications to the scale of the plot to make them more amenable to nodes with large points and text `scale_adjusted()` provides defaults that are common in analyses of DAGs, e.g. setting the shape of adjusted variables to a square.
 
 `geom_dag_edges()` is also a convenience function that plots directed and bi-directed edges with different geoms and arrows. Directed edges are straight lines with a single arrow head, while bi-directed lines, which are a shorthand for a latent parent variable between the two bi-directed variables (e.g. a <- L -> b), are plotted as an arc with arrow heads on either side. 
 
@@ -147,11 +147,10 @@ You can also call edge functions directly, particularly if you only have directe
 dagify(y ~ x,
        m ~ x + y) %>% 
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_node() +
+    geom_dag_point() +
     geom_dag_edges_arc() +
     geom_dag_text() +
-    theme_dag() +
-    scale_dag()
+    theme_dag()
 ```
 
 
@@ -162,11 +161,10 @@ dagify(y ~ x + z,
        x ~~ z) %>% 
     node_canonical() %>% 
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-      geom_dag_node() +
+      geom_dag_point() +
       geom_dag_edges_diagonal() +
       geom_dag_text() +
-      theme_dag() +
-      scale_dag()
+      theme_dag()
 ```
 
 There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.

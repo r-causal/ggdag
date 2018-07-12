@@ -45,8 +45,14 @@ mutate.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr summarise
 summarise.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::summarise(.data$data, ...)
-  .data
+  dplyr::summarise(.data$data, ...)
+}
+
+#' @name dplyr
+#' @export
+#' @importFrom dplyr distinct
+distinct.tidy_dagitty <- function(.data, ..., .keep_all = FALSE) {
+  dplyr::distinct(.data$data, ..., .keep_all = .keep_all)
 }
 
 #' @name dplyr
