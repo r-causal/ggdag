@@ -110,8 +110,6 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                    end_cap = ggraph::circle(10, "mm"))
   } else {
     p <- p + geom_dag_edges(ggplot2::aes(edge_colour = adjusted),
-                   start_cap = ggraph::circle(10, "mm"),
-                   end_cap = ggraph::circle(10, "mm"),
                    show.legend = FALSE) +
              ggraph::scale_edge_colour_manual(drop = FALSE,
                      values = c("unadjusted" = "black",
