@@ -139,7 +139,7 @@ dagify(m ~ x + y) %>%
     theme_dag() + 
     scale_adjusted() +
     expand_plot(expand_y = expand_scale(c(0.2, 0.2))) +
-    scale_color_hue(name = "d-relationship") 
+    scale_color_hue(name = "d-relationship", na.value = "grey75") 
 ```
 
 <img src="man/figures/README-ggdag_geoms-1.png" width="100%" />
