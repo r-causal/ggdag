@@ -18,9 +18,9 @@ set.seed(1542)
 [![Travis-CI Build Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag) [![CRAN status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 
 
-# ggdag: An R Package for visualizing and analyzing directed acyclic graphs
+# ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs
 
-Tidy, analyze, and plot directed acyclic graphs (DAGs). `ggdag` uses the powerful `dagitty` package to create and analyze structural causal models and plot them using `ggplot2` and `ggraph` in a consistent and easy manner. 
+Tidy, analyze, and plot causal directed acyclic graphs (DAGs). `ggdag` uses the powerful `dagitty` package to create and analyze structural causal models and plot them using `ggplot2` and `ggraph` in a consistent and easy manner. 
 
 ## Installation
 
@@ -60,7 +60,7 @@ tidy_dag
 
 #  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(y ~ x + z2 + w2 + w1,
-             x ~ z1 + w1,
+             x ~ z1 + w1 + w2,
              z1 ~ w1 + v,
              z2 ~ w2 + v,
              w1 ~~ w2, # bidirected path
