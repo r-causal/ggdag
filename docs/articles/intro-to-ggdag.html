@@ -85,7 +85,7 @@
       <h1>An Introduction to ggdag</h1>
                         <h4 class="author">Malcolm Barrett</h4>
             
-            <h4 class="date">2018-07-12</h4>
+            <h4 class="date">2018-08-23</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/malcolmbarrett/ggdag/blob/master/vignettes/intro-to-ggdag.Rmd"><code>vignettes/intro-to-ggdag.Rmd</code></a></small>
       <div class="hidden name"><code>intro-to-ggdag.Rmd</code></div>
@@ -187,29 +187,28 @@
 <a class="sourceLine" id="cb6-11" data-line-number="11"><span class="co">#&gt; # Outcome: y</span></a>
 <a class="sourceLine" id="cb6-12" data-line-number="12"><span class="co">#&gt; #</span></a>
 <a class="sourceLine" id="cb6-13" data-line-number="13"><span class="co">#&gt; # A tibble: 20 x 11</span></a>
-<a class="sourceLine" id="cb6-14" data-line-number="14"><span class="co">#&gt;    set   name      x     y direction to     xend  yend circular path     </span></a>
-<a class="sourceLine" id="cb6-15" data-line-number="15"><span class="co">#&gt;    &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;    </span></a>
-<a class="sourceLine" id="cb6-16" data-line-number="16"><span class="co">#&gt;  1 1     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17"><span class="co">#&gt;  2 1     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18"><span class="co">#&gt;  3 1     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-19" data-line-number="19"><span class="co">#&gt;  4 1     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-20" data-line-number="20"><span class="co">#&gt;  5 1     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-21" data-line-number="21"><span class="co">#&gt;  6 1     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-22" data-line-number="22"><span class="co">#&gt;  7 2     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-23" data-line-number="23"><span class="co">#&gt;  8 2     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="co">#&gt;  9 2     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-25" data-line-number="25"><span class="co">#&gt; 10 2     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-26" data-line-number="26"><span class="co">#&gt; 11 2     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-27" data-line-number="27"><span class="co">#&gt; 12 2     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-28" data-line-number="28"><span class="co">#&gt; 13 2     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-29" data-line-number="29"><span class="co">#&gt; 14 3     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-30" data-line-number="30"><span class="co">#&gt; 15 3     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-31" data-line-number="31"><span class="co">#&gt; 16 3     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-32" data-line-number="32"><span class="co">#&gt; 17 3     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-33" data-line-number="33"><span class="co">#&gt; 18 3     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt;     </span></a>
-<a class="sourceLine" id="cb6-34" data-line-number="34"><span class="co">#&gt; 19 3     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-35" data-line-number="35"><span class="co">#&gt; 20 3     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    open path</span></a>
-<a class="sourceLine" id="cb6-36" data-line-number="36"><span class="co">#&gt; # ... with 1 more variable: type &lt;lgl&gt;</span></a></code></pre></div>
+<a class="sourceLine" id="cb6-14" data-line-number="14"><span class="co">#&gt;    set   name      x     y direction to     xend  yend circular path type </span></a>
+<a class="sourceLine" id="cb6-15" data-line-number="15"><span class="co">#&gt;    &lt;chr&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;ch&gt; &lt;lgl&gt;</span></a>
+<a class="sourceLine" id="cb6-16" data-line-number="16"><span class="co">#&gt;  1 1     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-17" data-line-number="17"><span class="co">#&gt;  2 1     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-18" data-line-number="18"><span class="co">#&gt;  3 1     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-19" data-line-number="19"><span class="co">#&gt;  4 1     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-20" data-line-number="20"><span class="co">#&gt;  5 1     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-21" data-line-number="21"><span class="co">#&gt;  6 1     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-22" data-line-number="22"><span class="co">#&gt;  7 2     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-23" data-line-number="23"><span class="co">#&gt;  8 2     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="co">#&gt;  9 2     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-25" data-line-number="25"><span class="co">#&gt; 10 2     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-26" data-line-number="26"><span class="co">#&gt; 11 2     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-27" data-line-number="27"><span class="co">#&gt; 12 2     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-28" data-line-number="28"><span class="co">#&gt; 13 2     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-29" data-line-number="29"><span class="co">#&gt; 14 3     a      17.3  19.2 -&gt;        x      16.8  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-30" data-line-number="30"><span class="co">#&gt; 15 3     a      17.3  19.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-31" data-line-number="31"><span class="co">#&gt; 16 3     b      17.3  17.2 -&gt;        x      16.8  18.2 FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-32" data-line-number="32"><span class="co">#&gt; 17 3     b      17.3  17.2 -&gt;        y      17.7  18.2 FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-33" data-line-number="33"><span class="co">#&gt; 18 3     x      16.8  18.2 -&gt;        y      17.7  18.2 FALSE    &lt;NA&gt; NA   </span></a>
+<a class="sourceLine" id="cb6-34" data-line-number="34"><span class="co">#&gt; 19 3     y      17.7  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    ope… NA   </span></a>
+<a class="sourceLine" id="cb6-35" data-line-number="35"><span class="co">#&gt; 20 3     x      16.8  18.2 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE    ope… NA</span></a></code></pre></div>
 <p><code>ggdag</code> also supports <a href="http://r4ds.had.co.nz/pipes.html">piping</a> of functions and includes the pipe internally (so you don’t need to load <code>dplyr</code> or <code>magrittr</code>). Basic <code>dplyr</code> verbs are also supported (and anything more complex can be done directly on the <code>data</code> object).</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">library</span>(dplyr)</a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"><span class="co">#  find how many variables are in between x and y in each path</span></a>
@@ -295,7 +294,7 @@
 
 
       <footer><div class="copyright">
-  <p>Developed by Malcolm Barrett.</p>
+  <p>Developed by <a href="https://malco.io">Malcolm Barrett</a>.</p>
 </div>
 
 <div class="pkgdown">

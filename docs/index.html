@@ -10,11 +10,11 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Font Awesome icons --><link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
 <script src="pkgdown.js"></script><meta property="og:title" content="Analyze and Create Elegant Directed Acyclic Graphs">
-<meta property="og:description" content="Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is
-    built on top of 'dagitty', an R package that uses the 'DAGitty' web tool
-    (&lt;http://dagitty.net&gt;) for creating and analyzing DAGs. 'ggdag' makes it
-    easy to tidy and plot 'dagitty' objects using 'ggplot2' and 'ggraph', as
-    well as common analytic and graphical functions, such as determining
+<meta property="og:description" content="Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is 
+    built on top of 'dagitty', an R package that uses the 'DAGitty' web tool 
+    (&lt;http://dagitty.net&gt;) for creating and analyzing DAGs. 'ggdag' makes it 
+    easy to tidy and plot 'dagitty' objects using 'ggplot2' and 'ggraph', as 
+    well as common analytic and graphical functions, such as determining 
     adjustment sets and node relationships. ">
 <meta name="twitter:card" content="summary">
 <!-- mathjax --><script src="https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!--[if lt IE 9]>
@@ -43,7 +43,7 @@
 <li>
   <a href="index.html">
     <span class="fa fa-home fa-lg"></span>
-
+     
   </a>
 </li>
 <li>
@@ -52,7 +52,7 @@
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
-
+     
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
@@ -72,7 +72,7 @@
 <li>
   <a href="https://github.com/malcolmbarrett/ggdag">
     <span class="fa fa-github fa-lg"></span>
-
+     
   </a>
 </li>
       </ul>
@@ -83,19 +83,19 @@
 </div>
 <!--/.navbar -->
 
-
+      
       </header><div class="row">
   <div class="col-md-9 contents">
+    
 
-
-
-
+    
+    
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-<div id="ggdag-an-r-package-for-visualizing-and-analyzing-directed-acyclic-graphs" class="section level1">
+<div id="ggdag-an-r-package-for-visualizing-and-analyzing-causal-directed-acyclic-graphs" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#ggdag-an-r-package-for-visualizing-and-analyzing-directed-acyclic-graphs" class="anchor"></a>ggdag: An R Package for visualizing and analyzing directed acyclic graphs</h1></div>
-<p>Tidy, analyze, and plot directed acyclic graphs (DAGs). <code>ggdag</code> uses the powerful <code>dagitty</code> package to create and analyze structural causal models and plot them using <code>ggplot2</code> and <code>ggraph</code> in a consistent and easy manner.</p>
+<a href="#ggdag-an-r-package-for-visualizing-and-analyzing-causal-directed-acyclic-graphs" class="anchor"></a>ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs</h1></div>
+<p>Tidy, analyze, and plot causal directed acyclic graphs (DAGs). <code>ggdag</code> uses the powerful <code>dagitty</code> package to create and analyze structural causal models and plot them using <code>ggplot2</code> and <code>ggraph</code> in a consistent and easy manner.</p>
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
@@ -148,7 +148,7 @@
 <a class="sourceLine" id="cb3-37" data-line-number="37"></a>
 <a class="sourceLine" id="cb3-38" data-line-number="38"><span class="co">#  using more R-like syntax to create the same DAG</span></a>
 <a class="sourceLine" id="cb3-39" data-line-number="39">tidy_ggdag &lt;-<span class="st"> </span><span class="kw"><a href="reference/dagify.html">dagify</a></span>(y <span class="op">~</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span>z2 <span class="op">+</span><span class="st"> </span>w2 <span class="op">+</span><span class="st"> </span>w1,</a>
-<a class="sourceLine" id="cb3-40" data-line-number="40">             x <span class="op">~</span><span class="st"> </span>z1 <span class="op">+</span><span class="st"> </span>w1,</a>
+<a class="sourceLine" id="cb3-40" data-line-number="40">             x <span class="op">~</span><span class="st"> </span>z1 <span class="op">+</span><span class="st"> </span>w1 <span class="op">+</span><span class="st"> </span>w2,</a>
 <a class="sourceLine" id="cb3-41" data-line-number="41">             z1 <span class="op">~</span><span class="st"> </span>w1 <span class="op">+</span><span class="st"> </span>v,</a>
 <a class="sourceLine" id="cb3-42" data-line-number="42">             z2 <span class="op">~</span><span class="st"> </span>w2 <span class="op">+</span><span class="st"> </span>v,</a>
 <a class="sourceLine" id="cb3-43" data-line-number="43">             w1 <span class="op">~</span><span class="er">~</span><span class="st"> </span>w2, <span class="co"># bidirected path</span></a>
@@ -156,33 +156,34 @@
 <a class="sourceLine" id="cb3-45" data-line-number="45">             <span class="dt">outcome =</span> <span class="st">"y"</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span>()</a>
 <a class="sourceLine" id="cb3-46" data-line-number="46"></a>
 <a class="sourceLine" id="cb3-47" data-line-number="47">tidy_ggdag</a>
-<a class="sourceLine" id="cb3-48" data-line-number="48"><span class="co">#&gt; # A DAG with 7 nodes and 11 edges</span></a>
+<a class="sourceLine" id="cb3-48" data-line-number="48"><span class="co">#&gt; # A DAG with 7 nodes and 12 edges</span></a>
 <a class="sourceLine" id="cb3-49" data-line-number="49"><span class="co">#&gt; #</span></a>
 <a class="sourceLine" id="cb3-50" data-line-number="50"><span class="co">#&gt; # Exposure: x</span></a>
 <a class="sourceLine" id="cb3-51" data-line-number="51"><span class="co">#&gt; # Outcome: y</span></a>
 <a class="sourceLine" id="cb3-52" data-line-number="52"><span class="co">#&gt; #</span></a>
-<a class="sourceLine" id="cb3-53" data-line-number="53"><span class="co">#&gt; # A tibble: 12 x 8</span></a>
+<a class="sourceLine" id="cb3-53" data-line-number="53"><span class="co">#&gt; # A tibble: 13 x 8</span></a>
 <a class="sourceLine" id="cb3-54" data-line-number="54"><span class="co">#&gt;    name      x     y direction to     xend  yend circular</span></a>
 <a class="sourceLine" id="cb3-55" data-line-number="55"><span class="co">#&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   </span></a>
-<a class="sourceLine" id="cb3-56" data-line-number="56"><span class="co">#&gt;  1 v      7.25  17.2 -&gt;        z1     7.59  18.5 FALSE   </span></a>
-<a class="sourceLine" id="cb3-57" data-line-number="57"><span class="co">#&gt;  2 v      7.25  17.2 -&gt;        z2     8.57  16.8 FALSE   </span></a>
-<a class="sourceLine" id="cb3-58" data-line-number="58"><span class="co">#&gt;  3 w1     9.03  18.7 -&gt;        x      8.35  19.3 FALSE   </span></a>
-<a class="sourceLine" id="cb3-59" data-line-number="59"><span class="co">#&gt;  4 w1     9.03  18.7 -&gt;        y      8.93  18.0 FALSE   </span></a>
-<a class="sourceLine" id="cb3-60" data-line-number="60"><span class="co">#&gt;  5 w1     9.03  18.7 -&gt;        z1     7.59  18.5 FALSE   </span></a>
-<a class="sourceLine" id="cb3-61" data-line-number="61"><span class="co">#&gt;  6 w1     9.03  18.7 &lt;-&gt;       w2     9.68  17.5 FALSE   </span></a>
-<a class="sourceLine" id="cb3-62" data-line-number="62"><span class="co">#&gt;  7 w2     9.68  17.5 -&gt;        y      8.93  18.0 FALSE   </span></a>
-<a class="sourceLine" id="cb3-63" data-line-number="63"><span class="co">#&gt;  8 w2     9.68  17.5 -&gt;        z2     8.57  16.8 FALSE   </span></a>
-<a class="sourceLine" id="cb3-64" data-line-number="64"><span class="co">#&gt;  9 x      8.35  19.3 -&gt;        y      8.93  18.0 FALSE   </span></a>
-<a class="sourceLine" id="cb3-65" data-line-number="65"><span class="co">#&gt; 10 z1     7.59  18.5 -&gt;        x      8.35  19.3 FALSE   </span></a>
-<a class="sourceLine" id="cb3-66" data-line-number="66"><span class="co">#&gt; 11 z2     8.57  16.8 -&gt;        y      8.93  18.0 FALSE   </span></a>
-<a class="sourceLine" id="cb3-67" data-line-number="67"><span class="co">#&gt; 12 y      8.93  18.0 &lt;NA&gt;      &lt;NA&gt;  NA     NA   FALSE</span></a></code></pre></div>
+<a class="sourceLine" id="cb3-56" data-line-number="56"><span class="co">#&gt;  1 v      9.30  13.4 -&gt;        z1     9.74  12.1 FALSE   </span></a>
+<a class="sourceLine" id="cb3-57" data-line-number="57"><span class="co">#&gt;  2 v      9.30  13.4 -&gt;        z2     7.96  13.0 FALSE   </span></a>
+<a class="sourceLine" id="cb3-58" data-line-number="58"><span class="co">#&gt;  3 w1     8.74  11.0 -&gt;        x      8.86  11.6 FALSE   </span></a>
+<a class="sourceLine" id="cb3-59" data-line-number="59"><span class="co">#&gt;  4 w1     8.74  11.0 -&gt;        y      7.68  11.5 FALSE   </span></a>
+<a class="sourceLine" id="cb3-60" data-line-number="60"><span class="co">#&gt;  5 w1     8.74  11.0 -&gt;        z1     9.74  12.1 FALSE   </span></a>
+<a class="sourceLine" id="cb3-61" data-line-number="61"><span class="co">#&gt;  6 w1     8.74  11.0 &lt;-&gt;       w2     8.00  12.0 FALSE   </span></a>
+<a class="sourceLine" id="cb3-62" data-line-number="62"><span class="co">#&gt;  7 w2     8.00  12.0 -&gt;        x      8.86  11.6 FALSE   </span></a>
+<a class="sourceLine" id="cb3-63" data-line-number="63"><span class="co">#&gt;  8 w2     8.00  12.0 -&gt;        y      7.68  11.5 FALSE   </span></a>
+<a class="sourceLine" id="cb3-64" data-line-number="64"><span class="co">#&gt;  9 w2     8.00  12.0 -&gt;        z2     7.96  13.0 FALSE   </span></a>
+<a class="sourceLine" id="cb3-65" data-line-number="65"><span class="co">#&gt; 10 x      8.86  11.6 -&gt;        y      7.68  11.5 FALSE   </span></a>
+<a class="sourceLine" id="cb3-66" data-line-number="66"><span class="co">#&gt; 11 z1     9.74  12.1 -&gt;        x      8.86  11.6 FALSE   </span></a>
+<a class="sourceLine" id="cb3-67" data-line-number="67"><span class="co">#&gt; 12 z2     7.96  13.0 -&gt;        y      7.68  11.5 FALSE   </span></a>
+<a class="sourceLine" id="cb3-68" data-line-number="68"><span class="co">#&gt; 13 y      7.68  11.5 &lt;NA&gt;      &lt;NA&gt;  NA     NA   FALSE</span></a></code></pre></div>
 <p><code>ggdag</code> also provides functionality for analyzing DAGs and plotting them in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw"><a href="reference/ggdag.html">ggdag</a></span>(tidy_ggdag) <span class="op">+</span></a>
 <a class="sourceLine" id="cb4-2" data-line-number="2"><span class="st">  </span><span class="kw"><a href="reference/theme_dag_blank.html">theme_dag</a></span>()</a></code></pre></div>
-<p><img src="../../../../reference/figures/README-ggdag-1.png" width="100%"></p>
+<p><img src="../../../../Google%20Drive/Active/r_packages/ggdag/man/figures/README-ggdag-1.png" width="100%"></p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw"><a href="reference/adjustment_sets.html">ggdag_adjustment_set</a></span>(tidy_ggdag, <span class="dt">node_size =</span> <span class="dv">14</span>) <span class="op">+</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb5-2" data-line-number="2"><span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">"bottom"</span>)</a></code></pre></div>
-<p><img src="../../../../reference/figures/README-ggdag-2.png" width="100%"></p>
+<p><img src="../../../../Google%20Drive/Active/r_packages/ggdag/man/figures/README-ggdag-2.png" width="100%"></p>
 <p>As well as geoms and other functions for plotting them directly in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw"><a href="reference/dagify.html">dagify</a></span>(m <span class="op">~</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span>y) <span class="op">%&gt;%</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb6-2" data-line-number="2"><span class="st">  </span><span class="kw"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span>() <span class="op">%&gt;%</span><span class="st"> </span></a>
@@ -195,14 +196,14 @@
 <a class="sourceLine" id="cb6-9" data-line-number="9"><span class="st">    </span><span class="kw"><a href="reference/theme_dag_blank.html">theme_dag</a></span>() <span class="op">+</span><span class="st"> </span></a>
 <a class="sourceLine" id="cb6-10" data-line-number="10"><span class="st">    </span><span class="kw"><a href="reference/scale_adjusted.html">scale_adjusted</a></span>() <span class="op">+</span></a>
 <a class="sourceLine" id="cb6-11" data-line-number="11"><span class="st">    </span><span class="kw"><a href="reference/expand_plot.html">expand_plot</a></span>(<span class="dt">expand_y =</span> <span class="kw"><a href="reference/expand_scale.html">expand_scale</a></span>(<span class="kw">c</span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>))) <span class="op">+</span></a>
-<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="st">    </span><span class="kw">scale_color_hue</span>(<span class="dt">name =</span> <span class="st">"d-relationship"</span>) </a></code></pre></div>
-<p><img src="../../../../reference/figures/README-ggdag_geoms-1.png" width="100%"></p>
+<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="st">    </span><span class="kw">scale_color_hue</span>(<span class="dt">name =</span> <span class="st">"d-relationship"</span>, <span class="dt">na.value =</span> <span class="st">"grey75"</span>) </a></code></pre></div>
+<p><img src="../../../../Google%20Drive/Active/r_packages/ggdag/man/figures/README-ggdag_geoms-1.png" width="100%"></p>
 <p>And common structures of bias:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw"><a href="reference/equivalent.html">ggdag_equivalent_dags</a></span>(<span class="kw"><a href="reference/quick_plot.html">confounder_triangle</a></span>())</a></code></pre></div>
-<p><img src="../../../../reference/figures/README-ggdag_common-1.png" width="100%"></p>
+<p><img src="../../../../Google%20Drive/Active/r_packages/ggdag/man/figures/README-ggdag_common-1.png" width="100%"></p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"></a>
 <a class="sourceLine" id="cb8-2" data-line-number="2"><span class="kw"><a href="reference/quick_plot.html">ggdag_butterfly_bias</a></span>(<span class="dt">edge_type =</span> <span class="st">"diagonal"</span>)</a></code></pre></div>
-<p><img src="../../../../reference/figures/README-ggdag_common-2.png" width="100%"></p>
+<p><img src="../../../../Google%20Drive/Active/r_packages/ggdag/man/figures/README-ggdag_common-2.png" width="100%"></p>
 </div>
 </div>
   </div>
@@ -211,11 +212,11 @@
     <div class="links">
 <h2>Links</h2>
 <ul class="list-unstyled">
-<li>Download from CRAN at <br><a href="https://cloud.r-project.org/package=ggdag">https://cloud.r-project.org/package=ggdag</a>
+<li>Download from CRAN at <br><a href="https://cloud.r-project.org/package=ggdag">https://​cloud.r-project.org/​package=ggdag</a>
 </li>
-<li>Browse source code at <br><a href="https://github.com/malcolmbarrett/ggdag">https://github.com/malcolmbarrett/ggdag</a>
+<li>Browse source code at <br><a href="https://github.com/malcolmbarrett/ggdag">https://​github.com/​malcolmbarrett/​ggdag</a>
 </li>
-<li>Report a bug at <br><a href="https://github.com/malcolmbarrett/ggdag/issues">https://github.com/malcolmbarrett/ggdag/issues</a>
+<li>Report a bug at <br><a href="https://github.com/malcolmbarrett/ggdag/issues">https://​github.com/​malcolmbarrett/​ggdag/​issues</a>
 </li>
 </ul>
 </div>
@@ -229,7 +230,8 @@
 <div class="developers">
 <h2>Developers</h2>
 <ul class="list-unstyled">
-<li>Malcolm Barrett <br><small class="roles"> Author, maintainer </small>  </li>
+<li>
+<a href="https://malco.io">Malcolm Barrett</a> <br><small class="roles"> Author, maintainer </small>  </li>
 </ul>
 </div>
 
@@ -247,7 +249,7 @@
 
 
       <footer><div class="copyright">
-  <p>Developed by Malcolm Barrett.</p>
+  <p>Developed by <a href="https://malco.io">Malcolm Barrett</a>.</p>
 </div>
 
 <div class="pkgdown">
@@ -257,7 +259,7 @@
       </footer>
 </div>
 
-
+  
 
   </body>
 </html>

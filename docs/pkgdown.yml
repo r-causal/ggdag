@@ -5,4 +5,7 @@ articles:
   bias-structures: bias-structures.html
   intro-to-dags: intro-to-dags.html
   intro-to-ggdag: intro-to-ggdag.html
+urls:
+  reference: https://malco.io/ggdag//reference
+  article: https://malco.io/ggdag//articles
 

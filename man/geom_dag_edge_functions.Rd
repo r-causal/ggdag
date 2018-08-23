@@ -96,7 +96,7 @@ the colour of the edge.}
 the opacity of the edge.}
 
 \item{label_parse}{If \code{TRUE}, the labels will be parsed into expressions
-and displayed as described in \code{\link[grDevices:plotmath]{grDevices::plotmath()}}.}
+and displayed as described in \code{\link[grDevices]{plotmath}}.}
 
 \item{check_overlap}{If \code{TRUE}, text that overlaps previous text in the
 same layer will not be plotted.}
@@ -109,13 +109,13 @@ edge direction.}
 \item{force_flip}{Logical. If \code{angle_calc} is either 'along' or 'across'
 should the label be flipped if it is on it's head. Default to \code{TRUE}.}
 
-\item{label_dodge}{A \code{\link[grid:unit]{grid::unit()}} giving a fixed vertical shift
+\item{label_dodge}{A \code{\link[grid]{unit}} giving a fixed vertical shift
 to add to the label in case of \code{angle_calc} is either 'along' or 'across'}
 
-\item{label_push}{A \code{\link[grid:unit]{grid::unit()}} giving a fixed horizontal shift
+\item{label_push}{A \code{\link[grid]{unit}} giving a fixed horizontal shift
 to add to the label in case of \code{angle_calc} is either 'along' or 'across'}
 
-\item{spread}{Modify the width of the fans \code{spread &gt; 1} will create
+\item{spread}{Modify the width of the fans \code{spread > 1} will create
 wider fans while the reverse will make them more narrow.}
 }
 \description{

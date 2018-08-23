@@ -183,18 +183,18 @@ have variance 1).</p></td>
     <pre class="examples"><div class='input'><span class='fu'><a href='dagify.html'>dagify</a></span>(<span class='no'>y</span> ~ <span class='no'>z</span>, <span class='no'>x</span> ~ <span class='no'>z</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='tidy_dagitty.html'>tidy_dagitty</a></span>() <span class='kw'>%&gt;%</span>
   <span class='fu'>simulate_data</span>()</div><div class='output co'>#&gt; # A tibble: 500 x 3
-#&gt;          x      y      z
-#&gt;      &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
-#&gt;  1  1.09   -0.713 -0.844
-#&gt;  2 -0.885   2.11   0.594
-#&gt;  3  0.675   0.390  0.417
-#&gt;  4  0.120   1.01   0.769
-#&gt;  5 -0.226  -1.25  -0.585
-#&gt;  6 -0.855  -0.156 -0.241
-#&gt;  7 -0.288   1.46  -1.22 
-#&gt;  8  1.22   -0.600 -0.873
-#&gt;  9 -0.902  -0.543 -1.54 
-#&gt; 10 -0.0511  0.617 -1.01 
+#&gt;         x      y       z
+#&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+#&gt;  1  0.380  2.02   1.82  
+#&gt;  2 -0.658 -0.485 -0.480 
+#&gt;  3 -1.67   0.820 -1.38  
+#&gt;  4  0.626  0.905  1.23  
+#&gt;  5  0.695 -0.975 -1.24  
+#&gt;  6 -1.29   0.999  0.358 
+#&gt;  7  1.49  -0.633  0.0465
+#&gt;  8 -1.04  -1.22   1.28  
+#&gt;  9 -0.487 -1.52   0.341 
+#&gt; 10 -0.506  1.22  -0.213 
 #&gt; # ... with 490 more rows</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -212,7 +212,7 @@ have variance 1).</p></td>
 
       <footer>
       <div class="copyright">
-  <p>Developed by Malcolm Barrett.</p>
+  <p>Developed by <a href='https://malco.io'>Malcolm Barrett</a>.</p>
 </div>
 
 <div class="pkgdown">

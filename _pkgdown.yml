@@ -2,6 +2,12 @@ template:
   params:
     bootswatch: sandstone
 
+authors:
+  Malcolm Barrett:
+    href: https://malco.io
+
+url: https://malco.io/ggdag/
+
 reference:
 - title: Create and Tidy Dags
   contents:

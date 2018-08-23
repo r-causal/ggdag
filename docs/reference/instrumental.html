@@ -213,12 +213,12 @@ instrumental variables or a <code>ggplot</code></p>
 <span class='fu'>node_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='output co'>#&gt; # A DAG with 3 nodes and 3 edges
 #&gt; #
 #&gt; # A tibble: 4 x 11
-#&gt;   name      x     y direction to     xend  yend circular instrumental_name
-#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;            
-#&gt; 1 i     11.1   7.64 -&gt;        x      9.96  7.64 FALSE    i                
-#&gt; 2 x      9.96  7.64 -&gt;        y      9.07  7.64 FALSE    i                
-#&gt; 3 x      9.96  7.64 &lt;-&gt;       y      9.07  7.64 FALSE    i                
-#&gt; 4 y      9.07  7.64 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE    i                
+#&gt;   name      x     y direction to     xend  yend circular instrumental_na…
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;    &lt;chr&gt;           
+#&gt; 1 i      16.3  8.44 -&gt;        x      15.9  9.51 FALSE    i               
+#&gt; 2 x      15.9  9.51 -&gt;        y      15.5 10.3  FALSE    i               
+#&gt; 3 x      15.9  9.51 &lt;-&gt;       y      15.5 10.3  FALSE    i               
+#&gt; 4 y      15.5 10.3  &lt;NA&gt;      &lt;NA&gt;   NA   NA    FALSE    i               
 #&gt; # ... with 2 more variables: adjusted &lt;fct&gt;, instrumental &lt;chr&gt;</div><div class='input'><span class='fu'>ggdag_instrumental</span>(<span class='fu'><a href='http://www.rdocumentation.org/packages/dagitty/topics/dagitty'>dagitty</a></span>(<span class='st'>"dag{ i-&gt;x-&gt;y; i2-&gt;x-&gt;y; x&lt;-&gt;y }"</span>), <span class='st'>"x"</span>, <span class='st'>"y"</span>)</div><div class='img'><img src='instrumental-1.png' alt='' width='700' height='433' /></div><div class='input'>
 </div></pre>
   </div>
@@ -237,7 +237,7 @@ instrumental variables or a <code>ggplot</code></p>
 
       <footer>
       <div class="copyright">
-  <p>Developed by Malcolm Barrett.</p>
+  <p>Developed by <a href='https://malco.io'>Malcolm Barrett</a>.</p>
 </div>
 
 <div class="pkgdown">
