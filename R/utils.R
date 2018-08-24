@@ -82,21 +82,23 @@ is_empty_or_null <- function(x) {
   is.null(x) || purrr::is_empty(x)
 }
 
+is_false <- function(x) is.logical(x) && length(x) == 1L && !is.na(x) && !x
+
 has_exposure <- function(x) {
-  isFALSE(purrr::is_empty(dagitty::exposures(x$dag)))
+  is_false(purrr::is_empty(dagitty::exposures(x$dag)))
 }
 
 has_outcome <- function(x) {
-  isFALSE(purrr::is_empty(dagitty::outcomes(x$dag)))
+  is_false(purrr::is_empty(dagitty::outcomes(x$dag)))
 }
 
 has_latent <- function(x) {
-  isFALSE(purrr::is_empty(dagitty::latents(x$dag)))
+  is_false(purrr::is_empty(dagitty::latents(x$dag)))
 }
 
 has_collider_path <- function(x) {
   x <- if_not_tidy_daggity(x)
-  suppressWarnings(isFALSE(is.null(x$data$collider_line)))
+  suppressWarnings(is_false(is.null(x$data$collider_line)))
 }
 
 n_nodes <- function(x) {
