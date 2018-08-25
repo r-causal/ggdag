@@ -115,14 +115,14 @@ ggdag(tidy_ggdag) +
   theme_dag()
 ```
 
-<img src="man/figures/README-ggdag-1.png" width="100%" />
+<img src="man/figures/ggdag-1.png" width="100%" />
 
 ``` r
 ggdag_adjustment_set(tidy_ggdag, node_size = 14) + 
   theme(legend.position = "bottom")
 ```
 
-<img src="man/figures/README-ggdag-2.png" width="100%" />
+<img src="man/figures/ggdag-2.png" width="100%" />
 
 As well as geoms and other functions for plotting them directly in
 `ggplot2`:
@@ -142,7 +142,7 @@ dagify(m ~ x + y) %>%
     scale_color_hue(name = "d-relationship", na.value = "grey75") 
 ```
 
-<img src="man/figures/README-ggdag_geoms-1.png" width="100%" />
+<img src="man/figures/ggdag_geoms-1.png" width="100%" />
 
 And common structures of bias:
 
@@ -150,11 +150,11 @@ And common structures of bias:
 ggdag_equivalent_dags(confounder_triangle())
 ```
 
-<img src="man/figures/README-ggdag_common-1.png" width="100%" />
+<img src="man/figures/ggdag_common-1.png" width="100%" />
 
 ``` r
 
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
-<img src="man/figures/README-ggdag_common-2.png" width="100%" />
+<img src="man/figures/ggdag_common-2.png" width="100%" />
