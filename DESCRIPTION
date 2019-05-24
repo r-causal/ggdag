@@ -31,7 +31,7 @@ Imports:
     plyr,
     tidygraph,
     pillar
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Suggests: 
     spelling,
     testthat,

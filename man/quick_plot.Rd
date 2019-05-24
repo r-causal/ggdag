@@ -92,7 +92,7 @@ Default is \code{NULL}.}
 a DAG of class \code{dagitty} or a \code{ggplot}
 }
 \description{
-base functions create an object of class \code{dagitty}; \code{ggdag_*} functions
+base functions create an object of class \code{dagitty}; \code{ggdag_* } functions
 are wrappers that also call \code{ggdag()} on the \code{dagitty} object.
 }
 \examples{
