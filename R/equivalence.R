@@ -102,9 +102,9 @@ node_equivalent_class <- function(.dag, layout = "auto") {
   .dag$data <- dagitty::equivalenceClass(.dag$dag) %>%
     dagitty::edges(.) %>%
     dplyr::filter(e == "--") %>%
-    dplyr::select(name = v, reversable = e) %>%
-    dplyr::mutate(name = as.character(name)) %>%
-    dplyr::left_join(.dag$data, .,  by = "name") %>%
+    dplyr::select(name = v, reversable = e, to = w) %>%
+    dplyr::mutate_at(c("name", "to"), as.character) %>%
+    dplyr::left_join(.dag$data, .,  by = c("name", "to")) %>%
     dplyr::mutate(reversable = !is.na(reversable))
 
   .dag
