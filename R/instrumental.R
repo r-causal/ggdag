@@ -77,7 +77,6 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = instrumental, shape = adjusted)) +
     geom_dag_edges() +
-    remove_axes() +
     scale_adjusted() +
     breaks("instrumental")
 

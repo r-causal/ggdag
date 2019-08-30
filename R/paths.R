@@ -120,7 +120,6 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
     ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
     ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
-    remove_axes() +
     expand_plot(expand_x = expand_scale(c(0.25, 0.25)),
                 expand_y = expand_scale(c(0.1, 0.1)))
 
@@ -155,7 +154,6 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
     ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
     ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
-    remove_axes() +
     expand_plot(expand_x = expand_scale(c(0.25, 0.25)),
                 expand_y = expand_scale(c(0.1, 0.1)))
 

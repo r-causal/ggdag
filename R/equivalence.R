@@ -68,8 +68,7 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
     node_equivalent_dags(...)
 
   p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_edges() +
-    remove_axes()
+    geom_dag_edges()
 
   if (node) {
     if (stylized) {
@@ -141,7 +140,6 @@ ggdag_equivalent_class <- function(.tdy_dag,
     geom_dag_edges(data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
                    data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")) +
     geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
-    remove_axes() +
     breaks(breaks) +
     ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.30, 1))
 

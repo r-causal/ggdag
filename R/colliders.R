@@ -61,7 +61,6 @@ ggdag_collider <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16
     node_collider() %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = forcats::fct_rev(colliders))) +
     edge_function() +
-    remove_axes() +
     scale_adjusted()
 
   if (node) {

@@ -69,7 +69,6 @@ ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, 
     node_status(...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = status)) +
     edge_function() +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("exposure", "outcome", "latent"))
 

@@ -177,7 +177,6 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
       edge_function(start_cap = ggraph::circle(10, "mm"),
                        end_cap = ggraph::circle(10, "mm")) +
-      remove_axes() +
       scale_adjusted() +
       breaks(c("d-connected", "d-separated"), name = "d-relationship") +
       expand_plot(expand_y = expand_scale(c(0.2, 0.2)))

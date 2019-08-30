@@ -164,7 +164,6 @@ ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_children(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
     edge_function() +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("parent", "child"))
 
@@ -198,7 +197,6 @@ ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_parents(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
     edge_function() +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("parent", "child"))
 
@@ -231,7 +229,6 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     node_ancestors(.var) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = ancestor)) +
     edge_function() +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"))
 
@@ -265,7 +262,6 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = descendant)) +
     edge_function() +
     geom_dag_text(col = "white") +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"))
 
@@ -299,7 +295,6 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = blanket)) +
     edge_function() +
     geom_dag_text(col = "white") +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("Markov blanket", "center variable"))
 
@@ -333,7 +328,6 @@ ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = adjacent)) +
     edge_function() +
     geom_dag_text(col = "white") +
-    remove_axes() +
     scale_adjusted() +
     breaks(c("adjacent", "center variable"))
 

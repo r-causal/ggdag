@@ -100,7 +100,6 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                                          yend = yend, shape = adjusted,
                                          col = adjusted)) +
     ggplot2::facet_wrap(~set) +
-    remove_axes() +
     scale_adjusted() +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
@@ -230,7 +229,6 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
                    start_cap = ggraph::circle(10, "mm"),
                    end_cap = ggraph::circle(10, "mm")) +
-    remove_axes() +
     scale_adjusted() +
     expand_plot(expand_y = expand_scale(c(0.2, 0.2)))
 
