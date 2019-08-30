@@ -73,17 +73,17 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
   if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
-                           col = label_col, show.legend = FALSE)
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
+                         col = label_col, show.legend = FALSE)
 
   if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
     p <- p +
@@ -95,17 +95,27 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
   p
 }
 
+hash <- function(x, y) {
+  purrr::pmap_chr(list(x, y), ~paste0(sort(c(.x, .y)), collapse = "_"))
+}
+
 #' @rdname equivalent
 #' @export
 node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
-  .dag$data <- dagitty::equivalenceClass(.dag$dag) %>%
+  ec_data <- dagitty::equivalenceClass(.dag$dag) %>%
     dagitty::edges(.) %>%
     dplyr::filter(e == "--") %>%
     dplyr::select(name = v, reversable = e, to = w) %>%
     dplyr::mutate_at(c("name", "to"), as.character) %>%
-    dplyr::left_join(.dag$data, .,  by = c("name", "to")) %>%
-    dplyr::mutate(reversable = !is.na(reversable))
+    dplyr::mutate(hash = hash(name, to)) %>%
+    dplyr::select(hash, reversable)
+
+  .dag$data <- .dag$data %>%
+    dplyr::mutate(hash = hash(name, to)) %>%
+    dplyr::left_join(ec_data, by = "hash") %>%
+    dplyr::mutate(reversable = !is.na(reversable)) %>%
+    dplyr::select(-hash)
 
   .dag
 }
@@ -137,16 +147,16 @@ ggdag_equivalent_class <- function(.tdy_dag,
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
   if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
-                           col = label_col, show.legend = FALSE)
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
+                         col = label_col, show.legend = FALSE)
   p
 }
