@@ -1,44 +1,48 @@
 Package: ggdag
 Title: Analyze and Create Elegant Directed Acyclic Graphs
 Version: 0.1.5.9000
-Authors@R: person("Malcolm", "Barrett", 
-    email = "malcolmbarrett@gmail.com", 
-    role = c("aut", "cre"))
-Description: Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is 
-    built on top of 'dagitty', an R package that uses the 'DAGitty' web tool 
-    (<http://dagitty.net>) for creating and analyzing DAGs. 'ggdag' makes it 
-    easy to tidy and plot 'dagitty' objects using 'ggplot2' and 'ggraph', as 
-    well as common analytic and graphical functions, such as determining 
-    adjustment sets and node relationships. 
-Depends: 
-    R (>= 3.0.0),
-    ggplot2 (>= 3.0.0)
+Authors@R: 
+    person(given = "Malcolm",
+           family = "Barrett",
+           role = c("aut", "cre"),
+           email = "malcolmbarrett@gmail.com")
+Description: Tidy, analyze, and plot directed acyclic graphs
+    (DAGs). 'ggdag' is built on top of 'dagitty', an R package that uses
+    the 'DAGitty' web tool (<http://dagitty.net>) for creating and
+    analyzing DAGs. 'ggdag' makes it easy to tidy and plot 'dagitty'
+    objects using 'ggplot2' and 'ggraph', as well as common analytic and
+    graphical functions, such as determining adjustment sets and node
+    relationships.
 License: MIT + file LICENSE
-Encoding: UTF-8
-LazyData: true
+URL: https://github.com/malcolmbarrett/ggdag
+BugReports: https://github.com/malcolmbarrett/ggdag/issues
+Depends: 
+    ggplot2 (>= 3.0.0),
+    R (>= 3.0.0)
 Imports: 
     dagitty,
-    ggraph,
     dplyr,
-    purrr,
-    stringr,
-    tibble,
     forcats,
+    ggforce,
+    ggraph (>= 2.0.0),
     ggrepel,
     igraph,
     magrittr,
-    ggforce,
+    pillar,
     plyr,
-    tidygraph,
-    pillar
-RoxygenNote: 6.1.1
+    purrr,
+    stringr,
+    tibble,
+    tidygraph
 Suggests: 
-    spelling,
-    testthat,
     knitr,
-    rmarkdown
-URL: https://github.com/malcolmbarrett/ggdag
-BugReports: https://github.com/malcolmbarrett/ggdag/issues
+    rmarkdown,
+    spelling,
+    testthat
+VignetteBuilder: 
+    knitr
+Encoding: UTF-8
 Language: en-US
+LazyData: true
 Roxygen: list(markdown = TRUE)
-VignetteBuilder: knitr
+RoxygenNote: 6.1.1
