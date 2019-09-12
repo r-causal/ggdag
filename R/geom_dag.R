@@ -653,7 +653,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     params = list(
       size = size,
       arrow = arrow,
-      strength = curvature,
+      curvature = curvature,
       angle = angle,
       ncp = ncp,
       lineend = lineend,

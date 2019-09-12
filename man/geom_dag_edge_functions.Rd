@@ -161,7 +161,7 @@ p <- dagify(y ~ x + z2 + w2 + w1,
   z2 ~ w2 + v,
   L ~ w1 + w2) \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_node() +
+    geom_dag_point() +
     geom_dag_text() +
     theme_dag()
 

@@ -116,7 +116,7 @@ labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider"))
 g \%>\% tidy_dagitty() \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
-    geom_dag_node() +
+    geom_dag_point() +
     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
     theme_dag()
 
@@ -126,7 +126,7 @@ g \%>\% tidy_dagitty() \%>\%
     "m" = "Here is where they collide")) \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
-    geom_dag_node() +
+    geom_dag_point() +
     geom_dag_text() +
     geom_dag_label_repel(aes(label = label, fill = label),
       col = "white", show.legend = FALSE) +

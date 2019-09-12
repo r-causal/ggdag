@@ -53,12 +53,14 @@ navbar:
   - icon: fa-home fa-lg
     href: index.html
   - text: Reference
-    href: /reference/index.html
+    href: reference/index.html
   - text: Articles
     menu:
     - text: An Introduction to ggdag
-      href: /articles/intro-to-ggdag.html
+      href: articles/intro-to-ggdag.html
     - text: An Introduction to DAGs
-      href: /articles/intro-to-dags.html
+      href: articles/intro-to-dags.html
     - text: Common Structures of Bias
-      href: /articles/bias-structures.html
+      href: articles/bias-structures.html
+  - text: News
+    href: news/index.html
