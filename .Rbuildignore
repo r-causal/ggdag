@@ -5,7 +5,7 @@
 ^appveyor\.yml$
 ^README\.Rmd$
 ^_pkgdown\.yml$
-^docs$
+docs
 ^cran-comments\.md$
 ^CRAN-RELEASE
 ^.github$

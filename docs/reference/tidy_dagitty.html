@@ -180,19 +180,19 @@
 #&gt; # A tibble: 13 x 8</span><span>
 #&gt;    name      x     y direction to     xend  yend circular
 #&gt;    </span><span style='color: #555555;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #555555;font-style: italic;'>&lt;dbl&gt;</span><span> </span><span style='color: #555555;font-style: italic;'>&lt;dbl&gt;</span><span> </span><span style='color: #555555;font-style: italic;'>&lt;fct&gt;</span><span>     </span><span style='color: #555555;font-style: italic;'>&lt;chr&gt;</span><span> </span><span style='color: #555555;font-style: italic;'>&lt;dbl&gt;</span><span> </span><span style='color: #555555;font-style: italic;'>&lt;dbl&gt;</span><span> </span><span style='color: #555555;font-style: italic;'>&lt;lgl&gt;</span><span>   
-#&gt; </span><span style='color: #555555;'> 1</span><span> V      12.9  5.45 -&gt;        Z1     11.6  4.98 FALSE   
-#&gt; </span><span style='color: #555555;'> 2</span><span> V      12.9  5.45 -&gt;        Z2     13.4  4.14 FALSE   
-#&gt; </span><span style='color: #555555;'> 3</span><span> W1     11.5  4.03 -&gt;        X      11.3  3.45 FALSE   
-#&gt; </span><span style='color: #555555;'> 4</span><span> W1     11.5  4.03 -&gt;        Y      12.4  3.05 FALSE   
-#&gt; </span><span style='color: #555555;'> 5</span><span> W1     11.5  4.03 -&gt;        Z1     11.6  4.98 FALSE   
-#&gt; </span><span style='color: #555555;'> 6</span><span> W1     11.5  4.03 &lt;-&gt;       W2     12.4  3.70 FALSE   
-#&gt; </span><span style='color: #555555;'> 7</span><span> W2     12.4  3.70 -&gt;        X      11.3  3.45 FALSE   
-#&gt; </span><span style='color: #555555;'> 8</span><span> W2     12.4  3.70 -&gt;        Y      12.4  3.05 FALSE   
-#&gt; </span><span style='color: #555555;'> 9</span><span> W2     12.4  3.70 -&gt;        Z2     13.4  4.14 FALSE   
-#&gt; </span><span style='color: #555555;'>10</span><span> X      11.3  3.45 -&gt;        Y      12.4  3.05 FALSE   
-#&gt; </span><span style='color: #555555;'>11</span><span> Z1     11.6  4.98 -&gt;        X      11.3  3.45 FALSE   
-#&gt; </span><span style='color: #555555;'>12</span><span> Z2     13.4  4.14 -&gt;        Y      12.4  3.05 FALSE   
-#&gt; </span><span style='color: #555555;'>13</span><span> Y      12.4  3.05 </span><span style='color: #BB0000;'>NA</span><span>        </span><span style='color: #BB0000;'>NA</span><span>     </span><span style='color: #BB0000;'>NA</span><span>   </span><span style='color: #BB0000;'>NA</span><span>    FALSE   </div><div class='input'>
+#&gt; </span><span style='color: #555555;'> 1</span><span> V      7.54 10.2  -&gt;        Z1     6.16 10.0  FALSE   
+#&gt; </span><span style='color: #555555;'> 2</span><span> V      7.54 10.2  -&gt;        Z2     7.68  8.78 FALSE   
+#&gt; </span><span style='color: #555555;'> 3</span><span> W1     6.17  9.00 -&gt;        X      5.60  8.68 FALSE   
+#&gt; </span><span style='color: #555555;'> 4</span><span> W1     6.17  9.00 -&gt;        Y      6.39  7.90 FALSE   
+#&gt; </span><span style='color: #555555;'> 5</span><span> W1     6.17  9.00 -&gt;        Z1     6.16 10.0  FALSE   
+#&gt; </span><span style='color: #555555;'> 6</span><span> W1     6.17  9.00 &lt;-&gt;       W2     6.86  8.28 FALSE   
+#&gt; </span><span style='color: #555555;'> 7</span><span> W2     6.86  8.28 -&gt;        X      5.60  8.68 FALSE   
+#&gt; </span><span style='color: #555555;'> 8</span><span> W2     6.86  8.28 -&gt;        Y      6.39  7.90 FALSE   
+#&gt; </span><span style='color: #555555;'> 9</span><span> W2     6.86  8.28 -&gt;        Z2     7.68  8.78 FALSE   
+#&gt; </span><span style='color: #555555;'>10</span><span> X      5.60  8.68 -&gt;        Y      6.39  7.90 FALSE   
+#&gt; </span><span style='color: #555555;'>11</span><span> Z1     6.16 10.0  -&gt;        X      5.60  8.68 FALSE   
+#&gt; </span><span style='color: #555555;'>12</span><span> Z2     7.68  8.78 -&gt;        Y      6.39  7.90 FALSE   
+#&gt; </span><span style='color: #555555;'>13</span><span> Y      6.39  7.90 </span><span style='color: #BB0000;'>NA</span><span>        </span><span style='color: #BB0000;'>NA</span><span>    </span><span style='color: #BB0000;'>NA</span><span>    </span><span style='color: #BB0000;'>NA</span><span>    FALSE   </div><div class='input'>
 <span class='fu'>tidy_dagitty</span>(<span class='no'>dag</span>, <span class='kw'>layout</span> <span class='kw'>=</span> <span class='st'>"fr"</span>) <span class='kw'>%&gt;%</span>
   <span class='fu'><a href='https://ggplot2.tidyverse.org/reference/ggplot.html'>ggplot</a></span>(<span class='fu'><a href='https://ggplot2.tidyverse.org/reference/aes.html'>aes</a></span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>x</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>y</span>, <span class='kw'>xend</span> <span class='kw'>=</span> <span class='no'>xend</span>, <span class='kw'>yend</span> <span class='kw'>=</span> <span class='no'>yend</span>)) +
     <span class='fu'><a href='node_point.html'>geom_dag_node</a></span>() +
