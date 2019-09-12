@@ -1,11 +1,12 @@
 Package: ggdag
 Title: Analyze and Create Elegant Directed Acyclic Graphs
-Version: 0.1.5.9000
+Version: 0.2.0
 Authors@R: 
     person(given = "Malcolm",
            family = "Barrett",
            role = c("aut", "cre"),
-           email = "malcolmbarrett@gmail.com")
+           email = "malcolmbarrett@gmail.com",
+           comment = c(ORCID = "0000-0003-0299-5825"))
 Description: Tidy, analyze, and plot directed acyclic graphs
     (DAGs). 'ggdag' is built on top of 'dagitty', an R package that uses
     the 'DAGitty' web tool (<http://dagitty.net>) for creating and
@@ -18,7 +19,7 @@ URL: https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
 Depends: 
     ggplot2 (>= 3.0.0),
-    R (>= 3.0.0)
+    R (>= 3.2.0)
 Imports: 
     dagitty,
     dplyr,

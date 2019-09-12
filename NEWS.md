@@ -1,4 +1,9 @@
-# ggdag 0.1.5.9000
-
+# ggdag 0.2.0
+* Fixed join bug in `node_equivalent_class()` that didn't account for the way dagitty returns DAGs with no direction
 * Fixed join bug in `node_equivalent_class()` that didn't check `to` node
+* Implemented `is_false()` to avoid dependency on R 3.5.0
+* improved edge lengths
+* add `{}` to adjustment set names to reflect convention
+* Set nodes to be unstyled by default
+* Changed default themes and scales to be more like base ggplot2
 * Added a `NEWS.md` file to track changes to the package.

@@ -117,7 +117,7 @@ geom_dag_point <- function(mapping = NULL, data = NULL,
 #' g %>%
 #' tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_node() +
+#'     geom_dag_point() +
 #'     geom_dag_edges() +
 #'     geom_dag_text() +
 #'     theme_dag()
@@ -187,7 +187,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #' g %>% tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_edges() +
-#'     geom_dag_node() +
+#'     geom_dag_point() +
 #'     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
 #'     theme_dag()
 #'
@@ -197,7 +197,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'     "m" = "Here is where they collide")) %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_edges() +
-#'     geom_dag_node() +
+#'     geom_dag_point() +
 #'     geom_dag_text() +
 #'     geom_dag_label_repel(aes(label = label, fill = label),
 #'       col = "white", show.legend = FALSE) +
@@ -378,7 +378,7 @@ filter_direction <- function(.direction) {
 #'   w1 ~~ w2) %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'     geom_dag_edges() +
-#'     geom_dag_node() +
+#'     geom_dag_point() +
 #'     geom_dag_text() +
 #'     theme_dag()
 #'
@@ -476,7 +476,7 @@ geom_dag_edges <- function(mapping = NULL,
 #'   z2 ~ w2 + v,
 #'   L ~ w1 + w2) %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_node() +
+#'     geom_dag_point() +
 #'     geom_dag_text() +
 #'     theme_dag()
 #'
@@ -621,7 +621,7 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
 #'     geom_dag_edges() +
 #'     geom_dag_collider_edges() +
-#'     geom_dag_node() +
+#'     geom_dag_point() +
 #'     geom_dag_text() +
 #'     theme_dag() +
 #'     scale_adjusted()
