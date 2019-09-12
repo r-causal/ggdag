@@ -8,3 +8,6 @@ addons:
     packages:
       - libv8-3.14-dev
       - libudunits2-dev
+
+after_success:
+  - Rscript -e 'covr::codecov()'

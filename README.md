@@ -1,12 +1,19 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+<!-- badges: start -->
+
 [![Travis-CI Build
 Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag)
 [![AppVeyor Build
 status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
+[![Lifecycle:
+maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
+[![Codecov test
+coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/master/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=master)
+<!-- badges: end -->
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs
 
