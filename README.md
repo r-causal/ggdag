@@ -13,6 +13,10 @@ status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 [![Codecov test
 coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/master/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=master)
+[![Monthly CRAN
+downloads](https://cranlogs.r-pkg.org/badges/ggdag)](https://cran.r-project.org/package=ggdag)
+[![Total CRAN
+downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 <!-- badges: end -->
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs
