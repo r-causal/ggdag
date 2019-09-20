@@ -36,7 +36,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">ggdag</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.0.9000</span>
       </span>
     </div>
 
@@ -96,6 +96,7 @@
     
     
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- badges: start -->
 
 <div id="ggdag-an-r-package-for-visualizing-and-analyzing-causal-directed-acyclic-graphs" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
@@ -193,15 +194,26 @@
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw"><a href="reference/dagify.html">dagify</a></span>(m <span class="op">~</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span>y) <span class="op">%&gt;%</span><span class="st"> </span></span>
 <span id="cb6-2"><a href="#cb6-2"></a><span class="st">  </span><span class="kw"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span>() <span class="op">%&gt;%</span><span class="st"> </span></span>
 <span id="cb6-3"><a href="#cb6-3"></a><span class="st">  </span><span class="kw"><a href="reference/d_relationship.html">node_dconnected</a></span>(<span class="st">"x"</span>, <span class="st">"y"</span>, <span class="dt">controlling_for =</span> <span class="st">"m"</span>) <span class="op">%&gt;%</span></span>
-<span id="cb6-4"><a href="#cb6-4"></a><span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">xend =</span> xend, <span class="dt">yend =</span> yend, <span class="dt">shape =</span> adjusted, <span class="dt">col =</span> d_relationship)) <span class="op">+</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="st">    </span><span class="kw"><a href="reference/geom_dag_edges.html">geom_dag_edges</a></span>(<span class="kw">aes</span>(<span class="dt">end_cap =</span> ggraph<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/ggraph/topics/geometry">circle</a></span>(<span class="dv">10</span>, <span class="st">"mm"</span>))) <span class="op">+</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a><span class="st">    </span><span class="kw"><a href="reference/geom_dag_collider_edges.html">geom_dag_collider_edges</a></span>() <span class="op">+</span></span>
-<span id="cb6-7"><a href="#cb6-7"></a><span class="st">    </span><span class="kw"><a href="reference/node_point.html">geom_dag_point</a></span>() <span class="op">+</span></span>
-<span id="cb6-8"><a href="#cb6-8"></a><span class="st">    </span><span class="kw"><a href="reference/geom_dag_text.html">geom_dag_text</a></span>(<span class="dt">col =</span> <span class="st">"white"</span>) <span class="op">+</span></span>
-<span id="cb6-9"><a href="#cb6-9"></a><span class="st">    </span><span class="kw"><a href="reference/theme_dag_blank.html">theme_dag</a></span>() <span class="op">+</span><span class="st"> </span></span>
-<span id="cb6-10"><a href="#cb6-10"></a><span class="st">    </span><span class="kw"><a href="reference/scale_adjusted.html">scale_adjusted</a></span>() <span class="op">+</span></span>
-<span id="cb6-11"><a href="#cb6-11"></a><span class="st">    </span><span class="kw"><a href="reference/expand_plot.html">expand_plot</a></span>(<span class="dt">expand_y =</span> <span class="kw"><a href="reference/expand_scale.html">expand_scale</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>))) <span class="op">+</span></span>
-<span id="cb6-12"><a href="#cb6-12"></a><span class="st">    </span><span class="kw">scale_color_hue</span>(<span class="dt">name =</span> <span class="st">"d-relationship"</span>, <span class="dt">na.value =</span> <span class="st">"grey75"</span>) </span></code></pre></div>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(</span>
+<span id="cb6-5"><a href="#cb6-5"></a>    <span class="dt">x =</span> x, </span>
+<span id="cb6-6"><a href="#cb6-6"></a>    <span class="dt">y =</span> y, </span>
+<span id="cb6-7"><a href="#cb6-7"></a>    <span class="dt">xend =</span> xend, </span>
+<span id="cb6-8"><a href="#cb6-8"></a>    <span class="dt">yend =</span> yend, </span>
+<span id="cb6-9"><a href="#cb6-9"></a>    <span class="dt">shape =</span> adjusted, </span>
+<span id="cb6-10"><a href="#cb6-10"></a>    <span class="dt">col =</span> d_relationship</span>
+<span id="cb6-11"><a href="#cb6-11"></a>  )) <span class="op">+</span></span>
+<span id="cb6-12"><a href="#cb6-12"></a><span class="st">    </span><span class="kw"><a href="reference/geom_dag_edges.html">geom_dag_edges</a></span>(<span class="kw">aes</span>(<span class="dt">end_cap =</span> ggraph<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/ggraph/topics/geometry">circle</a></span>(<span class="dv">10</span>, <span class="st">"mm"</span>))) <span class="op">+</span></span>
+<span id="cb6-13"><a href="#cb6-13"></a><span class="st">    </span><span class="kw"><a href="reference/geom_dag_collider_edges.html">geom_dag_collider_edges</a></span>() <span class="op">+</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a><span class="st">    </span><span class="kw"><a href="reference/node_point.html">geom_dag_point</a></span>() <span class="op">+</span></span>
+<span id="cb6-15"><a href="#cb6-15"></a><span class="st">    </span><span class="kw"><a href="reference/geom_dag_text.html">geom_dag_text</a></span>(<span class="dt">col =</span> <span class="st">"white"</span>) <span class="op">+</span></span>
+<span id="cb6-16"><a href="#cb6-16"></a><span class="st">    </span><span class="kw"><a href="reference/theme_dag_blank.html">theme_dag</a></span>() <span class="op">+</span><span class="st"> </span></span>
+<span id="cb6-17"><a href="#cb6-17"></a><span class="st">    </span><span class="kw"><a href="reference/scale_adjusted.html">scale_adjusted</a></span>() <span class="op">+</span></span>
+<span id="cb6-18"><a href="#cb6-18"></a><span class="st">    </span><span class="kw"><a href="reference/expand_plot.html">expand_plot</a></span>(<span class="dt">expand_y =</span> <span class="kw"><a href="reference/expand_scale.html">expand_scale</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.2</span>, <span class="fl">0.2</span>))) <span class="op">+</span></span>
+<span id="cb6-19"><a href="#cb6-19"></a><span class="st">    </span><span class="kw">scale_color_viridis_d</span>(</span>
+<span id="cb6-20"><a href="#cb6-20"></a>      <span class="dt">name =</span> <span class="st">"d-relationship"</span>, </span>
+<span id="cb6-21"><a href="#cb6-21"></a>      <span class="dt">na.value =</span> <span class="st">"grey85"</span>, </span>
+<span id="cb6-22"><a href="#cb6-22"></a>      <span class="dt">begin =</span> <span class="fl">.35</span></span>
+<span id="cb6-23"><a href="#cb6-23"></a>    ) </span></code></pre></div>
 <p><img src="reference/figures/ggdag_geoms-1.png" width="100%"></p>
 <p>And common structures of bias:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="kw"><a href="reference/equivalent.html">ggdag_equivalent_dags</a></span>(<span class="kw"><a href="reference/quick_plot.html">confounder_triangle</a></span>())</span></code></pre></div>
@@ -246,6 +258,10 @@
 <li><a href="https://travis-ci.org/malcolmbarrett/ggdag"><img src="https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master" alt="Travis-CI Build Status"></a></li>
 <li><a href="https://ci.appveyor.com/project/malcolmbarrett/ggdag"><img src="https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true" alt="AppVeyor Build status"></a></li>
 <li><a href="https://cran.r-project.org/package=ggdag"><img src="https://www.r-pkg.org/badges/version/ggdag" alt="CRAN status"></a></li>
+<li><a href="https://www.tidyverse.org/lifecycle/#maturing"><img src="https://img.shields.io/badge/lifecycle-maturing-blue.svg" alt="Lifecycle: maturing"></a></li>
+<li><a href="https://codecov.io/gh/malcolmbarrett/ggdag?branch=master"><img src="https://codecov.io/gh/malcolmbarrett/ggdag/branch/master/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://cran.r-project.org/package=ggdag"><img src="https://cranlogs.r-pkg.org/badges/ggdag" alt="Monthly CRAN downloads"></a></li>
+<li><a href="https://cran.r-project.org/package=ggdag"><img src="https://cranlogs.r-pkg.org/badges/grand-total/ggdag" alt="Total CRAN downloads"></a></li>
 </ul>
 </div>
 </div>
