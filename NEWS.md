@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Fixed bug in `ggdag_collider()` where the aesthetics were flipped for the colors but not the labels (issue #15, b72e34b)
 
 # ggdag 0.2.0
 * Fixed compatibility issue with ggraph 2.0.0 by changing to `strength` parameter in curved geoms
