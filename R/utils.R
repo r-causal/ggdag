@@ -62,7 +62,8 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
 }
 
 formula2char <- function(fmla) {
-  char_fmla <- as.character(fmla)
+  #  using default to avoid `formula.tools::as.character.formula()`
+  char_fmla <- as.character.default(fmla)
   rhs_vars <- char_fmla[[3]] %>% stringr::str_split(" \\+ ") %>% purrr::pluck(1)
   bidirectional <- any(stringr::str_detect(rhs_vars, "~"))
   rhs_vars <- stringr::str_replace_all(rhs_vars, "~", "")
