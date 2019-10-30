@@ -1,5 +1,6 @@
 # ggdag (development version)
 * Fixed bug in `ggdag_collider()` where the aesthetics were flipped for the colors but not the labels (issue #15, b72e34b)
+* Used `as.character.default()` directly for working with characters to avoid dispatch error when the formula.tools package is attached (issue #17, 0f32bb4)
 
 # ggdag 0.2.0
 * Fixed compatibility issue with ggraph 2.0.0 by changing to `strength` parameter in curved geoms
