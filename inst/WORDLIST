@@ -2,10 +2,12 @@ acyclic
 Acyclic
 aes
 AppVeyor
+bb
 behaviour
 bidirected
 Canonicalize
 CES
+Codecov
 collapsibility
 Collapsibility
 colour
@@ -38,6 +40,7 @@ Hern&aacute;n's
 hjust
 http
 knitr
+Lifecycle
 lineheight
 linetype
 mismeasure
