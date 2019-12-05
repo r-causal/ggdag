@@ -21,11 +21,7 @@
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
-#' @param expand_x,expand_y Vector of range expansion constants used to add some
-#'   padding around the data, to ensure that they are placed some distance away
-#'   from the axes. Use the convenience function `expand_scale()` to
-#'   generate the values for the expand argument.
-#' @inheritParams theme_dag
+#' @inheritParams expand_plot
 #'
 #' @return a `tidy_dagitty` with an `adjusted` column and `set`
 #'   column, indicating adjustment status and DAG ID, respectively, for the

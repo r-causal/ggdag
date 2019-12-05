@@ -4,8 +4,15 @@
 \alias{simulate_data}
 \title{Simulate Data from Structural Equation Model}
 \usage{
-simulate_data(.tdy_dag, b.default = NULL, b.lower = -0.6,
-  b.upper = 0.6, eps = 1, N = 500, standardized = TRUE)
+simulate_data(
+  .tdy_dag,
+  b.default = NULL,
+  b.lower = -0.6,
+  b.upper = 0.6,
+  eps = 1,
+  N = 500,
+  standardized = TRUE
+)
 }
 \arguments{
 \item{.tdy_dag}{the input DAG, which can be a \code{tidy_dagitty} or

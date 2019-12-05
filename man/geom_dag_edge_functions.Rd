@@ -8,37 +8,89 @@
 \alias{geom_dag_edges_fan}
 \title{Directed DAG edges}
 \usage{
-geom_dag_edges_link(mapping = NULL, data = NULL,
+geom_dag_edges_link(
+  mapping = NULL,
+  data = NULL,
   arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-  position = "identity", na.rm = TRUE, show.legend = NA,
-  inherit.aes = TRUE, ...)
+  position = "identity",
+  na.rm = TRUE,
+  show.legend = NA,
+  inherit.aes = TRUE,
+  ...
+)
 
-geom_dag_edges_arc(mapping = NULL, data = NULL, curvature = 0.5,
+geom_dag_edges_arc(
+  mapping = NULL,
+  data = NULL,
+  curvature = 0.5,
   arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-  position = "identity", na.rm = TRUE, show.legend = NA,
-  inherit.aes = TRUE, fold = FALSE, n = 100, lineend = "butt",
-  linejoin = "round", linemitre = 1, label_colour = "black",
-  label_alpha = 1, label_parse = FALSE, check_overlap = FALSE,
-  angle_calc = "rot", force_flip = TRUE, label_dodge = NULL,
-  label_push = NULL, ...)
+  position = "identity",
+  na.rm = TRUE,
+  show.legend = NA,
+  inherit.aes = TRUE,
+  fold = FALSE,
+  n = 100,
+  lineend = "butt",
+  linejoin = "round",
+  linemitre = 1,
+  label_colour = "black",
+  label_alpha = 1,
+  label_parse = FALSE,
+  check_overlap = FALSE,
+  angle_calc = "rot",
+  force_flip = TRUE,
+  label_dodge = NULL,
+  label_push = NULL,
+  ...
+)
 
-geom_dag_edges_diagonal(mapping = NULL, data = NULL,
-  position = "identity", arrow = grid::arrow(length = grid::unit(5,
-  "pt"), type = "closed"), na.rm = TRUE, show.legend = NA,
-  inherit.aes = TRUE, curvature = 1, n = 100, lineend = "butt",
-  linejoin = "round", linemitre = 1, label_colour = "black",
-  label_alpha = 1, label_parse = FALSE, check_overlap = FALSE,
-  angle_calc = "rot", force_flip = TRUE, label_dodge = NULL,
-  label_push = NULL, ...)
+geom_dag_edges_diagonal(
+  mapping = NULL,
+  data = NULL,
+  position = "identity",
+  arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+  na.rm = TRUE,
+  show.legend = NA,
+  inherit.aes = TRUE,
+  curvature = 1,
+  n = 100,
+  lineend = "butt",
+  linejoin = "round",
+  linemitre = 1,
+  label_colour = "black",
+  label_alpha = 1,
+  label_parse = FALSE,
+  check_overlap = FALSE,
+  angle_calc = "rot",
+  force_flip = TRUE,
+  label_dodge = NULL,
+  label_push = NULL,
+  ...
+)
 
-geom_dag_edges_fan(mapping = NULL, data = NULL,
-  position = "identity", arrow = grid::arrow(length = grid::unit(5,
-  "pt"), type = "closed"), na.rm = TRUE, show.legend = NA,
-  inherit.aes = TRUE, spread = 0.7, n = 100, lineend = "butt",
-  linejoin = "round", linemitre = 1, label_colour = "black",
-  label_alpha = 1, label_parse = FALSE, check_overlap = FALSE,
-  angle_calc = "rot", force_flip = TRUE, label_dodge = NULL,
-  label_push = NULL, ...)
+geom_dag_edges_fan(
+  mapping = NULL,
+  data = NULL,
+  position = "identity",
+  arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+  na.rm = TRUE,
+  show.legend = NA,
+  inherit.aes = TRUE,
+  spread = 0.7,
+  n = 100,
+  lineend = "butt",
+  linejoin = "round",
+  linemitre = 1,
+  label_colour = "black",
+  label_alpha = 1,
+  label_parse = FALSE,
+  check_overlap = FALSE,
+  angle_calc = "rot",
+  force_flip = TRUE,
+  label_dodge = NULL,
+  label_push = NULL,
+  ...
+)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by aes() or aes_(). If

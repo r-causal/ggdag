@@ -4,8 +4,14 @@
 \alias{dagify}
 \title{Create a dagitty DAG using R-like syntax}
 \usage{
-dagify(..., exposure = NULL, outcome = NULL, latent = NULL,
-  labels = NULL, coords = NULL)
+dagify(
+  ...,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL
+)
 }
 \arguments{
 \item{...}{formulas, which are converted to \code{dagitty} syntax}
@@ -30,8 +36,8 @@ a \code{dagitty} DAG
 \description{
 \code{dagify()} creates dagitty DAGs using a more R-like syntax. It currently
 accepts formulas in the usual R style, e.g. \code{y ~ x + z}, which gets
-translated to \code{y <- {x z}}, as well as using a double tilde (\code{~~}) to
-graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \code{x1 <-> x2}.
+translated to \verb{y <- \{x z\}}, as well as using a double tilde (\verb{~~}) to
+graph bidirected variables, e.g. \code{x1 ~~ x2} is translated to \verb{x1 <-> x2}.
 }
 \examples{
 

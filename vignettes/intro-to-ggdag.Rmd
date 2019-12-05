@@ -11,14 +11,14 @@ vignette: >
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.width = 5, 
-  fig.height = 5, 
-  fig.align = "center",
-  fig.dpi = 320,
-  warning=FALSE,
-  message=FALSE
+	fig.align = "center",
+	fig.dpi = 320,
+	fig.height = 5,
+	fig.width = 5,
+	message = FALSE,
+	warning = FALSE,
+	collapse = TRUE,
+	comment = "#>"
 )
 set.seed(2939)
 ```

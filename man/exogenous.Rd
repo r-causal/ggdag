@@ -8,10 +8,20 @@
 \usage{
 node_exogenous(.dag, ...)
 
-ggdag_exogenous(.tdy_dag, ..., node_size = 16, text_size = 3.88,
-  edge_type = "link_arc", label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag_exogenous(
+  .tdy_dag,
+  ...,
+  node_size = 16,
+  text_size = 3.88,
+  edge_type = "link_arc",
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 }
 \arguments{
 \item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or

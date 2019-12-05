@@ -14,50 +14,118 @@
 \alias{ggdag_mediation_triangle}
 \title{Quickly create a DAGs with common structures of bias}
 \usage{
-m_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE)
+m_bias(
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE
+)
 
-butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE)
+butterfly_bias(
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE
+)
 
-confounder_triangle(x = NULL, y = NULL, z = NULL,
-  x_y_associated = FALSE)
+confounder_triangle(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE)
 
-collider_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE)
+collider_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 
-mediation_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE)
+mediation_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 
-ggdag_m_bias(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL,
-  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag_m_bias(
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_butterfly_bias(x = NULL, y = NULL, a = NULL, b = NULL,
-  m = NULL, x_y_associated = FALSE, edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_butterfly_bias(
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_confounder_triangle(x = NULL, y = NULL, z = NULL,
-  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag_confounder_triangle(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  x_y_associated = FALSE,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_collider_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag_collider_triangle(
+  x = NULL,
+  y = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_mediation_triangle(x = NULL, y = NULL, m = NULL,
-  x_y_associated = FALSE, edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = text_col, node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag_mediation_triangle(
+  x = NULL,
+  y = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 }
 \arguments{
 \item{x, y, a, b, m, z}{Character vector. Optional label. Default is \code{NULL}}
@@ -92,7 +160,7 @@ Default is \code{NULL}.}
 a DAG of class \code{dagitty} or a \code{ggplot}
 }
 \description{
-base functions create an object of class \code{dagitty}; \code{ggdag_* } functions
+base functions create an object of class \code{dagitty}; \verb{ggdag_* } functions
 are wrappers that also call \code{ggdag()} on the \code{dagitty} object.
 }
 \examples{

@@ -4,8 +4,10 @@
 \alias{expand_plot}
 \title{Quickly scale the size of a ggplot}
 \usage{
-expand_plot(expand_x = expand_scale(c(0.1, 0.1)),
-  expand_y = expand_scale(c(0.1, 0.1)))
+expand_plot(
+  expand_x = expand_scale(c(0.1, 0.1)),
+  expand_y = expand_scale(c(0.1, 0.1))
+)
 }
 \arguments{
 \item{expand_x, expand_y}{Vector of range expansion constants used to add some

@@ -8,10 +8,21 @@
 \usage{
 node_instrumental(.dag, exposure = NULL, outcome = NULL, ...)
 
-ggdag_instrumental(.tdy_dag, exposure = NULL, outcome = NULL, ...,
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_instrumental(
+  .tdy_dag,
+  exposure = NULL,
+  outcome = NULL,
+  ...,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 }
 \arguments{
 \item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or

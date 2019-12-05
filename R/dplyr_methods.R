@@ -15,7 +15,6 @@
 #'   group_by(name) %>%
 #'   summarize(n = n())
 #' @export
-#' @name dplyr
 #' @importFrom dplyr select
 select.tidy_dagitty <- function(.data, ...) {
   .data$data <- dplyr::select(.data$data, ...)

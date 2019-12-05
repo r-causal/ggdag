@@ -46,17 +46,13 @@
 
 \method{distinct}{tidy_dagitty}(.data, ..., .keep_all = FALSE)
 
-\method{full_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE,
-  suffix = c(".x", ".y"), ...)
+\method{full_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...)
 
-\method{inner_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE,
-  suffix = c(".x", ".y"), ...)
+\method{inner_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...)
 
-\method{left_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE,
-  suffix = c(".x", ".y"), ...)
+\method{left_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...)
 
-\method{right_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE,
-  suffix = c(".x", ".y"), ...)
+\method{right_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...)
 
 \method{anti_join}{tidy_dagitty}(x, y, by = NULL, copy = FALSE, ...)
 

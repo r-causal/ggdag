@@ -28,35 +28,101 @@ node_markov_blanket(.tdy_dag, .var, as_factor = TRUE)
 
 node_adjacent(.tdy_dag, .var, as_factor = TRUE)
 
-ggdag_children(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_children(
+  .tdy_dag,
+  .var,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_parents(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_parents(
+  .tdy_dag,
+  .var,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_ancestors(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_ancestors(
+  .tdy_dag,
+  .var,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_descendants(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_descendants(
+  .tdy_dag,
+  .var,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_markov_blanket(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_markov_blanket(
+  .tdy_dag,
+  .var,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 
-ggdag_adjacent(.tdy_dag, .var, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL)
+ggdag_adjacent(
+  .tdy_dag,
+  .var,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -99,9 +165,9 @@ relationship for variable D relationship or a \code{ggplot}
 \description{
 Parents and children are those nodes that either directly cause or are caused
 by the variable, respectively. Ancestors and descendants are those nodes that
-are on the path to or descend from the variable. The \code{node_*()}
+are on the path to or descend from the variable. The \verb{node_*()}
 functions label variables depending on their relationship. The
-\code{ggdag_*()} functions plot the results. See
+\verb{ggdag_*()} functions plot the results. See
 \link[dagitty:children]{dagitty::children} for details.
 }
 \examples{

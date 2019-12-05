@@ -6,20 +6,47 @@
 \alias{geom_dag_label_repel}
 \title{Repulsive textual annotations}
 \usage{
-geom_dag_text_repel(mapping = NULL, data = NULL, parse = FALSE, ...,
-  box.padding = 0.35, point.padding = 1.5, segment.color = "#666666",
-  fontface = "bold", segment.size = 0.5, arrow = NULL, force = 1,
-  max.iter = 2000, nudge_x = 0, nudge_y = 0, na.rm = FALSE,
-  show.legend = NA, inherit.aes = TRUE)
+geom_dag_text_repel(
+  mapping = NULL,
+  data = NULL,
+  parse = FALSE,
+  ...,
+  box.padding = 0.35,
+  point.padding = 1.5,
+  segment.color = "#666666",
+  fontface = "bold",
+  segment.size = 0.5,
+  arrow = NULL,
+  force = 1,
+  max.iter = 2000,
+  nudge_x = 0,
+  nudge_y = 0,
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE
+)
 
-geom_dag_label_repel(mapping = NULL, data = NULL, parse = FALSE, ...,
+geom_dag_label_repel(
+  mapping = NULL,
+  data = NULL,
+  parse = FALSE,
+  ...,
   box.padding = grid::unit(0.35, "lines"),
   label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1.5, "lines"), label.r = grid::unit(0.15,
-  "lines"), label.size = 0.25, segment.color = "grey50",
-  segment.size = 0.5, arrow = NULL, force = 1, max.iter = 2000,
-  nudge_x = 0, nudge_y = 0, na.rm = FALSE, show.legend = NA,
-  inherit.aes = TRUE)
+  point.padding = grid::unit(1.5, "lines"),
+  label.r = grid::unit(0.15, "lines"),
+  label.size = 0.25,
+  segment.color = "grey50",
+  segment.size = 0.5,
+  arrow = NULL,
+  force = 1,
+  max.iter = 2000,
+  nudge_x = 0,
+  nudge_y = 0,
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE
+)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by \code{\link[ggplot2]{aes}} or

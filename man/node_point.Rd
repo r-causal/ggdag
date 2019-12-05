@@ -6,11 +6,25 @@
 \alias{geom_dag_point}
 \title{DAG Nodes}
 \usage{
-geom_dag_node(mapping = NULL, data = NULL, position = "identity",
-  ..., na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
+geom_dag_node(
+  mapping = NULL,
+  data = NULL,
+  position = "identity",
+  ...,
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE
+)
 
-geom_dag_point(mapping = NULL, data = NULL, position = "identity",
-  ..., na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
+geom_dag_point(
+  mapping = NULL,
+  data = NULL,
+  position = "identity",
+  ...,
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE
+)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by \code{\link[=aes]{aes()}} or

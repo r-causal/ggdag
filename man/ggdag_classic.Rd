@@ -4,8 +4,14 @@
 \alias{ggdag_classic}
 \title{Quickly plot a DAG in ggplot2}
 \usage{
-ggdag_classic(.tdy_dag, ..., size = 8, label_rect_size = NULL,
-  text_label = "name", text_col = "black")
+ggdag_classic(
+  .tdy_dag,
+  ...,
+  size = 8,
+  label_rect_size = NULL,
+  text_label = "name",
+  text_col = "black"
+)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or

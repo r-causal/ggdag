@@ -4,12 +4,21 @@
 \alias{geom_dag_edges}
 \title{Directed and bidirected DAG edges}
 \usage{
-geom_dag_edges(mapping = NULL, data_directed = filter_direction("->"),
-  data_bidirected = filter_direction("<->"), curvature = 0.3,
-  arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type =
-  "closed"), arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"),
-  ends = "both", type = "closed"), position = "identity", na.rm = TRUE,
-  show.legend = NA, inherit.aes = TRUE, fold = FALSE, ...)
+geom_dag_edges(
+  mapping = NULL,
+  data_directed = filter_direction("->"),
+  data_bidirected = filter_direction("<->"),
+  curvature = 0.3,
+  arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+  arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type =
+    "closed"),
+  position = "identity",
+  na.rm = TRUE,
+  show.legend = NA,
+  inherit.aes = TRUE,
+  fold = FALSE,
+  ...
+)
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by aes() or aes_(). If

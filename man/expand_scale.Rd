@@ -21,8 +21,8 @@ limit by \code{add[2]}.}
 \description{
 This is a convenience function for generating scale expansion vectors
 for the \code{expand} argument of
-\code{scale_*_continuous()} and
-\code{scale_*_discrete()}.
+\verb{scale_*_continuous()} and
+\verb{scale_*_discrete()}.
 The expansions vectors are used to add some space between
 the data and the axes.
 }

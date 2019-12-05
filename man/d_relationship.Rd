@@ -10,35 +10,87 @@
 \alias{ggdag_dconnected}
 \title{D-relationship between variables}
 \usage{
-node_dconnected(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, as_factor = TRUE, ...)
+node_dconnected(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  as_factor = TRUE,
+  ...
+)
 
-node_dseparated(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, as_factor = TRUE)
+node_dseparated(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  as_factor = TRUE
+)
 
-node_drelationship(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, as_factor = TRUE)
+node_drelationship(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  as_factor = TRUE
+)
 
-ggdag_drelationship(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL,
-  collider_lines = TRUE)
+ggdag_drelationship(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL,
+  collider_lines = TRUE
+)
 
-ggdag_dseparated(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL,
-  collider_lines = TRUE)
+ggdag_dseparated(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL,
+  collider_lines = TRUE
+)
 
-ggdag_dconnected(.tdy_dag, from = NULL, to = NULL,
-  controlling_for = NULL, ..., edge_type = "link_arc",
-  node_size = 16, text_size = 3.88, label_size = text_size,
-  text_col = "white", label_col = text_col, node = TRUE,
-  stylized = FALSE, text = TRUE, use_labels = NULL,
-  collider_lines = TRUE)
+ggdag_dconnected(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = text_col,
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL,
+  collider_lines = TRUE
+)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
@@ -91,10 +143,10 @@ variable D relationship or a \code{ggplot}
 }
 \description{
 D-separation is a key concept in causal structural models. Variables are
-d-separated if there are no open paths between them. The \code{node_d*()}
+d-separated if there are no open paths between them. The \verb{node_d*()}
 functions label variables as d-connected or d-separated. The
-\code{ggdag_d*()} functions plot the results. The \code{*_dconnected()},
-\code{*_dseparated()}, and \code{*_drelationship()} functions essentially
+\verb{ggdag_d*()} functions plot the results. The \verb{*_dconnected()},
+\verb{*_dseparated()}, and \verb{*_drelationship()} functions essentially
 produce the same output and are just different ways of thinking about the
 relationship. See \code{\link[dagitty:dseparated]{dagitty::dseparated()}} for details.
 }

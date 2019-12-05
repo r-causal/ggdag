@@ -4,10 +4,20 @@
 \alias{ggdag}
 \title{Quickly plot a DAG in ggplot2}
 \usage{
-ggdag(.tdy_dag, ..., edge_type = "link_arc", node_size = 16,
-  text_size = 3.88, label_size = text_size, text_col = "white",
-  label_col = "black", node = TRUE, stylized = FALSE, text = TRUE,
-  use_labels = NULL)
+ggdag(
+  .tdy_dag,
+  ...,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  node = TRUE,
+  stylized = FALSE,
+  text = TRUE,
+  use_labels = NULL
+)
 }
 \arguments{
 \item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
