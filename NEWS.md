@@ -12,3 +12,7 @@
 * Set nodes to be unstyled by default
 * Changed default themes and scales to be more like base ggplot2
 * Added a `NEWS.md` file to track changes to the package.
+
+
+# ggdag 0.1.0
+* Initial release
