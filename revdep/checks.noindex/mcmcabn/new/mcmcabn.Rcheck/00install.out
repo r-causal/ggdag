@@ -1,0 +1,67 @@
+* installing *source* package ‘mcmcabn’ ...
+** package ‘mcmcabn’ successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+Error: .onLoad failed in loadNamespace() for 'rjags', details:
+  call: dyn.load(file, DLLpath = DLLpath, ...)
+  error: unable to load shared object '/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so':
+  dlopen(/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so, 10): Library not loaded: /usr/local/lib/libjags.4.dylib
+  Referenced from: /Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so
+  Reason: image not found
+Backtrace:
+[90m     [39m█
+[90m  1. [39m└─tools:::makeLazyLoading(...)
+[90m  2. [39m  └─tools:::code2LazyLoadDB(...)
+[90m  3. [39m    ├─[ base::suppressPackageStartupMessages(...) ][90m with 1 more call[39m
+[90m  5. [39m    └─base::loadNamespace(...)
+[90m  6. [39m      ├─[ base::namespaceImport(...) ]
+[90m  7. [39m      └─base::loadNamespace(i, c(lib.loc, .libPaths()), versionCheck = vI[[i]])
+[90m  8. [39m        ├─[ base::namespaceImportFrom(...) ][90m with 1 more call[39m
+[90m 10. [39m        └─base::loadNamespace(j <- i[[1L]], c(lib.loc, .libPaths()), versionCheck = vI[[j]])
+[90m 11. [39m          └─base:::runHook(".onLoad", env, package.lib, package)
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+Error: package or namespace load failed for ‘mcmcabn’:
+ .onLoad failed in loadNamespace() for 'rjags', details:
+  call: dyn.load(file, DLLpath = DLLpath, ...)
+  error: unable to load shared object '/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so':
+  dlopen(/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so, 10): Library not loaded: /usr/local/lib/libjags.4.dylib
+  Referenced from: /Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so
+  Reason: image not found
+Error: loading failed
+Backtrace:
+[90m    [39m█
+[90m 1. [39m└─tools:::.test_load_package("mcmcabn", "/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/checks.noindex/mcmcabn/new/mcmcabn.Rcheck/00LOCK-mcmcabn/00new")
+** testing if installed package can be loaded from final location
+Error: package or namespace load failed for ‘mcmcabn’:
+ .onLoad failed in loadNamespace() for 'rjags', details:
+  call: dyn.load(file, DLLpath = DLLpath, ...)
+  error: unable to load shared object '/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so':
+  dlopen(/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so, 10): Library not loaded: /usr/local/lib/libjags.4.dylib
+  Referenced from: /Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/library.noindex/mcmcabn/rjags/libs/rjags.so
+  Reason: image not found
+Error: loading failed
+Backtrace:
+[90m    [39m█
+[90m 1. [39m└─tools:::.test_load_package("mcmcabn", "/Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag/revdep/checks.noindex/mcmcabn/new/mcmcabn.Rcheck")
+Error in loadNamespace(name) : there is no package called ‘mcmcabn’
+Calls: <Anonymous> ... loadNamespace -> withRestarts -> withOneRestart -> doWithOneRestart
+Backtrace:
+[90m    [39m█
+[90m 1. [39m├─[ base::suppressWarnings(...) ][90m with 1 more call[39m
+[90m 3. [39m├─[ base::serialize(...) ]
+[90m 4. [39m├─[ base::as.list(...) ]
+[90m 5. [39m└─base::getNamespace("mcmcabn")
+[90m 6. [39m  └─base::loadNamespace(name)
+[90m 7. [39m    └─base::withRestarts(stop(cond), retry_loadNamespace = function() NULL)
+[90m 8. [39m      └─base:::withOneRestart(expr, restarts[[1L]])
+[90m 9. [39m        └─base:::doWithOneRestart(return(expr), restart)
+** testing if installed package keeps a record of temporary installation path
+* DONE (mcmcabn)

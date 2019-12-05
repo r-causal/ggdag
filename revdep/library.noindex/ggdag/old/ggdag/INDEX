@@ -1,0 +1,58 @@
+Adjust for variables    Adjust for variables and activate any biasing
+                        paths that result
+Assess d-separation between variables
+                        D-relationship between variables
+Assess familial relationships between variables
+                        Familial relationships between variables
+Canonicalize DAGs       Canonicalize a DAG
+Colliders               Find colliders
+Covariate Adjustment Sets
+                        Covariate Adjustment Sets
+DAG Edges               Directed DAG edges
+DAG Labels              DAG labels
+Equivalent DAGs and Classes
+                        Generating Equivalent Models
+Exogenous Variables     Find Exogenous Variables
+Instrumental Variables
+                        Find Instrumental Variables
+Nodes                   DAG Nodes
+Pathways                Find Pathways Between Variables
+Quick Plots for Common DAGs
+                        Quickly create a DAGs with common structures of
+                        bias
+Test if Variable Is Collider
+                        Detecting colliders in DAGs
+Variable Status         Find variable status
+activate_collider_paths
+                        Activate paths opened by stratifying on a
+                        collider
+as.data.frame.tidy_dagitty
+                        Convert a 'tidy_dagitty' object to data.frame
+as.tbl.tidy_daggity     Convert a 'tidy_dagitty' object to tbl
+as_tbl_graph            Convert DAGS to tidygraph
+coordinates             Manipulate DAG coordinates
+dag                     Create a dagitty DAG
+dagify                  Create a dagitty DAG using R-like syntax
+dplyr                   Dplyr verb methods for 'tidy_dagitty' objects
+expand_plot             Quickly scale the size of a ggplot
+expand_scale            Generate expansion vector for scales.
+fortify                 Fortify a 'tidy_dagitty' object for 'ggplot2'
+geom_dag_collider_edges
+                        Edges for paths activated by stratification on
+                        colliders
+geom_dag_edges          Directed and bidirected DAG edges
+geom_dag_text           Node text
+ggdag                   Quickly plot a DAG in ggplot2
+ggdag_classic           Quickly plot a DAG in ggplot2
+ggplot.tidy_dagitty     Create a new ggplot
+ggrepel functions       Repulsive textual annotations
+is.tidy_dagitty         Test for object class for tidy_dagitty
+is_confounder           Assess if a variable confounds a relationship
+print.tidy_dagitty      Print a 'tidy_dagitty'
+remove_axes             Quickly remove plot axes and grids
+scale_adjusted          Common scale adjustments for DAGs
+simulate_data           Simulate Data from Structural Equation Model
+tbl_df.tidy_daggity     Convert a 'tidy_dagitty' object to tbl_df
+theme_dag_blank         Minimalist DAG themes
+theme_dag_grey          Simple grey themes for DAGs
+tidy_dagitty            Tidy a 'dagitty' object

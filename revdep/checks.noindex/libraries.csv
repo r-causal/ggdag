@@ -1,0 +1,8 @@
+package,old,new,delta
+ggdag,0.2.0,0.2.1,*
+farver,NA,2.0.1,*
+ggplot2,NA,3.2.1.9000,*
+igraph,NA,1.2.4.2,*
+RcppEigen,NA,0.3.3.7.0,*
+scales,NA,1.1.0,*
+testthat,NA,2.3.1,*

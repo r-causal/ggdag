@@ -1,0 +1,45 @@
+Package: farver
+Type: Package
+Title: High Performance Colour Space Manipulation
+Version: 2.0.1
+Authors@R: 
+    c(person(given = "Thomas Lin",
+             family = "Pedersen",
+             role = c("cre", "aut"),
+             email = "thomasp85@gmail.com",
+             comment = c(ORCID = "0000-0002-5147-4711")),
+      person(given = "Berendea",
+             family = "Nicolae",
+             role = "aut",
+             comment = "Author of the ColorSpace C++ library"),
+      person(given = "Romain", 
+             family = "François", 
+             role = "aut", 
+             email = "romain@purrple.cat",
+             comment = c(ORCID = "0000-0002-2444-4226")) 
+      )
+Maintainer: Thomas Lin Pedersen <thomasp85@gmail.com>
+Description: The encoding of colour can be handled in many different ways, using
+    different colour spaces. As different colour spaces have different uses,
+    efficient conversion between these representations are important. The 
+    'farver' package provides a set of functions that gives access to very fast
+    colour space conversion and comparisons implemented in C++, and offers 
+    speed improvements over the 'convertColor' function in the 'grDevices' 
+    package.
+License: MIT + file LICENSE
+Encoding: UTF-8
+SystemRequirements: C++11
+RoxygenNote: 6.1.1
+URL: https://github.com/thomasp85/farver
+BugReports: https://github.com/thomasp85/farver/issues
+Suggests: testthat (>= 2.1.0), covr
+NeedsCompilation: yes
+Packaged: 2019-11-13 19:27:13 UTC; thomas
+Author: Thomas Lin Pedersen [cre, aut]
+    (<https://orcid.org/0000-0002-5147-4711>),
+  Berendea Nicolae [aut] (Author of the ColorSpace C++ library),
+  Romain François [aut] (<https://orcid.org/0000-0002-2444-4226>)
+Repository: CRAN
+Date/Publication: 2019-11-13 22:20:13 UTC
+Built: R 3.6.0; x86_64-apple-darwin15.6.0; 2019-11-14 17:12:39 UTC; unix
+Archs: farver.so.dSYM

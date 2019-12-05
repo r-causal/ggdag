@@ -1,0 +1,171 @@
+---
+title: "An Introduction to ggdag"
+author: "Malcolm Barrett"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{An Introduction to ggdag}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 5, 
+  fig.height = 5, 
+  fig.align = "center",
+  fig.dpi = 320,
+  warning=FALSE,
+  message=FALSE
+)
+set.seed(2939)
+```
+
+# Overview
+
+`ggdag` extends the powerful `dagitty` package to work in the context of the tidyverse. It uses `dagitty`'s algorithms for analyzing structural causal graphs to produce tidy results, which can then be used in `ggplot2` and `ggraph` and manipulated with other tools from the tidyverse, like `dplyr`.  
+
+# Creating Directed Acyclic Graphs
+
+If you already use `dagitty`, `ggdag` can tidy your DAG directly.
+
+```{r dagitty}
+library(dagitty)
+library(ggdag)
+
+dag <- dagitty("dag{y <- z -> x}")
+tidy_dagitty(dag)
+```
+
+Note that, while `dagitty` supports a number of graph types, `ggdag` currently only supports DAGs. 
+
+`dagitty` uses a syntax similar to the [dot language of graphviz](https://graphviz.gitlab.io/_pages/doc/info/lang.html). This syntax has the advantage of being compact, but `ggdag` also provides the ability to create a `dagitty` object using a more R-like formula syntax through the `dagify()` function. `dagify()` accepts any number of formulas to create a DAG. It also has options for declaring which variables are exposures, outcomes, or latent, as well as coordinates and labels for each node.
+
+```{r dagify}
+dagified <- dagify(x ~ z,
+                   y ~ z,
+                   exposure = "x",
+                   outcome = "y")
+tidy_dagitty(dagified)
+```
+
+Currently, `ggdag` supports directed (`x ~ y`) and bi-directed (`a ~~ b`) relationships
+
+`tidy_dagitty()` uses layout functions from `ggraph` and `igraph` for coordinates if none are provided, which can be specified with the `layout` argument. Objects of class `tidy_dagitty` or `dagitty` can be plotted quickly with `ggdag()`. If the DAG is not yet tidied, `ggdag()` and most other quick plotting functions in `ggdag` do so internally.
+
+```{r ggdag_layout}
+ggdag(dag, layout = "circle")
+```
+
+
+A `tidy_dagitty` object is just a list with a `tbl_df`, called `data`, and the `dagitty` object, called `dag`:
+
+```{r dag_str}
+tidy_dag <- tidy_dagitty(dagified)
+str(tidy_dag)
+```
+
+
+#  Working with DAGs
+
+Most of the analytic functions in `dagitty` have extensions in `ggdag` and are named `dag_*()` or `node_*()`, depending on if they are working with specific nodes or the entire DAG. A simple example is `node_parents()`, which adds a column to the to the `tidy_dagitty` object about the parents of a given variable:
+
+```{r parents}
+node_parents(tidy_dag, "x")
+```
+
+Or working with the entire DAG to produce a `tidy_dagitty` that has all pathways between two variables:
+
+```{r pathways}
+bigger_dag <- dagify(y ~ x + a + b,
+                     x ~ a + b,
+                     exposure = "x",
+                     outcome = "y")
+#  automatically searches the paths between the variables labelled exposure and 
+#  outcome
+dag_paths(bigger_dag)  
+```
+
+`ggdag` also supports [piping](http://r4ds.had.co.nz/pipes.html) of functions and includes the pipe internally (so you don't need to load `dplyr` or `magrittr`). Basic `dplyr` verbs are also supported (and anything more complex can be done directly on the `data` object).
+
+```{r}
+library(dplyr)
+#  find how many variables are in between x and y in each path
+bigger_dag %>% 
+  dag_paths() %>%
+  group_by(set) %>%
+  filter(!is.na(path) & !is.na(name)) %>% 
+  summarize(n_vars_between = n() - 1L)
+```
+
+
+#  Plotting DAGs
+
+Most `dag_*()` and `node_*()` functions have corresponding `ggdag_*()` for quickly plotting the results. They call the corresponding `dag_*()` or `node_*()` function internally and plot the results in `ggplot2`.
+
+```{r ggdag_path, fig.width=6.5}
+ggdag_paths(bigger_dag)
+```
+
+
+
+```{r ggdag_parents}
+ggdag_parents(bigger_dag, "x")
+```
+
+```{r ggdag_adjustment_}
+#  quickly get the miniminally sufficient adjustment sets to adjust for when 
+#  analyzing the effect of x on y
+ggdag_adjustment_set(bigger_dag)
+```
+
+
+#  Plotting directly in `ggplot2`
+
+`ggdag()` and friends are, by and large, fairly thin wrappers around included `ggplot2` geoms for plotting nodes, text, and edges to and from variables. For example, `ggdag_parents()` can be made directly in `ggplot2` like this:
+
+```{r}
+bigger_dag %>% 
+    node_parents("x") %>%
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
+      geom_dag_point() +
+      geom_dag_edges() +
+      geom_dag_text(col = "white") +
+      theme_dag() +
+      scale_color_hue(breaks  = c("parent", "child")) #  ignores NA in legend
+```
+
+The heavy lifters in `ggdag` are `geom_dag_node()`/`geom_dag_point()`, `geom_dag_edges()`, `geom_dag_text()`, `theme_dag()`, and `scale_adjusted()`. `geom_dag_node()` and `geom_dag_text()` plot the nodes and text, respectively, and are only modifications of `geom_point()` and `geom_text()`. `geom_dag_node()` is slightly stylized (it has an internal white circle), while `geom_dag_point()` looks more like `geom_point()` with a larger size. `theme_dag()` removes all axes and ticks, since those have little meaning in a causal model, and also makes a few other changes. `expand_plot()` is a convenience function that makes modifications to the scale of the plot to make them more amenable to nodes with large points and text `scale_adjusted()` provides defaults that are common in analyses of DAGs, e.g. setting the shape of adjusted variables to a square.
+
+`geom_dag_edges()` is also a convenience function that plots directed and bi-directed edges with different geoms and arrows. Directed edges are straight lines with a single arrow head, while bi-directed lines, which are a shorthand for a latent parent variable between the two bi-directed variables (e.g. a <- L -> b), are plotted as an arc with arrow heads on either side. 
+
+You can also call edge functions directly, particularly if you only have directed edges. Much of `ggdag`'s edge functionality comes from `ggraph`, with defaults (e.g. arrow heads, truncated lines) set with DAGs in mind. Currently, `ggdag` has four type of edge geoms: `geom_dag_edges_link()`, which plots straight lines, `geom_dag_edges_arc()`, `geom_dag_edges_diagonal()`, and `geom_dag_edges_fan()`.
+
+```{r}
+dagify(y ~ x,
+       m ~ x + y) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_point() +
+    geom_dag_edges_arc() +
+    geom_dag_text() +
+    theme_dag()
+```
+
+
+If you have bi-directed edges but would like to plot them as directed, `node_canonical()` will automatically insert the latent variable for you.
+
+```{r canonical}
+dagify(y ~ x + z,
+       x ~~ z) %>% 
+    node_canonical() %>% 
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+      geom_dag_point() +
+      geom_dag_edges_diagonal() +
+      geom_dag_text() +
+      theme_dag()
+```
+
+There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.
+

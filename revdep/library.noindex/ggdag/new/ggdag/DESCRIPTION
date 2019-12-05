@@ -1,0 +1,37 @@
+Package: ggdag
+Title: Analyze and Create Elegant Directed Acyclic Graphs
+Version: 0.2.1
+Authors@R: 
+    person(given = "Malcolm",
+           family = "Barrett",
+           role = c("aut", "cre"),
+           email = "malcolmbarrett@gmail.com",
+           comment = c(ORCID = "0000-0003-0299-5825"))
+Description: Tidy, analyze, and plot directed acyclic graphs
+    (DAGs). 'ggdag' is built on top of 'dagitty', an R package that uses
+    the 'DAGitty' web tool (<http://dagitty.net>) for creating and
+    analyzing DAGs. 'ggdag' makes it easy to tidy and plot 'dagitty'
+    objects using 'ggplot2' and 'ggraph', as well as common analytic and
+    graphical functions, such as determining adjustment sets and node
+    relationships.
+License: MIT + file LICENSE
+URL: https://github.com/malcolmbarrett/ggdag
+BugReports: https://github.com/malcolmbarrett/ggdag/issues
+Depends: ggplot2 (>= 3.0.0), R (>= 3.2.0)
+Imports: dagitty, dplyr, forcats, ggforce, ggraph (>= 2.0.0), ggrepel,
+        igraph, magrittr, pillar, plyr, purrr, stringr, tibble,
+        tidygraph
+Suggests: knitr, rmarkdown, spelling, testthat, covr
+VignetteBuilder: knitr
+Encoding: UTF-8
+Language: en-US
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.0.0
+RemoteType: local
+RemoteUrl: /Users/malcolmbarrett/Google Drive/Active/r_packages/ggdag
+NeedsCompilation: no
+Packaged: 2019-12-05 23:18:57 UTC; malcolmbarrett
+Author: Malcolm Barrett [aut, cre] (<https://orcid.org/0000-0003-0299-5825>)
+Maintainer: Malcolm Barrett <malcolmbarrett@gmail.com>
+Built: R 3.6.1; ; 2019-12-05 23:18:58 UTC; unix

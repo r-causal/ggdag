@@ -1,0 +1,149 @@
+%>%	pipe
+activate_collider_paths	activate_collider_paths
+Adjust for variables	control_for
+adjust_for	control_for
+anti_join.tidy_dagitty	dplyr
+arrange.tidy_dagitty	dplyr
+arrange_.tidy_dagitty	dplyr
+as.data.frame.tidy_dagitty	as.data.frame.tidy_dagitty
+as.tbl.tidy_daggity	as.tbl.tidy_daggity
+Assess d-separation between variables	d_relationship
+Assess familial relationships between variables	variable_family
+as_tbl_graph	as_tbl_graph
+as_tbl_graph.dagitty	as_tbl_graph
+as_tbl_graph.tidy_dagitty	as_tbl_graph
+butterfly_bias	quick_plot
+Canonicalize DAGs	canonicalize
+Colliders	colliders
+collider_triangle	quick_plot
+confounder_triangle	quick_plot
+control_for	control_for
+coordinates	coordinates
+coords2df	coordinates
+coords2list	coordinates
+Covariate Adjustment Sets	adjustment_sets
+dag	dag
+DAG Edges	geom_dag_edge_functions
+DAG Labels	label
+dagify	dagify
+dag_adjustment_sets	adjustment_sets
+dag_label	label
+dag_paths	paths
+distinct.tidy_dagitty	dplyr
+dplyr	dplyr
+Equivalent DAGs and Classes	equivalent
+Exogenous Variables	exogenous
+expand_plot	expand_plot
+expand_scale	expand_scale
+filter	reexports
+filter.tidy_dagitty	dplyr
+filter_.tidy_dagitty	dplyr
+fortify	fortify
+fortify.dagitty	fortify
+fortify.tidy_dagitty	fortify
+full_join.tidy_dagitty	dplyr
+geom_dag_collider_edges	geom_dag_collider_edges
+geom_dag_edges	geom_dag_edges
+geom_dag_edges_arc	geom_dag_edge_functions
+geom_dag_edges_diagonal	geom_dag_edge_functions
+geom_dag_edges_fan	geom_dag_edge_functions
+geom_dag_edges_link	geom_dag_edge_functions
+geom_dag_label_repel	repel
+geom_dag_node	node_point
+geom_dag_point	node_point
+geom_dag_text	geom_dag_text
+geom_dag_text_repel	repel
+ggdag	ggdag
+ggdag_adjacent	variable_family
+ggdag_adjust	control_for
+ggdag_adjustment_set	adjustment_sets
+ggdag_ancestors	variable_family
+ggdag_butterfly_bias	quick_plot
+ggdag_canonical	canonicalize
+ggdag_children	variable_family
+ggdag_classic	ggdag_classic
+ggdag_collider	colliders
+ggdag_collider_triangle	quick_plot
+ggdag_confounder_triangle	quick_plot
+ggdag_dconnected	d_relationship
+ggdag_descendants	variable_family
+ggdag_drelationship	d_relationship
+ggdag_dseparated	d_relationship
+ggdag_equivalent_class	equivalent
+ggdag_equivalent_dags	equivalent
+ggdag_exogenous	exogenous
+ggdag_instrumental	instrumental
+ggdag_markov_blanket	variable_family
+ggdag_mediation_triangle	quick_plot
+ggdag_m_bias	quick_plot
+ggdag_parents	variable_family
+ggdag_paths	paths
+ggdag_paths_fan	paths
+ggdag_status	status
+ggplot.dagitty	ggplot.tidy_dagitty
+ggplot.tidy_dagitty	ggplot.tidy_dagitty
+ggrepel functions	repel
+group_by.tidy_dagitty	dplyr
+has_labels	label
+inner_join.tidy_dagitty	dplyr
+Instrumental Variables	instrumental
+is.tidy_dagitty	is.tidy_dagitty
+is_collider	is_collider
+is_confounder	is_confounder
+is_downstream_collider	is_collider
+label	label
+label<-	label
+label<-.dagitty	label
+label<-.tidy_dagitty	label
+left_join.tidy_dagitty	dplyr
+mediation_triangle	quick_plot
+mutate.tidy_dagitty	dplyr
+mutate_.tidy_dagitty	dplyr
+m_bias	quick_plot
+Nodes	node_point
+node_adjacent	variable_family
+node_ancestors	variable_family
+node_canonical	canonicalize
+node_children	variable_family
+node_collider	colliders
+node_dconnected	d_relationship
+node_descendants	variable_family
+node_drelationship	d_relationship
+node_dseparated	d_relationship
+node_equivalent_class	equivalent
+node_equivalent_dags	equivalent
+node_exogenous	exogenous
+node_instrumental	instrumental
+node_markov_blanket	variable_family
+node_parents	variable_family
+node_status	status
+Pathways	paths
+print.tidy_dagitty	print.tidy_dagitty
+Quick Plots for Common DAGs	quick_plot
+reexports	reexports
+remove_axes	remove_axes
+remove_grid	remove_axes
+right_join.tidy_dagitty	dplyr
+scale_adjusted	scale_adjusted
+scale_dag	scale_adjusted
+select.tidy_dagitty	dplyr
+select_.tidy_dagitty	dplyr
+semi_join.tidy_dagitty	dplyr
+simulate_data	simulate_data
+slice.tidy_dagitty	dplyr
+slice_.tidy_dagitty	dplyr
+summarise.tidy_dagitty	dplyr
+summarise_.tidy_dagitty	dplyr
+tbl_df.tidy_daggity	tbl_df.tidy_daggity
+Test if Variable Is Collider	is_collider
+theme_dag	theme_dag_blank
+theme_dag_blank	theme_dag_blank
+theme_dag_gray	theme_dag_grey
+theme_dag_gray_grid	theme_dag_grey
+theme_dag_grey	theme_dag_grey
+theme_dag_grey_grid	theme_dag_grey
+theme_dag_grid	theme_dag_blank
+tidy_dagitty	tidy_dagitty
+transmute.tidy_dagitty	dplyr
+ungroup.tidy_dagitty	dplyr
+Variable Status	status
