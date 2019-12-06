@@ -18,7 +18,6 @@ set.seed(1542)
 [![Travis-CI Build Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag) [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag) [![CRAN status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 [![Codecov test coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/master/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=master)
-[![Monthly CRAN downloads](https://cranlogs.r-pkg.org/badges/ggdag)](https://cran.r-project.org/package=ggdag)
 [![Total CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 <!-- badges: end -->
 
@@ -49,27 +48,31 @@ devtools::install_github("malcolmbarrett/ggdag")
 library(ggdag)
 
 #  example from the dagitty package
-dag <- dagitty::dagitty( "dag {
-    y <- x <- z1 <- v -> z2 -> y
-               z1 <- w1 <-> w2 -> z2
-               x <- w1 -> y
-               x <- w2 -> y
-               x [exposure]
-               y [outcome]
-               }")
+dag <- dagitty::dagitty("dag {
+  y <- x <- z1 <- v -> z2 -> y
+             z1 <- w1 <-> w2 -> z2
+             x <- w1 -> y
+             x <- w2 -> y
+             x [exposure]
+             y [outcome]
+             }"
+)
 
 tidy_dag <- tidy_dagitty(dag)
 
 tidy_dag 
 
 #  using more R-like syntax to create the same DAG
-tidy_ggdag <- dagify(y ~ x + z2 + w2 + w1,
-             x ~ z1 + w1 + w2,
-             z1 ~ w1 + v,
-             z2 ~ w2 + v,
-             w1 ~~ w2, # bidirected path
-             exposure = "x",
-             outcome = "y") %>% tidy_dagitty()
+tidy_ggdag <- dagify(
+  y ~ x + z2 + w2 + w1,
+  x ~ z1 + w1 + w2,
+  z1 ~ w1 + v,
+  z2 ~ w2 + v,
+  w1 ~~ w2, # bidirected path
+  exposure = "x",
+  outcome = "y"
+) %>% 
+  tidy_dagitty()
 
 tidy_ggdag
 ```
