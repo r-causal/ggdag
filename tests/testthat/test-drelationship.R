@@ -8,7 +8,7 @@ test_that("d relationships correctly identified", {
   p2 <- ggdag_drelationship(dag, "x", "y", controlling_for = "m")
   p3 <- ggdag_drelationship(dag, "x", "y", controlling_for = "m", collider_lines = FALSE)
   vdiffr::expect_doppelganger("ggdag_drelationship() d-separates x and y", p1)
-  # vdiffr::expect_doppelganger("ggdag_drelationship() d-connects x and y", p2)
+  vdiffr::expect_doppelganger("ggdag_drelationship() d-connects x and y", p2 + theme(legend.position = "none"))
   vdiffr::expect_doppelganger("ggdag_drelationship() d-connects x and y: no collider line", p3)
 
   p4 <- ggdag_dseparated(dag, "x", "y")
