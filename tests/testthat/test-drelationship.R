@@ -2,7 +2,8 @@ context("ggdag_drelationship")
 set.seed(1234)
 
 test_that("d relationships correctly identified", {
-  dag <- dagify(m ~ x + y)
+  dag <- dagify(m ~ x + y) %>%
+    tidy_dagitty()
   p1 <- ggdag_drelationship(dag, "x", "y")
   p2 <- ggdag_drelationship(dag, "x", "y", controlling_for = "m")
   p3 <- ggdag_drelationship(dag, "x", "y", controlling_for = "m", collider_lines = FALSE)
