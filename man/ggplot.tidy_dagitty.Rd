@@ -11,7 +11,7 @@
 }
 \arguments{
 \item{data}{Default dataset to use for plot. If not already a data.frame,
-will be converted to one by \code{\link[=fortify]{fortify()}}. If not specified,
+will be converted to one by \code{\link[ggplot2:fortify]{fortify()}}. If not specified,
 must be supplied in each layer added to the plot.}
 
 \item{mapping}{Default list of aesthetic mappings to use for plot.
