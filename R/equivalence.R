@@ -53,7 +53,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 
   .dag$data <- dagitty::equivalentDAGs(.dag$dag, n = n) %>%
     purrr::map_df(~as.data.frame(tidy_dagitty(.dagitty = .x)), .id = "dag") %>%
-    dplyr::as.tbl()
+    dplyr::as_tibble()
   .dag
 }
 

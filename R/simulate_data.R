@@ -31,5 +31,5 @@ simulate_data <- function(.tdy_dag, b.default = NULL, b.lower = -0.6, b.upper = 
     .$dag %>%
     dagitty::simulateSEM(b.default = b.default, b.lower = b.lower, b.upper = b.upper, eps = eps,
                          N = N, standardized = standardized) %>%
-    dplyr::as.tbl()
+    dplyr::as_tibble()
 }
