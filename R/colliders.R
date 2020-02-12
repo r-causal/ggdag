@@ -119,16 +119,19 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
   collider_lines <- purrr::map_df(activated_pairs, function(.pairs_df) {
-    .pairs_df %>% dplyr::rowwise() %>% dplyr::do({
-      df <- .
-      name <- df[["Var1"]]
-      to <- df[["Var2"]]
-      start_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var1"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
-      end_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var2"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
+    .pairs_df %>%
+      dplyr::rowwise() %>%
+      # for dplyr version 1.0.0, use `dplyr::summarize()`, otherwise use `dplyr::do()`
+      rowwise_verb()({
+        df <- .
+        name <- df[["Var1"]]
+        to <- df[["Var2"]]
+        start_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var1"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
+        end_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var2"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
 
-      .tdy_dag$data %>% dplyr::add_row(.before = 1, name = name, x = start_coords[[1, 1]], y = start_coords[[1, 2]],
-                                       to = to, xend = end_coords[[1, 1]], yend = end_coords[[1, 2]],
-                                       direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)) %>% dplyr::slice(1)
+        .tdy_dag$data %>% dplyr::add_row(.before = 1, name = name, x = start_coords[[1, 1]], y = start_coords[[1, 2]],
+                                         to = to, xend = end_coords[[1, 1]], yend = end_coords[[1, 2]],
+                                         direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)) %>% dplyr::slice(1)
     })
   })
   collider_lines$collider_line <- TRUE
