@@ -1,4 +1,7 @@
 # ggdag (development version)
+* Updated roxygen2 version
+* Fixed bugs in `dag_paths()` and `geom_dag_edges_fan()`
+* Added vdiffr tests, as well as a basic test file for every `.R` file.
 
 # ggdag 0.2.1
 * Fixed bug in `ggdag_collider()` where the aesthetics were flipped for the colors but not the labels (issue #15, b72e34b)
