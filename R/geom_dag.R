@@ -483,6 +483,7 @@ geom_dag_edges <- function(mapping = NULL,
 #' p + geom_dag_edges_link()
 #' p + geom_dag_edges_arc()
 #' p + geom_dag_edges_diagonal()
+#' p + geom_dag_edges_fan()
 #'
 #' @rdname geom_dag_edge_functions
 #' @name DAG Edges
@@ -583,9 +584,9 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
                                     label_dodge = NULL, label_push = NULL, ...) {
 
   if (is.null(mapping)) {
-    mapping <- ggplot2::aes(from = from, to = to)
+    mapping <- ggplot2::aes(from = name, to = to)
   } else if (is.null(mapping$from)) {
-    mapping$from <- substitute(from)
+    mapping$from <- substitute(name)
     mapping$to <- substitute(to)
   }
 
@@ -593,7 +594,7 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
                  geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
                  inherit.aes = inherit.aes,
                  params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
-                               n = n, lineend = lineend, spread = spread,
+                               n = n, lineend = lineend, strength = spread,
                                linejoin = linejoin, linemitre = linemitre,
                                label_colour = label_colour, label_alpha = label_alpha,
                                label_parse = label_parse, check_overlap = check_overlap,

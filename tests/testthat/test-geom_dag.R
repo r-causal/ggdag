@@ -45,6 +45,5 @@ test_that("different edge types work", {
   vdiffr::expect_doppelganger("geom_dag_edges_link() is straight", p + geom_dag_edges_link())
   vdiffr::expect_doppelganger("geom_dag_edges_arc() is arcy", p + geom_dag_edges_arc())
   vdiffr::expect_doppelganger("geom_dag_edges_diagonal() is arcy", p + geom_dag_edges_diagonal())
-  # need to add this test after improving `geom_dag_edges_fan()`
-  # vdiffr::expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
+  vdiffr::expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })

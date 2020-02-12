@@ -143,10 +143,13 @@ StatEdgeDiagonal <- ggplot2::ggproto('StatEdgeDiagonal', ggraph::StatEdgeDiagona
 
 StatEdgeFan <- ggplot2::ggproto('StatEdgeFan', ggraph::StatEdgeFan,
                                      setup_data = function(data, params) {
-
                                        data <- data[!is.na(data$xend), ]
 
                                        if (nrow(data) > 0) {
+                                         # turn `from` and `to` into integers for `ggraph::StatEdgeFan`
+                                         data$from <- rank(data$from)
+                                         data$to <- rank(data$to)
+
                                          data <- ggraph::StatEdgeFan$setup_data(data, params)
                                        } else {
                                          data <- NULL
@@ -183,7 +186,6 @@ GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                       data
                                     },
                                     handle_na = function(data, params) {
-
                                       if (all(c("x", "y", "edge_width", "edge_colour", "edge_linetype") %in% names(data))) {
                                         data <- ggraph::GeomEdgePath$handle_na(data, params)
                                       } else {

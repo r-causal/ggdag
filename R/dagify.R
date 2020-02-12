@@ -17,6 +17,9 @@ dag <- function(...) {
   dagitty::dagitty(paste0("dag{", dag_string, "}"))
 }
 
+# for internal use
+dag2 <- dag
+
 #' Create a dagitty DAG using R-like syntax
 #'
 #' `dagify()` creates dagitty DAGs using a more R-like syntax. It currently

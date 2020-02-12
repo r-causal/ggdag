@@ -220,5 +220,6 @@ p <- dagify(y ~ x + z2 + w2 + w1,
 p + geom_dag_edges_link()
 p + geom_dag_edges_arc()
 p + geom_dag_edges_diagonal()
+p + geom_dag_edges_fan()
 
 }
