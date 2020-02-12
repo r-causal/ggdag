@@ -43,9 +43,10 @@ ggdag_paths_fan(
   adjust_for = NULL,
   directed = FALSE,
   ...,
+  shadow = FALSE,
   spread = 0.7,
   node_size = 16,
-  text_size = 2,
+  text_size = 3.88,
   label_size = text_size,
   text_col = "white",
   label_col = text_col,
@@ -112,5 +113,8 @@ and a \code{set} grouping column or a \code{ggplot}
 \examples{
 confounder_triangle(x_y_associated = TRUE) \%>\%
   ggdag_paths(from = "x", to = "y")
+
+butterfly_bias(x_y_associated = TRUE) \%>\%
+  ggdag_paths_fan(shadow = TRUE)
 
 }

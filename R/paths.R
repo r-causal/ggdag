@@ -39,6 +39,9 @@
 #' confounder_triangle(x_y_associated = TRUE) %>%
 #'   ggdag_paths(from = "x", to = "y")
 #'
+#' butterfly_bias(x_y_associated = TRUE) %>%
+#'   ggdag_paths_fan(shadow = TRUE)
+#'
 #' @rdname paths
 #' @name Pathways
 #' @importFrom magrittr %$%
@@ -61,7 +64,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
   .tdy_dag$data <- pathways %>%
     purrr::map_df(function(.x) {
       path_df <- .x %>%
-        dag() %>%
+        dag2() %>%
         dagitty::edges() %>%
         dplyr::select(.from = v, .to = w) %>%
         dplyr::mutate(.from = as.character(.from),
@@ -78,7 +81,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
        path_df <- path_df %>%
          filter(name == vars[[1]]) %>%
          dplyr::slice(1) %>%
-         dplyr::mutate(direction = NA, type = NA, to = NA, xend = NA, yend = NA, path = "open path") %>%
+         dplyr::mutate(direction = NA_integer_, type = NA, to = NA_character_, xend = NA_real_, yend = NA_real_, path = "open path") %>%
          dplyr::bind_rows(path_df, .)
        }
      }
@@ -141,27 +144,30 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
 
 #' @rdname paths
 #' @export
-ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ...,
-                        spread = .7, node_size = 16, text_size = 2, label_size = text_size, text_col = "white", label_col = text_col,
+ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ..., shadow = FALSE,
+                        spread = .7, node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
                         node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed) %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
-    geom_dag_edges_fan(ggplot2::aes(edge_colour = set, edge_alpha = path), spread = spread) +
+    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed, paths_only = !shadow) %>%
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_fan(
+      ggplot2::aes(edge_colour = set, edge_alpha = path),
+      spread = spread
+    ) +
     ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
-    ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
+    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path", guide = "none") +
+    ggraph::scale_edge_colour_hue(name = "open path", drop = FALSE) +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
     expand_plot(expand_x = expand_scale(c(0.25, 0.25)),
                 expand_y = expand_scale(c(0.1, 0.1)))
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size, col = "black")
+        p <- p + geom_dag_node(ggplot2::aes(alpha = path), size = node_size, col = "black", show.legend = FALSE)
       } else {
-        p <- p + geom_dag_point(size = node_size, col = "black")
+        p <- p + geom_dag_point(ggplot2::aes(alpha = path), size = node_size, col = "black", show.legend = FALSE)
       }
     }
 
