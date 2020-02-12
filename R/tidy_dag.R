@@ -152,12 +152,18 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
 #'   R's base package `as.data.frame()` methods use optional only for column names
 #'   treatment, basically with the meaning of `data.frame(*, check.names =
 #'   !optional)`
-#' @param ... optional arguments passed to `as.tbl()`
+#' @param ... optional arguments passed to [`dplyr::as_tibble()`]
 #'
 #' @export
-#' @importFrom dplyr as.tbl
+#' @importFrom dplyr as.tbl as_tibble
 as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
   dplyr::as.tbl(x$data, row.names = row.names, optional = optional, ...)
+}
+
+#' @export
+#' @rdname as.tbl.tidy_daggity
+as_tibble.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
+  dplyr::as_tibble(x$data, row.names = row.names, optional = optional, ...)
 }
 
 #' Print a `tidy_dagitty`

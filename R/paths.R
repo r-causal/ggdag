@@ -81,7 +81,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
        path_df <- path_df %>%
          filter(name == vars[[1]]) %>%
          dplyr::slice(1) %>%
-         dplyr::mutate(direction = NA_integer_, type = NA, to = NA_character_, xend = NA_real_, yend = NA_real_, path = "open path") %>%
+         dplyr::mutate(path = "open path") %>%
          dplyr::bind_rows(path_df, .)
        }
      }
@@ -94,7 +94,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
        path_df <-  path_df %>%
          filter(name == vars[[2]]) %>%
          dplyr::slice(1) %>%
-         dplyr::mutate(direction = NA, to = NA, xend = NA, yend = NA, path = "open path") %>%
+         dplyr::mutate(path = "open path") %>%
          dplyr::bind_rows(path_df, .)
      }
 

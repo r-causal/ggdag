@@ -127,6 +127,18 @@ collider_paths <- function(x) {
   paths
 }
 
+rowwise_verb <- function() {
+  if (dplyr_gt_1_0_0()) return(dplyr::summarise)
+
+  dplyr::do
+}
+
+#' @importFrom utils packageVersion
+#' @noRd
+dplyr_gt_1_0_0 <- function() {
+  utils::packageVersion("dplyr") >= "1.0.0"
+}
+
 #' Generate expansion vector for scales.
 #'
 #' This is a convenience function for generating scale expansion vectors
