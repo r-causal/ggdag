@@ -179,7 +179,7 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
                        end_cap = ggraph::circle(10, "mm")) +
       scale_adjusted() +
       breaks(c("d-connected", "d-separated"), name = "d-relationship") +
-      expand_plot(expand_y = expand_scale(c(0.2, 0.2)))
+      expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {

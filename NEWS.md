@@ -3,6 +3,7 @@
 * Updated roxygen2 version (#29)
 * Fixed bugs in `dag_paths()` and `geom_dag_edges_fan()` (#31)
 * Removed use of `use_defaults()` `ggproto` method in `GeomDAGEdge` (#33)
+* Use `ggplot2::expansion()` instead of `expand_scale()` when ggplot2 version is at least `3.3.0` and removed local version of `expand_scale()` (#34)
 
 # ggdag 0.2.1
 * Fixed bug in `ggdag_collider()` where the aesthetics were flipped for the colors but not the labels (issue #15, b72e34b)

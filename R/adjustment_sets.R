@@ -85,8 +85,8 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                                  node_size = 16, text_size = 3.88, label_size = text_size,
                                  text_col = "white", label_col = text_col,
                                  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
-                                 expand_x = expand_scale(c(0.25, 0.25)),
-                                 expand_y = expand_scale(c(0.2, 0.2))) {
+                                 expand_x = expansion(c(0.25, 0.25)),
+                                 expand_y = expansion(c(0.2, 0.2))) {
 
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -226,7 +226,7 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
                    start_cap = ggraph::circle(10, "mm"),
                    end_cap = ggraph::circle(10, "mm")) +
     scale_adjusted() +
-    expand_plot(expand_y = expand_scale(c(0.2, 0.2)))
+    expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {

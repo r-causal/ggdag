@@ -28,8 +28,8 @@ node_equivalent_class(.dag, layout = "auto")
 
 ggdag_equivalent_class(
   .tdy_dag,
-  expand_x = expand_scale(c(0.1, 0.1)),
-  expand_y = expand_scale(c(0.1, 0.1)),
+  expand_x = expansion(c(0.1, 0.1)),
+  expand_y = expansion(c(0.1, 0.1)),
   breaks = ggplot2::waiver(),
   ...,
   node_size = 16,
@@ -76,12 +76,12 @@ Default is \code{NULL}.}
 
 \item{expand_x}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
+from the axes. Use the convenience function \code{ggplot2::expansion()} to
 generate the values for the expand argument.}
 
 \item{expand_y}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
+from the axes. Use the convenience function \code{ggplot2::expansion()} to
 generate the values for the expand argument.}
 
 \item{breaks}{One of:

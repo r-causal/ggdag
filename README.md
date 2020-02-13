@@ -158,7 +158,7 @@ dagify(m ~ x + y) %>%
     geom_dag_text(col = "white") +
     theme_dag() + 
     scale_adjusted() +
-    expand_plot(expand_y = expand_scale(c(0.2, 0.2))) +
+    expand_plot(expand_y = expansion(c(0.2, 0.2))) +
     scale_color_viridis_d(
       name = "d-relationship", 
       na.value = "grey85", 

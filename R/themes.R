@@ -6,11 +6,11 @@
 #'
 #' @param expand_x,expand_y Vector of range expansion constants used to add some
 #'   padding around the data, to ensure that they are placed some distance away
-#'   from the axes. Use the convenience function `expand_scale()` to
+#'   from the axes. Use the convenience function `ggplot2::expansion()` to
 #'   generate the values for the expand argument.
 #' @export
-expand_plot <- function(expand_x = expand_scale(c(.10, .10)),
-                        expand_y = expand_scale(c(.10, .10))) {
+expand_plot <- function(expand_x = expansion(c(.10, .10)),
+                        expand_y = expansion(c(.10, .10))) {
   list(
       ggplot2::scale_x_continuous(expand = expand_x),
       ggplot2::scale_y_continuous(expand = expand_y)

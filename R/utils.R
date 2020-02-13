@@ -46,7 +46,8 @@ utils::globalVariables(
     "set",
     "adjacent",
     "blanket",
-    "collider_path_nodes"
+    "collider_path_nodes",
+    "ggplot2::expansion"
   )
 )
 
@@ -127,60 +128,33 @@ collider_paths <- function(x) {
   paths
 }
 
+#' @importFrom utils getFromNamespace
+#' @noRd
+expansion_verb <- function() {
+  if (ggplot2_gt_3_3_0()) return(utils::getFromNamespace("expansion", "ggplot2"))
+
+  ggplot2::expand_scale
+}
+
+#' @importFrom utils packageVersion
+#' @noRd
+ggplot2_gt_3_3_0 <- function() {
+  utils::packageVersion("ggplot2") >= "3.3.0"
+}
+
+expansion <- expansion_verb()
+
+#' @importFrom utils packageVersion
+#' @noRd
+dplyr_gt_1_0_0 <- function() {
+  utils::packageVersion("dplyr") >= "0.8.99.9000"
+}
+
 rowwise_verb <- function() {
   if (dplyr_gt_1_0_0()) return(dplyr::summarise)
 
   dplyr::do
 }
 
-#' @importFrom utils packageVersion
-#' @noRd
-dplyr_gt_1_0_0 <- function() {
-  utils::packageVersion("dplyr") >= "1.0.0"
-}
 
-#' Generate expansion vector for scales.
-#'
-#' This is a convenience function for generating scale expansion vectors
-#' for the `expand` argument of
-#' `scale_*_continuous()` and
-#' `scale_*_discrete()`.
-#' The expansions vectors are used to add some space between
-#' the data and the axes.
-#'
-#' @export
-#' @param mult vector of multiplicative range expansion factors.
-#'   If length 1, both the lower and upper limits of the scale
-#'   are expanded outwards by `mult`. If length 2, the lower limit
-#'   is expanded by `mult[1]` and the upper limit by `mult[2]`.
-#' @param add vector of additive range expansion constants.
-#'   If length 1, both the lower and upper limits of the scale
-#'   are expanded outwards by `add` units. If length 2, the
-#'   lower limit is expanded by `add[1]` and the upper
-#'   limit by `add[2]`.
-#' @examples
-#' # No space below the bars but 10% above them
-#' ggplot(mtcars) +
-#'   geom_bar(aes(x = factor(cyl))) +
-#'   scale_y_continuous(expand = expand_scale(mult = c(0, .1)))
-#'
-#' # Add 2 units of space on the left and right of the data
-#' ggplot(subset(diamonds, carat > 2), aes(cut, clarity)) +
-#'   geom_jitter() +
-#'   scale_x_discrete(expand = expand_scale(add = 2))
-#'
-#' # Reproduce the default range expansion used
-#' # when the ‘expand’ argument is not specified
-#' ggplot(subset(diamonds, carat > 2), aes(cut, price)) +
-#'   geom_jitter() +
-#'   scale_x_discrete(expand = expand_scale(add = .6)) +
-#'   scale_y_continuous(expand = expand_scale(mult = .05))
-expand_scale <- function(mult = 0, add = 0) {
-  stopifnot(is.numeric(mult) && is.numeric(add))
-  stopifnot((length(mult) %in% 1:2) && (length(add) %in% 1:2))
-
-  mult <- rep(mult, length.out = 2)
-  add <- rep(add, length.out = 2)
-  c(mult[1], add[1], mult[2], add[2])
-}
 
