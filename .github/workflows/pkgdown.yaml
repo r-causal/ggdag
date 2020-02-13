@@ -21,6 +21,9 @@ jobs:
                   -e 'remotes::install_github("jimhester/pkgdown@github-actions-deploy")'
       - name: Install package
         run: R CMD INSTALL .
+      - name: Build pkgdown site
+        run: |
+          Rscript -e 'pkgdown::build_site()'
       - name: Deploy to Netlify
         # NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID added in the repo's secrets
         env:
