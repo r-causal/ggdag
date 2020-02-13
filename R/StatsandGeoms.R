@@ -165,26 +165,6 @@ GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                     setup_data = function(data, params) {
                                       ggraph::GeomEdgePath$setup_data(data, params)
                                     },
-                                    use_defaults = function(self, data, params = list()) {
-                                      # Fill in missing aesthetics with their defaults
-
-                                      missing_aes <- setdiff(names(self$default_aes), names(data))
-                                      if (purrr::is_empty(data)) {
-
-                                        data <- plyr::quickdf(self$default_aes[missing_aes])
-                                      } else {
-                                        if ("start_cap" %in% missing_aes) data$start_cap <- ggraph::circle(8, "mm")
-                                        if ("end_cap" %in% missing_aes) data$end_cap <- ggraph::circle(8, "mm")
-                                        missing_aes <- missing_aes[!(missing_aes %in% c("start_cap", "end_cap"))]
-                                        data[missing_aes] <- self$default_aes[missing_aes]
-                                      }
-
-                                      # Override mappings with params
-                                      aes_params <- intersect(self$aesthetics(), names(params))
-                                      ggplot2:::check_aesthetics(params[aes_params], nrow(data))
-                                      data[aes_params] <- params[aes_params]
-                                      data
-                                    },
                                     handle_na = function(data, params) {
                                       if (all(c("x", "y", "edge_width", "edge_colour", "edge_linetype") %in% names(data))) {
                                         data <- ggraph::GeomEdgePath$handle_na(data, params)
@@ -199,7 +179,7 @@ GeomDAGEdgePath <- ggplot2::ggproto('GeomDAGEdgePath', ggraph::GeomEdgePath,
                                     },
                                     non_missing_aes = c("direction", "direction_type"),
                                     default_aes = ggplot2::aes(edge_colour = 'black', edge_width = 0.6, edge_linetype = 'solid',
-                                                               edge_alpha = NA, start_cap = NA, end_cap = NA, label = NA,
+                                                               edge_alpha = NA, start_cap = ggraph::circle(8, "mm"), end_cap = ggraph::circle(8, "mm"), label = NA,
                                                                label_pos = 0.5, label_size = 3.88, angle = 0, hjust = 0.5,
                                                                vjust = 0.5, family = '', fontface = 1,
                                                                lineheight = 1.2, direction = "->", direction_type = "->")
