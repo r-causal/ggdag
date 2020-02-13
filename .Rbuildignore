@@ -12,3 +12,4 @@ docs
 ^CRAN-RELEASE$
 ^codecov\.yml$
 ^rhub\.R$
+^\.github/workflows/pkgdown\.yaml$
