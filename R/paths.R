@@ -123,8 +123,8 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
     ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
     ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
-    expand_plot(expand_x = ggplot2::expansion(c(0.25, 0.25)),
-                expand_y = ggplot2::expansion(c(0.1, 0.1)))
+    expand_plot(expand_x = expansion(c(0.25, 0.25)),
+                expand_y = expansion(c(0.1, 0.1)))
 
 
   if (node) {
@@ -160,8 +160,8 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
     ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path", guide = "none") +
     ggraph::scale_edge_colour_hue(name = "open path", drop = FALSE) +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
-    expand_plot(expand_x = ggplot2::expansion(c(0.25, 0.25)),
-                expand_y = ggplot2::expansion(c(0.1, 0.1)))
+    expand_plot(expand_x = expansion(c(0.25, 0.25)),
+                expand_y = expansion(c(0.1, 0.1)))
 
   if (node) {
     if (stylized) {

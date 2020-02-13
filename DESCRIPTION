@@ -18,7 +18,7 @@ License: MIT + file LICENSE
 URL: https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
 Depends: 
-    ggplot2 (>= 3.3.0),
+    ggplot2 (>= 3.0.0),
     R (>= 3.2.0)
 Imports: 
     dagitty,

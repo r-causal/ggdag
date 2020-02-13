@@ -46,7 +46,8 @@ utils::globalVariables(
     "set",
     "adjacent",
     "blanket",
-    "collider_path_nodes"
+    "collider_path_nodes",
+    "ggplot2::expansion"
   )
 )
 
@@ -127,15 +128,33 @@ collider_paths <- function(x) {
   paths
 }
 
-rowwise_verb <- function() {
-  if (dplyr_gt_1_0_0()) return(dplyr::summarise)
+#' @importFrom utils getFromNamespace
+#' @noRd
+expansion_verb <- function() {
+  if (ggplot2_gt_3_3_0()) return(utils::getFromNamespace("expansion", "ggplot2"))
 
-  dplyr::do
+  ggplot2::expand_scale
 }
+
+#' @importFrom utils packageVersion
+#' @noRd
+ggplot2_gt_3_3_0 <- function() {
+  utils::packageVersion("ggplot2") >= "3.3.0"
+}
+
+expansion <- expansion_verb()
 
 #' @importFrom utils packageVersion
 #' @noRd
 dplyr_gt_1_0_0 <- function() {
   utils::packageVersion("dplyr") >= "0.8.99.9000"
 }
+
+rowwise_verb <- function() {
+  if (dplyr_gt_1_0_0()) return(dplyr::summarise)
+
+  dplyr::do
+}
+
+
 
