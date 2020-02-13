@@ -51,6 +51,7 @@ pos
 reversable
 rmarkdown
 Rohrer
+roxygen
 SCMs
 SEM
 tbl
@@ -64,6 +65,7 @@ Undirected
 unstratify
 unstyled
 varicella
+vdiffr
 VignetteEncoding
 VignetteEngine
 VignetteIndexEntry
