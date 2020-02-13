@@ -136,6 +136,6 @@ rowwise_verb <- function() {
 #' @importFrom utils packageVersion
 #' @noRd
 dplyr_gt_1_0_0 <- function() {
-  utils::packageVersion("dplyr") >= "1.0.0"
+  utils::packageVersion("dplyr") >= "0.8.99.9000"
 }
 
