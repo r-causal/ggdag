@@ -1,4 +1,4 @@
-# ggdag (development version)
+# ggdag 0.2.2
 * Added vdiffr tests, as well as a basic test file for every `.R` file. (#27)
 * Updated roxygen2 version (#29)
 * Fixed bugs in `dag_paths()` and `geom_dag_edges_fan()` (#31)
