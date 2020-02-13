@@ -676,8 +676,8 @@ ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
 
   p$scales <- scales_list_quiet()
 
-  p + expand_plot(expand_x = expand_scale(c(.10, .10)),
-                  expand_y = expand_scale(c(.10, .10)))
+  p + expand_plot(expand_x = ggplot2::expansion(c(.10, .10)),
+                  expand_y = ggplot2::expansion(c(.10, .10)))
 }
 
 #' @rdname ggplot.tidy_dagitty

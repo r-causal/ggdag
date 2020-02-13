@@ -23,8 +23,8 @@ ggdag_adjustment_set(
   stylized = FALSE,
   text = TRUE,
   use_labels = NULL,
-  expand_x = expand_scale(c(0.25, 0.25)),
-  expand_y = expand_scale(c(0.2, 0.2))
+  expand_x = ggplot2::expansion(c(0.25, 0.25)),
+  expand_y = ggplot2::expansion(c(0.2, 0.2))
 )
 }
 \arguments{
@@ -63,12 +63,12 @@ Default is \code{NULL}.}
 
 \item{expand_x}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
+from the axes. Use the convenience function \code{\link[ggplot2:expansion]{ggplot2::expansion()}} to
 generate the values for the expand argument.}
 
 \item{expand_y}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{expand_scale()} to
+from the axes. Use the convenience function \code{\link[ggplot2:expansion]{ggplot2::expansion()}} to
 generate the values for the expand argument.}
 }
 \value{
