@@ -40,7 +40,7 @@ test_that("dags ............", {
 
   expect_names(labelled_dag2$data, c("label", "status"))
 
-  #p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = "label")
-  #vdiffr::expect_doppelganger("ggdag_equivalent_class() plots labels", p5)
+  p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = "label")
+  vdiffr::expect_doppelganger("ggdag_equivalent_class() plots labels", p5)
 })
 

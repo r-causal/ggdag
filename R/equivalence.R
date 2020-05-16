@@ -43,6 +43,7 @@
 node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
+  extra_columns <- has_extra_columns(.dag)
 
   layout_coords <- .dag$data %>%
     dplyr::select(name, x, y) %>%
@@ -51,15 +52,14 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 
   dagitty::coordinates(.dag$dag) <- layout_coords
 
-  extra_columns <- has_extra_columns(.dag)
 
-  #if (extra_columns) extra_column_df <- select_extra_columns(.dag)
+  if (extra_columns) extra_column_df <- select_extra_columns(.dag)
 
   .dag$data <- dagitty::equivalentDAGs(.dag$dag, n = n) %>%
     purrr::map_df(map_equivalence, .id = "dag") %>%
     dplyr::as_tibble()
 
-  #if (extra_columns) .dag$data <- left_join(.dag$data, extra_column_df, by = "name")
+  if (extra_columns) .dag$data <- left_join(.dag$data, extra_column_df, by = "name")
 
   .dag
 }
@@ -69,7 +69,7 @@ has_extra_columns <- function(.x) {
 }
 
 get_extra_column_names <- function(.x) {
-  standard_names <- names(tidy_dagitty(confounder_triangle())$data)
+  standard_names <- c("name", "x", "y", "direction", "to", "xend", "yend", "circular")
   dag_columns <- names(.x$data)
   setdiff(dag_columns, standard_names)
 }
