@@ -1,6 +1,6 @@
 set.seed(1234)
 
-dag <- dagify(
+test_dag <- dagify(
   y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,
   z1 ~ w1 + v,
@@ -10,4 +10,4 @@ dag <- dagify(
   outcome = "y"
 )
 
-dag <- tidy_dagitty(dag)
+test_dag <- tidy_dagitty(test_dag)

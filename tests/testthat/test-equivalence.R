@@ -8,8 +8,8 @@ expect_names <- function(object, expectation) {
 
 test_that("dags ............", {
   # non-reversible dag
-  p1 <- ggdag_equivalent_dags(dag)
-  p2 <- ggdag_equivalent_class(dag)
+  p1 <- ggdag_equivalent_dags(test_dag)
+  p2 <- ggdag_equivalent_class(test_dag)
   vdiffr::expect_doppelganger("ggdag_equivalent_dags() plots no equivalent dags", p1)
   vdiffr::expect_doppelganger("ggdag_equivalent_class() plots no reversible edges", p2)
 
