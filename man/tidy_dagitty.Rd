@@ -11,7 +11,7 @@ tidy_dagitty(.dagitty, seed = NULL, layout = "nicely", ...)
 
 \item{seed}{a numeric seed for reproducible layout generation}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}} for details.}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}} for details.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 }

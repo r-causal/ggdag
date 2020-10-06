@@ -168,7 +168,7 @@ by the variable, respectively. Ancestors and descendants are those nodes that
 are on the path to or descend from the variable. The \verb{node_*()}
 functions label variables depending on their relationship. The
 \verb{ggdag_*()} functions plot the results. See
-\link[dagitty:children]{dagitty::children} for details.
+\link[dagitty:AncestralRelations]{dagitty::children} for details.
 }
 \examples{
 dag <- dagify(y ~ x + z2 + w2 + w1,

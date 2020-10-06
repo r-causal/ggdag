@@ -16,7 +16,7 @@ theme_dag_grey_grid(base_size = 12, base_family = "", ...)
 theme_dag_gray_grid(base_size = 12, base_family = "", ...)
 }
 \arguments{
-\item{base_size}{base font size}
+\item{base_size}{base font size, given in pts.}
 
 \item{base_family}{base font family}
 

@@ -48,7 +48,7 @@ ggdag_equivalent_class(
 
 \item{n}{maximal number of returned graphs.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}} for details.}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}} for details.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 
@@ -100,7 +100,7 @@ column for equivalent classes, or a \code{ggplot}
 \description{
 Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
 input DAG. CPDAGs are Markov equivalent to the input graph. See
-\code{\link[dagitty:equivalentDAGs]{dagitty::equivalentDAGs()}} for details.
+\code{\link[dagitty:EquivalentModels]{dagitty::equivalentDAGs()}} for details.
 \code{node_equivalent_dags()} returns a set of DAGs, while
 \code{node_equivalent_class()} tags reversable edges.
 \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
