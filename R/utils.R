@@ -144,17 +144,4 @@ ggplot2_gt_3_3_0 <- function() {
 
 expansion <- expansion_verb()
 
-#' @importFrom utils packageVersion
-#' @noRd
-dplyr_gt_1_0_0 <- function() {
-  utils::packageVersion("dplyr") >= "0.8.99.9000"
-}
-
-rowwise_verb <- function() {
-  if (dplyr_gt_1_0_0()) return(dplyr::summarise)
-
-  dplyr::do
-}
-
-
 

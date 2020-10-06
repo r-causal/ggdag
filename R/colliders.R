@@ -115,29 +115,42 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
   collider_paths <- purrr::map(adjusted_colliders, ~dagitty::ancestors(.tdy_dag$dag, .x)[-1])
 
-
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
-  collider_lines <- purrr::map_df(activated_pairs, function(.pairs_df) {
-    .pairs_df %>%
-      dplyr::rowwise() %>%
-      # for dplyr version 1.0.0, use `dplyr::summarize()`, otherwise use `dplyr::do()`
-      rowwise_verb()({
-        df <- .
-        name <- df[["Var1"]]
-        to <- df[["Var2"]]
-        start_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var1"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
-        end_coords <- .tdy_dag$data %>% dplyr::filter(name == df[["Var2"]]) %>% dplyr::select(x, y) %>% dplyr::slice(1)
+  collider_lines <- purrr::map_df(
+    activated_pairs,
+    dagify_colliders,
+    .tdy_dag = .tdy_dag
+  )
 
-        .tdy_dag$data %>% dplyr::add_row(.before = 1, name = name, x = start_coords[[1, 1]], y = start_coords[[1, 2]],
-                                         to = to, xend = end_coords[[1, 1]], yend = end_coords[[1, 2]],
-                                         direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)) %>% dplyr::slice(1)
-    })
-  })
   collider_lines$collider_line <- TRUE
   .tdy_dag$data$collider_line <- FALSE
   .tdy_dag$data <- dplyr::bind_rows(.tdy_dag$data, collider_lines)
   .tdy_dag
+}
+
+dagify_colliders <- function(.pairs_df, .tdy_dag) {
+  .pairs_df %>%
+    join_lhs_coords(.tdy_dag) %>%
+    join_rhs_coords(.tdy_dag) %>%
+    dplyr::mutate(direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)) %>%
+    dplyr::rename(name = Var1, to = Var2)
+}
+
+join_lhs_coords <- function(.x, .y) {
+  dplyr::left_join(
+    .x,
+    .y$data %>% dplyr::select(name, x, y),
+    by = c("Var1" = "name")
+  )
+}
+
+join_rhs_coords <- function(.x, .y) {
+  dplyr::left_join(
+    .x,
+    .y$data %>% dplyr::select(name, xend = x, yend = y),
+    by = c("Var2" = "name")
+  )
 }
 
 #' Detecting colliders in DAGs
