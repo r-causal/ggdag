@@ -17,3 +17,15 @@ test_that("colliders and downstream colliders are detected", {
   expect_false(is_downstream_collider(dag, "y"))
 })
 
+test_that("many colliders activated are processed correctly", {
+  x <- dagify(
+    m ~ a + b + d + e + f + g,
+    x ~ a,
+    y ~ b + x,
+    exposure = "x",
+    outcome = "y"
+  ) %>%
+    activate_collider_paths(adjust_for = c("m"))
+
+  expect_true(is.tidy_dagitty(x))
+})
