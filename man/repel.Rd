@@ -80,14 +80,9 @@ by passing \code{unit(x, "units")}).}
 number. Defaults to 0. (Default unit is lines, but other units can be
 specified by passing \code{unit(x, "units")}).}
 
-\item{segment.color}{Colour of the line segment. Defaults to the same colour
-as the text. In the unlikely event you specify both US and UK spellings of colour, the
-US spelling will take precedence.}
+\item{segment.color, segment.size}{See \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}}
 
 \item{fontface}{A character vector. Default is "bold"}
-
-\item{segment.size}{Width of line segment connecting the data point to
-the text label, in mm.}
 
 \item{arrow}{specification for arrow heads, as created by \code{\link[grid]{arrow}}}
 
@@ -95,7 +90,7 @@ the text label, in mm.}
 to 1.}
 
 \item{max.iter}{Maximum number of iterations to try to resolve overlaps.
-Defaults to 2000.}
+Defaults to 10000.}
 
 \item{nudge_x}{Horizontal and vertical adjustments to nudge the
 starting position of each text label.}

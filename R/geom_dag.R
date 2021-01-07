@@ -172,6 +172,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #' @inheritParams ggrepel::geom_text_repel
 #' @inheritParams ggrepel::geom_label_repel
 #' @param fontface A character vector. Default is "bold"
+#' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #'
 #' @importFrom purrr %||%
 #' @export
