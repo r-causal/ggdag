@@ -1,5 +1,3 @@
-# ggdag 0.2.4
-
 # ggdag 0.2.3
 
 * Update vdiffr to be explicitly conditional (#51)
