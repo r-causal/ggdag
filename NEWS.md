@@ -1,5 +1,6 @@
 # ggdag (development version)
 
+* Update vdiffr to be explicitly conditional (#51)
 * Fixed bug in `activate_collider_paths()` that causes an error where a collider had a high number of ancestors (#49)
 * Fixed bug in `node_equivalent_dags()` where extra columns did not get joined to new tidy DAG (#40)
 
