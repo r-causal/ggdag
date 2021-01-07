@@ -1,4 +1,4 @@
-# ggdag (development version)
+# ggdag 0.2.3
 
 * Update vdiffr to be explicitly conditional (#51)
 * Fixed bug in `activate_collider_paths()` that causes an error where a collider had a high number of ancestors (#49)
