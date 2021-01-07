@@ -28,8 +28,8 @@ test_that("repelled labels work", {
                          col = "white", show.legend = FALSE)
 
 
-  vdiffr::expect_doppelganger("geom_dag_text_repel() repels names", p1)
-  vdiffr::expect_doppelganger("geom_dag_label_repel() repels labels", p2)
+  expect_doppelganger("geom_dag_text_repel() repels names", p1)
+  expect_doppelganger("geom_dag_label_repel() repels labels", p2)
 })
 
 test_that("different edge types work", {
@@ -42,8 +42,8 @@ test_that("different edge types work", {
     geom_dag_point() +
     geom_dag_text()
 
-  vdiffr::expect_doppelganger("geom_dag_edges_link() is straight", p + geom_dag_edges_link())
-  vdiffr::expect_doppelganger("geom_dag_edges_arc() is arcy", p + geom_dag_edges_arc())
-  vdiffr::expect_doppelganger("geom_dag_edges_diagonal() is arcy", p + geom_dag_edges_diagonal())
-  vdiffr::expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
+  expect_doppelganger("geom_dag_edges_link() is straight", p + geom_dag_edges_link())
+  expect_doppelganger("geom_dag_edges_arc() is arcy", p + geom_dag_edges_arc())
+  expect_doppelganger("geom_dag_edges_diagonal() is arcy", p + geom_dag_edges_diagonal())
+  expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })

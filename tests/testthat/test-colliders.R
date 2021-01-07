@@ -4,7 +4,7 @@ set.seed(1234)
 test_that("colliders correctly identified", {
   dag <- dagify(m ~ x + y, y ~ x)
   p <- ggdag_collider(dag)
-  vdiffr::expect_doppelganger("ggdag_collider() highlights `m`", p)
+  expect_doppelganger("ggdag_collider() highlights `m`", p)
 })
 
 test_that("colliders and downstream colliders are detected", {

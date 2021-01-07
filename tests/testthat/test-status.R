@@ -12,5 +12,5 @@ test_that("dags have correct status", {
 
   p <- ggdag_status(dag)
 
-  vdiffr::expect_doppelganger("ggdag_status() `x` as exposure, `y` as outcome, and `l` as latent", p)
+  expect_doppelganger("ggdag_status() `x` as exposure, `y` as outcome, and `l` as latent", p)
 })
