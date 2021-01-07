@@ -40,6 +40,6 @@ test_that("DAG paths are identified and drawn correctly", {
   p2 <- butterfly_bias_dag %>%
     ggdag_paths_fan(shadow = TRUE)
 
-  vdiffr::expect_doppelganger("ggdag_paths() draws 2 open paths", p1)
-  vdiffr::expect_doppelganger("ggdag_paths_fan() draws 4 open paths", p2)
+  expect_doppelganger("ggdag_paths() draws 2 open paths", p1)
+  expect_doppelganger("ggdag_paths_fan() draws 4 open paths", p2)
 })
