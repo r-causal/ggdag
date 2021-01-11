@@ -88,7 +88,7 @@ bigger_dag <- dagify(y ~ x + a + b,
 dag_paths(bigger_dag)  
 ```
 
-`ggdag` also supports [piping](http://r4ds.had.co.nz/pipes.html) of functions and includes the pipe internally (so you don't need to load `dplyr` or `magrittr`). Basic `dplyr` verbs are also supported (and anything more complex can be done directly on the `data` object).
+`ggdag` also supports [piping](https://r4ds.had.co.nz/pipes.html) of functions and includes the pipe internally (so you don't need to load `dplyr` or `magrittr`). Basic `dplyr` verbs are also supported (and anything more complex can be done directly on the `data` object).
 
 ```{r}
 library(dplyr)
