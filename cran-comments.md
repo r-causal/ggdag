@@ -1,10 +1,10 @@
 ## Test environments
-* local OS X install, R 3.6.1
-* ubuntu 14.04 (on travis-ci), R 3.6.1
-* win-builder (devel and release)
+* local R installation, R 3.6.3
+* ubuntu 16.04 (on travis-ci), R 3.6.3
+* win-builder (devel)
 
 ## R CMD check results
 
 0 errors | 0 warnings | 0 notes
 
-* Reverse dependencies checked with no errors
+* This is a patch release to address CRAN request to use conditional vdiffr calls since it is suggested

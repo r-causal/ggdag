@@ -1,6 +1,6 @@
 Package: ggdag
 Title: Analyze and Create Elegant Directed Acyclic Graphs
-Version: 0.2.3
+Version: 0.2.3.9000
 Authors@R: 
     person(given = "Malcolm",
            family = "Barrett",
