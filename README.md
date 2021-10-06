@@ -1,12 +1,8 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-
 <!-- badges: start -->
 
-[![Travis-CI Build
-Status](https://travis-ci.org/malcolmbarrett/ggdag.svg?branch=master)](https://travis-ci.org/malcolmbarrett/ggdag)
-[![AppVeyor Build
-status](https://ci.appveyor.com/api/projects/status/kd3ed7rj6p2vd36t?svg=true)](https://ci.appveyor.com/project/malcolmbarrett/ggdag)
+[![R-CMD-check](https://github.com/malcolmbarrett/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/malcolmbarrett/ggdag/actions)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 [![Lifecycle:
@@ -47,6 +43,7 @@ create DAGs using a more R-like syntax:
 
 ``` r
 library(ggdag)
+#> Warning: package 'ggdag' was built under R version 4.1.1
 
 #  example from the dagitty package
 dag <- dagitty::dagitty("dag {
@@ -67,7 +64,7 @@ tidy_dag
 #> # Exposure: x
 #> # Outcome: y
 #> #
-#> # A tibble: 13 x 8
+#> # A tibble: 13 × 8
 #>    name      x     y direction to     xend  yend circular
 #>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
 #>  1 v     11.8   8.03 ->        z1    10.4   7.77 FALSE   
@@ -102,7 +99,7 @@ tidy_ggdag
 #> # Exposure: x
 #> # Outcome: y
 #> #
-#> # A tibble: 13 x 8
+#> # A tibble: 13 × 8
 #>    name      x     y direction to     xend  yend circular
 #>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
 #>  1 v      9.30  13.4 ->        z1     9.74  12.1 FALSE   
@@ -177,7 +174,6 @@ ggdag_equivalent_dags(confounder_triangle())
 <img src="man/figures/ggdag_common-1.png" width="100%" />
 
 ``` r
-
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
