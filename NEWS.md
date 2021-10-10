@@ -1,4 +1,4 @@
-# ggdag (development version)
+# ggdag 0.2.4
 * `tidy_dagitty()` no longer allows the dendogram layout type (#62)
 * `scale_adjusted()` now correctly aligns legend types (#61)
 * ggdag no longer loads ggplot2 via `Depends`, instead importing it internally (#57).
