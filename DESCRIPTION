@@ -2,28 +2,24 @@ Package: ggdag
 Title: Analyze and Create Elegant Directed Acyclic Graphs
 Version: 0.2.3.9000
 Authors@R: 
-    person(given = "Malcolm",
-           family = "Barrett",
-           role = c("aut", "cre"),
-           email = "malcolmbarrett@gmail.com",
+    person("Malcolm", "Barrett", , "malcolmbarrett@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0299-5825"))
-Description: Tidy, analyze, and plot directed acyclic graphs
-    (DAGs). 'ggdag' is built on top of 'dagitty', an R package that uses
-    the 'DAGitty' web tool (<http://dagitty.net>) for creating and
-    analyzing DAGs. 'ggdag' makes it easy to tidy and plot 'dagitty'
-    objects using 'ggplot2' and 'ggraph', as well as common analytic and
-    graphical functions, such as determining adjustment sets and node
-    relationships.
+Description: Tidy, analyze, and plot directed acyclic graphs (DAGs).
+    'ggdag' is built on top of 'dagitty', an R package that uses the
+    'DAGitty' web tool (<http://dagitty.net>) for creating and analyzing
+    DAGs. 'ggdag' makes it easy to tidy and plot 'dagitty' objects using
+    'ggplot2' and 'ggraph', as well as common analytic and graphical
+    functions, such as determining adjustment sets and node relationships.
 License: MIT + file LICENSE
 URL: https://github.com/malcolmbarrett/ggdag
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
 Depends: 
-    ggplot2 (>= 3.0.0),
-    R (>= 3.2.0)
+    R (>= 3.4.0)
 Imports: 
     dagitty,
     dplyr,
     forcats,
+    ggplot2 (>= 3.0.0),
     ggraph (>= 2.0.0),
     ggrepel,
     igraph,
@@ -34,11 +30,11 @@ Imports:
     tibble,
     tidygraph
 Suggests: 
+    covr,
     knitr,
     rmarkdown,
     spelling,
     testthat (>= 2.1.0),
-    covr,
     vdiffr (>= 0.3.0)
 VignetteBuilder: 
     knitr
@@ -46,4 +42,4 @@ Encoding: UTF-8
 Language: en-US
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
