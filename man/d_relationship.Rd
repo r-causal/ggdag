@@ -151,6 +151,7 @@ produce the same output and are just different ways of thinking about the
 relationship. See \code{\link[dagitty:dconnected]{dagitty::dseparated()}} for details.
 }
 \examples{
+library(ggplot2)
 dag <- dagify(m ~ x + y)
 dag \%>\% ggdag_drelationship("x", "y")
 dag \%>\% ggdag_drelationship("x", "y", controlling_for = "m")

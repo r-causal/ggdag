@@ -27,6 +27,7 @@
 #'   - internal_colour
 #'
 #' @examples
+#' library(ggplot2)
 #' g <- dagify(m ~ x + y, y ~ x)
 #' p <- g %>%
 #'   tidy_dagitty() %>%
@@ -113,6 +114,7 @@ geom_dag_point <- function(mapping = NULL, data = NULL,
 #' @export
 #'
 #' @examples
+#' library(ggplot2)
 #' g <- dagify(m ~ x + y, y ~ x)
 #' g %>%
 #' tidy_dagitty() %>%
@@ -178,6 +180,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #' @export
 #'
 #' @examples
+#' library(ggplot2)
 #' g <- dagify(m ~ x + y,
 #' y ~ x,
 #' exposure = "x",
@@ -372,6 +375,7 @@ filter_direction <- function(.direction) {
 #' @export
 #'
 #' @examples
+#' library(ggplot2)
 #' dagify(y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
@@ -471,6 +475,7 @@ geom_dag_edges <- function(mapping = NULL,
 #' @export
 #'
 #' @examples
+#' library(ggplot2)
 #' p <- dagify(y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
@@ -617,6 +622,7 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #'
 #' @examples
 #' library(dagitty)
+#' library(ggplot2)
 #' dagify(m ~ a + b, x ~ a, y ~ b) %>%
 #'   tidy_dagitty() %>%
 #'   control_for("m") %>%

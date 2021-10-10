@@ -107,6 +107,7 @@ Node text
 }
 
 \examples{
+library(ggplot2)
 g <- dagify(m ~ x + y, y ~ x)
 g \%>\%
 tidy_dagitty() \%>\%

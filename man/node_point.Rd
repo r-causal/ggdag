@@ -97,6 +97,7 @@ following aesthetics (required aesthetics are in bold):
 }
 
 \examples{
+library(ggplot2)
 g <- dagify(m ~ x + y, y ~ x)
 p <- g \%>\%
   tidy_dagitty() \%>\%

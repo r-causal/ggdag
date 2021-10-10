@@ -130,6 +130,7 @@ to read. The text labels repel away from each other and away from the data
 points.
 }
 \examples{
+library(ggplot2)
 g <- dagify(m ~ x + y,
 y ~ x,
 exposure = "x",

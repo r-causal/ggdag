@@ -154,7 +154,7 @@ scale_dag <- function(breaks = ggplot2::waiver()) {
 #' @export
 #'
 #' @examples
-#'
+#' library(ggplot2)
 #' ggdag(confounder_triangle()) +
 #' theme_bw() +
 #' remove_axes()

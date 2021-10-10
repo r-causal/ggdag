@@ -1,4 +1,5 @@
 #' @keywords internal
+#' @aliases ggdag_pkg
 "_PACKAGE"
 
 ## usethis namespace: start
