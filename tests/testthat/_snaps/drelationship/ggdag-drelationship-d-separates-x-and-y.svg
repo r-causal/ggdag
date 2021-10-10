@@ -77,11 +77,11 @@
 <rect x='615.24' y='289.43' width='93.90' height='106.04' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <text x='615.24' y='298.14' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
 <rect x='615.24' y='304.76' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='637.92' cy='327.44' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<polygon points='620.49,344.86 655.35,344.86 655.35,310.01 620.49,310.01 ' style='stroke-width: 0.71; stroke: none; fill: #000000;' />
 <rect x='615.24' y='350.12' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<polygon points='620.49,390.22 655.35,390.22 655.35,355.37 620.49,355.37 ' style='stroke-width: 0.71; stroke: none; fill: #000000;' />
-<text x='666.08' y='330.47' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
-<text x='666.08' y='375.82' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<circle cx='637.92' cy='372.79' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<text x='666.08' y='330.47' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<text x='666.08' y='375.82' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
 <text x='45.03' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='247.32px' lengthAdjust='spacingAndGlyphs'>ggdag_drelationship() d-separates x and y</text>
 </g>
 </svg>
