@@ -1,4 +1,5 @@
 # ggdag (development version)
+* ggdag no longer loads ggplot2 via `Depends`, instead importing it internally (#57).
 
 # ggdag 0.2.3
 
