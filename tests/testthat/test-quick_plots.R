@@ -1,4 +1,3 @@
-context("quick_plots")
 set.seed(1234)
 
 test_that("quick plots render correctly", {

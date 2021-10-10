@@ -1,4 +1,3 @@
-context("ggdag_instrumental")
 set.seed(1234)
 
 test_that("dags identify IVs correctly", {

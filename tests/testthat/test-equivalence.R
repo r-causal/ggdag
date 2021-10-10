@@ -1,4 +1,3 @@
-context("ggdag_equivalent_dags")
 set.seed(1234)
 
 expect_names <- function(object, expectation) {

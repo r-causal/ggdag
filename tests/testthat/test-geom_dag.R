@@ -1,4 +1,3 @@
-context("ggrepel_extensions")
 set.seed(1234)
 
 test_that("repelled labels work", {

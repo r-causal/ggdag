@@ -34,11 +34,12 @@ Suggests:
     knitr,
     rmarkdown,
     spelling,
-    testthat (>= 2.1.0),
-    vdiffr (>= 0.3.0)
+    testthat (>= 3.0.0),
+    vdiffr (>= 1.0.2)
 VignetteBuilder: 
     knitr
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
+Config/testthat/edition: 3

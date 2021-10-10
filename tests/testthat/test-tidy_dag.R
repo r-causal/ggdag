@@ -1,5 +1,3 @@
-context("Tidying DAGs")
-
 test_that("tidied dags are in good shape", {
   tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
   expect_true(dagitty::is.dagitty(tidy_dag$dag))

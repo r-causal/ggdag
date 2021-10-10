@@ -1,4 +1,3 @@
-context("ggdag_canonical")
 set.seed(1234)
 
 test_that("dags cannonicalize correctly", {

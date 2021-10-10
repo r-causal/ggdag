@@ -1,4 +1,3 @@
-context("ggdag_status")
 set.seed(1234)
 
 test_that("dags have correct status", {
