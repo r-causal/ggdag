@@ -14,6 +14,13 @@ test_that("tidied dags are in good shape", {
   expect_true(is.numeric(tidy_dag$data$y))
 })
 
+test_that("Forbidden layouts error", {
+  expect_error(
+    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendogram"),
+    "Layout type `dendogram` not supported in ggdag"
+  )
+})
+
 expect_function_produces_name <- function(tidy_dag, column) {
   .df <- tidy_dag$data
   expect_true(all(column %in% names(.df)))
