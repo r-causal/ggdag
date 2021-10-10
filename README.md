@@ -8,7 +8,7 @@ status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 [![Codecov test
-coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/master/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=master)
+coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=main)
 [![Total CRAN
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 <!-- badges: end -->
@@ -44,6 +44,7 @@ create DAGs using a more R-like syntax:
 ``` r
 library(ggdag)
 #> Warning: package 'ggdag' was built under R version 4.1.1
+library(ggplot2)
 
 #  example from the dagitty package
 dag <- dagitty::dagitty("dag {
