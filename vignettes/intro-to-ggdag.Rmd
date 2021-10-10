@@ -42,7 +42,7 @@ tidy_dagitty(dag)
 
 Note that, while `dagitty` supports a number of graph types, `ggdag` currently only supports DAGs. 
 
-`dagitty` uses a syntax similar to the [dot language of graphviz](https://graphviz.gitlab.io/_pages/doc/info/lang.html). This syntax has the advantage of being compact, but `ggdag` also provides the ability to create a `dagitty` object using a more R-like formula syntax through the `dagify()` function. `dagify()` accepts any number of formulas to create a DAG. It also has options for declaring which variables are exposures, outcomes, or latent, as well as coordinates and labels for each node.
+`dagitty` uses a syntax similar to the [dot language of graphviz](https://graphviz.gitlab.io/doc/info/lang.html). This syntax has the advantage of being compact, but `ggdag` also provides the ability to create a `dagitty` object using a more R-like formula syntax through the `dagify()` function. `dagify()` accepts any number of formulas to create a DAG. It also has options for declaring which variables are exposures, outcomes, or latent, as well as coordinates and labels for each node.
 
 ```{r dagify}
 dagified <- dagify(x ~ z,
