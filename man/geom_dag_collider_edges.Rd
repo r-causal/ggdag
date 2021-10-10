@@ -92,6 +92,7 @@ collider. This geom adds a curved edge between any such parent nodes.
 }
 \examples{
 library(dagitty)
+library(ggplot2)
 dagify(m ~ a + b, x ~ a, y ~ b) \%>\%
   tidy_dagitty() \%>\%
   control_for("m") \%>\%

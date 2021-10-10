@@ -41,6 +41,7 @@
 #' @export
 #'
 #' @examples
+#' library(ggplot2)
 #' dag <- dagify(m ~ x + y)
 #' dag %>% ggdag_drelationship("x", "y")
 #' dag %>% ggdag_drelationship("x", "y", controlling_for = "m")

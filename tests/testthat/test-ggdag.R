@@ -1,4 +1,3 @@
-context("ggdag_base")
 set.seed(1234)
 
 test_that("basic ggdag quick functions works", {

@@ -1,4 +1,3 @@
-context("themes")
 set.seed(1234)
 
 test_that("themes look good", {

@@ -1,4 +1,3 @@
-context("ggdag_exogenous")
 set.seed(1234)
 
 test_that("dags identify exogenous variables correctly", {

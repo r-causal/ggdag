@@ -15,7 +15,7 @@ the axes and grids from a ggplot, respectively. This is useful when you want
 to use an existing theme, e.g. those included in \code{ggplot2}, for a DAG.
 }
 \examples{
-
+library(ggplot2)
 ggdag(confounder_triangle()) +
 theme_bw() +
 remove_axes()

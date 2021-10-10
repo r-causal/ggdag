@@ -1,4 +1,3 @@
-context("ggdag_collider")
 set.seed(1234)
 
 test_that("colliders correctly identified", {

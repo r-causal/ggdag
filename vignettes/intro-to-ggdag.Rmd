@@ -34,6 +34,7 @@ If you already use `dagitty`, `ggdag` can tidy your DAG directly.
 ```{r dagitty}
 library(dagitty)
 library(ggdag)
+library(ggplot2)
 
 dag <- dagitty("dag{y <- z -> x}")
 tidy_dagitty(dag)

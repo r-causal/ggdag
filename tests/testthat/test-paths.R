@@ -1,4 +1,3 @@
-context("ggdag_paths")
 set.seed(1234)
 
 test_that("DAG paths are identified and drawn correctly", {

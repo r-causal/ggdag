@@ -47,6 +47,7 @@ devtools::install_github("malcolmbarrett/ggdag")
 
 ```{r tidydag, dpi=300, message=FALSE}
 library(ggdag)
+library(ggplot2)
 
 #  example from the dagitty package
 dag <- dagitty::dagitty("dag {

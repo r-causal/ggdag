@@ -171,6 +171,7 @@ functions label variables depending on their relationship. The
 \link[dagitty:AncestralRelations]{dagitty::children} for details.
 }
 \examples{
+library(ggplot2)
 dag <- dagify(y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,
   z1 ~ w1 + v,

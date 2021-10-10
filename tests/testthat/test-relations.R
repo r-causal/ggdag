@@ -1,4 +1,3 @@
-context("relations")
 set.seed(1234)
 
 test_that("dags cannonicalize correctly", {

@@ -93,10 +93,12 @@ to 1.}
 Defaults to 10000.}
 
 \item{nudge_x}{Horizontal and vertical adjustments to nudge the
-starting position of each text label.}
+starting position of each text label. The units for \code{nudge_x} and
+\code{nudge_y} are the same as for the data units on the x-axis and y-axis.}
 
 \item{nudge_y}{Horizontal and vertical adjustments to nudge the
-starting position of each text label.}
+starting position of each text label. The units for \code{nudge_x} and
+\code{nudge_y} are the same as for the data units on the x-axis and y-axis.}
 
 \item{na.rm}{If \code{FALSE} (the default), removes missing values with
 a warning.  If \code{TRUE} silently removes missing values.}
@@ -128,6 +130,7 @@ to read. The text labels repel away from each other and away from the data
 points.
 }
 \examples{
+library(ggplot2)
 g <- dagify(m ~ x + y,
 y ~ x,
 exposure = "x",
