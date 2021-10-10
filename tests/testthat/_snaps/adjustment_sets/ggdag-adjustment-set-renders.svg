@@ -230,22 +230,14 @@
 <polyline points='30.05,56.65 32.79,56.65 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <text x='321.23' y='568.24' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text transform='translate(13.05,292.27) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>y</text>
-<rect x='620.62' y='180.75' width='93.90' height='106.04' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='620.62' y='189.46' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<rect x='620.62' y='196.08' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.30' cy='218.76' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<rect x='620.62' y='241.44' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<polygon points='625.87,281.54 660.73,281.54 660.73,246.69 625.87,246.69 ' style='stroke-width: 0.71; stroke: none; fill: #000000;' />
-<text x='671.46' y='221.79' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
-<text x='671.46' y='267.14' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<rect x='620.62' y='297.75' width='93.90' height='106.04' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='620.62' y='306.46' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<rect x='620.62' y='313.09' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.30' cy='335.76' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
-<rect x='620.62' y='358.44' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.30' cy='381.12' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
-<text x='671.46' y='338.79' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<text x='671.46' y='384.15' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
+<rect x='620.62' y='239.25' width='93.90' height='106.04' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='620.62' y='247.96' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<rect x='620.62' y='254.59' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<polygon points='625.87,294.69 660.73,294.69 660.73,259.84 625.87,259.84 ' style='stroke-width: 0.71; stroke: none; fill: #F8766D;' />
+<rect x='620.62' y='299.94' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.30' cy='322.62' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
+<text x='671.46' y='280.29' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<text x='671.46' y='325.64' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
 <text x='32.79' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='190.81px' lengthAdjust='spacingAndGlyphs'>ggdag_adjustment_set() renders</text>
 </g>
 </svg>
