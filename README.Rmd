@@ -17,7 +17,7 @@ set.seed(1542)
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/malcolmbarrett/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/malcolmbarrett/ggdag/actions)
 [![CRAN status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
-[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
+[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 [![Codecov test coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=main)
 [![Total CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 <!-- badges: end -->
