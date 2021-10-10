@@ -30,6 +30,7 @@
 #'     geom_dag_edges() +
 #'     theme_dag()
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
+  check_verboten_layout(layout)
 
   if (!is.null(seed)) set.seed(seed)
 
@@ -84,6 +85,12 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   }
 
     .tdy_dag
+}
+
+check_verboten_layout <- function(layout) {
+  if (layout %in% c("dendogram")) {
+    stop("Layout type `", layout, "` not supported in ggdag", call. = FALSE)
+  }
 }
 
 #' Test for object class for tidy_dagitty
