@@ -43,7 +43,6 @@ create DAGs using a more R-like syntax:
 
 ``` r
 library(ggdag)
-#> Warning: package 'ggdag' was built under R version 4.1.1
 library(ggplot2)
 
 #  example from the dagitty package
