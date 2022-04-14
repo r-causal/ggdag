@@ -43,7 +43,7 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 
   ggraph_layout <- dagitty::edges(.dagitty) %>%
     dplyr::select(v, w) %>%
-    igraph::graph_from_data_frame() %>%
+    igraph::graph_from_data_frame(vertices = names(.dagitty)) %>%
     {suppressMessages(ggraph::create_layout(., layout, ...))}
 
   if (no_existing_coords) {
