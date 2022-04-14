@@ -35,7 +35,8 @@ Suggests:
     rmarkdown,
     spelling,
     testthat (>= 3.0.0),
-    vdiffr (>= 1.0.2)
+    vdiffr (>= 1.0.2),
+    withr
 VignetteBuilder: 
     knitr
 Encoding: UTF-8
