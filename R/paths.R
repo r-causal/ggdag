@@ -4,6 +4,7 @@
 #' `ggdag_paths` and `ggdag_paths_fan` plot all open paths. See
 #' [dagitty::paths()] for details.
 #'
+#' @inheritParams dagitty::paths
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
 #' @param from character vector of length 1, name of exposure variable. Default
@@ -12,10 +13,6 @@
 #'   `NULL`, in which case it will check the input DAG for exposure.
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is `NULL`.
-#' @param limit numeric value. The maximum number of paths to consider when
-#'   identifying open paths. If `limit` is smaller than the number of paths
-#'   between `from` and `to`, potential open pathways may not be returned.
-#'   However, if `limit` is set too large, you may run into memory issues.
 #' @param directed logical. Should only directed paths be shown?
 #' @param paths_only logical. Should only open paths be returned? Default is
 #'   `FALSE`, which includes every variable and edge in the DAG regardless
@@ -36,29 +33,8 @@
 #'   Default is `NULL`.
 #' @param spread the width of the fan spread
 #'
-#' @return
-#' \describe{
-#'   \item{`dag_paths`}{A `tidy_dagitty` object with the following additional
-#'   columns in the `data` element:
-#'   \describe{
-#'     \item{`set`}{A character vector representing an id for the identified
-#'     open path.}
-#'     \item{`path`}{A character vector with value `"open path"` if the
-#'     corresponding node is on the identified open path and value `NA` if the
-#'     corresponding node is not on the identified open path.
-#'     If `paths_only` is set to `TRUE` all rows where `path` is `NA` are
-#'     removed.}
-#'   }
-#'   The returned `tidy_dagitty` object duplicates for each identified open path
-#'   all node rows in the `data` element and labels for each identified open
-#'   path (as indicated by column `set`) which nodes of the graph are on the
-#'   path (as indicated by column `path`).
-#'   }
-#'   \item{`ggdag_paths`}{A `ggplot` object with a facet for each identified
-#'   open path.}
-#'   \item{`ggdag_paths_fan`}{A `ggplot` object with the same contents as
-#'   with `ggdag_paths`, but identified open paths are plotted in one panel.}
-#' }
+#' @return a `tidy_dagitty` with a `path` column for path variables and a `set`
+#'   grouping column or a `ggplot`.
 #'
 #' @examples
 #' confounder_triangle(x_y_associated = TRUE) %>%

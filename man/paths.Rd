@@ -72,10 +72,9 @@ is \code{NULL}, in which case it will check the input DAG for exposure.}
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}
 
-\item{limit}{numeric value. The maximum number of paths to consider when
-identifying open paths. If \code{limit} is smaller than the number of paths
-between \code{from} and \code{to}, potential open pathways may not be returned.
-However, if \code{limit} is set too large, you may run into memory issues.}
+\item{limit}{maximum amount of paths to show. In general, the number of paths grows
+exponentially with the number of variables in the graph, such that path inspection
+is not useful except for the most simple models.}
 
 \item{directed}{logical. Should only directed paths be shown?}
 
@@ -111,28 +110,8 @@ Default is \code{NULL}.}
 \item{spread}{the width of the fan spread}
 }
 \value{
-\describe{
-\item{\code{dag_paths}}{A \code{tidy_dagitty} object with the following additional
-columns in the \code{data} element:
-\describe{
-\item{\code{set}}{A character vector representing an id for the identified
-open path.}
-\item{\code{path}}{A character vector with value \code{"open path"} if the
-corresponding node is on the identified open path and value \code{NA} if the
-corresponding node is not on the identified open path.
-If \code{paths_only} is set to \code{TRUE} all rows where \code{path} is \code{NA} are
-removed.}
-}
-The returned \code{tidy_dagitty} object duplicates for each identified open path
-all node rows in the \code{data} element and labels for each identified open
-path (as indicated by column \code{set}) which nodes of the graph are on the
-path (as indicated by column \code{path}).
-}
-\item{\code{ggdag_paths}}{A \code{ggplot} object with a facet for each identified
-open path.}
-\item{\code{ggdag_paths_fan}}{A \code{ggplot} object with the same contents as
-with \code{ggdag_paths}, but identified open paths are plotted in one panel.}
-}
+a \code{tidy_dagitty} with a \code{path} column for path variables and a \code{set}
+grouping column or a \code{ggplot}.
 }
 \description{
 \code{dag_paths} finds open paths between a given exposure and outcome.
