@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Fixed issue with `tidy_dagitty()` that missed nodes with no edges attached. May cause minor breaking changes in randomized layouts. (#68)
 
 * Added the `limit` argument to `dag_paths`, `ggdag_paths`, and `ggdag_paths_fan` (see `dagitty::paths`) (#65).
 

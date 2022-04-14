@@ -31,12 +31,12 @@
 <polygon points='108.88,477.56 108.63,482.53 113.06,480.26 ' style='stroke-width: 1.28; stroke-linecap: butt; fill: #000000;' />
 <polyline points='389.63,85.36 391.52,88.29 394.36,92.69 397.20,97.09 400.03,101.48 402.87,105.88 405.71,110.28 408.55,114.67 411.39,119.07 414.22,123.47 417.06,127.86 419.90,132.26 422.74,136.66 425.58,141.05 428.42,145.45 431.25,149.85 434.09,154.25 436.93,158.64 439.77,163.04 442.61,167.44 445.45,171.83 448.28,176.23 451.12,180.63 453.96,185.02 456.80,189.42 459.64,193.82 462.48,198.21 465.31,202.61 468.15,207.01 470.99,211.40 473.83,215.80 476.67,220.20 479.51,224.59 482.34,228.99 485.18,233.39 488.02,237.78 490.86,242.18 493.70,246.58 496.54,250.97 499.37,255.37 502.21,259.77 505.05,264.16 507.89,268.56 510.73,272.96 513.57,277.35 516.40,281.75 519.24,286.15 522.08,290.54 524.92,294.94 527.76,299.34 530.60,303.73 533.43,308.13 536.27,312.53 539.11,316.92 541.95,321.32 544.79,325.72 547.63,330.11 550.46,334.51 553.30,338.91 556.14,343.30 558.98,347.70 561.82,352.10 564.66,356.49 567.49,360.89 570.33,365.29 573.17,369.68 576.01,374.08 578.85,378.48 581.69,382.87 584.52,387.27 587.36,391.67 590.20,396.06 593.04,400.46 595.88,404.86 598.72,409.25 601.55,413.65 604.39,418.05 607.23,422.44 610.07,426.84 612.91,431.24 615.75,435.63 618.58,440.03 621.42,444.43 624.26,448.82 627.10,453.22 629.94,457.62 632.78,462.01 635.61,466.41 638.45,470.81 641.29,475.20 644.13,479.60 646.02,482.53 ' style='stroke-width: 1.28; stroke-linecap: butt;' />
 <polygon points='641.59,480.26 646.02,482.53 645.78,477.56 ' style='stroke-width: 1.28; stroke-linecap: butt; fill: #000000;' />
-<circle cx='377.33' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='96.33' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='658.32' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<text x='377.33' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+<circle cx='377.33' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <text x='96.33' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='658.32' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='377.33' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <rect x='40.13' y='22.78' width='674.39' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
