@@ -5,13 +5,14 @@
 \alias{dag_paths}
 \alias{ggdag_paths}
 \alias{ggdag_paths_fan}
-\title{Find Pathways Between Variables}
+\title{Find Open Paths Between Variables}
 \usage{
 dag_paths(
   .dag,
   from = NULL,
   to = NULL,
   adjust_for = NULL,
+  limit = 100,
   directed = FALSE,
   paths_only = FALSE,
   ...
@@ -22,6 +23,7 @@ ggdag_paths(
   from = NULL,
   to = NULL,
   adjust_for = NULL,
+  limit = 100,
   directed = FALSE,
   shadow = FALSE,
   ...,
@@ -41,6 +43,7 @@ ggdag_paths_fan(
   from = NULL,
   to = NULL,
   adjust_for = NULL,
+  limit = 100,
   directed = FALSE,
   ...,
   shadow = FALSE,
@@ -69,6 +72,10 @@ is \code{NULL}, in which case it will check the input DAG for exposure.}
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}
 
+\item{limit}{maximum amount of paths to show. In general, the number of paths grows
+exponentially with the number of variables in the graph, such that path inspection
+is not useful except for the most simple models.}
+
 \item{directed}{logical. Should only directed paths be shown?}
 
 \item{paths_only}{logical. Should only open paths be returned? Default is
@@ -77,8 +84,8 @@ if they are part of the path.}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
-\item{shadow}{logical. Show edges not in path? Ignored if \code{paths_only} is
-\code{TRUE}}
+\item{shadow}{logical. Show edges which are not on an open path? Ignored if
+\code{paths_only} is \code{TRUE}.}
 
 \item{node_size}{size of DAG node}
 
@@ -103,14 +110,18 @@ Default is \code{NULL}.}
 \item{spread}{the width of the fan spread}
 }
 \value{
-a \code{tidy_dagitty} with a \code{path} column for path variables
-and a \code{set} grouping column or a \code{ggplot}
+a \code{tidy_dagitty} with a \code{path} column for path variables and a \code{set}
+grouping column or a \code{ggplot}.
 }
 \description{
-\code{node_paths} finds the pathways between a given exposure and outcome.
-\code{ggdag_paths} plots all pathways. See \code{\link[dagitty:paths]{dagitty::paths()}} for details.
+\code{dag_paths} finds open paths between a given exposure and outcome.
+\code{ggdag_paths} and \code{ggdag_paths_fan} plot all open paths. See
+\code{\link[dagitty:paths]{dagitty::paths()}} for details.
 }
 \examples{
+confounder_triangle(x_y_associated = TRUE) \%>\%
+  dag_paths(from = "x", to = "y")
+
 confounder_triangle(x_y_associated = TRUE) \%>\%
   ggdag_paths(from = "x", to = "y")
 

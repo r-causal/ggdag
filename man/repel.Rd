@@ -90,15 +90,13 @@ specified by passing \code{unit(x, "units")}).}
 to 1.}
 
 \item{max.iter}{Maximum number of iterations to try to resolve overlaps.
-Defaults to 10000.}
+Defaults to 2000.}
 
 \item{nudge_x}{Horizontal and vertical adjustments to nudge the
-starting position of each text label. The units for \code{nudge_x} and
-\code{nudge_y} are the same as for the data units on the x-axis and y-axis.}
+starting position of each text label.}
 
 \item{nudge_y}{Horizontal and vertical adjustments to nudge the
-starting position of each text label. The units for \code{nudge_x} and
-\code{nudge_y} are the same as for the data units on the x-axis and y-axis.}
+starting position of each text label.}
 
 \item{na.rm}{If \code{FALSE} (the default), removes missing values with
 a warning.  If \code{TRUE} silently removes missing values.}

@@ -1,8 +1,10 @@
-#' Find Pathways Between Variables
+#' Find Open Paths Between Variables
 #'
-#' `node_paths` finds the pathways between a given exposure and outcome.
-#' `ggdag_paths` plots all pathways. See [dagitty::paths()] for details.
+#' `dag_paths` finds open paths between a given exposure and outcome.
+#' `ggdag_paths` and `ggdag_paths_fan` plot all open paths. See
+#' [dagitty::paths()] for details.
 #'
+#' @inheritParams dagitty::paths
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
 #' @param from character vector of length 1, name of exposure variable. Default
@@ -15,8 +17,8 @@
 #' @param paths_only logical. Should only open paths be returned? Default is
 #'   `FALSE`, which includes every variable and edge in the DAG regardless
 #'   if they are part of the path.
-#' @param shadow logical. Show edges not in path? Ignored if `paths_only` is
-#'   `TRUE`
+#' @param shadow logical. Show edges which are not on an open path? Ignored if
+#'   `paths_only` is `TRUE`.
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param node_size size of DAG node
 #' @param text_size size of DAG text
@@ -31,11 +33,13 @@
 #'   Default is `NULL`.
 #' @param spread the width of the fan spread
 #'
-#' @return a `tidy_dagitty` with a `path` column for path variables
-#'   and a `set` grouping column or a `ggplot`
-#' @export
+#' @return a `tidy_dagitty` with a `path` column for path variables and a `set`
+#'   grouping column or a `ggplot`.
 #'
 #' @examples
+#' confounder_triangle(x_y_associated = TRUE) %>%
+#'   dag_paths(from = "x", to = "y")
+#'
 #' confounder_triangle(x_y_associated = TRUE) %>%
 #'   ggdag_paths(from = "x", to = "y")
 #'
@@ -45,7 +49,8 @@
 #' @rdname paths
 #' @name Pathways
 #' @importFrom magrittr %$%
-dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, paths_only = FALSE, ...) {
+#' @export
+dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, paths_only = FALSE, ...) {
 
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
 
@@ -53,7 +58,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
   if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
   if (is.null(from) || is.null(to)) stop("`exposure` and `outcome` must be set!")
 
-  pathways <- dagitty::paths(.tdy_dag$dag, from, to, Z = adjust_for, directed = directed) %>%
+  pathways <- dagitty::paths(.tdy_dag$dag, from, to, Z = adjust_for, limit = limit, directed = directed) %>%
     dplyr::as_tibble() %>%
     dplyr::filter(open) %>%
     dplyr::pull(paths)
@@ -109,13 +114,13 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, directed 
 
 #' @rdname paths
 #' @export
-ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, shadow = FALSE, ...,
+ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, shadow = FALSE, ...,
                                  node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
                                  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed, paths_only = !shadow) %>%
+    dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~forcats::fct_inorder(as.factor(set), ordered = TRUE)) +
@@ -144,13 +149,13 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, dir
 
 #' @rdname paths
 #' @export
-ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, directed = FALSE, ..., shadow = FALSE,
+ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, ..., shadow = FALSE,
                         spread = .7, node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
                         node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
 
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, directed = directed, paths_only = !shadow) %>%
+    dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges_fan(
       ggplot2::aes(edge_colour = set, edge_alpha = path),
