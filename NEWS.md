@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Fixed issue with `tidy_dagitty()` that missed nodes with no edges attached. May cause minor breaking changes in randomized layouts. (#68)
 
 # ggdag 0.2.4
 * `tidy_dagitty()` no longer allows the dendogram layout type (#62)
