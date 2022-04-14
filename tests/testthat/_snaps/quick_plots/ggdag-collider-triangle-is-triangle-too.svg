@@ -31,12 +31,12 @@
 <polygon points='360.60,480.26 365.03,482.53 364.78,477.56 ' style='stroke-width: 1.28; stroke-linecap: butt; fill: #000000;' />
 <polyline points='646.02,85.36 644.13,88.29 641.29,92.69 638.45,97.09 635.61,101.48 632.78,105.88 629.94,110.28 627.10,114.67 624.26,119.07 621.42,123.47 618.58,127.86 615.75,132.26 612.91,136.66 610.07,141.05 607.23,145.45 604.39,149.85 601.55,154.25 598.72,158.64 595.88,163.04 593.04,167.44 590.20,171.83 587.36,176.23 584.52,180.63 581.69,185.02 578.85,189.42 576.01,193.82 573.17,198.21 570.33,202.61 567.49,207.01 564.66,211.40 561.82,215.80 558.98,220.20 556.14,224.59 553.30,228.99 550.46,233.39 547.63,237.78 544.79,242.18 541.95,246.58 539.11,250.97 536.27,255.37 533.43,259.77 530.60,264.16 527.76,268.56 524.92,272.96 522.08,277.35 519.24,281.75 516.40,286.15 513.57,290.54 510.73,294.94 507.89,299.34 505.05,303.73 502.21,308.13 499.37,312.53 496.54,316.92 493.70,321.32 490.86,325.72 488.02,330.11 485.18,334.51 482.34,338.91 479.51,343.30 476.67,347.70 473.83,352.10 470.99,356.49 468.15,360.89 465.31,365.29 462.48,369.68 459.64,374.08 456.80,378.48 453.96,382.87 451.12,387.27 448.28,391.67 445.45,396.06 442.61,400.46 439.77,404.86 436.93,409.25 434.09,413.65 431.25,418.05 428.42,422.44 425.58,426.84 422.74,431.24 419.90,435.63 417.06,440.03 414.22,444.43 411.39,448.82 408.55,453.22 405.71,457.62 402.87,462.01 400.03,466.41 397.20,470.81 394.36,475.20 391.52,479.60 389.63,482.53 ' style='stroke-width: 1.28; stroke-linecap: butt;' />
 <polygon points='389.87,477.56 389.63,482.53 394.06,480.26 ' style='stroke-width: 1.28; stroke-linecap: butt; fill: #000000;' />
+<circle cx='377.33' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='96.33' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='658.32' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='377.33' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<text x='377.33' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
 <text x='96.33' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='658.32' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='377.33' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
 <rect x='40.13' y='22.78' width='674.39' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
