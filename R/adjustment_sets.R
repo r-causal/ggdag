@@ -45,8 +45,6 @@
 #'   exposure = "x3",
 #'   outcome = "x5")
 #'
-#' @importFrom utils capture.output
-#'
 #' @rdname adjustment_sets
 #' @name Covariate Adjustment Sets
 dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
@@ -59,16 +57,9 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
             * backdoor paths are not closeable with given set of variables
             * necessary variables are unmeasured (latent)")
     sets <- "(No Way to Block Backdoor Paths)"
-    } else {
-    sets <- sets %>%
-      capture.output() %>%
-      stringr::str_replace(" \\{\\}", "(Backdoor Paths Unconditionally Closed)") %>%
-      stringr::str_replace("\\{ ", "") %>%
-      stringr::str_replace(" \\}", "") %>%
-      stringr::str_trim() %>%
-      purrr::map(~stringr::str_split(.x, ", ") %>%
-                   purrr::pluck(1))
-    }
+  } else {
+    sets <- extract_sets(sets)
+  }
 
   .tdy_dag$data <-
     purrr::map_df(sets,
@@ -76,6 +67,11 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
     )
 
   .tdy_dag
+}
+
+extract_sets <- function(sets) {
+  sets <- unname(as.list(sets))
+  sets <- purrr::map_if(sets, purrr::is_empty, ~ "(Backdoor Paths Unconditionally Closed)")
 }
 
 
@@ -92,40 +88,40 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
 
-   p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend,
-                                         yend = yend, shape = adjusted,
-                                         col = adjusted)) +
+  p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend,
+                                              yend = yend, shape = adjusted,
+                                              col = adjusted)) +
     ggplot2::facet_wrap(~set) +
     scale_adjusted() +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
   if (shadow) {
     p <- p + geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
-                   start_cap = ggraph::circle(10, "mm"),
-                   end_cap = ggraph::circle(10, "mm"))
+                            start_cap = ggraph::circle(10, "mm"),
+                            end_cap = ggraph::circle(10, "mm"))
   } else {
     p <- p + geom_dag_edges(ggplot2::aes(edge_colour = adjusted),
-                   show.legend = FALSE) +
-             ggraph::scale_edge_colour_manual(drop = FALSE,
-                     values = c("unadjusted" = "black",
-                                "adjusted" = "#FFFFFF00"))
+                            show.legend = FALSE) +
+      ggraph::scale_edge_colour_manual(drop = FALSE,
+                                       values = c("unadjusted" = "black",
+                                                  "adjusted" = "#FFFFFF00"))
 
   }
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
   if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "adjusted"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                             fill = "adjusted"), size = text_size,
+                         col = label_col, show.legend = FALSE)
   p
 }
 
@@ -231,17 +227,17 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
   if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "adjusted"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+    geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
+                                             fill = "adjusted"), size = text_size,
+                         col = label_col, show.legend = FALSE)
   p
 }
