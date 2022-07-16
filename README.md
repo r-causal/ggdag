@@ -65,21 +65,21 @@ tidy_dag
 #> # Outcome: y
 #> #
 #> # A tibble: 13 × 8
-#>    name      x     y direction to     xend  yend circular
-#>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
-#>  1 v     11.8   8.03 ->        z1    10.4   7.77 FALSE   
-#>  2 v     11.8   8.03 ->        z2    12.1   6.66 FALSE   
-#>  3 w1    10.2   6.85 ->        x      9.95  6.28 FALSE   
-#>  4 w1    10.2   6.85 ->        y     11.1   6.39 FALSE   
-#>  5 w1    10.2   6.85 ->        z1    10.4   7.77 FALSE   
-#>  6 w1    10.2   6.85 <->       w2    10.9   5.75 FALSE   
-#>  7 w2    10.9   5.75 ->        x      9.95  6.28 FALSE   
-#>  8 w2    10.9   5.75 ->        y     11.1   6.39 FALSE   
-#>  9 w2    10.9   5.75 ->        z2    12.1   6.66 FALSE   
-#> 10 x      9.95  6.28 ->        y     11.1   6.39 FALSE   
-#> 11 z1    10.4   7.77 ->        x      9.95  6.28 FALSE   
-#> 12 z2    12.1   6.66 ->        y     11.1   6.39 FALSE   
-#> 13 y     11.1   6.39 <NA>      <NA>  NA    NA    FALSE
+#>    name       x      y direction to       xend   yend circular
+#>    <chr>  <dbl>  <dbl> <fct>     <chr>   <dbl>  <dbl> <lgl>   
+#>  1 v     0.496  -3.40  ->        z1     1.83   -2.92  FALSE   
+#>  2 v     0.496  -3.40  ->        z2     0.0188 -2.08  FALSE   
+#>  3 w1    1.73   -1.94  ->        x      2.07   -1.42  FALSE   
+#>  4 w1    1.73   -1.94  ->        y      1.00   -0.944 FALSE   
+#>  5 w1    1.73   -1.94  ->        z1     1.83   -2.92  FALSE   
+#>  6 w1    1.73   -1.94  <->       w2     0.873  -1.56  FALSE   
+#>  7 w2    0.873  -1.56  ->        x      2.07   -1.42  FALSE   
+#>  8 w2    0.873  -1.56  ->        y      1.00   -0.944 FALSE   
+#>  9 w2    0.873  -1.56  ->        z2     0.0188 -2.08  FALSE   
+#> 10 x     2.07   -1.42  ->        y      1.00   -0.944 FALSE   
+#> 11 y     1.00   -0.944 <NA>      <NA>  NA      NA     FALSE   
+#> 12 z1    1.83   -2.92  ->        x      2.07   -1.42  FALSE   
+#> 13 z2    0.0188 -2.08  ->        y      1.00   -0.944 FALSE
 
 #  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(
@@ -102,19 +102,19 @@ tidy_ggdag
 #> # A tibble: 13 × 8
 #>    name      x     y direction to     xend  yend circular
 #>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
-#>  1 v      9.30  13.4 ->        z1     9.74  12.1 FALSE   
-#>  2 v      9.30  13.4 ->        z2     7.96  13.0 FALSE   
-#>  3 w1     8.74  11.0 ->        x      8.86  11.6 FALSE   
-#>  4 w1     8.74  11.0 ->        y      7.68  11.5 FALSE   
-#>  5 w1     8.74  11.0 ->        z1     9.74  12.1 FALSE   
-#>  6 w1     8.74  11.0 <->       w2     8.00  12.0 FALSE   
-#>  7 w2     8.00  12.0 ->        x      8.86  11.6 FALSE   
-#>  8 w2     8.00  12.0 ->        y      7.68  11.5 FALSE   
-#>  9 w2     8.00  12.0 ->        z2     7.96  13.0 FALSE   
-#> 10 x      8.86  11.6 ->        y      7.68  11.5 FALSE   
-#> 11 z1     9.74  12.1 ->        x      8.86  11.6 FALSE   
-#> 12 z2     7.96  13.0 ->        y      7.68  11.5 FALSE   
-#> 13 y      7.68  11.5 <NA>      <NA>  NA     NA   FALSE
+#>  1 v     -3.58  3.30 ->        z1    -4.05  4.63 FALSE   
+#>  2 v     -3.58  3.30 ->        z2    -2.23  3.74 FALSE   
+#>  3 w1    -3.03  5.74 ->        x     -3.20  5.14 FALSE   
+#>  4 w1    -3.03  5.74 ->        y     -1.98  5.22 FALSE   
+#>  5 w1    -3.03  5.74 ->        z1    -4.05  4.63 FALSE   
+#>  6 w1    -3.03  5.74 <->       w2    -2.35  4.72 FALSE   
+#>  7 w2    -2.35  4.72 ->        x     -3.20  5.14 FALSE   
+#>  8 w2    -2.35  4.72 ->        y     -1.98  5.22 FALSE   
+#>  9 w2    -2.35  4.72 ->        z2    -2.23  3.74 FALSE   
+#> 10 x     -3.20  5.14 ->        y     -1.98  5.22 FALSE   
+#> 11 y     -1.98  5.22 <NA>      <NA>  NA    NA    FALSE   
+#> 12 z1    -4.05  4.63 ->        x     -3.20  5.14 FALSE   
+#> 13 z2    -2.23  3.74 ->        y     -1.98  5.22 FALSE
 ```
 
 `ggdag` also provides functionality for analyzing DAGs and plotting them
