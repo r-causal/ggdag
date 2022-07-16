@@ -14,3 +14,4 @@ docs
 ^rhub\.R$
 ^\.github/workflows/pkgdown\.yaml$
 ^\.github$
+^CRAN-SUBMISSION$
