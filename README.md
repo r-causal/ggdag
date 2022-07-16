@@ -8,7 +8,7 @@ status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 [![Codecov test
-coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg)](https://codecov.io/gh/malcolmbarrett/ggdag?branch=main)
+coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg)](https://app.codecov.io/gh/malcolmbarrett/ggdag?branch=main)
 [![Total CRAN
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 <!-- badges: end -->
