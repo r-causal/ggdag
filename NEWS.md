@@ -1,3 +1,5 @@
+# ggdag (development version)
+
 # ggdag 0.2.5
 * Fixed issue with `dag_adjustment_sets()` when `width` option was low by extracting adjustment sets directly (#70)
 * Fixed issue with `tidy_dagitty()` that missed nodes with no edges attached. May cause minor breaking changes in randomized layouts. (#68)
