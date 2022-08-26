@@ -1,3 +1,5 @@
+# ggdag (development version)
+
 # ggdag 0.2.6
 * Fixed CRAN errors
 
