@@ -308,7 +308,13 @@ geom_dag_label_repel <- function(
 }
 
 filter_direction <- function(.direction) {
-  function(x) dplyr::filter(x, direction == .direction)
+  function(x) {
+    x <- dplyr::filter(x, direction == .direction)
+    if ("collider_line" %in% names(x)) x <-  dplyr::filter(x, !collider_line)
+
+    x
+  }
+
 }
 
 #' Directed and bidirected DAG edges

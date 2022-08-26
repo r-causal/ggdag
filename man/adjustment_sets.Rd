@@ -61,12 +61,7 @@ ggdag_adjustment_set(
 \item{use_labels}{a string. Variable to use for \code{geom_dag_repel_label()}.
 Default is \code{NULL}.}
 
-\item{expand_x}{Vector of range expansion constants used to add some
-padding around the data, to ensure that they are placed some distance away
-from the axes. Use the convenience function \code{ggplot2::expansion()} to
-generate the values for the expand argument.}
-
-\item{expand_y}{Vector of range expansion constants used to add some
+\item{expand_x, expand_y}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
 from the axes. Use the convenience function \code{ggplot2::expansion()} to
 generate the values for the expand argument.}

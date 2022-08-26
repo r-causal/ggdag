@@ -110,8 +110,8 @@ StatEdgeLink <- ggplot2::ggproto('StatEdgeLink', ggraph::StatEdgeLink,
 
 StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
                                  setup_data = function(data, params) {
-                                   data <- data[!is.na(data$xend) &
-                                                  !is.na(data$circular), ]
+                                   data <- data[!is.na(data$xend), ]
+                                   data[is.na(data$circular), "circular"] <- FALSE
 
                                    if (nrow(data) > 0) {
                                      data <- ggraph::StatEdgeArc$setup_data(data, params)
@@ -127,8 +127,8 @@ StatEdgeArc <- ggplot2::ggproto('StatEdgeArc', ggraph::StatEdgeArc,
 StatEdgeDiagonal <- ggplot2::ggproto('StatEdgeDiagonal', ggraph::StatEdgeDiagonal,
                                       setup_data = function(data, params) {
 
-                                        data <- data[!is.na(data$xend) &
-                                                       !is.na(data$circular), ]
+                                        data <- data[!is.na(data$xend), ]
+                                        data[is.na(data$circular), "circular"] <- FALSE
 
                                         if (nrow(data) > 0) {
                                           data <- ggraph::StatEdgeDiagonal$setup_data(data, params)
