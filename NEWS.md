@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Fixed CRAN errors
 
 # ggdag 0.2.5
 * Fixed issue with `dag_adjustment_sets()` when `width` option was low by extracting adjustment sets directly (#70)
