@@ -3,3 +3,5 @@
 .RData
 inst/doc
 rhub.R
+revdep/
+cran-comments.md

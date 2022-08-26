@@ -15,3 +15,4 @@ docs
 ^\.github/workflows/pkgdown\.yaml$
 ^\.github$
 ^CRAN-SUBMISSION$
+^revdep$
