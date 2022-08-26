@@ -47,6 +47,19 @@ reference:
     - ggdag_collider_triangle
     - ggdag_mediation_triangle
 
+- title: Misc
+  contents:
+    - as.data.frame.tidy_dagitty
+    - as.tbl.tidy_daggity
+    - as_tbl_graph
+    - dplyr
+    - expand_plot
+    - fortify
+    - ggplot.tidy_dagitty
+    - print.tidy_dagitty
+    - remove_axes
+    - tbl_df.tidy_daggity
+
 navbar:
   type: default
   left:
