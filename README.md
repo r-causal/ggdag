@@ -149,7 +149,7 @@ dagify(m ~ x + y) %>%
     shape = adjusted, 
     col = d_relationship
   )) +
-    geom_dag_edges(aes(end_cap = ggraph::circle(10, "mm"))) +
+    geom_dag_edges(end_cap = ggraph::circle(10, "mm")) +
     geom_dag_collider_edges() +
     geom_dag_point() +
     geom_dag_text(col = "white") +
@@ -174,6 +174,7 @@ ggdag_equivalent_dags(confounder_triangle())
 <img src="man/figures/ggdag_common-1.png" width="100%" />
 
 ``` r
+
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 

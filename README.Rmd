@@ -103,7 +103,7 @@ dagify(m ~ x + y) %>%
     shape = adjusted, 
     col = d_relationship
   )) +
-    geom_dag_edges(aes(end_cap = ggraph::circle(10, "mm"))) +
+    geom_dag_edges(end_cap = ggraph::circle(10, "mm")) +
     geom_dag_collider_edges() +
     geom_dag_point() +
     geom_dag_text(col = "white") +
