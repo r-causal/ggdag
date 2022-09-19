@@ -86,7 +86,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
        path_df <- path_df %>%
          filter(name == vars[[1]]) %>%
          dplyr::slice(1) %>%
-         dplyr::mutate(path = "open path") %>%
+         dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
          dplyr::bind_rows(path_df, .)
        }
      }
@@ -99,7 +99,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
        path_df <-  path_df %>%
          filter(name == vars[[2]]) %>%
          dplyr::slice(1) %>%
-         dplyr::mutate(path = "open path") %>%
+         dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
          dplyr::bind_rows(path_df, .)
      }
 
@@ -134,9 +134,25 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
+        p <- p +
+          geom_dag_node(
+            data = function(.x) dplyr::filter(.x, is.na(path)),
+            size = node_size
+          ) +
+          geom_dag_node(
+            data = function(.x) dplyr::filter(.x, !is.na(path)),
+            size = node_size
+          )
       } else {
-        p <- p + geom_dag_point(size = node_size)
+        p <- p +
+          geom_dag_point(
+            data = function(.x) dplyr::filter(.x, is.na(path)),
+            size = node_size
+          ) +
+          geom_dag_point(
+            data = function(.x) dplyr::filter(.x, !is.na(path)),
+            size = node_size
+          )
       }
     }
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
