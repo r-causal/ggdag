@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Fixed various bugs in calculating and visualizing paths (#75)
 
 # ggdag 0.2.6
 * Fixed CRAN errors
