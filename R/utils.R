@@ -128,12 +128,15 @@ collider_paths <- function(x) {
   paths
 }
 
-#' @importFrom utils getFromNamespace
 #' @noRd
 expansion_verb <- function() {
-  if (ggplot2_gt_3_3_0()) return(utils::getFromNamespace("expansion", "ggplot2"))
+  if (ggplot2_gt_3_3_0()) {
+    ggplot2::expansion
+  } else {
+    ggplot2::expand_scale
+  }
 
-  ggplot2::expand_scale
+
 }
 
 #' @importFrom utils packageVersion
