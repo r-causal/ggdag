@@ -135,18 +135,21 @@ collider_paths <- function(x) {
 }
 
 #' @noRd
-expansion_verb <- function() {
-  if (ggplot2_gt_3_3_0()) {
-    ggplot2::expansion
+expansion <- function(...) {
+  if (ggplot2_version() >= "3.3.0") {
+    ggplot2::expansion(...)
   } else {
-    ggplot2::expand_scale
+    ggplot2::expand_scale(...)
   }
 }
 
 #' @importFrom utils packageVersion
 #' @noRd
-ggplot2_gt_3_3_0 <- function() {
-  utils::packageVersion("ggplot2") >= "3.3.0"
+ggplot2_version <- function() {
+  utils::packageVersion("ggplot2")
 }
 
-expansion <- expansion_verb()
+ggname <- function(prefix, grob) {
+  grob$name <- grid::grobName(grob, prefix)
+  grob
+}

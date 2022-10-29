@@ -163,7 +163,8 @@ dag \%>\%
   geom_dag_collider_edges() +
   geom_dag_node() +
   geom_dag_text(col = "white") +
-  theme_dag() + scale_adjusted()
+  theme_dag() +
+  scale_adjusted()
 
 dag \%>\%
   node_dconnected("x", "y", controlling_for = "m") \%>\%

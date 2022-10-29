@@ -45,7 +45,7 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
   draw_panel = function(data, panel_params, coord, na.rm = FALSE) {
     coords <- coord$transform(data, panel_params)
     grid::gList(
-      ggplot2:::ggname(
+      ggname(
         "geom_dag_node",
         grid::pointsGrob(
           coords$x, coords$y,
@@ -58,7 +58,7 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
           )
         )
       ),
-      ggplot2:::ggname(
+      ggname(
         "geom_dag_node",
         grid::pointsGrob(
           coords$x, coords$y,
@@ -71,7 +71,7 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
           )
         )
       ),
-      ggplot2:::ggname(
+      ggname(
         "geom_dag_node",
         grid::pointsGrob(
           coords$x, coords$y,

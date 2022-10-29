@@ -10,7 +10,8 @@ geom_dag_collider_edges(
   stat = "identity",
   position = "identity",
   ...,
-  size = 0.6,
+  linewidth = 0.6,
+  size = NULL,
   curvature = 0.5,
   angle = 90,
   ncp = 5,
@@ -57,7 +58,9 @@ often aesthetics, used to set an aesthetic to a fixed value, like
 \code{colour = "red"} or \code{size = 3}. They may also be parameters
 to the paired geom/stat.}
 
-\item{size}{a numeric vector of length 1. Edge width}
+\item{linewidth}{a numeric vector of length 1. Edge width}
+
+\item{size}{deprecated. Please use \code{linewidth}.}
 
 \item{curvature}{A numeric value giving the amount of curvature.
     Negative values produce left-hand curves, positive values
@@ -101,10 +104,10 @@ dagify(m ~ a + b, x ~ a, y ~ b) \%>\%
   tidy_dagitty() \%>\%
   control_for("m") \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
-    geom_dag_edges() +
-    geom_dag_collider_edges() +
-    geom_dag_point() +
-    geom_dag_text() +
-    theme_dag() +
-    scale_adjusted()
+  geom_dag_edges() +
+  geom_dag_collider_edges() +
+  geom_dag_point() +
+  geom_dag_text() +
+  theme_dag() +
+  scale_adjusted()
 }

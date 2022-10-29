@@ -57,11 +57,13 @@ a \code{ggplot}
 }
 \examples{
 
-dag  <- dagify(y ~ x + z2 + w2 + w1,
+dag <- dagify(
+  y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
-  w1 ~~ w2)
+  w1 ~ ~w2
+)
 
 ggdag(dag)
 ggdag(dag) + theme_dag_blank()

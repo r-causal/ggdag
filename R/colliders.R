@@ -78,9 +78,9 @@ ggdag_collider <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "colliders"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = colliders
         ),
         size = text_size,
         col = label_col, show.legend = FALSE

@@ -635,7 +635,8 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #' collider. This geom adds a curved edge between any such parent nodes.
 #'
 #' @inheritParams ggplot2::geom_curve
-#' @param size a numeric vector of length 1. Edge width
+#' @param linewidth a numeric vector of length 1. Edge width
+#' @param size deprecated. Please use `linewidth`.
 #'
 #' @export
 #'
@@ -655,7 +656,8 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     stat = "identity", position = "identity",
                                     ...,
-                                    size = .6,
+                                    linewidth = .6,
+                                    size = NULL,
                                     curvature = 0.5,
                                     angle = 90,
                                     ncp = 5,
@@ -667,6 +669,26 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
   if (is.null(data)) data <- function(x) dplyr::filter(x, direction == "<->", collider_line)
   if (is.null(mapping)) mapping <- ggplot2::aes(linetype = factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
   if (is.null(mapping$linetype)) mapping$linetype <- substitute(factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
+  if (!is.null(size)) {
+    warning("`size` is deprecated for lines. Please use `linewidth`")
+    linewidth <- size
+  }
+
+  params <- list(
+    arrow = arrow,
+    curvature = curvature,
+    angle = angle,
+    ncp = ncp,
+    lineend = lineend,
+    na.rm = na.rm,
+    ...
+  )
+
+  if (ggplot2_version() >= "3.3.6.9000") {
+    params$linewidth <- linewidth
+  } else {
+    params$size <- linewidth
+  }
 
   ggplot2::layer(
     data = data,
@@ -676,16 +698,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      size = size,
-      arrow = arrow,
-      curvature = curvature,
-      angle = angle,
-      ncp = ncp,
-      lineend = lineend,
-      na.rm = na.rm,
-      ...
-    )
+    params = params
   )
 }
 

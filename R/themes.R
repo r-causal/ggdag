@@ -130,9 +130,9 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 scale_adjusted <- function() {
   list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
-    ggplot2::scale_shape_manual(drop = FALSE, values = c("adjusted" = 15, "unadjusted" = 19)),
-    ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1)),
-    ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1))
+    ggplot2::scale_shape_manual(drop = FALSE, values = c("adjusted" = 15, "unadjusted" = 19), limits = c("adjusted", "unadjusted")),
+    ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted")),
+    ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted"))
   )
 }
 

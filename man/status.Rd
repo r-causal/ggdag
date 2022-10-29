@@ -72,7 +72,8 @@ dag <- dagify(l ~ x + y,
   y ~ x,
   exposure = "x",
   outcome = "y",
-  latent = "l")
+  latent = "l"
+)
 
 node_status(dag)
 ggdag_status(dag)

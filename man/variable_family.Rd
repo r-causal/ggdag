@@ -172,11 +172,13 @@ functions label variables depending on their relationship. The
 }
 \examples{
 library(ggplot2)
-dag <- dagify(y ~ x + z2 + w2 + w1,
+dag <- dagify(
+  y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
-  w1 ~~ w2)
+  w1 ~ ~w2
+)
 
 ggdag_children(dag, "w1")
 
@@ -189,7 +191,7 @@ dag \%>\%
   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
   theme_dag() +
   scale_adjusted() +
-  scale_color_hue(breaks  = c("parent", "child"))
+  scale_color_hue(breaks = c("parent", "child"))
 
 ggdag_parents(dag, "y")
 
@@ -206,6 +208,6 @@ dag \%>\%
   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
   theme_dag() +
   scale_adjusted() +
-  scale_color_hue(breaks  = c("parent", "child"))
+  scale_color_hue(breaks = c("parent", "child"))
 
 }

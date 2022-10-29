@@ -8,7 +8,7 @@ output: github_document
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/", 
+  fig.path = "man/figures/",
   out.width = "100%"
 )
 library(ggplot2)
@@ -57,12 +57,11 @@ dag <- dagitty::dagitty("dag {
     x <- w2 -> y
     x [exposure]
     y [outcome]
-  }"
-)
+  }")
 
 tidy_dag <- tidy_dagitty(dag)
 
-tidy_dag 
+tidy_dag
 
 #  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(
@@ -70,10 +69,10 @@ tidy_ggdag <- dagify(
   x ~ z1 + w1 + w2,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
-  w1 ~~ w2, # bidirected path
+  w1 ~ ~w2, # bidirected path
   exposure = "x",
   outcome = "y"
-) %>% 
+) %>%
   tidy_dagitty()
 
 tidy_ggdag
@@ -84,37 +83,36 @@ tidy_ggdag
 ```{r ggdag, dpi=300}
 ggdag(tidy_ggdag) +
   theme_dag()
-ggdag_adjustment_set(tidy_ggdag, node_size = 14) + 
+ggdag_adjustment_set(tidy_ggdag, node_size = 14) +
   theme(legend.position = "bottom")
-
 ```
 
 As well as geoms and other functions for plotting them directly in `ggplot2`:
 
 ```{r ggdag_geoms, dpi=300} 
-dagify(m ~ x + y) %>% 
-  tidy_dagitty() %>% 
+dagify(m ~ x + y) %>%
+  tidy_dagitty() %>%
   node_dconnected("x", "y", controlling_for = "m") %>%
   ggplot(aes(
-    x = x, 
-    y = y, 
-    xend = xend, 
-    yend = yend, 
-    shape = adjusted, 
+    x = x,
+    y = y,
+    xend = xend,
+    yend = yend,
+    shape = adjusted,
     col = d_relationship
   )) +
-    geom_dag_edges(end_cap = ggraph::circle(10, "mm")) +
-    geom_dag_collider_edges() +
-    geom_dag_point() +
-    geom_dag_text(col = "white") +
-    theme_dag() + 
-    scale_adjusted() +
-    expand_plot(expand_y = expansion(c(0.2, 0.2))) +
-    scale_color_viridis_d(
-      name = "d-relationship", 
-      na.value = "grey85", 
-      begin = .35
-    ) 
+  geom_dag_edges(end_cap = ggraph::circle(10, "mm")) +
+  geom_dag_collider_edges() +
+  geom_dag_point() +
+  geom_dag_text(col = "white") +
+  theme_dag() +
+  scale_adjusted() +
+  expand_plot(expand_y = expansion(c(0.2, 0.2))) +
+  scale_color_viridis_d(
+    name = "d-relationship",
+    na.value = "grey85",
+    begin = .35
+  )
 ```
 
 And common structures of bias:

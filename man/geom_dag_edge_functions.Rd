@@ -211,15 +211,17 @@ automatically set.
 
 \examples{
 library(ggplot2)
-p <- dagify(y ~ x + z2 + w2 + w1,
+p <- dagify(
+  y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
-  L ~ w1 + w2) \%>\%
+  L ~ w1 + w2
+) \%>\%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_point() +
-    geom_dag_text() +
-    theme_dag()
+  geom_dag_point() +
+  geom_dag_text() +
+  theme_dag()
 
 p + geom_dag_edges_link()
 p + geom_dag_edges_arc()

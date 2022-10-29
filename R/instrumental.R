@@ -94,12 +94,13 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "instrumental"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = instrumental
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   if (dplyr::n_distinct(.tdy_dag$data$instrumental_name) > 1) p <- p + ggplot2::facet_wrap(~instrumental_name)
