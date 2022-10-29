@@ -1,3 +1,5 @@
+# ggdag (development version)
+
 # ggdag 0.2.7
 * Fixed various bugs in calculating and visualizing paths (#75)
 * Fixed breaking changes from the upcoming release of ggplot2 3.4.0 (#79)
