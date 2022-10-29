@@ -40,8 +40,8 @@ Label or otherwise retrieve labels from objects of either class
 }
 \examples{
 labelled_dag <- dagify(y ~ z, x ~ z) \%>\%
- tidy_dagitty() \%>\%
- dag_label(labels = c("x" = "exposure", "y" = "outcome", "z" = "confounder"))
+  tidy_dagitty() \%>\%
+  dag_label(labels = c("x" = "exposure", "y" = "outcome", "z" = "confounder"))
 
- has_labels(labelled_dag)
+has_labels(labelled_dag)
 }

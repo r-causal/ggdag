@@ -635,7 +635,8 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #' collider. This geom adds a curved edge between any such parent nodes.
 #'
 #' @inheritParams ggplot2::geom_curve
-#' @param size a numeric vector of length 1. Edge width
+#' @param linewidth a numeric vector of length 1. Edge width
+#' @param size deprecated. Please use `linewidth`.
 #'
 #' @export
 #'

@@ -19,5 +19,4 @@ A convenience wrapper for dagitty::dagitty("dag{...}")
 \examples{
 dag("{x m} -> y")
 
-
 }

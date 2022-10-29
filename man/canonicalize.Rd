@@ -63,7 +63,7 @@ x <-> y with a substructure x <- L -> y, where L is a latent variable. See
 are not currently supported in \code{ggdag}.
 }
 \examples{
-dag <- dagify(y ~ x + z, x ~~ z)
+dag <- dagify(y ~ x + z, x ~ ~z)
 
 ggdag(dag)
 

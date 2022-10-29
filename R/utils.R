@@ -135,11 +135,11 @@ collider_paths <- function(x) {
 }
 
 #' @noRd
-expansion_verb <- function() {
+expansion <- function(...) {
   if (ggplot2_gt_3_3_0()) {
-    ggplot2::expansion
+    ggplot2::expansion(...)
   } else {
-    ggplot2::expand_scale
+    ggplot2::expand_scale(...)
   }
 }
 
@@ -149,4 +149,7 @@ ggplot2_gt_3_3_0 <- function() {
   utils::packageVersion("ggplot2") >= "3.3.0"
 }
 
-expansion <- expansion_verb()
+ggname <- function(prefix, grob) {
+  grob$name <- grid::grobName(grob, prefix)
+  grob
+}

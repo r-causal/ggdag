@@ -30,11 +30,11 @@ coords <- list(
 coord_df <- coords2df(coords)
 coords2list(coord_df)
 
-x <- dagitty('dag{
+x <- dagitty("dag{
              G <-> H <-> I <-> G
              D <- B -> C -> I <- F <- B <- A
              H <- E <- C -> G <- D
-             }')
+             }")
 coordinates(x) <- coords2list(coord_df)
 
 }

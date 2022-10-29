@@ -31,9 +31,9 @@ A thin wrapper to convert \code{tidy_dagitty} and \code{dagitty} objects to
 library(ggraph)
 library(tidygraph)
 butterfly_bias() \%>\%
- as_tbl_graph() \%>\%
- ggraph() +
-   geom_edge_diagonal() +
-   geom_node_point()
+  as_tbl_graph() \%>\%
+  ggraph() +
+  geom_edge_diagonal() +
+  geom_node_point()
 
 }

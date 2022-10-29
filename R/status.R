@@ -89,7 +89,7 @@ ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, 
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes1(
+        ggplot2::aes(
           label = !!rlang::sym(use_labels),
           fill = status
         ),
