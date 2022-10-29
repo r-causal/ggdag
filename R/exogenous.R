@@ -70,9 +70,9 @@ ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "exogenous"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = exogenous
         ),
         size = text_size,
         col = label_col, show.legend = FALSE

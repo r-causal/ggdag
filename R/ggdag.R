@@ -62,9 +62,11 @@ ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_si
 
   if (!is.null(use_labels)) {
     p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels),
+      geom_dag_label_repel(
+        ggplot2::aes(label = !!rlang::sym(use_labels)),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p
@@ -112,7 +114,11 @@ ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
 
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    ggplot2::geom_text(ggplot2::aes_string(label = text_label), size = size, col = text_col)
+    ggplot2::geom_text(
+      ggplot2::aes(label = !!rlang::sym(text_label)),
+      size = size,
+      col = text_col
+    )
 
   if (any(.tdy_dag$data$direction == "<->" & !is.na(.tdy_dag$data$direction))) {
     p <- p + geom_dag_edges(ggplot2::aes(

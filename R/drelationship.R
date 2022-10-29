@@ -208,9 +208,9 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "d_relationship"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = d_relationship
         ),
         size = text_size,
         col = label_col, show.legend = FALSE

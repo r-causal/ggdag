@@ -655,7 +655,8 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     stat = "identity", position = "identity",
                                     ...,
-                                    size = .6,
+                                    linewidth = .6,
+                                    size = NULL,
                                     curvature = 0.5,
                                     angle = 90,
                                     ncp = 5,
@@ -667,7 +668,10 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
   if (is.null(data)) data <- function(x) dplyr::filter(x, direction == "<->", collider_line)
   if (is.null(mapping)) mapping <- ggplot2::aes(linetype = factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
   if (is.null(mapping$linetype)) mapping$linetype <- substitute(factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
-
+  if (!is.null(size)) {
+    warning("`size` is deprecated for lines. Please use `linewidth`")
+    linewidth <- size
+  }
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -677,7 +681,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
     params = list(
-      size = size,
+      linewidth = linewidth,
       arrow = arrow,
       curvature = curvature,
       angle = angle,

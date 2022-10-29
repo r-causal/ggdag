@@ -201,12 +201,13 @@ ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "children"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = children
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p
@@ -241,12 +242,13 @@ ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "parent"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = parent
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p
@@ -280,12 +282,13 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "ancestor"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = ancestor
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p
@@ -320,12 +323,13 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "descendant"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = descendant
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p
@@ -360,12 +364,13 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "blanket"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = blanket
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p
@@ -400,12 +405,13 @@ ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "adjacent"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = adjacent
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p

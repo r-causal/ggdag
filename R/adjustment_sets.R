@@ -129,9 +129,9 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "adjusted"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = adjusted
         ),
         size = text_size,
         col = label_col, show.legend = FALSE
@@ -256,9 +256,9 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "adjusted"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = adjusted
         ),
         size = text_size,
         col = label_col, show.legend = FALSE

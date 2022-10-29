@@ -123,8 +123,8 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
-    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
+    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
+    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
     ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
     expand_plot(
@@ -160,9 +160,9 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "path"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = path
         ),
         size = label_size,
         col = label_col, show.legend = FALSE
@@ -183,8 +183,8 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
       ggplot2::aes(edge_colour = set, edge_alpha = path),
       spread = spread
     ) +
-    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path") +
-    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path", guide = "none") +
+    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
+    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path", guide = "none", limits = "open path") +
     ggraph::scale_edge_colour_hue(name = "open path", drop = FALSE) +
     ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
     expand_plot(
@@ -205,12 +205,13 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
   if (!is.null(use_labels)) {
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes_string(
-          label = use_labels,
-          fill = "path"
+        ggplot2::aes(
+          label = !!rlang::sym(use_labels),
+          fill = path
         ),
         size = text_size,
-        col = label_col, show.legend = FALSE
+        col = label_col,
+        show.legend = FALSE
       )
   }
   p

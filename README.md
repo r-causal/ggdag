@@ -53,12 +53,11 @@ dag <- dagitty::dagitty("dag {
     x <- w2 -> y
     x [exposure]
     y [outcome]
-  }"
-)
+  }")
 
 tidy_dag <- tidy_dagitty(dag)
 
-tidy_dag 
+tidy_dag
 #> # A DAG with 7 nodes and 12 edges
 #> #
 #> # Exposure: x
@@ -87,10 +86,10 @@ tidy_ggdag <- dagify(
   x ~ z1 + w1 + w2,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
-  w1 ~~ w2, # bidirected path
+  w1 ~ ~w2, # bidirected path
   exposure = "x",
   outcome = "y"
-) %>% 
+) %>%
   tidy_dagitty()
 
 tidy_ggdag
@@ -128,7 +127,7 @@ ggdag(tidy_ggdag) +
 <img src="man/figures/ggdag-1.png" width="100%" />
 
 ``` r
-ggdag_adjustment_set(tidy_ggdag, node_size = 14) + 
+ggdag_adjustment_set(tidy_ggdag, node_size = 14) +
   theme(legend.position = "bottom")
 ```
 
@@ -138,29 +137,29 @@ As well as geoms and other functions for plotting them directly in
 `ggplot2`:
 
 ``` r
-dagify(m ~ x + y) %>% 
-  tidy_dagitty() %>% 
+dagify(m ~ x + y) %>%
+  tidy_dagitty() %>%
   node_dconnected("x", "y", controlling_for = "m") %>%
   ggplot(aes(
-    x = x, 
-    y = y, 
-    xend = xend, 
-    yend = yend, 
-    shape = adjusted, 
+    x = x,
+    y = y,
+    xend = xend,
+    yend = yend,
+    shape = adjusted,
     col = d_relationship
   )) +
-    geom_dag_edges(end_cap = ggraph::circle(10, "mm")) +
-    geom_dag_collider_edges() +
-    geom_dag_point() +
-    geom_dag_text(col = "white") +
-    theme_dag() + 
-    scale_adjusted() +
-    expand_plot(expand_y = expansion(c(0.2, 0.2))) +
-    scale_color_viridis_d(
-      name = "d-relationship", 
-      na.value = "grey85", 
-      begin = .35
-    ) 
+  geom_dag_edges(end_cap = ggraph::circle(10, "mm")) +
+  geom_dag_collider_edges() +
+  geom_dag_point() +
+  geom_dag_text(col = "white") +
+  theme_dag() +
+  scale_adjusted() +
+  expand_plot(expand_y = expansion(c(0.2, 0.2))) +
+  scale_color_viridis_d(
+    name = "d-relationship",
+    na.value = "grey85",
+    begin = .35
+  )
 ```
 
 <img src="man/figures/ggdag_geoms-1.png" width="100%" />
