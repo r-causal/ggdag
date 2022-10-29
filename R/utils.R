@@ -136,7 +136,7 @@ collider_paths <- function(x) {
 
 #' @noRd
 expansion <- function(...) {
-  if (ggplot2_gt_3_3_0()) {
+  if (ggplot2_version() >= "3.3.0") {
     ggplot2::expansion(...)
   } else {
     ggplot2::expand_scale(...)
@@ -145,8 +145,8 @@ expansion <- function(...) {
 
 #' @importFrom utils packageVersion
 #' @noRd
-ggplot2_gt_3_3_0 <- function() {
-  utils::packageVersion("ggplot2") >= "3.3.0"
+ggplot2_version <- function() {
+  utils::packageVersion("ggplot2")
 }
 
 ggname <- function(prefix, grob) {

@@ -673,6 +673,23 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     warning("`size` is deprecated for lines. Please use `linewidth`")
     linewidth <- size
   }
+
+  params <- list(
+    arrow = arrow,
+    curvature = curvature,
+    angle = angle,
+    ncp = ncp,
+    lineend = lineend,
+    na.rm = na.rm,
+    ...
+  )
+
+  if (ggplot2_version() >= "3.3.6.9000") {
+    params$linewidth <- linewidth
+  } else {
+    params$size <- linewidth
+  }
+
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -681,16 +698,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      linewidth = linewidth,
-      arrow = arrow,
-      curvature = curvature,
-      angle = angle,
-      ncp = ncp,
-      lineend = lineend,
-      na.rm = na.rm,
-      ...
-    )
+    params = params
   )
 }
 
