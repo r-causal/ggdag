@@ -12,7 +12,7 @@
 #' library(dagitty)
 #' library(ggplot2)
 #'
-#' dag <- dagitty( "dag {
+#' dag <- dagitty("dag {
 #'   Y <- X <- Z1 <- V -> Z2 -> Y
 #'   Z1 <- W1 <-> W2 -> Z2
 #'   X <- W1 -> Y
@@ -25,10 +25,10 @@
 #'
 #' tidy_dagitty(dag, layout = "fr") %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_node() +
-#'     geom_dag_text() +
-#'     geom_dag_edges() +
-#'     theme_dag()
+#'   geom_dag_node() +
+#'   geom_dag_text() +
+#'   geom_dag_edges() +
+#'   theme_dag()
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   check_verboten_layout(layout)
 
@@ -38,13 +38,15 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   .dag <- .dagitty
 
   no_existing_coords <- dagitty::coordinates(.dagitty) %>%
-    purrr::map_lgl(~all(is.na(.x))) %>%
+    purrr::map_lgl(~ all(is.na(.x))) %>%
     all()
 
   ggraph_layout <- dagitty::edges(.dagitty) %>%
     dplyr::select(v, w) %>%
     igraph::graph_from_data_frame(vertices = names(.dagitty)) %>%
-    {suppressMessages(ggraph::create_layout(., layout, ...))}
+    {
+      suppressMessages(ggraph::create_layout(., layout, ...))
+    }
 
   if (no_existing_coords) {
     coords <- coords2list(ggraph_layout)
@@ -57,8 +59,9 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   dag_edges <- dagitty::edges(.dagitty)
 
   tidy_dag <- dplyr::left_join(tibble::enframe(coords$x, value = "x"),
-                        tibble::enframe(coords$y, value = "y"),
-                        by = "name")
+    tibble::enframe(coords$y, value = "y"),
+    by = "name"
+  )
   layout_info <- dplyr::select(ggraph_layout, -x, -y) %>%
     dplyr::mutate(name = as.character(name))
 
@@ -66,13 +69,15 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 
   tidy_dag <- dag_edges %>%
     dplyr::select(-x, -y) %>%
-    dplyr::mutate(v = as.character(v),
-           w = as.character(w),
-           direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
-           type = ifelse(e == "<->", "bidirected", "directed"),
-           type = factor(type, levels = c("directed", "bidirected"), exclude = NA)) %>%
+    dplyr::mutate(
+      v = as.character(v),
+      w = as.character(w),
+      direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
+      type = ifelse(e == "<->", "bidirected", "directed"),
+      type = factor(type, levels = c("directed", "bidirected"), exclude = NA)
+    ) %>%
     dplyr::left_join(tidy_dag, ., by = c("name" = "v")) %>%
-    dplyr::left_join(tidy_dag, by = c("w" = "name"),  suffix = c("", "end")) %>%
+    dplyr::left_join(tidy_dag, by = c("w" = "name"), suffix = c("", "end")) %>%
     dplyr::select(name, x, y, direction, type, to = w, xend, yend) %>%
     dplyr::left_join(layout_info, by = "name") %>%
     dplyr::arrange(.ggraph.orig_index) %>%
@@ -84,7 +89,7 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     label(.tdy_dag) <- label(.dag)
   }
 
-    .tdy_dag
+  .tdy_dag
 }
 
 check_verboten_layout <- function(layout) {
@@ -119,7 +124,9 @@ fortify.tidy_dagitty <- function(model, data = NULL, ...) {
 #' @rdname fortify
 #' @export
 fortify.dagitty <- function(model, data = NULL, ...) {
-  model %>% tidy_dagitty() %>% .$data
+  model %>%
+    tidy_dagitty() %>%
+    .$data
 }
 
 #' Convert a `tidy_dagitty` object to data.frame
@@ -188,13 +195,20 @@ print.tidy_dagitty <- function(x, ...) {
   if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(x$dag)), "\n", sep = "")
   if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(x$dag)), "\n", sep = "")
   if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(x$dag)), "\n", sep = "")
-  if (has_collider_path(x)) cat_subtle("# Paths opened by conditioning on a collider: ",
-                                       coll(collider_paths(x)), "\n", sep = "")
-  if (any(c(has_collider_path(x),
-          has_exposure(x),
-          has_outcome(x),
-          has_latent(x)
-          ))) cat_subtle("#\n")
+  if (has_collider_path(x)) {
+    cat_subtle("# Paths opened by conditioning on a collider: ",
+      coll(collider_paths(x)), "\n",
+      sep = ""
+    )
+  }
+  if (any(c(
+    has_collider_path(x),
+    has_exposure(x),
+    has_outcome(x),
+    has_latent(x)
+  ))) {
+    cat_subtle("#\n")
+  }
 
   print(x$data, ...)
   invisible(x)
@@ -222,11 +236,11 @@ print.tidy_dagitty <- function(x, ...) {
 #' coord_df <- coords2df(coords)
 #' coords2list(coord_df)
 #'
-#' x <- dagitty('dag{
+#' x <- dagitty("dag{
 #'              G <-> H <-> I <-> G
 #'              D <- B -> C -> I <- F <- B <- A
 #'              H <- E <- C -> G <- D
-#'              }')
+#'              }")
 #' coordinates(x) <- coords2list(coord_df)
 #'
 #' @rdname coordinates
@@ -240,7 +254,11 @@ coords2df <- function(coord_list) {
 #' @rdname coordinates
 #' @export
 coords2list <- function(coord_df) {
-  x <- coord_df %>% dplyr::select(name, x) %>% tibble::deframe()
-  y <- coord_df %>% dplyr::select(name, y) %>% tibble::deframe()
+  x <- coord_df %>%
+    dplyr::select(name, x) %>%
+    tibble::deframe()
+  y <- coord_df %>%
+    dplyr::select(name, y) %>%
+    tibble::deframe()
   list(x = x, y = y)
 }

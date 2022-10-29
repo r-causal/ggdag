@@ -47,15 +47,17 @@ m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associa
       y ~ b + x,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   } else {
-  .dag <- dagify(
-    m ~ a + b,
-    x ~ a,
-    y ~ b,
-    exposure = "x",
-    outcome = "y",
-    coords = coords)
+    .dag <- dagify(
+      m ~ a + b,
+      x ~ a,
+      y ~ b,
+      exposure = "x",
+      outcome = "y",
+      coords = coords
+    )
   }
 
   if (!is.null(c(x, y, a, b, m))) label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
@@ -82,7 +84,8 @@ butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y
       y ~ b + x + m,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   } else {
     .dag <- dagify(
       m ~ a + b,
@@ -90,7 +93,8 @@ butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y
       y ~ b + m,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   }
 
   if (!is.null(c(x, y, a, b, m))) label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
@@ -114,14 +118,16 @@ confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = F
       y ~ x + z,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   } else {
     .dag <- dagify(
       x ~ z,
       y ~ z,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   }
 
   if (!is.null(c(x, y, z))) label(.dag) <- c(x = x, y = y, z = z)
@@ -145,13 +151,15 @@ collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FAL
       y ~ x,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   } else {
     .dag <- dagify(
       m ~ x + y,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   }
 
   if (!is.null(c(x, y, m))) label(.dag) <- c(x = x, y = y, m = m)
@@ -175,14 +183,16 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
       y ~ x + m,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   } else {
     .dag <- dagify(
       m ~ x,
       y ~ m,
       exposure = "x",
       outcome = "y",
-      coords = coords)
+      coords = coords
+    )
   }
 
   if (!is.null(c(x, y, m))) label(.dag) <- c(x = x, y = y, m = m)
@@ -196,9 +206,11 @@ ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_a
                          edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                          text_col = "white", label_col = text_col,
                          node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
-  ggdag(m_bias(x, y, a, b, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
-        node = node, stylized = stylized, text = text, use_labels = use_labels)
+  ggdag(m_bias(x, y, a, b, m, x_y_associated),
+    edge_type = edge_type,
+    node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+    node = node, stylized = stylized, text = text, use_labels = use_labels
+  )
 }
 
 #' @rdname quick_plot
@@ -207,9 +219,11 @@ ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NUL
                                  edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                  text_col = "white", label_col = text_col,
                                  node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
-  ggdag(butterfly_bias(x, y, a, b, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
-        node = node, stylized = stylized, text = text, use_labels = use_labels)
+  ggdag(butterfly_bias(x, y, a, b, m, x_y_associated),
+    edge_type = edge_type,
+    node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+    node = node, stylized = stylized, text = text, use_labels = use_labels
+  )
 }
 
 #' @rdname quick_plot
@@ -218,20 +232,24 @@ ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associat
                                       edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                       text_col = "white", label_col = text_col,
                                       node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
-  ggdag(confounder_triangle(x, y, z, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
-        node = node, stylized = stylized, text = text, use_labels = use_labels)
+  ggdag(confounder_triangle(x, y, z, x_y_associated),
+    edge_type = edge_type,
+    node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+    node = node, stylized = stylized, text = text, use_labels = use_labels
+  )
 }
 
 #' @rdname quick_plot
 #' @export
 ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
-                                    edge_type = "link_arc",  node_size = 16, text_size = 3.88, label_size = text_size,
+                                    edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                     text_col = "white", label_col = text_col,
                                     node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
-  ggdag(collider_triangle(x, y, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
-        node = node, stylized = stylized, text = text, use_labels = use_labels)
+  ggdag(collider_triangle(x, y, m, x_y_associated),
+    edge_type = edge_type,
+    node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+    node = node, stylized = stylized, text = text, use_labels = use_labels
+  )
 }
 
 #' @rdname quick_plot
@@ -240,7 +258,9 @@ ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associate
                                      edge_type = "link_arc", node_size = 16, text_size = 3.88, label_size = text_size,
                                      text_col = "white", label_col = text_col,
                                      node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
-  ggdag(mediation_triangle(x, y, m, x_y_associated), edge_type = edge_type,
-        node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
-        node = node, stylized = stylized, text = text, use_labels = use_labels)
+  ggdag(mediation_triangle(x, y, m, x_y_associated),
+    edge_type = edge_type,
+    node_size = node_size, text_size = text_size, text_col = text_col, label_col = label_col,
+    node = node, stylized = stylized, text = text, use_labels = use_labels
+  )
 }

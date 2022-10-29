@@ -10,4 +10,3 @@ test_that("themes look good", {
   expect_doppelganger("theme_dag_gray()", p + theme_dag_gray())
   expect_doppelganger("theme_dag_gray_grid()", p + theme_dag_gray_grid())
 })
-

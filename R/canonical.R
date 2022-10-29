@@ -27,7 +27,7 @@
 #' @export
 #'
 #' @examples
-#' dag <- dagify(y ~ x + z, x ~~ z)
+#' dag <- dagify(y ~ x + z, x ~ ~z)
 #'
 #' ggdag(dag)
 #'
@@ -48,11 +48,11 @@ ggdag_canonical <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 1
                             text_col = "white", label_col = text_col,
                             node = TRUE, stylized = FALSE, text = TRUE,
                             use_labels = NULL) {
-
-
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_canonical() %>%
-    ggdag(node_size = node_size, text_size = text_size, label_size,
-          edge_type = edge_type, text_col = text_col, label_col = label_col,
-          node = node, stylized = stylized, text = text, use_labels = use_labels)
+    ggdag(
+      node_size = node_size, text_size = text_size, label_size,
+      edge_type = edge_type, text_col = text_col, label_col = label_col,
+      node = node, stylized = stylized, text = text, use_labels = use_labels
+    )
 }

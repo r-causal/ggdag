@@ -48,7 +48,6 @@ ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
                             text_col = "white", label_col = text_col,
                             node = TRUE, stylized = FALSE, text = TRUE,
                             use_labels = NULL) {
-
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -60,17 +59,24 @@ ggdag_exogenous <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "exogenous"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "exogenous"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }

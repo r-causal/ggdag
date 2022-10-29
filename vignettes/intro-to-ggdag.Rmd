@@ -11,14 +11,14 @@ vignette: >
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
-	fig.align = "center",
-	fig.dpi = 320,
-	fig.height = 5,
-	fig.width = 5,
-	message = FALSE,
-	warning = FALSE,
-	collapse = TRUE,
-	comment = "#>"
+  fig.align = "center",
+  fig.dpi = 320,
+  fig.height = 5,
+  fig.width = 5,
+  message = FALSE,
+  warning = FALSE,
+  collapse = TRUE,
+  comment = "#>"
 )
 set.seed(2939)
 ```
@@ -46,9 +46,10 @@ Note that, while `dagitty` supports a number of graph types, `ggdag` currently o
 
 ```{r dagify}
 dagified <- dagify(x ~ z,
-                   y ~ z,
-                   exposure = "x",
-                   outcome = "y")
+  y ~ z,
+  exposure = "x",
+  outcome = "y"
+)
 tidy_dagitty(dagified)
 ```
 
@@ -81,12 +82,13 @@ Or working with the entire DAG to produce a `tidy_dagitty` that has all pathways
 
 ```{r pathways}
 bigger_dag <- dagify(y ~ x + a + b,
-                     x ~ a + b,
-                     exposure = "x",
-                     outcome = "y")
-#  automatically searches the paths between the variables labelled exposure and 
+  x ~ a + b,
+  exposure = "x",
+  outcome = "y"
+)
+#  automatically searches the paths between the variables labelled exposure and
 #  outcome
-dag_paths(bigger_dag)  
+dag_paths(bigger_dag)
 ```
 
 `ggdag` also supports [piping](https://r4ds.had.co.nz/pipes.html) of functions and includes the pipe internally (so you don't need to load `dplyr` or `magrittr`). Basic `dplyr` verbs are also supported (and anything more complex can be done directly on the `data` object).
@@ -94,10 +96,10 @@ dag_paths(bigger_dag)
 ```{r}
 library(dplyr)
 #  find how many variables are in between x and y in each path
-bigger_dag %>% 
+bigger_dag %>%
   dag_paths() %>%
   group_by(set) %>%
-  filter(!is.na(path) & !is.na(name)) %>% 
+  filter(!is.na(path) & !is.na(name)) %>%
   summarize(n_vars_between = n() - 1L)
 ```
 
@@ -117,7 +119,7 @@ ggdag_parents(bigger_dag, "x")
 ```
 
 ```{r ggdag_adjustment_}
-#  quickly get the miniminally sufficient adjustment sets to adjust for when 
+#  quickly get the miniminally sufficient adjustment sets to adjust for when
 #  analyzing the effect of x on y
 ggdag_adjustment_set(bigger_dag)
 ```
@@ -128,14 +130,14 @@ ggdag_adjustment_set(bigger_dag)
 `ggdag()` and friends are, by and large, fairly thin wrappers around included `ggplot2` geoms for plotting nodes, text, and edges to and from variables. For example, `ggdag_parents()` can be made directly in `ggplot2` like this:
 
 ```{r}
-bigger_dag %>% 
-    node_parents("x") %>%
-    ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
-      geom_dag_point() +
-      geom_dag_edges() +
-      geom_dag_text(col = "white") +
-      theme_dag() +
-      scale_color_hue(breaks  = c("parent", "child")) #  ignores NA in legend
+bigger_dag %>%
+  node_parents("x") %>%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
+  geom_dag_point() +
+  geom_dag_edges() +
+  geom_dag_text(col = "white") +
+  theme_dag() +
+  scale_color_hue(breaks = c("parent", "child")) #  ignores NA in legend
 ```
 
 The heavy lifters in `ggdag` are `geom_dag_node()`/`geom_dag_point()`, `geom_dag_edges()`, `geom_dag_text()`, `theme_dag()`, and `scale_adjusted()`. `geom_dag_node()` and `geom_dag_text()` plot the nodes and text, respectively, and are only modifications of `geom_point()` and `geom_text()`. `geom_dag_node()` is slightly stylized (it has an internal white circle), while `geom_dag_point()` looks more like `geom_point()` with a larger size. `theme_dag()` removes all axes and ticks, since those have little meaning in a causal model, and also makes a few other changes. `expand_plot()` is a convenience function that makes modifications to the scale of the plot to make them more amenable to nodes with large points and text `scale_adjusted()` provides defaults that are common in analyses of DAGs, e.g. setting the shape of adjusted variables to a square.
@@ -145,27 +147,31 @@ The heavy lifters in `ggdag` are `geom_dag_node()`/`geom_dag_point()`, `geom_dag
 You can also call edge functions directly, particularly if you only have directed edges. Much of `ggdag`'s edge functionality comes from `ggraph`, with defaults (e.g. arrow heads, truncated lines) set with DAGs in mind. Currently, `ggdag` has four type of edge geoms: `geom_dag_edges_link()`, which plots straight lines, `geom_dag_edges_arc()`, `geom_dag_edges_diagonal()`, and `geom_dag_edges_fan()`.
 
 ```{r}
-dagify(y ~ x,
-       m ~ x + y) %>% 
+dagify(
+  y ~ x,
+  m ~ x + y
+) %>%
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_point() +
-    geom_dag_edges_arc() +
-    geom_dag_text() +
-    theme_dag()
+  geom_dag_point() +
+  geom_dag_edges_arc() +
+  geom_dag_text() +
+  theme_dag()
 ```
 
 
 If you have bi-directed edges but would like to plot them as directed, `node_canonical()` will automatically insert the latent variable for you.
 
 ```{r canonical}
-dagify(y ~ x + z,
-       x ~~ z) %>% 
-    node_canonical() %>% 
-    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-      geom_dag_point() +
-      geom_dag_edges_diagonal() +
-      geom_dag_text() +
-      theme_dag()
+dagify(
+  y ~ x + z,
+  x ~ ~z
+) %>%
+  node_canonical() %>%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_point() +
+  geom_dag_edges_diagonal() +
+  geom_dag_text() +
+  theme_dag()
 ```
 
 There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.

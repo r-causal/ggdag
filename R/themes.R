@@ -12,9 +12,9 @@
 expand_plot <- function(expand_x = expansion(c(.10, .10)),
                         expand_y = expansion(c(.10, .10))) {
   list(
-      ggplot2::scale_x_continuous(expand = expand_x),
-      ggplot2::scale_y_continuous(expand = expand_y)
-    )
+    ggplot2::scale_x_continuous(expand = expand_x),
+    ggplot2::scale_y_continuous(expand = expand_y)
+  )
 }
 
 #' Minimalist DAG themes
@@ -31,12 +31,14 @@ expand_plot <- function(expand_x = expansion(c(.10, .10)),
 #'
 #' @importFrom ggplot2 %+replace%
 theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
-    ggplot2::theme_minimal(base_size = base_size, base_family = base_family) %+replace%
-    ggplot2::theme(strip.text = ggplot2::element_text(face = "bold"),
-                   axis.text = ggplot2::element_blank(),
-                   axis.title = ggplot2::element_blank(),
-                   panel.grid = ggplot2::element_blank(),
-                   ..., complete = TRUE)
+  ggplot2::theme_minimal(base_size = base_size, base_family = base_family) %+replace%
+    ggplot2::theme(
+      strip.text = ggplot2::element_text(face = "bold"),
+      axis.text = ggplot2::element_blank(),
+      axis.title = ggplot2::element_blank(),
+      panel.grid = ggplot2::element_blank(),
+      ..., complete = TRUE
+    )
 }
 
 #' @rdname theme_dag_blank
@@ -47,10 +49,12 @@ theme_dag <- theme_dag_blank
 #' @export
 #' @importFrom ggplot2 %+replace%
 theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
-      ggplot2::theme_minimal(base_size = base_size, base_family = base_family) %+replace%
-      ggplot2::theme(axis.text = ggplot2::element_blank(),
-                     axis.title = ggplot2::element_blank(),
-                     ..., complete = TRUE)
+  ggplot2::theme_minimal(base_size = base_size, base_family = base_family) %+replace%
+    ggplot2::theme(
+      axis.text = ggplot2::element_blank(),
+      axis.title = ggplot2::element_blank(),
+      ..., complete = TRUE
+    )
 }
 
 #' Simple grey themes for DAGs
@@ -68,13 +72,15 @@ theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
 #'
 #' @importFrom ggplot2 %+replace%
 theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
-    ggplot2::theme_grey(base_size = base_size, base_family = base_family) %+replace%
-    ggplot2::theme(axis.text = ggplot2::element_blank(),
-                   axis.title = ggplot2::element_blank(),
-                   axis.ticks = ggplot2::element_blank(),
-                   panel.grid.major = ggplot2::element_line(colour = "grey92"),
-                   panel.grid.minor = ggplot2::element_line(colour = "grey92"),
-                   ..., complete = TRUE)
+  ggplot2::theme_grey(base_size = base_size, base_family = base_family) %+replace%
+    ggplot2::theme(
+      axis.text = ggplot2::element_blank(),
+      axis.title = ggplot2::element_blank(),
+      axis.ticks = ggplot2::element_blank(),
+      panel.grid.major = ggplot2::element_line(colour = "grey92"),
+      panel.grid.minor = ggplot2::element_line(colour = "grey92"),
+      ..., complete = TRUE
+    )
 }
 
 #' @rdname theme_dag_grey
@@ -84,11 +90,13 @@ theme_dag_gray <- theme_dag_grey
 #' @rdname theme_dag_grey
 #' @export
 theme_dag_grey_grid <- function(base_size = 12, base_family = "", ...) {
-    ggplot2::theme_grey(base_size = base_size, base_family = base_family) %+replace%
-    ggplot2::theme(axis.text = ggplot2::element_blank(),
-                   axis.title = ggplot2::element_blank(),
-                   axis.ticks = ggplot2::element_blank(),
-                   ..., complete = TRUE)
+  ggplot2::theme_grey(base_size = base_size, base_family = base_family) %+replace%
+    ggplot2::theme(
+      axis.text = ggplot2::element_blank(),
+      axis.title = ggplot2::element_blank(),
+      axis.ticks = ggplot2::element_blank(),
+      ..., complete = TRUE
+    )
 }
 
 #' @rdname theme_dag_grey
@@ -140,9 +148,9 @@ breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver()) {
 scale_dag <- function(breaks = ggplot2::waiver()) {
   .Deprecated("scale_adjusted")
   list(
-      scale_adjusted(),
-      breaks(breaks = breaks)
-    )
+    scale_adjusted(),
+    breaks(breaks = breaks)
+  )
 }
 
 #' Quickly remove plot axes and grids
@@ -156,14 +164,16 @@ scale_dag <- function(breaks = ggplot2::waiver()) {
 #' @examples
 #' library(ggplot2)
 #' ggdag(confounder_triangle()) +
-#' theme_bw() +
-#' remove_axes()
+#'   theme_bw() +
+#'   remove_axes()
 #'
 #' @rdname remove_axes
 remove_axes <- function() {
-  ggplot2::theme(axis.text = ggplot2::element_blank(),
-                 axis.title = ggplot2::element_blank(),
-                 axis.ticks = ggplot2::element_blank())
+  ggplot2::theme(
+    axis.text = ggplot2::element_blank(),
+    axis.title = ggplot2::element_blank(),
+    axis.ticks = ggplot2::element_blank()
+  )
 }
 
 #' @rdname remove_axes

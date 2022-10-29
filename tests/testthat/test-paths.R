@@ -13,7 +13,8 @@ test_that("DAG paths are identified and drawn correctly", {
     y ~ x + z,
     exposure = "x",
     outcome = "y",
-    coords = coords_confounder)
+    coords = coords_confounder
+  )
 
 
   coords_butterfly <- tibble::tribble(
@@ -31,7 +32,8 @@ test_that("DAG paths are identified and drawn correctly", {
     y ~ b + x + m,
     exposure = "x",
     outcome = "y",
-    coords = coords_butterfly)
+    coords = coords_butterfly
+  )
 
   p1 <- confounder_triangle_dag %>%
     ggdag_paths(from = "x", to = "y")

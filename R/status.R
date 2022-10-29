@@ -34,7 +34,8 @@
 #'   y ~ x,
 #'   exposure = "x",
 #'   outcome = "y",
-#'   latent = "l")
+#'   latent = "l"
+#' )
 #'
 #' node_status(dag)
 #' ggdag_status(dag)
@@ -47,10 +48,14 @@ node_status <- function(.dag, as_factor = TRUE, ...) {
   .outcomes <- dagitty::outcomes(.tdy_dag$dag)
   .latents <- dagitty::latents(.tdy_dag$dag)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 status = ifelse(name %in% .exposures, "exposure",
-                                                 ifelse(name %in% .outcomes, "outcome",
-                                                        ifelse(name %in% .latents, "latent",
-                                                               NA))))
+    status = ifelse(name %in% .exposures, "exposure",
+      ifelse(name %in% .outcomes, "outcome",
+        ifelse(name %in% .latents, "latent",
+          NA
+        )
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$status <- factor(.tdy_dag$data$status, exclude = NA)
   .tdy_dag
 }
@@ -62,7 +67,6 @@ ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, 
                          text_col = "white", label_col = text_col,
                          node = TRUE, stylized = FALSE, text = TRUE,
                          use_labels = NULL) {
-
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
@@ -74,17 +78,24 @@ ggdag_status <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, 
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "status"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "status"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }

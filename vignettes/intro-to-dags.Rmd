@@ -13,8 +13,8 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 7, 
-  fig.height = 4, 
+  fig.width = 7,
+  fig.height = 4,
   fig.align = "center",
   fig.dpi = 320,
   warning = FALSE,
@@ -38,14 +38,14 @@ theme_set(theme_dag())
 A DAG displays assumptions about the relationship between variables (often called nodes in the context of graphs). The assumptions we make take the form of lines (or edges) going from one node to another. These edges are *directed*, which means to say that they have a single arrowhead indicating their effect. Here's a simple DAG where we assume that *x* affects *y*:
 
 ```{r, fig.width = 4}
-dagify(y ~ x) %>% 
+dagify(y ~ x) %>%
   ggdag()
 ```
 
 You also sometimes see edges that look bi-directed, like this:
 
 ```{r, fig.width = 4}
-dagify(y ~~ x) %>% 
+dagify(y ~ ~x) %>%
   ggdag()
 ```
 
@@ -53,17 +53,19 @@ But this is actually shorthand for an unmeasured cause of the two variables (in 
 
 ```{r, fig.width = 4}
 #  canonicalize the DAG: Add the latent variable in to the graph
-dagify(y ~~ x) %>% 
-  ggdag_canonical() 
+dagify(y ~ ~x) %>%
+  ggdag_canonical()
 ```
 
 A DAG is also *acyclic*, which means that there are no feedback loops; a variable can't be its own descendant. The above are all DAGs because they are acyclic, but this is not:
 
 ```{r, fig.width = 4}
-dagify(y ~ x,
-       x ~ a,
-       a ~ y) %>% 
-  ggdag() 
+dagify(
+  y ~ x,
+  x ~ a,
+  a ~ y
+) %>%
+  ggdag()
 ```
 
 # Structural Causal Graphs
@@ -76,17 +78,20 @@ Let's say we're looking at the relationship between smoking and cardiac arrest. 
 
 ```{r}
 smoking_ca_dag <- dagify(cardiacarrest ~ cholesterol,
-       cholesterol ~ smoking + weight,
-       smoking ~ unhealthy,
-       weight ~ unhealthy,
-       labels = c("cardiacarrest" = "Cardiac\n Arrest", 
-                  "smoking" = "Smoking",
-                  "cholesterol" = "Cholesterol",
-                  "unhealthy" = "Unhealthy\n Lifestyle",
-                  "weight" = "Weight"),
-       latent = "unhealthy",
-       exposure = "smoking",
-       outcome = "cardiacarrest")
+  cholesterol ~ smoking + weight,
+  smoking ~ unhealthy,
+  weight ~ unhealthy,
+  labels = c(
+    "cardiacarrest" = "Cardiac\n Arrest",
+    "smoking" = "Smoking",
+    "cholesterol" = "Cholesterol",
+    "unhealthy" = "Unhealthy\n Lifestyle",
+    "weight" = "Weight"
+  ),
+  latent = "unhealthy",
+  exposure = "smoking",
+  outcome = "cardiacarrest"
+)
 
 ggdag(smoking_ca_dag, text = FALSE, use_labels = "label")
 ```
@@ -133,9 +138,11 @@ In a path that is an inverted fork (x -> m <- y), the node where two or more arr
 Let's consider an example. Influenza and chicken pox are independent; their causes (influenza viruses and the varicella-zoster virus, respectively) have nothing to do with each other. In real life, there may be some confounders that associate them, like having a depressed immune system, but for this example we'll assume that they are unconfounded. However, both the flu and chicken pox cause fevers. The DAG looks like this:
 
 ```{r, fig.width = 4}
-fever_dag <- collider_triangle(x = "Influenza", 
-                  y = "Chicken Pox", 
-                  m = "Fever") 
+fever_dag <- collider_triangle(
+  x = "Influenza",
+  y = "Chicken Pox",
+  m = "Fever"
+)
 
 ggdag(fever_dag, text = FALSE, use_labels = "label")
 ```
@@ -149,22 +156,29 @@ ggdag_dseparated(fever_dag, text = FALSE, use_labels = "label")
 However, if we control for fever, they become associated within strata of the collider, fever. We open a biasing pathway between the two, and they become d-connected:
 
 ```{r}
-ggdag_dseparated(fever_dag, controlling_for = "m", 
-                 text = FALSE, use_labels = "label")
+ggdag_dseparated(fever_dag,
+  controlling_for = "m",
+  text = FALSE, use_labels = "label"
+)
 ```
 
 This can be counter-intuitive at first. Why does controlling for a confounder reduce bias but adjusting for a collider increase it? It's because whether or not you have a fever tells me something about your disease. If you have a fever, but you don't have the flu, I now have more evidence that you have chicken pox. Pearl presents it like algebra: I can't solve *y* = 10 + *m*. But when I know that *m* = 1, I can solve for *y*.
 
 Unfortunately, there's a second, less obvious form of collider-stratification bias: adjusting on the *descendant* of a collider. That means that a variable downstream from the collider can also cause this form of bias. For example, with our flu-chicken pox-fever example, it may be that having a fever leads to people taking a fever reducer, like acetaminophen. Because fever reducers are downstream from fever, controlling for it induces downstream collider-stratification bias:
 ```{r}
-dagify(fever ~ flu + pox, 
-        acetaminophen ~ fever,
-        labels = c("flu" = "Influenza",
-                   "pox" = "Chicken Pox",
-                   "fever" = "Fever",
-                   "acetaminophen" = "Acetaminophen")) %>% 
-ggdag_dseparated(from = "flu", to = "pox", controlling_for = "acetaminophen",
-                 text = FALSE, use_labels = "label")
+dagify(fever ~ flu + pox,
+  acetaminophen ~ fever,
+  labels = c(
+    "flu" = "Influenza",
+    "pox" = "Chicken Pox",
+    "fever" = "Fever",
+    "acetaminophen" = "Acetaminophen"
+  )
+) %>%
+  ggdag_dseparated(
+    from = "flu", to = "pox", controlling_for = "acetaminophen",
+    text = FALSE, use_labels = "label"
+  )
 ```
 
 
@@ -175,8 +189,10 @@ Collider-stratification bias is responsible for many cases of bias, and it is of
 Controlling for intermediate variables may also induce bias, because it decomposes the total effect of *x* on *y* into its parts. Depending on the research question, that may be exactly what you want, in which case you should use mediation analysis, e.g. via SEM, which can estimate direct, indirect, and total effects. Let's return to the smoking example. Here, we only care about how smoking affects cardiac arrest, not the pathways through cholesterol it may take. Moreover, since cholesterol (at least in our DAG) intercepts the only directed pathway from smoking to cardiac arrest, controlling for it will block that relationship; smoking and cardiac arrest will appear unassociated (note that I'm not including the paths opened by controlling for a collider in this plot for clarity):
 
 ```{r}
-ggdag_dseparated(smoking_ca_dag, controlling_for = c("weight", "cholesterol"), 
-                 text = FALSE, use_labels = "label", collider_lines = FALSE)
+ggdag_dseparated(smoking_ca_dag,
+  controlling_for = c("weight", "cholesterol"),
+  text = FALSE, use_labels = "label", collider_lines = FALSE
+)
 ```
 
 Now smoking and cardiac arrest are d-separated. Since our question is about the total effect of smoking on cardiac arrest, our result is now going to be biased.

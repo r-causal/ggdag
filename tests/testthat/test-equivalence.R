@@ -24,9 +24,11 @@ test_that("dags ............", {
     y ~ x,
     y ~ z,
     x ~ z,
-    labels = c("y" = "Outcome",
-               "x" = "Exposure",
-               "z" = "Confounder"),
+    labels = c(
+      "y" = "Outcome",
+      "x" = "Exposure",
+      "z" = "Confounder"
+    ),
     exposure = "x",
     outcome = "y"
   ) %>%
@@ -42,4 +44,3 @@ test_that("dags ............", {
   p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = "label")
   expect_doppelganger("ggdag_equivalent_class() plots labels", p5)
 })
-

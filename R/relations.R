@@ -33,11 +33,13 @@
 #'
 #' @examples
 #' library(ggplot2)
-#' dag <- dagify(y ~ x + z2 + w2 + w1,
+#' dag <- dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~~ w2)
+#'   w1 ~ ~w2
+#' )
 #'
 #' ggdag_children(dag, "w1")
 #'
@@ -50,7 +52,7 @@
 #'   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
 #'   theme_dag() +
 #'   scale_adjusted() +
-#'   scale_color_hue(breaks  = c("parent", "child"))
+#'   scale_color_hue(breaks = c("parent", "child"))
 #'
 #' ggdag_parents(dag, "y")
 #'
@@ -67,7 +69,7 @@
 #'   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
 #'   theme_dag() +
 #'   scale_adjusted() +
-#'   scale_color_hue(breaks  = c("parent", "child"))
+#'   scale_color_hue(breaks = c("parent", "child"))
 #'
 #' @rdname variable_family
 #' @name Assess familial relationships between variables
@@ -76,9 +78,12 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
 
   .children <- dagitty::children(.tdy_dag$dag, .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 children = ifelse(name %in% .children, "child",
-                                                   ifelse(name == .var, "parent",
-                                                          NA)))
+    children = ifelse(name %in% .children, "child",
+      ifelse(name == .var, "parent",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$children <- factor(.tdy_dag$data$children, exclude = NA)
   .tdy_dag
 }
@@ -90,9 +95,12 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
 
   .parent <- dagitty::parents(.tdy_dag$dag, .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 parent = ifelse(name %in% .parent, "parent",
-                                                 ifelse(name == .var, "child",
-                                                        NA)))
+    parent = ifelse(name %in% .parent, "parent",
+      ifelse(name == .var, "child",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$parent <- factor(.tdy_dag$data$parent, exclude = NA)
   .tdy_dag
 }
@@ -104,9 +112,12 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
 
   .ancestors <- dagitty::ancestors(.tdy_dag$dag, .var)[-1]
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 ancestor = ifelse(name %in% .ancestors, "ancestor",
-                                                   ifelse(name == .var, "descendant",
-                                                          NA)))
+    ancestor = ifelse(name %in% .ancestors, "ancestor",
+      ifelse(name == .var, "descendant",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$ancestor <- factor(.tdy_dag$data$ancestor, exclude = NA)
   .tdy_dag
 }
@@ -118,9 +129,12 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 
   .descendants <- dagitty::descendants(.tdy_dag$dag, .var)[-1]
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 descendant = ifelse(name %in% .descendants, "descendant",
-                                                     ifelse(name == .var, "ancestor",
-                                                            NA)))
+    descendant = ifelse(name %in% .descendants, "descendant",
+      ifelse(name == .var, "ancestor",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$descendant <- factor(.tdy_dag$data$descendant, exclude = NA)
   .tdy_dag
 }
@@ -132,9 +146,12 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
 
   .blanket <- dagitty::markovBlanket(.tdy_dag$dag, .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 blanket = ifelse(name %in% .blanket, "Markov blanket",
-                                                     ifelse(name == .var, "center variable",
-                                                            NA)))
+    blanket = ifelse(name %in% .blanket, "Markov blanket",
+      ifelse(name == .var, "center variable",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$blanket <- factor(.tdy_dag$data$blanket, exclude = NA)
   .tdy_dag
 }
@@ -146,9 +163,12 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
 
   .adjacent <- dagitty::adjacentNodes(.tdy_dag$dag, .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 adjacent = ifelse(name %in% .adjacent, "adjacent",
-                                                  ifelse(name == .var, "center variable",
-                                                         NA)))
+    adjacent = ifelse(name %in% .adjacent, "adjacent",
+      ifelse(name == .var, "center variable",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$adjacent <- factor(.tdy_dag$data$adjacent, exclude = NA)
   .tdy_dag
 }
@@ -157,8 +177,8 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                            node_size = 16, text_size = 3.88, label_size = text_size,
-                          text_col = "white", label_col = text_col,
-                          node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                           text_col = "white", label_col = text_col,
+                           node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -170,18 +190,25 @@ ggdag_children <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "children"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "children"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
@@ -203,18 +230,25 @@ ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "parent"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "parent"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
@@ -222,8 +256,8 @@ ggdag_parents <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 #' @export
 ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                             node_size = 16, text_size = 3.88, label_size = text_size,
-                          text_col = "white", label_col = text_col,
-                          node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                            text_col = "white", label_col = text_col,
+                            node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -235,18 +269,25 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "ancestor"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "ancestor"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
@@ -254,8 +295,8 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 #' @export
 ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
                               node_size = 16, text_size = 3.88, label_size = text_size,
-                          text_col = "white", label_col = text_col,
-                          node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                              text_col = "white", label_col = text_col,
+                              node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -268,27 +309,34 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "descendant"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "descendant"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                              node_size = 16, text_size = 3.88, label_size = text_size,
-                              text_col = "white", label_col = text_col,
-                              node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                                 node_size = 16, text_size = 3.88, label_size = text_size,
+                                 text_col = "white", label_col = text_col,
+                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -301,27 +349,34 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "blanket"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "blanket"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
-                                 node_size = 16, text_size = 3.88, label_size = text_size,
-                                 text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                           node_size = 16, text_size = 3.88, label_size = text_size,
+                           text_col = "white", label_col = text_col,
+                           node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
@@ -334,17 +389,24 @@ ggdag_adjacent <- function(.tdy_dag, .var, ..., edge_type = "link_arc",
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "adjacent"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "adjacent"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }

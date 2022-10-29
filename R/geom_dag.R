@@ -32,8 +32,8 @@
 #' p <- g %>%
 #'   tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_edges() +
-#'     theme_dag()
+#'   geom_dag_edges() +
+#'   theme_dag()
 #'
 #' p +
 #'   geom_dag_node() +
@@ -50,7 +50,6 @@ geom_dag_node <- function(mapping = NULL, data = NULL,
                           na.rm = FALSE,
                           show.legend = NA,
                           inherit.aes = TRUE) {
-
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -69,12 +68,11 @@ geom_dag_node <- function(mapping = NULL, data = NULL,
 #' @export
 #' @rdname node_point
 geom_dag_point <- function(mapping = NULL, data = NULL,
-                          position = "identity",
-                          ...,
-                          na.rm = FALSE,
-                          show.legend = NA,
-                          inherit.aes = TRUE) {
-
+                           position = "identity",
+                           ...,
+                           na.rm = FALSE,
+                           show.legend = NA,
+                           inherit.aes = TRUE) {
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -117,12 +115,12 @@ geom_dag_point <- function(mapping = NULL, data = NULL,
 #' library(ggplot2)
 #' g <- dagify(m ~ x + y, y ~ x)
 #' g %>%
-#' tidy_dagitty() %>%
+#'   tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_point() +
-#'     geom_dag_edges() +
-#'     geom_dag_text() +
-#'     theme_dag()
+#'   geom_dag_point() +
+#'   geom_dag_edges() +
+#'   geom_dag_text() +
+#'   theme_dag()
 geom_dag_text <- function(mapping = NULL, data = NULL,
                           stat = "identity", position = "identity",
                           ...,
@@ -132,8 +130,7 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
                           check_overlap = FALSE,
                           na.rm = FALSE,
                           show.legend = NA,
-                          inherit.aes = TRUE)
-{
+                          inherit.aes = TRUE) {
   if (!missing(nudge_x) || !missing(nudge_y)) {
     if (!missing(position)) {
       stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
@@ -182,30 +179,36 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #' @examples
 #' library(ggplot2)
 #' g <- dagify(m ~ x + y,
-#' y ~ x,
-#' exposure = "x",
-#' outcome = "y",
-#' latent = "m",
-#' labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider"))
+#'   y ~ x,
+#'   exposure = "x",
+#'   outcome = "y",
+#'   latent = "m",
+#'   labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
+#' )
 #'
-#' g %>% tidy_dagitty() %>%
+#' g %>%
+#'   tidy_dagitty() %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_edges() +
-#'     geom_dag_point() +
-#'     geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
-#'     theme_dag()
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
+#'   theme_dag()
 #'
-#' g %>% tidy_dagitty() %>%
-#'   dag_label(labels = c("x" = "This is the exposure",
+#' g %>%
+#'   tidy_dagitty() %>%
+#'   dag_label(labels = c(
+#'     "x" = "This is the exposure",
 #'     "y" = "Here's the outcome",
-#'     "m" = "Here is where they collide")) %>%
+#'     "m" = "Here is where they collide"
+#'   )) %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_edges() +
-#'     geom_dag_point() +
-#'     geom_dag_text() +
-#'     geom_dag_label_repel(aes(label = label, fill = label),
-#'       col = "white", show.legend = FALSE) +
-#'     theme_dag()
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text() +
+#'   geom_dag_label_repel(aes(label = label, fill = label),
+#'     col = "white", show.legend = FALSE
+#'   ) +
+#'   theme_dag()
 #'
 #' @rdname repel
 #' @name ggrepel functions
@@ -226,59 +229,54 @@ geom_dag_text_repel <- function(mapping = NULL,
                                 na.rm = FALSE,
                                 show.legend = NA,
                                 inherit.aes = TRUE) {
-
-
-  ggplot2::layer(data = data,
-                 mapping = mapping,
-                 stat = StatNodesRepel,
-                 geom = ggrepel::GeomTextRepel,
-                 position = "identity",
-                 show.legend = show.legend,
-                 inherit.aes = inherit.aes,
-                 params = list(
-                   parse = parse,
-                   na.rm = na.rm,
-                   box.padding = box.padding,
-                   point.padding = point.padding,
-                   segment.colour = segment.color %||% segment.colour,
-                   segment.size = segment.size,
-                   fontface = fontface,
-                   arrow = arrow,
-                   force = force,
-                   max.iter = max.iter,
-                   nudge_x = nudge_x,
-                   nudge_y = nudge_y,
-                   ...
-                 )
+  ggplot2::layer(
+    data = data,
+    mapping = mapping,
+    stat = StatNodesRepel,
+    geom = ggrepel::GeomTextRepel,
+    position = "identity",
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      parse = parse,
+      na.rm = na.rm,
+      box.padding = box.padding,
+      point.padding = point.padding,
+      segment.colour = segment.color %||% segment.colour,
+      segment.size = segment.size,
+      fontface = fontface,
+      arrow = arrow,
+      force = force,
+      max.iter = max.iter,
+      nudge_x = nudge_x,
+      nudge_y = nudge_y,
+      ...
+    )
   )
-
 }
 
 #' @rdname repel
 #' @export
 #'
 #' @importFrom purrr %||%
-geom_dag_label_repel <- function(
-  mapping = NULL, data = NULL,
-  parse = FALSE,
-  ...,
-  box.padding = grid::unit(0.35, "lines"),
-  label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1.5, "lines"),
-  label.r = grid::unit(0.15, "lines"),
-  label.size = 0.25,
-  segment.color = "grey50",
-  segment.size = 0.5,
-  arrow = NULL,
-  force = 1,
-  max.iter = 2000,
-  nudge_x = 0,
-  nudge_y = 0,
-  na.rm = FALSE,
-  show.legend = NA,
-  inherit.aes = TRUE
-) {
-
+geom_dag_label_repel <- function(mapping = NULL, data = NULL,
+                                 parse = FALSE,
+                                 ...,
+                                 box.padding = grid::unit(0.35, "lines"),
+                                 label.padding = grid::unit(0.25, "lines"),
+                                 point.padding = grid::unit(1.5, "lines"),
+                                 label.r = grid::unit(0.15, "lines"),
+                                 label.size = 0.25,
+                                 segment.color = "grey50",
+                                 segment.size = 0.5,
+                                 arrow = NULL,
+                                 force = 1,
+                                 max.iter = 2000,
+                                 nudge_x = 0,
+                                 nudge_y = 0,
+                                 na.rm = FALSE,
+                                 show.legend = NA,
+                                 inherit.aes = TRUE) {
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -289,9 +287,9 @@ geom_dag_label_repel <- function(
     inherit.aes = inherit.aes,
     params = list(
       parse = parse,
-      box.padding  = box.padding,
+      box.padding = box.padding,
       label.padding = label.padding,
-      point.padding  = point.padding,
+      point.padding = point.padding,
       label.r = label.r,
       label.size = label.size,
       segment.colour = segment.color %||% segment.colour,
@@ -310,11 +308,10 @@ geom_dag_label_repel <- function(
 filter_direction <- function(.direction) {
   function(x) {
     x <- dplyr::filter(x, direction == .direction)
-    if ("collider_line" %in% names(x)) x <-  dplyr::filter(x, !collider_line)
+    if ("collider_line" %in% names(x)) x <- dplyr::filter(x, !collider_line)
 
     x
   }
-
 }
 
 #' Directed and bidirected DAG edges
@@ -382,16 +379,18 @@ filter_direction <- function(.direction) {
 #'
 #' @examples
 #' library(ggplot2)
-#' dagify(y ~ x + z2 + w2 + w1,
+#' dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~~ w2) %>%
+#'   w1 ~ ~w2
+#' ) %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_edges() +
-#'     geom_dag_point() +
-#'     geom_dag_text() +
-#'     theme_dag()
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text() +
+#'   theme_dag()
 #'
 geom_dag_edges <- function(mapping = NULL,
                            data_directed = filter_direction("->"),
@@ -402,15 +401,19 @@ geom_dag_edges <- function(mapping = NULL,
                            position = "identity", na.rm = TRUE, show.legend = NA, inherit.aes = TRUE, fold = FALSE,
                            ...) {
   list(
-    geom_dag_edges_link(mapping, data = data_directed, arrow = arrow_directed,
-                           position = position, na.rm = na.rm,
-                           show.legend = show.legend, inherit.aes = inherit.aes,
-                           ...),
-    geom_dag_edges_arc(mapping, data = data_bidirected, arrow = arrow_bidirected,
-                          curvature = curvature, position = position,
-                          na.rm = na.rm, show.legend = show.legend,
-                          inherit.aes = inherit.aes, fold = fold,
-                          ...)
+    geom_dag_edges_link(mapping,
+      data = data_directed, arrow = arrow_directed,
+      position = position, na.rm = na.rm,
+      show.legend = show.legend, inherit.aes = inherit.aes,
+      ...
+    ),
+    geom_dag_edges_arc(mapping,
+      data = data_bidirected, arrow = arrow_bidirected,
+      curvature = curvature, position = position,
+      na.rm = na.rm, show.legend = show.legend,
+      inherit.aes = inherit.aes, fold = fold,
+      ...
+    )
   )
 }
 
@@ -482,15 +485,17 @@ geom_dag_edges <- function(mapping = NULL,
 #'
 #' @examples
 #' library(ggplot2)
-#' p <- dagify(y ~ x + z2 + w2 + w1,
+#' p <- dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   L ~ w1 + w2) %>%
+#'   L ~ w1 + w2
+#' ) %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-#'     geom_dag_point() +
-#'     geom_dag_text() +
-#'     theme_dag()
+#'   geom_dag_point() +
+#'   geom_dag_text() +
+#'   theme_dag()
 #'
 #' p + geom_dag_edges_link()
 #' p + geom_dag_edges_arc()
@@ -500,52 +505,56 @@ geom_dag_edges <- function(mapping = NULL,
 #' @rdname geom_dag_edge_functions
 #' @name DAG Edges
 geom_dag_edges_link <- function(mapping = NULL, data = NULL,
-                           arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-                           position = "identity", na.rm = TRUE, show.legend = NA,
-                           inherit.aes = TRUE, ...) {
-
-    ggplot2::layer(mapping = mapping,
-                   geom = GeomDAGEdgePath,
-                   data = data,
-                   stat = StatEdgeLink,
-                   position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-                   check.aes = FALSE,
-                   params = list(arrow = arrow, interpolate = FALSE, na.rm = na.rm, ...))
+                                arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                                position = "identity", na.rm = TRUE, show.legend = NA,
+                                inherit.aes = TRUE, ...) {
+  ggplot2::layer(
+    mapping = mapping,
+    geom = GeomDAGEdgePath,
+    data = data,
+    stat = StatEdgeLink,
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    check.aes = FALSE,
+    params = list(arrow = arrow, interpolate = FALSE, na.rm = na.rm, ...)
+  )
 }
 
 #' @rdname geom_dag_edge_functions
 #' @export
 geom_dag_edges_arc <- function(mapping = NULL, data = NULL, curvature = .5,
-                                arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-                                position = "identity", na.rm = TRUE, show.legend = NA,
-                                inherit.aes = TRUE, fold = FALSE,
-                                n = 100, lineend = "butt",
-                                linejoin = "round", linemitre = 1,
-                                label_colour = "black",  label_alpha = 1,
-                                label_parse = FALSE, check_overlap = FALSE,
-                                angle_calc = "rot", force_flip = TRUE,
-                                label_dodge = NULL, label_push = NULL, ...) {
-
+                               arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                               position = "identity", na.rm = TRUE, show.legend = NA,
+                               inherit.aes = TRUE, fold = FALSE,
+                               n = 100, lineend = "butt",
+                               linejoin = "round", linemitre = 1,
+                               label_colour = "black", label_alpha = 1,
+                               label_parse = FALSE, check_overlap = FALSE,
+                               angle_calc = "rot", force_flip = TRUE,
+                               label_dodge = NULL, label_push = NULL, ...) {
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(circular = circular)
   } else if (is.null(mapping$circular)) {
     mapping$circular <- substitute(circular)
   }
 
-  ggplot2::layer(mapping = mapping,
-                 geom = GeomDAGEdgePath,
-                 data = data,
-                 stat = StatEdgeArc,
-                 check.aes = FALSE,
-                 position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-                 params = list(arrow = arrow, strength = curvature,
-                               interpolate = FALSE, fold = fold, na.rm = na.rm,
-                               n = n, lineend = lineend,
-                               linejoin = linejoin, linemitre = linemitre,
-                               label_colour = label_colour,  label_alpha = label_alpha,
-                               label_parse = label_parse, check_overlap = check_overlap,
-                               angle_calc = angle_calc, force_flip = force_flip,
-                               label_dodge = label_dodge, label_push = label_push, ...))
+  ggplot2::layer(
+    mapping = mapping,
+    geom = GeomDAGEdgePath,
+    data = data,
+    stat = StatEdgeArc,
+    check.aes = FALSE,
+    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    params = list(
+      arrow = arrow, strength = curvature,
+      interpolate = FALSE, fold = fold, na.rm = na.rm,
+      n = n, lineend = lineend,
+      linejoin = linejoin, linemitre = linemitre,
+      label_colour = label_colour, label_alpha = label_alpha,
+      label_parse = label_parse, check_overlap = check_overlap,
+      angle_calc = angle_calc, force_flip = force_flip,
+      label_dodge = label_dodge, label_push = label_push, ...
+    )
+  )
 }
 
 #' @inheritParams ggraph::geom_edge_diagonal
@@ -553,31 +562,33 @@ geom_dag_edges_arc <- function(mapping = NULL, data = NULL, curvature = .5,
 #' @rdname geom_dag_edge_functions
 #' @export
 geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "identity",
-                               arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-                               na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
-                               curvature = 1, n = 100, lineend = "butt",
-                               linejoin = "round", linemitre = 1,
-                               label_colour = "black",  label_alpha = 1,
-                               label_parse = FALSE, check_overlap = FALSE,
-                               angle_calc = "rot", force_flip = TRUE,
-                               label_dodge = NULL, label_push = NULL, ...) {
-
+                                    arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                                    na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
+                                    curvature = 1, n = 100, lineend = "butt",
+                                    linejoin = "round", linemitre = 1,
+                                    label_colour = "black", label_alpha = 1,
+                                    label_parse = FALSE, check_overlap = FALSE,
+                                    angle_calc = "rot", force_flip = TRUE,
+                                    label_dodge = NULL, label_push = NULL, ...) {
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(circular = circular)
   } else if (is.null(mapping$circular)) {
     mapping$circular <- substitute(circular)
   }
 
-  ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeDiagonal,
-        geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
-        inherit.aes = inherit.aes,
-        params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
-               n = n, lineend = lineend, flipped = FALSE, strength = curvature,
-               linejoin = linejoin, linemitre = linemitre,
-               label_colour = label_colour, label_alpha = label_alpha,
-               label_parse = label_parse, check_overlap = check_overlap,
-               angle_calc = angle_calc, force_flip = force_flip,
-               label_dodge = label_dodge, label_push = label_push, ...)
+  ggplot2::layer(
+    data = data, mapping = mapping, stat = StatEdgeDiagonal,
+    geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      arrow = arrow, na.rm = na.rm, interpolate = FALSE,
+      n = n, lineend = lineend, flipped = FALSE, strength = curvature,
+      linejoin = linejoin, linemitre = linemitre,
+      label_colour = label_colour, label_alpha = label_alpha,
+      label_parse = label_parse, check_overlap = check_overlap,
+      angle_calc = angle_calc, force_flip = force_flip,
+      label_dodge = label_dodge, label_push = label_push, ...
+    )
   )
 }
 
@@ -586,15 +597,14 @@ geom_dag_edges_diagonal <- function(mapping = NULL, data = NULL, position = "ide
 #' @rdname geom_dag_edge_functions
 #' @export
 geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity",
-                                    arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
-                                    na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
-                                    spread = .7, n = 100, lineend = "butt",
-                                    linejoin = "round", linemitre = 1,
-                                    label_colour = "black",  label_alpha = 1,
-                                    label_parse = FALSE, check_overlap = FALSE,
-                                    angle_calc = "rot", force_flip = TRUE,
-                                    label_dodge = NULL, label_push = NULL, ...) {
-
+                               arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
+                               na.rm = TRUE, show.legend = NA, inherit.aes = TRUE,
+                               spread = .7, n = 100, lineend = "butt",
+                               linejoin = "round", linemitre = 1,
+                               label_colour = "black", label_alpha = 1,
+                               label_parse = FALSE, check_overlap = FALSE,
+                               angle_calc = "rot", force_flip = TRUE,
+                               label_dodge = NULL, label_push = NULL, ...) {
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(from = name, to = to)
   } else if (is.null(mapping$from)) {
@@ -602,16 +612,19 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
     mapping$to <- substitute(to)
   }
 
-  ggplot2::layer(data = data, mapping = mapping, stat = StatEdgeFan,
-                 geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
-                 inherit.aes = inherit.aes,
-                 params = list(arrow = arrow, na.rm = na.rm, interpolate = FALSE,
-                               n = n, lineend = lineend, strength = spread,
-                               linejoin = linejoin, linemitre = linemitre,
-                               label_colour = label_colour, label_alpha = label_alpha,
-                               label_parse = label_parse, check_overlap = check_overlap,
-                               angle_calc = angle_calc, force_flip = force_flip,
-                               label_dodge = label_dodge, label_push = label_push, ...)
+  ggplot2::layer(
+    data = data, mapping = mapping, stat = StatEdgeFan,
+    geom = GeomDAGEdgePath, position = position, show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      arrow = arrow, na.rm = na.rm, interpolate = FALSE,
+      n = n, lineend = lineend, strength = spread,
+      linejoin = linejoin, linemitre = linemitre,
+      label_colour = label_colour, label_alpha = label_alpha,
+      label_parse = label_parse, check_overlap = check_overlap,
+      angle_calc = angle_calc, force_flip = force_flip,
+      label_dodge = label_dodge, label_push = label_push, ...
+    )
   )
 }
 
@@ -633,12 +646,12 @@ geom_dag_edges_fan <- function(mapping = NULL, data = NULL, position = "identity
 #'   tidy_dagitty() %>%
 #'   control_for("m") %>%
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
-#'     geom_dag_edges() +
-#'     geom_dag_collider_edges() +
-#'     geom_dag_point() +
-#'     geom_dag_text() +
-#'     theme_dag() +
-#'     scale_adjusted()
+#'   geom_dag_edges() +
+#'   geom_dag_collider_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text() +
+#'   theme_dag() +
+#'   scale_adjusted()
 geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     stat = "identity", position = "identity",
                                     ...,
@@ -651,7 +664,6 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
                                     na.rm = FALSE,
                                     show.legend = NA,
                                     inherit.aes = TRUE) {
-
   if (is.null(data)) data <- function(x) dplyr::filter(x, direction == "<->", collider_line)
   if (is.null(mapping)) mapping <- ggplot2::aes(linetype = factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
   if (is.null(mapping$linetype)) mapping$linetype <- substitute(factor(collider_line, levels = TRUE, "activated by \nadjustment \nfor collider"))
@@ -684,16 +696,16 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #' @rdname ggplot.tidy_dagitty
 #' @importFrom ggplot2 ggplot aes
 ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
-
   p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
 
   p$scales <- scales_list_quiet()
 
-  p + expand_plot(expand_x = expansion(c(.10, .10)),
-                  expand_y = expansion(c(.10, .10)))
+  p + expand_plot(
+    expand_x = expansion(c(.10, .10)),
+    expand_y = expansion(c(.10, .10))
+  )
 }
 
 #' @rdname ggplot.tidy_dagitty
 #' @export
 ggplot.dagitty <- ggplot.tidy_dagitty
-

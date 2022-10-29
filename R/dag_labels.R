@@ -12,10 +12,10 @@
 #'
 #' @examples
 #' labelled_dag <- dagify(y ~ z, x ~ z) %>%
-#'  tidy_dagitty() %>%
-#'  dag_label(labels = c("x" = "exposure", "y" = "outcome", "z" = "confounder"))
+#'   tidy_dagitty() %>%
+#'   dag_label(labels = c("x" = "exposure", "y" = "outcome", "z" = "confounder"))
 #'
-#'  has_labels(labelled_dag)
+#' has_labels(labelled_dag)
 #' @rdname label
 #' @name DAG Labels
 `label<-` <- function(x, value) {
@@ -48,7 +48,10 @@ dag_label <- function(.tdy_dag, labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
   if (!is.null(labels) & !is.null(.tdy_dag$data[["label"]])) .tdy_dag$data <- .tdy_dag$data %>% dplyr::select(-label)
   if (is.null(labels)) labels <- label(.tdy_dag$dag)
-  if (is.null(labels)) { warning("no labels provided"); return(.tdy_dag) }
+  if (is.null(labels)) {
+    warning("no labels provided")
+    return(.tdy_dag)
+  }
 
   label(.tdy_dag) <- labels
 

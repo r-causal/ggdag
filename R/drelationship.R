@@ -53,7 +53,8 @@
 #'   geom_dag_collider_edges() +
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
-#'   theme_dag() + scale_adjusted()
+#'   theme_dag() +
+#'   scale_adjusted()
 #'
 #' dag %>%
 #'   node_dconnected("x", "y", controlling_for = "m") %>%
@@ -98,9 +99,12 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   .to <- to
 
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 d_relationship = ifelse(name %in% c(.from, .to) & .dconnected, "d-connected",
-                                                         ifelse(name %in% c(.from, .to) & !.dconnected, "d-separated",
-                                                                NA)))
+    d_relationship = ifelse(name %in% c(.from, .to) & .dconnected, "d-connected",
+      ifelse(name %in% c(.from, .to) & !.dconnected, "d-separated",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$d_relationship <- factor(.tdy_dag$data$d_relationship, levels = c("d-connected", "d-separated"), exclude = NA)
 
   .tdy_dag
@@ -129,9 +133,12 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   .to <- to
 
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 d_relationship = ifelse(name %in% c(.from, .to) & !.dseparated, "d-connected",
-                                                         ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
-                                                                NA)))
+    d_relationship = ifelse(name %in% c(.from, .to) & !.dseparated, "d-connected",
+      ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$d_relationship <- factor(.tdy_dag$data$d_relationship, levels = c("d-connected", "d-separated"), exclude = NA)
   .tdy_dag
 }
@@ -158,9 +165,12 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
   .from <- from
   .to <- to
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-                                 d_relationship = ifelse(name %in% c(.from, .to) & !.dseparated, "d-connected",
-                                                         ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
-                                                                NA)))
+    d_relationship = ifelse(name %in% c(.from, .to) & !.dseparated, "d-connected",
+      ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
+        NA
+      )
+    )
+  )
   if (as_factor) .tdy_dag$data$d_relationship <- factor(.tdy_dag$data$d_relationship, levels = c("d-connected", "d-separated"), exclude = NA)
   .tdy_dag
 }
@@ -174,29 +184,38 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
   edge_function <- edge_type_switch(edge_type)
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
-    node_drelationship(from = from, to = to, controlling_for = controlling_for, ...)  %>%
+    node_drelationship(from = from, to = to, controlling_for = controlling_for, ...) %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
-      edge_function(start_cap = ggraph::circle(10, "mm"),
-                       end_cap = ggraph::circle(10, "mm")) +
-      scale_adjusted() +
-      breaks(c("d-connected", "d-separated"), name = "d-relationship") +
-      expand_plot(expand_y = expansion(c(0.2, 0.2)))
+    edge_function(
+      start_cap = ggraph::circle(10, "mm"),
+      end_cap = ggraph::circle(10, "mm")
+    ) +
+    scale_adjusted() +
+    breaks(c("d-connected", "d-separated"), name = "d-relationship") +
+    expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "d_relationship"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "d_relationship"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
@@ -206,11 +225,13 @@ ggdag_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for =
                              node_size = 16, text_size = 3.88, label_size = text_size,
                              text_col = "white", label_col = text_col,
                              node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
-  ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, ..., edge_type = edge_type,
-                      node_size = node_size, text_size = text_size, label_size = label_size,
-                      text_col = text_col, label_col = label_col, node = node, stylized = stylized, text = text,
-                      use_labels = use_labels, collider_lines = collider_lines)
+  ggdag_drelationship(
+    .tdy_dag = .tdy_dag, from = from, to = to,
+    controlling_for = controlling_for, ..., edge_type = edge_type,
+    node_size = node_size, text_size = text_size, label_size = label_size,
+    text_col = text_col, label_col = label_col, node = node, stylized = stylized, text = text,
+    use_labels = use_labels, collider_lines = collider_lines
+  )
 }
 
 #' @rdname d_relationship
@@ -219,9 +240,11 @@ ggdag_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for =
                              node_size = 16, text_size = 3.88, label_size = text_size,
                              text_col = "white", label_col = text_col,
                              node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
-  ggdag_drelationship(.tdy_dag = .tdy_dag, from = from, to = to,
-                      controlling_for = controlling_for, ..., edge_type = edge_type,
-                      node_size = node_size, text_size = text_size, label_size = label_size,
-                      text_col = text_col, label_col = label_col, node = node, stylized = stylized, text = text,
-                      use_labels = use_labels, collider_lines = collider_lines)
+  ggdag_drelationship(
+    .tdy_dag = .tdy_dag, from = from, to = to,
+    controlling_for = controlling_for, ..., edge_type = edge_type,
+    node_size = node_size, text_size = text_size, label_size = label_size,
+    text_col = text_col, label_col = label_col, node = node, stylized = stylized, text = text,
+    use_labels = use_labels, collider_lines = collider_lines
+  )
 }

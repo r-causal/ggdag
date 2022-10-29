@@ -41,7 +41,6 @@
 #' @name Equivalent DAGs and Classes
 #' @export
 node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
-
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
   extra_columns <- has_extra_columns(.dag)
 
@@ -90,7 +89,6 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
                                   label_size = text_size, text_col = "white", label_col = "black",
                                   node = TRUE, stylized = FALSE, text = TRUE,
                                   use_labels = NULL) {
-
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_dags(...)
 
@@ -107,22 +105,28 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-    geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
-                         col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
 
   if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
     p <- p +
       ggplot2::facet_wrap(~dag) +
-      expand_plot(expand_x = expansion(c(0.25, 0.25)),
-                  expand_y = expansion(c(0.25, 0.25)))
+      expand_plot(
+        expand_x = expansion(c(0.25, 0.25)),
+        expand_y = expansion(c(0.25, 0.25))
+      )
   }
 
   p
 }
 
 hash <- function(x, y) {
-  purrr::pmap_chr(list(x, y), ~paste0(sort(c(.x, .y)), collapse = "_"))
+  purrr::pmap_chr(list(x, y), ~ paste0(sort(c(.x, .y)), collapse = "_"))
 }
 
 #' @rdname equivalent
@@ -164,8 +168,10 @@ ggdag_equivalent_class <- function(.tdy_dag,
   non_reversable_lines <- dplyr::filter(.tdy_dag$data, !reversable)
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, edge_alpha = reversable)) +
-    geom_dag_edges(data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
-                   data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")) +
+    geom_dag_edges(
+      data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
+      data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")
+    ) +
     geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
     breaks(breaks) +
     ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.30, 1))
@@ -180,8 +186,12 @@ ggdag_equivalent_class <- function(.tdy_dag,
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-    geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
-                         col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }

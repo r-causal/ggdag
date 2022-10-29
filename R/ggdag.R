@@ -25,11 +25,13 @@
 #'
 #' @examples
 #'
-#' dag  <- dagify(y ~ x + z2 + w2 + w1,
+#' dag <- dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~~ w2)
+#'   w1 ~ ~w2
+#' )
 #'
 #' ggdag(dag)
 #' ggdag(dag) + theme_dag_blank()
@@ -50,17 +52,21 @@ ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_si
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(ggplot2::aes_string(label = use_labels),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   p
 }
 
@@ -84,11 +90,13 @@ ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_si
 #'
 #' @examples
 #'
-#' dag  <- dagify(y ~ x + z2 + w2 + w1,
+#' dag <- dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~~ w2)
+#'   w1 ~ ~w2
+#' )
 #'
 #' ggdag_classic(dag)
 #' ggdag_classic(dag) + theme_dag_blank()
@@ -107,11 +115,15 @@ ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
     ggplot2::geom_text(ggplot2::aes_string(label = text_label), size = size, col = text_col)
 
   if (any(.tdy_dag$data$direction == "<->" & !is.na(.tdy_dag$data$direction))) {
-    p <- p + geom_dag_edges(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),
-                                end_cap = ggraph::label_rect(to, fontsize = fontsize)))
+    p <- p + geom_dag_edges(ggplot2::aes(
+      start_cap = ggraph::label_rect(name, fontsize = fontsize),
+      end_cap = ggraph::label_rect(to, fontsize = fontsize)
+    ))
   } else {
-    p <- p + geom_dag_edges_link(ggplot2::aes(start_cap = ggraph::label_rect(name, fontsize = fontsize),
-                                         end_cap = ggraph::label_rect(to, fontsize = fontsize)))
+    p <- p + geom_dag_edges_link(ggplot2::aes(
+      start_cap = ggraph::label_rect(name, fontsize = fontsize),
+      end_cap = ggraph::label_rect(to, fontsize = fontsize)
+    ))
   }
 
   p

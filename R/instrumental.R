@@ -40,8 +40,9 @@
 node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   .dag <- if_not_tidy_daggity(.dag, ...)
   instrumental_vars <- dagitty::instrumentalVariables(.dag$dag,
-                                                      exposure = exposure,
-                                                      outcome = outcome)
+    exposure = exposure,
+    outcome = outcome
+  )
 
 
   i_vars <- purrr::map(instrumental_vars, "I")
@@ -82,18 +83,25 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
 
   if (node) {
     if (stylized) {
-        p <- p + geom_dag_node(size = node_size)
-      } else {
-        p <- p + geom_dag_point(size = node_size)
-      }
+      p <- p + geom_dag_node(size = node_size)
+    } else {
+      p <- p + geom_dag_point(size = node_size)
     }
+  }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
-  if (!is.null(use_labels)) p <- p +
-      geom_dag_label_repel(ggplot2::aes_string(label = use_labels,
-                                               fill = "instrumental"), size = text_size,
-                           col = label_col, show.legend = FALSE)
+  if (!is.null(use_labels)) {
+    p <- p +
+      geom_dag_label_repel(
+        ggplot2::aes_string(
+          label = use_labels,
+          fill = "instrumental"
+        ),
+        size = text_size,
+        col = label_col, show.legend = FALSE
+      )
+  }
   if (dplyr::n_distinct(.tdy_dag$data$instrumental_name) > 1) p <- p + ggplot2::facet_wrap(~instrumental_name)
   p
 }

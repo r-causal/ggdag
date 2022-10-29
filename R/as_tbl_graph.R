@@ -17,10 +17,10 @@
 #' library(ggraph)
 #' library(tidygraph)
 #' butterfly_bias() %>%
-#'  as_tbl_graph() %>%
-#'  ggraph() +
-#'    geom_edge_diagonal() +
-#'    geom_node_point()
+#'   as_tbl_graph() %>%
+#'   ggraph() +
+#'   geom_edge_diagonal() +
+#'   geom_node_point()
 #'
 #' @importFrom tidygraph as_tbl_graph
 #' @rdname as_tbl_graph
