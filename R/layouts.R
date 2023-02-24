@@ -4,11 +4,12 @@
 #' `time_ordered_coords()` is a helper function to create time-ordered DAGs.
 #' Pass the results to the `coords` argument of `dagify()`. The default is to
 #' assume you want variables to go from left to right in order by time.
-#' Variables are spread along the y-axis using a simple algorithm to stack
-#' them. You can also work along the y-axis by setting `direction = "y"`.
+#' Variables are spread along the y-axis using a simple algorithm to stack them.
+#' You can also work along the y-axis by setting `direction = "y"`.
 #'
-#' @param ... Character vectors, where each vector represents a single time
-#'   period.
+#' @param .vars A list of character vectors, where each vector represents a
+#'   single time period. Alternatively, a data frame where the first column is
+#'   the variable name and the second column is the time period.
 #' @param time_points A vector of time points. Default is `NULL`, which creates
 #'   a sequence from 1 to the number of variables.
 #' @param direction A character string indicating the axis along which the
@@ -17,7 +18,7 @@
 #' @return A tibble with three columns: `name`, `x`, and `y`.
 #'
 #' @examples
-#' coords <- time_ordered_coords(
+#' coords <- time_ordered_coords(list(
 #'   # time point 1
 #'   "a",
 #'   # time point 2
@@ -26,7 +27,7 @@
 #'   c("c1", "c2", "c3"),
 #'   # time point 4
 #'   "d"
-#' )
+#' ))
 #'
 #' dagify(
 #'   d ~ c1 + c2 + c3,
@@ -38,18 +39,13 @@
 #'
 #' @export
 #' @seealso [dagify()], [coords2df()], [coords2list()]
-time_ordered_coords <- function(..., time_points = NULL, direction = c("x", "y")) {
-  .vars <- list(...)
-  direction <- match.arg(direction)
-  purrr::map2_dfr(
-    time_points %||% seq_along(.vars),
-    .vars,
-    spread_coords,
-    direction = direction
-  )
-}
-time_ordered_coords <- function(..., time_points = NULL, direction = c("x", "y")) {
-  .vars <- list(...)
+time_ordered_coords <- function(.vars, time_points = NULL, direction = c("x", "y")) {
+  if (is.data.frame(.vars)) {
+    stopifnot(ncol(.vars) >= 2)
+    time_points <- sort(unique(.vars[[2]]))
+    .vars <- split(.vars[[1]], .vars[[2]])
+  }
+
   direction <- match.arg(direction)
   purrr::map2_dfr(
     time_points %||% seq_along(.vars),

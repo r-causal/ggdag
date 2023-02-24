@@ -4,11 +4,12 @@
 \alias{time_ordered_coords}
 \title{Create a time-ordered coordinate data frame}
 \usage{
-time_ordered_coords(..., time_points = NULL, direction = c("x", "y"))
+time_ordered_coords(.vars, time_points = NULL, direction = c("x", "y"))
 }
 \arguments{
-\item{...}{Character vectors, where each vector represents a single time
-period.}
+\item{.vars}{A list of character vectors, where each vector represents a
+single time period. Alternatively, a data frame where the first column is
+the variable name and the second column is the time period.}
 
 \item{time_points}{A vector of time points. Default is \code{NULL}, which creates
 a sequence from 1 to the number of variables.}
@@ -23,11 +24,11 @@ A tibble with three columns: \code{name}, \code{x}, and \code{y}.
 \code{time_ordered_coords()} is a helper function to create time-ordered DAGs.
 Pass the results to the \code{coords} argument of \code{dagify()}. The default is to
 assume you want variables to go from left to right in order by time.
-Variables are spread along the y-axis using a simple algorithm to stack
-them. You can also work along the y-axis by setting \code{direction = "y"}.
+Variables are spread along the y-axis using a simple algorithm to stack them.
+You can also work along the y-axis by setting \code{direction = "y"}.
 }
 \examples{
-coords <- time_ordered_coords(
+coords <- time_ordered_coords(list(
   # time point 1
   "a",
   # time point 2
@@ -36,7 +37,7 @@ coords <- time_ordered_coords(
   c("c1", "c2", "c3"),
   # time point 4
   "d"
-)
+))
 
 dagify(
   d ~ c1 + c2 + c3,
