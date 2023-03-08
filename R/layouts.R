@@ -37,16 +37,30 @@
 #'   coords = coords
 #' ) %>% ggdag()
 #'
+#' # or use a data frame
+#' x <- data.frame(
+#'   name = c("x1", "x2", "y", "z1", "z2", "z3", "a"),
+#'   time = c(1, 1, 2, 3, 3, 3, 4)
+#' )
+#' dagify(
+#'   z3 ~ y,
+#'   y ~ x1 + x2,
+#'   a ~ z1 + z2 + z3,
+#'   coords = time_ordered_coords(x)
+#' ) %>%
+#'   ggdag()
+#'
 #' @export
 #' @seealso [dagify()], [coords2df()], [coords2list()]
 time_ordered_coords <- function(.vars, time_points = NULL, direction = c("x", "y")) {
+  direction <- match.arg(direction)
+
   if (is.data.frame(.vars)) {
     stopifnot(ncol(.vars) >= 2)
     time_points <- sort(unique(.vars[[2]]))
     .vars <- split(.vars[[1]], .vars[[2]])
   }
 
-  direction <- match.arg(direction)
   purrr::map2_dfr(
     time_points %||% seq_along(.vars),
     .vars,
