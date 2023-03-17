@@ -13,6 +13,7 @@ Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is built on top 
 Useful links:
 \itemize{
   \item \url{https://github.com/malcolmbarrett/ggdag}
+  \item \url{https://malcolmbarrett.github.io/ggdag/}
   \item Report bugs at \url{https://github.com/malcolmbarrett/ggdag/issues}
 }
 
