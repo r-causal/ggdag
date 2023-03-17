@@ -175,6 +175,7 @@ GeomDAGEdgePath <- ggplot2::ggproto("GeomDAGEdgePath", ggraph::GeomEdgePath,
   },
   non_missing_aes = c("direction", "direction_type"),
   default_aes = ggplot2::aes(
+    linewidth = NA,
     edge_colour = "black", edge_width = 0.6, edge_linetype = "solid",
     edge_alpha = NA, start_cap = ggraph::circle(8, "mm"), end_cap = ggraph::circle(8, "mm"), label = NA,
     label_pos = 0.5, label_size = 3.88, angle = 0, hjust = 0.5,

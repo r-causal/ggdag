@@ -58,7 +58,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
     purrr::map_df(map_equivalence, .id = "dag") %>%
     dplyr::as_tibble()
 
-  if (extra_columns) .dag$data <- left_join(.dag$data, extra_column_df, by = "name")
+  if (extra_columns) .dag$data <- ggdag_left_join(.dag$data, extra_column_df, by = "name")
 
   .dag
 }

@@ -4,7 +4,7 @@
 \alias{as.data.frame.tidy_dagitty}
 \title{Convert a \code{tidy_dagitty} object to data.frame}
 \usage{
-\method{as.data.frame}{tidy_dagitty}(x, row.names, optional, ...)
+\method{as.data.frame}{tidy_dagitty}(x, row.names = NULL, optional = FALSE, ...)
 }
 \arguments{
 \item{x}{an object of class \code{tidy_dagitty}}
