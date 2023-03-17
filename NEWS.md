@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Added new function `time_ordered_coords()` for calculating time-ordered coordinates (#88)
 
 # ggdag 0.2.7
 * Fixed various bugs in calculating and visualizing paths (#75)

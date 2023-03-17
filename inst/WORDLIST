@@ -42,7 +42,6 @@ graphviz
 grey
 halfcircle
 hjust
-http
 jointy
 lineheight
 linetype
@@ -56,6 +55,7 @@ reversable
 roxygen
 tbl
 tdy
+tibble
 tidygraph
 tidyverse
 unassociated
