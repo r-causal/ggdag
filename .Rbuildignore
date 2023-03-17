@@ -16,3 +16,5 @@ docs
 ^\.github$
 ^CRAN-SUBMISSION$
 ^revdep$
+^docs$
+^pkgdown$

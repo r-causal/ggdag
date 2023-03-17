@@ -11,7 +11,8 @@ Description: Tidy, analyze, and plot directed acyclic graphs (DAGs).
     'ggplot2' and 'ggraph', as well as common analytic and graphical
     functions, such as determining adjustment sets and node relationships.
 License: MIT + file LICENSE
-URL: https://github.com/malcolmbarrett/ggdag
+URL: https://github.com/malcolmbarrett/ggdag,
+    https://malcolmbarrett.github.io/ggdag/
 BugReports: https://github.com/malcolmbarrett/ggdag/issues
 Depends: 
     R (>= 3.4.0)

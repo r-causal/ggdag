@@ -1,6 +1,7 @@
+url: https://malcolmbarrett.github.io/ggdag/
 template:
-  params:
-    bootswatch: sandstone
+  bootstrap: 5
+
 
 authors:
   Malcolm Barrett:
@@ -13,6 +14,7 @@ reference:
     - dagify
     - dag
     - starts_with("coord")
+    - ends_with("coords")
     - dag_label
     - label
     - has_labels
