@@ -142,8 +142,8 @@ fortify.dagitty <- function(model, data = NULL, ...) {
 #' @param ... optional arguments passed to `as.data.frame()`
 #'
 #' @export
-as.data.frame.tidy_dagitty <- function(x, row.names, optional, ...) {
-  as.data.frame(x$data, row.names, optional, ...)
+as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
+  as.data.frame(x$data, row.names = row.names, optional = optional, ...)
 }
 
 #' Convert a `tidy_dagitty` object to tbl_df
