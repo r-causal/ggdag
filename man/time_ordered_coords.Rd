@@ -47,6 +47,19 @@ dagify(
   coords = coords
 ) \%>\% ggdag()
 
+# or use a data frame
+x <- data.frame(
+  name = c("x1", "x2", "y", "z1", "z2", "z3", "a"),
+  time = c(1, 1, 2, 3, 3, 3, 4)
+)
+dagify(
+  z3 ~ y,
+  y ~ x1 + x2,
+  a ~ z1 + z2 + z3,
+  coords = time_ordered_coords(x)
+) \%>\%
+  ggdag()
+
 }
 \seealso{
 \code{\link[=dagify]{dagify()}}, \code{\link[=coords2df]{coords2df()}}, \code{\link[=coords2list]{coords2list()}}

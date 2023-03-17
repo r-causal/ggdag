@@ -1,4 +1,3 @@
-
 #' Create a time-ordered coordinate data frame
 #'
 #' `time_ordered_coords()` is a helper function to create time-ordered DAGs.
@@ -94,3 +93,5 @@ calculate_spread <- function(n) {
 
   spread
 }
+
+
