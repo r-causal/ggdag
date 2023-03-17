@@ -1,3 +1,5 @@
+# ggdag (development version)
+
 # ggdag 0.2.8
 * Added new function `time_ordered_coords()` for calculating time-ordered coordinates (#88)
 * Addressed changes requested by CRAN, other changes in tidyverse (#87, #86, #85)
