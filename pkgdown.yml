@@ -1,0 +1,12 @@
+pandoc: 2.19.2
+pkgdown: 2.0.7
+pkgdown_sha: ~
+articles:
+  bias-structures: bias-structures.html
+  intro-to-dags: intro-to-dags.html
+  intro-to-ggdag: intro-to-ggdag.html
+last_built: 2023-03-17T16:48Z
+urls:
+  reference: https://malcolmbarrett.github.io/ggdag/reference
+  article: https://malcolmbarrett.github.io/ggdag/articles
+
