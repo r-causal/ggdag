@@ -144,7 +144,7 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 
   .dag$data <- .dag$data %>%
     dplyr::mutate(hash = hash(name, to)) %>%
-    dplyr::left_join(ec_data, by = "hash") %>%
+    ggdag_left_join(ec_data, by = "hash") %>%
     dplyr::mutate(reversable = !is.na(reversable)) %>%
     dplyr::select(-hash)
 
