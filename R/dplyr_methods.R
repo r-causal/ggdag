@@ -73,9 +73,9 @@ group_by.tidy_dagitty <- function(.data, ...) {
 #' @name dplyr
 #' @export
 #' @importFrom dplyr ungroup
-ungroup.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::ungroup(.data$data, ...)
-  .data
+ungroup.tidy_dagitty <- function(x, ...) {
+  x$data <- dplyr::ungroup(x$data, ...)
+  x
 }
 
 #' @name dplyr
@@ -114,7 +114,7 @@ inner_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".
 #' @export
 #' @importFrom dplyr left_join
 left_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  x$data <- dplyr::left_join(x$data, by = by, copy = copy, suffix = suffix, ...)
+  x$data <- ggdag_left_join(x$data, by = by, copy = copy, suffix = suffix, ...)
   x
 }
 

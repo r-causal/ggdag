@@ -58,7 +58,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
     purrr::map_df(map_equivalence, .id = "dag") %>%
     dplyr::as_tibble()
 
-  if (extra_columns) .dag$data <- left_join(.dag$data, extra_column_df, by = "name")
+  if (extra_columns) .dag$data <- ggdag_left_join(.dag$data, extra_column_df, by = "name")
 
   .dag
 }
@@ -144,7 +144,7 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 
   .dag$data <- .dag$data %>%
     dplyr::mutate(hash = hash(name, to)) %>%
-    dplyr::left_join(ec_data, by = "hash") %>%
+    ggdag_left_join(ec_data, by = "hash") %>%
     dplyr::mutate(reversable = !is.na(reversable)) %>%
     dplyr::select(-hash)
 

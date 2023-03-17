@@ -40,7 +40,7 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
   vars <- unique(.tdy_dag$data$name)
   colliders <- purrr::map_lgl(vars, ~ is_collider(.tdy_dag, .x))
   names(colliders) <- vars
-  .tdy_dag$data <- dplyr::left_join(.tdy_dag$data,
+  .tdy_dag$data <- ggdag_left_join(.tdy_dag$data,
     tibble::enframe(colliders, value = "colliders"),
     by = "name"
   )
@@ -148,7 +148,7 @@ dagify_colliders <- function(.pairs_df, .tdy_dag) {
 }
 
 join_lhs_coords <- function(.x, .y) {
-  dplyr::left_join(
+  ggdag_left_join(
     .x,
     .y$data %>% dplyr::select(name, x, y),
     by = c("Var1" = "name")
@@ -156,7 +156,7 @@ join_lhs_coords <- function(.x, .y) {
 }
 
 join_rhs_coords <- function(.x, .y) {
-  dplyr::left_join(
+  ggdag_left_join(
     .x,
     .y$data %>% dplyr::select(name, xend = x, yend = y),
     by = c("Var2" = "name")

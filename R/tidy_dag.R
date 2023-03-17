@@ -58,7 +58,7 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 
   dag_edges <- dagitty::edges(.dagitty)
 
-  tidy_dag <- dplyr::left_join(tibble::enframe(coords$x, value = "x"),
+  tidy_dag <- ggdag_left_join(tibble::enframe(coords$x, value = "x"),
     tibble::enframe(coords$y, value = "y"),
     by = "name"
   )
@@ -76,10 +76,10 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
       type = ifelse(e == "<->", "bidirected", "directed"),
       type = factor(type, levels = c("directed", "bidirected"), exclude = NA)
     ) %>%
-    dplyr::left_join(tidy_dag, ., by = c("name" = "v")) %>%
-    dplyr::left_join(tidy_dag, by = c("w" = "name"), suffix = c("", "end")) %>%
+    ggdag_left_join(tidy_dag, ., by = c("name" = "v")) %>%
+    ggdag_left_join(tidy_dag, by = c("w" = "name"), suffix = c("", "end")) %>%
     dplyr::select(name, x, y, direction, type, to = w, xend, yend) %>%
-    dplyr::left_join(layout_info, by = "name") %>%
+    ggdag_left_join(layout_info, by = "name") %>%
     dplyr::arrange(.ggraph.orig_index) %>%
     dplyr::select(-.ggraph.orig_index, -.ggraph.index, -type)
 
@@ -142,8 +142,8 @@ fortify.dagitty <- function(model, data = NULL, ...) {
 #' @param ... optional arguments passed to `as.data.frame()`
 #'
 #' @export
-as.data.frame.tidy_dagitty <- function(x, row.names, optional, ...) {
-  as.data.frame(x$data, row.names, optional, ...)
+as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
+  as.data.frame(x$data, row.names = row.names, optional = optional, ...)
 }
 
 #' Convert a `tidy_dagitty` object to tbl_df
@@ -246,7 +246,7 @@ print.tidy_dagitty <- function(x, ...) {
 #' @rdname coordinates
 #' @name coordinates
 coords2df <- function(coord_list) {
-  coord_df <- purrr::map(coord_list, tibble::enframe) %>% purrr::reduce(dplyr::left_join, by = "name")
+  coord_df <- purrr::map(coord_list, tibble::enframe) %>% purrr::reduce(ggdag_left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df
 }

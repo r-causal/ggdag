@@ -149,7 +149,21 @@ ggplot2_version <- function() {
   utils::packageVersion("ggplot2")
 }
 
+#' @importFrom utils packageVersion
+#' @noRd
+dplyr_version <- function() {
+  utils::packageVersion("dplyr")
+}
+
 ggname <- function(prefix, grob) {
   grob$name <- grid::grobName(grob, prefix)
   grob
+}
+
+ggdag_left_join <- function(...) {
+  if (dplyr_version() >= "1.1.0") {
+    dplyr::left_join(..., multiple = "all")
+  } else {
+    dplyr::left_join(...)
+  }
 }

@@ -40,7 +40,7 @@
 
 \method{group_by}{tidy_dagitty}(.data, ...)
 
-\method{ungroup}{tidy_dagitty}(.data, ...)
+\method{ungroup}{tidy_dagitty}(x, ...)
 
 \method{transmute}{tidy_dagitty}(.data, ...)
 
