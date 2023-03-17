@@ -36,7 +36,7 @@
 
   if (!is.null(x$data[["label"]])) x$data <- x$data %>% dplyr::select(-label)
 
-  x$data <- dplyr::left_join(x$data, tibble::enframe(value, value = "label"), by = "name")
+  x$data <- ggdag_left_join(x$data, tibble::enframe(value, value = "label"), by = "name")
   x
 }
 
