@@ -1,177 +1,177 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/404.html</loc>
+    <loc>https://r-causal.github.io/ggdag/404.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/LICENSE-text.html</loc>
+    <loc>https://r-causal.github.io/ggdag/LICENSE-text.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/LICENSE.html</loc>
+    <loc>https://r-causal.github.io/ggdag/LICENSE.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/articles/bias-structures.html</loc>
+    <loc>https://r-causal.github.io/ggdag/articles/bias-structures.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/articles/index.html</loc>
+    <loc>https://r-causal.github.io/ggdag/articles/index.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/articles/intro-to-dags.html</loc>
+    <loc>https://r-causal.github.io/ggdag/articles/intro-to-dags.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/articles/intro-to-ggdag.html</loc>
+    <loc>https://r-causal.github.io/ggdag/articles/intro-to-ggdag.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/authors.html</loc>
+    <loc>https://r-causal.github.io/ggdag/authors.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/index.html</loc>
+    <loc>https://r-causal.github.io/ggdag/index.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/news/index.html</loc>
+    <loc>https://r-causal.github.io/ggdag/news/index.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/activate_collider_paths.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/activate_collider_paths.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/adjustment_sets.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/adjustment_sets.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/as.data.frame.tidy_dagitty.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/as.data.frame.tidy_dagitty.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/as.tbl.tidy_daggity.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/as.tbl.tidy_daggity.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/as_tbl_graph.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/as_tbl_graph.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/canonicalize.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/canonicalize.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/colliders.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/colliders.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/control_for.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/control_for.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/coordinates.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/coordinates.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/d_relationship.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/d_relationship.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/dag.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/dag.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/dagify.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/dagify.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/dplyr.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/dplyr.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/equivalent.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/equivalent.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/exogenous.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/exogenous.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/expand_plot.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/expand_plot.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/fortify.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/fortify.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/geom_dag_collider_edges.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/geom_dag_collider_edges.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/geom_dag_edge_functions.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/geom_dag_edges.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/geom_dag_edges.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/geom_dag_text.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/geom_dag_text.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/ggdag-package.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/ggdag-package.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/ggdag.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/ggdag.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/ggdag_classic.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/ggdag_classic.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/ggplot.tidy_dagitty.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/ggplot.tidy_dagitty.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/index.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/index.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/instrumental.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/instrumental.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/is.tidy_dagitty.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/is.tidy_dagitty.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/is_collider.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/is_collider.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/is_confounder.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/is_confounder.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/label.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/label.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/node_point.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/node_point.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/paths.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/paths.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/pipe.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/pipe.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/print.tidy_dagitty.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/print.tidy_dagitty.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/quick_plot.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/quick_plot.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/reexports.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/reexports.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/remove_axes.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/remove_axes.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/repel.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/repel.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/scale_adjusted.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/scale_adjusted.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/simulate_data.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/simulate_data.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/status.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/status.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/tbl_df.tidy_daggity.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/tbl_df.tidy_daggity.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/theme_dag_blank.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/theme_dag_blank.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/theme_dag_grey.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/theme_dag_grey.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/tidy_dagitty.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/tidy_dagitty.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/time_ordered_coords.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/time_ordered_coords.html</loc>
   </url>
   <url>
-    <loc>https://malcolmbarrett.github.io/ggdag/reference/variable_family.html</loc>
+    <loc>https://r-causal.github.io/ggdag/reference/variable_family.html</loc>
   </url>
 </urlset>
