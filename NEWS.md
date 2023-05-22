@@ -1,4 +1,6 @@
 # ggdag (development version)
+* Fixed bugs in instrumental functions for complex and non-existent IVs (#99)
+* Updated URLs to new r-causal GitHub repository (#94)
 
 # ggdag 0.2.8
 * Added new function `time_ordered_coords()` for calculating time-ordered coordinates (#88)
