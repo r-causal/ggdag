@@ -46,7 +46,7 @@ dagitty::exogenousVariables() for details."><!-- mathjax --><script src="https:/
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
 
       <ul class="navbar-nav"><li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/malcolmbarrett/ggdag/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/r-causal/ggdag/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -59,7 +59,7 @@ dagitty::exogenousVariables() for details."><!-- mathjax --><script src="https:/
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="" class="logo" alt=""><h1>Find Exogenous Variables</h1>
-      <small class="dont-index">Source: <a href="https://github.com/malcolmbarrett/ggdag/blob/HEAD/R/exogenous.R" class="external-link"><code>R/exogenous.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/HEAD/R/exogenous.R" class="external-link"><code>R/exogenous.R</code></a></small>
       <div class="d-none name"><code>exogenous.Rd</code></div>
     </div>
 
@@ -163,15 +163,15 @@ exogenous variables or a <code>ggplot</code></p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A DAG with 5 nodes and 5 edges</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 7 × 9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name      x       y direction to     xend   yend circular exogenous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> b      1.68 -<span style="color: #BB0000;">1.52</span>   <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     FALSE    <span style="color: #BB0000;">NA</span>       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x1     2.16 -<span style="color: #BB0000;">0.465</span>  -&gt;        b      1.68 -<span style="color: #BB0000;">1.52</span>  FALSE    exogenous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x1     2.16 -<span style="color: #BB0000;">0.465</span>  -&gt;        y      3.45 -<span style="color: #BB0000;">0.594</span> FALSE    exogenous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> x2     2.82 -<span style="color: #BB0000;">1.73</span>   -&gt;        b      1.68 -<span style="color: #BB0000;">1.52</span>  FALSE    exogenous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> x2     2.82 -<span style="color: #BB0000;">1.73</span>   -&gt;        y      3.45 -<span style="color: #BB0000;">0.594</span> FALSE    exogenous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> x3     4.64  0.031<span style="text-decoration: underline;">5</span> -&gt;        y      3.45 -<span style="color: #BB0000;">0.594</span> FALSE    exogenous</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span> y      3.45 -<span style="color: #BB0000;">0.594</span>  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     FALSE    <span style="color: #BB0000;">NA</span>       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x       y direction to      xend  yend circular exogenous</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> b     -<span style="color: #BB0000;">0.594</span> -<span style="color: #BB0000;">3.24</span>   <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>    FALSE    <span style="color: #BB0000;">NA</span>       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x1     0.227 -<span style="color: #BB0000;">2.41</span>   -&gt;        b     -<span style="color: #BB0000;">0.594</span> -<span style="color: #BB0000;">3.24</span> FALSE    exogenous</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x1     0.227 -<span style="color: #BB0000;">2.41</span>   -&gt;        y     -<span style="color: #BB0000;">0.346</span> -<span style="color: #BB0000;">1.24</span> FALSE    exogenous</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> x2    -<span style="color: #BB0000;">1.19</span>  -<span style="color: #BB0000;">2.23</span>   -&gt;        b     -<span style="color: #BB0000;">0.594</span> -<span style="color: #BB0000;">3.24</span> FALSE    exogenous</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> x2    -<span style="color: #BB0000;">1.19</span>  -<span style="color: #BB0000;">2.23</span>   -&gt;        y     -<span style="color: #BB0000;">0.346</span> -<span style="color: #BB0000;">1.24</span> FALSE    exogenous</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> x3    -<span style="color: #BB0000;">0.182</span>  0.089<span style="text-decoration: underline;">6</span> -&gt;        y     -<span style="color: #BB0000;">0.346</span> -<span style="color: #BB0000;">1.24</span> FALSE    exogenous</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">7</span> y     -<span style="color: #BB0000;">0.346</span> -<span style="color: #BB0000;">1.24</span>   <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>    FALSE    <span style="color: #BB0000;">NA</span>       </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

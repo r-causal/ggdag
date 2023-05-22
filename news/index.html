@@ -42,7 +42,7 @@
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
 
       <ul class="navbar-nav"><li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/malcolmbarrett/ggdag/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/r-causal/ggdag/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -55,23 +55,25 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/malcolmbarrett/ggdag/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/r-causal/ggdag/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="ggdag-development-version">ggdag (development version)<a class="anchor" aria-label="anchor" href="#ggdag-development-version"></a></h2>
-</div>
+<ul><li>Fixed bugs in instrumental functions for complex and non-existent IVs (<a href="https://github.com/r-causal/ggdag/issues/99" class="external-link">#99</a>)</li>
+<li>Updated URLs to new r-causal GitHub repository (<a href="https://github.com/r-causal/ggdag/issues/94" class="external-link">#94</a>)</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.8" id="ggdag-028">ggdag 0.2.8<a class="anchor" aria-label="anchor" href="#ggdag-028"></a></h2><p class="text-muted">CRAN release: 2023-03-17</p>
-<ul><li>Added new function <code><a href="../reference/time_ordered_coords.html">time_ordered_coords()</a></code> for calculating time-ordered coordinates (<a href="https://github.com/malcolmbarrett/ggdag/issues/88" class="external-link">#88</a>)</li>
-<li>Addressed changes requested by CRAN, other changes in tidyverse (<a href="https://github.com/malcolmbarrett/ggdag/issues/87" class="external-link">#87</a>, <a href="https://github.com/malcolmbarrett/ggdag/issues/86" class="external-link">#86</a>, <a href="https://github.com/malcolmbarrett/ggdag/issues/85" class="external-link">#85</a>)</li>
+<ul><li>Added new function <code><a href="../reference/time_ordered_coords.html">time_ordered_coords()</a></code> for calculating time-ordered coordinates (<a href="https://github.com/r-causal/ggdag/issues/88" class="external-link">#88</a>)</li>
+<li>Addressed changes requested by CRAN, other changes in tidyverse (<a href="https://github.com/r-causal/ggdag/issues/87" class="external-link">#87</a>, <a href="https://github.com/r-causal/ggdag/issues/86" class="external-link">#86</a>, <a href="https://github.com/r-causal/ggdag/issues/85" class="external-link">#85</a>)</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.7" id="ggdag-027">ggdag 0.2.7<a class="anchor" aria-label="anchor" href="#ggdag-027"></a></h2><p class="text-muted">CRAN release: 2022-10-29</p>
-<ul><li>Fixed various bugs in calculating and visualizing paths (<a href="https://github.com/malcolmbarrett/ggdag/issues/75" class="external-link">#75</a>)</li>
-<li>Fixed breaking changes from the upcoming release of ggplot2 3.4.0 (<a href="https://github.com/malcolmbarrett/ggdag/issues/79" class="external-link">#79</a>)</li>
+<ul><li>Fixed various bugs in calculating and visualizing paths (<a href="https://github.com/r-causal/ggdag/issues/75" class="external-link">#75</a>)</li>
+<li>Fixed breaking changes from the upcoming release of ggplot2 3.4.0 (<a href="https://github.com/r-causal/ggdag/issues/79" class="external-link">#79</a>)</li>
 <li>
-<code>size</code> is now deprecated for <code><a href="../reference/geom_dag_collider_edges.html">geom_dag_collider_edges()</a></code> in favor of <code>linewidth</code>, related to <a href="https://github.com/malcolmbarrett/ggdag/issues/79" class="external-link">#79</a>.</li>
+<code>size</code> is now deprecated for <code><a href="../reference/geom_dag_collider_edges.html">geom_dag_collider_edges()</a></code> in favor of <code>linewidth</code>, related to <a href="https://github.com/r-causal/ggdag/issues/79" class="external-link">#79</a>.</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.6" id="ggdag-026">ggdag 0.2.6<a class="anchor" aria-label="anchor" href="#ggdag-026"></a></h2><p class="text-muted">CRAN release: 2022-08-26</p>
@@ -79,36 +81,36 @@
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.5" id="ggdag-025">ggdag 0.2.5<a class="anchor" aria-label="anchor" href="#ggdag-025"></a></h2><p class="text-muted">CRAN release: 2022-07-16</p>
-<ul><li>Fixed issue with <code><a href="../reference/adjustment_sets.html">dag_adjustment_sets()</a></code> when <code>width</code> option was low by extracting adjustment sets directly (<a href="https://github.com/malcolmbarrett/ggdag/issues/70" class="external-link">#70</a>)</li>
-<li>Fixed issue with <code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> that missed nodes with no edges attached. May cause minor breaking changes in randomized layouts. (<a href="https://github.com/malcolmbarrett/ggdag/issues/68" class="external-link">#68</a>)</li>
-<li>Added the <code>limit</code> argument to <code>dag_paths</code>, <code>ggdag_paths</code>, and <code>ggdag_paths_fan</code> (see <code><a href="https://rdrr.io/pkg/dagitty/man/paths.html" class="external-link">dagitty::paths</a></code>) (<a href="https://github.com/malcolmbarrett/ggdag/issues/65" class="external-link">#65</a>).</li>
+<ul><li>Fixed issue with <code><a href="../reference/adjustment_sets.html">dag_adjustment_sets()</a></code> when <code>width</code> option was low by extracting adjustment sets directly (<a href="https://github.com/r-causal/ggdag/issues/70" class="external-link">#70</a>)</li>
+<li>Fixed issue with <code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> that missed nodes with no edges attached. May cause minor breaking changes in randomized layouts. (<a href="https://github.com/r-causal/ggdag/issues/68" class="external-link">#68</a>)</li>
+<li>Added the <code>limit</code> argument to <code>dag_paths</code>, <code>ggdag_paths</code>, and <code>ggdag_paths_fan</code> (see <code><a href="https://rdrr.io/pkg/dagitty/man/paths.html" class="external-link">dagitty::paths</a></code>) (<a href="https://github.com/r-causal/ggdag/issues/65" class="external-link">#65</a>).</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.4" id="ggdag-024">ggdag 0.2.4<a class="anchor" aria-label="anchor" href="#ggdag-024"></a></h2><p class="text-muted">CRAN release: 2021-10-10</p>
 <ul><li>
-<code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> no longer allows the dendogram layout type (<a href="https://github.com/malcolmbarrett/ggdag/issues/62" class="external-link">#62</a>)</li>
+<code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> no longer allows the dendogram layout type (<a href="https://github.com/r-causal/ggdag/issues/62" class="external-link">#62</a>)</li>
 <li>
-<code><a href="../reference/scale_adjusted.html">scale_adjusted()</a></code> now correctly aligns legend types (<a href="https://github.com/malcolmbarrett/ggdag/issues/61" class="external-link">#61</a>)</li>
-<li>ggdag no longer loads ggplot2 via <code>Depends</code>, instead importing it internally (<a href="https://github.com/malcolmbarrett/ggdag/issues/57" class="external-link">#57</a>).</li>
+<code><a href="../reference/scale_adjusted.html">scale_adjusted()</a></code> now correctly aligns legend types (<a href="https://github.com/r-causal/ggdag/issues/61" class="external-link">#61</a>)</li>
+<li>ggdag no longer loads ggplot2 via <code>Depends</code>, instead importing it internally (<a href="https://github.com/r-causal/ggdag/issues/57" class="external-link">#57</a>).</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.3" id="ggdag-023">ggdag 0.2.3<a class="anchor" aria-label="anchor" href="#ggdag-023"></a></h2><p class="text-muted">CRAN release: 2021-01-12</p>
-<ul><li>Update vdiffr to be explicitly conditional (<a href="https://github.com/malcolmbarrett/ggdag/issues/51" class="external-link">#51</a>)</li>
-<li>Fixed bug in <code><a href="../reference/activate_collider_paths.html">activate_collider_paths()</a></code> that causes an error where a collider had a high number of ancestors (<a href="https://github.com/malcolmbarrett/ggdag/issues/49" class="external-link">#49</a>)</li>
-<li>Fixed bug in <code><a href="../reference/equivalent.html">node_equivalent_dags()</a></code> where extra columns did not get joined to new tidy DAG (<a href="https://github.com/malcolmbarrett/ggdag/issues/40" class="external-link">#40</a>)</li>
+<ul><li>Update vdiffr to be explicitly conditional (<a href="https://github.com/r-causal/ggdag/issues/51" class="external-link">#51</a>)</li>
+<li>Fixed bug in <code><a href="../reference/activate_collider_paths.html">activate_collider_paths()</a></code> that causes an error where a collider had a high number of ancestors (<a href="https://github.com/r-causal/ggdag/issues/49" class="external-link">#49</a>)</li>
+<li>Fixed bug in <code><a href="../reference/equivalent.html">node_equivalent_dags()</a></code> where extra columns did not get joined to new tidy DAG (<a href="https://github.com/r-causal/ggdag/issues/40" class="external-link">#40</a>)</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.2" id="ggdag-022">ggdag 0.2.2<a class="anchor" aria-label="anchor" href="#ggdag-022"></a></h2><p class="text-muted">CRAN release: 2020-02-13</p>
-<ul><li>Added vdiffr tests, as well as a basic test file for every <code>.R</code> file. (<a href="https://github.com/malcolmbarrett/ggdag/issues/27" class="external-link">#27</a>)</li>
-<li>Updated roxygen2 version (<a href="https://github.com/malcolmbarrett/ggdag/issues/29" class="external-link">#29</a>)</li>
-<li>Fixed bugs in <code><a href="../reference/paths.html">dag_paths()</a></code> and <code><a href="../reference/geom_dag_edge_functions.html">geom_dag_edges_fan()</a></code> (<a href="https://github.com/malcolmbarrett/ggdag/issues/31" class="external-link">#31</a>)</li>
-<li>Removed use of <code>use_defaults()</code> <code>ggproto</code> method in <code>GeomDAGEdge</code> (<a href="https://github.com/malcolmbarrett/ggdag/issues/33" class="external-link">#33</a>)</li>
-<li>Use <code><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">ggplot2::expansion()</a></code> instead of <code><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expand_scale()</a></code> when ggplot2 version is at least <code>3.3.0</code> and removed local version of <code><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expand_scale()</a></code> (<a href="https://github.com/malcolmbarrett/ggdag/issues/34" class="external-link">#34</a>)</li>
+<ul><li>Added vdiffr tests, as well as a basic test file for every <code>.R</code> file. (<a href="https://github.com/r-causal/ggdag/issues/27" class="external-link">#27</a>)</li>
+<li>Updated roxygen2 version (<a href="https://github.com/r-causal/ggdag/issues/29" class="external-link">#29</a>)</li>
+<li>Fixed bugs in <code><a href="../reference/paths.html">dag_paths()</a></code> and <code><a href="../reference/geom_dag_edge_functions.html">geom_dag_edges_fan()</a></code> (<a href="https://github.com/r-causal/ggdag/issues/31" class="external-link">#31</a>)</li>
+<li>Removed use of <code>use_defaults()</code> <code>ggproto</code> method in <code>GeomDAGEdge</code> (<a href="https://github.com/r-causal/ggdag/issues/33" class="external-link">#33</a>)</li>
+<li>Use <code><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">ggplot2::expansion()</a></code> instead of <code><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expand_scale()</a></code> when ggplot2 version is at least <code>3.3.0</code> and removed local version of <code><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expand_scale()</a></code> (<a href="https://github.com/r-causal/ggdag/issues/34" class="external-link">#34</a>)</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.1" id="ggdag-021">ggdag 0.2.1<a class="anchor" aria-label="anchor" href="#ggdag-021"></a></h2><p class="text-muted">CRAN release: 2019-12-06</p>
-<ul><li>Fixed bug in <code><a href="../reference/colliders.html">ggdag_collider()</a></code> where the aesthetics were flipped for the colors but not the labels (issue <a href="https://github.com/malcolmbarrett/ggdag/issues/15" class="external-link">#15</a>, b72e34b)</li>
-<li>Used <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character.default()</a></code> directly for working with characters to avoid dispatch error when the formula.tools package is attached (issue <a href="https://github.com/malcolmbarrett/ggdag/issues/17" class="external-link">#17</a>, 0f32bb4)</li>
+<ul><li>Fixed bug in <code><a href="../reference/colliders.html">ggdag_collider()</a></code> where the aesthetics were flipped for the colors but not the labels (issue <a href="https://github.com/r-causal/ggdag/issues/15" class="external-link">#15</a>, b72e34b)</li>
+<li>Used <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character.default()</a></code> directly for working with characters to avoid dispatch error when the formula.tools package is attached (issue <a href="https://github.com/r-causal/ggdag/issues/17" class="external-link">#17</a>, 0f32bb4)</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="ggdag-020">ggdag 0.2.0<a class="anchor" aria-label="anchor" href="#ggdag-020"></a></h2><p class="text-muted">CRAN release: 2019-09-12</p>

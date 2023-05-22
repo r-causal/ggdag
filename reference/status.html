@@ -44,7 +44,7 @@ dagitty::VariableStatus() for details."><!-- mathjax --><script src="https://cdn
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
 
       <ul class="navbar-nav"><li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/malcolmbarrett/ggdag/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/r-causal/ggdag/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -57,7 +57,7 @@ dagitty::VariableStatus() for details."><!-- mathjax --><script src="https://cdn
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="" class="logo" alt=""><h1>Find variable status</h1>
-      <small class="dont-index">Source: <a href="https://github.com/malcolmbarrett/ggdag/blob/HEAD/R/status.R" class="external-link"><code>R/status.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/HEAD/R/status.R" class="external-link"><code>R/status.R</code></a></small>
       <div class="d-none name"><code>status.Rd</code></div>
     </div>
 
@@ -177,12 +177,12 @@ variable statuses.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Latent Variable: l</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x       y direction to      xend    yend circular status  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> l     -<span style="color: #BB0000;">0.473</span>  0.030<span style="text-decoration: underline;">8</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>      FALSE    latent  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x      0.453 -<span style="color: #BB0000;">0.354</span>  -&gt;        l     -<span style="color: #BB0000;">0.473</span>  0.030<span style="text-decoration: underline;">8</span> FALSE    exposure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x      0.453 -<span style="color: #BB0000;">0.354</span>  -&gt;        y      0.323  0.641  FALSE    exposure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.323  0.641  -&gt;        l     -<span style="color: #BB0000;">0.473</span>  0.030<span style="text-decoration: underline;">8</span> FALSE    outcome </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name      x     y direction to     xend   yend circular status  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> l      1.21 1.04  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     FALSE    latent  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x      1.89 1.76  -&gt;        l      1.21  1.04  FALSE    exposure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x      1.89 1.76  -&gt;        y      2.18  0.811 FALSE    exposure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      2.18 0.811 -&gt;        l      1.21  1.04  FALSE    outcome </span>
 <span class="r-in"><span><span class="fu">ggdag_status</span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="status-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>

@@ -46,7 +46,7 @@ or set of variables to adjust for and adds them to the tidy_dagitty."><!-- mathj
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
 
       <ul class="navbar-nav"><li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/malcolmbarrett/ggdag/" aria-label="github">
+  <a class="external-link nav-link" href="https://github.com/r-causal/ggdag/" aria-label="github">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -59,7 +59,7 @@ or set of variables to adjust for and adds them to the tidy_dagitty."><!-- mathj
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="" class="logo" alt=""><h1>Activate paths opened by stratifying on a collider</h1>
-      <small class="dont-index">Source: <a href="https://github.com/malcolmbarrett/ggdag/blob/HEAD/R/colliders.R" class="external-link"><code>R/colliders.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/HEAD/R/colliders.R" class="external-link"><code>R/colliders.R</code></a></small>
       <div class="d-none name"><code>activate_collider_paths.Rd</code></div>
     </div>
 
@@ -113,14 +113,14 @@ pathways</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Paths opened by conditioning on a collider: x &lt;-&gt; y, x &lt;-&gt; y</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name        x      y direction to       xend   yend circular collider_line</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> m     -<span style="color: #BB0000;">0.682</span>  -<span style="color: #BB0000;">0.468</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>     FALSE    FALSE        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x     -<span style="color: #BB0000;">0.060</span><span style="color: #BB0000; text-decoration: underline;">7</span>  0.322 -&gt;        m     -<span style="color: #BB0000;">0.682</span>  -<span style="color: #BB0000;">0.468</span> FALSE    FALSE        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> y      0.314  -<span style="color: #BB0000;">0.611</span> -&gt;        m     -<span style="color: #BB0000;">0.682</span>  -<span style="color: #BB0000;">0.468</span> FALSE    FALSE        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.314  -<span style="color: #BB0000;">0.611</span> -&gt;        x     -<span style="color: #BB0000;">0.060</span><span style="color: #BB0000; text-decoration: underline;">7</span>  0.322 FALSE    FALSE        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> x     -<span style="color: #BB0000;">0.060</span><span style="color: #BB0000; text-decoration: underline;">7</span>  0.322 &lt;-&gt;       y      0.314  -<span style="color: #BB0000;">0.611</span> <span style="color: #BB0000;">NA</span>       TRUE         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> x     -<span style="color: #BB0000;">0.060</span><span style="color: #BB0000; text-decoration: underline;">7</span>  0.322 &lt;-&gt;       y      0.314  -<span style="color: #BB0000;">0.611</span> <span style="color: #BB0000;">NA</span>       TRUE         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x      y direction to      xend   yend circular collider_line</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> m      0.111 -<span style="color: #BB0000;">0.552</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     FALSE    FALSE        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x      0.711  0.247 -&gt;        m      0.111 -<span style="color: #BB0000;">0.552</span> FALSE    FALSE        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> y     -<span style="color: #BB0000;">0.281</span>  0.367 -&gt;        m      0.111 -<span style="color: #BB0000;">0.552</span> FALSE    FALSE        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y     -<span style="color: #BB0000;">0.281</span>  0.367 -&gt;        x      0.711  0.247 FALSE    FALSE        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> x      0.711  0.247 &lt;-&gt;       y     -<span style="color: #BB0000;">0.281</span>  0.367 <span style="color: #BB0000;">NA</span>       TRUE         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> x      0.711  0.247 &lt;-&gt;       y     -<span style="color: #BB0000;">0.281</span>  0.367 <span style="color: #BB0000;">NA</span>       TRUE         </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
