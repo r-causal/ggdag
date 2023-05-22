@@ -75,35 +75,50 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
                                node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
+
   p <- .tdy_dag %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, color = instrumental, shape = adjusted)) +
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
     geom_dag_edges() +
     scale_adjusted() +
     breaks("instrumental")
 
   if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(size = node_size)
+    if (all(is.na(.tdy_dag$data$instrumental))) {
+      node_aes <- NULL
     } else {
-      p <- p + geom_dag_point(size = node_size)
+      node_aes <- aes(color = instrumental)
+    }
+
+    if (stylized) {
+      p <- p + geom_dag_node(node_aes, size = node_size)
+    } else {
+      p <- p + geom_dag_point(node_aes, size = node_size)
     }
   }
 
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
   if (!is.null(use_labels)) {
+    if (all(is.na(.tdy_dag$data$instrumental))) {
+      label_aes <- ggplot2::aes(
+        label = !!rlang::sym(use_labels)
+      )
+    } else {
+      label_aes <- ggplot2::aes(
+        label = !!rlang::sym(use_labels),
+        fill = instrumental
+      )
+    }
+
     p <- p +
       geom_dag_label_repel(
-        ggplot2::aes(
-          label = !!rlang::sym(use_labels),
-          fill = instrumental
-        ),
+        label_aes,
         size = text_size,
         col = label_col,
         show.legend = FALSE
       )
   }
-  if (all(is.na(.tdy_dag$data$instrumental_name))) {
+  if (all(is.na(.tdy_dag$data$instrumental))) {
     p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
     } else {
       p <- p + ggplot2::facet_wrap(~instrumental_name)
