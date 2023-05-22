@@ -57,7 +57,7 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
     conditional_vars <- ifelse(is.null(.z), "", paste("|", paste(.z, collapse = ", ")))
     .dag$data$instrumental_name <- paste(.i, conditional_vars) %>% stringr::str_trim()
     if (!is.null(.z)) {
-      .dag <- .dag %>% control_for(.z)
+      .dag <- .dag %>% control_for(.z, activate_colliders = FALSE)
     } else {
       .dag$data$adjusted <- factor("unadjusted", levels = c("unadjusted", "adjusted"), exclude = NA)
     }
