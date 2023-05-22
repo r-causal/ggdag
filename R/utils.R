@@ -162,7 +162,7 @@ ggname <- function(prefix, grob) {
 
 ggdag_left_join <- function(...) {
   if (dplyr_version() >= "1.1.0") {
-    dplyr::left_join(..., multiple = "all")
+    dplyr::left_join(..., multiple = "all", relationship = "many-to-many")
   } else {
     dplyr::left_join(...)
   }
