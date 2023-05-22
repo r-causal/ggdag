@@ -103,6 +103,10 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
         show.legend = FALSE
       )
   }
-  if (dplyr::n_distinct(.tdy_dag$data$instrumental_name) > 1) p <- p + ggplot2::facet_wrap(~instrumental_name)
+  if (all(is.na(.tdy_dag$data$instrumental_name))) {
+    p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
+    } else {
+      p <- p + ggplot2::facet_wrap(~instrumental_name)
+    }
   p
 }
