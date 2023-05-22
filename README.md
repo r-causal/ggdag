@@ -2,7 +2,7 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/malcolmbarrett/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/malcolmbarrett/ggdag/actions)
+[![R-CMD-check](https://github.com/r-causal/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/r-causal/ggdag/actions)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 [![Lifecycle:

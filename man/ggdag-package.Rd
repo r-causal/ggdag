@@ -12,9 +12,9 @@ Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is built on top 
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/malcolmbarrett/ggdag}
+  \item \url{https://github.com/r-causal/ggdag}
   \item \url{https://r-causal.github.io/ggdag//}
-  \item Report bugs at \url{https://github.com/malcolmbarrett/ggdag/issues}
+  \item Report bugs at \url{https://github.com/r-causal/ggdag/issues}
 }
 
 }
