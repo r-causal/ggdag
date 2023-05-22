@@ -30,5 +30,5 @@ test_that("dags with colliders + IVs are shown correctly", {
   )
 
   p <- ggdag_instrumental(iv_collider)
-  expect_doppelganger("ggdag_instrumental() identifies instrumental in presence of collider", p)
+  expect_doppelganger("ggdag_instrumental() instrumental plus collider", p)
 })

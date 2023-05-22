@@ -100,6 +100,6 @@
 <rect x='615.75' y='335.76' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <circle cx='638.43' cy='358.44' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <text x='666.58' y='361.47' style='font-size: 8.80px; font-family: sans;' textLength='47.94px' lengthAdjust='spacingAndGlyphs'>instrumental</text>
-<text x='38.17' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='388.17px' lengthAdjust='spacingAndGlyphs'>ggdag_instrumental() identifies instrumental in presence of collider</text>
+<text x='38.17' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='273.69px' lengthAdjust='spacingAndGlyphs'>ggdag_instrumental() instrumental plus collider</text>
 </g>
 </svg>
