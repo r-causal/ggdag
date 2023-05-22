@@ -189,6 +189,7 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' @param collider_lines logical. Should the plot show paths activated by
 #'   adjusting for a collider?
 #' @param as_factor logical. Should the `adjusted` column be a factor?
+#' @param activate_colliders logical. Include colliders activated by adjustment?
 #'
 #' @return a `tidy_dagitty` with a `adjusted` column for adjusted
 #'   variables, as well as any biasing paths that arise, or a `ggplot`
@@ -202,10 +203,10 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #'
 #' @rdname control_for
 #' @name Adjust for variables
-control_for <- function(.tdy_dag, var, as_factor = TRUE, ...) {
+control_for <- function(.tdy_dag, var, as_factor = TRUE, activate_colliders = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   dagitty::adjustedNodes(.tdy_dag$dag) <- var
-  .tdy_dag <- activate_collider_paths(.tdy_dag, var)
+  if (isTRUE(activate_colliders)) .tdy_dag <- activate_collider_paths(.tdy_dag, var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% var, "adjusted", "unadjusted"))
   if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = factor(adjusted, exclude = NA))
   .tdy_dag

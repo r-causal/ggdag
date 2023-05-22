@@ -7,9 +7,9 @@
 \alias{ggdag_adjust}
 \title{Adjust for variables and activate any biasing paths that result}
 \usage{
-control_for(.tdy_dag, var, as_factor = TRUE, ...)
+control_for(.tdy_dag, var, as_factor = TRUE, activate_colliders = TRUE, ...)
 
-adjust_for(.tdy_dag, var, as_factor = TRUE, ...)
+adjust_for(.tdy_dag, var, as_factor = TRUE, activate_colliders = TRUE, ...)
 
 ggdag_adjust(
   .tdy_dag,
@@ -34,6 +34,8 @@ ggdag_adjust(
 \item{var}{a character vector, the variable(s) to adjust for.}
 
 \item{as_factor}{logical. Should the \code{adjusted} column be a factor?}
+
+\item{activate_colliders}{logical. Include colliders activated by adjustment?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
