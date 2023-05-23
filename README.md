@@ -32,7 +32,7 @@ Or you can install the development version from GitHub with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("malcolmbarrett/ggdag")
+devtools::install_github("r-causal/ggdag")
 ```
 
 ## Example
