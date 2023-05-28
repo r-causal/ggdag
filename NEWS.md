@@ -1,4 +1,4 @@
-# ggdag (development version)
+# ggdag 0.2.10
 * Fixed bug where ggdag was using wrong `left_join()` interface with dplyr 1.1.0 (#110)
 
 # ggdag 0.2.9
