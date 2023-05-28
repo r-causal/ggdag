@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Fixed bug where ggdag was using wrong `left_join()` interface with dplyr 1.1.0 (#110)
 
 # ggdag 0.2.9
 * Fixed bugs in instrumental functions for complex and non-existent IVs (#99)
