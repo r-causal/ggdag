@@ -13,7 +13,7 @@ coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 <!-- badges: end -->
 
-# ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs
+# ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs <a href="https://r-causal.github.io/ggdag/"><img src="man/figures/logo.png" align="right" height="138" /></a>
 
 Tidy, analyze, and plot causal directed acyclic graphs (DAGs). `ggdag`
 uses the powerful `dagitty` package to create and analyze structural
