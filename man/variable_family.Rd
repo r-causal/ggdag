@@ -156,7 +156,7 @@ ggdag_adjacent(
 \item{text}{logical. Should text be included in the DAG?}
 
 \item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\code{geom_dag_label_repel()}. Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} with an column related to the given

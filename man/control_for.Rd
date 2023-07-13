@@ -57,7 +57,7 @@ ggdag_adjust(
 \item{text}{logical. Should text be included in the DAG?}
 
 \item{use_labels}{a string. Variable to use for
-\code{geom_dag_repel_label()}. Default is \code{NULL}.}
+\code{geom_dag_label_repel()}. Default is \code{NULL}.}
 
 \item{collider_lines}{logical. Should the plot show paths activated by
 adjusting for a collider?}
