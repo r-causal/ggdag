@@ -20,7 +20,7 @@
 #' @param stylized logical. Should DAG nodes be stylized? If so, use
 #'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
+#' @param use_labels a string. Variable to use for `geom_dag_repel_label()`.
 #'   Default is `NULL`.
 #'
 #' @return a `tidy_dagitty` with a `collider` column for

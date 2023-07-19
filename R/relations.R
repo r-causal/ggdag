@@ -24,7 +24,7 @@
 #'   `geom_dag_nodes` and if not use `geom_dag_point`
 #' @param text logical. Should text be included in the DAG?
 #' @param use_labels a string. Variable to use for
-#'   `geom_dag_label_repel()`. Default is `NULL`.
+#'   `geom_dag_repel_label()`. Default is `NULL`.
 #' @param as_factor logical. Should the relationship variable be a factor?
 #'
 #' @return a `tidy_dagitty` with an column related to the given
