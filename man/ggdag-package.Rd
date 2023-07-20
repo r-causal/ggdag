@@ -7,13 +7,15 @@
 \alias{ggdag_pkg}
 \title{ggdag: Analyze and Create Elegant Directed Acyclic Graphs}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Tidy, analyze, and plot directed acyclic graphs (DAGs). 'ggdag' is built on top of 'dagitty', an R package that uses the 'DAGitty' web tool (\url{http://dagitty.net}) for creating and analyzing DAGs. 'ggdag' makes it easy to tidy and plot 'dagitty' objects using 'ggplot2' and 'ggraph', as well as common analytic and graphical functions, such as determining adjustment sets and node relationships.
 }
 \seealso{
 Useful links:
 \itemize{
   \item \url{https://github.com/r-causal/ggdag}
-  \item \url{https://r-causal.github.io/ggdag//}
+  \item \url{https://r-causal.github.io/ggdag/}
   \item Report bugs at \url{https://github.com/r-causal/ggdag/issues}
 }
 
