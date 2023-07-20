@@ -146,7 +146,7 @@
 
 
 <dt>use_labels</dt>
-<dd><p>a string. Variable to use for <code>geom_dag_repel_label()</code>.
+<dd><p>a string. Variable to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
 Default is <code>NULL</code>.</p></dd>
 
 
@@ -188,18 +188,18 @@ adjustment sets or a <code>ggplot</code></p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Outcome: y</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 36 × 10</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    name       x      y direction to      xend   yend circular adjusted   set    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> v      1.04  -<span style="color: #BB0000;">2.00</span>  -&gt;        z1     1.82  -<span style="color: #BB0000;">0.880</span> FALSE    unadjusted {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> v      1.04  -<span style="color: #BB0000;">2.00</span>  -&gt;        z2    -<span style="color: #BB0000;">0.121</span> -<span style="color: #BB0000;">1.20</span>  FALSE    unadjusted {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> w1     0.861 -<span style="color: #BB0000;">0.126</span> -&gt;        x      1.60   0.378 FALSE    adjusted   {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> w1     0.861 -<span style="color: #BB0000;">0.126</span> -&gt;        y      0.194  0.215 FALSE    adjusted   {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> w1     0.861 -<span style="color: #BB0000;">0.126</span> -&gt;        z1     1.82  -<span style="color: #BB0000;">0.880</span> FALSE    adjusted   {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> w1     0.861 -<span style="color: #BB0000;">0.126</span> &lt;-&gt;       w2    -<span style="color: #BB0000;">0.564</span> -<span style="color: #BB0000;">0.219</span> FALSE    adjusted   {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> w2    -<span style="color: #BB0000;">0.564</span> -<span style="color: #BB0000;">0.219</span> -&gt;        y      0.194  0.215 FALSE    adjusted   {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> w2    -<span style="color: #BB0000;">0.564</span> -<span style="color: #BB0000;">0.219</span> -&gt;        z2    -<span style="color: #BB0000;">0.121</span> -<span style="color: #BB0000;">1.20</span>  FALSE    adjusted   {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> x      1.60   0.378 -&gt;        y      0.194  0.215 FALSE    unadjusted {w1, w…</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> y      0.194  0.215 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     FALSE    unadjusted {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    name        x     y direction to       xend  yend circular adjusted   set    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> v      1.75    2.44 -&gt;        z1     1.25    3.71 FALSE    unadjusted {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> v      1.75    2.44 -&gt;        z2     0.456   1.90 FALSE    unadjusted {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> w1     0.100   3.33 -&gt;        x      0.071<span style="text-decoration: underline;">5</span>  4.22 FALSE    adjusted   {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> w1     0.100   3.33 -&gt;        y     -<span style="color: #BB0000;">0.548</span>   2.96 FALSE    adjusted   {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> w1     0.100   3.33 -&gt;        z1     1.25    3.71 FALSE    adjusted   {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> w1     0.100   3.33 &lt;-&gt;       w2    -<span style="color: #BB0000;">0.600</span>   2.08 FALSE    adjusted   {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> w2    -<span style="color: #BB0000;">0.600</span>   2.08 -&gt;        y     -<span style="color: #BB0000;">0.548</span>   2.96 FALSE    adjusted   {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> w2    -<span style="color: #BB0000;">0.600</span>   2.08 -&gt;        z2     0.456   1.90 FALSE    adjusted   {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> x      0.071<span style="text-decoration: underline;">5</span>  4.22 -&gt;        y     -<span style="color: #BB0000;">0.548</span>   2.96 FALSE    unadjusted {w1, w…</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> y     -<span style="color: #BB0000;">0.548</span>   2.96 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    FALSE    unadjusted {w1, w…</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 26 more rows</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">ggdag_adjustment_set</span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span></span>

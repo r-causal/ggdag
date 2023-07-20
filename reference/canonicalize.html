@@ -143,7 +143,7 @@ are not currently supported in <code>ggdag</code>.</p>
 
 
 <dt>use_labels</dt>
-<dd><p>a string. Variable to use for <code>geom_dag_repel_label()</code>.
+<dd><p>a string. Variable to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
 Default is <code>NULL</code>.</p></dd>
 
 </dl></div>
@@ -169,13 +169,13 @@ Default is <code>NULL</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Latent Variable: L1</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 5 × 8</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x      y direction to      xend   yend circular</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> L1    -<span style="color: #BB0000;">0.522</span> -<span style="color: #BB0000;">0.640</span> -&gt;        x     -<span style="color: #BB0000;">0.819</span>  0.464 FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> L1    -<span style="color: #BB0000;">0.522</span> -<span style="color: #BB0000;">0.640</span> -&gt;        z      0.581 -<span style="color: #BB0000;">0.339</span> FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x     -<span style="color: #BB0000;">0.819</span>  0.464 -&gt;        y      0.287  0.770 FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.287  0.770 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> z      0.581 -<span style="color: #BB0000;">0.339</span> -&gt;        y      0.287  0.770 FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x     y direction to      xend  yend circular</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> L1     0.193 0.505 -&gt;        x      1.19   1.06 FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> L1     0.193 0.505 -&gt;        z     -<span style="color: #BB0000;">0.352</span>  1.51 FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x      1.19  1.06  -&gt;        y      0.647  2.07 FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.647 2.07  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>    FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> z     -<span style="color: #BB0000;">0.352</span> 1.51  -&gt;        y      0.647  2.07 FALSE   </span>
 <span class="r-in"><span><span class="fu">ggdag_canonical</span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="canonicalize-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
