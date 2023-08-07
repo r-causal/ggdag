@@ -159,6 +159,81 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
   )
 }
 
+#' Node text labels
+#'
+#' @inheritParams ggplot2::geom_label
+#'
+#' @section Aesthetics:
+#' `geom_dag_label` understand the following aesthetics (required aesthetics are in bold):
+#'
+#' - **x**
+#' - **y**
+#' - **label**
+#' - alpha
+#' - angle
+#' - colour
+#' - family
+#' - fontface
+#' - group
+#' - hjust
+#' - lineheight
+#' - size
+#' - vjust
+#'
+#' @export
+#'
+#' @examples
+#' library(ggplot2)
+#' library(ggraph)
+#' g <- dagify(m ~ x + y, y ~ x)
+#'
+#' ggdag(g, text = FALSE) + geom_dag_label()
+#'
+#' g %>%
+#'   tidy_dagitty() %>%
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   geom_dag_edges(aes(
+#'     start_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm")),
+#'     end_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm"))
+#'   )) +
+#'   geom_dag_label(size = 5, fill = "black", color = "white") +
+#'   theme_dag()
+geom_dag_label <- function(mapping = NULL, data = NULL,
+                          stat = "identity", position = "identity",
+                          ...,
+                          parse = FALSE,
+                          nudge_x = 0,
+                          nudge_y = 0,
+                          check_overlap = FALSE,
+                          na.rm = FALSE,
+                          show.legend = NA,
+                          inherit.aes = TRUE) {
+  if (!missing(nudge_x) || !missing(nudge_y)) {
+    if (!missing(position)) {
+      stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
+    }
+
+    position <- ggplot2::position_nudge(nudge_x, nudge_y)
+  }
+
+  if (is.null(mapping)) mapping <- ggplot2::aes(label = name)
+  if (is.null(mapping$label)) mapping$label <- substitute(name)
+
+  ggplot2::layer(
+    data = data,
+    mapping = mapping,
+    stat = StatNodes,
+    geom = ggplot2::GeomLabel,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      parse = parse,
+      na.rm = na.rm,
+      ...
+    )
+  )
+}
 
 #' Repulsive textual annotations
 #'

@@ -20,6 +20,7 @@ SEM
 Undirected
 acyclic
 aes
+algorithmically
 bb
 behaviour
 bidirected
@@ -31,6 +32,7 @@ dagitty
 de
 dendogram
 df
+dplyr
 edx
 fontface
 generalizability
