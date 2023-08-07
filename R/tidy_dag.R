@@ -2,7 +2,9 @@
 #'
 #' @param .dagitty a `dagitty`
 #' @param seed a numeric seed for reproducible layout generation
-#' @param layout a layout available in `ggraph`. See [ggraph::create_layout()] for details.
+#' @param layout a layout available in `ggraph`. See [ggraph::create_layout()]
+#'   for details. Alternatively, `"time_ordered"` will use
+#'   `time_ordered_coords()` to algorithmically sort the graph by time.
 #' @param ... optional arguments passed to `ggraph::create_layout()`
 #'
 #' @return a `tidy_dagitty` object
@@ -30,12 +32,23 @@
 #'   geom_dag_edges() +
 #'   theme_dag()
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
-  check_verboten_layout(layout)
-
   if (!is.null(seed)) set.seed(seed)
 
   if (dagitty::graphType(.dagitty) != "dag") stop("`.dagitty` must be of graph type `dag`")
   .dag <- .dagitty
+
+  if (layout == "time_ordered") {
+    coords <- .dagitty %>%
+      edges2df() %>%
+      auto_time_order() %>%
+      time_ordered_coords() %>%
+      coords2list()
+
+    dagitty::coordinates(.dagitty) <- coords
+    layout <- "nicely"
+  } else {
+    check_verboten_layout(layout)
+  }
 
   no_existing_coords <- dagitty::coordinates(.dagitty) %>%
     purrr::map_lgl(~ all(is.na(.x))) %>%

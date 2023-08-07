@@ -10,13 +10,42 @@ test_that("time ordered layout works", {
     "d"
   ))
 
-  p1 <- dagify(
+  d1 <- dagify(
     d ~ c1 + c2 + c3,
     c1 ~ b1 + b2,
     c3 ~ a,
     b1 ~ a,
     coords = coords
-  ) %>% ggdag()
+  )
+
+  p1 <- ggdag(d1)
+
+  auto_coords_coords <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a,
+    coords = time_ordered_coords()
+  )
+
+  # auto time ordering is the same
+  expect_equal(
+    coords2list(coords),
+    dagitty::coordinates(auto_coords_coords)
+  )
+
+  auto_coords_layout <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a
+  )
+
+  # specifying in dagify or tidy_dagitty is the same
+  expect_equal(
+    tidy_dagitty(auto_coords_layout, layout = "time_ordered")$data,
+    tidy_dagitty(auto_coords_coords)$data
+  )
 
   # or use a data frame
   x <- data.frame(

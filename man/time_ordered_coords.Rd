@@ -4,7 +4,12 @@
 \alias{time_ordered_coords}
 \title{Create a time-ordered coordinate data frame}
 \usage{
-time_ordered_coords(.vars, time_points = NULL, direction = c("x", "y"))
+time_ordered_coords(
+  .vars = NULL,
+  time_points = NULL,
+  direction = c("x", "y"),
+  auto_sort_direction = c("right", "left")
+)
 }
 \arguments{
 \item{.vars}{A list of character vectors, where each vector represents a
@@ -16,18 +21,34 @@ a sequence from 1 to the number of variables.}
 
 \item{direction}{A character string indicating the axis along which the
 variables should be time-ordered. Either "x" or "y". Default is "x".}
+
+\item{auto_sort_direction}{If \code{.vars} is \code{NULL}: nodes will be placed as far
+\code{"left"} or \code{"right"} of in the graph as is reasonable. Default is right,
+meaning the nodes will be as close as possible in time to their
+descendants.}
 }
 \value{
 A tibble with three columns: \code{name}, \code{x}, and \code{y}.
 }
 \description{
 \code{time_ordered_coords()} is a helper function to create time-ordered DAGs.
-Pass the results to the \code{coords} argument of \code{dagify()}. The default is to
-assume you want variables to go from left to right in order by time.
-Variables are spread along the y-axis using a simple algorithm to stack them.
-You can also work along the y-axis by setting \code{direction = "y"}.
+Pass the results to the \code{coords} argument of \code{dagify()}. If \code{.vars} if not
+specified, these coordinates will be determined automatically. If you want to
+be specific, you can also use a list or data frame. The default is to assume
+you want variables to go from left to right in order by time. Variables are
+spread along the y-axis using a simple algorithm to stack them. You can also
+work along the y-axis by setting \code{direction = "y"}.
 }
 \examples{
+
+dagify(
+  d ~ c1 + c2 + c3,
+  c1 ~ b1 + b2,
+  c3 ~ a,
+  b1 ~ a,
+  coords = time_ordered_coords()
+) \%>\% ggdag()
+
 coords <- time_ordered_coords(list(
   # time point 1
   "a",
