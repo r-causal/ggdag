@@ -79,7 +79,9 @@
 
 
 <dt>layout</dt>
-<dd><p>a layout available in <code>ggraph</code>. See <code><a href="https://ggraph.data-imaginist.com/reference/ggraph.html" class="external-link">ggraph::create_layout()</a></code> for details.</p></dd>
+<dd><p>a layout available in <code>ggraph</code>. See <code><a href="https://ggraph.data-imaginist.com/reference/ggraph.html" class="external-link">ggraph::create_layout()</a></code>
+for details. Alternatively, <code>"time_ordered"</code> will use
+<code><a href="time_ordered_coords.html">time_ordered_coords()</a></code> to algorithmically sort the graph by time.</p></dd>
 
 
 <dt>...</dt>
@@ -114,21 +116,21 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Outcome: Y</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 13 × 8</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    name      x       y direction to     xend   yend circular</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> V      6.49 -<span style="color: #BB0000;">0.061</span><span style="color: #BB0000; text-decoration: underline;">1</span> -&gt;        Z1     6.90  1.29  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> V      6.49 -<span style="color: #BB0000;">0.061</span><span style="color: #BB0000; text-decoration: underline;">1</span> -&gt;        Z2     5.12  0.309 FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> W1     6.00  1.72   -&gt;        X      5.84  2.33  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> W1     6.00  1.72   -&gt;        Y      4.80  1.79  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> W1     6.00  1.72   -&gt;        Z1     6.90  1.29  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> W1     6.00  1.72   &lt;-&gt;       W2     5.17  1.28  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> W2     5.17  1.28   -&gt;        X      5.84  2.33  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> W2     5.17  1.28   -&gt;        Y      4.80  1.79  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> W2     5.17  1.28   -&gt;        Z2     5.12  0.309 FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> X      5.84  2.33   -&gt;        Y      4.80  1.79  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">11</span> Y      4.80  1.79   <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">12</span> Z1     6.90  1.29   -&gt;        X      5.84  2.33  FALSE   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">13</span> Z2     5.12  0.309  -&gt;        Y      4.80  1.79  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    name      x     y direction to     xend   yend circular</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> V     0.834 1.35  -&gt;        Z1     2.16  0.837 FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> V     0.834 1.35  -&gt;        Z2     1.31  2.68  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> W1    2.71  1.64  -&gt;        X      3.30  1.85  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> W1    2.71  1.64  -&gt;        Y      2.77  2.90  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> W1    2.71  1.64  -&gt;        Z1     2.16  0.837 FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> W1    2.71  1.64  &lt;-&gt;       W2     2.30  2.48  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> W2    2.30  2.48  -&gt;        X      3.30  1.85  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> W2    2.30  2.48  -&gt;        Y      2.77  2.90  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> W2    2.30  2.48  -&gt;        Z2     1.31  2.68  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> X     3.30  1.85  -&gt;        Y      2.77  2.90  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">11</span> Y     2.77  2.90  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">12</span> Z1    2.16  0.837 -&gt;        X      3.30  1.85  FALSE   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">13</span> Z2    1.31  2.68  -&gt;        Y      2.77  2.90  FALSE   </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">tidy_dagitty</span><span class="op">(</span><span class="va">dag</span>, layout <span class="op">=</span> <span class="st">"fr"</span><span class="op">)</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, y <span class="op">=</span> <span class="va">y</span>, xend <span class="op">=</span> <span class="va">xend</span>, yend <span class="op">=</span> <span class="va">yend</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
