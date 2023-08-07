@@ -1,4 +1,5 @@
 # ggdag (development version)
+* Implemented automatic time-ordered coordinates for `time_ordered_coords()` and `layout` (#115)
 
 # ggdag 0.2.10
 * Fixed bug where ggdag was using wrong `left_join()` interface with dplyr 1.1.0 (#110)
