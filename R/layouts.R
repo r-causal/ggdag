@@ -51,8 +51,17 @@
 #'
 #' @export
 #' @seealso [dagify()], [coords2df()], [coords2list()]
-time_ordered_coords <- function(.vars, time_points = NULL, direction = c("x", "y")) {
+time_ordered_coords <- function(.vars = NULL, time_points = NULL, direction = c("x", "y")) {
   direction <- match.arg(direction)
+
+  if (is.null(.vars)) {
+    auto_time_ordered_coords <- function(.df) {
+      .df <- auto_time_order(.df)
+      time_ordered_coords(.df, direction = direction)
+    }
+
+    return(auto_time_ordered_coords)
+  }
 
   if (is.data.frame(.vars)) {
     stopifnot(ncol(.vars) >= 2)
@@ -93,5 +102,34 @@ calculate_spread <- function(n) {
 
   spread
 }
+
+auto_time_order <- function(graph) {
+  orders <- dplyr::tibble(name = character(), order = integer())
+
+  order_value <- 1
+
+  while (nrow(graph) > 0) {
+    no_incoming <- graph %>%
+      dplyr::filter(!(name %in% to)) %>%
+      dplyr::pull(name)
+
+    # Add the names and order values to the orders data frame
+    orders <- dplyr::add_row(orders, name = no_incoming, order = order_value)
+
+    # Remove the rows with no incoming edges
+    graph <- graph %>%
+      dplyr::filter(!name %in% no_incoming)
+
+    order_value <- order_value + 1
+  }
+
+  # Merge orders with the original tibble
+  final_result <- dplyr::left_join(orders, graph, by = "name") %>%
+    dplyr::select(name, order) %>%
+    dplyr::distinct()
+
+  final_result
+}
+
 
 
