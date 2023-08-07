@@ -94,7 +94,6 @@ GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = 
   vjust = 0.5, alpha = NA, family = "", fontface = "bold", lineheight = 1.2
 ))
 
-
 StatEdgeLink <- ggplot2::ggproto("StatEdgeLink", ggraph::StatEdgeLink,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]

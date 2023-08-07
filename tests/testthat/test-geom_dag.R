@@ -53,3 +53,21 @@ test_that("different edge types work", {
   expect_doppelganger("geom_dag_edges_diagonal() is arcy", p + geom_dag_edges_diagonal())
   expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })
+test_that("labels also work", {
+  g <- dagify(m ~ x + y,
+              y ~ x,
+              exposure = "x",
+              outcome = "y",
+              latent = "m",
+              labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
+  )
+
+  p1 <- g %>%
+    tidy_dagitty() %>%
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label(aes(label = label))
+
+  expect_doppelganger("geom_dag_label() labels", p1)
+})
