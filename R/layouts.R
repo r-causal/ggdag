@@ -24,7 +24,13 @@
 #'
 #' @examples
 #'
-#'
+#' dagify(
+#'   d ~ c1 + c2 + c3,
+#'   c1 ~ b1 + b2,
+#'   c3 ~ a,
+#'   b1 ~ a,
+#'   coords = time_ordered_coords()
+#' ) %>% ggdag()
 #'
 #' coords <- time_ordered_coords(list(
 #'   # time point 1
