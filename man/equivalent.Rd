@@ -48,7 +48,9 @@ ggdag_equivalent_class(
 
 \item{n}{maximal number of returned graphs.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}} for details.}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
+for details. Alternatively, \code{"time_ordered"} will use
+\code{time_ordered_coords()} to algorithmically sort the graph by time.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 

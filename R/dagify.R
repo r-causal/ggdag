@@ -95,10 +95,24 @@ dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels =
       dagitty::coordinates(dgty) <- coords2list(coords)
     } else if (is.list(coords)) {
       dagitty::coordinates(dgty) <- coords
+    } else if (is.function(coords)) {
+      dagitty::coordinates(dgty) <- coords2list(coords(edges2df(dgty)))
     } else {
-      stop("`coords` must be of class `list` or `data.frame`")
+      stop("`coords` must be of class `list`, `data.frame`, or `function`")
     }
   }
   if (!is.null(labels)) label(dgty) <- labels
   dgty
+}
+
+edges2df <- function(.dag) {
+  .edges <- dagitty::edges(.dag)
+  no_outgoing_edges <- unique(.edges$w[!(.edges$w %in% .edges$v)])
+  dplyr::bind_rows(
+    .edges,
+    data.frame(
+      v = no_outgoing_edges,
+      w = rep(NA, length(no_outgoing_edges))
+    )
+  )
 }
