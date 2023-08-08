@@ -93,15 +93,15 @@ is_empty_or_null <- function(x) {
 is_false <- function(x) is.logical(x) && length(x) == 1L && !is.na(x) && !x
 
 has_exposure <- function(x) {
-  is_false(purrr::is_empty(dagitty::exposures(x$dag)))
+  is_false(purrr::is_empty(dagitty::exposures(pull_dag(x))))
 }
 
 has_outcome <- function(x) {
-  is_false(purrr::is_empty(dagitty::outcomes(x$dag)))
+  is_false(purrr::is_empty(dagitty::outcomes(pull_dag(x))))
 }
 
 has_latent <- function(x) {
-  is_false(purrr::is_empty(dagitty::latents(x$dag)))
+  is_false(purrr::is_empty(dagitty::latents(pull_dag(x))))
 }
 
 has_collider_path <- function(x) {

@@ -44,7 +44,7 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
     tibble::enframe(colliders, value = "colliders"),
     by = "name"
   )
-  purrr::map(vars[colliders], ~ dagitty::parents(.tdy_dag$dag, .x))
+  purrr::map(vars[colliders], ~ dagitty::parents(pull_dag(.tdy_dag), .x))
   if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, colliders = factor(as.numeric(colliders), levels = 0:1, labels = c("Non-Collider", "Collider")))
   .tdy_dag
 }
@@ -123,7 +123,7 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
     return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
   }
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
-  collider_paths <- purrr::map(adjusted_colliders, ~ dagitty::ancestors(.tdy_dag$dag, .x)[-1])
+  collider_paths <- purrr::map(adjusted_colliders, ~ dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1])
 
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
@@ -186,7 +186,7 @@ join_rhs_coords <- function(.x, .y) {
 #' @rdname is_collider
 #' @name Test if Variable Is Collider
 is_collider <- function(.dag, .var, downstream = TRUE) {
-  if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
+  if (is.tidy_dagitty(.dag)) .dag <- pull_dag(.dag)
   n_parents <- dagitty::parents(.dag, .var)
   collider <- length(n_parents) > 1
   downstream_collider <- is_downstream_collider(.dag, .var)
@@ -200,7 +200,7 @@ is_collider <- function(.dag, .var, downstream = TRUE) {
 #' @rdname is_collider
 #' @export
 is_downstream_collider <- function(.dag, .var) {
-  if (is.tidy_dagitty(.dag)) .dag <- .dag$dag
+  if (is.tidy_dagitty(.dag)) .dag <- pull_dag(.dag)
   var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
   any(purrr::map_lgl(var_ancestors, ~ is_collider(.dag, .x)))
 }

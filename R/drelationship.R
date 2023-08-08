@@ -81,8 +81,8 @@
 node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
-  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
+  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
   if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
@@ -93,7 +93,7 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
     controlling_for <- c()
   }
 
-  .dconnected <- dagitty::dconnected(.tdy_dag$dag, from, to, controlling_for)
+  .dconnected <- dagitty::dconnected(pull_dag(.tdy_dag), from, to, controlling_for)
 
   .from <- from
   .to <- to
@@ -115,8 +115,8 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
 node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
-  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
+  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
   if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
@@ -127,7 +127,7 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
     controlling_for <- c()
   }
 
-  .dseparated <- dagitty::dseparated(.tdy_dag$dag, from, to, controlling_for)
+  .dseparated <- dagitty::dseparated(pull_dag(.tdy_dag), from, to, controlling_for)
 
   .from <- from
   .to <- to
@@ -148,8 +148,8 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
 node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
-  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
+  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
   if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
@@ -161,7 +161,7 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
   }
 
 
-  .dseparated <- dagitty::dseparated(.tdy_dag$dag, from, to, controlling_for)
+  .dseparated <- dagitty::dseparated(pull_dag(.tdy_dag), from, to, controlling_for)
   .from <- from
   .to <- to
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,

@@ -53,11 +53,11 @@
 dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, paths_only = FALSE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
 
-  if (is.null(from)) from <- dagitty::exposures(.tdy_dag$dag)
-  if (is.null(to)) to <- dagitty::outcomes(.tdy_dag$dag)
+  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
+  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
   if (is.null(from) || is.null(to)) stop("`exposure` and `outcome` must be set!")
 
-  pathways <- dagitty::paths(.tdy_dag$dag, from, to, Z = adjust_for, limit = limit, directed = directed) %>%
+  pathways <- dagitty::paths(pull_dag(.tdy_dag), from, to, Z = adjust_for, limit = limit, directed = directed) %>%
     dplyr::as_tibble() %>%
     dplyr::filter(open) %>%
     dplyr::pull(paths)

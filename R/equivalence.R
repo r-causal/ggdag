@@ -49,12 +49,13 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
     dplyr::distinct() %>%
     coords2list()
 
+  # TODO: generalize this to `pull_dag()` and `update_dag()`
   dagitty::coordinates(.dag$dag) <- layout_coords
 
 
   if (extra_columns) extra_column_df <- select_extra_columns(.dag)
 
-  .dag$data <- dagitty::equivalentDAGs(.dag$dag, n = n) %>%
+  .dag$data <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) %>%
     purrr::map_df(map_equivalence, .id = "dag") %>%
     dplyr::as_tibble()
 
@@ -134,7 +135,7 @@ hash <- function(x, y) {
 #' @export
 node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
-  ec_data <- dagitty::equivalenceClass(.dag$dag) %>%
+  ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) %>%
     dagitty::edges(.) %>%
     dplyr::filter(e == "--") %>%
     dplyr::select(name = v, reversable = e, to = w) %>%

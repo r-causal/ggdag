@@ -28,7 +28,7 @@
 simulate_data <- function(.tdy_dag, b.default = NULL, b.lower = -0.6, b.upper = 0.6, eps = 1,
                           N = 500, standardized = TRUE) {
   if_not_tidy_daggity(.tdy_dag) %>%
-    .$dag %>%
+    pull_dag() %>%
     dagitty::simulateSEM(
       b.default = b.default, b.lower = b.lower, b.upper = b.upper, eps = eps,
       N = N, standardized = standardized

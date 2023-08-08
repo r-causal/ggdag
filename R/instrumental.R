@@ -39,7 +39,7 @@
 #' @name Instrumental Variables
 node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   .dag <- if_not_tidy_daggity(.dag, ...)
-  instrumental_vars <- dagitty::instrumentalVariables(.dag$dag,
+  instrumental_vars <- dagitty::instrumentalVariables(pull_dag(.dag),
     exposure = exposure,
     outcome = outcome
   )

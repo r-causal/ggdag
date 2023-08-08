@@ -205,9 +205,9 @@ print.tidy_dagitty <- function(x, ...) {
 
   cat_subtle("# A DAG with ", n_nodes(x), " nodes and ", n_edges(x), " edges\n", sep = "")
   cat_subtle("#\n")
-  if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(x$dag)), "\n", sep = "")
-  if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(x$dag)), "\n", sep = "")
-  if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(x$dag)), "\n", sep = "")
+  if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(pull_dag(x))), "\n", sep = "")
+  if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(pull_dag(x))), "\n", sep = "")
+  if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(pull_dag(x))), "\n", sep = "")
   if (has_collider_path(x)) {
     cat_subtle("# Paths opened by conditioning on a collider: ",
       coll(collider_paths(x)), "\n",

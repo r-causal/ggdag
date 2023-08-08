@@ -38,7 +38,7 @@
 #' @name Canonicalize DAGs
 node_canonical <- function(.dag, ...) {
   .dag <- if_not_tidy_daggity(.dag)
-  dagitty::canonicalize(.dag$dag)$g %>% tidy_dagitty(...)
+  dagitty::canonicalize(pull_dag(.dag))$g %>% tidy_dagitty(...)
 }
 
 #' @rdname canonicalize

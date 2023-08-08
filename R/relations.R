@@ -76,7 +76,7 @@
 node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  .children <- dagitty::children(.tdy_dag$dag, .var)
+  .children <- dagitty::children(pull_dag(.tdy_dag), .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
     children = ifelse(name %in% .children, "child",
       ifelse(name == .var, "parent",
@@ -93,7 +93,7 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
 node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  .parent <- dagitty::parents(.tdy_dag$dag, .var)
+  .parent <- dagitty::parents(pull_dag(.tdy_dag), .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
     parent = ifelse(name %in% .parent, "parent",
       ifelse(name == .var, "child",
@@ -127,7 +127,7 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
 node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  .descendants <- dagitty::descendants(.tdy_dag$dag, .var)[-1]
+  .descendants <- dagitty::descendants(pull_dag(.tdy_dag), .var)[-1]
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
     descendant = ifelse(name %in% .descendants, "descendant",
       ifelse(name == .var, "ancestor",
@@ -144,7 +144,7 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  .blanket <- dagitty::markovBlanket(.tdy_dag$dag, .var)
+  .blanket <- dagitty::markovBlanket(pull_dag(.tdy_dag), .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
     blanket = ifelse(name %in% .blanket, "Markov blanket",
       ifelse(name == .var, "center variable",
@@ -161,7 +161,7 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
 node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  .adjacent <- dagitty::adjacentNodes(.tdy_dag$dag, .var)
+  .adjacent <- dagitty::adjacentNodes(pull_dag(.tdy_dag), .var)
   .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
     adjacent = ifelse(name %in% .adjacent, "adjacent",
       ifelse(name == .var, "center variable",

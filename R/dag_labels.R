@@ -47,7 +47,7 @@
 dag_label <- function(.tdy_dag, labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
   if (!is.null(labels) & !is.null(.tdy_dag$data[["label"]])) .tdy_dag$data <- .tdy_dag$data %>% dplyr::select(-label)
-  if (is.null(labels)) labels <- label(.tdy_dag$dag)
+  if (is.null(labels)) labels <- label(pull_dag(.tdy_dag))
   if (is.null(labels)) {
     warning("no labels provided")
     return(.tdy_dag)
