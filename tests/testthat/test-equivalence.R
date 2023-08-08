@@ -39,7 +39,7 @@ test_that("dags ............", {
     node_status() %>%
     node_equivalent_dags()
 
-  expect_names(labelled_dag2$data, c("label", "status"))
+  expect_names(pull_dag_data(labelled_dag2), c("label", "status"))
 
   p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = "label")
   expect_doppelganger("ggdag_equivalent_class() plots labels", p5)

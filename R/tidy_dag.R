@@ -131,7 +131,7 @@ is.tidy_dagitty <- function(x) {
 #' @rdname fortify
 #' @name fortify
 fortify.tidy_dagitty <- function(model, data = NULL, ...) {
-  model$data
+  pull_dag_data(model)
 }
 
 #' @rdname fortify
@@ -139,7 +139,7 @@ fortify.tidy_dagitty <- function(model, data = NULL, ...) {
 fortify.dagitty <- function(model, data = NULL, ...) {
   model %>%
     tidy_dagitty() %>%
-    .$data
+    pull_dag_data()
 }
 
 #' Convert a `tidy_dagitty` object to data.frame
@@ -156,7 +156,7 @@ fortify.dagitty <- function(model, data = NULL, ...) {
 #'
 #' @export
 as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
-  as.data.frame(x$data, row.names = row.names, optional = optional, ...)
+  as.data.frame(pull_dag_data(x), row.names = row.names, optional = optional, ...)
 }
 
 #' Convert a `tidy_dagitty` object to tbl_df
@@ -166,7 +166,7 @@ as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ..
 #' @export
 #' @importFrom dplyr tbl_df
 tbl_df.tidy_daggity <- function(.tdy_dag) {
-  .tdy_dag$data
+  pull_dag_data(.tdy_dag)
 }
 
 #' Convert a `tidy_dagitty` object to tbl
@@ -184,13 +184,13 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
 #' @export
 #' @importFrom dplyr as.tbl as_tibble
 as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
-  dplyr::as.tbl(x$data, row.names = row.names, optional = optional, ...)
+  dplyr::as.tbl(pull_dag_data(x), row.names = row.names, optional = optional, ...)
 }
 
 #' @export
 #' @rdname as.tbl.tidy_daggity
 as_tibble.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
-  dplyr::as_tibble(x$data, row.names = row.names, optional = optional, ...)
+  dplyr::as_tibble(pull_dag_data(x), row.names = row.names, optional = optional, ...)
 }
 
 #' Print a `tidy_dagitty`
@@ -223,7 +223,7 @@ print.tidy_dagitty <- function(x, ...) {
     cat_subtle("#\n")
   }
 
-  print(x$data, ...)
+  print(pull_dag_data(x), ...)
   invisible(x)
 }
 

@@ -36,8 +36,11 @@
 node_exogenous <- function(.dag, ...) {
   .dag <- if_not_tidy_daggity(.dag, ...)
   exogenous_vars <- dagitty::exogenousVariables(pull_dag(.dag))
-  .dag$data <- .dag$data %>% dplyr::mutate(exogenous = ifelse(name %in% exogenous_vars, "exogenous", NA))
-  .dag
+
+  dplyr::mutate(
+    .dag,
+    exogenous = ifelse(name %in% exogenous_vars, "exogenous", NA)
+  )
 }
 
 #' @rdname exogenous

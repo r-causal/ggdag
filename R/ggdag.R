@@ -120,7 +120,7 @@ ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
       col = text_col
     )
 
-  if (any(.tdy_dag$data$direction == "<->" & !is.na(.tdy_dag$data$direction))) {
+  if (any(pull_dag_data(.tdy_dag)$direction == "<->" & !is.na(pull_dag_data(.tdy_dag)$direction))) {
     p <- p + geom_dag_edges(ggplot2::aes(
       start_cap = ggraph::label_rect(name, fontsize = fontsize),
       end_cap = ggraph::label_rect(to, fontsize = fontsize)

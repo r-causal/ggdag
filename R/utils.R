@@ -106,25 +106,25 @@ has_latent <- function(x) {
 
 has_collider_path <- function(x) {
   x <- if_not_tidy_daggity(x)
-  suppressWarnings(is_false(is.null(x$data$collider_line)))
+  suppressWarnings(is_false(is.null(pull_dag_data(x)$collider_line)))
 }
 
 n_nodes <- function(x) {
-  dplyr::n_distinct(x$data$name)
+  dplyr::n_distinct(pull_dag_data(x)$name)
 }
 
 n_edges <- function(x) {
-  sum(!is.na(x$data$direction)) - n_collder_paths(x)
+  sum(!is.na(pull_dag_data(x)$direction)) - n_collder_paths(x)
 }
 
 n_collder_paths <- function(x) {
-  if (has_collider_path(x)) n <- sum(x$data$collider_line) else n <- 0
+  if (has_collider_path(x)) n <- sum(pull_dag_data(x)$collider_line) else n <- 0
   n
 }
 
 collider_paths <- function(x) {
   if (has_collider_path(x)) {
-    paths <- x$data %>%
+    paths <- pull_dag_data(x) %>%
       dplyr::filter(collider_line) %>%
       dplyr::mutate(collider_path_nodes = paste(name, "<->", to)) %>%
       dplyr::pull(collider_path_nodes)

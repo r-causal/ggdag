@@ -43,8 +43,8 @@ test_that("time ordered layout works", {
 
   # specifying in dagify or tidy_dagitty is the same
   expect_equal(
-    tidy_dagitty(auto_coords_layout, layout = "time_ordered")$data,
-    tidy_dagitty(auto_coords_coords)$data
+    tidy_dagitty(auto_coords_layout, layout = "time_ordered") %>% pull_dag_data(),
+    tidy_dagitty(auto_coords_coords) %>% pull_dag_data()
   )
 
   # or use a data frame

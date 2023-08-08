@@ -76,7 +76,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
           .to = as.character(.to),
           path = "open path"
         ) %>%
-        ggdag_left_join(.tdy_dag$data, ., by = c("name" = ".from", "to" = ".to"))
+        ggdag_left_join(pull_dag_data(.tdy_dag), ., by = c("name" = ".from", "to" = ".to"))
 
       any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
       if (any_x_unopend) {
@@ -107,7 +107,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
       path_df
     }, .id = "set")
 
-  if (paths_only) .tdy_dag$data <- filter(.tdy_dag$data, path == "open path")
+  if (paths_only) .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")
 
   .tdy_dag
 }

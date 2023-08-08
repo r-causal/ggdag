@@ -88,8 +88,8 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
-    .tdy_dag$data$collider_line <- FALSE
-    .tdy_dag$data$adjusted <- "unadjusted"
+    .tdy_dag <- .tdy_dag %>%
+      dplyr::mutate(collider_line = FALSE, adjusted = "unadjusted")
     controlling_for <- c()
   }
 
@@ -98,14 +98,23 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   .from <- from
   .to <- to
 
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    d_relationship = ifelse(name %in% c(.from, .to) & .dconnected, "d-connected",
-      ifelse(name %in% c(.from, .to) & !.dconnected, "d-separated",
-        NA
+  .tdy_dag <- dplyr::mutate(.tdy_dag,
+                            d_relationship = ifelse(name %in% c(.from, .to) & .dconnected, "d-connected",
+                                                    ifelse(name %in% c(.from, .to) & !.dconnected, "d-separated",
+                                                           NA
+                                                    )
+                            )
+  )
+  if (as_factor) {
+    .tdy_dag <- mutate(
+      .tdy_dag,
+      d_relationship = factor(
+        d_relationship,
+        levels = c("d-connected", "d-separated"),
+        exclude = NA
       )
     )
-  )
-  if (as_factor) .tdy_dag$data$d_relationship <- factor(.tdy_dag$data$d_relationship, levels = c("d-connected", "d-separated"), exclude = NA)
+  }
 
   .tdy_dag
 }
@@ -122,8 +131,8 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
-    .tdy_dag$data$collider_line <- FALSE
-    .tdy_dag$data$adjusted <- "unadjusted"
+    .tdy_dag <- .tdy_dag %>%
+      dplyr::mutate(collider_line = FALSE, adjusted = "unadjusted")
     controlling_for <- c()
   }
 
@@ -132,14 +141,24 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   .from <- from
   .to <- to
 
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
     d_relationship = ifelse(name %in% c(.from, .to) & !.dseparated, "d-connected",
-      ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
-        NA
-      )
+                            ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
+                                   NA
+                            )
     )
   )
-  if (as_factor) .tdy_dag$data$d_relationship <- factor(.tdy_dag$data$d_relationship, levels = c("d-connected", "d-separated"), exclude = NA)
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      d_relationship = factor(
+        d_relationship,
+        levels = c("d-connected", "d-separated"),
+        exclude = NA
+      )
+    )
+  }
   .tdy_dag
 }
 
@@ -155,8 +174,11 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
-    .tdy_dag$data$collider_line <- FALSE
-    .tdy_dag$data$adjusted <- "unadjusted"
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      collider_line = FALSE,
+      adjusted = "unadjusted"
+    )
     controlling_for <- c()
   }
 
@@ -164,15 +186,25 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
   .dseparated <- dagitty::dseparated(pull_dag(.tdy_dag), from, to, controlling_for)
   .from <- from
   .to <- to
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    d_relationship = ifelse(name %in% c(.from, .to) & !.dseparated, "d-connected",
-      ifelse(name %in% c(.from, .to) & .dseparated, "d-separated",
-        NA
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    d_relationship = dplyr::case_when(
+      name %in% c(.from, .to) & !.dseparated ~ "d-connected",
+      name %in% c(.from, .to) & .dseparated ~ "d-separated",
+      TRUE ~ NA_character_
     )
   )
-  if (as_factor) .tdy_dag$data$d_relationship <- factor(.tdy_dag$data$d_relationship, levels = c("d-connected", "d-separated"), exclude = NA)
-  .tdy_dag
+if (as_factor) {
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    d_relationship = factor(
+      d_relationship,
+      levels = c("d-connected", "d-separated"),
+      exclude = NA
+    )
+  )
+}
+.tdy_dag
 }
 
 #' @rdname d_relationship

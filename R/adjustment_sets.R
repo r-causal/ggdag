@@ -66,7 +66,7 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
   .tdy_dag$data <-
     purrr::map_df(
       sets,
-      ~ dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste0("{", paste(.x, collapse = ", "), "}"))
+      ~ dplyr::mutate(pull_dag_data(.tdy_dag), adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste0("{", paste(.x, collapse = ", "), "}"))
     )
 
   .tdy_dag
@@ -209,8 +209,8 @@ control_for <- function(.tdy_dag, var, as_factor = TRUE, activate_colliders = TR
   # TODO: generalize to `pull_dag()` and `update_dag()`
   dagitty::adjustedNodes(.tdy_dag$dag) <- var
   if (isTRUE(activate_colliders)) .tdy_dag <- activate_collider_paths(.tdy_dag, var)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = ifelse(name %in% var, "adjusted", "unadjusted"))
-  if (as_factor) .tdy_dag$data <- dplyr::mutate(.tdy_dag$data, adjusted = factor(adjusted, exclude = NA))
+  .tdy_dag <- dplyr::mutate(.tdy_dag, adjusted = ifelse(name %in% var, "adjusted", "unadjusted"))
+  if (as_factor) .tdy_dag <- dplyr::mutate(.tdy_dag, adjusted = factor(adjusted, exclude = NA))
   .tdy_dag
 }
 
@@ -230,7 +230,7 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
   } else {
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
     if (is.null(var)) stop("an adjusting variable needs to be set, either via `var` or `control_for()`")
-    if (is.null(.tdy_dag$data$adjusted)) .tdy_dag <- .tdy_dag %>% control_for(var)
+    if (is.null(pull_dag_data(.tdy_dag)$adjusted)) .tdy_dag <- .tdy_dag %>% control_for(var)
   }
 
   p <- .tdy_dag %>%

@@ -44,7 +44,8 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
   extra_columns <- has_extra_columns(.dag)
 
-  layout_coords <- .dag$data %>%
+  layout_coords <- .dag %>%
+    pull_dag_data() %>%
     dplyr::select(name, x, y) %>%
     dplyr::distinct() %>%
     coords2list()
@@ -52,14 +53,15 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
   # TODO: generalize this to `pull_dag()` and `update_dag()`
   dagitty::coordinates(.dag$dag) <- layout_coords
 
-
   if (extra_columns) extra_column_df <- select_extra_columns(.dag)
 
   .dag$data <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) %>%
     purrr::map_df(map_equivalence, .id = "dag") %>%
     dplyr::as_tibble()
 
-  if (extra_columns) .dag$data <- ggdag_left_join(.dag$data, extra_column_df, by = "name")
+  if (extra_columns) {
+    .dag <- dplyr::left_join(.dag, extra_column_df, by = "name")
+  }
 
   .dag
 }
@@ -70,14 +72,14 @@ has_extra_columns <- function(.x) {
 
 get_extra_column_names <- function(.x) {
   standard_names <- c("name", "x", "y", "direction", "to", "xend", "yend", "circular")
-  dag_columns <- names(.x$data)
+  dag_columns <- names(pull_dag_data(.x))
   setdiff(dag_columns, standard_names)
 }
 
 select_extra_columns <- function(.x) {
   .x %>%
-    dplyr::select(name, get_extra_column_names(.x)) %>%
-    purrr::pluck("data")
+    pull_dag_data() %>%
+    dplyr::select(name, get_extra_column_names(.x))
 }
 
 map_equivalence <- function(.x) {
@@ -115,9 +117,9 @@ ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.8
       )
   }
 
-  if (dplyr::n_distinct(.tdy_dag$data$dag) > 1) {
+  if (dplyr::n_distinct(pull_dag_data(.tdy_dag)$dag) > 1) {
     p <- p +
-      ggplot2::facet_wrap(~dag) +
+      ggplot2::facet_wrap(~ dag) +
       expand_plot(
         expand_x = expansion(c(0.25, 0.25)),
         expand_y = expansion(c(0.25, 0.25))
@@ -143,9 +145,9 @@ node_equivalent_class <- function(.dag, layout = "auto") {
     dplyr::mutate(hash = hash(name, to)) %>%
     dplyr::select(hash, reversable)
 
-  .dag$data <- .dag$data %>%
+  .dag <- .dag %>%
     dplyr::mutate(hash = hash(name, to)) %>%
-    ggdag_left_join(ec_data, by = "hash") %>%
+    dplyr::left_join(ec_data, by = "hash") %>%
     dplyr::mutate(reversable = !is.na(reversable)) %>%
     dplyr::select(-hash)
 
@@ -166,8 +168,8 @@ ggdag_equivalent_class <- function(.tdy_dag,
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)
 
-  reversable_lines <- dplyr::filter(.tdy_dag$data, reversable)
-  non_reversable_lines <- dplyr::filter(.tdy_dag$data, !reversable)
+  reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), reversable)
+  non_reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), !reversable)
   p <- .tdy_dag %>%
     ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, edge_alpha = reversable)) +
     geom_dag_edges(

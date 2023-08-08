@@ -47,16 +47,20 @@ node_status <- function(.dag, as_factor = TRUE, ...) {
   .exposures <- dagitty::exposures(pull_dag(.tdy_dag))
   .outcomes <- dagitty::outcomes(pull_dag(.tdy_dag))
   .latents <- dagitty::latents(pull_dag(.tdy_dag))
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    status = ifelse(name %in% .exposures, "exposure",
-      ifelse(name %in% .outcomes, "outcome",
-        ifelse(name %in% .latents, "latent",
-          NA
-        )
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    status = dplyr::case_when(
+      name %in% .exposures ~ "exposure",
+      name %in% .outcomes ~ "outcome",
+      name %in% .latents ~ "latent",
+      TRUE ~ NA
     )
   )
-  if (as_factor) .tdy_dag$data$status <- factor(.tdy_dag$data$status, exclude = NA)
+
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(.tdy_dag, status = factor(status, exclude = NA))
+  }
+
   .tdy_dag
 }
 

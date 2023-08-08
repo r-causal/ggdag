@@ -77,14 +77,21 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   .children <- dagitty::children(pull_dag(.tdy_dag), .var)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    children = ifelse(name %in% .children, "child",
-      ifelse(name == .var, "parent",
-        NA
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    children = dplyr::case_when(
+      name %in% .children ~ "child",
+      name == .var ~ "parent",
+      TRUE ~ NA_character_
     )
   )
-  if (as_factor) .tdy_dag$data$children <- factor(.tdy_dag$data$children, exclude = NA)
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      children = factor(children, exclude = NA)
+    )
+  }
+
   .tdy_dag
 }
 
@@ -94,14 +101,17 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   .parent <- dagitty::parents(pull_dag(.tdy_dag), .var)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    parent = ifelse(name %in% .parent, "parent",
-      ifelse(name == .var, "child",
-        NA
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    parent = dplyr::case_when(
+      name %in% .parent ~ "parent",
+      name == .var ~ "child",
+      TRUE ~ NA
     )
   )
-  if (as_factor) .tdy_dag$data$parent <- factor(.tdy_dag$data$parent, exclude = NA)
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(.tdy_dag, parent = factor(parent, exclude = NA))
+  }
   .tdy_dag
 }
 
@@ -110,15 +120,21 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
 node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  .ancestors <- dagitty::ancestors(.tdy_dag$dag, .var)[-1]
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    ancestor = ifelse(name %in% .ancestors, "ancestor",
-      ifelse(name == .var, "descendant",
-        NA
-      )
+  .ancestors <- dagitty::ancestors(pull_dag(.tdy_dag), .var)[-1]
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    ancestor = dplyr::case_when(
+      name %in% .ancestors ~ "ancestor",
+      name == .var ~ "descendant",
+      TRUE ~ NA_character_
     )
   )
-  if (as_factor) .tdy_dag$data$ancestor <- factor(.tdy_dag$data$ancestor, exclude = NA)
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      ancestor = factor(ancestor, exclude = NA)
+    )
+  }
   .tdy_dag
 }
 
@@ -128,14 +144,21 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   .descendants <- dagitty::descendants(pull_dag(.tdy_dag), .var)[-1]
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    descendant = ifelse(name %in% .descendants, "descendant",
-      ifelse(name == .var, "ancestor",
-        NA
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    descendant = dplyr::case_when(
+      name %in% .descendants ~ "descendant",
+      name == .var ~ "ancestor",
+      TRUE ~ NA_character_
     )
   )
-  if (as_factor) .tdy_dag$data$descendant <- factor(.tdy_dag$data$descendant, exclude = NA)
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      descendant = factor(descendant, exclude = NA)
+    )
+  }
+
   .tdy_dag
 }
 
@@ -145,14 +168,22 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   .blanket <- dagitty::markovBlanket(pull_dag(.tdy_dag), .var)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    blanket = ifelse(name %in% .blanket, "Markov blanket",
-      ifelse(name == .var, "center variable",
-        NA
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    blanket = dplyr::case_when(
+      name %in% .blanket ~ "Markov blanket",
+      name == .var ~ "center variable",
+      TRUE ~ NA_character_
     )
   )
-  if (as_factor) .tdy_dag$data$blanket <- factor(.tdy_dag$data$blanket, exclude = NA)
+
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      blanket = factor(blanket, exclude = NA)
+    )
+  }
+
   .tdy_dag
 }
 
@@ -162,14 +193,21 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   .adjacent <- dagitty::adjacentNodes(pull_dag(.tdy_dag), .var)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    adjacent = ifelse(name %in% .adjacent, "adjacent",
-      ifelse(name == .var, "center variable",
-        NA
-      )
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    adjacent = dplyr::case_when(
+      name %in% .adjacent ~ "adjacent",
+      name == .var ~ "center variable",
+      TRUE ~ NA_character_
     )
   )
-  if (as_factor) .tdy_dag$data$adjacent <- factor(.tdy_dag$data$adjacent, exclude = NA)
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      adjacent = factor(adjacent, exclude = NA)
+    )
+  }
+
   .tdy_dag
 }
 

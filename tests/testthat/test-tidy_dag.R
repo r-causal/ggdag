@@ -1,21 +1,21 @@
 test_that("tidied dags are in good shape", {
   tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
-  expect_true(dagitty::is.dagitty(tidy_dag$dag))
-  expect_true(dplyr::is.tbl(tidy_dag$data))
-  dag_col_names <- names(tidy_dag$data)
+  expect_true(dagitty::is.dagitty(pull_dag(tidy_dag)))
+  expect_true(dplyr::is.tbl(pull_dag_data(tidy_dag)))
+  dag_col_names <- names(pull_dag_data(tidy_dag))
   expected_names <- c(
     "x", "y", "xend", "yend", "name", "direction",
     "to", "circular"
   )
   expect_true(all(expected_names %in% dag_col_names))
-  expect_equal(unique(tidy_dag$data$name), c("x", "y", "z"))
+  expect_equal(unique(pull_dag_data(tidy_dag)$name), c("x", "y", "z"))
   expect_equal(
-    tidy_dag$data$direction,
+    pull_dag_data(tidy_dag)$direction,
     factor(c("->", NA, "->", "->"), levels = c("<-", "->", "<->"))
   )
-  expect_true(is.logical(tidy_dag$data$circular))
-  expect_true(is.numeric(tidy_dag$data$x))
-  expect_true(is.numeric(tidy_dag$data$y))
+  expect_true(is.logical(pull_dag_data(tidy_dag)$circular))
+  expect_true(is.numeric(pull_dag_data(tidy_dag)$x))
+  expect_true(is.numeric(pull_dag_data(tidy_dag)$y))
 })
 
 test_that("nodes without edges are captured correctly", {
@@ -25,7 +25,7 @@ test_that("nodes without edges are captured correctly", {
   }")
 
   x <- tidy_dagitty(.dagitty)
-  expect_identical(x$data$name, c("x", "y", "z"))
+  expect_identical(pull_dag_data(x)$name, c("x", "y", "z"))
 })
 
 test_that("Forbidden layouts error", {
@@ -36,7 +36,7 @@ test_that("Forbidden layouts error", {
 })
 
 expect_function_produces_name <- function(tidy_dag, column) {
-  .df <- tidy_dag$data
+  .df <- pull_dag_data(tidy_dag)
   expect_true(all(column %in% names(.df)))
 }
 
