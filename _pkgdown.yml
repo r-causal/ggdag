@@ -19,6 +19,7 @@ reference:
     - label
     - has_labels
     - simulate_data
+    - pull_dag
 
 - title: Analyzing and Plotting DAGs
   contents:
