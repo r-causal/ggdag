@@ -7,6 +7,8 @@
 #' these objects may change over time.
 #'
 #' @param x a `tidy_dagitty` or `dagitty` object.
+#' @param ... For `dagitty` objects, passed to `tidy_dagitty()` if needed,
+#'   otherwise currently unused.
 #'
 #' @return a DAG object, e.g. `dagitty`, or data frame
 #'

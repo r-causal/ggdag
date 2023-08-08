@@ -23,6 +23,9 @@ pull_dag_data(x, ...)
 }
 \arguments{
 \item{x}{a \code{tidy_dagitty} or \code{dagitty} object.}
+
+\item{...}{For \code{dagitty} objects, passed to \code{tidy_dagitty()} if needed,
+otherwise currently unused.}
 }
 \value{
 a DAG object, e.g. \code{dagitty}, or data frame
