@@ -1,5 +1,5 @@
 test_that("dplyr methods work on tidy dags: `summarize()`", {
-  library(dplyr)
+  library(dplyr, warn.conflicts = FALSE)
   x <- tidy_dagitty(m_bias()) %>%
     group_by(name) %>%
     summarize(n = n())

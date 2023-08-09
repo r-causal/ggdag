@@ -35,7 +35,6 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   if (!is.null(seed)) set.seed(seed)
 
   if (dagitty::graphType(.dagitty) != "dag") stop("`.dagitty` must be of graph type `dag`")
-  .dag <- .dagitty
 
   if (layout == "time_ordered") {
     coords <- .dagitty %>%
@@ -45,64 +44,83 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
       coords2list()
 
     dagitty::coordinates(.dagitty) <- coords
-    layout <- "nicely"
   } else {
     check_verboten_layout(layout)
   }
 
-  no_existing_coords <- dagitty::coordinates(.dagitty) %>%
-    purrr::map_lgl(~ all(is.na(.x))) %>%
-    all()
+  dag_edges <- dagitty::edges(.dagitty) %>%
+    dplyr::select(-x, -y) %>%
+    dplyr::rename(name = v, to = w, direction = e)
 
-  ggraph_layout <- dagitty::edges(.dagitty) %>%
-    dplyr::select(v, w) %>%
-    igraph::graph_from_data_frame(vertices = names(.dagitty)) %>%
-    {
-      suppressMessages(ggraph::create_layout(., layout, ...))
-    }
-
-  if (no_existing_coords) {
-    coords <- coords2list(ggraph_layout)
-  } else {
-    coords <- dagitty::coordinates(.dagitty)
-  }
-
-  labels <- names(coords$x)
-
-  dag_edges <- dagitty::edges(.dagitty)
-
-  tidy_dag <- ggdag_left_join(tibble::enframe(coords$x, value = "x"),
-    tibble::enframe(coords$y, value = "y"),
-    by = "name"
-  )
-  layout_info <- dplyr::select(ggraph_layout, -x, -y) %>%
-    dplyr::mutate(name = as.character(name))
-
-  names(layout_info) <- c("name", ".ggraph.orig_index", "circular", ".ggraph.index")
+  coords_df <- dag_edges %>%
+    dplyr::select(name, to) %>%
+    generate_layout(
+      layout = layout,
+      vertices = names(.dagitty),
+      coords = dagitty::coordinates(.dagitty),
+      ...
+    )
 
   tidy_dag <- dag_edges %>%
-    dplyr::select(-x, -y) %>%
-    dplyr::mutate(
-      v = as.character(v),
-      w = as.character(w),
-      direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
-      type = ifelse(e == "<->", "bidirected", "directed"),
-      type = factor(type, levels = c("directed", "bidirected"), exclude = NA)
-    ) %>%
-    ggdag_left_join(tidy_dag, ., by = c("name" = "v")) %>%
-    ggdag_left_join(tidy_dag, by = c("w" = "name"), suffix = c("", "end")) %>%
-    dplyr::select(name, x, y, direction, type, to = w, xend, yend) %>%
-    ggdag_left_join(layout_info, by = "name") %>%
-    dplyr::arrange(.ggraph.orig_index) %>%
-    dplyr::select(-.ggraph.orig_index, -.ggraph.index, -type)
+    tidy_dag_edges_and_coords(coords_df)
 
-  .tdy_dag <- list(data = tidy_dag, dag = .dag)
+  .tdy_dag <- new_tidy_dagitty(tidy_dag, .dagitty)
+
+  .tdy_dag
+}
+
+new_tidy_dagitty <- function(tidy_dag, .dagitty) {
+  .tdy_dag <- list(data = tidy_dag, dag = .dagitty)
   class(.tdy_dag) <- "tidy_dagitty"
-  if (has_labels(.dag)) {
-    label(.tdy_dag) <- label(.dag)
+  if (has_labels(.dagitty)) {
+    label(.tdy_dag) <- label(.dagitty)
   }
 
   .tdy_dag
+}
+
+tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
+  dag_edges %>%
+    dplyr::mutate(
+      name = as.character(name),
+      to = as.character(to),
+      direction = factor(direction, levels = c("->", "<->", "--"), exclude = NA)
+    ) %>%
+    ggdag_left_join(coords_df, ., by = "name") %>%
+    ggdag_left_join(
+      coords_df %>% dplyr::select(name, x, y),
+      by = c("to" = "name"),
+      suffix = c("", "end")
+    ) %>%
+    dplyr::select(name, x, y, direction, to, xend, yend, dplyr::everything())
+}
+
+generate_layout <- function(.df, layout, vertices = NULL, coords, ...) {
+  ig <- igraph::graph_from_data_frame(.df, vertices = vertices)
+
+  no_existing_coords <- coords %>%
+    purrr::map_lgl(~ all(is.na(.x))) %>%
+    all()
+
+  if (no_existing_coords) {
+    ggraph_layout <- suppressMessages(ggraph::create_layout(
+      ig,
+      layout = layout,
+      ...
+    ))
+  } else {
+    ggraph_layout <- suppressMessages(ggraph::create_layout(
+      ig,
+      layout = "manual",
+      x = coords$x,
+      y = coords$y,
+      ...
+    ))
+  }
+
+  ggraph_layout %>%
+    dplyr::select(name, x, y, circular) %>%
+    dplyr::as_tibble()
 }
 
 check_verboten_layout <- function(layout) {
@@ -210,8 +228,8 @@ print.tidy_dagitty <- function(x, ...) {
   if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(pull_dag(x))), "\n", sep = "")
   if (has_collider_path(x)) {
     cat_subtle("# Paths opened by conditioning on a collider: ",
-      coll(collider_paths(x)), "\n",
-      sep = ""
+               coll(collider_paths(x)), "\n",
+               sep = ""
     )
   }
   if (any(c(

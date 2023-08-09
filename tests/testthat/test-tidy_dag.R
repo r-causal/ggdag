@@ -11,7 +11,7 @@ test_that("tidied dags are in good shape", {
   expect_equal(unique(pull_dag_data(tidy_dag)$name), c("x", "y", "z"))
   expect_equal(
     pull_dag_data(tidy_dag)$direction,
-    factor(c("->", NA, "->", "->"), levels = c("<-", "->", "<->"))
+    factor(c("->", NA, "->", "->"), levels = c(c("->", "<->", "--")))
   )
   expect_true(is.logical(pull_dag_data(tidy_dag)$circular))
   expect_true(is.numeric(pull_dag_data(tidy_dag)$x))
