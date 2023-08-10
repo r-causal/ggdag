@@ -147,7 +147,7 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
 
   collider_lines$collider_line <- TRUE
   .tdy_dag <- dplyr::mutate(.tdy_dag, collider_line = FALSE)
-  .tdy_dag$data <- dplyr::bind_rows(pull_dag_data(.tdy_dag), collider_lines)
+  update_dag_data(.tdy_dag) <- dplyr::bind_rows(pull_dag_data(.tdy_dag), collider_lines)
   .tdy_dag
 }
 

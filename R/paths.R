@@ -65,7 +65,7 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
 
   vars <- c(from = from, to = to)
 
-  .tdy_dag$data <- pathways %>%
+  update_dag_data(.tdy_dag) <- pathways %>%
     purrr::map_df(function(.x) {
       path_df <- .x %>%
         dag2() %>%

@@ -55,7 +55,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 
   if (extra_columns) extra_column_df <- select_extra_columns(.dag)
 
-  .dag$data <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) %>%
+  update_dag_data(.dag) <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) %>%
     purrr::map_df(map_equivalence, .id = "dag") %>%
     dplyr::as_tibble()
 

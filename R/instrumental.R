@@ -62,7 +62,7 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   }
   adjust_for_vars <- purrr::map(instrumental_vars, "Z")
 
-  .dag$data <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
+  update_dag_data(.dag) <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
     conditional_vars <- ifelse(is.null(.z), "", paste("|", paste(.z, collapse = ", ")))
     .dag <- .dag %>% dplyr::mutate(
       instrumental_name = paste(.i, conditional_vars) %>% stringr::str_trim()
