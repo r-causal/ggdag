@@ -26,6 +26,7 @@ utils::globalVariables(
     "e",
     "exogenous",
     "from",
+    "from_formula",
     "instrumental",
     "name",
     "parent",
@@ -169,3 +170,5 @@ ggdag_left_join <- function(...) {
     dplyr::left_join(...)
   }
 }
+
+`%nin%` <- Negate(`%in%`)

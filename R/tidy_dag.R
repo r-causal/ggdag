@@ -34,10 +34,14 @@
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   if (!is.null(seed)) set.seed(seed)
 
-  if (dagitty::graphType(.dagitty) != "dag") stop("`.dagitty` must be of graph type `dag`")
+  if (dagitty::graphType(.dagitty) != "dag") {
+    stop("`.dagitty` must be of graph type `dag`")
+  }
+
+  dag_edges <- get_dagitty_edges(.dagitty)
 
   if (layout == "time_ordered") {
-    coords <- .dagitty %>%
+    coords <- dag_edges %>%
       edges2df() %>%
       auto_time_order() %>%
       time_ordered_coords() %>%
@@ -47,10 +51,6 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   } else {
     check_verboten_layout(layout)
   }
-
-  dag_edges <- dagitty::edges(.dagitty) %>%
-    dplyr::select(-x, -y) %>%
-    dplyr::rename(name = v, to = w, direction = e)
 
   coords_df <- dag_edges %>%
     dplyr::select(name, to) %>%
@@ -64,9 +64,71 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   tidy_dag <- dag_edges %>%
     tidy_dag_edges_and_coords(coords_df)
 
-  .tdy_dag <- new_tidy_dagitty(tidy_dag, .dagitty)
+  new_tidy_dagitty(tidy_dag, .dagitty)
+}
 
-  .tdy_dag
+
+#' Convert objects into `tidy_dagitty` objects
+#'
+#' An alternative API and specification to [tidy_dagitty()], `as_tidy_dagitty()`
+#' allows you to create `tidy_dagitty` objects from data frames. There is also a
+#' method for `dagitty` objects, which is a thin wrapper for [tidy_dagitty()].
+#' To create a DAG from a data frame, it must contain `name` and `to` columns,
+#' representing the nodes and any edges leading from the nodes. If there are
+#' `x`, `y`, `xend`, and `yend` columns, they will be used as coordinates.
+#' Otherwise, `layout` will be used. See [tidy_dagitty] for more information
+#' about layouts. Additionally, you can specify status (one of `exposure`,
+#' `outcome`, or `latent`) by including a `status` column. Any other columns in
+#' the data set will also be joined to the `tidy_dagitty` data.
+#'
+#' @param x An object to convert into a `tidy_dagitty`. Currently supports
+#'   `dagitty` and `data.frame` objects.
+#' @inheritParams tidy_dagitty
+#'
+#' @return a `tidy_dagitty` object
+#' @export
+#'
+#' @examples
+#'
+#' data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
+#'   as_tidy_dagitty()
+#'
+#' @seealso [tidy_dagitty()], [pull_dag()]
+as_tidy_dagitty <- function(x, ...) {
+  UseMethod("as_tidy_dagitty")
+}
+
+#' @export
+#' @rdname as_tidy_dagitty
+as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
+  tidy_dagitty(x, seed = seed, layout = layout, ...)
+}
+
+#' @export
+#' @rdname as_tidy_dagitty
+as_tidy_dagitty.data.frame <- function(x, seed = NULL, layout = "nicely", ...) {
+  if (!is.null(seed)) set.seed(seed)
+  tidy_dag <- prep_dag_data(x, layout = layout, ...)
+  .dagitty <- compile_dag_from_df(x)
+  if ("status" %in% names(tidy_dag)) {
+    dagitty::exposures(.dagitty) <- return_status(tidy_dag, "exposure")
+    dagitty::outcomes(.dagitty) <- return_status(tidy_dag, "outcome")
+    dagitty::latents(.dagitty) <- return_status(tidy_dag, "latent")
+  }
+
+  if ("adjusted" %in% names(tidy_dag)) {
+    .adjusted <- dplyr::filter(tidy_dag, adjusted == "adjusted") %>%
+      dplyr::pull(name) %>%
+      empty2list()
+
+    dagitty::adjustedNodes(.dagitty) <- .adjusted
+  }
+
+  dagitty::coordinates(.dagitty) <- tidy_dag %>%
+    select(name, x, y) %>%
+    coords2list()
+
+  new_tidy_dagitty(tidy_dag, .dagitty)
 }
 
 new_tidy_dagitty <- function(tidy_dag, .dagitty) {
@@ -80,6 +142,10 @@ new_tidy_dagitty <- function(tidy_dag, .dagitty) {
 }
 
 tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
+  if ("direction" %nin% names(dag_edges)) {
+    dag_edges$direction <- "->"
+  }
+
   dag_edges %>%
     dplyr::mutate(
       name = as.character(name),
@@ -95,12 +161,17 @@ tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
     dplyr::select(name, x, y, direction, to, xend, yend, dplyr::everything())
 }
 
-generate_layout <- function(.df, layout, vertices = NULL, coords, ...) {
+generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
   ig <- igraph::graph_from_data_frame(.df, vertices = vertices)
 
-  no_existing_coords <- coords %>%
-    purrr::map_lgl(~ all(is.na(.x))) %>%
-    all()
+  if (is.null(coords)) {
+    no_existing_coords <- TRUE
+  } else {
+    no_existing_coords <- coords %>%
+      purrr::map_lgl(~ all(is.na(.x))) %>%
+      all()
+  }
+
 
   if (no_existing_coords) {
     ggraph_layout <- suppressMessages(ggraph::create_layout(
