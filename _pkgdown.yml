@@ -11,6 +11,7 @@ reference:
 - title: Create and Tidy Dags
   contents:
     - tidy_dagitty
+    - as_tidy_dagitty
     - dagify
     - dag
     - starts_with("coord")
