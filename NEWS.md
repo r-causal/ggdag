@@ -1,7 +1,7 @@
 # ggdag (development version)
 * Implemented automatic time-ordered coordinates for `time_ordered_coords()` and `layout` (#115)
 * Added `geom_dag_label()` to complement `geom_dag_text()` and the repel functions (#116)
-* Added `pull_dag()` and `pull_dag_data()` to extract DAG components (#117)
+* Added `pull_dag()` and `pull_dag_data()` to extract DAG components, `update_dag()` and `update_dag_data()` to update DAG components, and `as_tidy_dagitty()` to construct DAGs from data frames (#117)
 
 # ggdag 0.2.10
 * Fixed bug where ggdag was using wrong `left_join()` interface with dplyr 1.1.0 (#110)
