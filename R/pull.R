@@ -100,6 +100,7 @@ prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
   if (any(c("x", "y", "xend", "yend") %nin% names(value))) {
     coords_df <- value %>%
       dplyr::select(name, to) %>%
+      dplyr::filter(!is.na(name), !is.na(to)) %>%
       generate_layout(
         layout = layout,
         coords = coords,
