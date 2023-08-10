@@ -90,7 +90,7 @@
                         <h4 data-toc-skip class="author">Malcolm
 Barrett</h4>
             
-            <h4 data-toc-skip class="date">2023-08-08</h4>
+            <h4 data-toc-skip class="date">2023-08-10</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/HEAD/vignettes/intro-to-ggdag.Rmd" class="external-link"><code>vignettes/intro-to-ggdag.Rmd</code></a></small>
       <div class="d-none name"><code>intro-to-ggdag.Rmd</code></div>
@@ -181,7 +181,7 @@ tidied, <code><a href="../reference/ggdag.html">ggdag()</a></code> and most othe
 <span><span class="co">#&gt;   ..$ name     : chr [1:4] "x" "y" "z" "z"</span></span>
 <span><span class="co">#&gt;   ..$ x        : num [1:4] -1.44 -3.5 -2.48 -2.48</span></span>
 <span><span class="co">#&gt;   ..$ y        : num [1:4] -0.9145 0.0805 -0.4158 -0.4158</span></span>
-<span><span class="co">#&gt;   ..$ direction: Factor w/ 3 levels "&lt;-","-&gt;","&lt;-&gt;": NA NA 2 2</span></span>
+<span><span class="co">#&gt;   ..$ direction: Factor w/ 3 levels "-&gt;","&lt;-&gt;","--": NA NA 1 1</span></span>
 <span><span class="co">#&gt;   ..$ to       : chr [1:4] NA NA "x" "y"</span></span>
 <span><span class="co">#&gt;   ..$ xend     : num [1:4] NA NA -1.44 -3.5</span></span>
 <span><span class="co">#&gt;   ..$ yend     : num [1:4] NA NA -0.9145 0.0805</span></span>
@@ -265,12 +265,10 @@ on the <code>data</code> object).</p>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">set</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">path</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">name</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarize</a></span><span class="op">(</span>n_vars_between <span class="op">=</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 2</span></span></span>
-<span><span class="co">#&gt;   set   n_vars_between</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 1                  1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2                  3</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 3                  3</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 1</span></span></span>
+<span><span class="co">#&gt;   n_vars_between</span></span>
+<span><span class="co">#&gt;            <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>              9</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="plotting-dags">Plotting DAGs<a class="anchor" aria-label="anchor" href="#plotting-dags"></a>

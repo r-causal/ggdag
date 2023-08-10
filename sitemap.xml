@@ -46,6 +46,9 @@
     <loc>https://r-causal.github.io/ggdag/reference/as_tbl_graph.html</loc>
   </url>
   <url>
+    <loc>https://r-causal.github.io/ggdag/reference/as_tidy_dagitty.html</loc>
+  </url>
+  <url>
     <loc>https://r-causal.github.io/ggdag/reference/canonicalize.html</loc>
   </url>
   <url>
@@ -137,6 +140,9 @@
   </url>
   <url>
     <loc>https://r-causal.github.io/ggdag/reference/print.tidy_dagitty.html</loc>
+  </url>
+  <url>
+    <loc>https://r-causal.github.io/ggdag/reference/pull_dag.html</loc>
   </url>
   <url>
     <loc>https://r-causal.github.io/ggdag/reference/quick_plot.html</loc>
