@@ -26,6 +26,7 @@ utils::globalVariables(
     "e",
     "exogenous",
     "from",
+    "from_formula",
     "instrumental",
     "name",
     "parent",
@@ -93,38 +94,38 @@ is_empty_or_null <- function(x) {
 is_false <- function(x) is.logical(x) && length(x) == 1L && !is.na(x) && !x
 
 has_exposure <- function(x) {
-  is_false(purrr::is_empty(dagitty::exposures(x$dag)))
+  is_false(purrr::is_empty(dagitty::exposures(pull_dag(x))))
 }
 
 has_outcome <- function(x) {
-  is_false(purrr::is_empty(dagitty::outcomes(x$dag)))
+  is_false(purrr::is_empty(dagitty::outcomes(pull_dag(x))))
 }
 
 has_latent <- function(x) {
-  is_false(purrr::is_empty(dagitty::latents(x$dag)))
+  is_false(purrr::is_empty(dagitty::latents(pull_dag(x))))
 }
 
 has_collider_path <- function(x) {
   x <- if_not_tidy_daggity(x)
-  suppressWarnings(is_false(is.null(x$data$collider_line)))
+  suppressWarnings(is_false(is.null(pull_dag_data(x)$collider_line)))
 }
 
 n_nodes <- function(x) {
-  dplyr::n_distinct(x$data$name)
+  dplyr::n_distinct(pull_dag_data(x)$name)
 }
 
 n_edges <- function(x) {
-  sum(!is.na(x$data$direction)) - n_collder_paths(x)
+  sum(!is.na(pull_dag_data(x)$direction)) - n_collder_paths(x)
 }
 
 n_collder_paths <- function(x) {
-  if (has_collider_path(x)) n <- sum(x$data$collider_line) else n <- 0
+  if (has_collider_path(x)) n <- sum(pull_dag_data(x)$collider_line) else n <- 0
   n
 }
 
 collider_paths <- function(x) {
   if (has_collider_path(x)) {
-    paths <- x$data %>%
+    paths <- pull_dag_data(x) %>%
       dplyr::filter(collider_line) %>%
       dplyr::mutate(collider_path_nodes = paste(name, "<->", to)) %>%
       dplyr::pull(collider_path_nodes)
@@ -169,3 +170,5 @@ ggdag_left_join <- function(...) {
     dplyr::left_join(...)
   }
 }
+
+`%nin%` <- Negate(`%in%`)

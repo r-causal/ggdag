@@ -39,7 +39,8 @@
 #' @name Instrumental Variables
 node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   .dag <- if_not_tidy_daggity(.dag, ...)
-  instrumental_vars <- dagitty::instrumentalVariables(.dag$dag,
+  instrumental_vars <- dagitty::instrumentalVariables(
+    pull_dag(.dag),
     exposure = exposure,
     outcome = outcome
   )
@@ -47,23 +48,43 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 
   i_vars <- purrr::map(instrumental_vars, "I")
   if (purrr::is_empty(i_vars)) {
-    .dag$data$adjusted <- factor("unadjusted", levels = c("unadjusted", "adjusted"), exclude = NA)
-    .dag$data$instrumental <- NA
+
+    .dag <- dplyr::mutate(
+      .dag,
+      adjusted = factor(
+        "unadjusted",
+        levels = c("unadjusted", "adjusted"),
+        exclude = NA
+      ),
+      instrumental = NA
+    )
     return(.dag)
   }
   adjust_for_vars <- purrr::map(instrumental_vars, "Z")
 
-  .dag$data <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
+  update_dag_data(.dag) <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
     conditional_vars <- ifelse(is.null(.z), "", paste("|", paste(.z, collapse = ", ")))
-    .dag$data$instrumental_name <- paste(.i, conditional_vars) %>% stringr::str_trim()
+    .dag <- .dag %>% dplyr::mutate(
+      instrumental_name = paste(.i, conditional_vars) %>% stringr::str_trim()
+    )
     if (!is.null(.z)) {
       .dag <- .dag %>% control_for(.z, activate_colliders = FALSE)
     } else {
-      .dag$data$adjusted <- factor("unadjusted", levels = c("unadjusted", "adjusted"), exclude = NA)
+      .dag <- .dag %>% dplyr::mutate(
+        adjusted = factor(
+          "unadjusted",
+          levels = c("unadjusted", "adjusted"),
+          exclude = NA
+        )
+      )
     }
-    .dag$data <- .dag$data %>% dplyr::mutate(instrumental = ifelse(name == .i, "instrumental", NA))
-    .dag$data
+    .dag <- .dag %>% dplyr::mutate(
+      instrumental = ifelse(name == .i, "instrumental", NA)
+    )
+
+    pull_dag_data(.dag)
   })
+
   .dag
 }
 
@@ -83,7 +104,7 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
     breaks("instrumental")
 
   if (node) {
-    if (all(is.na(.tdy_dag$data$instrumental))) {
+    if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
       node_aes <- NULL
     } else {
       node_aes <- aes(color = instrumental)
@@ -99,7 +120,7 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
   if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
 
   if (!is.null(use_labels)) {
-    if (all(is.na(.tdy_dag$data$instrumental))) {
+    if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
       label_aes <- ggplot2::aes(
         label = !!rlang::sym(use_labels)
       )
@@ -118,7 +139,7 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
         show.legend = FALSE
       )
   }
-  if (all(is.na(.tdy_dag$data$instrumental))) {
+  if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
     p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
     } else {
       p <- p + ggplot2::facet_wrap(~instrumental_name)

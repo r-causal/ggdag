@@ -32,12 +32,17 @@
 #' @rdname label
 #' @export
 `label<-.tidy_dagitty` <- function(x, value) {
-  attr(x, "labels") <- value
+  attr(x$dag, "labels") <- value
 
-  if (!is.null(x$data[["label"]])) x$data <- x$data %>% dplyr::select(-label)
+  if (!is.null(pull_dag_data(x)[["label"]])) {
+    x <- dplyr::select(x, -label)
+  }
 
-  x$data <- ggdag_left_join(x$data, tibble::enframe(value, value = "label"), by = "name")
-  x
+  dplyr::left_join(
+    x,
+    tibble::enframe(value, value = "label"),
+    by = "name"
+  )
 }
 
 #' @param labels a character vector
@@ -46,8 +51,10 @@
 #' @export
 dag_label <- function(.tdy_dag, labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
-  if (!is.null(labels) & !is.null(.tdy_dag$data[["label"]])) .tdy_dag$data <- .tdy_dag$data %>% dplyr::select(-label)
-  if (is.null(labels)) labels <- label(.tdy_dag$dag)
+  if (!is.null(labels) & !is.null(pull_dag_data(.tdy_dag)[["label"]])) {
+    .tdy_dag <- dplyr::select(.tdy_dag, -label)
+  }
+  if (is.null(labels)) labels <- label(pull_dag(.tdy_dag))
   if (is.null(labels)) {
     warning("no labels provided")
     return(.tdy_dag)

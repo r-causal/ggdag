@@ -11,6 +11,7 @@ reference:
 - title: Create and Tidy Dags
   contents:
     - tidy_dagitty
+    - as_tidy_dagitty
     - dagify
     - dag
     - starts_with("coord")
@@ -19,6 +20,7 @@ reference:
     - label
     - has_labels
     - simulate_data
+    - pull_dag
 
 - title: Analyzing and Plotting DAGs
   contents:

@@ -44,19 +44,23 @@
 #' @name Variable Status
 node_status <- function(.dag, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
-  .exposures <- dagitty::exposures(.tdy_dag$dag)
-  .outcomes <- dagitty::outcomes(.tdy_dag$dag)
-  .latents <- dagitty::latents(.tdy_dag$dag)
-  .tdy_dag$data <- dplyr::mutate(.tdy_dag$data,
-    status = ifelse(name %in% .exposures, "exposure",
-      ifelse(name %in% .outcomes, "outcome",
-        ifelse(name %in% .latents, "latent",
-          NA
-        )
-      )
+  .exposures <- dagitty::exposures(pull_dag(.tdy_dag))
+  .outcomes <- dagitty::outcomes(pull_dag(.tdy_dag))
+  .latents <- dagitty::latents(pull_dag(.tdy_dag))
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    status = dplyr::case_when(
+      name %in% .exposures ~ "exposure",
+      name %in% .outcomes ~ "outcome",
+      name %in% .latents ~ "latent",
+      TRUE ~ NA
     )
   )
-  if (as_factor) .tdy_dag$data$status <- factor(.tdy_dag$data$status, exclude = NA)
+
+  if (as_factor) {
+    .tdy_dag <- dplyr::mutate(.tdy_dag, status = factor(status, exclude = NA))
+  }
+
   .tdy_dag
 }
 

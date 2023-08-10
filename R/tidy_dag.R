@@ -34,75 +34,164 @@
 tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   if (!is.null(seed)) set.seed(seed)
 
-  if (dagitty::graphType(.dagitty) != "dag") stop("`.dagitty` must be of graph type `dag`")
-  .dag <- .dagitty
+  if (dagitty::graphType(.dagitty) != "dag") {
+    stop("`.dagitty` must be of graph type `dag`")
+  }
+
+  dag_edges <- get_dagitty_edges(.dagitty)
 
   if (layout == "time_ordered") {
-    coords <- .dagitty %>%
+    coords <- dag_edges %>%
       edges2df() %>%
       auto_time_order() %>%
       time_ordered_coords() %>%
       coords2list()
 
     dagitty::coordinates(.dagitty) <- coords
-    layout <- "nicely"
   } else {
     check_verboten_layout(layout)
   }
 
-  no_existing_coords <- dagitty::coordinates(.dagitty) %>%
-    purrr::map_lgl(~ all(is.na(.x))) %>%
-    all()
-
-  ggraph_layout <- dagitty::edges(.dagitty) %>%
-    dplyr::select(v, w) %>%
-    igraph::graph_from_data_frame(vertices = names(.dagitty)) %>%
-    {
-      suppressMessages(ggraph::create_layout(., layout, ...))
-    }
-
-  if (no_existing_coords) {
-    coords <- coords2list(ggraph_layout)
-  } else {
-    coords <- dagitty::coordinates(.dagitty)
-  }
-
-  labels <- names(coords$x)
-
-  dag_edges <- dagitty::edges(.dagitty)
-
-  tidy_dag <- ggdag_left_join(tibble::enframe(coords$x, value = "x"),
-    tibble::enframe(coords$y, value = "y"),
-    by = "name"
-  )
-  layout_info <- dplyr::select(ggraph_layout, -x, -y) %>%
-    dplyr::mutate(name = as.character(name))
-
-  names(layout_info) <- c("name", ".ggraph.orig_index", "circular", ".ggraph.index")
+  coords_df <- dag_edges %>%
+    dplyr::select(name, to) %>%
+    generate_layout(
+      layout = layout,
+      vertices = names(.dagitty),
+      coords = dagitty::coordinates(.dagitty),
+      ...
+    )
 
   tidy_dag <- dag_edges %>%
-    dplyr::select(-x, -y) %>%
-    dplyr::mutate(
-      v = as.character(v),
-      w = as.character(w),
-      direction = factor(e, levels = c("<-", "->", "<->"), exclude = NA),
-      type = ifelse(e == "<->", "bidirected", "directed"),
-      type = factor(type, levels = c("directed", "bidirected"), exclude = NA)
-    ) %>%
-    ggdag_left_join(tidy_dag, ., by = c("name" = "v")) %>%
-    ggdag_left_join(tidy_dag, by = c("w" = "name"), suffix = c("", "end")) %>%
-    dplyr::select(name, x, y, direction, type, to = w, xend, yend) %>%
-    ggdag_left_join(layout_info, by = "name") %>%
-    dplyr::arrange(.ggraph.orig_index) %>%
-    dplyr::select(-.ggraph.orig_index, -.ggraph.index, -type)
+    tidy_dag_edges_and_coords(coords_df)
 
-  .tdy_dag <- list(data = tidy_dag, dag = .dag)
+  new_tidy_dagitty(tidy_dag, .dagitty)
+}
+
+
+#' Convert objects into `tidy_dagitty` objects
+#'
+#' An alternative API and specification to [tidy_dagitty()], `as_tidy_dagitty()`
+#' allows you to create `tidy_dagitty` objects from data frames. There is also a
+#' method for `dagitty` objects, which is a thin wrapper for [tidy_dagitty()].
+#' To create a DAG from a data frame, it must contain `name` and `to` columns,
+#' representing the nodes and any edges leading from the nodes. If there are
+#' `x`, `y`, `xend`, and `yend` columns, they will be used as coordinates.
+#' Otherwise, `layout` will be used. See [tidy_dagitty] for more information
+#' about layouts. Additionally, you can specify status (one of `exposure`,
+#' `outcome`, or `latent`) by including a `status` column. Any other columns in
+#' the data set will also be joined to the `tidy_dagitty` data.
+#'
+#' @param x An object to convert into a `tidy_dagitty`. Currently supports
+#'   `dagitty` and `data.frame` objects.
+#' @inheritParams tidy_dagitty
+#'
+#' @return a `tidy_dagitty` object
+#' @export
+#'
+#' @examples
+#'
+#' data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
+#'   as_tidy_dagitty()
+#'
+#' @seealso [tidy_dagitty()], [pull_dag()]
+as_tidy_dagitty <- function(x, ...) {
+  UseMethod("as_tidy_dagitty")
+}
+
+#' @export
+#' @rdname as_tidy_dagitty
+as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
+  tidy_dagitty(x, seed = seed, layout = layout, ...)
+}
+
+#' @export
+#' @rdname as_tidy_dagitty
+as_tidy_dagitty.data.frame <- function(x, seed = NULL, layout = "nicely", ...) {
+  if (!is.null(seed)) set.seed(seed)
+  tidy_dag <- prep_dag_data(x, layout = layout, ...)
+  .dagitty <- compile_dag_from_df(x)
+  if ("status" %in% names(tidy_dag)) {
+    dagitty::exposures(.dagitty) <- return_status(tidy_dag, "exposure")
+    dagitty::outcomes(.dagitty) <- return_status(tidy_dag, "outcome")
+    dagitty::latents(.dagitty) <- return_status(tidy_dag, "latent")
+  }
+
+  if ("adjusted" %in% names(tidy_dag)) {
+    .adjusted <- dplyr::filter(tidy_dag, adjusted == "adjusted") %>%
+      dplyr::pull(name) %>%
+      empty2list()
+
+    dagitty::adjustedNodes(.dagitty) <- .adjusted
+  }
+
+  dagitty::coordinates(.dagitty) <- tidy_dag %>%
+    select(name, x, y) %>%
+    coords2list()
+
+  new_tidy_dagitty(tidy_dag, .dagitty)
+}
+
+new_tidy_dagitty <- function(tidy_dag, .dagitty) {
+  .tdy_dag <- list(data = tidy_dag, dag = .dagitty)
   class(.tdy_dag) <- "tidy_dagitty"
-  if (has_labels(.dag)) {
-    label(.tdy_dag) <- label(.dag)
+  if (has_labels(.dagitty)) {
+    label(.tdy_dag) <- label(.dagitty)
   }
 
   .tdy_dag
+}
+
+tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
+  if ("direction" %nin% names(dag_edges)) {
+    dag_edges$direction <- "->"
+  }
+
+  dag_edges %>%
+    dplyr::mutate(
+      name = as.character(name),
+      to = as.character(to),
+      direction = factor(direction, levels = c("->", "<->", "--"), exclude = NA)
+    ) %>%
+    ggdag_left_join(coords_df, ., by = "name") %>%
+    ggdag_left_join(
+      coords_df %>% dplyr::select(name, x, y),
+      by = c("to" = "name"),
+      suffix = c("", "end")
+    ) %>%
+    dplyr::select(name, x, y, direction, to, xend, yend, dplyr::everything())
+}
+
+generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
+  ig <- igraph::graph_from_data_frame(.df, vertices = vertices)
+
+  if (is.null(coords)) {
+    no_existing_coords <- TRUE
+  } else {
+    no_existing_coords <- coords %>%
+      purrr::map_lgl(~ all(is.na(.x))) %>%
+      all()
+  }
+
+
+  if (no_existing_coords) {
+    ggraph_layout <- suppressMessages(ggraph::create_layout(
+      ig,
+      layout = layout,
+      ...
+    ))
+  } else {
+    ggraph_layout <- suppressMessages(ggraph::create_layout(
+      ig,
+      layout = "manual",
+      x = coords$x,
+      y = coords$y,
+      ...
+    ))
+  }
+
+  ggraph_layout %>%
+    dplyr::select(name, x, y, circular) %>%
+    dplyr::as_tibble()
 }
 
 check_verboten_layout <- function(layout) {
@@ -131,7 +220,7 @@ is.tidy_dagitty <- function(x) {
 #' @rdname fortify
 #' @name fortify
 fortify.tidy_dagitty <- function(model, data = NULL, ...) {
-  model$data
+  pull_dag_data(model)
 }
 
 #' @rdname fortify
@@ -139,7 +228,7 @@ fortify.tidy_dagitty <- function(model, data = NULL, ...) {
 fortify.dagitty <- function(model, data = NULL, ...) {
   model %>%
     tidy_dagitty() %>%
-    .$data
+    pull_dag_data()
 }
 
 #' Convert a `tidy_dagitty` object to data.frame
@@ -156,7 +245,7 @@ fortify.dagitty <- function(model, data = NULL, ...) {
 #'
 #' @export
 as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
-  as.data.frame(x$data, row.names = row.names, optional = optional, ...)
+  as.data.frame(pull_dag_data(x), row.names = row.names, optional = optional, ...)
 }
 
 #' Convert a `tidy_dagitty` object to tbl_df
@@ -166,7 +255,7 @@ as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ..
 #' @export
 #' @importFrom dplyr tbl_df
 tbl_df.tidy_daggity <- function(.tdy_dag) {
-  .tdy_dag$data
+  pull_dag_data(.tdy_dag)
 }
 
 #' Convert a `tidy_dagitty` object to tbl
@@ -184,13 +273,13 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
 #' @export
 #' @importFrom dplyr as.tbl as_tibble
 as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
-  dplyr::as.tbl(x$data, row.names = row.names, optional = optional, ...)
+  dplyr::as.tbl(pull_dag_data(x), row.names = row.names, optional = optional, ...)
 }
 
 #' @export
 #' @rdname as.tbl.tidy_daggity
 as_tibble.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
-  dplyr::as_tibble(x$data, row.names = row.names, optional = optional, ...)
+  dplyr::as_tibble(pull_dag_data(x), row.names = row.names, optional = optional, ...)
 }
 
 #' Print a `tidy_dagitty`
@@ -205,13 +294,13 @@ print.tidy_dagitty <- function(x, ...) {
 
   cat_subtle("# A DAG with ", n_nodes(x), " nodes and ", n_edges(x), " edges\n", sep = "")
   cat_subtle("#\n")
-  if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(x$dag)), "\n", sep = "")
-  if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(x$dag)), "\n", sep = "")
-  if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(x$dag)), "\n", sep = "")
+  if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(pull_dag(x))), "\n", sep = "")
+  if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(pull_dag(x))), "\n", sep = "")
+  if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(pull_dag(x))), "\n", sep = "")
   if (has_collider_path(x)) {
     cat_subtle("# Paths opened by conditioning on a collider: ",
-      coll(collider_paths(x)), "\n",
-      sep = ""
+               coll(collider_paths(x)), "\n",
+               sep = ""
     )
   }
   if (any(c(
@@ -223,7 +312,7 @@ print.tidy_dagitty <- function(x, ...) {
     cat_subtle("#\n")
   }
 
-  print(x$data, ...)
+  print(pull_dag_data(x), ...)
   invisible(x)
 }
 

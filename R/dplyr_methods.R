@@ -17,7 +17,7 @@
 #' @export
 #' @importFrom dplyr select
 select.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::select(.data$data, ...)
+  update_dag_data(.data) <- dplyr::select(pull_dag_data(.data), ...)
   .data
 }
 
@@ -28,7 +28,7 @@ dplyr::filter
 #' @export
 #' @importFrom dplyr filter
 filter.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::filter(.data$data, ...)
+  update_dag_data(.data) <- dplyr::filter(pull_dag_data(.data), ...)
   .data
 }
 
@@ -36,7 +36,7 @@ filter.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr mutate
 mutate.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::mutate(.data$data, ...)
+  update_dag_data(.data) <- dplyr::mutate(pull_dag_data(.data), ...)
   .data
 }
 
@@ -44,21 +44,21 @@ mutate.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr summarise
 summarise.tidy_dagitty <- function(.data, ...) {
-  dplyr::summarise(.data$data, ...)
+  dplyr::summarise(pull_dag_data(.data), ...)
 }
 
 #' @name dplyr
 #' @export
 #' @importFrom dplyr distinct
 distinct.tidy_dagitty <- function(.data, ..., .keep_all = FALSE) {
-  dplyr::distinct(.data$data, ..., .keep_all = .keep_all)
+  dplyr::distinct(pull_dag_data(.data), ..., .keep_all = .keep_all)
 }
 
 #' @name dplyr
 #' @export
 #' @importFrom dplyr arrange
 arrange.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::arrange(.data$data, ...)
+  update_dag_data(.data) <- dplyr::arrange(pull_dag_data(.data), ...)
   .data
 }
 
@@ -66,7 +66,7 @@ arrange.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr group_by
 group_by.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::group_by(.data$data, ...)
+  .data$data <- dplyr::group_by(pull_dag_data(.data), ...)
   .data
 }
 
@@ -74,7 +74,7 @@ group_by.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr ungroup
 ungroup.tidy_dagitty <- function(x, ...) {
-  x$data <- dplyr::ungroup(x$data, ...)
+  update_dag_data(x) <- dplyr::ungroup(pull_dag_data(x), ...)
   x
 }
 
@@ -82,7 +82,7 @@ ungroup.tidy_dagitty <- function(x, ...) {
 #' @export
 #' @importFrom dplyr transmute
 transmute.tidy_dagitty <- function(.data, ...) {
-  .data$data <- dplyr::transmute(.data$data, ...)
+  update_dag_data(.data) <- dplyr::transmute(pull_dag_data(.data), ...)
   .data
 }
 
@@ -90,7 +90,7 @@ transmute.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr distinct
 distinct.tidy_dagitty <- function(.data, ..., .keep_all = FALSE) {
-  .data$data <- dplyr::distinct(.data$data, ..., .keep_all = .keep_all)
+  update_dag_data(.data) <- dplyr::distinct(pull_dag_data(.data), ..., .keep_all = .keep_all)
   .data
 }
 
@@ -98,7 +98,7 @@ distinct.tidy_dagitty <- function(.data, ..., .keep_all = FALSE) {
 #' @export
 #' @importFrom dplyr full_join
 full_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  x$data <- dplyr::full_join(x$data, by = by, copy = copy, suffix = suffix, ...)
+  update_dag_data(x) <- dplyr::full_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
   x
 }
 
@@ -106,7 +106,7 @@ full_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x
 #' @export
 #' @importFrom dplyr inner_join
 inner_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  x$data <- dplyr::inner_join(x$data, by = by, copy = copy, suffix = suffix, ...)
+  update_dag_data(x) <- dplyr::inner_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
   x
 }
 
@@ -114,7 +114,7 @@ inner_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".
 #' @export
 #' @importFrom dplyr left_join
 left_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  x$data <- ggdag_left_join(x$data, by = by, copy = copy, suffix = suffix, ...)
+  update_dag_data(x) <- ggdag_left_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
   x
 }
 
@@ -122,7 +122,7 @@ left_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x
 #' @export
 #' @importFrom dplyr right_join
 right_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  x$data <- dplyr::right_join(x$data, by = by, copy = copy, suffix = suffix, ...)
+  update_dag_data(x) <- dplyr::right_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
   x
 }
 
@@ -130,7 +130,7 @@ right_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".
 #' @export
 #' @importFrom dplyr anti_join
 anti_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
-  x$data <- dplyr::anti_join(x$data, by = by, copy = copy, ...)
+  update_dag_data(x) <- dplyr::anti_join(pull_dag_data(x), y, by = by, copy = copy, ...)
   x
 }
 
@@ -138,7 +138,7 @@ anti_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
 #' @export
 #' @importFrom dplyr semi_join
 semi_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
-  x$data <- dplyr::semi_join(x$data, by = by, copy = copy, ...)
+  update_dag_data(x) <- dplyr::semi_join(pull_dag_data(x), y, by = by, copy = copy, ...)
   x
 }
 
@@ -146,7 +146,7 @@ semi_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
 #' @export
 #' @importFrom dplyr slice
 slice.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::slice(.data$data, ...)
+  update_dag_data(.data) <- dplyr::slice(pull_dag_data(.data), ...)
   .data
 }
 
@@ -154,7 +154,7 @@ slice.tidy_dagitty <- function(.data, ..., .dots = list()) {
 #' @export
 #' @importFrom dplyr select_
 select_.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::select_(.data$data, ...)
+  update_dag_data(.data) <- dplyr::select_(pull_dag_data(.data), ...)
   .data
 }
 
@@ -162,7 +162,7 @@ select_.tidy_dagitty <- function(.data, ..., .dots = list()) {
 #' @export
 #' @importFrom dplyr filter_
 filter_.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::filter_(.data$data, ...)
+  update_dag_data(.data) <- dplyr::filter_(pull_dag_data(.data), ...)
   .data
 }
 
@@ -170,7 +170,7 @@ filter_.tidy_dagitty <- function(.data, ..., .dots = list()) {
 #' @export
 #' @importFrom dplyr mutate_
 mutate_.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::mutate_(.data$data, ...)
+  update_dag_data(.data) <- dplyr::mutate_(pull_dag_data(.data), ...)
   .data
 }
 
@@ -178,7 +178,7 @@ mutate_.tidy_dagitty <- function(.data, ..., .dots = list()) {
 #' @export
 #' @importFrom dplyr summarise_
 summarise_.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::summarise_(.data$data, ...)
+  update_dag_data(.data) <- dplyr::summarise_(pull_dag_data(.data), ...)
   .data
 }
 
@@ -186,7 +186,7 @@ summarise_.tidy_dagitty <- function(.data, ..., .dots = list()) {
 #' @export
 #' @importFrom dplyr arrange_
 arrange_.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::arrange_(.data$data, ...)
+  update_dag_data(.data) <- dplyr::arrange_(pull_dag_data(.data), ...)
   .data
 }
 
@@ -194,6 +194,6 @@ arrange_.tidy_dagitty <- function(.data, ..., .dots = list()) {
 #' @export
 #' @importFrom dplyr slice_
 slice_.tidy_dagitty <- function(.data, ..., .dots = list()) {
-  .data$data <- dplyr::slice_(.data$data, ...)
+  update_dag_data(.data) <- dplyr::slice_(pull_dag_data(.data), ...)
   .data
 }
