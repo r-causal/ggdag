@@ -199,15 +199,15 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'   geom_dag_label(size = 5, fill = "black", color = "white") +
 #'   theme_dag()
 geom_dag_label <- function(mapping = NULL, data = NULL,
-                          stat = "identity", position = "identity",
-                          ...,
-                          parse = FALSE,
-                          nudge_x = 0,
-                          nudge_y = 0,
-                          check_overlap = FALSE,
-                          na.rm = FALSE,
-                          show.legend = NA,
-                          inherit.aes = TRUE) {
+                           stat = "identity", position = "identity",
+                           ...,
+                           parse = FALSE,
+                           nudge_x = 0,
+                           nudge_y = 0,
+                           check_overlap = FALSE,
+                           na.rm = FALSE,
+                           show.legend = NA,
+                           inherit.aes = TRUE) {
   if (!missing(nudge_x) || !missing(nudge_y)) {
     if (!missing(position)) {
       stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
@@ -477,17 +477,17 @@ geom_dag_edges <- function(mapping = NULL,
                            ...) {
   list(
     geom_dag_edges_link(mapping,
-      data = data_directed, arrow = arrow_directed,
-      position = position, na.rm = na.rm,
-      show.legend = show.legend, inherit.aes = inherit.aes,
-      ...
+                        data = data_directed, arrow = arrow_directed,
+                        position = position, na.rm = na.rm,
+                        show.legend = show.legend, inherit.aes = inherit.aes,
+                        ...
     ),
     geom_dag_edges_arc(mapping,
-      data = data_bidirected, arrow = arrow_bidirected,
-      curvature = curvature, position = position,
-      na.rm = na.rm, show.legend = show.legend,
-      inherit.aes = inherit.aes, fold = fold,
-      ...
+                       data = data_bidirected, arrow = arrow_bidirected,
+                       curvature = curvature, position = position,
+                       na.rm = na.rm, show.legend = show.legend,
+                       inherit.aes = inherit.aes, fold = fold,
+                       ...
     )
   )
 }
@@ -777,6 +777,114 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
   )
 }
 
+dag_aes <- function(...) {
+  addtl_aes <- ggplot2::aes(...)
+  default_aes <- ggplot2::aes(
+    x = x,
+    y = y,
+    xend = xend,
+    yend = yend
+  )
+
+  default_aes[names(addtl_aes)] <- addtl_aes
+
+  default_aes
+}
+
+# the default uses `geom_dag_edges()`, `geom_dag_point()`, and `geom_dag_text()`, and optionally `geom_dag_label_repel()`
+geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
+                     node_size = 16, text_size = 3.88,
+                     label_size = text_size,
+                     text_col = "white", label_col = "black",
+                     edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                     use_node = TRUE, use_stylized = FALSE, use_text = TRUE,
+                     use_labels = FALSE, label = NULL) {
+  sizes <- c(
+    cap = edge_cap,
+    node = node_size,
+    text = text_size,
+    label = label_size,
+    edge = edge_width,
+    arrow = arrow_length,
+    box_padding = 1.5
+  ) * size
+
+  edge_type <- match.arg(edge_type)
+  if (edge_type == "link_arc") {
+    edge_geom <- geom_dag_edges(
+      ggplot2::aes(
+        start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+        end_cap = ggraph::circle(sizes[["cap"]], "mm")
+      ),
+      edge_width = sizes[["edge"]],
+      arrow_directed = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed"),
+      arrow_bidirected = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")
+    )
+  } else {
+    edge_function <- edge_type_switch(edge_type)
+    edge_geom <- edge_function(
+      ggplot2::aes(
+        start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+        end_cap = ggraph::circle(sizes[["cap"]], "mm")
+      ),
+      edge_width = sizes[["edge"]],
+      arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")    )
+  }
+
+  if (isTRUE(use_node)) {
+    if (isTRUE(use_stylized)) {
+      node_geom <- geom_dag_node(size = sizes[["node"]])
+    } else {
+      node_geom <- geom_dag_point(size = sizes[["node"]])
+    }
+  }
+
+  if (isTRUE(use_text)) {
+    text_geom <- geom_dag_text(col = text_col, size = text_size)
+  } else {
+    text_geom <- NULL
+  }
+
+  if (is.character(use_labels)) {
+    warning(paste0(
+      "Specifying a variable name for `use_labels()` will be ",
+      "deprecated in a future release of ggdag. ",
+      "To silence this message, set `use_labels = TRUE`. ",
+      "To also specify this variable, use `label = ", use_labels, "`"
+    ))
+
+    label <- rlang::sym(use_labels)
+    use_labels <- TRUE
+  }
+
+  if (isTRUE(use_labels)) {
+    label <- rlang::enquo(label)
+
+    if (rlang::quo_is_null(label)) {
+      label <- rlang::quo(label)
+    }
+
+    label_geom <- geom_dag_label_repel(
+      ggplot2::aes(label = !!label),
+      size = sizes[["label"]] * 1.1,
+      col = label_col,
+      show.legend = FALSE,
+      box.padding = sizes[["box_padding"]],
+      max.overlaps = Inf,
+      label.padding = 0.1,
+    )
+  } else {
+    label_geom <- NULL
+  }
+
+  list(
+    geom_dag_edges(),
+    node_geom,
+    text_geom,
+    label_geom
+  )
+}
+
 #' Create a new ggplot
 #'
 #' @inheritParams ggplot2::ggplot
@@ -787,6 +895,7 @@ ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
   p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
 
   p$scales <- scales_list_quiet()
+  p <- p + ggraph::scale_edge_color_hue()
 
   p + expand_plot(
     expand_x = expansion(c(.10, .10)),

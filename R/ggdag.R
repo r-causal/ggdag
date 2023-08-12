@@ -30,11 +30,11 @@
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~ ~w2
+#'   w1 ~~ w2
 #' )
 #'
 #' ggdag(dag)
-#' ggdag(dag) + theme_dag_blank()
+#' ggdag(dag) + theme_dag()
 #'
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
@@ -44,32 +44,27 @@ ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_si
                   text_col = "white", label_col = "black",
                   node = TRUE, stylized = FALSE, text = TRUE,
                   use_labels = NULL) {
-  edge_function <- edge_type_switch(edge_type)
 
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    edge_function()
-
-  if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(size = node_size)
-    } else {
-      p <- p + geom_dag_point(size = node_size)
-    }
-  }
-
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(label = !!rlang::sym(use_labels)),
-        size = text_size,
-        col = label_col,
-        show.legend = FALSE
-      )
-  }
-  p
+  if_not_tidy_daggity(.tdy_dag, ...) %>%
+    ggplot2::ggplot(dag_aes()) +
+    # TODO: switch arguments here too
+    geom_dag(
+      size = 1,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = 0.6,
+      edge_cap = 8,
+      arrow_length = 5,
+      use_node = node,
+      use_stylized = stylized,
+      use_text = text,
+      use_labels = use_labels,
+      label = NULL
+    )
 }
 
 #' Quickly plot a DAG in ggplot2
