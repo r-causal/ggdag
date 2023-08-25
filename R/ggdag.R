@@ -39,31 +39,35 @@
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
 #' @seealso [ggdag_classic()]
-ggdag <- function(.tdy_dag, ..., edge_type = "link_arc", node_size = 16, text_size = 3.88,
+ggdag <- function(.tdy_dag, ..., size = 1, edge_type = "link_arc", node_size = 16, text_size = 3.88,
                   label_size = text_size,
                   text_col = "white", label_col = "black",
-                  node = TRUE, stylized = FALSE, text = TRUE,
-                  use_labels = NULL) {
+                  edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                  use_node = TRUE, use_stylized = FALSE, use_text = TRUE,
+                  use_labels = FALSE, text = NULL, label = NULL,
+                  node = deprecated(), stylized = deprecated()) {
 
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(dag_aes()) +
-    # TODO: switch arguments here too
     geom_dag(
-      size = 1,
+      size = size,
       edge_type = edge_type,
       node_size = node_size,
       text_size = text_size,
       label_size = label_size,
       text_col = text_col,
       label_col = label_col,
-      edge_width = 0.6,
-      edge_cap = 8,
-      arrow_length = 5,
-      use_node = node,
-      use_stylized = stylized,
-      use_text = text,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_node = use_node,
+      use_stylized = use_stylized,
+      use_text = use_text,
       use_labels = use_labels,
-      label = NULL
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
     )
 }
 

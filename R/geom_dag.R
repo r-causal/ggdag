@@ -798,7 +798,18 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
                      text_col = "white", label_col = "black",
                      edge_width = 0.6, edge_cap = 8, arrow_length = 5,
                      use_node = TRUE, use_stylized = FALSE, use_text = TRUE,
-                     use_labels = FALSE, label = NULL) {
+                     use_labels = FALSE, label = NULL, text = NULL, node = deprecated(),
+                     stylized = deprecated()) {
+  if (is_present(node)) {
+    deprecate_soft("0.3.0", "geom_dag(node)", "geom_dag(use_node)")
+    use_node <- node
+  }
+
+  if (is_present(stylized)) {
+    deprecate_soft("0.3.0", "geom_dag(stylized)", "geom_dag(use_stylized)")
+    use_stylized <- stylized
+  }
+
   sizes <- c(
     cap = edge_cap,
     node = node_size,
@@ -839,19 +850,43 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
     }
   }
 
+  text <- rlang::enquo(text)
+
+  if (is_quo_logical(text)) {
+    deprecate_warn(
+      "0.3.0",
+      "geom_dag(text = 'no longer accepts logicals')",
+      details = paste0(
+        "Set `use_text = ", rlang::quo_text(text), "`. ",
+        "To use a variable other than node names, set `text = variable_name`"
+      ))
+
+    use_text <- as.logical(rlang::quo_text(text))
+    text <- NULL
+  }
+
   if (isTRUE(use_text)) {
-    text_geom <- geom_dag_text(col = text_col, size = text_size)
+    text <- rlang::enquo(text)
+    if (!rlang::quo_is_null(text)) {
+      mapping <- ggplot2::aes(label = !!text)
+    } else {
+      mapping <- NULL
+    }
+
+    mapping
+    text_geom <- geom_dag_text(mapping = mapping, col = text_col, size = text_size)
   } else {
     text_geom <- NULL
   }
 
   if (is.character(use_labels)) {
-    warning(paste0(
-      "Specifying a variable name for `use_labels()` will be ",
-      "deprecated in a future release of ggdag. ",
-      "To silence this message, set `use_labels = TRUE`. ",
-      "To also specify this variable, use `label = ", use_labels, "`"
-    ))
+    deprecate_warn(
+      "0.3.0",
+      "geom_dag(use_labels = 'must be a logical')",
+      details = paste0(
+        "Set `use_labels = TRUE` ",
+        "and `label = ", use_labels, "`"
+      ))
 
     label <- rlang::sym(use_labels)
     use_labels <- TRUE
@@ -862,6 +897,10 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
 
     if (rlang::quo_is_null(label)) {
       label <- rlang::quo(label)
+    }
+
+    if (rlang::quo_is_symbol(label)) {
+      label <- rlang::get_expr(label)
     }
 
     label_geom <- geom_dag_label_repel(
@@ -878,11 +917,15 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
   }
 
   list(
-    geom_dag_edges(),
+    edge_geom,
     node_geom,
     text_geom,
     label_geom
   )
+}
+
+is_quo_logical <- function(x) {
+  rlang::quo_text(x) == "TRUE" || rlang::quo_text(x) == "FALSE"
 }
 
 #' Create a new ggplot

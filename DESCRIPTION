@@ -24,6 +24,7 @@ Imports:
     ggraph (>= 2.0.0),
     ggrepel,
     igraph,
+    lifecycle (>= 0.2.0),
     magrittr,
     pillar,
     purrr,
