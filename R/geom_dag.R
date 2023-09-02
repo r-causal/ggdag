@@ -797,12 +797,12 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
                      label_size = text_size,
                      text_col = "white", label_col = "black",
                      edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                     use_node = TRUE, use_stylized = FALSE, use_text = TRUE,
+                     use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                      use_labels = FALSE, label = NULL, text = NULL, node = deprecated(),
                      stylized = deprecated()) {
   if (is_present(node)) {
-    deprecate_soft("0.3.0", "geom_dag(node)", "geom_dag(use_node)")
-    use_node <- node
+    deprecate_soft("0.3.0", "geom_dag(node)", "geom_dag(use_nodes)")
+    use_nodes <- node
   }
 
   if (is_present(stylized)) {
@@ -842,12 +842,14 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
       arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")    )
   }
 
-  if (isTRUE(use_node)) {
+  if (isTRUE(use_nodes)) {
     if (isTRUE(use_stylized)) {
       node_geom <- geom_dag_node(size = sizes[["node"]])
     } else {
       node_geom <- geom_dag_point(size = sizes[["node"]])
     }
+  } else {
+    node_geom <- NULL
   }
 
   text <- rlang::enquo(text)
