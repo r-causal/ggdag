@@ -5,7 +5,7 @@ articles:
   bias-structures: bias-structures.html
   intro-to-dags: intro-to-dags.html
   intro-to-ggdag: intro-to-ggdag.html
-last_built: 2023-08-10T11:55Z
+last_built: 2024-01-10T15:03Z
 urls:
   reference: https://r-causal.github.io/ggdag/reference
   article: https://r-causal.github.io/ggdag/articles
