@@ -281,5 +281,5 @@ But follow-up is downstream from a collider, symptoms. Controlling for a downstr
 
 Many, if not all, forms of systematic bias can be drawn as DAGs. Here are a few sources with interesting examples:
 
-* Miguel Hern&aacute;n's course on DAGs includes a number of examples on common structures of bias: [Causal Diagrams: Draw Your Assumptions Before Your Conclusions](https://www.edx.org/course/causal-diagrams-draw-your-assumptions-before-your). Also see his article [A structural approach to selection bias](https://pubmed.ncbi.nlm.nih.gov/15308962/).
+* Miguel Hern&aacute;n's course on DAGs includes a number of examples on common structures of bias: [Causal Diagrams: Draw Your Assumptions Before Your Conclusions](https://www.edx.org/learn/data-analysis/harvard-university-causal-diagrams-draw-your-assumptions-before-your-conclusions). Also see his article [A structural approach to selection bias](https://pubmed.ncbi.nlm.nih.gov/15308962/).
 * The chapter on DAGs in [Modern Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC) includes a couple of the examples here and many more directly related to conducting observational research, including measurement error, selection bias, residual confounding, and missing data.
