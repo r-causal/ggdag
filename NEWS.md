@@ -1,4 +1,6 @@
 # ggdag (development version)
+
+* Internal update to address upcoming changes in ggplot2 (#125, thanks @teunbrand)
 * Implemented automatic time-ordered coordinates for `time_ordered_coords()` and `layout` (#115)
 * Added `geom_dag_label()` to complement `geom_dag_text()` and the repel functions (#116)
 * Added `pull_dag()` and `pull_dag_data()` to extract DAG components, `update_dag()` and `update_dag_data()` to update DAG components, and `as_tidy_dagitty()` to construct DAGs from data frames (#117). Thanks to @lorenzoFabbri for inspiring some of the data-to-dag code in #90.
