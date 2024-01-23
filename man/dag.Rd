@@ -14,7 +14,7 @@ dag(...)
 a \code{dagitty}
 }
 \description{
-A convenience wrapper for dagitty::dagitty("dag{...}")
+A convenience wrapper for \code{dagitty::dagitty()}.
 }
 \examples{
 dag("{x m} -> y")
