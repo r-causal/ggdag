@@ -1,4 +1,4 @@
-# ggdag (development version)
+# ggdag 0.2.11
 
 * Internal update to address upcoming changes in ggplot2 (#125, thanks @teunbrand)
 * Implemented automatic time-ordered coordinates for `time_ordered_coords()` and `layout` (#115)
