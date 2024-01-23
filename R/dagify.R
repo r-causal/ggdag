@@ -1,6 +1,6 @@
 #' Create a dagitty DAG
 #'
-#' A convenience wrapper for dagitty::dagitty("dag{...}")
+#' A convenience wrapper for `dagitty::dagitty()`.
 #'
 #' @param ... a character vector in the style of dagitty. See
 #' \code{dagitty::\link[dagitty]{dagitty}} for details.
