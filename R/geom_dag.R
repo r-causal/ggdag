@@ -777,6 +777,27 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
   )
 }
 
+#' Define Aesthetics for Directed Acyclic Graphs (DAGs)
+#'
+#' `dag_aes()` is a wrapper around `aes()` that specifies `x`, `y`, `xend`, and
+#' `yend`, which are required for most DAG visualizations. It merges any
+#' additional aesthetics, e.g. `color` or `shape`, with the default aesthetic
+#' mappings.
+#'
+#' @param ... Additional aesthetic mappings passed as arguments. These can
+#'   include any aesthetic supported by ggplot2 (e.g., color, size, shape).
+#'
+#' @return A `ggplot2` aesthetic mapping object that includes both the default
+#'   DAG aesthetics and any user-specified aesthetics.
+#'
+#' @examples
+#' confounder_triangle() %>%
+#'   dag_adjustment_sets() %>%
+#'   ggplot(dag_aes(color = adjusted)) +
+#'   geom_dag() +
+#'   facet_wrap(~ set)
+#'
+#' @export
 dag_aes <- function(...) {
   addtl_aes <- ggplot2::aes(...)
   default_aes <- ggplot2::aes(
@@ -791,7 +812,53 @@ dag_aes <- function(...) {
   default_aes
 }
 
-# the default uses `geom_dag_edges()`, `geom_dag_point()`, and `geom_dag_text()`, and optionally `geom_dag_label_repel()`
+#' Add common DAG layers to a ggplot
+#'
+#' `geom_dag()` is a helper function that adds common DAG layers to a ggplot.
+#' The purpose of `geom_dag()` is to simplify making custom DAGs. Most custom
+#' DAGs need the same basic layers, and so this function greatly reduces typing.
+#' It is not a true geom in that it adds many types of geoms to the plot (by
+#' default, edges, nodes, and text). While the underlying layers, all available
+#' in ggdag, are true geoms, we usually need a consistent set of layers to make
+#' a DAG. `geom_dag()` provides this. Because `geom_dag()` is not a true geom,
+#' you'll find that it is awkward for sophiticated customizations. When you hit
+#' that point, you should use the underlying geoms directly.
+#'
+#' @param size A numeric value scaling the size of all elements in the DAG. This
+#'   allows you to change the scale of the DAG without changing the proportions.
+#' @param edge_type The type of edge, one of "link_arc", "link", "arc",
+#'   "diagonal".
+#' @param node_size The size of the nodes.
+#' @param text_size The size of the text.
+#' @param label_size The size of the labels.
+#' @param text_col The color of the text.
+#' @param label_col The color of the labels.
+#' @param edge_width The width of the edges.
+#' @param edge_cap The size of edge caps (the distance between the arrowheads
+#'   and the node borders).
+#' @param arrow_length The length of arrows on edges.
+#' @param use_nodes A logical value. Include `geom_dag_point()`?
+#' @param use_stylized A logical value. Include `geom_dag_node()`?
+#' @param use_text A logical value. Include `geom_dag_text()`?
+#' @param use_labels A logical value. Include `geom_dag_label_repel()`?
+#' @param label The bare name of a column to use for `geom_dag_label_repel()`.
+#'   If `use_labels = TRUE`, the default is to use `label`.
+#' @param text The bare name of a column to use for `geom_dag_text()`. If
+#'   `use_text = TRUE`, the default is to use `name`.
+#' @param node Deprecated.
+#' @param stylized Deprecated.
+#'
+#' @return A list of ggplot2 layer elements
+#'
+#' @examples
+#' # Basic usage with ggdag
+#' library(ggdag)
+#' dag <- dagify(y ~ x, z ~ y)
+#' ggplot(dag, dag_aes()) + geom_dag()
+#' ggplot(dag, dag_aes()) + geom_dag(size = 1.5)
+#' ggplot(dag, dag_aes()) + geom_dag(size = 1.5, text_size = 8)
+#'
+#' @export
 geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
                      node_size = 16, text_size = 3.88,
                      label_size = text_size,
