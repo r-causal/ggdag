@@ -822,7 +822,7 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
       ),
       edge_width = sizes[["edge"]],
       arrow_directed = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed"),
-      arrow_bidirected = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")
+      arrow_bidirected = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), ends = "both", type = "closed")
     )
   } else {
     edge_function <- edge_type_switch(edge_type)
@@ -868,7 +868,6 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
       mapping <- NULL
     }
 
-    mapping
     text_geom <- geom_dag_text(mapping = mapping, col = text_col, size = text_size)
   } else {
     text_geom <- NULL
