@@ -81,25 +81,29 @@ extract_sets <- function(sets) {
 #' @rdname adjustment_sets
 #' @export
 ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ..., shadow = FALSE,
-                                 node_size = 16, text_size = 3.88, label_size = text_size,
-                                 text_col = "white", label_col = text_col,
-                                 node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL,
+                                 size = 1, node_size = 16, text_size = 3.88,
+                                 label_size = text_size,
+                                 text_col = "white", label_col = "black",
+                                 edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                                 use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE,
+                                 use_text = TRUE, use_labels = FALSE, label = NULL,
+                                 text = NULL, node = deprecated(), stylized = deprecated(),
                                  expand_x = expansion(c(0.25, 0.25)),
                                  expand_y = expansion(c(0.2, 0.2))) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
 
-  p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(
-    x = x, y = y, xend = xend,
-    yend = yend, shape = adjusted,
-    col = adjusted
-  )) +
-    ggplot2::facet_wrap(~set) +
+  p <- ggplot2::ggplot(
+    .tdy_dag,
+    dag_aes(shape = adjusted, color = adjusted)
+  ) +
+    ggplot2::facet_wrap(~ set) +
     scale_adjusted() +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
   if (shadow) {
-    p <- p + geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
+    p <- p + geom_dag_edges(
+      ggplot2::aes(edge_alpha = adjusted),
       start_cap = ggraph::circle(10, "mm"),
       end_cap = ggraph::circle(10, "mm")
     )
@@ -116,27 +120,28 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
       )
   }
 
-  if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(size = node_size)
-    } else {
-      p <- p + geom_dag_point(size = node_size)
-    }
-  }
+  p <- p +
+    geom_dag(
+      size = size,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = FALSE,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(
-          label = !!rlang::sym(use_labels),
-          fill = adjusted
-        ),
-        size = text_size,
-        col = label_col, show.legend = FALSE
-      )
-  }
   p
 }
 
@@ -240,8 +245,8 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
       col = adjusted, shape = adjusted
     )) +
     geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
-      start_cap = ggraph::circle(10, "mm"),
-      end_cap = ggraph::circle(10, "mm")
+                   start_cap = ggraph::circle(10, "mm"),
+                   end_cap = ggraph::circle(10, "mm")
     ) +
     scale_adjusted() +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
