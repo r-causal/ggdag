@@ -10,7 +10,7 @@
 #'   `NULL`, in which case it will be determined from the DAG.
 #' @param ... additional arguments to `adjustmentSets`
 #' @param shadow logical. Show paths blocked by adjustment?
-#' @ineheritParams geom_dag
+#' @inheritParams geom_dag
 #' @inheritParams expand_plot
 #'
 #' @return a `tidy_dagitty` with an `adjusted` column and `set`

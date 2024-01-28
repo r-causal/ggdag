@@ -26,8 +26,9 @@
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
 #' @seealso [ggdag_classic()]
-ggdag <- function(.tdy_dag, ..., size = 1, edge_type = "link_arc", node_size = 16, text_size = 3.88,
-                  label_size = text_size,
+ggdag <- function(.tdy_dag, ...,
+                  size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
+                  node_size = 16, text_size = 3.88, label_size = text_size,
                   text_col = "white", label_col = "black",
                   edge_width = 0.6, edge_cap = 8, arrow_length = 5,
                   use_edges = TRUE,

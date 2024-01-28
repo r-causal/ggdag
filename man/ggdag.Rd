@@ -8,7 +8,7 @@ ggdag(
   .tdy_dag,
   ...,
   size = 1,
-  edge_type = "link_arc",
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
