@@ -800,15 +800,8 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
                      use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                      use_labels = FALSE, label = NULL, text = NULL, node = deprecated(),
                      stylized = deprecated()) {
-  if (is_present(node)) {
-    deprecate_soft("0.3.0", "geom_dag(node)", "geom_dag(use_nodes)")
-    use_nodes <- node
-  }
-
-  if (is_present(stylized)) {
-    deprecate_soft("0.3.0", "geom_dag(stylized)", "geom_dag(use_stylized)")
-    use_stylized <- stylized
-  }
+  use_nodes <- check_arg_node(node, use_nodes)
+  use_stylized <- check_arg_stylized(stylized, use_stylized)
 
   sizes <- c(
     cap = edge_cap,
