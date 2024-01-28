@@ -172,3 +172,30 @@ ggdag_left_join <- function(...) {
 }
 
 `%nin%` <- Negate(`%in%`)
+
+check_arg_node <- function(node, use_nodes, what = "geom_dag") {
+  if (is_present(node)) {
+    deprecate_soft("0.3.0", paste0(what, "(node)"), paste0(what, "(use_nodes)"))
+    use_nodes <- node
+  } else {
+    use_nodes
+  }
+}
+
+check_arg_node <- function(node, use_nodes, what = "geom_dag") {
+  if (is_present(node)) {
+    deprecate_soft("0.3.0", paste0(what, "(node)"), paste0(what, "(use_nodes)"))
+    use_nodes <- node
+  }
+
+  use_nodes
+}
+
+check_arg_stylized <- function(stylized, use_stylized, what = "geom_dag") {
+  if (is_present(stylized)) {
+    deprecate_soft("0.3.0", paste0(what, "(stylized)"), paste0(what, "(stylized)"))
+    use_stylized <- stylized
+  }
+
+  use_stylized
+}
