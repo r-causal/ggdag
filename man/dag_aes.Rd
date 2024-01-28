@@ -21,6 +21,7 @@ additional aesthetics, e.g. \code{color} or \code{shape}, with the default aesth
 mappings.
 }
 \examples{
+library(ggplot2)
 confounder_triangle() \%>\%
   dag_adjustment_sets() \%>\%
   ggplot(dag_aes(color = adjusted)) +

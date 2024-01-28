@@ -791,6 +791,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #'   DAG aesthetics and any user-specified aesthetics.
 #'
 #' @examples
+#' library(ggplot2)
 #' confounder_triangle() %>%
 #'   dag_adjustment_sets() %>%
 #'   ggplot(dag_aes(color = adjusted)) +
@@ -821,7 +822,7 @@ dag_aes <- function(...) {
 #' default, edges, nodes, and text). While the underlying layers, all available
 #' in ggdag, are true geoms, we usually need a consistent set of layers to make
 #' a DAG. `geom_dag()` provides this. Because `geom_dag()` is not a true geom,
-#' you'll find that it is awkward for sophiticated customizations. When you hit
+#' you'll find that it is awkward for sophisticated customization. When you hit
 #' that point, you should use the underlying geoms directly.
 #'
 #' @param size A numeric value scaling the size of all elements in the DAG. This
@@ -852,7 +853,7 @@ dag_aes <- function(...) {
 #'
 #' @examples
 #' # Basic usage with ggdag
-#' library(ggdag)
+#' library(ggplot2)
 #' dag <- dagify(y ~ x, z ~ y)
 #' ggplot(dag, dag_aes()) + geom_dag()
 #' ggplot(dag, dag_aes()) + geom_dag(size = 1.5)

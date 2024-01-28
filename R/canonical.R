@@ -8,20 +8,7 @@
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param edge_type a character vector, the edge geom to use. One of:
-#'   "link_arc", which accounts for directed and bidirected edges, "link",
-#'   "arc", or "diagonal"
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col color of label text
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
-#'   Default is `NULL`.
+#' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` that includes L or a `ggplot`
 #' @export

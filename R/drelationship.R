@@ -11,26 +11,13 @@
 #' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param edge_type a character vector, the edge geom to use. One of:
-#'   "link_arc", which accounts for directed and bidirected edges, "link",
-#'   "arc", or "diagonal"
 #' @param from a character vector, the starting variable (must by in DAG). If
 #'   `NULL`, checks DAG for exposure variable.
 #' @param to a character vector, the ending variable (must by in DAG). If
 #'   `NULL`, checks DAG for outcome variable.
 #' @param controlling_for a character vector, variables in the DAG to control
 #'   for.
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col color of label text
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
-#'   Default is `NULL`.
+#' @inheritParams geom_dag
 #' @param collider_lines logical. Should the plot show paths activated by
 #'   adjusting for a collider?
 #' @param as_factor logical. Should the `d_relationship` variable be a

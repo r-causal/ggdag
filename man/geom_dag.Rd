@@ -78,12 +78,12 @@ It is not a true geom in that it adds many types of geoms to the plot (by
 default, edges, nodes, and text). While the underlying layers, all available
 in ggdag, are true geoms, we usually need a consistent set of layers to make
 a DAG. \code{geom_dag()} provides this. Because \code{geom_dag()} is not a true geom,
-you'll find that it is awkward for sophiticated customizations. When you hit
+you'll find that it is awkward for sophisticated customization. When you hit
 that point, you should use the underlying geoms directly.
 }
 \examples{
 # Basic usage with ggdag
-library(ggdag)
+library(ggplot2)
 dag <- dagify(y ~ x, z ~ y)
 ggplot(dag, dag_aes()) + geom_dag()
 ggplot(dag, dag_aes()) + geom_dag(size = 1.5)

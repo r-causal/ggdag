@@ -172,29 +172,46 @@ ggdag_mediation_triangle(
 
 \item{x_y_associated}{Logical. Are x and y associated? Default is \code{FALSE}.}
 
-\item{edge_type}{a character vector, the edge geom to use. One of:
-"link_arc", which accounts for directed and bidirected edges, "link",
-"arc", or "diagonal"}
+\item{size}{A numeric value scaling the size of all elements in the DAG. This
+allows you to change the scale of the DAG without changing the proportions.}
 
-\item{node_size}{size of DAG node}
+\item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
+"diagonal".}
 
-\item{text_size}{size of DAG text}
+\item{node_size}{The size of the nodes.}
 
-\item{label_size}{size of label text}
+\item{text_size}{The size of the text.}
 
-\item{text_col}{color of DAG text}
+\item{label_size}{The size of the labels.}
 
-\item{label_col}{color of label text}
+\item{text_col}{The color of the text.}
 
-\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
-Default is \code{NULL}.}
+\item{label_col}{The color of the labels.}
 
-\item{text}{logical. Should text be included in the DAG?}
+\item{edge_width}{The width of the edges.}
 
-\item{node}{logical. Should nodes be included in the DAG?}
+\item{edge_cap}{The size of edge caps (the distance between the arrowheads
+and the node borders).}
 
-\item{stylized}{logical. Should DAG nodes be stylized? If so, use
-\code{geom_dag_nodes} and if not use \code{geom_dag_point}}
+\item{arrow_length}{The length of arrows on edges.}
+
+\item{use_nodes}{A logical value. Include \code{geom_dag_point()}?}
+
+\item{use_stylized}{A logical value. Include \code{geom_dag_node()}?}
+
+\item{use_text}{A logical value. Include \code{geom_dag_text()}?}
+
+\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+
+\item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
+\code{use_text = TRUE}, the default is to use \code{name}.}
+
+\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+If \code{use_labels = TRUE}, the default is to use \code{label}.}
+
+\item{node}{Deprecated.}
+
+\item{stylized}{Deprecated.}
 }
 \value{
 a DAG of class \code{dagitty} or a \code{ggplot}
