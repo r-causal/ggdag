@@ -13,17 +13,7 @@
 #'   Default is `NULL`, in which case it will check the input DAG for
 #'   exposure.
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col color of label text
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
-#'   Default is `NULL`.
+#' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` with an `instrumental` column for
 #'   instrumental variables or a `ggplot`
@@ -91,54 +81,51 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 #' @rdname instrumental
 #' @export
 ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
+                               size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
                                node_size = 16, text_size = 3.88, label_size = text_size,
-                               text_col = "white", label_col = text_col,
-                               node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                               text_col = "white", label_col = "black",
+                               edge_width = 0.6, edge_cap = 10, arrow_length = 5,
+                               use_edges = TRUE,
+                               use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                               use_labels = FALSE, text = NULL, label = NULL,
+                               node = deprecated(), stylized = deprecated()) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
 
+  if (all(is.na((pull_dag_data(.tdy_dag)$instrumental)))) {
+    mapping <- dag_aes(shape = adjusted)
+  } else {
+    mapping <- dag_aes(shape = adjusted, color = instrumental)
+  }
+
   p <- .tdy_dag %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
-    geom_dag_edges() +
+    ggplot2::ggplot(mapping) +
     scale_adjusted() +
     breaks("instrumental")
 
-  if (node) {
-    if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
-      node_aes <- NULL
-    } else {
-      node_aes <- aes(color = instrumental)
-    }
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
-    if (stylized) {
-      p <- p + geom_dag_node(node_aes, size = node_size)
-    } else {
-      p <- p + geom_dag_point(node_aes, size = node_size)
-    }
-  }
-
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-
-  if (!is.null(use_labels)) {
-    if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
-      label_aes <- ggplot2::aes(
-        label = !!rlang::sym(use_labels)
-      )
-    } else {
-      label_aes <- ggplot2::aes(
-        label = !!rlang::sym(use_labels),
-        fill = instrumental
-      )
-    }
-
-    p <- p +
-      geom_dag_label_repel(
-        label_aes,
-        size = text_size,
-        col = label_col,
-        show.legend = FALSE
-      )
-  }
   if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
     p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
     } else {
