@@ -838,6 +838,8 @@ dag_aes <- function(...) {
 #' @param edge_cap The size of edge caps (the distance between the arrowheads
 #'   and the node borders).
 #' @param arrow_length The length of arrows on edges.
+#' @param use_edges A logical value. Include a `geom_dag_edges*()` function? If
+#'   `TRUE`, which is determined by `edge_type`.
 #' @param use_nodes A logical value. Include `geom_dag_point()`?
 #' @param use_stylized A logical value. Include `geom_dag_node()`?
 #' @param use_text A logical value. Include `geom_dag_text()`?
@@ -865,9 +867,9 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
                      label_size = text_size,
                      text_col = "white", label_col = "black",
                      edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                     use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                     use_labels = FALSE, label = NULL, text = NULL, node = deprecated(),
-                     stylized = deprecated()) {
+                     use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE,
+                     use_text = TRUE, use_labels = FALSE, label = NULL,
+                     text = NULL, node = deprecated(), stylized = deprecated()) {
   use_nodes <- check_arg_node(node, use_nodes)
   use_stylized <- check_arg_stylized(stylized, use_stylized)
 
@@ -881,26 +883,30 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
     box_padding = 1.5
   ) * size
 
-  edge_type <- match.arg(edge_type)
-  if (edge_type == "link_arc") {
-    edge_geom <- geom_dag_edges(
-      ggplot2::aes(
-        start_cap = ggraph::circle(sizes[["cap"]], "mm"),
-        end_cap = ggraph::circle(sizes[["cap"]], "mm")
-      ),
-      edge_width = sizes[["edge"]],
-      arrow_directed = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed"),
-      arrow_bidirected = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), ends = "both", type = "closed")
-    )
+  if (isTRUE(use_edges)) {
+    edge_type <- match.arg(edge_type)
+    if (edge_type == "link_arc") {
+      edge_geom <- geom_dag_edges(
+        ggplot2::aes(
+          start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+          end_cap = ggraph::circle(sizes[["cap"]], "mm")
+        ),
+        edge_width = sizes[["edge"]],
+        arrow_directed = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed"),
+        arrow_bidirected = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), ends = "both", type = "closed")
+      )
+    } else {
+      edge_function <- edge_type_switch(edge_type)
+      edge_geom <- edge_function(
+        ggplot2::aes(
+          start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+          end_cap = ggraph::circle(sizes[["cap"]], "mm")
+        ),
+        edge_width = sizes[["edge"]],
+        arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")    )
+    }
   } else {
-    edge_function <- edge_type_switch(edge_type)
-    edge_geom <- edge_function(
-      ggplot2::aes(
-        start_cap = ggraph::circle(sizes[["cap"]], "mm"),
-        end_cap = ggraph::circle(sizes[["cap"]], "mm")
-      ),
-      edge_width = sizes[["edge"]],
-      arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")    )
+    edge_geom <- NULL
   }
 
   if (isTRUE(use_nodes)) {
