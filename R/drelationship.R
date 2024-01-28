@@ -202,6 +202,7 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
                                 label_size = text_size,
                                 text_col = "white", label_col = "black",
                                 edge_width = 0.6, edge_cap = 10, arrow_length = 5,
+                                use_edges = TRUE,
                                 use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                                 use_labels = FALSE, label = NULL, text = NULL, node = deprecated(),
                                 stylized = deprecated(), collider_lines = TRUE) {
@@ -223,6 +224,7 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      use_edges = use_edges,
       use_nodes = use_nodes,
       use_stylized = use_stylized,
       use_text = use_text,
