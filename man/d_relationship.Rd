@@ -42,15 +42,23 @@ ggdag_drelationship(
   controlling_for = NULL,
   ...,
   edge_type = "link_arc",
+  size = 1,
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL,
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
   collider_lines = TRUE
 )
 
@@ -61,15 +69,23 @@ ggdag_dseparated(
   controlling_for = NULL,
   ...,
   edge_type = "link_arc",
+  size = 1,
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL,
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
   collider_lines = TRUE
 )
 
@@ -80,15 +96,23 @@ ggdag_dconnected(
   controlling_for = NULL,
   ...,
   edge_type = "link_arc",
+  size = 1,
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL,
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
   collider_lines = TRUE
 )
 }
@@ -124,15 +148,15 @@ factor?}
 
 \item{label_col}{color of label text}
 
+\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
+Default is \code{NULL}.}
+
+\item{text}{logical. Should text be included in the DAG?}
+
 \item{node}{logical. Should nodes be included in the DAG?}
 
 \item{stylized}{logical. Should DAG nodes be stylized? If so, use
 \code{geom_dag_nodes} and if not use \code{geom_dag_point}}
-
-\item{text}{logical. Should text be included in the DAG?}
-
-\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
-Default is \code{NULL}.}
 
 \item{collider_lines}{logical. Should the plot show paths activated by
 adjusting for a collider?}

@@ -45,16 +45,24 @@ ggdag_m_bias(
   b = NULL,
   m = NULL,
   x_y_associated = FALSE,
+  size = 1,
   edge_type = "link_arc",
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_butterfly_bias(
@@ -64,16 +72,24 @@ ggdag_butterfly_bias(
   b = NULL,
   m = NULL,
   x_y_associated = FALSE,
+  size = 1,
   edge_type = "link_arc",
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_confounder_triangle(
@@ -81,16 +97,24 @@ ggdag_confounder_triangle(
   y = NULL,
   z = NULL,
   x_y_associated = FALSE,
+  size = 1,
   edge_type = "link_arc",
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_collider_triangle(
@@ -98,16 +122,24 @@ ggdag_collider_triangle(
   y = NULL,
   m = NULL,
   x_y_associated = FALSE,
+  size = 1,
   edge_type = "link_arc",
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_mediation_triangle(
@@ -115,16 +147,24 @@ ggdag_mediation_triangle(
   y = NULL,
   m = NULL,
   x_y_associated = FALSE,
+  size = 1,
   edge_type = "link_arc",
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 }
 \arguments{
@@ -146,15 +186,15 @@ ggdag_mediation_triangle(
 
 \item{label_col}{color of label text}
 
+\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
+Default is \code{NULL}.}
+
+\item{text}{logical. Should text be included in the DAG?}
+
 \item{node}{logical. Should nodes be included in the DAG?}
 
 \item{stylized}{logical. Should DAG nodes be stylized? If so, use
 \code{geom_dag_nodes} and if not use \code{geom_dag_point}}
-
-\item{text}{logical. Should text be included in the DAG?}
-
-\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
-Default is \code{NULL}.}
 }
 \value{
 a DAG of class \code{dagitty} or a \code{ggplot}

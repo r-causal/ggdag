@@ -7,6 +7,7 @@
 ggdag(
   .tdy_dag,
   ...,
+  size = 1,
   edge_type = "link_arc",
   node_size = 16,
   text_size = 3.88,
@@ -16,7 +17,7 @@ ggdag(
   edge_width = 0.6,
   edge_cap = 8,
   arrow_length = 5,
-  use_node = TRUE,
+  use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,

@@ -17,10 +17,14 @@ ggdag_canonical(
   label_size = text_size,
   text_col = "white",
   label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = NULL,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 }
 \arguments{
@@ -43,15 +47,15 @@ ggdag_canonical(
 
 \item{label_col}{color of label text}
 
+\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
+Default is \code{NULL}.}
+
+\item{text}{logical. Should text be included in the DAG?}
+
 \item{node}{logical. Should nodes be included in the DAG?}
 
 \item{stylized}{logical. Should DAG nodes be stylized? If so, use
 \code{geom_dag_nodes} and if not use \code{geom_dag_point}}
-
-\item{text}{logical. Should text be included in the DAG?}
-
-\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
-Default is \code{NULL}.}
 }
 \value{
 a \code{tidy_dagitty} that includes L or a \code{ggplot}
