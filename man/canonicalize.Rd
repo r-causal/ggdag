@@ -17,6 +17,7 @@ ggdag_canonical(
   label_size = text_size,
   text_col = "white",
   label_col = text_col,
+  use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
@@ -45,6 +46,9 @@ ggdag_canonical(
 \item{text_col}{The color of the text.}
 
 \item{label_col}{The color of the labels.}
+
+\item{use_edges}{A logical value. Include a \verb{geom_dag_edges*()} function? If
+\code{TRUE}, which is determined by \code{edge_type}.}
 
 \item{use_nodes}{A logical value. Include \code{geom_dag_point()}?}
 

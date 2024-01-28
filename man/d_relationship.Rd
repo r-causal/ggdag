@@ -51,6 +51,7 @@ ggdag_drelationship(
   edge_width = 0.6,
   edge_cap = 10,
   arrow_length = 5,
+  use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
@@ -156,6 +157,9 @@ allows you to change the scale of the DAG without changing the proportions.}
 and the node borders).}
 
 \item{arrow_length}{The length of arrows on edges.}
+
+\item{use_edges}{A logical value. Include a \verb{geom_dag_edges*()} function? If
+\code{TRUE}, which is determined by \code{edge_type}.}
 
 \item{use_nodes}{A logical value. Include \code{geom_dag_point()}?}
 

@@ -194,7 +194,7 @@ ggdag_m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_a
                          label_size = text_size,
                          text_col = "white", label_col = "black",
                          edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                         use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                         use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                          use_labels = FALSE, text = NULL, label = NULL,
                          node = deprecated(), stylized = deprecated()) {
   ggdag(
@@ -213,15 +213,15 @@ ggdag_butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NUL
                                  label_size = text_size,
                                  text_col = "white", label_col = "black",
                                  edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                 use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                                 use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                                  use_labels = FALSE, text = NULL, label = NULL,
                                  node = deprecated(), stylized = deprecated()) {
   ggdag(
     butterfly_bias(x, y, a, b, m, x_y_associated),
     node_size = node_size, text_size = text_size, label_size,
     edge_type = edge_type, text_col = text_col, label_col = label_col,
-    use_nodes = use_nodes, use_stylized = use_stylized, use_text = use_text,
-    use_labels = use_labels
+    use_edges = use_edges, use_nodes = use_nodes, use_stylized = use_stylized,
+    use_text = use_text, use_labels = use_labels
   )
 }
 
@@ -232,34 +232,33 @@ ggdag_confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associat
                                       label_size = text_size,
                                       text_col = "white", label_col = "black",
                                       edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                      use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                                      use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                                       use_labels = FALSE, text = NULL, label = NULL,
                                       node = deprecated(), stylized = deprecated()) {
   ggdag(
     confounder_triangle(x, y, z, x_y_associated),
     node_size = node_size, text_size = text_size, label_size,
     edge_type = edge_type, text_col = text_col, label_col = label_col,
-    use_nodes = use_nodes, use_stylized = use_stylized, use_text = use_text,
-    use_labels = use_labels
+    use_edges = use_edges, use_nodes = use_nodes, use_stylized = use_stylized,
+    use_text = use_text, use_labels = use_labels
   )
 }
 
 #' @rdname quick_plot
 #' @export
-ggdag_collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE,
-                                    size = 1, edge_type = "link_arc", node_size = 16, text_size = 3.88,
-                                    label_size = text_size,
-                                    text_col = "white", label_col = "black",
-                                    edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                    use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                                    use_labels = FALSE, text = NULL, label = NULL,
-                                    node = deprecated(), stylized = deprecated()) {
+size = 1, edge_type = "link_arc", node_size = 16, text_size = 3.88,
+label_size = text_size,
+text_col = "white", label_col = "black",
+edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+use_labels = FALSE, text = NULL, label = NULL,
+node = deprecated(), stylized = deprecated()) {
   ggdag(
     collider_triangle(x, y, m, x_y_associated),
     node_size = node_size, text_size = text_size, label_size,
     edge_type = edge_type, text_col = text_col, label_col = label_col,
-    use_nodes = use_nodes, use_stylized = use_stylized, use_text = use_text,
-    use_labels = use_labels
+    use_edges = use_edges, use_nodes = use_nodes, use_stylized = use_stylized,
+    use_text = use_text, use_labels = use_labels
   )
 }
 
@@ -270,14 +269,14 @@ ggdag_mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associate
                                      label_size = text_size,
                                      text_col = "white", label_col = "black",
                                      edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                     use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                                     use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                                      use_labels = FALSE, text = NULL, label = NULL,
                                      node = deprecated(), stylized = deprecated()) {
   ggdag(
     mediation_triangle(x, y, m, x_y_associated),
     node_size = node_size, text_size = text_size, label_size,
     edge_type = edge_type, text_col = text_col, label_col = label_col,
-    use_nodes = use_nodes, use_stylized = use_stylized, use_text = use_text,
-    use_labels = use_labels
+    use_edges = use_edges, use_nodes = use_nodes, use_stylized = use_stylized,
+    use_text = use_text, use_labels = use_labels
   )
 }
