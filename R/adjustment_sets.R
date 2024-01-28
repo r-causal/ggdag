@@ -10,17 +10,7 @@
 #'   `NULL`, in which case it will be determined from the DAG.
 #' @param ... additional arguments to `adjustmentSets`
 #' @param shadow logical. Show paths blocked by adjustment?
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col color of label text
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
-#'   Default is `NULL`.
+#' @ineheritParams geom_dag
 #' @inheritParams expand_plot
 #'
 #' @return a `tidy_dagitty` with an `adjusted` column and `set`
