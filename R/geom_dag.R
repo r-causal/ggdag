@@ -939,8 +939,7 @@ is_quo_logical <- function(x) {
 ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
   p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
 
-  p$scales <- scales_list_quiet()
-  p <- p + ggraph::scale_edge_color_hue()
+  p <- silence_scales(p)
 
   p + expand_plot(
     expand_x = expansion(c(.10, .10)),
