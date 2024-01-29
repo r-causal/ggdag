@@ -102,7 +102,7 @@ ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
   fontsize <- ifelse(!is.null(label_rect_size), label_rect_size, size * 3.57)
 
   p <- .tdy_dag %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    ggplot2::ggplot(aes_dag()) +
     ggplot2::geom_text(
       ggplot2::aes(label = !!rlang::sym(text_label)),
       size = size,
