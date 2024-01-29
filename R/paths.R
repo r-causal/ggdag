@@ -121,8 +121,8 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
     ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
     ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
-    ggraph::scale_edge_colour_hue(drop = FALSE, breaks = "open path") +
-    ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
+    ggraph::scale_edge_colour_discrete(drop = FALSE, breaks = "open path") +
+    ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path") +
     expand_plot(
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
@@ -174,7 +174,7 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
     ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
     ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path", guide = "none", limits = "open path") +
     ggraph::scale_edge_colour_hue(name = "open path", drop = FALSE) +
-    ggplot2::scale_color_hue(drop = FALSE, breaks = "open path") +
+    ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path") +
     expand_plot(
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))

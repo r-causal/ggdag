@@ -138,8 +138,8 @@ scale_adjusted <- function() {
 
 breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver()) {
   list(
-    ggplot2::scale_color_hue(name = name, drop = FALSE, breaks = breaks),
-    ggplot2::scale_fill_hue(name = name, drop = FALSE, breaks = breaks)
+    ggplot2::scale_color_discrete(name = name, drop = FALSE, breaks = breaks),
+    ggplot2::scale_fill_discrete(name = name, drop = FALSE, breaks = breaks)
   )
 }
 
