@@ -62,7 +62,7 @@ ggdag_collider <- function(.tdy_dag, ...,
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_collider() %>%
     dplyr::mutate(colliders = forcats::fct_rev(colliders)) %>%
-    ggplot2::ggplot(dag_aes(color = colliders)) +
+    ggplot2::ggplot(aes_dag(color = colliders)) +
     scale_adjusted()
 
   p <- p + geom_dag(

@@ -116,7 +116,7 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
                         node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
-    ggplot2::ggplot(dag_aes(col = path, alpha = path)) +
+    ggplot2::ggplot(aes_dag(col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
     ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
@@ -166,7 +166,7 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
                             node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
-    ggplot2::ggplot(dag_aes()) +
+    ggplot2::ggplot(aes_dag()) +
     geom_dag_edges_fan(
       ggplot2::aes(edge_colour = set, edge_alpha = path),
       spread = spread

@@ -89,8 +89,8 @@ that point, you should use the underlying geoms directly.
 # Basic usage with ggdag
 library(ggplot2)
 dag <- dagify(y ~ x, z ~ y)
-ggplot(dag, dag_aes()) + geom_dag()
-ggplot(dag, dag_aes()) + geom_dag(size = 1.5)
-ggplot(dag, dag_aes()) + geom_dag(size = 1.5, text_size = 8)
+ggplot(dag, aes_dag()) + geom_dag()
+ggplot(dag, aes_dag()) + geom_dag(size = 1.5)
+ggplot(dag, aes_dag()) + geom_dag(size = 1.5, text_size = 8)
 
 }

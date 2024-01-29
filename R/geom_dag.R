@@ -779,7 +779,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 
 #' Define Aesthetics for Directed Acyclic Graphs (DAGs)
 #'
-#' `dag_aes()` is a wrapper around `aes()` that specifies `x`, `y`, `xend`, and
+#' `aes_dag()` is a wrapper around `aes()` that specifies `x`, `y`, `xend`, and
 #' `yend`, which are required for most DAG visualizations. It merges any
 #' additional aesthetics, e.g. `color` or `shape`, with the default aesthetic
 #' mappings.
@@ -794,12 +794,12 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #' library(ggplot2)
 #' confounder_triangle() %>%
 #'   dag_adjustment_sets() %>%
-#'   ggplot(dag_aes(color = adjusted)) +
+#'   ggplot(aes_dag(color = adjusted)) +
 #'   geom_dag() +
 #'   facet_wrap(~ set)
 #'
 #' @export
-dag_aes <- function(...) {
+aes_dag <- function(...) {
   addtl_aes <- ggplot2::aes(...)
   default_aes <- ggplot2::aes(
     x = x,
@@ -857,9 +857,9 @@ dag_aes <- function(...) {
 #' # Basic usage with ggdag
 #' library(ggplot2)
 #' dag <- dagify(y ~ x, z ~ y)
-#' ggplot(dag, dag_aes()) + geom_dag()
-#' ggplot(dag, dag_aes()) + geom_dag(size = 1.5)
-#' ggplot(dag, dag_aes()) + geom_dag(size = 1.5, text_size = 8)
+#' ggplot(dag, aes_dag()) + geom_dag()
+#' ggplot(dag, aes_dag()) + geom_dag(size = 1.5)
+#' ggplot(dag, aes_dag()) + geom_dag(size = 1.5, text_size = 8)
 #'
 #' @export
 geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),

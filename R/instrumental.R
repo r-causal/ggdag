@@ -93,9 +93,9 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
     node_instrumental(exposure = exposure, outcome = outcome, ...)
 
   if (all(is.na((pull_dag_data(.tdy_dag)$instrumental)))) {
-    mapping <- dag_aes(shape = adjusted)
+    mapping <- aes_dag(shape = adjusted)
   } else {
-    mapping <- dag_aes(shape = adjusted, color = instrumental)
+    mapping <- aes_dag(shape = adjusted, color = instrumental)
   }
 
   p <- .tdy_dag %>%

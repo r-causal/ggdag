@@ -209,7 +209,7 @@ ggdag_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_fo
 
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(from = from, to = to, controlling_for = controlling_for, ...) %>%
-    ggplot2::ggplot(dag_aes(shape = adjusted, col = d_relationship))
+    ggplot2::ggplot(aes_dag(shape = adjusted, col = d_relationship))
 
     if (collider_lines) p <- p + geom_dag_collider_edges()
 

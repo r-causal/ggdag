@@ -37,7 +37,7 @@ ggdag <- function(.tdy_dag, ...,
                   node = deprecated(), stylized = deprecated()) {
 
   if_not_tidy_daggity(.tdy_dag, ...) %>%
-    ggplot2::ggplot(dag_aes()) +
+    ggplot2::ggplot(aes_dag()) +
     geom_dag(
       size = size,
       edge_type = edge_type,

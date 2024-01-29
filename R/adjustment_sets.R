@@ -85,7 +85,7 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
 
   p <- ggplot2::ggplot(
     .tdy_dag,
-    dag_aes(shape = adjusted, color = adjusted)
+    aes_dag(shape = adjusted, color = adjusted)
   ) +
     ggplot2::facet_wrap(~ set) +
     scale_adjusted() +

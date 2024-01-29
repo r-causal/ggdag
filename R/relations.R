@@ -214,7 +214,7 @@ ggdag_children <- function(.tdy_dag, .var, ..., size = 1,
                            node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_children(.var) %>%
-    ggplot2::ggplot(dag_aes(color = children)) +
+    ggplot2::ggplot(aes_dag(color = children)) +
     scale_adjusted() +
     breaks(c("parent", "child"))
 
@@ -257,7 +257,7 @@ ggdag_parents <- function(.tdy_dag, .var, ..., size = 1,
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_parents(.var) %>%
-    ggplot2::ggplot(dag_aes(color = parent)) +
+    ggplot2::ggplot(aes_dag(color = parent)) +
     scale_adjusted() +
     breaks(c("parent", "child"))
 
@@ -299,7 +299,7 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., size = 1,
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_ancestors(.var) %>%
-    ggplot2::ggplot(dag_aes(color = ancestor)) +
+    ggplot2::ggplot(aes_dag(color = ancestor)) +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"))
 
@@ -341,7 +341,7 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., size = 1,
                               node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_descendants(.var) %>%
-    ggplot2::ggplot(dag_aes(color = descendant)) +
+    ggplot2::ggplot(aes_dag(color = descendant)) +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"))
 
@@ -383,7 +383,7 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., size = 1,
                                  node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_markov_blanket(.var) %>%
-    ggplot2::ggplot(dag_aes(color = blanket)) +
+    ggplot2::ggplot(aes_dag(color = blanket)) +
     geom_dag_text(col = "white") +
     scale_adjusted() +
     breaks(c("Markov blanket", "center variable"))
@@ -426,7 +426,7 @@ ggdag_adjacent <- function(.tdy_dag, .var, ..., size = 1,
                            node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_adjacent(.var) %>%
-    ggplot2::ggplot(dag_aes(color = adjacent)) +
+    ggplot2::ggplot(aes_dag(color = adjacent)) +
     scale_adjusted() +
     breaks(c("adjacent", "center variable"))
 
