@@ -171,17 +171,7 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #'   `dagitty`
 #' @param var a character vector, the variable(s) to adjust for.
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col color of label text
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for
-#'   `geom_dag_label_repel()`. Default is `NULL`.
+#' @inheritParams geom_dag
 #' @param collider_lines logical. Should the plot show paths activated by
 #'   adjusting for a collider?
 #' @param as_factor logical. Should the `adjusted` column be a factor?
@@ -217,9 +207,14 @@ adjust_for <- control_for
 #' @rdname control_for
 #' @export
 ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
+                         size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
                          node_size = 16, text_size = 3.88, label_size = text_size,
-                         text_col = "white", label_col = text_col,
-                         node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL, collider_lines = TRUE) {
+                         text_col = "white", label_col = "black",
+                         edge_width = 0.6, edge_cap = 10, arrow_length = 5,
+                         use_edges = TRUE,
+                         use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                         use_labels = FALSE, text = NULL, label = NULL,
+                         node = deprecated(), stylized = deprecated(), collider_lines = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)
@@ -230,38 +225,39 @@ ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
   }
 
   p <- .tdy_dag %>%
-    ggplot2::ggplot(ggplot2::aes(
-      x = x, y = y, xend = xend, yend = yend,
-      col = adjusted, shape = adjusted
-    )) +
-    geom_dag_edges(ggplot2::aes(edge_alpha = adjusted),
-                   start_cap = ggraph::circle(10, "mm"),
-                   end_cap = ggraph::circle(10, "mm")
+    ggplot2::ggplot(aes_dag(col = adjusted, shape = adjusted)) +
+    geom_dag_edges(
+      ggplot2::aes(edge_alpha = adjusted),
+      start_cap = ggraph::circle(edge_cap, "mm"),
+      end_cap = ggraph::circle(edge_cap, "mm")
     ) +
     scale_adjusted() +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
-  if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(size = node_size)
-    } else {
-      p <- p + geom_dag_point(size = node_size)
-    }
-  }
 
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = FALSE,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(
-          label = !!rlang::sym(use_labels),
-          fill = adjusted
-        ),
-        size = text_size,
-        col = label_col, show.legend = FALSE
-      )
-  }
   p
 }
