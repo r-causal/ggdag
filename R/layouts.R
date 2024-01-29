@@ -168,4 +168,3 @@ right_sort_coords <- function(.x, .orders) {
     dplyr::tibble(order = min(coords) - 1)
   }
 }
-

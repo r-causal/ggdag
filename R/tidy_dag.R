@@ -298,9 +298,11 @@ print.tidy_dagitty <- function(x, ...) {
   if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(pull_dag(x))), "\n", sep = "")
   if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(pull_dag(x))), "\n", sep = "")
   if (has_collider_path(x)) {
-    cat_subtle("# Paths opened by conditioning on a collider: ",
-               coll(collider_paths(x)), "\n",
-               sep = ""
+    cat_subtle(
+      "# Paths opened by conditioning on a collider: ",
+      coll(collider_paths(x)),
+      "\n",
+      sep = ""
     )
   }
   if (any(c(

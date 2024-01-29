@@ -219,4 +219,3 @@ empty2list <- function(.x) {
     .x
   }
 }
-

@@ -17,7 +17,7 @@
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~~ w2
+#'   w1 ~ ~w2
 #' )
 #'
 #' ggdag(dag)
@@ -26,16 +26,29 @@
 #' ggdag(dagitty::randomDAG(5, .5))
 #'
 #' @seealso [ggdag_classic()]
-ggdag <- function(.tdy_dag, ...,
-                  size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
-                  node_size = 16, text_size = 3.88, label_size = text_size,
-                  text_col = "white", label_col = "black",
-                  edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                  use_edges = TRUE,
-                  use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                  use_labels = FALSE, text = NULL, label = NULL,
-                  node = deprecated(), stylized = deprecated()) {
-
+ggdag <- function(
+  .tdy_dag,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(aes_dag()) +
     geom_dag(
@@ -95,8 +108,14 @@ ggdag <- function(.tdy_dag, ...,
 #' ggdag_classic(dagitty::randomDAG(5, .5))
 #'
 #' @seealso [ggdag()]
-ggdag_classic <- function(.tdy_dag, ..., size = 8, label_rect_size = NULL,
-                          text_label = "name", text_col = "black") {
+ggdag_classic <- function(
+  .tdy_dag,
+  ...,
+  size = 8,
+  label_rect_size = NULL,
+  text_label = "name",
+  text_col = "black"
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
 
   fontsize <- ifelse(!is.null(label_rect_size), label_rect_size, size * 3.57)

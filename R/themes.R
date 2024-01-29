@@ -9,8 +9,10 @@
 #'   from the axes. Use the convenience function `ggplot2::expansion()` to
 #'   generate the values for the expand argument.
 #' @export
-expand_plot <- function(expand_x = expansion(c(.10, .10)),
-                        expand_y = expansion(c(.10, .10))) {
+expand_plot <- function(
+  expand_x = expansion(c(.10, .10)),
+  expand_y = expansion(c(.10, .10))
+) {
   list(
     ggplot2::scale_x_continuous(expand = expand_x),
     ggplot2::scale_y_continuous(expand = expand_y)
@@ -37,7 +39,8 @@ theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
       axis.text = ggplot2::element_blank(),
       axis.title = ggplot2::element_blank(),
       panel.grid = ggplot2::element_blank(),
-      ..., complete = TRUE
+      ...,
+      complete = TRUE
     )
 }
 
@@ -53,7 +56,8 @@ theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
     ggplot2::theme(
       axis.text = ggplot2::element_blank(),
       axis.title = ggplot2::element_blank(),
-      ..., complete = TRUE
+      ...,
+      complete = TRUE
     )
 }
 
@@ -79,7 +83,8 @@ theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
       axis.ticks = ggplot2::element_blank(),
       panel.grid.major = ggplot2::element_line(colour = "grey92"),
       panel.grid.minor = ggplot2::element_line(colour = "grey92"),
-      ..., complete = TRUE
+      ...,
+      complete = TRUE
     )
 }
 
@@ -95,7 +100,8 @@ theme_dag_grey_grid <- function(base_size = 12, base_family = "", ...) {
       axis.text = ggplot2::element_blank(),
       axis.title = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
-      ..., complete = TRUE
+      ...,
+      complete = TRUE
     )
 }
 

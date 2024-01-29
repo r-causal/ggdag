@@ -1,4 +1,6 @@
-StatNodes <- ggplot2::ggproto("StatNodes", ggplot2::Stat,
+StatNodes <- ggplot2::ggproto(
+  "StatNodes",
+  ggplot2::Stat,
   compute_layer = function(data, scales, params) {
     if (all(c("xend", "yend") %in% names(data))) {
       unique(dplyr::select(data, -xend, -yend))
@@ -8,7 +10,9 @@ StatNodes <- ggplot2::ggproto("StatNodes", ggplot2::Stat,
   }
 )
 
-StatNodesRepel <- ggplot2::ggproto("StatNodesRepel", ggplot2::Stat,
+StatNodesRepel <- ggplot2::ggproto(
+  "StatNodesRepel",
+  ggplot2::Stat,
   compute_layer = function(data, scales, params) {
     if (all(c("xend", "yend") %in% names(data))) {
       data <- unique(dplyr::select(data, -xend, -yend))
@@ -28,19 +32,32 @@ StatNodesRepel <- ggplot2::ggproto("StatNodesRepel", ggplot2::Stat,
   }
 )
 
-GeomDagPoint <- ggplot2::ggproto("GeomDagPoint", ggplot2::GeomPoint,
+GeomDagPoint <- ggplot2::ggproto(
+  "GeomDagPoint",
+  ggplot2::GeomPoint,
   default_aes = ggplot2::aes(
-    shape = 19, colour = "black", size = 16, fill = NA,
-    alpha = NA, stroke = 0.5
+    shape = 19,
+    colour = "black",
+    size = 16,
+    fill = NA,
+    alpha = NA,
+    stroke = 0.5
   )
 )
 
-GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
+GeomDagNode <- ggplot2::ggproto(
+  "GeomDagNode",
+  ggplot2::Geom,
   required_aes = c("x", "y"),
   non_missing_aes = c("size", "shape", "colour", "internal_colour"),
   default_aes = ggplot2::aes(
-    shape = 19, colour = "black", size = 16, fill = NA,
-    alpha = NA, stroke = 0.5, internal_colour = "white"
+    shape = 19,
+    colour = "black",
+    size = 16,
+    fill = NA,
+    alpha = NA,
+    stroke = 0.5,
+    internal_colour = "white"
   ),
   draw_panel = function(data, panel_params, coord, na.rm = FALSE) {
     coords <- coord$transform(data, panel_params)
@@ -48,7 +65,8 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
       ggname(
         "geom_dag_node",
         grid::pointsGrob(
-          coords$x, coords$y,
+          coords$x,
+          coords$y,
           pch = coords$shape,
           gp = grid::gpar(
             col = alpha(coords$colour, coords$alpha),
@@ -61,7 +79,8 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
       ggname(
         "geom_dag_node",
         grid::pointsGrob(
-          coords$x, coords$y,
+          coords$x,
+          coords$y,
           pch = coords$shape,
           gp = grid::gpar(
             col = alpha(coords$internal_colour, coords$alpha),
@@ -74,7 +93,8 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
       ggname(
         "geom_dag_node",
         grid::pointsGrob(
-          coords$x, coords$y,
+          coords$x,
+          coords$y,
           pch = coords$shape,
           gp = grid::gpar(
             col = alpha(coords$colour, coords$alpha),
@@ -89,12 +109,25 @@ GeomDagNode <- ggplot2::ggproto("GeomDagNode", ggplot2::Geom,
   draw_key = ggplot2::draw_key_point
 )
 
-GeomDagText <- ggplot2::ggproto("GeomDagText", ggplot2::GeomText, default_aes = ggplot2::aes(
-  colour = "white", size = 4, angle = 0, hjust = 0.5,
-  vjust = 0.5, alpha = NA, family = "", fontface = "bold", lineheight = 1.2
-))
+GeomDagText <- ggplot2::ggproto(
+  "GeomDagText",
+  ggplot2::GeomText,
+  default_aes = ggplot2::aes(
+    colour = "white",
+    size = 4,
+    angle = 0,
+    hjust = 0.5,
+    vjust = 0.5,
+    alpha = NA,
+    family = "",
+    fontface = "bold",
+    lineheight = 1.2
+  )
+)
 
-StatEdgeLink <- ggplot2::ggproto("StatEdgeLink", ggraph::StatEdgeLink,
+StatEdgeLink <- ggplot2::ggproto(
+  "StatEdgeLink",
+  ggraph::StatEdgeLink,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
 
@@ -107,7 +140,9 @@ StatEdgeLink <- ggplot2::ggproto("StatEdgeLink", ggraph::StatEdgeLink,
   }
 )
 
-StatEdgeArc <- ggplot2::ggproto("StatEdgeArc", ggraph::StatEdgeArc,
+StatEdgeArc <- ggplot2::ggproto(
+  "StatEdgeArc",
+  ggraph::StatEdgeArc,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
     data[is.na(data$circular), "circular"] <- FALSE
@@ -122,7 +157,9 @@ StatEdgeArc <- ggplot2::ggproto("StatEdgeArc", ggraph::StatEdgeArc,
   default_aes = ggplot2::aes(filter = TRUE)
 )
 
-StatEdgeDiagonal <- ggplot2::ggproto("StatEdgeDiagonal", ggraph::StatEdgeDiagonal,
+StatEdgeDiagonal <- ggplot2::ggproto(
+  "StatEdgeDiagonal",
+  ggraph::StatEdgeDiagonal,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
     data[is.na(data$circular), "circular"] <- FALSE
@@ -137,7 +174,9 @@ StatEdgeDiagonal <- ggplot2::ggproto("StatEdgeDiagonal", ggraph::StatEdgeDiagona
   default_aes = ggplot2::aes(filter = TRUE)
 )
 
-StatEdgeFan <- ggplot2::ggproto("StatEdgeFan", ggraph::StatEdgeFan,
+StatEdgeFan <- ggplot2::ggproto(
+  "StatEdgeFan",
+  ggraph::StatEdgeFan,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
 
@@ -156,7 +195,9 @@ StatEdgeFan <- ggplot2::ggproto("StatEdgeFan", ggraph::StatEdgeFan,
 )
 
 
-GeomDAGEdgePath <- ggplot2::ggproto("GeomDAGEdgePath", ggraph::GeomEdgePath,
+GeomDAGEdgePath <- ggplot2::ggproto(
+  "GeomDAGEdgePath",
+  ggraph::GeomEdgePath,
   setup_data = function(data, params) {
     ggraph::GeomEdgePath$setup_data(data, params)
   },
@@ -175,11 +216,23 @@ GeomDAGEdgePath <- ggplot2::ggproto("GeomDAGEdgePath", ggraph::GeomEdgePath,
   non_missing_aes = c("direction", "direction_type"),
   default_aes = ggplot2::aes(
     linewidth = NA,
-    edge_colour = "black", edge_width = 0.6, edge_linetype = "solid",
-    edge_alpha = NA, start_cap = ggraph::circle(8, "mm"), end_cap = ggraph::circle(8, "mm"), label = NA,
-    label_pos = 0.5, label_size = 3.88, angle = 0, hjust = 0.5,
-    vjust = 0.5, family = "", fontface = 1,
-    lineheight = 1.2, direction = "->", direction_type = "->"
+    edge_colour = "black",
+    edge_width = 0.6,
+    edge_linetype = "solid",
+    edge_alpha = NA,
+    start_cap = ggraph::circle(8, "mm"),
+    end_cap = ggraph::circle(8, "mm"),
+    label = NA,
+    label_pos = 0.5,
+    label_size = 3.88,
+    angle = 0,
+    hjust = 0.5,
+    vjust = 0.5,
+    family = "",
+    fontface = 1,
+    lineheight = 1.2,
+    direction = "->",
+    direction_type = "->"
   )
 )
 
@@ -187,7 +240,8 @@ GeomDAGEdgePath <- ggplot2::ggproto("GeomDAGEdgePath", ggraph::GeomEdgePath,
 silence_scales <- function(plot) {
   old_scales <- plot$scales
   plot$scales <- ggproto(
-    "ScalesListQuiet", old_scales,
+    "ScalesListQuiet",
+    old_scales,
     add = silent_add
   )
   plot

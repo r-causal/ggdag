@@ -1,7 +1,8 @@
 set.seed(1234)
 
 test_that("repelled labels work", {
-  g <- dagify(m ~ x + y,
+  g <- dagify(
+    m ~ x + y,
     y ~ x,
     exposure = "x",
     outcome = "y",
@@ -68,12 +69,13 @@ test_that("different edge types work", {
   expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })
 test_that("labels also work", {
-  g <- dagify(m ~ x + y,
-              y ~ x,
-              exposure = "x",
-              outcome = "y",
-              latent = "m",
-              labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
+  g <- dagify(
+    m ~ x + y,
+    y ~ x,
+    exposure = "x",
+    outcome = "y",
+    latent = "m",
+    labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
   )
 
   p1 <- g %>%

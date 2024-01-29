@@ -2,10 +2,18 @@ set.seed(1234)
 
 test_that("DAG paths are identified and drawn correctly", {
   coords_confounder <- tibble::tribble(
-    ~name, ~x, ~y,
-    "x", 0, 0,
-    "y", 2, 0,
-    "z", 1, 1
+    ~name,
+    ~x,
+    ~y,
+    "x",
+    0,
+    0,
+    "y",
+    2,
+    0,
+    "z",
+    1,
+    1
   )
 
   confounder_triangle_dag <- dagify(
@@ -18,12 +26,24 @@ test_that("DAG paths are identified and drawn correctly", {
 
 
   coords_butterfly <- tibble::tribble(
-    ~name, ~x, ~y,
-    "x", 0, 0,
-    "y", 2, 0,
-    "a", 0, 1,
-    "b", 2, 1,
-    "m", 1, .5
+    ~name,
+    ~x,
+    ~y,
+    "x",
+    0,
+    0,
+    "y",
+    2,
+    0,
+    "a",
+    0,
+    1,
+    "b",
+    2,
+    1,
+    "m",
+    1,
+    .5
   )
 
   butterfly_bias_dag <- dagify(

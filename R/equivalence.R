@@ -79,15 +79,29 @@ map_equivalence <- function(.x) {
 
 #' @rdname equivalent
 #' @export
-ggdag_equivalent_dags <- function(.tdy_dag, ...,
-                                  size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
-                                  node_size = 16, text_size = 3.88, label_size = text_size,
-                                  text_col = "white", label_col = "black",
-                                  edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                  use_edges = TRUE,
-                                  use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                                  use_labels = FALSE, text = NULL, label = NULL,
-                                  node = deprecated(), stylized = deprecated()) {
+ggdag_equivalent_dags <- function(
+  .tdy_dag,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_dags(...)
 
@@ -117,7 +131,7 @@ ggdag_equivalent_dags <- function(.tdy_dag, ...,
 
   if (dplyr::n_distinct(pull_dag_data(.tdy_dag)$dag) > 1) {
     p <- p +
-      ggplot2::facet_wrap(~ dag) +
+      ggplot2::facet_wrap(~dag) +
       expand_plot(
         expand_x = expansion(c(0.25, 0.25)),
         expand_y = expansion(c(0.25, 0.25))
@@ -155,14 +169,28 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 #' @rdname equivalent
 #' @inheritParams expand_plot
 #' @export
-ggdag_equivalent_class <- function(.tdy_dag, ..., size = 1,
-                                   node_size = 16, text_size = 3.88, label_size = text_size,
-                                   text_col = "white", label_col = "black",
-                                   edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                   use_edges = TRUE,
-                                   use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                                   use_labels = FALSE, text = NULL, label = NULL,
-                                   node = deprecated(), stylized = deprecated()) {
+ggdag_equivalent_class <- function(
+  .tdy_dag,
+  ...,
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)
 

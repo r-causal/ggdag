@@ -35,11 +35,14 @@ test_that("updating DAG and DAG data work", {
   )
 
   tidy_dagitty_obj <- tidy_dagitty_obj %>%
-    dplyr::left_join(data.frame(
-      name = c("Y", "X", "Z"),
-      status = c("exposure", "outcome", "latent"),
-      adjusted = c("unadjusted", "unadjusted", "adjusted")
-    ), by = "name") %>%
+    dplyr::left_join(
+      data.frame(
+        name = c("Y", "X", "Z"),
+        status = c("exposure", "outcome", "latent"),
+        adjusted = c("unadjusted", "unadjusted", "adjusted")
+      ),
+      by = "name"
+    ) %>%
     # recreate the DAG component
     update_dag()
 

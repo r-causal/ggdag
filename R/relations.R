@@ -203,15 +203,30 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
 
 #' @rdname variable_family
 #' @export
-ggdag_children <- function(.tdy_dag, .var, ..., size = 1,
-                           edge_type = c("link_arc", "link", "arc", "diagonal"),
-                           node_size = 16, text_size = 3.88, label_size = text_size,
-                           text_col = "white", label_col = "black",
-                           edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                           use_edges = TRUE,
-                           use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                           use_labels = FALSE, text = NULL, label = NULL,
-                           node = deprecated(), stylized = deprecated()) {
+ggdag_children <- function(
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_children(.var) %>%
     ggplot2::ggplot(aes_dag(color = children)) +
@@ -245,16 +260,30 @@ ggdag_children <- function(.tdy_dag, .var, ..., size = 1,
 
 #' @rdname variable_family
 #' @export
-ggdag_parents <- function(.tdy_dag, .var, ..., size = 1,
-                          edge_type = c("link_arc", "link", "arc", "diagonal"),
-                          node_size = 16, text_size = 3.88, label_size = text_size,
-                          text_col = "white", label_col = "black",
-                          edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                          use_edges = TRUE,
-                          use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                          use_labels = FALSE, text = NULL, label = NULL,
-                          node = deprecated(), stylized = deprecated()) {
-
+ggdag_parents <- function(
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_parents(.var) %>%
     ggplot2::ggplot(aes_dag(color = parent)) +
@@ -287,16 +316,30 @@ ggdag_parents <- function(.tdy_dag, .var, ..., size = 1,
 
 #' @rdname variable_family
 #' @export
-ggdag_ancestors <- function(.tdy_dag, .var, ..., size = 1,
-                            edge_type = c("link_arc", "link", "arc", "diagonal"),
-                            node_size = 16, text_size = 3.88, label_size = text_size,
-                            text_col = "white", label_col = "black",
-                            edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                            use_edges = TRUE,
-                            use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                            use_labels = FALSE, text = NULL, label = NULL,
-                            node = deprecated(), stylized = deprecated()) {
-
+ggdag_ancestors <- function(
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_ancestors(.var) %>%
     ggplot2::ggplot(aes_dag(color = ancestor)) +
@@ -330,15 +373,30 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., size = 1,
 
 #' @rdname variable_family
 #' @export
-ggdag_descendants <- function(.tdy_dag, .var, ..., size = 1,
-                              edge_type = c("link_arc", "link", "arc", "diagonal"),
-                              node_size = 16, text_size = 3.88, label_size = text_size,
-                              text_col = "white", label_col = "black",
-                              edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                              use_edges = TRUE,
-                              use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                              use_labels = FALSE, text = NULL, label = NULL,
-                              node = deprecated(), stylized = deprecated()) {
+ggdag_descendants <- function(
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_descendants(.var) %>%
     ggplot2::ggplot(aes_dag(color = descendant)) +
@@ -372,15 +430,30 @@ ggdag_descendants <- function(.tdy_dag, .var, ..., size = 1,
 
 #' @rdname variable_family
 #' @export
-ggdag_markov_blanket <- function(.tdy_dag, .var, ..., size = 1,
-                                 edge_type = c("link_arc", "link", "arc", "diagonal"),
-                                 node_size = 16, text_size = 3.88, label_size = text_size,
-                                 text_col = "white", label_col = "black",
-                                 edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                 use_edges = TRUE,
-                                 use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                                 use_labels = FALSE, text = NULL, label = NULL,
-                                 node = deprecated(), stylized = deprecated()) {
+ggdag_markov_blanket <- function(
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_markov_blanket(.var) %>%
     ggplot2::ggplot(aes_dag(color = blanket)) +
@@ -415,15 +488,30 @@ ggdag_markov_blanket <- function(.tdy_dag, .var, ..., size = 1,
 
 #' @rdname variable_family
 #' @export
-ggdag_adjacent <- function(.tdy_dag, .var, ..., size = 1,
-                           edge_type = c("link_arc", "link", "arc", "diagonal"),
-                           node_size = 16, text_size = 3.88, label_size = text_size,
-                           text_col = "white", label_col = "black",
-                           edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                           use_edges = TRUE,
-                           use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                           use_labels = FALSE, text = NULL, label = NULL,
-                           node = deprecated(), stylized = deprecated()) {
+ggdag_adjacent <- function(
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_adjacent(.var) %>%
     ggplot2::ggplot(aes_dag(color = adjacent)) +
