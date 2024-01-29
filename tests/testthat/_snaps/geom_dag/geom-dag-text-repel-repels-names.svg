@@ -36,9 +36,12 @@
 <circle cx='658.16' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='400.17' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='94.53' cy='90.18' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<text x='646.17' y='79.24' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
-<text x='410.53' y='497.53' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
-<text x='104.68' y='86.31' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<line x1='634.48' y1='79.78' x2='648.40' y2='71.86' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='422.44' y1='489.55' x2='410.10' y2='496.22' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='116.85' y1='78.10' x2='104.46' y2='84.81' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='633.43' y='89.18' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
+<text x='423.04' y='487.75' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='117.45' y='76.30' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <rect x='38.17' y='22.78' width='676.35' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

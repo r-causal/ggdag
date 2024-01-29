@@ -14,7 +14,7 @@ test_that("repelled labels work", {
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
-    geom_dag_text_repel(aes(label = name), show.legend = FALSE)
+    geom_dag_text_repel(aes(label = name), show.legend = FALSE, seed = 1234)
 
   p2 <- g %>%
     tidy_dagitty() %>%
@@ -27,13 +27,27 @@ test_that("repelled labels work", {
     geom_dag_edges() +
     geom_dag_point() +
     geom_dag_text() +
-    geom_dag_label_repel(aes(label = label, fill = label),
-      col = "white", show.legend = FALSE
+    geom_dag_label_repel(
+      aes(label = label, fill = label),
+      col = "white",
+      show.legend = FALSE,
+      seed = 1234
     )
 
+  p3 <- g %>%
+    tidy_dagitty() %>%
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel2(
+      aes(label = name),
+      show.legend = FALSE,
+      seed = 1234
+    )
 
   expect_doppelganger("geom_dag_text_repel() repels names", p1)
   expect_doppelganger("geom_dag_label_repel() repels labels", p2)
+  expect_doppelganger("geom_dag_label_repel2() repels labels", p3)
 })
 
 test_that("different edge types work", {
