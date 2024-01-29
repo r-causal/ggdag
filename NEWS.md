@@ -1,6 +1,7 @@
 # ggdag (development version)
 
 * Introduced new functions `aes_dag()` and `geom_dag()` to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (#121)
+* Added new function `geom_label_repel2()` for more opinionated repelled labels that often look better on DAGs (#132)
 
 # ggdag 0.2.11
 
