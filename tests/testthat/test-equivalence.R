@@ -41,6 +41,6 @@ test_that("dags ............", {
 
   expect_names(pull_dag_data(labelled_dag2), c("label", "status"))
 
-  p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = "label")
+  p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = TRUE)
   expect_doppelganger("ggdag_equivalent_class() plots labels", p5)
 })
