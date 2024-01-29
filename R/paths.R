@@ -20,17 +20,7 @@
 #' @param shadow logical. Show edges which are not on an open path? Ignored if
 #'   `paths_only` is `TRUE`.
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col label color
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
-#'   Default is `NULL`.
+#' @inheritParams geom_dag
 #' @param spread the width of the fan spread
 #'
 #' @return a `tidy_dagitty` with a `path` column for path variables and a `set`
@@ -116,11 +106,17 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
 #' @rdname paths
 #' @export
 ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, shadow = FALSE, ...,
-                        node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
-                        node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                        size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
+                        node_size = 16, text_size = 3.88, label_size = text_size,
+                        text_col = "white", label_col = "black",
+                        edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                        use_edges = TRUE,
+                        use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                        use_labels = FALSE, text = NULL, label = NULL,
+                        node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, col = path, alpha = path)) +
+    ggplot2::ggplot(dag_aes(col = path, alpha = path)) +
     geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
     ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
@@ -132,53 +128,45 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
       expand_y = expansion(c(0.1, 0.1))
     )
 
+  p <- p +
+    geom_dag(
+      size = size,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = FALSE,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
-  if (node) {
-    if (stylized) {
-      p <- p +
-        geom_dag_node(
-          data = function(.x) dplyr::filter(.x, is.na(path)),
-          size = node_size
-        ) +
-        geom_dag_node(
-          data = function(.x) dplyr::filter(.x, !is.na(path)),
-          size = node_size
-        )
-    } else {
-      p <- p +
-        geom_dag_point(
-          data = function(.x) dplyr::filter(.x, is.na(path)),
-          size = node_size
-        ) +
-        geom_dag_point(
-          data = function(.x) dplyr::filter(.x, !is.na(path)),
-          size = node_size
-        )
-    }
-  }
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(
-          label = !!rlang::sym(use_labels),
-          fill = path
-        ),
-        size = label_size,
-        col = label_col, show.legend = FALSE
-      )
-  }
   p
 }
 
 #' @rdname paths
 #' @export
 ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, ..., shadow = FALSE,
-                            spread = .7, node_size = 16, text_size = 3.88, label_size = text_size, text_col = "white", label_col = text_col,
-                            node = TRUE, stylized = FALSE, text = TRUE, use_labels = NULL) {
+                            spread = .7, size = 1,
+                            node_size = 16, text_size = 3.88, label_size = text_size,
+                            text_col = "white", label_col = "black",
+                            edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                            use_edges = TRUE,
+                            use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                            use_labels = FALSE, text = NULL, label = NULL,
+                            node = deprecated(), stylized = deprecated()) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    ggplot2::ggplot(dag_aes()) +
     geom_dag_edges_fan(
       ggplot2::aes(edge_colour = set, edge_alpha = path),
       spread = spread
@@ -192,27 +180,27 @@ ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL,
       expand_y = expansion(c(0.1, 0.1))
     )
 
-  if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(ggplot2::aes(alpha = path), size = node_size, col = "black", show.legend = FALSE)
-    } else {
-      p <- p + geom_dag_point(ggplot2::aes(alpha = path), size = node_size, col = "black", show.legend = FALSE)
-    }
-  }
+  p <- p +
+    geom_dag(
+      size = size,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = FALSE,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(
-          label = !!rlang::sym(use_labels),
-          fill = path
-        ),
-        size = text_size,
-        col = label_col,
-        show.legend = FALSE
-      )
-  }
   p
 }
