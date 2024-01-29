@@ -17,10 +17,15 @@ ggdag_canonical(
   label_size = text_size,
   text_col = "white",
   label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = NULL,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 }
 \arguments{
@@ -29,29 +34,39 @@ ggdag_canonical(
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
-\item{edge_type}{a character vector, the edge geom to use. One of:
-"link_arc", which accounts for directed and bidirected edges, "link",
-"arc", or "diagonal"}
+\item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
+"diagonal".}
 
-\item{node_size}{size of DAG node}
+\item{node_size}{The size of the nodes.}
 
-\item{text_size}{size of DAG text}
+\item{text_size}{The size of the text.}
 
-\item{label_size}{size of label text}
+\item{label_size}{The size of the labels.}
 
-\item{text_col}{color of DAG text}
+\item{text_col}{The color of the text.}
 
-\item{label_col}{color of label text}
+\item{label_col}{The color of the labels.}
 
-\item{node}{logical. Should nodes be included in the DAG?}
+\item{use_edges}{A logical value. Include a \verb{geom_dag_edges*()} function? If
+\code{TRUE}, which is determined by \code{edge_type}.}
 
-\item{stylized}{logical. Should DAG nodes be stylized? If so, use
-\code{geom_dag_nodes} and if not use \code{geom_dag_point}}
+\item{use_nodes}{A logical value. Include \code{geom_dag_point()}?}
 
-\item{text}{logical. Should text be included in the DAG?}
+\item{use_stylized}{A logical value. Include \code{geom_dag_node()}?}
 
-\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
-Default is \code{NULL}.}
+\item{use_text}{A logical value. Include \code{geom_dag_text()}?}
+
+\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+
+\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+If \code{use_labels = TRUE}, the default is to use \code{label}.}
+
+\item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
+\code{use_text = TRUE}, the default is to use \code{name}.}
+
+\item{node}{Deprecated.}
+
+\item{stylized}{Deprecated.}
 }
 \value{
 a \code{tidy_dagitty} that includes L or a \code{ggplot}

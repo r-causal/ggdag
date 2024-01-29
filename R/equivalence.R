@@ -11,17 +11,7 @@
 #' @param .dag input graph, an object of class `tidy_dagitty` or `dagitty`
 #' @param n maximal number of returned graphs.
 #' @param .tdy_dag an object of class `tidy_dagitty` or `dagitty`
-#' @param node_size size of DAG node
-#' @param text_size size of DAG text
-#' @param label_size size of label text
-#' @param text_col color of DAG text
-#' @param label_col color of label text
-#' @param node logical. Should nodes be included in the DAG?
-#' @param stylized logical. Should DAG nodes be stylized? If so, use
-#'   `geom_dag_nodes` and if not use `geom_dag_point`
-#' @param text logical. Should text be included in the DAG?
-#' @param use_labels a string. Variable to use for `geom_dag_label_repel()`.
-#'   Default is `NULL`.
+#' @inheritParams geom_dag
 #' @inheritParams tidy_dagitty
 #' @inheritParams scale_adjusted
 #'
@@ -89,34 +79,41 @@ map_equivalence <- function(.x) {
 
 #' @rdname equivalent
 #' @export
-ggdag_equivalent_dags <- function(.tdy_dag, ..., node_size = 16, text_size = 3.88,
-                                  label_size = text_size, text_col = "white", label_col = "black",
-                                  node = TRUE, stylized = FALSE, text = TRUE,
-                                  use_labels = NULL) {
+ggdag_equivalent_dags <- function(.tdy_dag, ...,
+                                  size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
+                                  node_size = 16, text_size = 3.88, label_size = text_size,
+                                  text_col = "white", label_col = "black",
+                                  edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                                  use_edges = TRUE,
+                                  use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                                  use_labels = FALSE, text = NULL, label = NULL,
+                                  node = deprecated(), stylized = deprecated()) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_dags(...)
 
-  p <- ggplot2::ggplot(.tdy_dag, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_edges()
+  p <- ggplot2::ggplot(.tdy_dag, aes_dag())
 
-  if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(size = node_size)
-    } else {
-      p <- p + geom_dag_point(size = node_size)
-    }
-  }
-
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(label = !!rlang::sym(use_labels)),
-        size = text_size,
-        col = label_col, show.legend = FALSE
-      )
-  }
+  p <- p + geom_dag(
+    size = size,
+    edge_type = edge_type,
+    node_size = node_size,
+    text_size = text_size,
+    label_size = label_size,
+    text_col = text_col,
+    label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
+    use_edges = use_edges,
+    use_nodes = use_nodes,
+    use_stylized = use_stylized,
+    use_text = use_text,
+    use_labels = use_labels,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
+    node = node,
+    stylized = stylized
+  )
 
   if (dplyr::n_distinct(pull_dag_data(.tdy_dag)$dag) > 1) {
     p <- p +
@@ -158,21 +155,21 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 #' @rdname equivalent
 #' @inheritParams expand_plot
 #' @export
-ggdag_equivalent_class <- function(.tdy_dag,
-                                   expand_x = expansion(c(.10, .10)),
-                                   expand_y = expansion(c(.10, .10)),
-                                   breaks = ggplot2::waiver(), ...,
+ggdag_equivalent_class <- function(.tdy_dag, ..., size = 1,
                                    node_size = 16, text_size = 3.88, label_size = text_size,
-                                   text_col = "white", label_col = text_col,
-                                   node = TRUE, stylized = FALSE,
-                                   text = TRUE, use_labels = NULL) {
+                                   text_col = "white", label_col = "black",
+                                   edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                                   use_edges = TRUE,
+                                   use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
+                                   use_labels = FALSE, text = NULL, label = NULL,
+                                   node = deprecated(), stylized = deprecated()) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)
 
   reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), reversable)
   non_reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), !reversable)
   p <- .tdy_dag %>%
-    ggplot2::ggplot(ggplot2::aes(x = x, y = y, xend = xend, yend = yend, edge_alpha = reversable)) +
+    ggplot2::ggplot(aes_dag(edge_alpha = reversable)) +
     geom_dag_edges(
       data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
       data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")
@@ -181,24 +178,26 @@ ggdag_equivalent_class <- function(.tdy_dag,
     breaks(breaks) +
     ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.30, 1))
 
-  if (node) {
-    if (stylized) {
-      p <- p + geom_dag_node(size = node_size)
-    } else {
-      p <- p + geom_dag_point(size = node_size)
-    }
-  }
+  p <- p + geom_dag(
+    size = size,
+    node_size = node_size,
+    text_size = text_size,
+    label_size = label_size,
+    text_col = text_col,
+    label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
+    use_edges = FALSE,
+    use_nodes = use_nodes,
+    use_stylized = use_stylized,
+    use_text = use_text,
+    use_labels = use_labels,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
+    node = node,
+    stylized = stylized
+  )
 
-  if (text) p <- p + geom_dag_text(col = text_col, size = text_size)
-
-  if (!is.null(use_labels)) {
-    p <- p +
-      geom_dag_label_repel(
-        ggplot2::aes(label = !!rlang::sym(use_labels)),
-        size = text_size,
-        col = label_col,
-        show.legend = FALSE
-      )
-  }
   p
 }

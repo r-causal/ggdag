@@ -1,5 +1,7 @@
 # ggdag (development version)
 
+* Introduced new functions `aes_dag()` and `geom_dag()` to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (#121)
+
 # ggdag 0.2.11
 
 * Internal update to address upcoming changes in ggplot2 (#125, thanks @teunbrand)

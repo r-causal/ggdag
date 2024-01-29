@@ -3,7 +3,6 @@
 \docType{package}
 \name{ggdag-package}
 \alias{ggdag-package}
-\alias{_PACKAGE}
 \alias{ggdag_pkg}
 \title{ggdag: Analyze and Create Elegant Directed Acyclic Graphs}
 \description{

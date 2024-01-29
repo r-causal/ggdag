@@ -27,15 +27,25 @@ ggdag_paths(
   directed = FALSE,
   shadow = FALSE,
   ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_paths_fan(
@@ -48,15 +58,24 @@ ggdag_paths_fan(
   ...,
   shadow = FALSE,
   spread = 0.7,
+  size = 1,
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 }
 \arguments{
@@ -87,25 +106,49 @@ if they are part of the path.}
 \item{shadow}{logical. Show edges which are not on an open path? Ignored if
 \code{paths_only} is \code{TRUE}.}
 
-\item{node_size}{size of DAG node}
+\item{size}{A numeric value scaling the size of all elements in the DAG. This
+allows you to change the scale of the DAG without changing the proportions.}
 
-\item{text_size}{size of DAG text}
+\item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
+"diagonal".}
 
-\item{label_size}{size of label text}
+\item{node_size}{The size of the nodes.}
 
-\item{text_col}{color of DAG text}
+\item{text_size}{The size of the text.}
 
-\item{label_col}{label color}
+\item{label_size}{The size of the labels.}
 
-\item{node}{logical. Should nodes be included in the DAG?}
+\item{text_col}{The color of the text.}
 
-\item{stylized}{logical. Should DAG nodes be stylized? If so, use
-\code{geom_dag_nodes} and if not use \code{geom_dag_point}}
+\item{label_col}{The color of the labels.}
 
-\item{text}{logical. Should text be included in the DAG?}
+\item{edge_width}{The width of the edges.}
 
-\item{use_labels}{a string. Variable to use for \code{geom_dag_label_repel()}.
-Default is \code{NULL}.}
+\item{edge_cap}{The size of edge caps (the distance between the arrowheads
+and the node borders).}
+
+\item{arrow_length}{The length of arrows on edges.}
+
+\item{use_edges}{A logical value. Include a \verb{geom_dag_edges*()} function? If
+\code{TRUE}, which is determined by \code{edge_type}.}
+
+\item{use_nodes}{A logical value. Include \code{geom_dag_point()}?}
+
+\item{use_stylized}{A logical value. Include \code{geom_dag_node()}?}
+
+\item{use_text}{A logical value. Include \code{geom_dag_text()}?}
+
+\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+
+\item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
+\code{use_text = TRUE}, the default is to use \code{name}.}
+
+\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+If \code{use_labels = TRUE}, the default is to use \code{label}.}
+
+\item{node}{Deprecated.}
+
+\item{stylized}{Deprecated.}
 
 \item{spread}{the width of the fan spread}
 }

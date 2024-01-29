@@ -89,15 +89,11 @@
 <polygon points='528.05,454.33 532.59,456.38 532.09,451.42 ' style='stroke-width: 1.28; stroke: #C77CFF; stroke-opacity: 0.15; stroke-linecap: butt; fill: #C77CFF; fill-opacity: 0.15;' />
 <polyline points='179.37,480.47 180.96,480.89 184.88,481.83 188.80,482.75 192.73,483.64 196.65,484.52 200.57,485.37 204.50,486.20 208.42,487.01 212.34,487.80 216.27,488.57 220.19,489.31 224.11,490.03 228.04,490.73 231.96,491.41 235.88,492.07 239.81,492.70 243.73,493.31 247.65,493.91 251.58,494.47 255.50,495.02 259.42,495.55 263.35,496.05 267.27,496.53 271.20,496.99 275.12,497.43 279.04,497.84 282.97,498.24 286.89,498.61 290.81,498.96 294.74,499.29 298.66,499.59 302.58,499.88 306.51,500.14 310.43,500.38 314.35,500.60 318.28,500.80 322.20,500.97 326.12,501.13 330.05,501.26 333.97,501.37 337.89,501.45 341.82,501.52 345.74,501.56 349.66,501.59 353.59,501.59 357.51,501.56 361.43,501.52 365.36,501.45 369.28,501.37 373.20,501.26 377.13,501.13 381.05,500.97 384.97,500.80 388.90,500.60 392.82,500.38 396.75,500.14 400.67,499.88 404.59,499.59 408.52,499.29 412.44,498.96 416.36,498.61 420.29,498.24 424.21,497.84 428.13,497.43 432.06,496.99 435.98,496.53 439.90,496.05 443.83,495.55 447.75,495.02 451.67,494.47 455.60,493.91 459.52,493.31 463.44,492.70 467.37,492.07 471.29,491.41 475.21,490.73 479.14,490.03 483.06,489.31 486.98,488.57 490.91,487.80 494.83,487.01 498.75,486.20 502.68,485.37 506.60,484.52 510.52,483.64 514.45,482.75 518.37,481.83 522.30,480.89 523.88,480.47 ' style='stroke-width: 1.28; stroke: #C77CFF; stroke-opacity: 0.15; stroke-linecap: butt;' />
 <polygon points='520.33,483.97 523.88,480.47 519.08,479.15 ' style='stroke-width: 1.28; stroke: #C77CFF; stroke-opacity: 0.15; stroke-linecap: butt; fill: #C77CFF; fill-opacity: 0.15;' />
-<circle cx='157.42' cy='66.31' r='17.43' style='stroke-width: 0.71; stroke: #000000; stroke-opacity: 0.35; fill: #000000; fill-opacity: 0.35;' />
-<circle cx='545.84' cy='66.31' r='17.43' style='stroke-width: 0.71; stroke: #000000; stroke-opacity: 0.35; fill: #000000; fill-opacity: 0.35;' />
-<circle cx='351.63' cy='270.55' r='17.43' style='stroke-width: 0.71; stroke: #000000; stroke-opacity: 0.35; fill: #000000; fill-opacity: 0.35;' />
+<circle cx='157.42' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='545.84' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='351.63' cy='270.55' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='157.42' cy='474.78' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='545.84' cy='474.78' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='157.42' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='351.63' cy='270.55' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='157.42' cy='474.78' r='17.43' style='stroke-width: 0.71; stroke: #000000; stroke-opacity: 0.35; fill: #000000; fill-opacity: 0.35;' />
-<circle cx='545.84' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <text x='157.42' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>a</text>
 <text x='545.84' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>b</text>
 <text x='351.63' y='274.35' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>

@@ -199,15 +199,15 @@ geom_dag_text <- function(mapping = NULL, data = NULL,
 #'   geom_dag_label(size = 5, fill = "black", color = "white") +
 #'   theme_dag()
 geom_dag_label <- function(mapping = NULL, data = NULL,
-                          stat = "identity", position = "identity",
-                          ...,
-                          parse = FALSE,
-                          nudge_x = 0,
-                          nudge_y = 0,
-                          check_overlap = FALSE,
-                          na.rm = FALSE,
-                          show.legend = NA,
-                          inherit.aes = TRUE) {
+                           stat = "identity", position = "identity",
+                           ...,
+                           parse = FALSE,
+                           nudge_x = 0,
+                           nudge_y = 0,
+                           check_overlap = FALSE,
+                           na.rm = FALSE,
+                           show.legend = NA,
+                           inherit.aes = TRUE) {
   if (!missing(nudge_x) || !missing(nudge_y)) {
     if (!missing(position)) {
       stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
@@ -477,17 +477,17 @@ geom_dag_edges <- function(mapping = NULL,
                            ...) {
   list(
     geom_dag_edges_link(mapping,
-      data = data_directed, arrow = arrow_directed,
-      position = position, na.rm = na.rm,
-      show.legend = show.legend, inherit.aes = inherit.aes,
-      ...
+                        data = data_directed, arrow = arrow_directed,
+                        position = position, na.rm = na.rm,
+                        show.legend = show.legend, inherit.aes = inherit.aes,
+                        ...
     ),
     geom_dag_edges_arc(mapping,
-      data = data_bidirected, arrow = arrow_bidirected,
-      curvature = curvature, position = position,
-      na.rm = na.rm, show.legend = show.legend,
-      inherit.aes = inherit.aes, fold = fold,
-      ...
+                       data = data_bidirected, arrow = arrow_bidirected,
+                       curvature = curvature, position = position,
+                       na.rm = na.rm, show.legend = show.legend,
+                       inherit.aes = inherit.aes, fold = fold,
+                       ...
     )
   )
 }
@@ -775,6 +775,225 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
     inherit.aes = inherit.aes,
     params = params
   )
+}
+
+#' Define Aesthetics for Directed Acyclic Graphs (DAGs)
+#'
+#' `aes_dag()` is a wrapper around `aes()` that specifies `x`, `y`, `xend`, and
+#' `yend`, which are required for most DAG visualizations. It merges any
+#' additional aesthetics, e.g. `color` or `shape`, with the default aesthetic
+#' mappings.
+#'
+#' @param ... Additional aesthetic mappings passed as arguments. These can
+#'   include any aesthetic supported by ggplot2 (e.g., color, size, shape).
+#'
+#' @return A `ggplot2` aesthetic mapping object that includes both the default
+#'   DAG aesthetics and any user-specified aesthetics.
+#'
+#' @examples
+#' library(ggplot2)
+#' confounder_triangle() %>%
+#'   dag_adjustment_sets() %>%
+#'   ggplot(aes_dag(color = adjusted)) +
+#'   geom_dag() +
+#'   facet_wrap(~ set)
+#'
+#' @export
+aes_dag <- function(...) {
+  addtl_aes <- ggplot2::aes(...)
+  default_aes <- ggplot2::aes(
+    x = x,
+    y = y,
+    xend = xend,
+    yend = yend
+  )
+
+  default_aes[names(addtl_aes)] <- addtl_aes
+
+  default_aes
+}
+
+#' Add common DAG layers to a ggplot
+#'
+#' `geom_dag()` is a helper function that adds common DAG layers to a ggplot.
+#' The purpose of `geom_dag()` is to simplify making custom DAGs. Most custom
+#' DAGs need the same basic layers, and so this function greatly reduces typing.
+#' It is not a true geom in that it adds many types of geoms to the plot (by
+#' default, edges, nodes, and text). While the underlying layers, all available
+#' in ggdag, are true geoms, we usually need a consistent set of layers to make
+#' a DAG. `geom_dag()` provides this. Because `geom_dag()` is not a true geom,
+#' you'll find that it is awkward for sophisticated customization. When you hit
+#' that point, you should use the underlying geoms directly.
+#'
+#' @param size A numeric value scaling the size of all elements in the DAG. This
+#'   allows you to change the scale of the DAG without changing the proportions.
+#' @param edge_type The type of edge, one of "link_arc", "link", "arc",
+#'   "diagonal".
+#' @param node_size The size of the nodes.
+#' @param text_size The size of the text.
+#' @param label_size The size of the labels.
+#' @param text_col The color of the text.
+#' @param label_col The color of the labels.
+#' @param edge_width The width of the edges.
+#' @param edge_cap The size of edge caps (the distance between the arrowheads
+#'   and the node borders).
+#' @param arrow_length The length of arrows on edges.
+#' @param use_edges A logical value. Include a `geom_dag_edges*()` function? If
+#'   `TRUE`, which is determined by `edge_type`.
+#' @param use_nodes A logical value. Include `geom_dag_point()`?
+#' @param use_stylized A logical value. Include `geom_dag_node()`?
+#' @param use_text A logical value. Include `geom_dag_text()`?
+#' @param use_labels A logical value. Include `geom_dag_label_repel()`?
+#' @param label The bare name of a column to use for `geom_dag_label_repel()`.
+#'   If `use_labels = TRUE`, the default is to use `label`.
+#' @param text The bare name of a column to use for `geom_dag_text()`. If
+#'   `use_text = TRUE`, the default is to use `name`.
+#' @param node Deprecated.
+#' @param stylized Deprecated.
+#'
+#' @return A list of ggplot2 layer elements
+#'
+#' @examples
+#' # Basic usage with ggdag
+#' library(ggplot2)
+#' dag <- dagify(y ~ x, z ~ y)
+#' ggplot(dag, aes_dag()) + geom_dag()
+#' ggplot(dag, aes_dag()) + geom_dag(size = 1.5)
+#' ggplot(dag, aes_dag()) + geom_dag(size = 1.5, text_size = 8)
+#'
+#' @export
+geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
+                     node_size = 16, text_size = 3.88,
+                     label_size = text_size,
+                     text_col = "white", label_col = "black",
+                     edge_width = 0.6, edge_cap = 8, arrow_length = 5,
+                     use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE,
+                     use_text = TRUE, use_labels = FALSE, label = NULL,
+                     text = NULL, node = deprecated(), stylized = deprecated()) {
+  use_nodes <- check_arg_node(node, use_nodes)
+  use_stylized <- check_arg_stylized(stylized, use_stylized)
+
+  sizes <- c(
+    cap = edge_cap,
+    node = node_size,
+    text = text_size,
+    label = label_size,
+    edge = edge_width,
+    arrow = arrow_length,
+    box_padding = 1.5
+  ) * size
+
+  if (isTRUE(use_edges)) {
+    edge_type <- match.arg(edge_type)
+    if (edge_type == "link_arc") {
+      edge_geom <- geom_dag_edges(
+        ggplot2::aes(
+          start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+          end_cap = ggraph::circle(sizes[["cap"]], "mm")
+        ),
+        edge_width = sizes[["edge"]],
+        arrow_directed = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed"),
+        arrow_bidirected = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), ends = "both", type = "closed")
+      )
+    } else {
+      edge_function <- edge_type_switch(edge_type)
+      edge_geom <- edge_function(
+        ggplot2::aes(
+          start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+          end_cap = ggraph::circle(sizes[["cap"]], "mm")
+        ),
+        edge_width = sizes[["edge"]],
+        arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")    )
+    }
+  } else {
+    edge_geom <- NULL
+  }
+
+  if (isTRUE(use_nodes)) {
+    if (isTRUE(use_stylized)) {
+      node_geom <- geom_dag_node(size = sizes[["node"]])
+    } else {
+      node_geom <- geom_dag_point(size = sizes[["node"]])
+    }
+  } else {
+    node_geom <- NULL
+  }
+
+  text <- rlang::enquo(text)
+
+  if (is_quo_logical(text)) {
+    deprecate_warn(
+      "0.3.0",
+      "geom_dag(text = 'no longer accepts logicals')",
+      details = paste0(
+        "Set `use_text = ", rlang::quo_text(text), "`. ",
+        "To use a variable other than node names, set `text = variable_name`"
+      ))
+
+    use_text <- as.logical(rlang::quo_text(text))
+    text <- NULL
+  }
+
+  if (isTRUE(use_text)) {
+    text <- rlang::enquo(text)
+    if (!rlang::quo_is_null(text)) {
+      mapping <- ggplot2::aes(label = !!text)
+    } else {
+      mapping <- NULL
+    }
+
+    text_geom <- geom_dag_text(mapping = mapping, col = text_col, size = text_size)
+  } else {
+    text_geom <- NULL
+  }
+
+  if (is.character(use_labels)) {
+    deprecate_warn(
+      "0.3.0",
+      "geom_dag(use_labels = 'must be a logical')",
+      details = paste0(
+        "Set `use_labels = TRUE` ",
+        "and `label = ", use_labels, "`"
+      ))
+
+    label <- rlang::sym(use_labels)
+    use_labels <- TRUE
+  }
+
+  if (isTRUE(use_labels)) {
+    label <- rlang::enquo(label)
+
+    if (rlang::quo_is_null(label)) {
+      label <- rlang::quo(label)
+    }
+
+    if (rlang::quo_is_symbol(label)) {
+      label <- rlang::get_expr(label)
+    }
+
+    label_geom <- geom_dag_label_repel(
+      ggplot2::aes(label = !!label),
+      size = sizes[["label"]] * 1.1,
+      col = label_col,
+      show.legend = FALSE,
+      box.padding = sizes[["box_padding"]],
+      max.overlaps = Inf,
+      label.padding = 0.1,
+    )
+  } else {
+    label_geom <- NULL
+  }
+
+  list(
+    edge_geom,
+    node_geom,
+    text_geom,
+    label_geom
+  )
+}
+
+is_quo_logical <- function(x) {
+  rlang::quo_text(x) == "TRUE" || rlang::quo_text(x) == "FALSE"
 }
 
 #' Create a new ggplot

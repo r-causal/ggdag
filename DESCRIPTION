@@ -24,6 +24,7 @@ Imports:
     ggraph (>= 2.0.0),
     ggrepel,
     igraph,
+    lifecycle (>= 0.2.0),
     magrittr,
     pillar,
     purrr,
@@ -44,5 +45,5 @@ VignetteBuilder:
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Config/testthat/edition: 3
