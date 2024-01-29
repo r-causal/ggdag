@@ -254,7 +254,6 @@ ggdag_parents <- function(.tdy_dag, .var, ..., size = 1,
                           use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                           use_labels = FALSE, text = NULL, label = NULL,
                           node = deprecated(), stylized = deprecated()) {
-
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_parents(.var) %>%
     ggplot2::ggplot(aes_dag(color = parent)) +
@@ -296,7 +295,6 @@ ggdag_ancestors <- function(.tdy_dag, .var, ..., size = 1,
                             use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                             use_labels = FALSE, text = NULL, label = NULL,
                             node = deprecated(), stylized = deprecated()) {
-
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_ancestors(.var) %>%
     ggplot2::ggplot(aes_dag(color = ancestor)) +

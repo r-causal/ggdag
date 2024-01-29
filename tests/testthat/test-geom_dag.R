@@ -69,11 +69,11 @@ test_that("different edge types work", {
 })
 test_that("labels also work", {
   g <- dagify(m ~ x + y,
-              y ~ x,
-              exposure = "x",
-              outcome = "y",
-              latent = "m",
-              labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
+    y ~ x,
+    exposure = "x",
+    outcome = "y",
+    latent = "m",
+    labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
   )
 
   p1 <- g %>%

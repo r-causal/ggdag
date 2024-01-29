@@ -58,7 +58,6 @@ ggdag_collider <- function(.tdy_dag, ...,
                            use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                            use_labels = FALSE, text = NULL, label = NULL,
                            node = deprecated(), stylized = deprecated()) {
-
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_collider() %>%
     dplyr::mutate(colliders = forcats::fct_rev(colliders)) %>%

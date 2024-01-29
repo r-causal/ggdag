@@ -494,17 +494,17 @@ geom_dag_edges <- function(mapping = NULL,
                            ...) {
   list(
     geom_dag_edges_link(mapping,
-                        data = data_directed, arrow = arrow_directed,
-                        position = position, na.rm = na.rm,
-                        show.legend = show.legend, inherit.aes = inherit.aes,
-                        ...
+      data = data_directed, arrow = arrow_directed,
+      position = position, na.rm = na.rm,
+      show.legend = show.legend, inherit.aes = inherit.aes,
+      ...
     ),
     geom_dag_edges_arc(mapping,
-                       data = data_bidirected, arrow = arrow_bidirected,
-                       curvature = curvature, position = position,
-                       na.rm = na.rm, show.legend = show.legend,
-                       inherit.aes = inherit.aes, fold = fold,
-                       ...
+      data = data_bidirected, arrow = arrow_bidirected,
+      curvature = curvature, position = position,
+      na.rm = na.rm, show.legend = show.legend,
+      inherit.aes = inherit.aes, fold = fold,
+      ...
     )
   )
 }
@@ -813,7 +813,7 @@ geom_dag_collider_edges <- function(mapping = NULL, data = NULL,
 #'   dag_adjustment_sets() %>%
 #'   ggplot(aes_dag(color = adjusted)) +
 #'   geom_dag() +
-#'   facet_wrap(~ set)
+#'   facet_wrap(~set)
 #'
 #' @export
 aes_dag <- function(...) {
@@ -874,9 +874,12 @@ aes_dag <- function(...) {
 #' # Basic usage with ggdag
 #' library(ggplot2)
 #' dag <- dagify(y ~ x, z ~ y)
-#' ggplot(dag, aes_dag()) + geom_dag()
-#' ggplot(dag, aes_dag()) + geom_dag(size = 1.5)
-#' ggplot(dag, aes_dag()) + geom_dag(size = 1.5, text_size = 8)
+#' ggplot(dag, aes_dag()) +
+#'   geom_dag()
+#' ggplot(dag, aes_dag()) +
+#'   geom_dag(size = 1.5)
+#' ggplot(dag, aes_dag()) +
+#'   geom_dag(size = 1.5, text_size = 8)
 #'
 #' @export
 geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
@@ -920,7 +923,8 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
           end_cap = ggraph::circle(sizes[["cap"]], "mm")
         ),
         edge_width = sizes[["edge"]],
-        arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")    )
+        arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")
+      )
     }
   } else {
     edge_geom <- NULL
@@ -945,7 +949,8 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
       details = paste0(
         "Set `use_text = ", rlang::quo_text(text), "`. ",
         "To use a variable other than node names, set `text = variable_name`"
-      ))
+      )
+    )
 
     use_text <- as.logical(rlang::quo_text(text))
     text <- NULL
@@ -971,7 +976,8 @@ geom_dag <- function(size = 1, edge_type = c("link_arc", "link", "arc", "diagona
       details = paste0(
         "Set `use_labels = TRUE` ",
         "and `label = ", use_labels, "`"
-      ))
+      )
+    )
 
     label <- rlang::sym(use_labels)
     use_labels <- TRUE

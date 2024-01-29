@@ -17,7 +17,7 @@
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
-#'   w1 ~~ w2
+#'   w1 ~ ~w2
 #' )
 #'
 #' ggdag(dag)
@@ -35,7 +35,6 @@ ggdag <- function(.tdy_dag, ...,
                   use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
                   use_labels = FALSE, text = NULL, label = NULL,
                   node = deprecated(), stylized = deprecated()) {
-
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     ggplot2::ggplot(aes_dag()) +
     geom_dag(

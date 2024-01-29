@@ -38,7 +38,6 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 
   i_vars <- purrr::map(instrumental_vars, "I")
   if (purrr::is_empty(i_vars)) {
-
     .dag <- dplyr::mutate(
       .dag,
       adjusted = factor(
@@ -128,8 +127,8 @@ ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
 
   if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
     p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
-    } else {
-      p <- p + ggplot2::facet_wrap(~instrumental_name)
-    }
+  } else {
+    p <- p + ggplot2::facet_wrap(~instrumental_name)
+  }
   p
 }

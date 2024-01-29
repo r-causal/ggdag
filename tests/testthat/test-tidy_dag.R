@@ -147,4 +147,3 @@ test_that("coordinate conversion functions work forward and backwards", {
   expect_equal(nrow(coord_df), length(coords$x))
   expect_equal(coords, coords2list(coord_df))
 })
-

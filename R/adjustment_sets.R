@@ -87,7 +87,7 @@ ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
     .tdy_dag,
     aes_dag(shape = adjusted, color = adjusted)
   ) +
-    ggplot2::facet_wrap(~ set) +
+    ggplot2::facet_wrap(~set) +
     scale_adjusted() +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
