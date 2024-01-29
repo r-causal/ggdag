@@ -32,96 +32,150 @@ ggdag_children(
   .tdy_dag,
   .var,
   ...,
-  edge_type = "link_arc",
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_parents(
   .tdy_dag,
   .var,
   ...,
-  edge_type = "link_arc",
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_ancestors(
   .tdy_dag,
   .var,
   ...,
-  edge_type = "link_arc",
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_descendants(
   .tdy_dag,
   .var,
   ...,
-  edge_type = "link_arc",
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_markov_blanket(
   .tdy_dag,
   .var,
   ...,
-  edge_type = "link_arc",
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 
 ggdag_adjacent(
   .tdy_dag,
   .var,
   ...,
-  edge_type = "link_arc",
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
   text_size = 3.88,
   label_size = text_size,
   text_col = "white",
-  label_col = text_col,
-  node = TRUE,
-  stylized = FALSE,
-  text = TRUE,
-  use_labels = NULL
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
 )
 }
 \arguments{
@@ -134,29 +188,50 @@ ggdag_adjacent(
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
+\item{size}{A numeric value scaling the size of all elements in the DAG. This
+allows you to change the scale of the DAG without changing the proportions.}
+
 \item{edge_type}{a character vector, the edge geom to use. One of:
 "link_arc", which accounts for directed and bidirected edges, "link",
 "arc", or "diagonal"}
 
-\item{node_size}{size of DAG node}
+\item{node_size}{The size of the nodes.}
 
-\item{text_size}{size of DAG text}
+\item{text_size}{The size of the text.}
 
-\item{label_size}{size of label text}
+\item{label_size}{The size of the labels.}
 
-\item{text_col}{color of DAG text}
+\item{text_col}{The color of the text.}
 
-\item{label_col}{color of label text}
+\item{label_col}{The color of the labels.}
 
-\item{node}{logical. Should nodes be included in the DAG?}
+\item{edge_width}{The width of the edges.}
 
-\item{stylized}{logical. Should DAG nodes be stylized? If so, use
-\code{geom_dag_nodes} and if not use \code{geom_dag_point}}
+\item{edge_cap}{The size of edge caps (the distance between the arrowheads
+and the node borders).}
 
-\item{text}{logical. Should text be included in the DAG?}
+\item{arrow_length}{The length of arrows on edges.}
 
-\item{use_labels}{a string. Variable to use for
-\code{geom_dag_label_repel()}. Default is \code{NULL}.}
+\item{use_edges}{A logical value. Include a \verb{geom_dag_edges*()} function? If
+\code{TRUE}, which is determined by \code{edge_type}.}
+
+\item{use_nodes}{A logical value. Include \code{geom_dag_point()}?}
+
+\item{use_stylized}{A logical value. Include \code{geom_dag_node()}?}
+
+\item{use_text}{A logical value. Include \code{geom_dag_text()}?}
+
+\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+
+\item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
+\code{use_text = TRUE}, the default is to use \code{name}.}
+
+\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+If \code{use_labels = TRUE}, the default is to use \code{label}.}
+
+\item{node}{Deprecated.}
+
+\item{stylized}{Deprecated.}
 }
 \value{
 a \code{tidy_dagitty} with an column related to the given
