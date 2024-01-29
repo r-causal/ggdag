@@ -1,9 +1,6 @@
 set.seed(1234)
 
 test_that("themes look good", {
-  # TODO: remove skip when devel ubuntu not failing
-  # see https://github.com/r-causal/ggdag/actions/runs/7699530598/job/20981341511
-  skip_on_ci()
   p <- ggdag(test_dag)
   expect_identical(theme_dag, theme_dag_blank)
   expect_identical(theme_dag_gray, theme_dag_grey)
