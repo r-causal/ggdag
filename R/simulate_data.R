@@ -25,13 +25,24 @@
 #' dagify(y ~ z, x ~ z) %>%
 #'   tidy_dagitty() %>%
 #'   simulate_data()
-simulate_data <- function(.tdy_dag, b.default = NULL, b.lower = -0.6, b.upper = 0.6, eps = 1,
-                          N = 500, standardized = TRUE) {
+simulate_data <- function(
+  .tdy_dag,
+  b.default = NULL,
+  b.lower = -0.6,
+  b.upper = 0.6,
+  eps = 1,
+  N = 500,
+  standardized = TRUE
+) {
   if_not_tidy_daggity(.tdy_dag) %>%
     pull_dag() %>%
     dagitty::simulateSEM(
-      b.default = b.default, b.lower = b.lower, b.upper = b.upper, eps = eps,
-      N = N, standardized = standardized
+      b.default = b.default,
+      b.lower = b.lower,
+      b.upper = b.upper,
+      eps = eps,
+      N = N,
+      standardized = standardized
     ) %>%
     dplyr::as_tibble()
 }

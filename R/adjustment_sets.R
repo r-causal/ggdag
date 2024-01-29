@@ -19,7 +19,8 @@
 #' @export
 #'
 #' @examples
-#' dag <- dagify(y ~ x + z2 + w2 + w1,
+#' dag <- dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
@@ -32,7 +33,8 @@
 #'
 #' ggdag_adjustment_set(dag)
 #'
-#' ggdag_adjustment_set(dagitty::randomDAG(10, .5),
+#' ggdag_adjustment_set(
+#'   dagitty::randomDAG(10, .5),
 #'   exposure = "x3",
 #'   outcome = "x5"
 #' )
@@ -70,16 +72,33 @@ extract_sets <- function(sets) {
 
 #' @rdname adjustment_sets
 #' @export
-ggdag_adjustment_set <- function(.tdy_dag, exposure = NULL, outcome = NULL, ..., shadow = FALSE,
-                                 size = 1, node_size = 16, text_size = 3.88,
-                                 label_size = text_size,
-                                 text_col = "white", label_col = "black",
-                                 edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                                 use_edges = TRUE, use_nodes = TRUE, use_stylized = FALSE,
-                                 use_text = TRUE, use_labels = FALSE, label = NULL,
-                                 text = NULL, node = deprecated(), stylized = deprecated(),
-                                 expand_x = expansion(c(0.25, 0.25)),
-                                 expand_y = expansion(c(0.2, 0.2))) {
+ggdag_adjustment_set <- function(
+  .tdy_dag,
+  exposure = NULL,
+  outcome = NULL,
+  ...,
+  shadow = FALSE,
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  expand_x = expansion(c(0.25, 0.25)),
+  expand_y = expansion(c(0.2, 0.2))
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
 
@@ -206,15 +225,31 @@ adjust_for <- control_for
 
 #' @rdname control_for
 #' @export
-ggdag_adjust <- function(.tdy_dag, var = NULL, ...,
-                         size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
-                         node_size = 16, text_size = 3.88, label_size = text_size,
-                         text_col = "white", label_col = "black",
-                         edge_width = 0.6, edge_cap = 10, arrow_length = 5,
-                         use_edges = TRUE,
-                         use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                         use_labels = FALSE, text = NULL, label = NULL,
-                         node = deprecated(), stylized = deprecated(), collider_lines = TRUE) {
+ggdag_adjust <- function(
+  .tdy_dag,
+  var = NULL,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  collider_lines = TRUE
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)

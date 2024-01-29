@@ -9,8 +9,14 @@ test_that("tidied dags are in good shape", {
   expect_true(dplyr::is.tbl(pull_dag_data(tidy_dag)))
   dag_col_names <- names(pull_dag_data(tidy_dag))
   expected_names <- c(
-    "x", "y", "xend", "yend", "name", "direction",
-    "to", "circular"
+    "x",
+    "y",
+    "xend",
+    "yend",
+    "name",
+    "direction",
+    "to",
+    "circular"
   )
   expect_true(all(expected_names %in% dag_col_names))
   expect_equal(unique(pull_dag_data(tidy_dag)$name), c("x", "y", "z"))
@@ -56,7 +62,10 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
   .df <- data.frame(
     name = c("c", "c", "x"),
     to = c("x", "y", "y"),
-    x = 1, y = 1, xend = 1, yend = 1
+    x = 1,
+    y = 1,
+    xend = 1,
+    yend = 1
   )
 
   df_dag <- .df %>%
@@ -118,7 +127,8 @@ test_that("node functions produce correct columns", {
   expect_function_produces_name(node_equivalent_dags(tidy_dag), "dag")
   expect_function_produces_name(node_exogenous(tidy_dag), "exogenous")
   expect_function_produces_name(
-    node_instrumental(tidy_dag,
+    node_instrumental(
+      tidy_dag,
       exposure = "x",
       outcome = "y"
     ),

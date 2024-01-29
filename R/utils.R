@@ -79,7 +79,8 @@ formula2char <- function(fmla) {
 }
 
 edge_type_switch <- function(edge_type) {
-  switch(edge_type,
+  switch(
+    edge_type,
     "link_arc" = geom_dag_edges,
     "link" = geom_dag_edges_link,
     "arc" = geom_dag_edges_arc,

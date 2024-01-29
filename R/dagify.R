@@ -50,7 +50,8 @@ dag2 <- dag
 #'   y = c(A = 0, B = 0, D = 1, C = 0, F = -1, E = 0, G = 1, H = 0, I = -1)
 #' )
 #'
-#' dag <- dagify(G ~ ~H,
+#' dag <- dagify(
+#'   G ~ ~H,
 #'   G ~ ~I,
 #'   I ~ ~G,
 #'   H ~ ~I,
@@ -69,7 +70,8 @@ dag2 <- dag
 #'
 #' ggdag(dag)
 #'
-#' dag2 <- dagify(y ~ x + z2 + w2 + w1,
+#' dag2 <- dagify(
+#'   y ~ x + z2 + w2 + w1,
 #'   x ~ z1 + w1,
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,

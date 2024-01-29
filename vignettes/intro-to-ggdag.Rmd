@@ -45,7 +45,8 @@ Note that, while `dagitty` supports a number of graph types, `ggdag` currently o
 `dagitty` uses a syntax similar to the [dot language of graphviz](https://graphviz.gitlab.io/doc/info/lang.html). This syntax has the advantage of being compact, but `ggdag` also provides the ability to create a `dagitty` object using a more R-like formula syntax through the `dagify()` function. `dagify()` accepts any number of formulas to create a DAG. It also has options for declaring which variables are exposures, outcomes, or latent, as well as coordinates and labels for each node.
 
 ```{r dagify}
-dagified <- dagify(x ~ z,
+dagified <- dagify(
+  x ~ z,
   y ~ z,
   exposure = "x",
   outcome = "y"
@@ -81,7 +82,8 @@ node_parents(tidy_dag, "x")
 Or working with the entire DAG to produce a `tidy_dagitty` that has all pathways between two variables:
 
 ```{r pathways}
-bigger_dag <- dagify(y ~ x + a + b,
+bigger_dag <- dagify(
+  y ~ x + a + b,
   x ~ a + b,
   exposure = "x",
   outcome = "y"

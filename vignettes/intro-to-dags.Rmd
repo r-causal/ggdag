@@ -77,7 +77,8 @@ dagify(
 Let's say we're looking at the relationship between smoking and cardiac arrest. We might assume that smoking causes changes in cholesterol, which causes cardiac arrest:
 
 ```{r}
-smoking_ca_dag <- dagify(cardiacarrest ~ cholesterol,
+smoking_ca_dag <- dagify(
+  cardiacarrest ~ cholesterol,
   cholesterol ~ smoking + weight,
   smoking ~ unhealthy,
   weight ~ unhealthy,
@@ -156,9 +157,11 @@ ggdag_dseparated(fever_dag, text = FALSE, use_labels = "label")
 However, if we control for fever, they become associated within strata of the collider, fever. We open a biasing pathway between the two, and they become d-connected:
 
 ```{r}
-ggdag_dseparated(fever_dag,
+ggdag_dseparated(
+  fever_dag,
   controlling_for = "m",
-  text = FALSE, use_labels = "label"
+  text = FALSE,
+  use_labels = "label"
 )
 ```
 
@@ -166,7 +169,8 @@ This can be counter-intuitive at first. Why does controlling for a confounder re
 
 Unfortunately, there's a second, less obvious form of collider-stratification bias: adjusting on the *descendant* of a collider. That means that a variable downstream from the collider can also cause this form of bias. For example, with our flu-chicken pox-fever example, it may be that having a fever leads to people taking a fever reducer, like acetaminophen. Because fever reducers are downstream from fever, controlling for it induces downstream collider-stratification bias:
 ```{r}
-dagify(fever ~ flu + pox,
+dagify(
+  fever ~ flu + pox,
   acetaminophen ~ fever,
   labels = c(
     "flu" = "Influenza",
@@ -176,8 +180,11 @@ dagify(fever ~ flu + pox,
   )
 ) %>%
   ggdag_dseparated(
-    from = "flu", to = "pox", controlling_for = "acetaminophen",
-    text = FALSE, use_labels = "label"
+    from = "flu",
+    to = "pox",
+    controlling_for = "acetaminophen",
+    text = FALSE,
+    use_labels = "label"
   )
 ```
 
@@ -189,9 +196,12 @@ Collider-stratification bias is responsible for many cases of bias, and it is of
 Controlling for intermediate variables may also induce bias, because it decomposes the total effect of *x* on *y* into its parts. Depending on the research question, that may be exactly what you want, in which case you should use mediation analysis, e.g. via SEM, which can estimate direct, indirect, and total effects. Let's return to the smoking example. Here, we only care about how smoking affects cardiac arrest, not the pathways through cholesterol it may take. Moreover, since cholesterol (at least in our DAG) intercepts the only directed pathway from smoking to cardiac arrest, controlling for it will block that relationship; smoking and cardiac arrest will appear unassociated (note that I'm not including the paths opened by controlling for a collider in this plot for clarity):
 
 ```{r}
-ggdag_dseparated(smoking_ca_dag,
+ggdag_dseparated(
+  smoking_ca_dag,
   controlling_for = c("weight", "cholesterol"),
-  text = FALSE, use_labels = "label", collider_lines = FALSE
+  text = FALSE,
+  use_labels = "label",
+  collider_lines = FALSE
 )
 ```
 

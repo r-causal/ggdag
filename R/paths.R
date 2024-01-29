@@ -105,15 +105,35 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
 
 #' @rdname paths
 #' @export
-ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, shadow = FALSE, ...,
-                        size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
-                        node_size = 16, text_size = 3.88, label_size = text_size,
-                        text_col = "white", label_col = "black",
-                        edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                        use_edges = TRUE,
-                        use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                        use_labels = FALSE, text = NULL, label = NULL,
-                        node = deprecated(), stylized = deprecated()) {
+ggdag_paths <- function(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  adjust_for = NULL,
+  limit = 100,
+  directed = FALSE,
+  shadow = FALSE,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
     ggplot2::ggplot(aes_dag(col = path, alpha = path)) +
@@ -155,15 +175,35 @@ ggdag_paths <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, lim
 
 #' @rdname paths
 #' @export
-ggdag_paths_fan <- function(.tdy_dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, ..., shadow = FALSE,
-                            spread = .7, size = 1,
-                            node_size = 16, text_size = 3.88, label_size = text_size,
-                            text_col = "white", label_col = "black",
-                            edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                            use_edges = TRUE,
-                            use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                            use_labels = FALSE, text = NULL, label = NULL,
-                            node = deprecated(), stylized = deprecated()) {
+ggdag_paths_fan <- function(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  adjust_for = NULL,
+  limit = 100,
+  directed = FALSE,
+  ...,
+  shadow = FALSE,
+  spread = .7,
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
     ggplot2::ggplot(aes_dag()) +

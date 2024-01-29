@@ -17,7 +17,8 @@
 #' @export
 #'
 #' @examples
-#' dag <- dagify(l ~ x + y,
+#' dag <- dagify(
+#'   l ~ x + y,
 #'   y ~ x,
 #'   exposure = "x",
 #'   outcome = "y",
@@ -53,15 +54,29 @@ node_status <- function(.dag, as_factor = TRUE, ...) {
 
 #' @rdname status
 #' @export
-ggdag_status <- function(.tdy_dag, ...,
-                         size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
-                         node_size = 16, text_size = 3.88, label_size = text_size,
-                         text_col = "white", label_col = "black",
-                         edge_width = 0.6, edge_cap = 8, arrow_length = 5,
-                         use_edges = TRUE,
-                         use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                         use_labels = FALSE, text = NULL, label = NULL,
-                         node = deprecated(), stylized = deprecated()) {
+ggdag_status <- function(
+  .tdy_dag,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag) %>%
     node_status(...) %>%
     ggplot2::ggplot(aes_dag(color = status)) +

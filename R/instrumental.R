@@ -79,15 +79,31 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 
 #' @rdname instrumental
 #' @export
-ggdag_instrumental <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...,
-                               size = 1, edge_type = c("link_arc", "link", "arc", "diagonal"),
-                               node_size = 16, text_size = 3.88, label_size = text_size,
-                               text_col = "white", label_col = "black",
-                               edge_width = 0.6, edge_cap = 10, arrow_length = 5,
-                               use_edges = TRUE,
-                               use_nodes = TRUE, use_stylized = FALSE, use_text = TRUE,
-                               use_labels = FALSE, text = NULL, label = NULL,
-                               node = deprecated(), stylized = deprecated()) {
+ggdag_instrumental <- function(
+  .tdy_dag,
+  exposure = NULL,
+  outcome = NULL,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
 
