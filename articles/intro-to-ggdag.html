@@ -140,7 +140,8 @@ number of formulas to create a DAG. It also has options for declaring
 which variables are exposures, outcomes, or latent, as well as
 coordinates and labels for each node.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dagified</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">x</span> <span class="op">~</span> <span class="va">z</span>,</span>
+<code class="sourceCode R"><span><span class="va">dagified</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
+<span>  <span class="va">x</span> <span class="op">~</span> <span class="va">z</span>,</span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">z</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="st">"x"</span>,</span>
 <span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>
@@ -216,7 +217,8 @@ variable:</p>
 <p>Or working with the entire DAG to produce a <code>tidy_dagitty</code>
 that has all pathways between two variables:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">bigger_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>,</span>
+<code class="sourceCode R"><span><span class="va">bigger_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
+<span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>,</span>
 <span>  <span class="va">x</span> <span class="op">~</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="st">"x"</span>,</span>
 <span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>
