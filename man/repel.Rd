@@ -4,6 +4,7 @@
 \alias{ggrepel functions}
 \alias{geom_dag_text_repel}
 \alias{geom_dag_label_repel}
+\alias{geom_dag_label_repel2}
 \title{Repulsive textual annotations}
 \usage{
 geom_dag_text_repel(
@@ -11,7 +12,7 @@ geom_dag_text_repel(
   data = NULL,
   parse = FALSE,
   ...,
-  box.padding = 0.35,
+  box.padding = 1.25,
   point.padding = 1.5,
   segment.color = "#666666",
   fontface = "bold",
@@ -31,7 +32,7 @@ geom_dag_label_repel(
   data = NULL,
   parse = FALSE,
   ...,
-  box.padding = grid::unit(0.35, "lines"),
+  box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
   label.r = grid::unit(0.15, "lines"),
@@ -46,6 +47,15 @@ geom_dag_label_repel(
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
+)
+
+geom_dag_label_repel2(
+  mapping = NULL,
+  data = NULL,
+  box.padding = 2,
+  max.overlaps = Inf,
+  label.size = NA,
+  ...
 )
 }
 \arguments{
@@ -117,13 +127,19 @@ to 0.15. (Default unit is lines, but other units can be specified by
 passing \code{unit(x, "units")}).}
 
 \item{label.size}{Size of label border, in mm.}
+
+\item{max.overlaps}{Exclude text labels when they overlap too many other
+things. For each text label, we count how many other text labels or other
+data points it overlaps, and exclude the text label if it has too many overlaps.
+Defaults to 10.}
 }
 \description{
-These functions are minor modifications of those in the \code{ggrepel}
-package. geom_dag_text_repel adds text directly to the plot.
-geom_dag_label_repel draws a rectangle underneath the text, making it easier
-to read. The text labels repel away from each other and away from the data
-points.
+These functions are minor modifications of those in the ggrepel package.
+\code{geom_dag_text_repel()} adds text directly to the plot.
+\code{geom_dag_label_repel()} draws a rectangle underneath the text, making it
+easier to read. The text labels repel away from each other and away from the
+data points. \code{geom_dag_label_repel2()} is a slightly stylized version of
+geom_dag_label_repel()` that often looks better on DAGs.
 }
 \examples{
 library(ggplot2)

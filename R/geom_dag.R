@@ -237,11 +237,12 @@ geom_dag_label <- function(mapping = NULL, data = NULL,
 
 #' Repulsive textual annotations
 #'
-#' These functions are minor modifications of those in the `ggrepel`
-#' package. geom_dag_text_repel adds text directly to the plot.
-#' geom_dag_label_repel draws a rectangle underneath the text, making it easier
-#' to read. The text labels repel away from each other and away from the data
-#' points.
+#' These functions are minor modifications of those in the ggrepel package.
+#' `geom_dag_text_repel()` adds text directly to the plot.
+#' `geom_dag_label_repel()` draws a rectangle underneath the text, making it
+#' easier to read. The text labels repel away from each other and away from the
+#' data points. `geom_dag_label_repel2()` is a slightly stylized version of
+#' geom_dag_label_repel()` that often looks better on DAGs.
 #'
 #' @inheritParams ggrepel::geom_text_repel
 #' @inheritParams ggrepel::geom_label_repel
@@ -291,7 +292,7 @@ geom_dag_text_repel <- function(mapping = NULL,
                                 data = NULL,
                                 parse = FALSE,
                                 ...,
-                                box.padding = 0.35,
+                                box.padding = 1.25,
                                 point.padding = 1.5,
                                 segment.color = "#666666",
                                 fontface = "bold",
@@ -325,6 +326,7 @@ geom_dag_text_repel <- function(mapping = NULL,
       max.iter = max.iter,
       nudge_x = nudge_x,
       nudge_y = nudge_y,
+      segment.alpha = 1,
       ...
     )
   )
@@ -337,7 +339,7 @@ geom_dag_text_repel <- function(mapping = NULL,
 geom_dag_label_repel <- function(mapping = NULL, data = NULL,
                                  parse = FALSE,
                                  ...,
-                                 box.padding = grid::unit(0.35, "lines"),
+                                 box.padding = grid::unit(1.25, "lines"),
                                  label.padding = grid::unit(0.25, "lines"),
                                  point.padding = grid::unit(1.5, "lines"),
                                  label.r = grid::unit(0.15, "lines"),
@@ -375,8 +377,23 @@ geom_dag_label_repel <- function(mapping = NULL, data = NULL,
       max.iter = max.iter,
       nudge_x = nudge_x,
       nudge_y = nudge_y,
+      segment.alpha = 1,
       ...
     )
+  )
+}
+
+#' @rdname repel
+#' @export
+geom_dag_label_repel2 <- function(mapping = NULL, data = NULL, box.padding = 2,
+                                  max.overlaps = Inf, label.size = NA, ...) {
+  geom_dag_label_repel(
+    mapping = mapping,
+    data = data,
+    box.padding = box.padding,
+    max.overlaps = max.overlaps,
+    label.size = label.size,
+    ...
   )
 }
 
