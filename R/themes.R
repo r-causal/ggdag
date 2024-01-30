@@ -120,6 +120,7 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #' whenever [geom_dag_collider_edges()] is used. `scale_dag()` is deprecated in
 #' favor of `scale_adjusted()`.
 #'
+#' @param include_alpha Logical. Include alpha-related scales?
 #' @param breaks One of:
 #'
 #'   - NULL for no breaks
@@ -133,12 +134,13 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #'
 #' @export
 #' @rdname scale_adjusted
-scale_adjusted <- function() {
+scale_adjusted <- function(include_alpha = FALSE) {
   list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
-    ggplot2::scale_shape_manual(drop = FALSE, values = c("adjusted" = 15, "unadjusted" = 19), limits = c("adjusted", "unadjusted"))
-    #ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted")),
-    #ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted"))
+    ggplot2::scale_shape_manual(drop = FALSE, values = c("adjusted" = 15, "unadjusted" = 19), limits = c("adjusted", "unadjusted")),
+    ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
+    if (include_alpha) ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted")),
+    if (include_alpha) ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted"))
   )
 }
 

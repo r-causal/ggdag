@@ -259,11 +259,11 @@ ggdag_adjust <- function(
   p <- .tdy_dag %>%
     ggplot2::ggplot(aes_dag(col = adjusted, shape = adjusted)) +
     geom_dag_edges(
-      ggplot2::aes(edge_color = adjusted),
+      ggplot2::aes(edge_alpha = adjusted),
       start_cap = ggraph::circle(edge_cap, "mm"),
       end_cap = ggraph::circle(edge_cap, "mm")
     ) +
-    scale_adjusted() +
+    scale_adjusted(include_alpha = TRUE) +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (collider_lines) p <- p + geom_dag_collider_edges()
