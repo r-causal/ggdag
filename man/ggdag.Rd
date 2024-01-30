@@ -91,7 +91,7 @@ dag <- dagify(
   x ~ z1 + w1,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
-  w1 ~~ w2
+  w1 ~ ~w2
 )
 
 ggdag(dag)

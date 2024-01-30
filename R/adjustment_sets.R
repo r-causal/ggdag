@@ -77,7 +77,7 @@ ggdag_adjustment_set <- function(
   exposure = NULL,
   outcome = NULL,
   ...,
-  shadow = FALSE,
+  shadow = TRUE,
   size = 1,
   node_size = 16,
   text_size = 3.88,
@@ -259,7 +259,7 @@ ggdag_adjust <- function(
   p <- .tdy_dag %>%
     ggplot2::ggplot(aes_dag(col = adjusted, shape = adjusted)) +
     geom_dag_edges(
-      ggplot2::aes(edge_alpha = adjusted),
+      ggplot2::aes(edge_color = adjusted),
       start_cap = ggraph::circle(edge_cap, "mm"),
       end_cap = ggraph::circle(edge_cap, "mm")
     ) +

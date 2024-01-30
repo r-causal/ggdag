@@ -25,7 +25,7 @@ ggdag_paths(
   adjust_for = NULL,
   limit = 100,
   directed = FALSE,
-  shadow = FALSE,
+  shadow = TRUE,
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
@@ -56,7 +56,7 @@ ggdag_paths_fan(
   limit = 100,
   directed = FALSE,
   ...,
-  shadow = FALSE,
+  shadow = TRUE,
   spread = 0.7,
   size = 1,
   node_size = 16,
@@ -103,8 +103,7 @@ if they are part of the path.}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
-\item{shadow}{logical. Show edges which are not on an open path? Ignored if
-\code{paths_only} is \code{TRUE}.}
+\item{shadow}{logical. Show edges which are not on an open path?}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}

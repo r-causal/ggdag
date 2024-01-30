@@ -143,7 +143,8 @@ geom_dag_label_repel()` that often looks better on DAGs.
 }
 \examples{
 library(ggplot2)
-g <- dagify(m ~ x + y,
+g <- dagify(
+  m ~ x + y,
   y ~ x,
   exposure = "x",
   outcome = "y",
@@ -170,8 +171,10 @@ g \%>\%
   geom_dag_edges() +
   geom_dag_point() +
   geom_dag_text() +
-  geom_dag_label_repel(aes(label = label, fill = label),
-    col = "white", show.legend = FALSE
+  geom_dag_label_repel(
+    aes(label = label, fill = label),
+    col = "white",
+    show.legend = FALSE
   ) +
   theme_dag()
 

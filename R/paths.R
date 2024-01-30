@@ -17,8 +17,7 @@
 #' @param paths_only logical. Should only open paths be returned? Default is
 #'   `FALSE`, which includes every variable and edge in the DAG regardless
 #'   if they are part of the path.
-#' @param shadow logical. Show edges which are not on an open path? Ignored if
-#'   `paths_only` is `TRUE`.
+#' @param shadow logical. Show edges which are not on an open path?
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #' @param spread the width of the fan spread
@@ -112,7 +111,7 @@ ggdag_paths <- function(
   adjust_for = NULL,
   limit = 100,
   directed = FALSE,
-  shadow = FALSE,
+  shadow = TRUE,
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
@@ -204,7 +203,7 @@ ggdag_paths_fan <- function(
   limit = 100,
   directed = FALSE,
   ...,
-  shadow = FALSE,
+  shadow = TRUE,
   spread = .7,
   size = 1,
   node_size = 16,
