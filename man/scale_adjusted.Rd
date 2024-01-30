@@ -5,11 +5,13 @@
 \alias{scale_dag}
 \title{Common scale adjustments for DAGs}
 \usage{
-scale_adjusted()
+scale_adjusted(include_alpha = FALSE)
 
 scale_dag(breaks = ggplot2::waiver())
 }
 \arguments{
+\item{include_alpha}{Logical. Include alpha-related scales?}
+
 \item{breaks}{One of:
 \itemize{
 \item NULL for no breaks

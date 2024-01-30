@@ -980,6 +980,7 @@ aes_dag <- function(...) {
 #' you'll find that it is awkward for sophisticated customization. When you hit
 #' that point, you should use the underlying geoms directly.
 #'
+#' @inheritParams ggplot2::geom_point
 #' @param size A numeric value scaling the size of all elements in the DAG. This
 #'   allows you to change the scale of the DAG without changing the proportions.
 #' @param edge_type The type of edge, one of "link_arc", "link", "arc",
@@ -1021,6 +1022,7 @@ aes_dag <- function(...) {
 #'
 #' @export
 geom_dag <- function(
+  data = NULL,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
@@ -1073,6 +1075,7 @@ geom_dag <- function(
           start_cap = ggraph::circle(sizes[["cap"]], "mm"),
           end_cap = ggraph::circle(sizes[["cap"]], "mm")
         ),
+        data = data,
         edge_width = sizes[["edge"]],
         arrow = grid::arrow(length = grid::unit(sizes[["arrow"]], "pt"), type = "closed")
       )
@@ -1083,9 +1086,9 @@ geom_dag <- function(
 
   if (isTRUE(use_nodes)) {
     if (isTRUE(use_stylized)) {
-      node_geom <- geom_dag_node(size = sizes[["node"]])
+      node_geom <- geom_dag_node(size = sizes[["node"]], data = data)
     } else {
-      node_geom <- geom_dag_point(size = sizes[["node"]])
+      node_geom <- geom_dag_point(size = sizes[["node"]], data = data)
     }
   } else {
     node_geom <- NULL
@@ -1117,7 +1120,12 @@ geom_dag <- function(
       mapping <- NULL
     }
 
-    text_geom <- geom_dag_text(mapping = mapping, col = text_col, size = text_size)
+    text_geom <- geom_dag_text(
+      mapping = mapping,
+      data = data,
+      col = text_col,
+      size = text_size
+    )
   } else {
     text_geom <- NULL
   }
@@ -1151,6 +1159,7 @@ geom_dag <- function(
 
     label_geom <- geom_dag_label_repel(
       ggplot2::aes(label = !!label),
+      data = data,
       size = sizes[["label"]] * 1.1,
       col = label_col,
       show.legend = FALSE,

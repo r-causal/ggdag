@@ -97,7 +97,8 @@ Detects variable status given a DAG (exposure, outcome, latent). See
 variable statuses.
 }
 \examples{
-dag <- dagify(l ~ x + y,
+dag <- dagify(
+  l ~ x + y,
   y ~ x,
   exposure = "x",
   outcome = "y",

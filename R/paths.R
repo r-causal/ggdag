@@ -17,8 +17,7 @@
 #' @param paths_only logical. Should only open paths be returned? Default is
 #'   `FALSE`, which includes every variable and edge in the DAG regardless
 #'   if they are part of the path.
-#' @param shadow logical. Show edges which are not on an open path? Ignored if
-#'   `paths_only` is `TRUE`.
+#' @param shadow logical. Show edges which are not on an open path?
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #' @param spread the width of the fan spread
@@ -112,7 +111,7 @@ ggdag_paths <- function(
   adjust_for = NULL,
   limit = 100,
   directed = FALSE,
-  shadow = FALSE,
+  shadow = TRUE,
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
@@ -135,21 +134,42 @@ ggdag_paths <- function(
   stylized = deprecated()
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
-    ggplot2::ggplot(aes_dag(col = path, alpha = path)) +
-    geom_dag_edges(ggplot2::aes(edge_alpha = path, edge_colour = path)) +
+    dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed) %>%
+    ggplot2::ggplot(aes_dag(color = path)) +
+    geom_dag_edges(
+      ggplot2::aes(edge_colour = path),
+      show.legend = if (shadow) TRUE else FALSE
+    ) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
-    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
-    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
-    ggraph::scale_edge_colour_discrete(drop = FALSE, breaks = "open path") +
-    ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path") +
+    breaks("open path") +
     expand_plot(
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
     )
 
+  if (shadow) {
+    vals <- c("unadjusted" = "black", "adjusted" = "grey80")
+  } else {
+    vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
+  }
+
+  p <- p +
+    ggraph::scale_edge_color_discrete(
+      drop = FALSE,
+      na.value = if (shadow) "grey80" else "#FFFFFF00",
+      na.translate = if (shadow) TRUE else FALSE,
+      limits = "open path"
+    ) +
+    ggplot2::scale_color_discrete(
+      drop = FALSE,
+      na.value = if (shadow) "grey80" else "#FFFFFF00",
+      na.translate = if (shadow) TRUE else FALSE,
+      limits = "open path"
+    )
+
   p <- p +
     geom_dag(
+      data = if (!shadow) function(x) dplyr::filter(x, path == "open path"),
       size = size,
       node_size = node_size,
       text_size = text_size,
@@ -183,7 +203,7 @@ ggdag_paths_fan <- function(
   limit = 100,
   directed = FALSE,
   ...,
-  shadow = FALSE,
+  shadow = TRUE,
   spread = .7,
   size = 1,
   node_size = 16,

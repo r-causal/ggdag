@@ -5,6 +5,7 @@
 \title{Add common DAG layers to a ggplot}
 \usage{
 geom_dag(
+  data = NULL,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = 16,
@@ -27,6 +28,21 @@ geom_dag(
 )
 }
 \arguments{
+\item{data}{The data to be displayed in this layer. There are three
+options:
+
+If \code{NULL}, the default, the data is inherited from the plot
+data as specified in the call to \code{\link[ggplot2:ggplot]{ggplot()}}.
+
+A \code{data.frame}, or other object, will override the plot
+data. All objects will be fortified to produce a data frame. See
+\code{\link[ggplot2:fortify]{fortify()}} for which variables will be created.
+
+A \code{function} will be called with a single argument,
+the plot data. The return value must be a \code{data.frame}, and
+will be used as the layer data. A \code{function} can be created
+from a \code{formula} (e.g. \code{~ head(.x, 10)}).}
+
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}
 
@@ -89,8 +105,11 @@ that point, you should use the underlying geoms directly.
 # Basic usage with ggdag
 library(ggplot2)
 dag <- dagify(y ~ x, z ~ y)
-ggplot(dag, aes_dag()) + geom_dag()
-ggplot(dag, aes_dag()) + geom_dag(size = 1.5)
-ggplot(dag, aes_dag()) + geom_dag(size = 1.5, text_size = 8)
+ggplot(dag, aes_dag()) +
+  geom_dag()
+ggplot(dag, aes_dag()) +
+  geom_dag(size = 1.5)
+ggplot(dag, aes_dag()) +
+  geom_dag(size = 1.5, text_size = 8)
 
 }

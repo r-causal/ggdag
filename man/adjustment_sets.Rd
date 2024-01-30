@@ -13,7 +13,7 @@ ggdag_adjustment_set(
   exposure = NULL,
   outcome = NULL,
   ...,
-  shadow = FALSE,
+  shadow = TRUE,
   size = 1,
   node_size = 16,
   text_size = 3.88,
@@ -21,7 +21,7 @@ ggdag_adjustment_set(
   text_col = "white",
   label_col = "black",
   edge_width = 0.6,
-  edge_cap = 8,
+  edge_cap = 10,
   arrow_length = 5,
   use_edges = TRUE,
   use_nodes = TRUE,
@@ -105,7 +105,8 @@ adjustment sets or a \code{ggplot}
 See \code{\link[dagitty:adjustmentSets]{dagitty::adjustmentSets()}} for details.
 }
 \examples{
-dag <- dagify(y ~ x + z2 + w2 + w1,
+dag <- dagify(
+  y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,
   z1 ~ w1 + v,
   z2 ~ w2 + v,
@@ -118,7 +119,8 @@ tidy_dagitty(dag) \%>\% dag_adjustment_sets()
 
 ggdag_adjustment_set(dag)
 
-ggdag_adjustment_set(dagitty::randomDAG(10, .5),
+ggdag_adjustment_set(
+  dagitty::randomDAG(10, .5),
   exposure = "x3",
   outcome = "x5"
 )
