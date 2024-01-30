@@ -85,7 +85,7 @@ ggdag_adjustment_set <- function(
   text_col = "white",
   label_col = "black",
   edge_width = 0.6,
-  edge_cap = 8,
+  edge_cap = 10,
   arrow_length = 5,
   use_edges = TRUE,
   use_nodes = TRUE,
@@ -111,23 +111,20 @@ ggdag_adjustment_set <- function(
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
   if (shadow) {
-    p <- p + geom_dag_edges(
-      ggplot2::aes(edge_alpha = adjusted),
-      start_cap = ggraph::circle(10, "mm"),
-      end_cap = ggraph::circle(10, "mm")
-    )
+    vals <- c("unadjusted" = "black", "adjusted" = "grey80")
   } else {
     vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
-    p <- p + geom_dag_edges(
-      ggplot2::aes(edge_colour = adjusted),
-      show.legend = FALSE
-    ) +
-      ggraph::scale_edge_colour_manual(
-        drop = FALSE,
-        values = vals,
-        limits = names(vals)
-      )
   }
+
+  p <- p + geom_dag_edges(
+    ggplot2::aes(edge_colour = adjusted),
+    show.legend = if (shadow) TRUE else FALSE
+  ) +
+    ggraph::scale_edge_colour_manual(
+      drop = FALSE,
+      values = vals,
+      limits = names(vals)
+    )
 
   p <- p +
     geom_dag(

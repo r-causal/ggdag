@@ -130,6 +130,6 @@
 <rect x='624.54' y='277.26' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <circle cx='647.21' cy='299.94' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <text x='675.37' y='302.97' style='font-size: 8.80px; font-family: sans;' textLength='39.15px' lengthAdjust='spacingAndGlyphs'>open path</text>
-<text x='40.13' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='204.04px' lengthAdjust='spacingAndGlyphs'>ggdag_paths() draws 2 open paths</text>
+<text x='40.13' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='305.31px' lengthAdjust='spacingAndGlyphs'>ggdag_paths() draws 2 open paths without shadows</text>
 </g>
 </svg>
