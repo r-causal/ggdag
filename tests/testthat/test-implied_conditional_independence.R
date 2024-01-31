@@ -10,6 +10,11 @@ test_that("`query_conditional_independence()` returns a tibble of independencies
   expect_equal(nrow(result), 57)
   expect_named(result, c("set", "a", "b", "conditioned_on"))
   expect_type(result$conditioned_on, "list")
+
+  expect_error(
+    query_conditional_independence(letters),
+    "Expected a DAG object"
+  )
 })
 
 test_that("`query_conditional_independence()` handles empty results correctly", {
@@ -33,6 +38,13 @@ test_that("`test_conditional_independence()` works", {
   expect_length(result, 5)
 
   expect_error(test_conditional_independence(test_dag))
+
+  expect_error(
+    test_conditional_independence(letters, letters),
+    "Expected a DAG object"
+  )
+
+  expect_error(test_conditional_independence(test_dag, letters))
 })
 
 

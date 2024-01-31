@@ -20,6 +20,10 @@
 #'
 #' @export
 query_conditional_independence <- function(.tdy_dag, type = "missing.edge", max.results = Inf) {
+  if (!dagitty::is.dagitty(.tdy_dag) && !is.tidy_dagitty(.tdy_dag)) {
+    stop("Expected a DAG object for `.tdy_dag`, got ", class(.tdy_dag), ".", call. = FALSE)
+  }
+
   ici <- dagitty::impliedConditionalIndependencies(
     pull_dag(.tdy_dag),
     type = type,
@@ -62,6 +66,10 @@ test_conditional_independence <- function(
   tol = NULL,
   loess.pars = NULL
 ) {
+  if (!dagitty::is.dagitty(.tdy_dag) && !is.tidy_dagitty(.tdy_dag)) {
+    stop("Expected a DAG object for `.tdy_dag`, got ", class(.tdy_dag), ".", call. = FALSE)
+  }
+
   test_results <- dagitty::localTests(
     pull_dag(.tdy_dag),
     data = data,
