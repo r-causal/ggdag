@@ -33,7 +33,8 @@ query_conditional_independence <- function(.tdy_dag, type = "missing.edge", max.
       b = .x$Y,
       conditioned_on = if (rlang::is_empty(.x$Z)) list(NA_character_) else list(.x$Z)
     )) %>%
-    purrr::list_rbind()
+    purrr::list_rbind() %>%
+    tibble::as_tibble()
 }
 
 #' @rdname query_conditional_independence
