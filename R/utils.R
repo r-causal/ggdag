@@ -27,6 +27,7 @@ utils::globalVariables(
     "exogenous",
     "from",
     "from_formula",
+    "independence",
     "instrumental",
     "name",
     "parent",
