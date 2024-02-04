@@ -18,7 +18,9 @@ knitr::opts_chunk$set(
   fig.align = "center",
   fig.dpi = 320,
   warning = FALSE,
-  message = FALSE
+  message = FALSE,
+  # TODO: address in sep PR
+  eval = FALSE
 )
 set.seed(2939)
 ```
