@@ -4,7 +4,13 @@
 \alias{tidy_dagitty}
 \title{Tidy a \code{dagitty} object}
 \usage{
-tidy_dagitty(.dagitty, seed = NULL, layout = "nicely", ...)
+tidy_dagitty(
+  .dagitty,
+  seed = NULL,
+  layout = "nicely",
+  ...,
+  use_existing_coords = TRUE
+)
 }
 \arguments{
 \item{.dagitty}{a \code{dagitty}}
@@ -16,6 +22,12 @@ for details. Alternatively, \code{"time_ordered"} will use
 \code{time_ordered_coords()} to algorithmically sort the graph by time.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
+
+\item{use_existing_coords}{(Advanced). Logical. Use the coordinates produced
+by \code{dagitty::coordinates(.dagitty)}? If the coordinates are empty,
+\code{tidy_dagitty()} will generate a layout. Generally, setting this to \code{FALSE}
+is thus only useful when there is a difference in the variables coordinates
+and the variables in the DAG, as sometimes happens when recompiling a DAG.}
 }
 \value{
 a \code{tidy_dagitty} object

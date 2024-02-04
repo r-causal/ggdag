@@ -1,6 +1,6 @@
 test_that("pull_dag and pull_dag_data return the correct objects", {
   # Create a dagitty object
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(y ~ x + z, x ~ z, coords = time_ordered_coords())
 
   # Create a tidy_dagitty object
   tidy_dag <- tidy_dagitty(dag, seed = 1234)
