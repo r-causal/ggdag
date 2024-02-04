@@ -65,7 +65,13 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">tidy_dagitty</span><span class="op">(</span><span class="va">.dagitty</span>, seed <span class="op">=</span> <span class="cn">NULL</span>, layout <span class="op">=</span> <span class="st">"nicely"</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">tidy_dagitty</span><span class="op">(</span></span>
+<span>  <span class="va">.dagitty</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  layout <span class="op">=</span> <span class="st">"nicely"</span>,</span>
+<span>  <span class="va">...</span>,</span>
+<span>  use_existing_coords <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -86,6 +92,14 @@ for details. Alternatively, <code>"time_ordered"</code> will use
 
 <dt>...</dt>
 <dd><p>optional arguments passed to <code><a href="https://ggraph.data-imaginist.com/reference/ggraph.html" class="external-link">ggraph::create_layout()</a></code></p></dd>
+
+
+<dt>use_existing_coords</dt>
+<dd><p>(Advanced). Logical. Use the coordinates produced
+by <code>dagitty::coordinates(.dagitty)</code>? If the coordinates are empty,
+<code>tidy_dagitty()</code> will generate a layout. Generally, setting this to <code>FALSE</code>
+is thus only useful when there is a difference in the variables coordinates
+and the variables in the DAG, as sometimes happens when recompiling a DAG.</p></dd>
 
 </dl></div>
     <div class="section level2">
