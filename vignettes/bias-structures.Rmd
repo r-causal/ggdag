@@ -42,7 +42,7 @@ Classical confounding is simple. A confounder is associated with both the exposu
 
 ```{r}
 confounder_triangle(x = "Coffee", y = "Lung Cancer", z = "Smoking") %>%
-  ggdag_dconnected(text = FALSE, use_labels = "label")
+  ggdag_dconnected(use_text = FALSE, use_labels = TRUE)
 ```
 
 But if you think about it, this DAG is incorrect. Smoking doesn't cause coffee drinking; something else, say a predilection towards addictive substances, causes a person to both smoke and drink coffee. Let's say that we had a psychometric tool that accurately measures addictive behavior, so we can control for it. Now our DAG looks like this:
@@ -134,7 +134,8 @@ surgical_dag <- dagify(
 ) %>%
   control_for("surgery")
 
-ggdag_adjust(surgical_dag, text = FALSE, use_labels = "label", collider_lines = FALSE)
+# TODO: FIX 
+# ggdag_adjust(surgical_dag, text = FALSE, use_labels = "label", collider_lines = FALSE)
 ```
 
 We can't unstratify by surgical status, so our best bet is to block the back-door path opened by stratifying on it. We can't adjust for the latent variable (and, if we're measuring it really well, the latent variable and the tool are one in the same), so all we can do is control for baseline pain. Note that, technically, surgical status is part of the adjustment set:
@@ -320,7 +321,7 @@ Even though smoking doesn't actually cause glioma, it will appear as if there is
 
 Let's also consider how bias arises in loss-to-follow-up. In a randomized clinical trial or cohort study, the main threat of selection bias is not through who enters the study (although that may affect generalizability) but who leaves it. If loss-to-follow-up is associated with the exposure or outcome, the relationship between the two may be biased. Let's consider a trial where we are testing a new HIV drug and its effect on CD4 white blood cell count. If the treatment causes symptoms, participants may leave the trial. Similarly, there may be those whose HIV is getting worse and thus more symptomatic, which also may cause people to leave the trial. If we only have information on people who stay in the study, we are stratifying by follow-up status:
 
-```{r}
+```{r, eval = FALSE}
 dagify(
   follow_up ~ symptoms,
   symptoms ~ new_rx + dx_severity,

@@ -4,13 +4,37 @@
 \alias{as_tidy_dagitty}
 \alias{as_tidy_dagitty.dagitty}
 \alias{as_tidy_dagitty.data.frame}
+\alias{as_tidy_dagitty.list}
 \title{Convert objects into \code{tidy_dagitty} objects}
 \usage{
 as_tidy_dagitty(x, ...)
 
 \method{as_tidy_dagitty}{dagitty}(x, seed = NULL, layout = "nicely", ...)
 
-\method{as_tidy_dagitty}{data.frame}(x, seed = NULL, layout = "nicely", ...)
+\method{as_tidy_dagitty}{data.frame}(
+  x,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL,
+  seed = NULL,
+  layout = "nicely",
+  saturate = FALSE,
+  ...
+)
+
+\method{as_tidy_dagitty}{list}(
+  x,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL,
+  seed = NULL,
+  layout = "time_ordered",
+  ...
+)
 }
 \arguments{
 \item{x}{An object to convert into a \code{tidy_dagitty}. Currently supports
@@ -29,20 +53,31 @@ a \code{tidy_dagitty} object
 }
 \description{
 An alternative API and specification to \code{\link[=tidy_dagitty]{tidy_dagitty()}}, \code{as_tidy_dagitty()}
-allows you to create \code{tidy_dagitty} objects from data frames. There is also a
-method for \code{dagitty} objects, which is a thin wrapper for \code{\link[=tidy_dagitty]{tidy_dagitty()}}.
-To create a DAG from a data frame, it must contain \code{name} and \code{to} columns,
-representing the nodes and any edges leading from the nodes. If there are
-\code{x}, \code{y}, \code{xend}, and \code{yend} columns, they will be used as coordinates.
-Otherwise, \code{layout} will be used. See \link{tidy_dagitty} for more information
-about layouts. Additionally, you can specify status (one of \code{exposure},
-\code{outcome}, or \code{latent}) by including a \code{status} column. Any other columns in
-the data set will also be joined to the \code{tidy_dagitty} data.
+allows you to create \code{tidy_dagitty} objects from data frames and lists. There
+is also a method for \code{dagitty} objects, which is a thin wrapper for
+\code{\link[=tidy_dagitty]{tidy_dagitty()}}. To create a DAG from a list, each element of the list
+should be a character vector, and the order of the elements should be the
+time order in which they appear in the DAG, e.g. element 1 occurs at time
+point 1. To create a DAG from a data frame, it must contain \code{name} and \code{to}
+columns, representing the nodes and any edges leading from the nodes. If
+there are \code{x}, \code{y}, \code{xend}, and \code{yend} columns, they will be used as
+coordinates. Otherwise, \code{layout} will be used. See \link{tidy_dagitty} for more
+information about layouts. Additionally, you can specify status (one of
+\code{exposure}, \code{outcome}, or \code{latent}) by including a \code{status} column. Any other
+columns in the data set will also be joined to the \code{tidy_dagitty} data.
 }
 \examples{
 
 data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) \%>\%
   as_tidy_dagitty()
+
+time_points <- list(c("a", "b", "c"), "d", c("e", "f", "g"), "z")
+
+time_points \%>\%
+  # create a saturated, time-ordered DAG
+  as_tidy_dagitty() \%>\%
+  # remove the edge from `c` to `f`
+  dag_prune("c" = "f")
 
 }
 \seealso{
