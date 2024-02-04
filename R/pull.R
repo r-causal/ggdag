@@ -85,7 +85,7 @@ prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
     stop("Columns `name` and `to` not found")
   }
 
-  if (layout == "time_ordered") {
+  if (is.null(coords) && layout == "time_ordered") {
     coords <- value %>%
       edges2df() %>%
       auto_time_order() %>%

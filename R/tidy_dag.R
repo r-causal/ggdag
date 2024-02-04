@@ -64,6 +64,12 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
   tidy_dag <- dag_edges %>%
     tidy_dag_edges_and_coords(coords_df)
 
+  coords <- tidy_dag %>%
+    dplyr::distinct(name, x, y) %>%
+    coords2list()
+
+  dagitty::coordinates(.dagitty) <- coords
+
   new_tidy_dagitty(tidy_dag, .dagitty)
 }
 
@@ -71,15 +77,18 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 #' Convert objects into `tidy_dagitty` objects
 #'
 #' An alternative API and specification to [tidy_dagitty()], `as_tidy_dagitty()`
-#' allows you to create `tidy_dagitty` objects from data frames. There is also a
-#' method for `dagitty` objects, which is a thin wrapper for [tidy_dagitty()].
-#' To create a DAG from a data frame, it must contain `name` and `to` columns,
-#' representing the nodes and any edges leading from the nodes. If there are
-#' `x`, `y`, `xend`, and `yend` columns, they will be used as coordinates.
-#' Otherwise, `layout` will be used. See [tidy_dagitty] for more information
-#' about layouts. Additionally, you can specify status (one of `exposure`,
-#' `outcome`, or `latent`) by including a `status` column. Any other columns in
-#' the data set will also be joined to the `tidy_dagitty` data.
+#' allows you to create `tidy_dagitty` objects from data frames and lists. There
+#' is also a method for `dagitty` objects, which is a thin wrapper for
+#' [tidy_dagitty()]. To create a DAG from a list, each element of the list
+#' should be a character vector, and the order of the elements should be the
+#' time order in which they appear in the DAG, e.g. element 1 occurs at time
+#' point 1. To create a DAG from a data frame, it must contain `name` and `to`
+#' columns, representing the nodes and any edges leading from the nodes. If
+#' there are `x`, `y`, `xend`, and `yend` columns, they will be used as
+#' coordinates. Otherwise, `layout` will be used. See [tidy_dagitty] for more
+#' information about layouts. Additionally, you can specify status (one of
+#' `exposure`, `outcome`, or `latent`) by including a `status` column. Any other
+#' columns in the data set will also be joined to the `tidy_dagitty` data.
 #'
 #' @param x An object to convert into a `tidy_dagitty`. Currently supports
 #'   `dagitty` and `data.frame` objects.
@@ -92,6 +101,14 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 #'
 #' data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
 #'   as_tidy_dagitty()
+#'
+#' time_points <- list(c("a", "b", "c"), "d", c("e", "f", "g"), "z")
+#'
+#' time_points %>%
+#'   # create a saturated, time-ordered DAG
+#'   as_tidy_dagitty() %>%
+#'   # remove the edge from `c` to `f`
+#'   dag_prune("c" = "f")
 #'
 #' @seealso [tidy_dagitty()], [pull_dag()]
 as_tidy_dagitty <- function(x, ...) {
@@ -106,14 +123,43 @@ as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
 
 #' @export
 #' @rdname as_tidy_dagitty
-as_tidy_dagitty.data.frame <- function(x, seed = NULL, layout = "nicely", ...) {
+as_tidy_dagitty.data.frame <- function(
+  x,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL,
+  seed = NULL,
+  layout = "nicely",
+  saturate = FALSE,
+  ...
+) {
   if (!is.null(seed)) set.seed(seed)
-  tidy_dag <- prep_dag_data(x, layout = layout, ...)
+
+  tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
   .dagitty <- compile_dag_from_df(x)
+
   if ("status" %in% names(tidy_dag)) {
     dagitty::exposures(.dagitty) <- return_status(tidy_dag, "exposure")
     dagitty::outcomes(.dagitty) <- return_status(tidy_dag, "outcome")
     dagitty::latents(.dagitty) <- return_status(tidy_dag, "latent")
+  }
+
+  if (!is.null(exposure)) {
+    dagitty::exposures(.dagitty) <- exposure
+  }
+
+  if (!is.null(outcome)) {
+    dagitty::outcomes(.dagitty) <- outcome
+  }
+
+  if (!is.null(latent)) {
+    dagitty::latents(.dagitty) <- latent
+  }
+
+  if (!is.null(labels)) {
+    label(.dagitty) <- labels
   }
 
   if ("adjusted" %in% names(tidy_dag)) {
@@ -128,7 +174,54 @@ as_tidy_dagitty.data.frame <- function(x, seed = NULL, layout = "nicely", ...) {
     select(name, x, y) %>%
     coords2list()
 
-  new_tidy_dagitty(tidy_dag, .dagitty)
+  .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
+
+  if (isTRUE(saturate)) {
+    .tdy_dagitty <- dag_saturate(.tdy_dagitty, use_existing_coords = TRUE)
+  }
+
+  .tdy_dagitty
+}
+
+#' @export
+#' @rdname as_tidy_dagitty
+as_tidy_dagitty.list <- function(
+  x,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL,
+  seed = NULL,
+  layout = "time_ordered",
+  ...
+) {
+  if (!is.null(seed)) set.seed(seed)
+
+  dag_edges <- purrr:::map(
+    seq_len(length(x) - 1),
+    saturate_edges,
+    time_points = x
+  ) %>%
+    dplyr::bind_rows()
+
+  dag_edges %>%
+    as_tidy_dagitty(
+      exposure = exposure,
+      outcome = outcome,
+      latent = latent,
+      labels = labels,
+      coords = coords,
+      seed = seed,
+      layout = layout,
+      ...
+    )
+}
+
+saturate_edges <- function(.x, time_points) {
+  current_elements <- time_points[[.x]]
+  future_elements <- unlist(time_points[(.x + 1):length(time_points)])
+  expand.grid(name = current_elements, to = future_elements)
 }
 
 new_tidy_dagitty <- function(tidy_dag, .dagitty) {
