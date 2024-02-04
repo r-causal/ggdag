@@ -45,6 +45,7 @@ graphviz
 grey
 halfcircle
 hjust
+independencies
 lineheight
 linetype
 mismeasure
@@ -57,9 +58,11 @@ reversable
 roxygen
 tbl
 tdy
+tetrads
 tibble
 tidygraph
 tidyverse
+tol
 unassociated
 unconfounded
 undirected

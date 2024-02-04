@@ -2,7 +2,7 @@
 #'
 #' `query_conditional_independence()` queries conditional independencies implied
 #' by a given DAG. These serve as potential robustness checks for your DAG.
-#' `test_conditional_independence()` runs the tests of indpendence implied by
+#' `test_conditional_independence()` runs the tests of independence implied by
 #' the DAG on a given dataset. `ggdag_conditional_independence()` plots the
 #' results as a forest plot.
 #'
