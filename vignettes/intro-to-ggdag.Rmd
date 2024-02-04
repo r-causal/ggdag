@@ -18,9 +18,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   collapse = TRUE,
-  comment = "#>",
-  # TODO: address in sep PR
-  eval = FALSE
+  comment = "#>"
 )
 set.seed(2939)
 ```
