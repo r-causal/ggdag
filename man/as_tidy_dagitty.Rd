@@ -47,6 +47,24 @@ as_tidy_dagitty(x, ...)
 \item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
 for details. Alternatively, \code{"time_ordered"} will use
 \code{time_ordered_coords()} to algorithmically sort the graph by time.}
+
+\item{exposure}{a character vector for the exposure (must be a variable name
+in the DAG)}
+
+\item{outcome}{a character vector for the outcome (must be a variable name in
+the DAG)}
+
+\item{latent}{a character vector for any latent variables (must be a variable
+name in the DAG)}
+
+\item{labels}{a named character vector, labels for variables in the DAG}
+
+\item{coords}{coordinates for the DAG nodes. Can be a named list or a
+\code{data.frame} with columns x, y, and name}
+
+\item{saturate}{Logical. Saturate the DAG such that there is an edge going
+from every point in the future from a given node? Setting this to \code{TRUE}
+will potentially lead to more edges than present in \code{x}.}
 }
 \value{
 a \code{tidy_dagitty} object
@@ -77,7 +95,7 @@ time_points \%>\%
   # create a saturated, time-ordered DAG
   as_tidy_dagitty() \%>\%
   # remove the edge from `c` to `f`
-  dag_prune("c" = "f")
+  dag_prune(c("c" = "f"))
 
 }
 \seealso{

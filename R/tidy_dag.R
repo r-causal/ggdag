@@ -6,6 +6,11 @@
 #'   for details. Alternatively, `"time_ordered"` will use
 #'   `time_ordered_coords()` to algorithmically sort the graph by time.
 #' @param ... optional arguments passed to `ggraph::create_layout()`
+#' @param use_existing_coords (Advanced). Logical. Use the coordinates produced
+#'   by `dagitty::coordinates(.dagitty)`? If the coordinates are empty,
+#'   `tidy_dagitty()` will generate a layout. Generally, setting this to `FALSE`
+#'   is thus only useful when there is a difference in the variables coordinates
+#'   and the variables in the DAG, as sometimes happens when recompiling a DAG.
 #'
 #' @return a `tidy_dagitty` object
 #' @export
@@ -31,7 +36,7 @@
 #'   geom_dag_text() +
 #'   geom_dag_edges() +
 #'   theme_dag()
-tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
+tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ..., use_existing_coords = TRUE) {
   if (!is.null(seed)) set.seed(seed)
 
   if (dagitty::graphType(.dagitty) != "dag") {
@@ -57,7 +62,7 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     generate_layout(
       layout = layout,
       vertices = names(.dagitty),
-      coords = dagitty::coordinates(.dagitty),
+      coords = if (isTRUE(use_existing_coords)) dagitty::coordinates(.dagitty),
       ...
     )
 
@@ -68,7 +73,9 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
     dplyr::distinct(name, x, y) %>%
     coords2list()
 
+  .labels <- label(.dagitty)
   dagitty::coordinates(.dagitty) <- coords
+  label(.dagitty) <- .labels
 
   new_tidy_dagitty(tidy_dag, .dagitty)
 }
@@ -93,6 +100,10 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 #' @param x An object to convert into a `tidy_dagitty`. Currently supports
 #'   `dagitty` and `data.frame` objects.
 #' @inheritParams tidy_dagitty
+#' @inheritParams dagify
+#' @param saturate Logical. Saturate the DAG such that there is an edge going
+#'   from every point in the future from a given node? Setting this to `TRUE`
+#'   will potentially lead to more edges than present in `x`.
 #'
 #' @return a `tidy_dagitty` object
 #' @export
@@ -108,7 +119,7 @@ tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ...) {
 #'   # create a saturated, time-ordered DAG
 #'   as_tidy_dagitty() %>%
 #'   # remove the edge from `c` to `f`
-#'   dag_prune("c" = "f")
+#'   dag_prune(c("c" = "f"))
 #'
 #' @seealso [tidy_dagitty()], [pull_dag()]
 as_tidy_dagitty <- function(x, ...) {
