@@ -1,6 +1,6 @@
 # ggdag (development version)
 
-* Introduced new functions `query_conditional_independence()`, `test_conditional_independence()`, and `ggdag_conditional_independence()` for detecting, testing, and visualzing implied conditional indpendencies in a given DAG and dataset (#139)
+* Introduced new functions `query_conditional_independence()`, `test_conditional_independence()`, and `ggdag_conditional_independence()` for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (#139)
 * Introduced new functions `aes_dag()` and `geom_dag()` to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (#121)
 * Added new function `geom_label_repel2()` for more opinionated repelled labels that often look better on DAGs (#132)
 
