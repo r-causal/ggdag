@@ -198,7 +198,7 @@ as_tidy_dagitty.list <- function(
 ) {
   if (!is.null(seed)) set.seed(seed)
 
-  dag_edges <- purrr:::map(
+  dag_edges <- purrr::map(
     seq_len(length(x) - 1),
     saturate_edges,
     time_points = x
