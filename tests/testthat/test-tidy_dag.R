@@ -93,6 +93,26 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
   expect_identical(dagitty::adjustedNodes(status_dag), "c")
 })
 
+test_that("list is correctly converted to a saturated, time-ordered DAG", {
+  node_groups <- list(c("x1", "x2"), c("y1", "y2"), "z")
+  dag <- as_tidy_dagitty(node_groups)
+  expect_s3_class(dag, "tidy_dagitty")
+  expect_equal(nrow(pull_dag_data(dag)), 9)
+  coords_df <- pull_dag_data(dag) |>
+    dplyr::distinct(name, .keep_all = TRUE)
+  pull_coords <- function(.n) {
+    unname(dplyr::filter(coords_df, name == .n)$x)
+  }
+  expect_equal(pull_coords("x1"), 1)
+  expect_equal(pull_coords("x2"), 1)
+  expect_equal(pull_coords("y1"), 2)
+  expect_equal(pull_coords("y2"), 2)
+  expect_equal(pull_coords("z"), 3)
+  p1 <- ggdag(dag)
+  expect_doppelganger("List creates saturated, ordered DAG", p1)
+})
+
+
 test_that("Forbidden layouts error", {
   expect_error(
     tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendogram"),
