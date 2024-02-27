@@ -12,7 +12,7 @@ test_that("pull_dag and pull_dag_data return the correct objects", {
   expect_equal(pull_dag(tidy_dag), dag)
 
   # Test that pull_dag_data returns the correct data frame
-  expect_equal(pull_dag_data(dag, seed = 1234), pull_dag_data(tidy_dag))
+  expect_equal_dag(pull_dag_data(dag, seed = 1234), pull_dag_data(tidy_dag))
 
   # Test that pull_dag_data returns the correct data frame from a tidy_dagitty object
   expect_equal(pull_dag_data(tidy_dag), pull_dag_data(tidy_dag))

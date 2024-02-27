@@ -55,7 +55,8 @@ test_that("`as_tidy_dagitty()` returns correct objects", {
   .dag <- dagify(y ~ x + z, x ~ z)
   v1_dag <- tidy_dagitty(.dag, seed = 1234)
   v2_dag <- as_tidy_dagitty(.dag, seed = 1234)
-  expect_equal(v1_dag, v2_dag)
+  expect_equal(v1_dag$dag, v2_dag$dag)
+  expect_equal_dag(v1_dag$data, v2_dag$data)
 })
 
 test_that("`as_tidy_dagitty()` works with other configurations", {
