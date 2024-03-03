@@ -1,11 +1,11 @@
-pandoc: 2.19.2
+pandoc: 3.1.11
 pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   bias-structures: bias-structures.html
   intro-to-dags: intro-to-dags.html
   intro-to-ggdag: intro-to-ggdag.html
-last_built: 2024-02-04T20:54Z
+last_built: 2024-03-03T19:18Z
 urls:
   reference: https://r-causal.github.io/ggdag/reference
   article: https://r-causal.github.io/ggdag/articles
