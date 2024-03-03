@@ -278,22 +278,23 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
 
 
   if (no_existing_coords) {
-    ggraph_layout <- suppressMessages(ggraph::create_layout(
+    ggraph_layout <- ggraph_create_layout(
       ig,
       layout = layout,
       ...
-    ))
+    )
+
   } else {
     nodes <- names(igraph::V(ig))
     coords$x <- coords$x[nodes]
     coords$y <- coords$y[nodes]
-    ggraph_layout <- suppressMessages(ggraph::create_layout(
+    ggraph_layout <- ggraph_create_layout(
       ig,
       layout = "manual",
       x = coords$x,
       y = coords$y,
       ...
-    ))
+    )
   }
 
   ggraph_layout %>%
