@@ -75,8 +75,6 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
-    .tdy_dag <- .tdy_dag %>%
-      dplyr::mutate(collider_line = FALSE, adjusted = "unadjusted")
     controlling_for <- c()
   }
 
