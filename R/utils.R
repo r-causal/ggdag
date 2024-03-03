@@ -201,3 +201,11 @@ check_arg_stylized <- function(stylized, use_stylized, what = "geom_dag") {
 
   use_stylized
 }
+
+ggraph_create_layout <- function(...) {
+  .df <- suppressMessages(ggraph::create_layout(...))
+  # ggdag doesn't need the igraph object
+  attr(.df, "graph") <- NULL
+
+  .df
+}
