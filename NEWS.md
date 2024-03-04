@@ -1,3 +1,6 @@
+# ggdag (development version)
+* Patch tests for false positives in new ggraph version
+
 # ggdag 0.2.11
 
 * Internal update to address upcoming changes in ggplot2 (#125, thanks @teunbrand)
