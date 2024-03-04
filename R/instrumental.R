@@ -40,11 +40,6 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   if (purrr::is_empty(i_vars)) {
     .dag <- dplyr::mutate(
       .dag,
-      adjusted = factor(
-        "unadjusted",
-        levels = c("unadjusted", "adjusted"),
-        exclude = NA
-      ),
       instrumental = NA
     )
     return(.dag)
@@ -58,14 +53,6 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
     )
     if (!is.null(.z)) {
       .dag <- .dag %>% control_for(.z, activate_colliders = FALSE)
-    } else {
-      .dag <- .dag %>% dplyr::mutate(
-        adjusted = factor(
-          "unadjusted",
-          levels = c("unadjusted", "adjusted"),
-          exclude = NA
-        )
-      )
     }
     .dag <- .dag %>% dplyr::mutate(
       instrumental = ifelse(name == .i, "instrumental", NA)
@@ -106,17 +93,21 @@ ggdag_instrumental <- function(
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
+  has_instrumental <- !all(is.na((pull_dag_data(.tdy_dag)$instrumental)))
+  has_adjusted <- "adjusted" %in% names(pull_dag_data(.tdy_dag))
+  mapping <- aes_dag()
+  if (has_adjusted) {
+    mapping$shape <- substitute(adjusted)
+  }
 
-  if (all(is.na((pull_dag_data(.tdy_dag)$instrumental)))) {
-    mapping <- aes_dag(shape = adjusted)
-  } else {
-    mapping <- aes_dag(shape = adjusted, color = instrumental)
+  if (has_instrumental) {
+    mapping$colour <- substitute(instrumental)
   }
 
   p <- .tdy_dag %>%
-    ggplot2::ggplot(mapping) +
-    scale_adjusted() +
-    breaks("instrumental")
+    ggplot2::ggplot(mapping)
+  if (has_adjusted) p <- p + scale_adjusted()
+  if (has_instrumental) p <- p + breaks("instrumental")
 
   p <- p +
     geom_dag(
@@ -141,10 +132,10 @@ ggdag_instrumental <- function(
       stylized = stylized
     )
 
-  if (all(is.na(pull_dag_data(.tdy_dag)$instrumental))) {
-    p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
-  } else {
+  if (has_instrumental) {
     p <- p + ggplot2::facet_wrap(~instrumental_name)
+  } else {
+    p <- p + ggplot2::facet_wrap(~"{No instrumental variables present}")
   }
   p
 }
