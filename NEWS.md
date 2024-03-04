@@ -1,4 +1,4 @@
-# ggdag (development version)
+# ggdag 0.2.12
 * Patch tests for false positives in new ggraph version
 
 # ggdag 0.2.11
