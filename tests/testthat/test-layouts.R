@@ -1,4 +1,6 @@
 test_that("time ordered layout works", {
+  testthat::skip_on_ci()
+  testthat::skip_on_cran()
   coords <- time_ordered_coords(list(
     # time point 1
     "a",

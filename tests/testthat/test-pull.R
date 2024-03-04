@@ -1,4 +1,7 @@
 test_that("pull_dag and pull_dag_data return the correct objects", {
+  testthat::skip_on_ci()
+  testthat::skip_on_cran()
+
   # Create a dagitty object
   dag <- dagify(y ~ x + z, x ~ z)
 

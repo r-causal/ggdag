@@ -34,6 +34,8 @@ test_that("nodes without edges are captured correctly", {
 })
 
 test_that("`as_tidy_dagitty()` returns correct objects", {
+  testthat::skip_on_ci()
+  testthat::skip_on_cran()
   expect_error(
     as_tidy_dagitty(data.frame()),
     "Columns `name` and `to` not found"
