@@ -75,8 +75,6 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   } else {
-    .tdy_dag <- .tdy_dag %>%
-      dplyr::mutate(collider_line = FALSE, adjusted = "unadjusted")
     controlling_for <- c()
   }
 
@@ -169,15 +167,7 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
-  } else {
-    .tdy_dag <- dplyr::mutate(
-      .tdy_dag,
-      collider_line = FALSE,
-      adjusted = "unadjusted"
-    )
-    controlling_for <- c()
   }
-
 
   .dseparated <- dagitty::dseparated(pull_dag(.tdy_dag), from, to, controlling_for)
   .from <- from
@@ -232,11 +222,24 @@ ggdag_drelationship <- function(
   stylized = deprecated(),
   collider_lines = TRUE
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag) %>%
-    node_drelationship(from = from, to = to, controlling_for = controlling_for, ...) %>%
-    ggplot2::ggplot(aes_dag(shape = adjusted, col = d_relationship))
+  df <- if_not_tidy_daggity(.tdy_dag) %>%
+    node_drelationship(
+      from = from,
+      to = to,
+      controlling_for = controlling_for,
+      ...
+    )
 
-  if (collider_lines) p <- p + geom_dag_collider_edges()
+  has_adjusted <- "adjusted" %in% names(pull_dag_data(df))
+  if (has_adjusted) {
+    mapping <- aes_dag(shape = adjusted, color = d_relationship)
+  } else {
+    mapping <- aes_dag(color = d_relationship)
+  }
+
+    p <- ggplot2::ggplot(df, mapping)
+
+  if (has_adjusted && collider_lines) p <- p + geom_dag_collider_edges()
 
   p <- p + geom_dag(
     size = size,

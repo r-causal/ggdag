@@ -137,17 +137,27 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 scale_adjusted <- function(include_alpha = FALSE) {
   list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
-    ggplot2::scale_shape_manual(drop = FALSE, values = c("adjusted" = 15, "unadjusted" = 19), limits = c("adjusted", "unadjusted")),
+    ggplot2::scale_shape_manual(
+      values = c("adjusted" = 15, "unadjusted" = 19),
+      limits = c("adjusted", "unadjusted")
+    ),
     ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
-    if (include_alpha) ggplot2::scale_alpha_manual(drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted")),
-    if (include_alpha) ggraph::scale_edge_alpha_manual(name = NULL, drop = FALSE, values = c("adjusted" = .30, "unadjusted" = 1), limits = c("adjusted", "unadjusted"))
+    if (include_alpha) ggplot2::scale_alpha_manual(
+      values = c("adjusted" = .30, "unadjusted" = 1),
+      limits = c("adjusted", "unadjusted")
+    ),
+    if (include_alpha) ggraph::scale_edge_alpha_manual(
+      name = NULL,
+      values = c("adjusted" = .30, "unadjusted" = 1),
+      limits = c("adjusted", "unadjusted")
+    )
   )
 }
 
-breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver()) {
+breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver(), drop = TRUE) {
   list(
-    ggplot2::scale_color_discrete(name = name, drop = FALSE, breaks = breaks),
-    ggplot2::scale_fill_discrete(name = name, drop = FALSE, breaks = breaks)
+    ggplot2::scale_color_discrete(name = name, breaks = breaks, drop = drop),
+    ggplot2::scale_fill_discrete(name = name, breaks = breaks, drop = drop)
   )
 }
 

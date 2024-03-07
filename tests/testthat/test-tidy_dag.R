@@ -137,16 +137,20 @@ test_that("node functions produce correct columns", {
   expect_function_produces_name(node_collider(tidy_dag), "colliders")
   expect_function_produces_name(
     node_dconnected(tidy_dag, "x", "y"),
+    "d_relationship"
+  )
+  expect_function_produces_name(
+    node_dconnected(tidy_dag, "x", "y", controlling_for = "z"),
     c("adjusted", "d_relationship")
   )
   expect_function_produces_name(node_descendants(tidy_dag, "z"), "descendant")
   expect_function_produces_name(
     node_drelationship(tidy_dag, "x", "y"),
-    c("adjusted", "d_relationship")
+    "d_relationship"
   )
   expect_function_produces_name(
     node_dseparated(tidy_dag, "x", "y"),
-    c("adjusted", "d_relationship")
+    "d_relationship"
   )
   expect_function_produces_name(node_equivalent_class(tidy_dag), "reversable")
   expect_function_produces_name(node_equivalent_dags(tidy_dag), "dag")
@@ -157,7 +161,7 @@ test_that("node functions produce correct columns", {
       exposure = "x",
       outcome = "y"
     ),
-    c("adjusted", "instrumental")
+    "instrumental"
   )
   expect_function_produces_name(node_parents(tidy_dag, "z"), "parent")
   expect_function_produces_name(node_status(tidy_dag), "status")
