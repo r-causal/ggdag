@@ -154,10 +154,10 @@ scale_adjusted <- function(include_alpha = FALSE) {
   )
 }
 
-breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver()) {
+breaks <- function(breaks = ggplot2::waiver(), name = ggplot2::waiver(), drop = TRUE) {
   list(
-    ggplot2::scale_color_discrete(name = name, breaks = breaks),
-    ggplot2::scale_fill_discrete(name = name, breaks = breaks)
+    ggplot2::scale_color_discrete(name = name, breaks = breaks, drop = drop),
+    ggplot2::scale_fill_discrete(name = name, breaks = breaks, drop = drop)
   )
 }
 

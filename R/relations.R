@@ -231,7 +231,7 @@ ggdag_children <- function(
     node_children(.var) %>%
     ggplot2::ggplot(aes_dag(color = children)) +
     scale_adjusted() +
-    breaks(c("parent", "child"))
+    breaks(c("parent", "child"), drop = FALSE)
 
   p <- p + geom_dag(
     size = size,
@@ -288,7 +288,7 @@ ggdag_parents <- function(
     node_parents(.var) %>%
     ggplot2::ggplot(aes_dag(color = parent)) +
     scale_adjusted() +
-    breaks(c("parent", "child"))
+    breaks(c("parent", "child"), drop = FALSE)
 
   p <- p + geom_dag(
     size = size,
@@ -344,7 +344,7 @@ ggdag_ancestors <- function(
     node_ancestors(.var) %>%
     ggplot2::ggplot(aes_dag(color = ancestor)) +
     scale_adjusted() +
-    breaks(c("ancestor", "descendant"))
+    breaks(c("ancestor", "descendant"), drop = FALSE)
 
   p <- p + geom_dag(
     size = size,
@@ -401,7 +401,7 @@ ggdag_descendants <- function(
     node_descendants(.var) %>%
     ggplot2::ggplot(aes_dag(color = descendant)) +
     scale_adjusted() +
-    breaks(c("ancestor", "descendant"))
+    breaks(c("ancestor", "descendant"), drop = FALSE)
 
   p <- p + geom_dag(
     size = size,
