@@ -33,9 +33,9 @@
 <polygon points='102.94,111.63 98.52,109.32 98.74,114.30 ' style='stroke-width: 1.28; stroke-linecap: butt; fill: #000000;' />
 <polyline points='109.01,89.06 110.71,88.98 115.57,88.74 120.44,88.50 125.31,88.25 130.18,88.01 135.05,87.77 139.92,87.53 144.78,87.29 149.65,87.05 154.52,86.81 159.39,86.57 164.26,86.33 169.12,86.08 173.99,85.84 178.86,85.60 183.73,85.36 188.60,85.12 193.47,84.88 198.33,84.64 203.20,84.40 208.07,84.16 212.94,83.91 217.81,83.67 222.68,83.43 227.54,83.19 232.41,82.95 237.28,82.71 242.15,82.47 247.02,82.23 251.89,81.98 256.75,81.74 261.62,81.50 266.49,81.26 271.36,81.02 276.23,80.78 281.09,80.54 285.96,80.30 290.83,80.06 295.70,79.81 300.57,79.57 305.44,79.33 310.30,79.09 315.17,78.85 320.04,78.61 324.91,78.37 329.78,78.13 334.65,77.89 339.51,77.64 344.38,77.40 349.25,77.16 354.12,76.92 358.99,76.68 363.86,76.44 368.72,76.20 373.59,75.96 378.46,75.72 383.33,75.47 388.20,75.23 393.06,74.99 397.93,74.75 402.80,74.51 407.67,74.27 412.54,74.03 417.41,73.79 422.27,73.55 427.14,73.30 432.01,73.06 436.88,72.82 441.75,72.58 446.62,72.34 451.48,72.10 456.35,71.86 461.22,71.62 466.09,71.37 470.96,71.13 475.82,70.89 480.69,70.65 485.56,70.41 490.43,70.17 495.30,69.93 500.17,69.69 505.03,69.45 509.90,69.20 514.77,68.96 519.64,68.72 524.51,68.48 529.38,68.24 534.24,68.00 539.11,67.76 543.98,67.52 545.67,67.43 ' style='stroke-width: 1.28; stroke-linecap: butt;' />
 <polygon points='541.49,70.13 545.67,67.43 541.24,65.16 ' style='stroke-width: 1.28; stroke-linecap: butt; fill: #000000;' />
-<circle cx='568.32' cy='66.31' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
+<circle cx='568.32' cy='66.31' r='17.43' style='stroke-width: 0.71; stroke: #619CFF; fill: #619CFF;' />
 <circle cx='347.73' cy='501.59' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
-<circle cx='86.36' cy='90.18' r='17.43' style='stroke-width: 0.71; stroke: #619CFF; fill: #619CFF;' />
+<circle cx='86.36' cy='90.18' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
 <text x='568.32' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='2.45px' lengthAdjust='spacingAndGlyphs'>l</text>
 <text x='347.73' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='86.36' y='93.98' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
@@ -67,9 +67,9 @@
 <rect x='627.48' y='223.58' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <circle cx='650.15' cy='246.26' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <rect x='627.48' y='268.94' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='650.15' cy='291.61' r='17.43' style='stroke-width: 0.71; stroke: #619CFF; fill: #619CFF;' />
+<circle cx='650.15' cy='291.61' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
 <rect x='627.48' y='314.29' width='45.35' height='45.35' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='650.15' cy='336.97' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
+<circle cx='650.15' cy='336.97' r='17.43' style='stroke-width: 0.71; stroke: #619CFF; fill: #619CFF;' />
 <text x='678.31' y='249.29' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>exposure</text>
 <text x='678.31' y='294.64' style='font-size: 8.80px; font-family: sans;' textLength='33.76px' lengthAdjust='spacingAndGlyphs'>outcome</text>
 <text x='678.31' y='340.00' style='font-size: 8.80px; font-family: sans;' textLength='21.53px' lengthAdjust='spacingAndGlyphs'>latent</text>

@@ -161,7 +161,7 @@ test_that("node functions produce correct columns", {
       exposure = "x",
       outcome = "y"
     ),
-    c("adjusted", "instrumental")
+    "instrumental"
   )
   expect_function_produces_name(node_parents(tidy_dag, "z"), "parent")
   expect_function_produces_name(node_status(tidy_dag), "status")
