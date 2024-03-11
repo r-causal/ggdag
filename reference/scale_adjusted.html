@@ -24,7 +24,7 @@ favor of scale_adjusted()."><meta property="og:image" content="https://r-causal.
     
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.11.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.12</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,18 +86,14 @@ favor of <code>scale_adjusted()</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">scale_adjusted</span><span class="op">(</span>include_alpha <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">scale_adjusted</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">scale_dag</span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/waiver.html" class="external-link">waiver</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
-    <dl><dt>include_alpha</dt>
-<dd><p>Logical. Include alpha-related scales?</p></dd>
-
-
-<dt>breaks</dt>
+    <dl><dt>breaks</dt>
 <dd><p>One of:</p><ul><li><p>NULL for no breaks</p></li>
 <li><p>waiver() for the default breaks computed by the transformation object</p></li>
 <li><p>A numeric vector of positions</p></li>

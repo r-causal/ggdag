@@ -16,7 +16,7 @@ are not currently supported in ggdag."><meta property="og:image" content="https:
     
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.11.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.12</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,15 +85,10 @@ are not currently supported in <code>ggdag</code>.</p>
 <span>  label_size <span class="op">=</span> <span class="va">text_size</span>,</span>
 <span>  text_col <span class="op">=</span> <span class="st">"white"</span>,</span>
 <span>  label_col <span class="op">=</span> <span class="va">text_col</span>,</span>
-<span>  use_edges <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  use_nodes <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  use_labels <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  stylized <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
+<span>  node <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_labels <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -109,67 +104,47 @@ are not currently supported in <code>ggdag</code>.</p>
 
 
 <dt>edge_type</dt>
-<dd><p>The type of edge, one of "link_arc", "link", "arc",
-"diagonal".</p></dd>
+<dd><p>a character vector, the edge geom to use. One of:
+"link_arc", which accounts for directed and bidirected edges, "link",
+"arc", or "diagonal"</p></dd>
 
 
 <dt>node_size</dt>
-<dd><p>The size of the nodes.</p></dd>
+<dd><p>size of DAG node</p></dd>
 
 
 <dt>text_size</dt>
-<dd><p>The size of the text.</p></dd>
+<dd><p>size of DAG text</p></dd>
 
 
 <dt>label_size</dt>
-<dd><p>The size of the labels.</p></dd>
+<dd><p>size of label text</p></dd>
 
 
 <dt>text_col</dt>
-<dd><p>The color of the text.</p></dd>
+<dd><p>color of DAG text</p></dd>
 
 
 <dt>label_col</dt>
-<dd><p>The color of the labels.</p></dd>
-
-
-<dt>use_edges</dt>
-<dd><p>A logical value. Include a <code>geom_dag_edges*()</code> function? If
-<code>TRUE</code>, which is determined by <code>edge_type</code>.</p></dd>
-
-
-<dt>use_nodes</dt>
-<dd><p>A logical value. Include <code><a href="node_point.html">geom_dag_point()</a></code>?</p></dd>
-
-
-<dt>use_stylized</dt>
-<dd><p>A logical value. Include <code><a href="node_point.html">geom_dag_node()</a></code>?</p></dd>
-
-
-<dt>use_text</dt>
-<dd><p>A logical value. Include <code><a href="geom_dag_text.html">geom_dag_text()</a></code>?</p></dd>
-
-
-<dt>use_labels</dt>
-<dd><p>A logical value. Include <code><a href="repel.html">geom_dag_label_repel()</a></code>?</p></dd>
-
-
-<dt>label</dt>
-<dd><p>The bare name of a column to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
-If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p></dd>
-
-
-<dt>text</dt>
-<dd><p>The bare name of a column to use for <code><a href="geom_dag_text.html">geom_dag_text()</a></code>. If
-<code>use_text = TRUE</code>, the default is to use <code>name</code>.</p></dd>
+<dd><p>color of label text</p></dd>
 
 
 <dt>node</dt>
-<dd><p>Deprecated.</p></dd>
+<dd><p>logical. Should nodes be included in the DAG?</p></dd>
 
 
 <dt>stylized</dt>
-<dd><p>Deprecated.</p></dd>
+<dd><p>logical. Should DAG nodes be stylized? If so, use
+<code>geom_dag_nodes</code> and if not use <code>geom_dag_point</code></p></dd>
+
+
+<dt>text</dt>
+<dd><p>logical. Should text be included in the DAG?</p></dd>
+
+
+<dt>use_labels</dt>
+<dd><p>a string. Variable to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
+Default is <code>NULL</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

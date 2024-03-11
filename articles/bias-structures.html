@@ -33,7 +33,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.11.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.12</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,7 @@
                         <h4 data-toc-skip class="author">Malcolm
 Barrett</h4>
             
-            <h4 data-toc-skip class="date">2024-03-07</h4>
+            <h4 data-toc-skip class="date">2024-03-11</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/HEAD/vignettes/bias-structures.Rmd" class="external-link"><code>vignettes/bias-structures.Rmd</code></a></small>
       <div class="d-none name"><code>bias-structures.Rmd</code></div>
@@ -139,17 +139,14 @@ Let’s say that we had a psychometric tool that accurately measures
 addictive behavior, so we can control for it. Now our DAG looks like
 this:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">coffee_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
-<span>  <span class="va">cancer</span> <span class="op">~</span> <span class="va">smoking</span>,</span>
+<code class="sourceCode R"><span><span class="va">coffee_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">cancer</span> <span class="op">~</span> <span class="va">smoking</span>,</span>
 <span>  <span class="va">smoking</span> <span class="op">~</span> <span class="va">addictive</span>,</span>
 <span>  <span class="va">coffee</span> <span class="op">~</span> <span class="va">addictive</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="st">"coffee"</span>,</span>
 <span>  outcome <span class="op">=</span> <span class="st">"cancer"</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>    <span class="st">"coffee"</span> <span class="op">=</span> <span class="st">"Coffee"</span>,</span>
-<span>    <span class="st">"cancer"</span> <span class="op">=</span> <span class="st">"Lung Cancer"</span>,</span>
-<span>    <span class="st">"smoking"</span> <span class="op">=</span> <span class="st">"Smoking"</span>,</span>
-<span>    <span class="st">"addictive"</span> <span class="op">=</span> <span class="st">"Addictive \nBehavior"</span></span>
+<span>    <span class="st">"coffee"</span> <span class="op">=</span> <span class="st">"Coffee"</span>, <span class="st">"cancer"</span> <span class="op">=</span> <span class="st">"Lung Cancer"</span>,</span>
+<span>    <span class="st">"smoking"</span> <span class="op">=</span> <span class="st">"Smoking"</span>, <span class="st">"addictive"</span> <span class="op">=</span> <span class="st">"Addictive \nBehavior"</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span>layout <span class="op">=</span> <span class="st">"tree"</span><span class="op">)</span></span>
@@ -200,11 +197,8 @@ income and to participant’s diabetes status via genetic risk, so it
 looks like this:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">m_bias</a></span><span class="op">(</span></span>
-<span>  x <span class="op">=</span> <span class="st">"Education"</span>,</span>
-<span>  y <span class="op">=</span> <span class="st">"Diabetes"</span>,</span>
-<span>  a <span class="op">=</span> <span class="st">"Income during Childhood"</span>,</span>
-<span>  b <span class="op">=</span> <span class="st">"Genetic Risk \nfor Diabetes"</span>,</span>
-<span>  m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
+<span>  x <span class="op">=</span> <span class="st">"Education"</span>, y <span class="op">=</span> <span class="st">"Diabetes"</span>, a <span class="op">=</span> <span class="st">"Income during Childhood"</span>,</span>
+<span>  b <span class="op">=</span> <span class="st">"Genetic Risk \nfor Diabetes"</span>, m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
 <span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="../reference/ggdag.html">ggdag</a></span><span class="op">(</span>use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-5-1.png" width="2240" style="display: block; margin: auto;"></p>
@@ -219,11 +213,8 @@ genetic risk and childhood income, thus opening a back-door path from
 education to diabetes status:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">m_bias</a></span><span class="op">(</span></span>
-<span>  x <span class="op">=</span> <span class="st">"Education"</span>,</span>
-<span>  y <span class="op">=</span> <span class="st">"Diabetes"</span>,</span>
-<span>  a <span class="op">=</span> <span class="st">"Income during \nChildhood"</span>,</span>
-<span>  b <span class="op">=</span> <span class="st">"Genetic Risk \nfor Diabetes"</span>,</span>
-<span>  m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
+<span>  x <span class="op">=</span> <span class="st">"Education"</span>, y <span class="op">=</span> <span class="st">"Diabetes"</span>, a <span class="op">=</span> <span class="st">"Income during \nChildhood"</span>,</span>
+<span>  b <span class="op">=</span> <span class="st">"Genetic Risk \nfor Diabetes"</span>, m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
 <span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span>controlling_for <span class="op">=</span> <span class="st">"m"</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-6-1.png" width="2400" style="display: block; margin: auto;"></p>
@@ -252,8 +243,7 @@ in <code>ggdag</code>, for clarity):</p>
 <span>  <span class="fu"><a href="../reference/coordinates.html">coords2df</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">coords</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"readiness"</span>, <span class="st">"pain"</span>, <span class="st">"surgery"</span>, <span class="st">"ready_tool"</span>, <span class="st">"pain_change"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">surgical_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
-<span>  <span class="va">ready_tool</span> <span class="op">~</span> <span class="va">readiness</span>,</span>
+<span><span class="va">surgical_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">ready_tool</span> <span class="op">~</span> <span class="va">readiness</span>,</span>
 <span>  <span class="va">surgery</span> <span class="op">~</span> <span class="va">readiness</span> <span class="op">+</span> <span class="va">pain</span>,</span>
 <span>  <span class="va">pain_change</span> <span class="op">~</span> <span class="va">ready_tool</span> <span class="op">+</span> <span class="va">pain</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="st">"ready_tool"</span>,</span>
@@ -324,31 +314,16 @@ life.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># set coordinates</span></span>
 <span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tribble.html" class="external-link">tribble</a></span><span class="op">(</span></span>
-<span>  <span class="op">~</span><span class="va">name</span>,</span>
-<span>  <span class="op">~</span><span class="va">x</span>,</span>
-<span>  <span class="op">~</span><span class="va">y</span>,</span>
-<span>  <span class="st">"bladder_cancer"</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="fl">0</span>,</span>
-<span>  <span class="st">"vitamins"</span>,</span>
-<span>  <span class="fl">0</span>,</span>
-<span>  <span class="fl">0</span>,</span>
-<span>  <span class="st">"diagnosed_bc"</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="st">"recalled_vits"</span>,</span>
-<span>  <span class="fl">0</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="st">"bc_error"</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="st">"vits_error"</span>,</span>
-<span>  <span class="fl">0</span>,</span>
-<span>  <span class="fl">2</span>,</span>
+<span>  <span class="op">~</span><span class="va">name</span>, <span class="op">~</span><span class="va">x</span>, <span class="op">~</span><span class="va">y</span>,</span>
+<span>  <span class="st">"bladder_cancer"</span>, <span class="fl">1</span>, <span class="fl">0</span>,</span>
+<span>  <span class="st">"vitamins"</span>, <span class="fl">0</span>, <span class="fl">0</span>,</span>
+<span>  <span class="st">"diagnosed_bc"</span>, <span class="fl">1</span>, <span class="fl">1</span>,</span>
+<span>  <span class="st">"recalled_vits"</span>, <span class="fl">0</span>, <span class="fl">1</span>,</span>
+<span>  <span class="st">"bc_error"</span>, <span class="fl">1</span>, <span class="fl">2</span>,</span>
+<span>  <span class="st">"vits_error"</span>, <span class="fl">0</span>, <span class="fl">2</span>,</span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">bladder_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
-<span>  <span class="va">diagnosed_bc</span> <span class="op">~</span> <span class="va">bc_error</span> <span class="op">+</span> <span class="va">bladder_cancer</span>,</span>
+<span><span class="va">bladder_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">diagnosed_bc</span> <span class="op">~</span> <span class="va">bc_error</span> <span class="op">+</span> <span class="va">bladder_cancer</span>,</span>
 <span>  <span class="va">recalled_vits</span> <span class="op">~</span> <span class="va">vitamins</span> <span class="op">+</span> <span class="va">vits_error</span>,</span>
 <span>  <span class="va">vits_error</span> <span class="op">~</span> <span class="va">bladder_cancer</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
@@ -384,34 +359,17 @@ bias via measurement error:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># set coordinates</span></span>
 <span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tribble.html" class="external-link">tribble</a></span><span class="op">(</span></span>
-<span>  <span class="op">~</span><span class="va">name</span>,</span>
-<span>  <span class="op">~</span><span class="va">x</span>,</span>
-<span>  <span class="op">~</span><span class="va">y</span>,</span>
-<span>  <span class="st">"honors"</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="st">"depression"</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="st">"cesd"</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="st">"baseline_error"</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="st">"depression_change"</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="st">"cesd_change"</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="st">"followup_error"</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="fl">1</span></span>
+<span>  <span class="op">~</span><span class="va">name</span>,              <span class="op">~</span><span class="va">x</span>,  <span class="op">~</span><span class="va">y</span>,</span>
+<span>  <span class="st">"honors"</span>,            <span class="fl">1</span>,   <span class="fl">3</span>,</span>
+<span>  <span class="st">"depression"</span>,        <span class="fl">2</span>,   <span class="fl">3</span>,</span>
+<span>  <span class="st">"cesd"</span>,              <span class="fl">2</span>,   <span class="fl">2</span>,</span>
+<span>  <span class="st">"baseline_error"</span>,    <span class="fl">2</span>,   <span class="fl">1</span>,</span>
+<span>  <span class="st">"depression_change"</span>, <span class="fl">3</span>,   <span class="fl">3</span>,</span>
+<span>  <span class="st">"cesd_change"</span>,       <span class="fl">3</span>,   <span class="fl">2</span>,</span>
+<span>  <span class="st">"followup_error"</span>,    <span class="fl">3</span>,   <span class="fl">1</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cesd_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
-<span>  <span class="va">depression</span> <span class="op">~</span> <span class="va">honors</span>,</span>
+<span><span class="va">cesd_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">depression</span> <span class="op">~</span> <span class="va">honors</span>,</span>
 <span>  <span class="va">cesd</span> <span class="op">~</span> <span class="va">depression</span> <span class="op">+</span> <span class="va">baseline_error</span>,</span>
 <span>  <span class="va">cesd_change</span> <span class="op">~</span> <span class="va">depression_change</span> <span class="op">+</span> <span class="va">followup_error</span> <span class="op">+</span> <span class="va">baseline_error</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
@@ -428,12 +386,8 @@ bias via measurement error:</p>
 <span></span>
 <span><span class="va">cesd_dag</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span></span>
-<span>    from <span class="op">=</span> <span class="st">"honors"</span>,</span>
-<span>    to <span class="op">=</span> <span class="st">"cesd_change"</span>,</span>
-<span>    controlling_for <span class="op">=</span> <span class="st">"cesd"</span>,</span>
-<span>    text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>    use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
-<span>    collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>    from <span class="op">=</span> <span class="st">"honors"</span>, to <span class="op">=</span> <span class="st">"cesd_change"</span>, controlling_for <span class="op">=</span> <span class="st">"cesd"</span>,</span>
+<span>    text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-12-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>Because both the baseline score and the change are due, in part, to
@@ -458,28 +412,15 @@ but in our case, we’re selecting on people who have been hospitalized,
 which opens up a back-door path:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tribble.html" class="external-link">tribble</a></span><span class="op">(</span></span>
-<span>  <span class="op">~</span><span class="va">name</span>,</span>
-<span>  <span class="op">~</span><span class="va">x</span>,</span>
-<span>  <span class="op">~</span><span class="va">y</span>,</span>
-<span>  <span class="st">"glioma"</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="st">"hospitalized"</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="st">"broken_bone"</span>,</span>
-<span>  <span class="fl">3</span>,</span>
-<span>  <span class="fl">2</span>,</span>
-<span>  <span class="st">"reckless"</span>,</span>
-<span>  <span class="fl">4</span>,</span>
-<span>  <span class="fl">1</span>,</span>
-<span>  <span class="st">"smoking"</span>,</span>
-<span>  <span class="fl">5</span>,</span>
-<span>  <span class="fl">2</span></span>
+<span>  <span class="op">~</span><span class="va">name</span>,           <span class="op">~</span><span class="va">x</span>,  <span class="op">~</span><span class="va">y</span>,</span>
+<span>  <span class="st">"glioma"</span>,         <span class="fl">1</span>,   <span class="fl">2</span>,</span>
+<span>  <span class="st">"hospitalized"</span>,   <span class="fl">2</span>,   <span class="fl">3</span>,</span>
+<span>  <span class="st">"broken_bone"</span>,    <span class="fl">3</span>,   <span class="fl">2</span>,</span>
+<span>  <span class="st">"reckless"</span>,       <span class="fl">4</span>,   <span class="fl">1</span>,</span>
+<span>  <span class="st">"smoking"</span>,        <span class="fl">5</span>,   <span class="fl">2</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
-<span>  <span class="va">hospitalized</span> <span class="op">~</span> <span class="va">broken_bone</span> <span class="op">+</span> <span class="va">glioma</span>,</span>
+<span><span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">hospitalized</span> <span class="op">~</span> <span class="va">broken_bone</span> <span class="op">+</span> <span class="va">glioma</span>,</span>
 <span>  <span class="va">broken_bone</span> <span class="op">~</span> <span class="va">reckless</span>,</span>
 <span>  <span class="va">smoking</span> <span class="op">~</span> <span class="va">reckless</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
@@ -491,13 +432,9 @@ which opens up a back-door path:</p>
 <span>  <span class="op">)</span>,</span>
 <span>  coords <span class="op">=</span> <span class="va">coords</span></span>
 <span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span></span>
-<span>    <span class="st">"glioma"</span>,</span>
-<span>    <span class="st">"smoking"</span>,</span>
+<span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span><span class="st">"glioma"</span>, <span class="st">"smoking"</span>,</span>
 <span>    controlling_for <span class="op">=</span> <span class="st">"hospitalized"</span>,</span>
-<span>    text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>    use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
-<span>    collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>    text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-13-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>Even though smoking doesn’t actually cause glioma, it will appear as
@@ -517,8 +454,7 @@ may cause people to leave the trial. If we only have information on
 people who stay in the study, we are stratifying by follow-up
 status:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
-<span>  <span class="va">follow_up</span> <span class="op">~</span> <span class="va">symptoms</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">follow_up</span> <span class="op">~</span> <span class="va">symptoms</span>,</span>
 <span>  <span class="va">symptoms</span> <span class="op">~</span> <span class="va">new_rx</span> <span class="op">+</span> <span class="va">dx_severity</span>,</span>
 <span>  <span class="va">cd4</span> <span class="op">~</span> <span class="va">dx_severity</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
@@ -529,12 +465,9 @@ status:</p>
 <span>    cd4 <span class="op">=</span> <span class="st">"CD4 Count"</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="../reference/control_for.html">ggdag_adjust</a></span><span class="op">(</span></span>
-<span>    <span class="st">"follow_up"</span>,</span>
-<span>    layout <span class="op">=</span> <span class="st">"mds"</span>,</span>
-<span>    text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>    use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
-<span>    collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="fu"><a href="../reference/control_for.html">ggdag_adjust</a></span><span class="op">(</span><span class="st">"follow_up"</span>,</span>
+<span>    layout <span class="op">=</span> <span class="st">"mds"</span>, text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>    use_labels <span class="op">=</span> <span class="st">"label"</span>, collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-14-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>But follow-up is downstream from a collider, symptoms. Controlling

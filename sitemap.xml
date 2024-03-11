@@ -37,9 +37,6 @@
     <loc>https://r-causal.github.io/ggdag/reference/adjustment_sets.html</loc>
   </url>
   <url>
-    <loc>https://r-causal.github.io/ggdag/reference/aes_dag.html</loc>
-  </url>
-  <url>
     <loc>https://r-causal.github.io/ggdag/reference/as.data.frame.tidy_dagitty.html</loc>
   </url>
   <url>
@@ -70,9 +67,6 @@
     <loc>https://r-causal.github.io/ggdag/reference/dag.html</loc>
   </url>
   <url>
-    <loc>https://r-causal.github.io/ggdag/reference/dag_saturate.html</loc>
-  </url>
-  <url>
     <loc>https://r-causal.github.io/ggdag/reference/dagify.html</loc>
   </url>
   <url>
@@ -89,9 +83,6 @@
   </url>
   <url>
     <loc>https://r-causal.github.io/ggdag/reference/fortify.html</loc>
-  </url>
-  <url>
-    <loc>https://r-causal.github.io/ggdag/reference/geom_dag.html</loc>
   </url>
   <url>
     <loc>https://r-causal.github.io/ggdag/reference/geom_dag_collider_edges.html</loc>
@@ -152,9 +143,6 @@
   </url>
   <url>
     <loc>https://r-causal.github.io/ggdag/reference/pull_dag.html</loc>
-  </url>
-  <url>
-    <loc>https://r-causal.github.io/ggdag/reference/query_conditional_independence.html</loc>
   </url>
   <url>
     <loc>https://r-causal.github.io/ggdag/reference/quick_plot.html</loc>
