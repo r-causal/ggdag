@@ -93,6 +93,11 @@ test_that("Forbidden layouts error", {
   )
 })
 
+test_that("igraph attribute does not hitchhike onto tidy dag", {
+  td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  expect_null(attr(pull_dag_data(td), "graph"))
+})
+
 expect_function_produces_name <- function(tidy_dag, column) {
   .df <- pull_dag_data(tidy_dag)
   expect_true(all(column %in% names(.df)))

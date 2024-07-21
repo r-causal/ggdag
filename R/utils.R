@@ -172,3 +172,11 @@ ggdag_left_join <- function(...) {
 }
 
 `%nin%` <- Negate(`%in%`)
+
+ggraph_create_layout <- function(...) {
+  .df <- suppressMessages(ggraph::create_layout(...))
+  # ggdag doesn't need the igraph object
+  attr(.df, "graph") <- NULL
+
+  .df
+}
