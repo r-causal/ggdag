@@ -44,28 +44,27 @@ query_conditional_independence <- function(.tdy_dag, type = "missing.edge", max.
 #' @rdname query_conditional_independence
 #' @export
 test_conditional_independence <- function(
-  .tdy_dag,
-  data = NULL,
-  type = c(
-    "cis",
-    "cis.loess",
-    "cis.chisq",
-    "cis.pillai",
-    "tetrads",
-    "tetrads.within",
-    "tetrads.between",
-    "tetrads.epistemic"
-  ),
-  tests = NULL,
-  sample.cov = NULL,
-  sample.nobs = NULL,
-  conf.level = 0.95,
-  R = NULL,
-  max.conditioning.variables = NULL,
-  abbreviate.names = FALSE,
-  tol = NULL,
-  loess.pars = NULL
-) {
+    .tdy_dag,
+    data = NULL,
+    type = c(
+      "cis",
+      "cis.loess",
+      "cis.chisq",
+      "cis.pillai",
+      "tetrads",
+      "tetrads.within",
+      "tetrads.between",
+      "tetrads.epistemic"
+    ),
+    tests = NULL,
+    sample.cov = NULL,
+    sample.nobs = NULL,
+    conf.level = 0.95,
+    R = NULL,
+    max.conditioning.variables = NULL,
+    abbreviate.names = FALSE,
+    tol = NULL,
+    loess.pars = NULL) {
   if (!dagitty::is.dagitty(.tdy_dag) && !is.tidy_dagitty(.tdy_dag)) {
     stop("Expected a DAG object for `.tdy_dag`, got ", class(.tdy_dag), ".", call. = FALSE)
   }
@@ -93,11 +92,10 @@ test_conditional_independence <- function(
 #' @rdname query_conditional_independence
 #' @export
 ggdag_conditional_independence <- function(
-  .test_result,
-  vline_linewidth = .8,
-  vline_color = "grey70",
-  pointrange_fatten = 3
-) {
+    .test_result,
+    vline_linewidth = .8,
+    vline_color = "grey70",
+    pointrange_fatten = 3) {
   stopifnot(is.data.frame(.test_result))
   stopifnot(nrow(.test_result) > 0)
   estimate <- names(.test_result)[[2]]

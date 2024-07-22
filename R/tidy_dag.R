@@ -135,17 +135,16 @@ as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
 #' @export
 #' @rdname as_tidy_dagitty
 as_tidy_dagitty.data.frame <- function(
-  x,
-  exposure = NULL,
-  outcome = NULL,
-  latent = NULL,
-  labels = NULL,
-  coords = NULL,
-  seed = NULL,
-  layout = "nicely",
-  saturate = FALSE,
-  ...
-) {
+    x,
+    exposure = NULL,
+    outcome = NULL,
+    latent = NULL,
+    labels = NULL,
+    coords = NULL,
+    seed = NULL,
+    layout = "nicely",
+    saturate = FALSE,
+    ...) {
   if (!is.null(seed)) set.seed(seed)
 
   tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
@@ -197,16 +196,15 @@ as_tidy_dagitty.data.frame <- function(
 #' @export
 #' @rdname as_tidy_dagitty
 as_tidy_dagitty.list <- function(
-  x,
-  exposure = NULL,
-  outcome = NULL,
-  latent = NULL,
-  labels = NULL,
-  coords = NULL,
-  seed = NULL,
-  layout = "time_ordered",
-  ...
-) {
+    x,
+    exposure = NULL,
+    outcome = NULL,
+    latent = NULL,
+    labels = NULL,
+    coords = NULL,
+    seed = NULL,
+    layout = "time_ordered",
+    ...) {
   if (!is.null(seed)) set.seed(seed)
 
   dag_edges <- purrr::map(
@@ -283,7 +281,6 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
       layout = layout,
       ...
     )
-
   } else {
     nodes <- names(igraph::V(ig))
     coords$x <- coords$x[nodes]

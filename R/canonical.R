@@ -32,24 +32,23 @@ node_canonical <- function(.dag, ...) {
 #' @rdname canonicalize
 #' @export
 ggdag_canonical <- function(
-  .tdy_dag,
-  ...,
-  edge_type = "link_arc",
-  node_size = 16,
-  text_size = 3.88,
-  label_size = text_size,
-  text_col = "white",
-  label_col = text_col,
-  use_edges = TRUE,
-  use_nodes = TRUE,
-  use_stylized = FALSE,
-  use_text = TRUE,
-  use_labels = NULL,
-  label = NULL,
-  text = NULL,
-  node = deprecated(),
-  stylized = deprecated()
-) {
+    .tdy_dag,
+    ...,
+    edge_type = "link_arc",
+    node_size = 16,
+    text_size = 3.88,
+    label_size = text_size,
+    text_col = "white",
+    label_col = text_col,
+    use_edges = TRUE,
+    use_nodes = TRUE,
+    use_stylized = FALSE,
+    use_text = TRUE,
+    use_labels = NULL,
+    label = NULL,
+    text = NULL,
+    node = deprecated(),
+    stylized = deprecated()) {
   if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_canonical() %>%
     ggdag(
