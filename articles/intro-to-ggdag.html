@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,7 +64,7 @@ Barrett</h4>
             
             <h4 data-toc-skip class="date">2024-07-22</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/v0.2.13/vignettes/intro-to-ggdag.Rmd" class="external-link"><code>vignettes/intro-to-ggdag.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/main/vignettes/intro-to-ggdag.Rmd" class="external-link"><code>vignettes/intro-to-ggdag.Rmd</code></a></small>
       <div class="d-none name"><code>intro-to-ggdag.Rmd</code></div>
     </div>
 
@@ -112,7 +112,8 @@ number of formulas to create a DAG. It also has options for declaring
 which variables are exposures, outcomes, or latent, as well as
 coordinates and labels for each node.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dagified</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">x</span> <span class="op">~</span> <span class="va">z</span>,</span>
+<code class="sourceCode R"><span><span class="va">dagified</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
+<span>  <span class="va">x</span> <span class="op">~</span> <span class="va">z</span>,</span>
 <span>  <span class="va">y</span> <span class="op">~</span> <span class="va">z</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="st">"x"</span>,</span>
 <span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>
@@ -159,7 +160,7 @@ tidied, <code><a href="../reference/ggdag.html">ggdag()</a></code> and most othe
 <span><span class="co">#&gt;   ..$ yend     : num [1:4] NA NA 0.756 1.119</span></span>
 <span><span class="co">#&gt;   ..$ circular : logi [1:4] FALSE FALSE FALSE FALSE</span></span>
 <span><span class="co">#&gt;   ..- attr(*, "circular")= logi FALSE</span></span>
-<span><span class="co">#&gt;  $ dag : 'dagitty' Named chr "dag {\nx [exposure]\ny [outcome]\nz\nz -&gt; x\nz -&gt; y\n}\n"</span></span>
+<span><span class="co">#&gt;  $ dag : 'dagitty' Named chr "dag {\nx [exposure,pos=\"1.430,0.756\"]\ny [outcome,pos=\"-0.835,1.119\"]\nz [pos=\"0.298,0.938\"]\nz -&gt; x\nz -&gt; y\n}\n"</span></span>
 <span><span class="co">#&gt;  - attr(*, "class")= chr "tidy_dagitty"</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -189,7 +190,8 @@ variable:</p>
 <p>Or working with the entire DAG to produce a <code>tidy_dagitty</code>
 that has all pathways between two variables:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">bigger_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>,</span>
+<code class="sourceCode R"><span><span class="va">bigger_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
+<span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>,</span>
 <span>  <span class="va">x</span> <span class="op">~</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span>,</span>
 <span>  exposure <span class="op">=</span> <span class="st">"x"</span>,</span>
 <span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>

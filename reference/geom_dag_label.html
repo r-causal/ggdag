@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Node text labels</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/v0.2.13/R/geom_dag.R" class="external-link"><code>R/geom_dag.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/main/R/geom_dag.R" class="external-link"><code>R/geom_dag.R</code></a></small>
       <div class="d-none name"><code>geom_dag_label.Rd</code></div>
     </div>
 
@@ -171,6 +171,12 @@ the default plot specification, e.g. <code><a href="https://ggplot2.tidyverse.or
 <span class="r-in"><span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagify.html">dagify</a></span><span class="op">(</span><span class="va">m</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">y</span>, <span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">g</span>, text <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span> <span class="fu">geom_dag_label</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The `text` argument of `geom_dag()` no longer accepts logicals as of ggdag</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> 0.3.0.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Set `use_text = FALSE`. To use a variable other than node names, set `text =</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   variable_name`</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> The deprecated feature was likely used in the <span style="color: #0000BB;">ggdag</span> package.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   Please report the issue at <span style="color: #0000BB; font-style: italic;">&lt;https://github.com/r-causal/ggdag/issues&gt;</span>.</span>
 <span class="r-plt img"><img src="geom_dag_label-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">g</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>

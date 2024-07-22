@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,7 +64,7 @@ Barrett</h4>
             
             <h4 data-toc-skip class="date">2024-07-22</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/v0.2.13/vignettes/intro-to-dags.Rmd" class="external-link"><code>vignettes/intro-to-dags.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/main/vignettes/intro-to-dags.Rmd" class="external-link"><code>vignettes/intro-to-dags.Rmd</code></a></small>
       <div class="d-none name"><code>intro-to-dags.Rmd</code></div>
     </div>
 
@@ -145,7 +145,8 @@ function.</p>
 cardiac arrest. We might assume that smoking causes changes in
 cholesterol, which causes cardiac arrest:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">smoking_ca_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">cardiacarrest</span> <span class="op">~</span> <span class="va">cholesterol</span>,</span>
+<code class="sourceCode R"><span><span class="va">smoking_ca_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
+<span>  <span class="va">cardiacarrest</span> <span class="op">~</span> <span class="va">cholesterol</span>,</span>
 <span>  <span class="va">cholesterol</span> <span class="op">~</span> <span class="va">smoking</span> <span class="op">+</span> <span class="va">weight</span>,</span>
 <span>  <span class="va">smoking</span> <span class="op">~</span> <span class="va">unhealthy</span>,</span>
 <span>  <span class="va">weight</span> <span class="op">~</span> <span class="va">unhealthy</span>,</span>
@@ -307,9 +308,11 @@ back-door paths:</p>
 strata of the collider, fever. We open a biasing pathway between the
 two, and they become d-connected:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span><span class="va">fever_dag</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span></span>
+<span>  <span class="va">fever_dag</span>,</span>
 <span>  controlling_for <span class="op">=</span> <span class="st">"m"</span>,</span>
-<span>  text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span></span>
+<span>  text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_labels <span class="op">=</span> <span class="st">"label"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="intro-to-dags_files/figure-html/unnamed-chunk-10-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>This can be counter-intuitive at first. Why does controlling for a
@@ -328,7 +331,8 @@ a fever reducer, like acetaminophen. Because fever reducers are
 downstream from fever, controlling for it induces downstream
 collider-stratification bias:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">fever</span> <span class="op">~</span> <span class="va">flu</span> <span class="op">+</span> <span class="va">pox</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/dagify.html">dagify</a></span><span class="op">(</span></span>
+<span>  <span class="va">fever</span> <span class="op">~</span> <span class="va">flu</span> <span class="op">+</span> <span class="va">pox</span>,</span>
 <span>  <span class="va">acetaminophen</span> <span class="op">~</span> <span class="va">fever</span>,</span>
 <span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>    <span class="st">"flu"</span> <span class="op">=</span> <span class="st">"Influenza"</span>,</span>
@@ -338,8 +342,11 @@ collider-stratification bias:</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span></span>
-<span>    from <span class="op">=</span> <span class="st">"flu"</span>, to <span class="op">=</span> <span class="st">"pox"</span>, controlling_for <span class="op">=</span> <span class="st">"acetaminophen"</span>,</span>
-<span>    text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span></span>
+<span>    from <span class="op">=</span> <span class="st">"flu"</span>,</span>
+<span>    to <span class="op">=</span> <span class="st">"pox"</span>,</span>
+<span>    controlling_for <span class="op">=</span> <span class="st">"acetaminophen"</span>,</span>
+<span>    text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>    use_labels <span class="op">=</span> <span class="st">"label"</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
 <p><img src="intro-to-dags_files/figure-html/unnamed-chunk-11-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>Collider-stratification bias is responsible for many cases of bias,
@@ -367,9 +374,12 @@ block that relationship; smoking and cardiac arrest will appear
 unassociated (note that I’m not including the paths opened by
 controlling for a collider in this plot for clarity):</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span><span class="va">smoking_ca_dag</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span></span>
+<span>  <span class="va">smoking_ca_dag</span>,</span>
 <span>  controlling_for <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"weight"</span>, <span class="st">"cholesterol"</span><span class="op">)</span>,</span>
-<span>  text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  text <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
+<span>  collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><img src="intro-to-dags_files/figure-html/unnamed-chunk-12-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>Now smoking and cardiac arrest are d-separated. Since our question is
@@ -384,7 +394,7 @@ going to be biased.</p>
 technical difficulty. A friendly start is his recently released <a href="https://books.google.com/books?id=9H0dDQAAQBAJ&amp;printsec=frontcover&amp;dq=book+of+why&amp;hl=en&amp;sa=X&amp;ved=0ahUKEwiwts6Lz5fcAhUBCTQIHdNpAlkQ6AEIKTAA#v=onepage&amp;q=book%20of%20why&amp;f=false" class="external-link">Book
 of Why</a>, as well as his article summarizing the book: <a href="http://ftp.cs.ucla.edu/pub/stat_ser/r481.pdf" class="external-link">The Seven Tools of
 Causal Inference with Reflections on Machine Learning</a>. A more
-technical introduction is <a href="https://bayes.cs.ucla.edu/PRIMER/" class="external-link">Causal Inference in Statistics:
+technical introduction is <a href="http://bayes.cs.ucla.edu/PRIMER/" class="external-link">Causal Inference in Statistics:
 A Primer</a>. See also his article with Sander Greenland and James
 Robins on collapsibility: Confounding and Collapsibility in Causal
 Inference.</li>

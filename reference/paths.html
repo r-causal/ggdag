@@ -11,7 +11,7 @@ dagitty::paths() for details."><meta property="og:image" content="https://r-caus
 
     <a class="navbar-brand me-2" href="../index.html">ggdag</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.13.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,7 +39,7 @@ dagitty::paths() for details."><meta property="og:image" content="https://r-caus
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Find Open Paths Between Variables</h1>
-      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/v0.2.13/R/paths.R" class="external-link"><code>R/paths.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/main/R/paths.R" class="external-link"><code>R/paths.R</code></a></small>
       <div class="d-none name"><code>paths.Rd</code></div>
     </div>
 
@@ -69,17 +69,27 @@ dagitty::paths() for details."><meta property="og:image" content="https://r-caus
 <span>  adjust_for <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  limit <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  directed <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  shadow <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  shadow <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span>,</span>
+<span>  size <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  edge_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"link_arc"</span>, <span class="st">"link"</span>, <span class="st">"arc"</span>, <span class="st">"diagonal"</span><span class="op">)</span>,</span>
 <span>  node_size <span class="op">=</span> <span class="fl">16</span>,</span>
 <span>  text_size <span class="op">=</span> <span class="fl">3.88</span>,</span>
 <span>  label_size <span class="op">=</span> <span class="va">text_size</span>,</span>
 <span>  text_col <span class="op">=</span> <span class="st">"white"</span>,</span>
-<span>  label_col <span class="op">=</span> <span class="va">text_col</span>,</span>
-<span>  node <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  use_labels <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  label_col <span class="op">=</span> <span class="st">"black"</span>,</span>
+<span>  edge_width <span class="op">=</span> <span class="fl">0.6</span>,</span>
+<span>  edge_cap <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  arrow_length <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  use_edges <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_nodes <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  stylized <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">ggdag_paths_fan</span><span class="op">(</span></span>
@@ -90,17 +100,26 @@ dagitty::paths() for details."><meta property="og:image" content="https://r-caus
 <span>  limit <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  directed <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span>,</span>
-<span>  shadow <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  shadow <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  spread <span class="op">=</span> <span class="fl">0.7</span>,</span>
+<span>  size <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  node_size <span class="op">=</span> <span class="fl">16</span>,</span>
 <span>  text_size <span class="op">=</span> <span class="fl">3.88</span>,</span>
 <span>  label_size <span class="op">=</span> <span class="va">text_size</span>,</span>
 <span>  text_col <span class="op">=</span> <span class="st">"white"</span>,</span>
-<span>  label_col <span class="op">=</span> <span class="va">text_col</span>,</span>
-<span>  node <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  use_labels <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  label_col <span class="op">=</span> <span class="st">"black"</span>,</span>
+<span>  edge_width <span class="op">=</span> <span class="fl">0.6</span>,</span>
+<span>  edge_cap <span class="op">=</span> <span class="fl">8</span>,</span>
+<span>  arrow_length <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  use_edges <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_nodes <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  stylized <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -149,46 +168,89 @@ if they are part of the path.</p></dd>
 
 
 <dt id="arg-shadow">shadow<a class="anchor" aria-label="anchor" href="#arg-shadow"></a></dt>
-<dd><p>logical. Show edges which are not on an open path? Ignored if
-<code>paths_only</code> is <code>TRUE</code>.</p></dd>
+<dd><p>logical. Show edges which are not on an open path?</p></dd>
+
+
+<dt id="arg-size">size<a class="anchor" aria-label="anchor" href="#arg-size"></a></dt>
+<dd><p>A numeric value scaling the size of all elements in the DAG. This
+allows you to change the scale of the DAG without changing the proportions.</p></dd>
+
+
+<dt id="arg-edge-type">edge_type<a class="anchor" aria-label="anchor" href="#arg-edge-type"></a></dt>
+<dd><p>The type of edge, one of "link_arc", "link", "arc",
+"diagonal".</p></dd>
 
 
 <dt id="arg-node-size">node_size<a class="anchor" aria-label="anchor" href="#arg-node-size"></a></dt>
-<dd><p>size of DAG node</p></dd>
+<dd><p>The size of the nodes.</p></dd>
 
 
 <dt id="arg-text-size">text_size<a class="anchor" aria-label="anchor" href="#arg-text-size"></a></dt>
-<dd><p>size of DAG text</p></dd>
+<dd><p>The size of the text.</p></dd>
 
 
 <dt id="arg-label-size">label_size<a class="anchor" aria-label="anchor" href="#arg-label-size"></a></dt>
-<dd><p>size of label text</p></dd>
+<dd><p>The size of the labels.</p></dd>
 
 
 <dt id="arg-text-col">text_col<a class="anchor" aria-label="anchor" href="#arg-text-col"></a></dt>
-<dd><p>color of DAG text</p></dd>
+<dd><p>The color of the text.</p></dd>
 
 
 <dt id="arg-label-col">label_col<a class="anchor" aria-label="anchor" href="#arg-label-col"></a></dt>
-<dd><p>label color</p></dd>
+<dd><p>The color of the labels.</p></dd>
 
 
-<dt id="arg-node">node<a class="anchor" aria-label="anchor" href="#arg-node"></a></dt>
-<dd><p>logical. Should nodes be included in the DAG?</p></dd>
+<dt id="arg-edge-width">edge_width<a class="anchor" aria-label="anchor" href="#arg-edge-width"></a></dt>
+<dd><p>The width of the edges.</p></dd>
 
 
-<dt id="arg-stylized">stylized<a class="anchor" aria-label="anchor" href="#arg-stylized"></a></dt>
-<dd><p>logical. Should DAG nodes be stylized? If so, use
-<code>geom_dag_nodes</code> and if not use <code>geom_dag_point</code></p></dd>
+<dt id="arg-edge-cap">edge_cap<a class="anchor" aria-label="anchor" href="#arg-edge-cap"></a></dt>
+<dd><p>The size of edge caps (the distance between the arrowheads
+and the node borders).</p></dd>
 
 
-<dt id="arg-text">text<a class="anchor" aria-label="anchor" href="#arg-text"></a></dt>
-<dd><p>logical. Should text be included in the DAG?</p></dd>
+<dt id="arg-arrow-length">arrow_length<a class="anchor" aria-label="anchor" href="#arg-arrow-length"></a></dt>
+<dd><p>The length of arrows on edges.</p></dd>
+
+
+<dt id="arg-use-edges">use_edges<a class="anchor" aria-label="anchor" href="#arg-use-edges"></a></dt>
+<dd><p>A logical value. Include a <code>geom_dag_edges*()</code> function? If
+<code>TRUE</code>, which is determined by <code>edge_type</code>.</p></dd>
+
+
+<dt id="arg-use-nodes">use_nodes<a class="anchor" aria-label="anchor" href="#arg-use-nodes"></a></dt>
+<dd><p>A logical value. Include <code><a href="node_point.html">geom_dag_point()</a></code>?</p></dd>
+
+
+<dt id="arg-use-stylized">use_stylized<a class="anchor" aria-label="anchor" href="#arg-use-stylized"></a></dt>
+<dd><p>A logical value. Include <code><a href="node_point.html">geom_dag_node()</a></code>?</p></dd>
+
+
+<dt id="arg-use-text">use_text<a class="anchor" aria-label="anchor" href="#arg-use-text"></a></dt>
+<dd><p>A logical value. Include <code><a href="geom_dag_text.html">geom_dag_text()</a></code>?</p></dd>
 
 
 <dt id="arg-use-labels">use_labels<a class="anchor" aria-label="anchor" href="#arg-use-labels"></a></dt>
-<dd><p>a string. Variable to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
-Default is <code>NULL</code>.</p></dd>
+<dd><p>A logical value. Include <code><a href="repel.html">geom_dag_label_repel()</a></code>?</p></dd>
+
+
+<dt id="arg-text">text<a class="anchor" aria-label="anchor" href="#arg-text"></a></dt>
+<dd><p>The bare name of a column to use for <code><a href="geom_dag_text.html">geom_dag_text()</a></code>. If
+<code>use_text = TRUE</code>, the default is to use <code>name</code>.</p></dd>
+
+
+<dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
+<dd><p>The bare name of a column to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
+If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p></dd>
+
+
+<dt id="arg-node">node<a class="anchor" aria-label="anchor" href="#arg-node"></a></dt>
+<dd><p>Deprecated.</p></dd>
+
+
+<dt id="arg-stylized">stylized<a class="anchor" aria-label="anchor" href="#arg-stylized"></a></dt>
+<dd><p>Deprecated.</p></dd>
 
 
 <dt id="arg-spread">spread<a class="anchor" aria-label="anchor" href="#arg-spread"></a></dt>

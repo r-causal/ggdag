@@ -11,6 +11,7 @@
 <url><loc>https://r-causal.github.io/ggdag/news/index.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/activate_collider_paths.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/adjustment_sets.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/aes_dag.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/as.data.frame.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/as.tbl.tidy_daggity.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/as_tbl_graph.html</loc></url>
@@ -21,12 +22,14 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/coordinates.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/d_relationship.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dag.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/dag_saturate.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dagify.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dplyr.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/equivalent.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/exogenous.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/expand_plot.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/fortify.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/geom_dag.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/geom_dag_collider_edges.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/geom_dag_edges.html</loc></url>
@@ -47,6 +50,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/pipe.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/print.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/pull_dag.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/query_conditional_independence.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/quick_plot.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/reexports.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/remove_axes.html</loc></url>
