@@ -19,7 +19,7 @@ test_that("`query_conditional_independence()` returns a tibble of independencies
 
 test_that("`query_conditional_independence()` handles empty results correctly", {
   # from the documentation of `dagitty::impliedConditionalIndependencies()`
-  g <- dagitty::dagitty( "dag{ x -> m -> y }" )
+  g <- dagitty::dagitty("dag{ x -> m -> y }")
   result <- query_conditional_independence(g)
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 1)
