@@ -5,6 +5,13 @@ test_that("nodes are labelled correctly", {
 
   expect_true(has_labels(pull_dag(labelled_dag)))
   expect_true("label" %in% names(pull_dag_data(labelled_dag)))
-  expect_equal(unname(label(pull_dag(labelled_dag))), c("exposure", "outcome", "confounder"))
-  expect_named(label(pull_dag(labelled_dag)), c("x", "y", "z"), ignore.order = TRUE)
+  expect_equal(
+    unname(label(pull_dag(labelled_dag))),
+    c("exposure", "outcome", "confounder")
+  )
+  expect_named(
+    label(pull_dag(labelled_dag)),
+    c("x", "y", "z"),
+    ignore.order = TRUE
+  )
 })

@@ -50,53 +50,55 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
 #' @rdname colliders
 #' @export
 ggdag_collider <- function(
-    .tdy_dag,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_collider() %>%
     dplyr::mutate(colliders = forcats::fct_rev(colliders)) %>%
     ggplot2::ggplot(aes_dag(color = colliders))
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }
@@ -128,15 +130,20 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
   colliders <- purrr::map_lgl(vars, ~ is_collider(.tdy_dag, .x))
-  downstream_colliders <- purrr::map_lgl(vars, ~ is_downstream_collider(.tdy_dag, .x))
+  downstream_colliders <- purrr::map_lgl(
+    vars,
+    ~ is_downstream_collider(.tdy_dag, .x)
+  )
   collider_names <- unique(c(vars[colliders], vars[downstream_colliders]))
 
   if (!any((collider_names %in% adjust_for))) {
     return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
   }
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
-  collider_paths <- purrr::map(adjusted_colliders, ~ dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1])
-
+  collider_paths <- purrr::map(
+    adjusted_colliders,
+    ~ dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1]
+  )
 
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
@@ -148,7 +155,10 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
 
   collider_lines$collider_line <- TRUE
   .tdy_dag <- dplyr::mutate(.tdy_dag, collider_line = FALSE)
-  update_dag_data(.tdy_dag) <- dplyr::bind_rows(pull_dag_data(.tdy_dag), collider_lines)
+  update_dag_data(.tdy_dag) <- dplyr::bind_rows(
+    pull_dag_data(.tdy_dag),
+    collider_lines
+  )
   .tdy_dag
 }
 
@@ -156,7 +166,9 @@ dagify_colliders <- function(.pairs_df, .tdy_dag) {
   .pairs_df %>%
     join_lhs_coords(.tdy_dag) %>%
     join_rhs_coords(.tdy_dag) %>%
-    dplyr::mutate(direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)) %>%
+    dplyr::mutate(
+      direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)
+    ) %>%
     dplyr::rename(name = Var1, to = Var2)
 }
 

@@ -30,10 +30,12 @@ test_that("tidied dags are in good shape", {
 })
 
 test_that("nodes without edges are captured correctly", {
-  .dagitty <- dagitty::dagitty("dag {
+  .dagitty <- dagitty::dagitty(
+    "dag {
   x -> y
   z
-  }")
+  }"
+  )
 
   x <- tidy_dagitty(.dagitty)
   expect_identical(pull_dag_data(x)$name, c("x", "y", "z"))
@@ -83,8 +85,8 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
       adjusted = c("unadjusted", "unadjusted", "adjusted")
     ),
     by = "name"
-  ) %>% dplyr::mutate(x = 1, y = 1, xend = 1, yend = 1)
-
+  ) %>%
+    dplyr::mutate(x = 1, y = 1, xend = 1, yend = 1)
 
   status_dag <- as_tidy_dagitty(.df) %>% pull_dag()
   expect_identical(dagitty::exposures(status_dag), "x")

@@ -26,13 +26,14 @@
 #'   tidy_dagitty() %>%
 #'   simulate_data()
 simulate_data <- function(
-    .tdy_dag,
-    b.default = NULL,
-    b.lower = -0.6,
-    b.upper = 0.6,
-    eps = 1,
-    N = 500,
-    standardized = TRUE) {
+  .tdy_dag,
+  b.default = NULL,
+  b.lower = -0.6,
+  b.upper = 0.6,
+  eps = 1,
+  N = 500,
+  standardized = TRUE
+) {
   if_not_tidy_daggity(.tdy_dag) %>%
     pull_dag() %>%
     dagitty::simulateSEM(

@@ -202,7 +202,12 @@ GeomDAGEdgePath <- ggplot2::ggproto(
     ggraph::GeomEdgePath$setup_data(data, params)
   },
   handle_na = function(data, params) {
-    if (all(c("x", "y", "edge_width", "edge_colour", "edge_linetype") %in% names(data))) {
+    if (
+      all(
+        c("x", "y", "edge_width", "edge_colour", "edge_linetype") %in%
+          names(data)
+      )
+    ) {
       data <- ggraph::GeomEdgePath$handle_na(data, params)
     } else {
       # data <- NULL

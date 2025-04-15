@@ -24,7 +24,6 @@ test_that("DAG paths are identified and drawn correctly", {
     coords = coords_confounder
   )
 
-
   coords_butterfly <- tibble::tribble(
     ~name,
     ~x,
@@ -70,5 +69,8 @@ test_that("DAG paths are identified and drawn correctly", {
   expect_doppelganger("ggdag_paths() draws 2 open paths", p1)
   expect_doppelganger("ggdag_paths_fan() draws 4 open paths", p2)
   expect_doppelganger("ggdag_paths() draws 2 open paths without shadows", p3)
-  expect_doppelganger("ggdag_paths_fan() draws 4 open paths without shadows", p4)
+  expect_doppelganger(
+    "ggdag_paths_fan() draws 4 open paths without shadows",
+    p4
+  )
 })

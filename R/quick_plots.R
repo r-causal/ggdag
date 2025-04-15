@@ -17,7 +17,14 @@
 #' @rdname quick_plot
 #' @name Quick Plots for Common DAGs
 
-m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
+m_bias <- function(
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE
+) {
   coords <- tibble::tribble(
     ~name,
     ~x,
@@ -59,14 +66,22 @@ m_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associa
     )
   }
 
-  if (!is.null(c(x, y, a, b, m))) label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
+  if (!is.null(c(x, y, a, b, m)))
+    label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
 
   .dag
 }
 
 #' @rdname quick_plot
 #' @export
-butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y_associated = FALSE) {
+butterfly_bias <- function(
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE
+) {
   coords <- tibble::tribble(
     ~name,
     ~x,
@@ -108,14 +123,20 @@ butterfly_bias <- function(x = NULL, y = NULL, a = NULL, b = NULL, m = NULL, x_y
     )
   }
 
-  if (!is.null(c(x, y, a, b, m))) label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
+  if (!is.null(c(x, y, a, b, m)))
+    label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
 
   .dag
 }
 
 #' @rdname quick_plot
 #' @export
-confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE) {
+confounder_triangle <- function(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  x_y_associated = FALSE
+) {
   coords <- tibble::tribble(
     ~name,
     ~x,
@@ -156,7 +177,12 @@ confounder_triangle <- function(x = NULL, y = NULL, z = NULL, x_y_associated = F
 
 #' @rdname quick_plot
 #' @export
-collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
+collider_triangle <- function(
+  x = NULL,
+  y = NULL,
+  m = NULL,
+  x_y_associated = FALSE
+) {
   coords <- tibble::tribble(
     ~name,
     ~x,
@@ -196,7 +222,12 @@ collider_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FAL
 
 #' @rdname quick_plot
 #' @export
-mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE) {
+mediation_triangle <- function(
+  x = NULL,
+  y = NULL,
+  m = NULL,
+  x_y_associated = FALSE
+) {
   coords <- tibble::tribble(
     ~name,
     ~x,
@@ -238,31 +269,32 @@ mediation_triangle <- function(x = NULL, y = NULL, m = NULL, x_y_associated = FA
 #' @rdname quick_plot
 #' @export
 ggdag_m_bias <- function(
-    x = NULL,
-    y = NULL,
-    a = NULL,
-    b = NULL,
-    m = NULL,
-    x_y_associated = FALSE,
-    size = 1,
-    edge_type = "link_arc",
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   ggdag(
     m_bias(x, y, a, b, m, x_y_associated),
     node_size = node_size,
@@ -281,31 +313,32 @@ ggdag_m_bias <- function(
 #' @rdname quick_plot
 #' @export
 ggdag_butterfly_bias <- function(
-    x = NULL,
-    y = NULL,
-    a = NULL,
-    b = NULL,
-    m = NULL,
-    x_y_associated = FALSE,
-    size = 1,
-    edge_type = "link_arc",
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  x = NULL,
+  y = NULL,
+  a = NULL,
+  b = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   ggdag(
     butterfly_bias(x, y, a, b, m, x_y_associated),
     node_size = node_size,
@@ -325,29 +358,30 @@ ggdag_butterfly_bias <- function(
 #' @rdname quick_plot
 #' @export
 ggdag_confounder_triangle <- function(
-    x = NULL,
-    y = NULL,
-    z = NULL,
-    x_y_associated = FALSE,
-    size = 1,
-    edge_type = "link_arc",
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  x_y_associated = FALSE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   ggdag(
     confounder_triangle(x, y, z, x_y_associated),
     node_size = node_size,
@@ -367,29 +401,30 @@ ggdag_confounder_triangle <- function(
 #' @rdname quick_plot
 #' @export
 ggdag_collider_triangle <- function(
-    x = NULL,
-    y = NULL,
-    m = NULL,
-    x_y_associated = FALSE,
-    size = 1,
-    edge_type = "link_arc",
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  x = NULL,
+  y = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   ggdag(
     collider_triangle(x, y, m, x_y_associated),
     node_size = node_size,
@@ -409,29 +444,30 @@ ggdag_collider_triangle <- function(
 #' @rdname quick_plot
 #' @export
 ggdag_mediation_triangle <- function(
-    x = NULL,
-    y = NULL,
-    m = NULL,
-    x_y_associated = FALSE,
-    size = 1,
-    edge_type = "link_arc",
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  x = NULL,
+  y = NULL,
+  m = NULL,
+  x_y_associated = FALSE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   ggdag(
     mediation_triangle(x, y, m, x_y_associated),
     node_size = node_size,

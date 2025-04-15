@@ -29,7 +29,13 @@
 #'   dag_prune(c("x" = "y")) %>%
 #'   ggdag(edge_type = "arc")
 #' @seealso [as_tidy_dagitty.list()]
-dag_saturate <- function(.tdy_dag, use_existing_coords = FALSE, layout = "time_ordered", seed = NULL, ...) {
+dag_saturate <- function(
+  .tdy_dag,
+  use_existing_coords = FALSE,
+  layout = "time_ordered",
+  seed = NULL,
+  ...
+) {
   .dag <- pull_dag(.tdy_dag)
   df_time_order <- .tdy_dag %>%
     pull_dag_data() %>%
@@ -73,7 +79,11 @@ dag_prune <- function(.tdy_dag, edges) {
   .tdy_dag %>%
     dplyr::mutate(
       direction = ifelse(name %in% single_edges$name, NA, direction),
-      direction = factor(direction, levels = 1:3, labels = c("->", "<->", "--")),
+      direction = factor(
+        direction,
+        levels = 1:3,
+        labels = c("->", "<->", "--")
+      ),
       to = ifelse(name %in% single_edges$name, NA_character_, to),
       xend = ifelse(name %in% single_edges$name, NA_real_, xend),
       yend = ifelse(name %in% single_edges$name, NA_real_, yend)

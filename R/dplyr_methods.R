@@ -90,39 +90,99 @@ transmute.tidy_dagitty <- function(.data, ...) {
 #' @export
 #' @importFrom dplyr distinct
 distinct.tidy_dagitty <- function(.data, ..., .keep_all = FALSE) {
-  update_dag_data(.data) <- dplyr::distinct(pull_dag_data(.data), ..., .keep_all = .keep_all)
+  update_dag_data(.data) <- dplyr::distinct(
+    pull_dag_data(.data),
+    ...,
+    .keep_all = .keep_all
+  )
   .data
 }
 
 #' @name dplyr
 #' @export
 #' @importFrom dplyr full_join
-full_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  update_dag_data(x) <- dplyr::full_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
+full_join.tidy_dagitty <- function(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  ...
+) {
+  update_dag_data(x) <- dplyr::full_join(
+    pull_dag_data(x),
+    y,
+    by = by,
+    copy = copy,
+    suffix = suffix,
+    ...
+  )
   x
 }
 
 #' @name dplyr
 #' @export
 #' @importFrom dplyr inner_join
-inner_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  update_dag_data(x) <- dplyr::inner_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
+inner_join.tidy_dagitty <- function(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  ...
+) {
+  update_dag_data(x) <- dplyr::inner_join(
+    pull_dag_data(x),
+    y,
+    by = by,
+    copy = copy,
+    suffix = suffix,
+    ...
+  )
   x
 }
 
 #' @name dplyr
 #' @export
 #' @importFrom dplyr left_join
-left_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  update_dag_data(x) <- ggdag_left_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
+left_join.tidy_dagitty <- function(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  ...
+) {
+  update_dag_data(x) <- ggdag_left_join(
+    pull_dag_data(x),
+    y,
+    by = by,
+    copy = copy,
+    suffix = suffix,
+    ...
+  )
   x
 }
 
 #' @name dplyr
 #' @export
 #' @importFrom dplyr right_join
-right_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...) {
-  update_dag_data(x) <- dplyr::right_join(pull_dag_data(x), y, by = by, copy = copy, suffix = suffix, ...)
+right_join.tidy_dagitty <- function(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  ...
+) {
+  update_dag_data(x) <- dplyr::right_join(
+    pull_dag_data(x),
+    y,
+    by = by,
+    copy = copy,
+    suffix = suffix,
+    ...
+  )
   x
 }
 
@@ -130,7 +190,13 @@ right_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, suffix = c(".
 #' @export
 #' @importFrom dplyr anti_join
 anti_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
-  update_dag_data(x) <- dplyr::anti_join(pull_dag_data(x), y, by = by, copy = copy, ...)
+  update_dag_data(x) <- dplyr::anti_join(
+    pull_dag_data(x),
+    y,
+    by = by,
+    copy = copy,
+    ...
+  )
   x
 }
 
@@ -138,7 +204,13 @@ anti_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
 #' @export
 #' @importFrom dplyr semi_join
 semi_join.tidy_dagitty <- function(x, y, by = NULL, copy = FALSE, ...) {
-  update_dag_data(x) <- dplyr::semi_join(pull_dag_data(x), y, by = by, copy = copy, ...)
+  update_dag_data(x) <- dplyr::semi_join(
+    pull_dag_data(x),
+    y,
+    by = by,
+    copy = copy,
+    ...
+  )
   x
 }
 

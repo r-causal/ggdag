@@ -80,7 +80,8 @@ formula2char <- function(fmla) {
 }
 
 edge_type_switch <- function(edge_type) {
-  switch(edge_type,
+  switch(
+    edge_type,
     "link_arc" = geom_dag_edges,
     "link" = geom_dag_edges_link,
     "arc" = geom_dag_edges_arc,
@@ -194,7 +195,11 @@ check_arg_node <- function(node, use_nodes, what = "geom_dag") {
 
 check_arg_stylized <- function(stylized, use_stylized, what = "geom_dag") {
   if (is_present(stylized)) {
-    deprecate_soft("0.3.0", paste0(what, "(stylized)"), paste0(what, "(stylized)"))
+    deprecate_soft(
+      "0.3.0",
+      paste0(what, "(stylized)"),
+      paste0(what, "(stylized)")
+    )
     use_stylized <- stylized
   }
 

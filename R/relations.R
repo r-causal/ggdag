@@ -204,55 +204,57 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @rdname variable_family
 #' @export
 ggdag_children <- function(
-    .tdy_dag,
-    .var,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_children(.var) %>%
     ggplot2::ggplot(aes_dag(color = children)) +
     scale_adjusted() +
     breaks(c("parent", "child"), drop = FALSE)
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }
@@ -260,110 +262,114 @@ ggdag_children <- function(
 #' @rdname variable_family
 #' @export
 ggdag_parents <- function(
-    .tdy_dag,
-    .var,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_parents(.var) %>%
     ggplot2::ggplot(aes_dag(color = parent)) +
     scale_adjusted() +
     breaks(c("parent", "child"), drop = FALSE)
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
   p
 }
 
 #' @rdname variable_family
 #' @export
 ggdag_ancestors <- function(
-    .tdy_dag,
-    .var,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_ancestors(.var) %>%
     ggplot2::ggplot(aes_dag(color = ancestor)) +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"), drop = FALSE)
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }
@@ -371,55 +377,57 @@ ggdag_ancestors <- function(
 #' @rdname variable_family
 #' @export
 ggdag_descendants <- function(
-    .tdy_dag,
-    .var,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_descendants(.var) %>%
     ggplot2::ggplot(aes_dag(color = descendant)) +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"), drop = FALSE)
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }
@@ -427,28 +435,29 @@ ggdag_descendants <- function(
 #' @rdname variable_family
 #' @export
 ggdag_markov_blanket <- function(
-    .tdy_dag,
-    .var,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_markov_blanket(.var) %>%
     ggplot2::ggplot(aes_dag(color = blanket)) +
@@ -456,27 +465,28 @@ ggdag_markov_blanket <- function(
     scale_adjusted() +
     breaks(c("Markov blanket", "center variable"))
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }
@@ -484,55 +494,57 @@ ggdag_markov_blanket <- function(
 #' @rdname variable_family
 #' @export
 ggdag_adjacent <- function(
-    .tdy_dag,
-    .var,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  .var,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
     node_adjacent(.var) %>%
     ggplot2::ggplot(aes_dag(color = adjacent)) +
     scale_adjusted() +
     breaks(c("adjacent", "center variable"))
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }

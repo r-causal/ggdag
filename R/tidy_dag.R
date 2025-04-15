@@ -36,7 +36,13 @@
 #'   geom_dag_text() +
 #'   geom_dag_edges() +
 #'   theme_dag()
-tidy_dagitty <- function(.dagitty, seed = NULL, layout = "nicely", ..., use_existing_coords = TRUE) {
+tidy_dagitty <- function(
+  .dagitty,
+  seed = NULL,
+  layout = "nicely",
+  ...,
+  use_existing_coords = TRUE
+) {
   if (!is.null(seed)) set.seed(seed)
 
   if (dagitty::graphType(.dagitty) != "dag") {
@@ -135,16 +141,17 @@ as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
 #' @export
 #' @rdname as_tidy_dagitty
 as_tidy_dagitty.data.frame <- function(
-    x,
-    exposure = NULL,
-    outcome = NULL,
-    latent = NULL,
-    labels = NULL,
-    coords = NULL,
-    seed = NULL,
-    layout = "nicely",
-    saturate = FALSE,
-    ...) {
+  x,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL,
+  seed = NULL,
+  layout = "nicely",
+  saturate = FALSE,
+  ...
+) {
   if (!is.null(seed)) set.seed(seed)
 
   tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
@@ -196,15 +203,16 @@ as_tidy_dagitty.data.frame <- function(
 #' @export
 #' @rdname as_tidy_dagitty
 as_tidy_dagitty.list <- function(
-    x,
-    exposure = NULL,
-    outcome = NULL,
-    latent = NULL,
-    labels = NULL,
-    coords = NULL,
-    seed = NULL,
-    layout = "time_ordered",
-    ...) {
+  x,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL,
+  seed = NULL,
+  layout = "time_ordered",
+  ...
+) {
   if (!is.null(seed)) set.seed(seed)
 
   dag_edges <- purrr::map(
@@ -273,7 +281,6 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
       purrr::map_lgl(~ all(is.na(.x))) %>%
       all()
   }
-
 
   if (no_existing_coords) {
     ggraph_layout <- ggraph_create_layout(
@@ -349,8 +356,18 @@ fortify.dagitty <- function(model, data = NULL, ...) {
 #' @param ... optional arguments passed to `as.data.frame()`
 #'
 #' @export
-as.data.frame.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
-  as.data.frame(pull_dag_data(x), row.names = row.names, optional = optional, ...)
+as.data.frame.tidy_dagitty <- function(
+  x,
+  row.names = NULL,
+  optional = FALSE,
+  ...
+) {
+  as.data.frame(
+    pull_dag_data(x),
+    row.names = row.names,
+    optional = optional,
+    ...
+  )
 }
 
 #' Convert a `tidy_dagitty` object to tbl_df
@@ -378,13 +395,23 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
 #' @export
 #' @importFrom dplyr as.tbl as_tibble
 as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
-  dplyr::as.tbl(pull_dag_data(x), row.names = row.names, optional = optional, ...)
+  dplyr::as.tbl(
+    pull_dag_data(x),
+    row.names = row.names,
+    optional = optional,
+    ...
+  )
 }
 
 #' @export
 #' @rdname as.tbl.tidy_daggity
 as_tibble.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
-  dplyr::as_tibble(pull_dag_data(x), row.names = row.names, optional = optional, ...)
+  dplyr::as_tibble(
+    pull_dag_data(x),
+    row.names = row.names,
+    optional = optional,
+    ...
+  )
 }
 
 #' Print a `tidy_dagitty`
@@ -397,11 +424,36 @@ print.tidy_dagitty <- function(x, ...) {
   cat_subtle <- function(...) cat(pillar::style_subtle(paste(...)))
   coll <- function(x, ...) paste(x, collapse = ", ", ...)
 
-  cat_subtle("# A DAG with ", n_nodes(x), " nodes and ", n_edges(x), " edges\n", sep = "")
+  cat_subtle(
+    "# A DAG with ",
+    n_nodes(x),
+    " nodes and ",
+    n_edges(x),
+    " edges\n",
+    sep = ""
+  )
   cat_subtle("#\n")
-  if (has_exposure(x)) cat_subtle("# Exposure: ", coll(dagitty::exposures(pull_dag(x))), "\n", sep = "")
-  if (has_outcome(x)) cat_subtle("# Outcome: ", coll(dagitty::outcomes(pull_dag(x))), "\n", sep = "")
-  if (has_latent(x)) cat_subtle("# Latent Variable: ", coll(dagitty::latents(pull_dag(x))), "\n", sep = "")
+  if (has_exposure(x))
+    cat_subtle(
+      "# Exposure: ",
+      coll(dagitty::exposures(pull_dag(x))),
+      "\n",
+      sep = ""
+    )
+  if (has_outcome(x))
+    cat_subtle(
+      "# Outcome: ",
+      coll(dagitty::outcomes(pull_dag(x))),
+      "\n",
+      sep = ""
+    )
+  if (has_latent(x))
+    cat_subtle(
+      "# Latent Variable: ",
+      coll(dagitty::latents(pull_dag(x))),
+      "\n",
+      sep = ""
+    )
   if (has_collider_path(x)) {
     cat_subtle(
       "# Paths opened by conditioning on a collider: ",
@@ -410,12 +462,14 @@ print.tidy_dagitty <- function(x, ...) {
       sep = ""
     )
   }
-  if (any(c(
-    has_collider_path(x),
-    has_exposure(x),
-    has_outcome(x),
-    has_latent(x)
-  ))) {
+  if (
+    any(c(
+      has_collider_path(x),
+      has_exposure(x),
+      has_outcome(x),
+      has_latent(x)
+    ))
+  ) {
     cat_subtle("#\n")
   }
 
@@ -455,7 +509,8 @@ print.tidy_dagitty <- function(x, ...) {
 #' @rdname coordinates
 #' @name coordinates
 coords2df <- function(coord_list) {
-  coord_df <- purrr::map(coord_list, tibble::enframe) %>% purrr::reduce(ggdag_left_join, by = "name")
+  coord_df <- purrr::map(coord_list, tibble::enframe) %>%
+    purrr::reduce(ggdag_left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df
 }
