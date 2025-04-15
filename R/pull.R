@@ -196,7 +196,10 @@ compile_dag_from_df <- function(.df) {
       direction = ifelse(direction == "<-", "->", direction)
     ) %>%
     dplyr::group_by(name, direction) %>%
-    dplyr::summarise(to_formula = paste("{", paste(to, collapse = " "), "}"), .groups = "drop") %>%
+    dplyr::summarise(
+      to_formula = paste("{", paste(to, collapse = " "), "}"),
+      .groups = "drop"
+    ) %>%
     dplyr::transmute(dag_formula = paste(name, direction, to_formula)) %>%
     dplyr::pull() %>%
     paste(collapse = "; ") %>%

@@ -83,7 +83,14 @@ dag2 <- dag
 #' ggdag(dag2)
 #'
 #' @seealso [dag()], [coords2df()], [coords2list()]
-dagify <- function(..., exposure = NULL, outcome = NULL, latent = NULL, labels = NULL, coords = NULL) {
+dagify <- function(
+  ...,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL,
+  labels = NULL,
+  coords = NULL
+) {
   fmlas <- list(...)
   dag_txt <- purrr::map_chr(fmlas, formula2char)
   dag_txt <- paste(dag_txt, collapse = "; ") %>%

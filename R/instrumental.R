@@ -35,7 +35,6 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
     outcome = outcome
   )
 
-
   i_vars <- purrr::map(instrumental_vars, "I")
   if (purrr::is_empty(i_vars)) {
     .dag <- dplyr::mutate(
@@ -46,20 +45,31 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   }
   adjust_for_vars <- purrr::map(instrumental_vars, "Z")
 
-  update_dag_data(.dag) <- purrr::map2_df(i_vars, adjust_for_vars, function(.i, .z) {
-    conditional_vars <- ifelse(is.null(.z), "", paste("|", paste(.z, collapse = ", ")))
-    .dag <- .dag %>% dplyr::mutate(
-      instrumental_name = paste(.i, conditional_vars) %>% stringr::str_trim()
-    )
-    if (!is.null(.z)) {
-      .dag <- .dag %>% control_for(.z, activate_colliders = FALSE)
-    }
-    .dag <- .dag %>% dplyr::mutate(
-      instrumental = ifelse(name == .i, "instrumental", NA)
-    )
+  update_dag_data(.dag) <- purrr::map2_df(
+    i_vars,
+    adjust_for_vars,
+    function(.i, .z) {
+      conditional_vars <- ifelse(
+        is.null(.z),
+        "",
+        paste("|", paste(.z, collapse = ", "))
+      )
+      .dag <- .dag %>%
+        dplyr::mutate(
+          instrumental_name = paste(.i, conditional_vars) %>%
+            stringr::str_trim()
+        )
+      if (!is.null(.z)) {
+        .dag <- .dag %>% control_for(.z, activate_colliders = FALSE)
+      }
+      .dag <- .dag %>%
+        dplyr::mutate(
+          instrumental = ifelse(name == .i, "instrumental", NA)
+        )
 
-    pull_dag_data(.dag)
-  })
+      pull_dag_data(.dag)
+    }
+  )
 
   .dag
 }
@@ -67,29 +77,30 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
 #' @rdname instrumental
 #' @export
 ggdag_instrumental <- function(
-    .tdy_dag,
-    exposure = NULL,
-    outcome = NULL,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 10,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  exposure = NULL,
+  outcome = NULL,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_instrumental(exposure = exposure, outcome = outcome, ...)
   has_instrumental <- !all(is.na((pull_dag_data(.tdy_dag)$instrumental)))

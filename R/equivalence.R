@@ -62,7 +62,16 @@ has_extra_columns <- function(.x) {
 }
 
 get_extra_column_names <- function(.x) {
-  standard_names <- c("name", "x", "y", "direction", "to", "xend", "yend", "circular")
+  standard_names <- c(
+    "name",
+    "x",
+    "y",
+    "direction",
+    "to",
+    "xend",
+    "yend",
+    "circular"
+  )
   dag_columns <- names(pull_dag_data(.x))
   setdiff(dag_columns, standard_names)
 }
@@ -80,53 +89,55 @@ map_equivalence <- function(.x) {
 #' @rdname equivalent
 #' @export
 ggdag_equivalent_dags <- function(
-    .tdy_dag,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_dags(...)
 
   p <- ggplot2::ggplot(.tdy_dag, aes_dag())
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   if (dplyr::n_distinct(pull_dag_data(.tdy_dag)$dag) > 1) {
     p <- p +
@@ -169,26 +180,27 @@ node_equivalent_class <- function(.dag, layout = "auto") {
 #' @inheritParams expand_plot
 #' @export
 ggdag_equivalent_class <- function(
-    .tdy_dag,
-    ...,
-    size = 1,
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  ...,
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     node_equivalent_class(...)
 
@@ -202,28 +214,33 @@ ggdag_equivalent_class <- function(
     ) +
     geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
     breaks(breaks) +
-    ggraph::scale_edge_alpha_manual(name = "Reversable", drop = FALSE, values = c(.30, 1))
+    ggraph::scale_edge_alpha_manual(
+      name = "Reversable",
+      drop = FALSE,
+      values = c(.30, 1)
+    )
 
-  p <- p + geom_dag(
-    size = size,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = FALSE,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  )
+  p <- p +
+    geom_dag(
+      size = size,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = FALSE,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    )
 
   p
 }

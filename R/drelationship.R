@@ -65,12 +65,20 @@
 #'   scale_adjusted()
 #' @rdname d_relationship
 #' @name Assess d-separation between variables
-node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE, ...) {
+node_dconnected <- function(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  as_factor = TRUE,
+  ...
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
   if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
+  if (is_empty_or_null(from) || is_empty_or_null(to))
+    stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -78,7 +86,12 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
     controlling_for <- c()
   }
 
-  .dconnected <- dagitty::dconnected(pull_dag(.tdy_dag), from, to, controlling_for)
+  .dconnected <- dagitty::dconnected(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    controlling_for
+  )
 
   .from <- from
   .to <- to
@@ -111,12 +124,19 @@ node_dconnected <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
 
 #' @rdname d_relationship
 #' @export
-node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE) {
+node_dseparated <- function(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  as_factor = TRUE
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
   if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
+  if (is_empty_or_null(from) || is_empty_or_null(to))
+    stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -126,7 +146,12 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
     controlling_for <- c()
   }
 
-  .dseparated <- dagitty::dseparated(pull_dag(.tdy_dag), from, to, controlling_for)
+  .dseparated <- dagitty::dseparated(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    controlling_for
+  )
 
   .from <- from
   .to <- to
@@ -158,18 +183,30 @@ node_dseparated <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = 
 
 #' @rdname d_relationship
 #' @export
-node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for = NULL, as_factor = TRUE) {
+node_drelationship <- function(
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  as_factor = TRUE
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
   if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
   if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is_empty_or_null(from) || is_empty_or_null(to)) stop("`from` and `to` must be set!")
+  if (is_empty_or_null(from) || is_empty_or_null(to))
+    stop("`from` and `to` must be set!")
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
   }
 
-  .dseparated <- dagitty::dseparated(pull_dag(.tdy_dag), from, to, controlling_for)
+  .dseparated <- dagitty::dseparated(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    controlling_for
+  )
   .from <- from
   .to <- to
   .tdy_dag <- dplyr::mutate(
@@ -196,31 +233,32 @@ node_drelationship <- function(.tdy_dag, from = NULL, to = NULL, controlling_for
 #' @rdname d_relationship
 #' @export
 ggdag_drelationship <- function(
-    .tdy_dag,
-    from = NULL,
-    to = NULL,
-    controlling_for = NULL,
-    ...,
-    edge_type = "link_arc",
-    size = 1,
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 10,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    label = NULL,
-    text = NULL,
-    node = deprecated(),
-    stylized = deprecated(),
-    collider_lines = TRUE) {
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  ...,
+  edge_type = "link_arc",
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  collider_lines = TRUE
+) {
   df <- if_not_tidy_daggity(.tdy_dag) %>%
     node_drelationship(
       from = from,
@@ -240,27 +278,28 @@ ggdag_drelationship <- function(
 
   if (has_adjusted && collider_lines) p <- p + geom_dag_collider_edges()
 
-  p <- p + geom_dag(
-    size = size,
-    edge_type = edge_type,
-    node_size = node_size,
-    text_size = text_size,
-    label_size = label_size,
-    text_col = text_col,
-    label_col = label_col,
-    edge_width = edge_width,
-    edge_cap = edge_cap,
-    arrow_length = arrow_length,
-    use_edges = use_edges,
-    use_nodes = use_nodes,
-    use_stylized = use_stylized,
-    use_text = use_text,
-    use_labels = use_labels,
-    text = !!rlang::enquo(text),
-    label = !!rlang::enquo(label),
-    node = node,
-    stylized = stylized
-  ) +
+  p <- p +
+    geom_dag(
+      size = size,
+      edge_type = edge_type,
+      node_size = node_size,
+      text_size = text_size,
+      label_size = label_size,
+      text_col = text_col,
+      label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
+      use_edges = use_edges,
+      use_nodes = use_nodes,
+      use_stylized = use_stylized,
+      use_text = use_text,
+      use_labels = use_labels,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
+    ) +
     scale_adjusted() +
     breaks(c("d-connected", "d-separated"), name = "d-relationship") +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
@@ -271,30 +310,31 @@ ggdag_drelationship <- function(
 #' @rdname d_relationship
 #' @export
 ggdag_dseparated <- function(
-    .tdy_dag,
-    from = NULL,
-    to = NULL,
-    controlling_for = NULL,
-    ...,
-    edge_type = "link_arc",
-    size = 1,
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 10,
-    arrow_length = 5,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    label = NULL,
-    text = NULL,
-    node = deprecated(),
-    stylized = deprecated(),
-    collider_lines = TRUE) {
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  ...,
+  edge_type = "link_arc",
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  collider_lines = TRUE
+) {
   ggdag_drelationship(
     .tdy_dag = .tdy_dag,
     from = from,
@@ -326,30 +366,31 @@ ggdag_dseparated <- function(
 #' @rdname d_relationship
 #' @export
 ggdag_dconnected <- function(
-    .tdy_dag,
-    from = NULL,
-    to = NULL,
-    controlling_for = NULL,
-    ...,
-    edge_type = "link_arc",
-    size = 1,
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 10,
-    arrow_length = 5,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    label = NULL,
-    text = NULL,
-    node = deprecated(),
-    stylized = deprecated(),
-    collider_lines = TRUE) {
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  controlling_for = NULL,
+  ...,
+  edge_type = "link_arc",
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  collider_lines = TRUE
+) {
   ggdag_drelationship(
     .tdy_dag = .tdy_dag,
     from = from,

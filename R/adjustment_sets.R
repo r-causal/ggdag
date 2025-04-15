@@ -41,15 +41,27 @@
 #'
 #' @rdname adjustment_sets
 #' @name Covariate Adjustment Sets
-dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) {
+dag_adjustment_sets <- function(
+  .tdy_dag,
+  exposure = NULL,
+  outcome = NULL,
+  ...
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
-  sets <- dagitty::adjustmentSets(pull_dag(.tdy_dag), exposure = exposure, outcome = outcome, ...)
+  sets <- dagitty::adjustmentSets(
+    pull_dag(.tdy_dag),
+    exposure = exposure,
+    outcome = outcome,
+    ...
+  )
   is_empty_set <- purrr::is_empty(sets)
   if (is_empty_set) {
-    warning("Failed to close backdoor paths. Common reasons include:
+    warning(
+      "Failed to close backdoor paths. Common reasons include:
             * graph is not acyclic
             * backdoor paths are not closeable with given set of variables
-            * necessary variables are unmeasured (latent)")
+            * necessary variables are unmeasured (latent)"
+    )
     sets <- "(No Way to Block Backdoor Paths)"
   } else {
     sets <- extract_sets(sets)
@@ -58,7 +70,11 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
   update_dag_data(.tdy_dag) <-
     purrr::map_df(
       sets,
-      ~ dplyr::mutate(pull_dag_data(.tdy_dag), adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"), set = paste0("{", paste(.x, collapse = ", "), "}"))
+      ~ dplyr::mutate(
+        pull_dag_data(.tdy_dag),
+        adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"),
+        set = paste0("{", paste(.x, collapse = ", "), "}")
+      )
     )
 
   .tdy_dag
@@ -66,38 +82,43 @@ dag_adjustment_sets <- function(.tdy_dag, exposure = NULL, outcome = NULL, ...) 
 
 extract_sets <- function(sets) {
   sets <- unname(as.list(sets))
-  sets <- purrr::map_if(sets, purrr::is_empty, ~"(Backdoor Paths Unconditionally Closed)")
+  sets <- purrr::map_if(
+    sets,
+    purrr::is_empty,
+    ~"(Backdoor Paths Unconditionally Closed)"
+  )
 }
 
 
 #' @rdname adjustment_sets
 #' @export
 ggdag_adjustment_set <- function(
-    .tdy_dag,
-    exposure = NULL,
-    outcome = NULL,
-    ...,
-    shadow = TRUE,
-    size = 1,
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 10,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    label = NULL,
-    text = NULL,
-    node = deprecated(),
-    stylized = deprecated(),
-    expand_x = expansion(c(0.25, 0.25)),
-    expand_y = expansion(c(0.2, 0.2))) {
+  .tdy_dag,
+  exposure = NULL,
+  outcome = NULL,
+  ...,
+  shadow = TRUE,
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  label = NULL,
+  text = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  expand_x = expansion(c(0.25, 0.25)),
+  expand_y = expansion(c(0.2, 0.2))
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
 
@@ -115,10 +136,11 @@ ggdag_adjustment_set <- function(
     vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
   }
 
-  p <- p + geom_dag_edges(
-    ggplot2::aes(edge_colour = adjusted),
-    show.legend = if (shadow) TRUE else FALSE
-  ) +
+  p <- p +
+    geom_dag_edges(
+      ggplot2::aes(edge_colour = adjusted),
+      show.legend = if (shadow) TRUE else FALSE
+    ) +
     ggraph::scale_edge_colour_manual(
       drop = FALSE,
       values = vals,
@@ -204,14 +226,28 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #'
 #' @rdname control_for
 #' @name Adjust for variables
-control_for <- function(.tdy_dag, var, as_factor = TRUE, activate_colliders = TRUE, ...) {
+control_for <- function(
+  .tdy_dag,
+  var,
+  as_factor = TRUE,
+  activate_colliders = TRUE,
+  ...
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
   update_dag(.tdy_dag) <- updated_dag
-  if (isTRUE(activate_colliders)) .tdy_dag <- activate_collider_paths(.tdy_dag, var)
-  .tdy_dag <- dplyr::mutate(.tdy_dag, adjusted = ifelse(name %in% var, "adjusted", "unadjusted"))
-  if (as_factor) .tdy_dag <- dplyr::mutate(.tdy_dag, adjusted = factor(adjusted, exclude = NA))
+  if (isTRUE(activate_colliders))
+    .tdy_dag <- activate_collider_paths(.tdy_dag, var)
+  .tdy_dag <- dplyr::mutate(
+    .tdy_dag,
+    adjusted = ifelse(name %in% var, "adjusted", "unadjusted")
+  )
+  if (as_factor)
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      adjusted = factor(adjusted, exclude = NA)
+    )
   .tdy_dag
 }
 
@@ -222,36 +258,41 @@ adjust_for <- control_for
 #' @rdname control_for
 #' @export
 ggdag_adjust <- function(
-    .tdy_dag,
-    var = NULL,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 10,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated(),
-    collider_lines = TRUE) {
+  .tdy_dag,
+  var = NULL,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 10,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated(),
+  collider_lines = TRUE
+) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
     .tdy_dag <- .tdy_dag %>% control_for(var)
   } else {
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
-    if (is.null(var)) stop("an adjusting variable needs to be set, either via `var` or `control_for()`")
-    if (is.null(pull_dag_data(.tdy_dag)$adjusted)) .tdy_dag <- .tdy_dag %>% control_for(var)
+    if (is.null(var))
+      stop(
+        "an adjusting variable needs to be set, either via `var` or `control_for()`"
+      )
+    if (is.null(pull_dag_data(.tdy_dag)$adjusted))
+      .tdy_dag <- .tdy_dag %>% control_for(var)
   }
 
   p <- .tdy_dag %>%

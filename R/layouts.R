@@ -66,7 +66,12 @@
 #'
 #' @export
 #' @seealso [dagify()], [coords2df()], [coords2list()]
-time_ordered_coords <- function(.vars = NULL, time_points = NULL, direction = c("x", "y"), auto_sort_direction = c("right", "left")) {
+time_ordered_coords <- function(
+  .vars = NULL,
+  time_points = NULL,
+  direction = c("x", "y"),
+  auto_sort_direction = c("right", "left")
+) {
   direction <- match.arg(direction)
 
   if (is.null(.vars)) {

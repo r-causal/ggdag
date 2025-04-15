@@ -59,7 +59,6 @@ test_that("`ggdag_conditional_independence()` works", {
   p1 <- ggdag_conditional_independence(test_result)
   expect_doppelganger("fake tests flexibly plot", p1)
 
-
   data <- simulate_data(test_dag)
   test_result <- test_conditional_independence(test_dag, data)
   p2 <- ggdag_conditional_independence(
@@ -71,6 +70,11 @@ test_that("`ggdag_conditional_independence()` works", {
 
   expect_doppelganger("real tests plot", p2)
 
-  test_result <- data.frame(independence = character(), estimate = numeric(), lower = numeric(), upper = numeric())
+  test_result <- data.frame(
+    independence = character(),
+    estimate = numeric(),
+    lower = numeric(),
+    upper = numeric()
+  )
   expect_error(ggdag_conditional_independence(test_result))
 })

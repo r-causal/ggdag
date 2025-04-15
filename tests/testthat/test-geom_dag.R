@@ -19,11 +19,13 @@ test_that("repelled labels work", {
 
   p2 <- g %>%
     tidy_dagitty() %>%
-    dag_label(labels = c(
-      "x" = "This is the exposure",
-      "y" = "Here's the outcome",
-      "m" = "Here is where they collide"
-    )) %>%
+    dag_label(
+      labels = c(
+        "x" = "This is the exposure",
+        "y" = "Here's the outcome",
+        "m" = "Here is where they collide"
+      )
+    ) %>%
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
@@ -63,9 +65,15 @@ test_that("different edge types work", {
     geom_dag_point() +
     geom_dag_text()
 
-  expect_doppelganger("geom_dag_edges_link() is straight", p + geom_dag_edges_link())
+  expect_doppelganger(
+    "geom_dag_edges_link() is straight",
+    p + geom_dag_edges_link()
+  )
   expect_doppelganger("geom_dag_edges_arc() is arcy", p + geom_dag_edges_arc())
-  expect_doppelganger("geom_dag_edges_diagonal() is arcy", p + geom_dag_edges_diagonal())
+  expect_doppelganger(
+    "geom_dag_edges_diagonal() is arcy",
+    p + geom_dag_edges_diagonal()
+  )
   expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })
 test_that("labels also work", {

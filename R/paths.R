@@ -39,62 +39,86 @@
 #' @name Pathways
 #' @importFrom magrittr %$%
 #' @export
-dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 100, directed = FALSE, paths_only = FALSE, ...) {
+dag_paths <- function(
+  .dag,
+  from = NULL,
+  to = NULL,
+  adjust_for = NULL,
+  limit = 100,
+  directed = FALSE,
+  paths_only = FALSE,
+  ...
+) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
 
   if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
   if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is.null(from) || is.null(to)) stop("`exposure` and `outcome` must be set!")
+  if (is.null(from) || is.null(to))
+    stop("`exposure` and `outcome` must be set!")
 
-  pathways <- dagitty::paths(pull_dag(.tdy_dag), from, to, Z = adjust_for, limit = limit, directed = directed) %>%
+  pathways <- dagitty::paths(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    Z = adjust_for,
+    limit = limit,
+    directed = directed
+  ) %>%
     dplyr::as_tibble() %>%
     dplyr::filter(open) %>%
     dplyr::pull(paths)
 
-
   vars <- c(from = from, to = to)
 
   update_dag_data(.tdy_dag) <- pathways %>%
-    purrr::map_df(function(.x) {
-      path_df <- .x %>%
-        dag2() %>%
-        dagitty::edges() %>%
-        dplyr::select(.from = v, .to = w) %>%
-        dplyr::mutate(
-          .from = as.character(.from),
-          .to = as.character(.to),
-          path = "open path"
-        ) %>%
-        ggdag_left_join(pull_dag_data(.tdy_dag), ., by = c("name" = ".from", "to" = ".to"))
+    purrr::map_df(
+      function(.x) {
+        path_df <- .x %>%
+          dag2() %>%
+          dagitty::edges() %>%
+          dplyr::select(.from = v, .to = w) %>%
+          dplyr::mutate(
+            .from = as.character(.from),
+            .to = as.character(.to),
+            path = "open path"
+          ) %>%
+          ggdag_left_join(
+            pull_dag_data(.tdy_dag),
+            .,
+            by = c("name" = ".from", "to" = ".to")
+          )
 
-      any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
-      if (any_x_unopend) {
-        x_has_no_children <- any(path_df$name == vars[[1]] & is.na(path_df$to))
-        if (x_has_no_children) {
-          path_df[path_df$name == vars[[1]], "path"] <- "open path"
+        any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
+        if (any_x_unopend) {
+          x_has_no_children <- any(
+            path_df$name == vars[[1]] & is.na(path_df$to)
+          )
+          if (x_has_no_children) {
+            path_df[path_df$name == vars[[1]], "path"] <- "open path"
+          } else {
+            path_df <- path_df %>%
+              filter(name == vars[[1]]) %>%
+              dplyr::slice(1) %>%
+              dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
+              dplyr::bind_rows(path_df, .)
+          }
+        }
+
+        y_has_no_children <- any(path_df$name == vars[[2]] & is.na(path_df$to))
+        if (y_has_no_children) {
+          path_df[path_df$name == vars[[2]], "path"] <- "open path"
         } else {
           path_df <- path_df %>%
-            filter(name == vars[[1]]) %>%
+            filter(name == vars[[2]]) %>%
             dplyr::slice(1) %>%
             dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
             dplyr::bind_rows(path_df, .)
         }
-      }
 
-
-      y_has_no_children <- any(path_df$name == vars[[2]] & is.na(path_df$to))
-      if (y_has_no_children) {
-        path_df[path_df$name == vars[[2]], "path"] <- "open path"
-      } else {
-        path_df <- path_df %>%
-          filter(name == vars[[2]]) %>%
-          dplyr::slice(1) %>%
-          dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
-          dplyr::bind_rows(path_df, .)
-      }
-
-      path_df
-    }, .id = "set")
+        path_df
+      },
+      .id = "set"
+    )
 
   if (paths_only) .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")
 
@@ -105,35 +129,42 @@ dag_paths <- function(.dag, from = NULL, to = NULL, adjust_for = NULL, limit = 1
 #' @rdname paths
 #' @export
 ggdag_paths <- function(
-    .tdy_dag,
-    from = NULL,
-    to = NULL,
-    adjust_for = NULL,
-    limit = 100,
-    directed = FALSE,
-    shadow = TRUE,
-    ...,
-    size = 1,
-    edge_type = c("link_arc", "link", "arc", "diagonal"),
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  adjust_for = NULL,
+  limit = 100,
+  directed = FALSE,
+  shadow = TRUE,
+  ...,
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed) %>%
+    dag_paths(
+      from = from,
+      to = to,
+      adjust_for = adjust_for,
+      limit = limit,
+      directed = directed
+    ) %>%
     ggplot2::ggplot(aes_dag(color = path)) +
     geom_dag_edges(
       ggplot2::aes(edge_colour = path),
@@ -195,42 +226,63 @@ ggdag_paths <- function(
 #' @rdname paths
 #' @export
 ggdag_paths_fan <- function(
-    .tdy_dag,
-    from = NULL,
-    to = NULL,
-    adjust_for = NULL,
-    limit = 100,
-    directed = FALSE,
-    ...,
-    shadow = TRUE,
-    spread = .7,
-    size = 1,
-    node_size = 16,
-    text_size = 3.88,
-    label_size = text_size,
-    text_col = "white",
-    label_col = "black",
-    edge_width = 0.6,
-    edge_cap = 8,
-    arrow_length = 5,
-    use_edges = TRUE,
-    use_nodes = TRUE,
-    use_stylized = FALSE,
-    use_text = TRUE,
-    use_labels = FALSE,
-    text = NULL,
-    label = NULL,
-    node = deprecated(),
-    stylized = deprecated()) {
+  .tdy_dag,
+  from = NULL,
+  to = NULL,
+  adjust_for = NULL,
+  limit = 100,
+  directed = FALSE,
+  ...,
+  shadow = TRUE,
+  spread = .7,
+  size = 1,
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL,
+  node = deprecated(),
+  stylized = deprecated()
+) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    dag_paths(from = from, to = to, adjust_for = adjust_for, limit = limit, directed = directed, paths_only = !shadow) %>%
+    dag_paths(
+      from = from,
+      to = to,
+      adjust_for = adjust_for,
+      limit = limit,
+      directed = directed,
+      paths_only = !shadow
+    ) %>%
     ggplot2::ggplot(aes_dag()) +
     geom_dag_edges_fan(
       ggplot2::aes(edge_colour = set, edge_alpha = path),
       spread = spread
     ) +
-    ggplot2::scale_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .35, breaks = "open path", limits = "open path") +
-    ggraph::scale_edge_alpha_manual(drop = FALSE, values = c("open path" = 1), na.value = .15, breaks = "open path", guide = "none", limits = "open path") +
+    ggplot2::scale_alpha_manual(
+      drop = FALSE,
+      values = c("open path" = 1),
+      na.value = .35,
+      breaks = "open path",
+      limits = "open path"
+    ) +
+    ggraph::scale_edge_alpha_manual(
+      drop = FALSE,
+      values = c("open path" = 1),
+      na.value = .15,
+      breaks = "open path",
+      guide = "none",
+      limits = "open path"
+    ) +
     ggraph::scale_edge_colour_discrete(name = "open path", drop = FALSE) +
     ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path") +
     expand_plot(
