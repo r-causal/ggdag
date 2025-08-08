@@ -43,7 +43,9 @@ tidy_dagitty <- function(
   ...,
   use_existing_coords = TRUE
 ) {
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
   if (dagitty::graphType(.dagitty) != "dag") {
     stop("`.dagitty` must be of graph type `dag`")
@@ -152,7 +154,9 @@ as_tidy_dagitty.data.frame <- function(
   saturate = FALSE,
   ...
 ) {
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
   tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
   .dagitty <- compile_dag_from_df(x)
@@ -213,7 +217,9 @@ as_tidy_dagitty.list <- function(
   layout = "time_ordered",
   ...
 ) {
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
   dag_edges <- purrr::map(
     seq_len(length(x) - 1),
@@ -433,27 +439,30 @@ print.tidy_dagitty <- function(x, ...) {
     sep = ""
   )
   cat_subtle("#\n")
-  if (has_exposure(x))
+  if (has_exposure(x)) {
     cat_subtle(
       "# Exposure: ",
       coll(dagitty::exposures(pull_dag(x))),
       "\n",
       sep = ""
     )
-  if (has_outcome(x))
+  }
+  if (has_outcome(x)) {
     cat_subtle(
       "# Outcome: ",
       coll(dagitty::outcomes(pull_dag(x))),
       "\n",
       sep = ""
     )
-  if (has_latent(x))
+  }
+  if (has_latent(x)) {
     cat_subtle(
       "# Latent Variable: ",
       coll(dagitty::latents(pull_dag(x))),
       "\n",
       sep = ""
     )
+  }
   if (has_collider_path(x)) {
     cat_subtle(
       "# Paths opened by conditioning on a collider: ",

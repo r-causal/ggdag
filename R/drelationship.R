@@ -75,10 +75,15 @@ node_dconnected <- function(
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
-  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is_empty_or_null(from) || is_empty_or_null(to))
+  if (is.null(from)) {
+    from <- dagitty::exposures(pull_dag(.tdy_dag))
+  }
+  if (is.null(to)) {
+    to <- dagitty::outcomes(pull_dag(.tdy_dag))
+  }
+  if (is_empty_or_null(from) || is_empty_or_null(to)) {
     stop("`from` and `to` must be set!")
+  }
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -133,10 +138,15 @@ node_dseparated <- function(
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
-  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is_empty_or_null(from) || is_empty_or_null(to))
+  if (is.null(from)) {
+    from <- dagitty::exposures(pull_dag(.tdy_dag))
+  }
+  if (is.null(to)) {
+    to <- dagitty::outcomes(pull_dag(.tdy_dag))
+  }
+  if (is_empty_or_null(from) || is_empty_or_null(to)) {
     stop("`from` and `to` must be set!")
+  }
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -192,10 +202,15 @@ node_drelationship <- function(
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
 
-  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
-  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is_empty_or_null(from) || is_empty_or_null(to))
+  if (is.null(from)) {
+    from <- dagitty::exposures(pull_dag(.tdy_dag))
+  }
+  if (is.null(to)) {
+    to <- dagitty::outcomes(pull_dag(.tdy_dag))
+  }
+  if (is_empty_or_null(from) || is_empty_or_null(to)) {
     stop("`from` and `to` must be set!")
+  }
 
   if (!is.null(controlling_for)) {
     .tdy_dag <- control_for(.tdy_dag, controlling_for)
@@ -276,7 +291,9 @@ ggdag_drelationship <- function(
 
   p <- ggplot2::ggplot(df, mapping)
 
-  if (has_adjusted && collider_lines) p <- p + geom_dag_collider_edges()
+  if (has_adjusted && collider_lines) {
+    p <- p + geom_dag_collider_edges()
+  }
 
   p <- p +
     geom_dag(

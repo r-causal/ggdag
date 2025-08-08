@@ -62,7 +62,9 @@ if_not_tidy_daggity <- function(.dagitty, ...) {
 
 unique_pairs <- function(x, exclude_identical = TRUE) {
   pairs <- expand.grid(x, x) %>% purrr::map_dfc(as.character)
-  if (exclude_identical) pairs <- pairs %>% dplyr::filter(Var1 != Var2)
+  if (exclude_identical) {
+    pairs <- pairs %>% dplyr::filter(Var1 != Var2)
+  }
   pairs[!duplicated(t(apply(pairs, 1, sort))), ]
 }
 
@@ -121,7 +123,11 @@ n_edges <- function(x) {
 }
 
 n_collder_paths <- function(x) {
-  if (has_collider_path(x)) n <- sum(pull_dag_data(x)$collider_line) else n <- 0
+  if (has_collider_path(x)) {
+    n <- sum(pull_dag_data(x)$collider_line)
+  } else {
+    n <- 0
+  }
   n
 }
 

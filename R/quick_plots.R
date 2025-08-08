@@ -66,8 +66,9 @@ m_bias <- function(
     )
   }
 
-  if (!is.null(c(x, y, a, b, m)))
+  if (!is.null(c(x, y, a, b, m))) {
     label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
+  }
 
   .dag
 }
@@ -123,8 +124,9 @@ butterfly_bias <- function(
     )
   }
 
-  if (!is.null(c(x, y, a, b, m)))
+  if (!is.null(c(x, y, a, b, m))) {
     label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
+  }
 
   .dag
 }
@@ -170,7 +172,9 @@ confounder_triangle <- function(
     )
   }
 
-  if (!is.null(c(x, y, z))) label(.dag) <- c(x = x, y = y, z = z)
+  if (!is.null(c(x, y, z))) {
+    label(.dag) <- c(x = x, y = y, z = z)
+  }
 
   .dag
 }
@@ -215,7 +219,9 @@ collider_triangle <- function(
     )
   }
 
-  if (!is.null(c(x, y, m))) label(.dag) <- c(x = x, y = y, m = m)
+  if (!is.null(c(x, y, m))) {
+    label(.dag) <- c(x = x, y = y, m = m)
+  }
 
   .dag
 }
@@ -261,7 +267,9 @@ mediation_triangle <- function(
     )
   }
 
-  if (!is.null(c(x, y, m))) label(.dag) <- c(x = x, y = y, m = m)
+  if (!is.null(c(x, y, m))) {
+    label(.dag) <- c(x = x, y = y, m = m)
+  }
 
   .dag
 }

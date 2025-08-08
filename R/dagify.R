@@ -96,9 +96,15 @@ dagify <- function(
   dag_txt <- paste(dag_txt, collapse = "; ") %>%
     paste("dag {", ., "}")
   dgty <- dagitty::dagitty(dag_txt)
-  if (!is.null(exposure)) dagitty::exposures(dgty) <- exposure
-  if (!is.null(outcome)) dagitty::outcomes(dgty) <- outcome
-  if (!is.null(latent)) dagitty::latents(dgty) <- latent
+  if (!is.null(exposure)) {
+    dagitty::exposures(dgty) <- exposure
+  }
+  if (!is.null(outcome)) {
+    dagitty::outcomes(dgty) <- outcome
+  }
+  if (!is.null(latent)) {
+    dagitty::latents(dgty) <- latent
+  }
   if (!is.null(coords)) {
     if (is.data.frame(coords)) {
       dagitty::coordinates(dgty) <- coords2list(coords)
@@ -114,7 +120,9 @@ dagify <- function(
       stop("`coords` must be of class `list`, `data.frame`, or `function`")
     }
   }
-  if (!is.null(labels)) label(dgty) <- labels
+  if (!is.null(labels)) {
+    label(dgty) <- labels
+  }
   dgty
 }
 
