@@ -44,7 +44,9 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
   dagitty::coordinates(updated_dag) <- layout_coords
   update_dag(.dag) <- updated_dag
 
-  if (extra_columns) extra_column_df <- select_extra_columns(.dag)
+  if (extra_columns) {
+    extra_column_df <- select_extra_columns(.dag)
+  }
 
   update_dag_data(.dag) <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) %>%
     purrr::map_df(map_equivalence, .id = "dag") %>%

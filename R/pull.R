@@ -208,7 +208,9 @@ compile_dag_from_df <- function(.df) {
 }
 
 return_status <- function(.dag, .status) {
-  if (is.tidy_dagitty(.dag)) .dag <- pull_dag_data(.dag)
+  if (is.tidy_dagitty(.dag)) {
+    .dag <- pull_dag_data(.dag)
+  }
 
   dplyr::filter(.dag, status == .status) %>%
     dplyr::pull(name) %>%

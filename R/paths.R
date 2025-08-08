@@ -51,10 +51,15 @@ dag_paths <- function(
 ) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
 
-  if (is.null(from)) from <- dagitty::exposures(pull_dag(.tdy_dag))
-  if (is.null(to)) to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  if (is.null(from) || is.null(to))
+  if (is.null(from)) {
+    from <- dagitty::exposures(pull_dag(.tdy_dag))
+  }
+  if (is.null(to)) {
+    to <- dagitty::outcomes(pull_dag(.tdy_dag))
+  }
+  if (is.null(from) || is.null(to)) {
     stop("`exposure` and `outcome` must be set!")
+  }
 
   pathways <- dagitty::paths(
     pull_dag(.tdy_dag),
@@ -120,7 +125,9 @@ dag_paths <- function(
       .id = "set"
     )
 
-  if (paths_only) .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")
+  if (paths_only) {
+    .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")
+  }
 
   .tdy_dag
 }

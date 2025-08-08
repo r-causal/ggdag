@@ -211,7 +211,9 @@ join_rhs_coords <- function(.x, .y) {
 #' @rdname is_collider
 #' @name Test if Variable Is Collider
 is_collider <- function(.dag, .var, downstream = TRUE) {
-  if (is.tidy_dagitty(.dag)) .dag <- pull_dag(.dag)
+  if (is.tidy_dagitty(.dag)) {
+    .dag <- pull_dag(.dag)
+  }
   n_parents <- dagitty::parents(.dag, .var)
   collider <- length(n_parents) > 1
   downstream_collider <- is_downstream_collider(.dag, .var)
@@ -225,7 +227,9 @@ is_collider <- function(.dag, .var, downstream = TRUE) {
 #' @rdname is_collider
 #' @export
 is_downstream_collider <- function(.dag, .var) {
-  if (is.tidy_dagitty(.dag)) .dag <- pull_dag(.dag)
+  if (is.tidy_dagitty(.dag)) {
+    .dag <- pull_dag(.dag)
+  }
   var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
   any(purrr::map_lgl(var_ancestors, ~ is_collider(.dag, .x)))
 }

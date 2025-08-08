@@ -149,8 +149,12 @@ geom_dag_text <- function(
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) mapping <- ggplot2::aes(label = name)
-  if (is.null(mapping$label)) mapping$label <- substitute(name)
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes(label = name)
+  }
+  if (is.null(mapping$label)) {
+    mapping$label <- substitute(name)
+  }
 
   ggplot2::layer(
     data = data,
@@ -230,8 +234,12 @@ geom_dag_label <- function(
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) mapping <- ggplot2::aes(label = name)
-  if (is.null(mapping$label)) mapping$label <- substitute(name)
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes(label = name)
+  }
+  if (is.null(mapping$label)) {
+    mapping$label <- substitute(name)
+  }
 
   ggplot2::layer(
     data = data,
@@ -428,7 +436,9 @@ geom_dag_label_repel2 <- function(
 filter_direction <- function(.direction) {
   function(x) {
     x <- dplyr::filter(x, direction == .direction)
-    if ("collider_line" %in% names(x)) x <- dplyr::filter(x, !collider_line)
+    if ("collider_line" %in% names(x)) {
+      x <- dplyr::filter(x, !collider_line)
+    }
 
     x
   }
@@ -900,9 +910,10 @@ geom_dag_collider_edges <- function(
   show.legend = NA,
   inherit.aes = TRUE
 ) {
-  if (is.null(data))
+  if (is.null(data)) {
     data <- function(x) dplyr::filter(x, direction == "<->", collider_line)
-  if (is.null(mapping))
+  }
+  if (is.null(mapping)) {
     mapping <- ggplot2::aes(
       linetype = factor(
         collider_line,
@@ -910,12 +921,14 @@ geom_dag_collider_edges <- function(
         "activated by \nadjustment \nfor collider"
       )
     )
-  if (is.null(mapping$linetype))
+  }
+  if (is.null(mapping$linetype)) {
     mapping$linetype <- substitute(factor(
       collider_line,
       levels = TRUE,
       "activated by \nadjustment \nfor collider"
     ))
+  }
   if (!is.null(size)) {
     warning("`size` is deprecated for lines. Please use `linewidth`")
     linewidth <- size

@@ -116,8 +116,12 @@ ggdag_instrumental <- function(
 
   p <- .tdy_dag %>%
     ggplot2::ggplot(mapping)
-  if (has_adjusted) p <- p + scale_adjusted()
-  if (has_instrumental) p <- p + breaks("instrumental")
+  if (has_adjusted) {
+    p <- p + scale_adjusted()
+  }
+  if (has_instrumental) {
+    p <- p + breaks("instrumental")
+  }
 
   p <- p +
     geom_dag(

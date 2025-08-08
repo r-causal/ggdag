@@ -237,17 +237,19 @@ control_for <- function(
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
   update_dag(.tdy_dag) <- updated_dag
-  if (isTRUE(activate_colliders))
+  if (isTRUE(activate_colliders)) {
     .tdy_dag <- activate_collider_paths(.tdy_dag, var)
+  }
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     adjusted = ifelse(name %in% var, "adjusted", "unadjusted")
   )
-  if (as_factor)
+  if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
       adjusted = factor(adjusted, exclude = NA)
     )
+  }
   .tdy_dag
 }
 
@@ -287,12 +289,14 @@ ggdag_adjust <- function(
     .tdy_dag <- .tdy_dag %>% control_for(var)
   } else {
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
-    if (is.null(var))
+    if (is.null(var)) {
       stop(
         "an adjusting variable needs to be set, either via `var` or `control_for()`"
       )
-    if (is.null(pull_dag_data(.tdy_dag)$adjusted))
+    }
+    if (is.null(pull_dag_data(.tdy_dag)$adjusted)) {
       .tdy_dag <- .tdy_dag %>% control_for(var)
+    }
   }
 
   p <- .tdy_dag %>%
@@ -305,7 +309,9 @@ ggdag_adjust <- function(
     scale_adjusted(include_alpha = TRUE) +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
-  if (collider_lines) p <- p + geom_dag_collider_edges()
+  if (collider_lines) {
+    p <- p + geom_dag_collider_edges()
+  }
 
   p <- p +
     geom_dag(

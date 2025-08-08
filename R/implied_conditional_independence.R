@@ -45,8 +45,11 @@ query_conditional_independence <- function(
         set = .y,
         a = .x$X,
         b = .x$Y,
-        conditioned_on = if (rlang::is_empty(.x$Z)) list(NA_character_) else
+        conditioned_on = if (rlang::is_empty(.x$Z)) {
+          list(NA_character_)
+        } else {
           list(.x$Z)
+        }
       )
     ) %>%
     purrr::list_rbind() %>%

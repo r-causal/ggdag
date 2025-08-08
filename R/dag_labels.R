@@ -54,7 +54,9 @@ dag_label <- function(.tdy_dag, labels = NULL) {
   if (!is.null(labels) & !is.null(pull_dag_data(.tdy_dag)[["label"]])) {
     .tdy_dag <- dplyr::select(.tdy_dag, -label)
   }
-  if (is.null(labels)) labels <- label(pull_dag(.tdy_dag))
+  if (is.null(labels)) {
+    labels <- label(pull_dag(.tdy_dag))
+  }
   if (is.null(labels)) {
     warning("no labels provided")
     return(.tdy_dag)
