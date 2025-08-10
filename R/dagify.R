@@ -128,7 +128,7 @@ dagify <- function(
 
 get_dagitty_edges <- function(.dag) {
   .edges <- dagitty::edges(.dag)
-  
+
   # Handle empty edges (DAG with no edges)
   if (nrow(.edges) == 0 || ncol(.edges) == 0) {
     # Return empty tibble with expected columns
@@ -138,7 +138,7 @@ get_dagitty_edges <- function(.dag) {
       direction = character()
     ))
   }
-  
+
   .edges %>%
     dplyr::select(-x, -y) %>%
     dplyr::rename(name = v, to = w, direction = e)

@@ -129,27 +129,29 @@ test_that("igraph attribute does not hitchhike onto tidy dag", {
 
 test_that("DAGs with no edges are handled correctly (issue #159)", {
   # Create a DAG with no edges
-  no_edge_dag <- dagitty::dagitty("dag {
+  no_edge_dag <- dagitty::dagitty(
+    "dag {
     x1
     x2
     x3
     x4
     x5
-  }")
-  
+  }"
+  )
+
   # This should not throw an error
   expect_no_error(tidy_no_edge_dag <- tidy_dagitty(no_edge_dag))
-  
+
   # Check that the result is a valid tidy_dagitty object
   expect_true(is.tidy_dagitty(tidy_no_edge_dag))
-  
+
   # Check that all nodes are present
   dag_data <- pull_dag_data(tidy_no_edge_dag)
   expect_equal(sort(unique(dag_data$name)), c("x1", "x2", "x3", "x4", "x5"))
-  
+
   # Check that no edges exist (all 'to' values should be NA)
   expect_true(all(is.na(dag_data$to)))
-  
+
   # Check that coordinates were generated
   expect_true(all(!is.na(dag_data$x)))
   expect_true(all(!is.na(dag_data$y)))
