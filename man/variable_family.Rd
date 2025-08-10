@@ -257,8 +257,8 @@ dag <- dagify(
 
 ggdag_children(dag, "w1")
 
-dag \%>\%
-  node_children("w1") \%>\%
+dag |>
+  node_children("w1") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
   geom_dag_edges() +
   geom_dag_node() +
@@ -274,8 +274,8 @@ ggdag_ancestors(dag, "x")
 
 ggdag_descendants(dag, "w1")
 
-dag \%>\%
-  node_parents("y") \%>\%
+dag |>
+  node_parents("y") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
   geom_dag_edges() +
   geom_dag_point() +

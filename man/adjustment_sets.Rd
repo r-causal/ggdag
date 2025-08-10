@@ -115,7 +115,7 @@ dag <- dagify(
   outcome = "y"
 )
 
-tidy_dagitty(dag) \%>\% dag_adjustment_sets()
+tidy_dagitty(dag) |> dag_adjustment_sets()
 
 ggdag_adjustment_set(dag)
 

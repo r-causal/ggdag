@@ -22,8 +22,8 @@
 #' @export
 #'
 #' @examples
-#' dagify(y ~ z, x ~ z) %>%
-#'   tidy_dagitty() %>%
+#' dagify(y ~ z, x ~ z) |>
+#'   tidy_dagitty() |>
 #'   simulate_data()
 simulate_data <- function(
   .tdy_dag,
@@ -34,8 +34,8 @@ simulate_data <- function(
   N = 500,
   standardized = TRUE
 ) {
-  if_not_tidy_daggity(.tdy_dag) %>%
-    pull_dag() %>%
+  if_not_tidy_daggity(.tdy_dag) |>
+    pull_dag() |>
     dagitty::simulateSEM(
       b.default = b.default,
       b.lower = b.lower,
@@ -43,6 +43,6 @@ simulate_data <- function(
       eps = eps,
       N = N,
       standardized = standardized
-    ) %>%
+    ) |>
     dplyr::as_tibble()
 }

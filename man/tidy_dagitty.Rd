@@ -50,7 +50,7 @@ dag <- dagitty("dag {
 
 tidy_dagitty(dag)
 
-tidy_dagitty(dag, layout = "fr") \%>\%
+tidy_dagitty(dag, layout = "fr") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_dag_node() +
   geom_dag_text() +

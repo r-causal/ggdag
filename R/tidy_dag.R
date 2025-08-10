@@ -30,7 +30,7 @@
 #'
 #' tidy_dagitty(dag)
 #'
-#' tidy_dagitty(dag, layout = "fr") %>%
+#' tidy_dagitty(dag, layout = "fr") |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_node() +
 #'   geom_dag_text() +
@@ -54,10 +54,10 @@ tidy_dagitty <- function(
   dag_edges <- get_dagitty_edges(.dagitty)
 
   if (layout == "time_ordered") {
-    coords <- dag_edges %>%
-      edges2df() %>%
-      auto_time_order() %>%
-      time_ordered_coords() %>%
+    coords <- dag_edges |>
+      edges2df() |>
+      auto_time_order() |>
+      time_ordered_coords() |>
       coords2list()
 
     dagitty::coordinates(.dagitty) <- coords
@@ -65,8 +65,8 @@ tidy_dagitty <- function(
     check_verboten_layout(layout)
   }
 
-  coords_df <- dag_edges %>%
-    dplyr::select(name, to) %>%
+  coords_df <- dag_edges |>
+    dplyr::select(name, to) |>
     generate_layout(
       layout = layout,
       vertices = names(.dagitty),
@@ -74,11 +74,11 @@ tidy_dagitty <- function(
       ...
     )
 
-  tidy_dag <- dag_edges %>%
+  tidy_dag <- dag_edges |>
     tidy_dag_edges_and_coords(coords_df)
 
-  coords <- tidy_dag %>%
-    dplyr::distinct(name, x, y) %>%
+  coords <- tidy_dag |>
+    dplyr::distinct(name, x, y) |>
     coords2list()
 
   .labels <- label(.dagitty)
@@ -118,14 +118,14 @@ tidy_dagitty <- function(
 #'
 #' @examples
 #'
-#' data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
+#' data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
 #'   as_tidy_dagitty()
 #'
 #' time_points <- list(c("a", "b", "c"), "d", c("e", "f", "g"), "z")
 #'
-#' time_points %>%
+#' time_points |>
 #'   # create a saturated, time-ordered DAG
-#'   as_tidy_dagitty() %>%
+#'   as_tidy_dagitty() |>
 #'   # remove the edge from `c` to `f`
 #'   dag_prune(c("c" = "f"))
 #'
@@ -184,15 +184,15 @@ as_tidy_dagitty.data.frame <- function(
   }
 
   if ("adjusted" %in% names(tidy_dag)) {
-    .adjusted <- dplyr::filter(tidy_dag, adjusted == "adjusted") %>%
-      dplyr::pull(name) %>%
+    .adjusted <- dplyr::filter(tidy_dag, adjusted == "adjusted") |>
+      dplyr::pull(name) |>
       empty2list()
 
     dagitty::adjustedNodes(.dagitty) <- .adjusted
   }
 
-  dagitty::coordinates(.dagitty) <- tidy_dag %>%
-    select(name, x, y) %>%
+  dagitty::coordinates(.dagitty) <- tidy_dag |>
+    select(name, x, y) |>
     coords2list()
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
@@ -225,10 +225,10 @@ as_tidy_dagitty.list <- function(
     seq_len(length(x) - 1),
     saturate_edges,
     time_points = x
-  ) %>%
+  ) |>
     dplyr::bind_rows()
 
-  dag_edges %>%
+  dag_edges |>
     as_tidy_dagitty(
       exposure = exposure,
       outcome = outcome,
@@ -262,18 +262,18 @@ tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
     dag_edges$direction <- "->"
   }
 
-  dag_edges %>%
+  dag_edges |>
     dplyr::mutate(
       name = as.character(name),
       to = as.character(to),
       direction = factor(direction, levels = c("->", "<->", "--"), exclude = NA)
-    ) %>%
-    ggdag_left_join(coords_df, ., by = "name") %>%
+    ) |>
+    (\(x) ggdag_left_join(coords_df, x, by = "name"))() |>
     ggdag_left_join(
-      coords_df %>% dplyr::select(name, x, y),
+      coords_df |> dplyr::select(name, x, y),
       by = c("to" = "name"),
       suffix = c("", "end")
-    ) %>%
+    ) |>
     dplyr::select(name, x, y, direction, to, xend, yend, dplyr::everything())
 }
 
@@ -283,8 +283,8 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
   if (is.null(coords)) {
     no_existing_coords <- TRUE
   } else {
-    no_existing_coords <- coords %>%
-      purrr::map_lgl(~ all(is.na(.x))) %>%
+    no_existing_coords <- coords |>
+      purrr::map_lgl(\(.x) all(is.na(.x))) |>
       all()
   }
 
@@ -307,8 +307,8 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
     )
   }
 
-  layout_df <- ggraph_layout %>%
-    dplyr::select(name, x, y, circular) %>%
+  layout_df <- ggraph_layout |>
+    dplyr::select(name, x, y, circular) |>
     dplyr::as_tibble()
 
   # Remove circular column if all values are FALSE (issue #119)
@@ -351,8 +351,8 @@ fortify.tidy_dagitty <- function(model, data = NULL, ...) {
 #' @rdname fortify
 #' @export
 fortify.dagitty <- function(model, data = NULL, ...) {
-  model %>%
-    tidy_dagitty() %>%
+  model |>
+    tidy_dagitty() |>
     pull_dag_data()
 }
 
@@ -525,7 +525,7 @@ print.tidy_dagitty <- function(x, ...) {
 #' @rdname coordinates
 #' @name coordinates
 coords2df <- function(coord_list) {
-  coord_df <- purrr::map(coord_list, tibble::enframe) %>%
+  coord_df <- purrr::map(coord_list, tibble::enframe) |>
     purrr::reduce(ggdag_left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df
@@ -534,11 +534,11 @@ coords2df <- function(coord_list) {
 #' @rdname coordinates
 #' @export
 coords2list <- function(coord_df) {
-  x <- coord_df %>%
-    dplyr::select(name, x) %>%
+  x <- coord_df |>
+    dplyr::select(name, x) |>
     tibble::deframe()
-  y <- coord_df %>%
-    dplyr::select(name, y) %>%
+  y <- coord_df |>
+    dplyr::select(name, y) |>
     tibble::deframe()
   list(x = x, y = y)
 }

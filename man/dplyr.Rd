@@ -85,7 +85,7 @@ Dplyr verb methods for \code{tidy_dagitty} objects.
 }
 \examples{
 library(dplyr)
-tidy_dagitty(m_bias()) \%>\%
-  group_by(name) \%>\%
+tidy_dagitty(m_bias()) |>
+  group_by(name) |>
   summarize(n = n())
 }

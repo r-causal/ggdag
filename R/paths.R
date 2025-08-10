@@ -26,13 +26,13 @@
 #'   grouping column or a `ggplot`.
 #'
 #' @examples
-#' confounder_triangle(x_y_associated = TRUE) %>%
+#' confounder_triangle(x_y_associated = TRUE) |>
 #'   dag_paths(from = "x", to = "y")
 #'
-#' confounder_triangle(x_y_associated = TRUE) %>%
+#' confounder_triangle(x_y_associated = TRUE) |>
 #'   ggdag_paths(from = "x", to = "y")
 #'
-#' butterfly_bias(x_y_associated = TRUE) %>%
+#' butterfly_bias(x_y_associated = TRUE) |>
 #'   ggdag_paths_fan(shadow = TRUE)
 #'
 #' @rdname paths
@@ -68,9 +68,9 @@ dag_paths <- function(
     Z = adjust_for,
     limit = limit,
     directed = directed
-  ) %>%
-    dplyr::as_tibble() %>%
-    dplyr::filter(open) %>%
+  ) |>
+    dplyr::as_tibble() |>
+    dplyr::filter(open) |>
     dplyr::pull(paths)
 
   vars <- c(from = from, to = to)
@@ -78,28 +78,30 @@ dag_paths <- function(
   # Handle case where no open paths exist
   if (length(pathways) == 0) {
     # Add a path column with all NA values and a set column
-    update_dag_data(.tdy_dag) <- pull_dag_data(.tdy_dag) %>%
+    update_dag_data(.tdy_dag) <- pull_dag_data(.tdy_dag) |>
       dplyr::mutate(path = NA_character_, set = "1")
     return(.tdy_dag)
   }
 
-  update_dag_data(.tdy_dag) <- pathways %>%
+  update_dag_data(.tdy_dag) <- pathways |>
     purrr::map_df(
       function(.x) {
-        path_df <- .x %>%
-          dag2() %>%
-          dagitty::edges() %>%
-          dplyr::select(.from = v, .to = w) %>%
+        path_df <- .x |>
+          dag2() |>
+          dagitty::edges() |>
+          dplyr::select(.from = v, .to = w) |>
           dplyr::mutate(
             .from = as.character(.from),
             .to = as.character(.to),
             path = "open path"
-          ) %>%
-          ggdag_left_join(
-            pull_dag_data(.tdy_dag),
-            .,
-            by = c("name" = ".from", "to" = ".to")
-          )
+          ) |>
+          (\(x) {
+            ggdag_left_join(
+              pull_dag_data(.tdy_dag),
+              x,
+              by = c("name" = ".from", "to" = ".to")
+            )
+          })()
 
         any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
         if (any_x_unopend) {
@@ -109,11 +111,11 @@ dag_paths <- function(
           if (x_has_no_children) {
             path_df[path_df$name == vars[[1]], "path"] <- "open path"
           } else {
-            path_df <- path_df %>%
-              filter(name == vars[[1]]) %>%
-              dplyr::slice(1) %>%
-              dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
-              dplyr::bind_rows(path_df, .)
+            path_df <- path_df |>
+              filter(name == vars[[1]]) |>
+              dplyr::slice(1) |>
+              dplyr::mutate(path = "open path", to = NA, direction = NA) |>
+              (\(x) dplyr::bind_rows(path_df, x))()
           }
         }
 
@@ -121,11 +123,11 @@ dag_paths <- function(
         if (y_has_no_children) {
           path_df[path_df$name == vars[[2]], "path"] <- "open path"
         } else {
-          path_df <- path_df %>%
-            filter(name == vars[[2]]) %>%
-            dplyr::slice(1) %>%
-            dplyr::mutate(path = "open path", to = NA, direction = NA) %>%
-            dplyr::bind_rows(path_df, .)
+          path_df <- path_df |>
+            filter(name == vars[[2]]) |>
+            dplyr::slice(1) |>
+            dplyr::mutate(path = "open path", to = NA, direction = NA) |>
+            (\(x) dplyr::bind_rows(path_df, x))()
         }
 
         path_df
@@ -172,14 +174,14 @@ ggdag_paths <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
       to = to,
       adjust_for = adjust_for,
       limit = limit,
       directed = directed
-    ) %>%
+    ) |>
     ggplot2::ggplot(aes_dag(color = path)) +
     geom_dag_edges(
       ggplot2::aes(edge_colour = path),
@@ -269,7 +271,7 @@ ggdag_paths_fan <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
       to = to,
@@ -277,7 +279,7 @@ ggdag_paths_fan <- function(
       limit = limit,
       directed = directed,
       paths_only = !shadow
-    ) %>%
+    ) |>
     ggplot2::ggplot(aes_dag()) +
     geom_dag_edges_fan(
       ggplot2::aes(edge_colour = set, edge_alpha = path),

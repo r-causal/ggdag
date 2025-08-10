@@ -39,8 +39,8 @@ Label or otherwise retrieve labels from objects of either class
 \code{tidy_dagitty} or \code{dagitty}
 }
 \examples{
-labelled_dag <- dagify(y ~ z, x ~ z) \%>\%
-  tidy_dagitty() \%>\%
+labelled_dag <- dagify(y ~ z, x ~ z) |>
+  tidy_dagitty() |>
   dag_label(labels = c("x" = "exposure", "y" = "outcome", "z" = "confounder"))
 
 has_labels(labelled_dag)

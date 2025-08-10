@@ -33,8 +33,8 @@
 #'
 #' ggdag_children(dag, "w1")
 #'
-#' dag %>%
-#'   node_children("w1") %>%
+#' dag |>
+#'   node_children("w1") |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = children)) +
 #'   geom_dag_edges() +
 #'   geom_dag_node() +
@@ -50,8 +50,8 @@
 #'
 #' ggdag_descendants(dag, "w1")
 #'
-#' dag %>%
-#'   node_parents("y") %>%
+#' dag |>
+#'   node_parents("y") |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
@@ -227,8 +227,8 @@ ggdag_children <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_children(.var) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_children(.var) |>
     ggplot2::ggplot(aes_dag(color = children)) +
     scale_adjusted() +
     breaks(c("parent", "child"), drop = FALSE)
@@ -285,8 +285,8 @@ ggdag_parents <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_parents(.var) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_parents(.var) |>
     ggplot2::ggplot(aes_dag(color = parent)) +
     scale_adjusted() +
     breaks(c("parent", "child"), drop = FALSE)
@@ -342,8 +342,8 @@ ggdag_ancestors <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_ancestors(.var) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_ancestors(.var) |>
     ggplot2::ggplot(aes_dag(color = ancestor)) +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"), drop = FALSE)
@@ -400,8 +400,8 @@ ggdag_descendants <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_descendants(.var) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_descendants(.var) |>
     ggplot2::ggplot(aes_dag(color = descendant)) +
     scale_adjusted() +
     breaks(c("ancestor", "descendant"), drop = FALSE)
@@ -458,8 +458,8 @@ ggdag_markov_blanket <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_markov_blanket(.var) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_markov_blanket(.var) |>
     ggplot2::ggplot(aes_dag(color = blanket)) +
     geom_dag_text(col = "white") +
     scale_adjusted() +
@@ -517,8 +517,8 @@ ggdag_adjacent <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_adjacent(.var) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_adjacent(.var) |>
     ggplot2::ggplot(aes_dag(color = adjacent)) +
     scale_adjusted() +
     breaks(c("adjacent", "center variable"))

@@ -54,15 +54,15 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
         "",
         paste("|", paste(.z, collapse = ", "))
       )
-      .dag <- .dag %>%
+      .dag <- .dag |>
         dplyr::mutate(
-          instrumental_name = paste(.i, conditional_vars) %>%
+          instrumental_name = paste(.i, conditional_vars) |>
             stringr::str_trim()
         )
       if (!is.null(.z)) {
-        .dag <- .dag %>% control_for(.z, activate_colliders = FALSE)
+        .dag <- .dag |> control_for(.z, activate_colliders = FALSE)
       }
-      .dag <- .dag %>%
+      .dag <- .dag |>
         dplyr::mutate(
           instrumental = ifelse(name == .i, "instrumental", NA)
         )
@@ -101,7 +101,7 @@ ggdag_instrumental <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_instrumental(exposure = exposure, outcome = outcome, ...)
   has_instrumental <- !all(is.na((pull_dag_data(.tdy_dag)$instrumental)))
   has_adjusted <- "adjusted" %in% names(pull_dag_data(.tdy_dag))
@@ -114,7 +114,7 @@ ggdag_instrumental <- function(
     mapping$colour <- substitute(instrumental)
   }
 
-  p <- .tdy_dag %>%
+  p <- .tdy_dag |>
     ggplot2::ggplot(mapping)
   if (has_adjusted) {
     p <- p + scale_adjusted()

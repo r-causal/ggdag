@@ -11,8 +11,8 @@
 #' @name dplyr
 #' @examples
 #' library(dplyr)
-#' tidy_dagitty(m_bias()) %>%
-#'   group_by(name) %>%
+#' tidy_dagitty(m_bias()) |>
+#'   group_by(name) |>
 #'   summarize(n = n())
 #' @export
 #' @importFrom dplyr select

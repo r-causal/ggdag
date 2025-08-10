@@ -29,8 +29,8 @@
 #' @examples
 #' library(ggplot2)
 #' g <- dagify(m ~ x + y, y ~ x)
-#' p <- g %>%
-#'   tidy_dagitty() %>%
+#' p <- g |>
+#'   tidy_dagitty() |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_edges() +
 #'   theme_dag()
@@ -120,8 +120,8 @@ geom_dag_point <- function(
 #' @examples
 #' library(ggplot2)
 #' g <- dagify(m ~ x + y, y ~ x)
-#' g %>%
-#'   tidy_dagitty() %>%
+#' g |>
+#'   tidy_dagitty() |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_point() +
 #'   geom_dag_edges() +
@@ -203,8 +203,8 @@ geom_dag_text <- function(
 #'
 #' ggdag(g, text = FALSE) + geom_dag_label()
 #'
-#' g %>%
-#'   tidy_dagitty() %>%
+#' g |>
+#'   tidy_dagitty() |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_edges(aes(
 #'     start_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm")),
@@ -285,21 +285,21 @@ geom_dag_label <- function(
 #'   labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
 #' )
 #'
-#' g %>%
-#'   tidy_dagitty() %>%
+#' g |>
+#'   tidy_dagitty() |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
 #'   geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
 #'   theme_dag()
 #'
-#' g %>%
-#'   tidy_dagitty() %>%
+#' g |>
+#'   tidy_dagitty() |>
 #'   dag_label(labels = c(
 #'     "x" = "This is the exposure",
 #'     "y" = "Here's the outcome",
 #'     "m" = "Here is where they collide"
-#'   )) %>%
+#'   )) |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
@@ -515,7 +515,7 @@ filter_direction <- function(.direction) {
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
 #'   w1 ~ ~w2
-#' ) %>%
+#' ) |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
@@ -640,7 +640,7 @@ geom_dag_edges <- function(
 #'   z1 ~ w1 + v,
 #'   z2 ~ w2 + v,
 #'   L ~ w1 + w2
-#' ) %>%
+#' ) |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
 #'   geom_dag_point() +
 #'   geom_dag_text() +
@@ -879,9 +879,9 @@ geom_dag_edges_fan <- function(
 #' @examples
 #' library(dagitty)
 #' library(ggplot2)
-#' dagify(m ~ a + b, x ~ a, y ~ b) %>%
-#'   tidy_dagitty() %>%
-#'   control_for("m") %>%
+#' dagify(m ~ a + b, x ~ a, y ~ b) |>
+#'   tidy_dagitty() |>
+#'   control_for("m") |>
 #'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
 #'   geom_dag_edges() +
 #'   geom_dag_collider_edges() +
@@ -973,8 +973,8 @@ geom_dag_collider_edges <- function(
 #'
 #' @examples
 #' library(ggplot2)
-#' confounder_triangle() %>%
-#'   dag_adjustment_sets() %>%
+#' confounder_triangle() |>
+#'   dag_adjustment_sets() |>
 #'   ggplot(aes_dag(color = adjusted)) +
 #'   geom_dag() +
 #'   facet_wrap(~set)

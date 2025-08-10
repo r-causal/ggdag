@@ -73,7 +73,7 @@ tidy_ggdag <- dagify(
   w1 ~ ~w2, # bidirected path
   exposure = "x",
   outcome = "y"
-) %>%
+) |>
   tidy_dagitty()
 
 tidy_ggdag
@@ -91,9 +91,9 @@ ggdag_adjustment_set(tidy_ggdag, node_size = 14) +
 As well as geoms and other functions for plotting them directly in `ggplot2`:
 
 ```{r ggdag_geoms, dpi=300} 
-dagify(m ~ x + y) %>%
-  tidy_dagitty() %>%
-  node_dconnected("x", "y", controlling_for = "m") %>%
+dagify(m ~ x + y) |>
+  tidy_dagitty() |>
+  node_dconnected("x", "y", controlling_for = "m") |>
   ggplot(aes(
     x = x,
     y = y,

@@ -133,8 +133,8 @@ input DAG. CPDAGs are Markov equivalent to the input graph. See
 \examples{
 g_ex <- dagify(y ~ x + z, x ~ z)
 
-g_ex \%>\% node_equivalent_class()
+g_ex |> node_equivalent_class()
 
-g_ex \%>\% ggdag_equivalent_dags()
+g_ex |> ggdag_equivalent_dags()
 
 }

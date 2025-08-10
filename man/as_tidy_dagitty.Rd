@@ -86,14 +86,14 @@ columns in the data set will also be joined to the \code{tidy_dagitty} data.
 }
 \examples{
 
-data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) \%>\%
+data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
   as_tidy_dagitty()
 
 time_points <- list(c("a", "b", "c"), "d", c("e", "f", "g"), "z")
 
-time_points \%>\%
+time_points |>
   # create a saturated, time-ordered DAG
-  as_tidy_dagitty() \%>\%
+  as_tidy_dagitty() |>
   # remove the edge from `c` to `f`
   dag_prune(c("c" = "f"))
 

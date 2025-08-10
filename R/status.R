@@ -77,8 +77,8 @@ ggdag_status <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag) %>%
-    node_status(...) %>%
+  p <- if_not_tidy_daggity(.tdy_dag) |>
+    node_status(...) |>
     ggplot2::ggplot(aes_dag(color = status)) +
     scale_adjusted() +
     breaks(c("exposure", "outcome", "latent"))

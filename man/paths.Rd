@@ -161,13 +161,13 @@ grouping column or a \code{ggplot}.
 \code{\link[dagitty:paths]{dagitty::paths()}} for details.
 }
 \examples{
-confounder_triangle(x_y_associated = TRUE) \%>\%
+confounder_triangle(x_y_associated = TRUE) |>
   dag_paths(from = "x", to = "y")
 
-confounder_triangle(x_y_associated = TRUE) \%>\%
+confounder_triangle(x_y_associated = TRUE) |>
   ggdag_paths(from = "x", to = "y")
 
-butterfly_bias(x_y_associated = TRUE) \%>\%
+butterfly_bias(x_y_associated = TRUE) |>
   ggdag_paths_fan(shadow = TRUE)
 
 }

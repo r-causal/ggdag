@@ -93,8 +93,8 @@ dagify <- function(
 ) {
   fmlas <- list(...)
   dag_txt <- purrr::map_chr(fmlas, formula2char)
-  dag_txt <- paste(dag_txt, collapse = "; ") %>%
-    paste("dag {", ., "}")
+  dag_txt <- paste(dag_txt, collapse = "; ") |>
+    (\(x) paste("dag {", x, "}"))()
   dgty <- dagitty::dagitty(dag_txt)
   if (!is.null(exposure)) {
     dagitty::exposures(dgty) <- exposure
@@ -111,10 +111,10 @@ dagify <- function(
     } else if (is.list(coords)) {
       dagitty::coordinates(dgty) <- coords
     } else if (is.function(coords)) {
-      dagitty::coordinates(dgty) <- dgty %>%
-        get_dagitty_edges() %>%
-        edges2df() %>%
-        coords() %>%
+      dagitty::coordinates(dgty) <- dgty |>
+        get_dagitty_edges() |>
+        edges2df() |>
+        coords() |>
         coords2list()
     } else {
       stop("`coords` must be of class `list`, `data.frame`, or `function`")
@@ -139,8 +139,8 @@ get_dagitty_edges <- function(.dag) {
     ))
   }
 
-  .edges %>%
-    dplyr::select(-x, -y) %>%
+  .edges |>
+    dplyr::select(-x, -y) |>
     dplyr::rename(name = v, to = w, direction = e)
 }
 

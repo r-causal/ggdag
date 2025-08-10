@@ -139,9 +139,9 @@ collider. This geom adds a curved edge between any such parent nodes.
 \examples{
 library(dagitty)
 library(ggplot2)
-dagify(m ~ a + b, x ~ a, y ~ b) \%>\%
-  tidy_dagitty() \%>\%
-  control_for("m") \%>\%
+dagify(m ~ a + b, x ~ a, y ~ b) |>
+  tidy_dagitty() |>
+  control_for("m") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted)) +
   geom_dag_edges() +
   geom_dag_collider_edges() +

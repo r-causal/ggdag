@@ -29,7 +29,7 @@
 #'   outcome = "y"
 #' )
 #'
-#' tidy_dagitty(dag) %>% dag_adjustment_sets()
+#' tidy_dagitty(dag) |> dag_adjustment_sets()
 #'
 #' ggdag_adjustment_set(dag)
 #'
@@ -70,11 +70,13 @@ dag_adjustment_sets <- function(
   update_dag_data(.tdy_dag) <-
     purrr::map_df(
       sets,
-      ~ dplyr::mutate(
-        pull_dag_data(.tdy_dag),
-        adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"),
-        set = paste0("{", paste(.x, collapse = ", "), "}")
-      )
+      \(.x) {
+        dplyr::mutate(
+          pull_dag_data(.tdy_dag),
+          adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"),
+          set = paste0("{", paste(.x, collapse = ", "), "}")
+        )
+      }
     )
 
   .tdy_dag
@@ -119,7 +121,7 @@ ggdag_adjustment_set <- function(
   expand_x = expansion(c(0.25, 0.25)),
   expand_y = expansion(c(0.2, 0.2))
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
 
   p <- ggplot2::ggplot(
@@ -286,7 +288,7 @@ ggdag_adjust <- function(
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is.null(var)) {
-    .tdy_dag <- .tdy_dag %>% control_for(var)
+    .tdy_dag <- .tdy_dag |> control_for(var)
   } else {
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
     if (is.null(var)) {
@@ -295,11 +297,11 @@ ggdag_adjust <- function(
       )
     }
     if (is.null(pull_dag_data(.tdy_dag)$adjusted)) {
-      .tdy_dag <- .tdy_dag %>% control_for(var)
+      .tdy_dag <- .tdy_dag |> control_for(var)
     }
   }
 
-  p <- .tdy_dag %>%
+  p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag(col = adjusted, shape = adjusted)) +
     geom_dag_edges(
       ggplot2::aes(edge_alpha = adjusted),

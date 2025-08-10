@@ -25,7 +25,7 @@
 #' @name Canonicalize DAGs
 node_canonical <- function(.dag, ...) {
   .dag <- if_not_tidy_daggity(.dag)
-  dagitty::canonicalize(pull_dag(.dag))$g %>%
+  dagitty::canonicalize(pull_dag(.dag))$g |>
     tidy_dagitty(..., use_existing_coords = FALSE)
 }
 
@@ -50,8 +50,8 @@ ggdag_canonical <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_canonical() %>%
+  if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_canonical() |>
     ggdag(
       node_size = node_size,
       text_size = text_size,

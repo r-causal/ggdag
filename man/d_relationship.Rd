@@ -198,11 +198,11 @@ relationship. See \code{\link[dagitty:dconnected]{dagitty::dseparated()}} for de
 \examples{
 library(ggplot2)
 dag <- dagify(m ~ x + y)
-dag \%>\% ggdag_drelationship("x", "y")
-dag \%>\% ggdag_drelationship("x", "y", controlling_for = "m")
+dag |> ggdag_drelationship("x", "y")
+dag |> ggdag_drelationship("x", "y", controlling_for = "m")
 
-dag \%>\%
-  node_dseparated("x", "y") \%>\%
+dag |>
+  node_dseparated("x", "y") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
   geom_dag_edges() +
   geom_dag_collider_edges() +
@@ -211,8 +211,8 @@ dag \%>\%
   theme_dag() +
   scale_adjusted()
 
-dag \%>\%
-  node_dconnected("x", "y", controlling_for = "m") \%>\%
+dag |>
+  node_dconnected("x", "y", controlling_for = "m") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
   geom_dag_edges() +
   geom_dag_collider_edges() +
@@ -221,9 +221,9 @@ dag \%>\%
   theme_dag() +
   scale_adjusted()
 
-dagify(m ~ x + y, m_jr ~ m) \%>\%
-  tidy_dagitty(layout = "nicely") \%>\%
-  node_dconnected("x", "y", controlling_for = "m_jr") \%>\%
+dagify(m ~ x + y, m_jr ~ m) |>
+  tidy_dagitty(layout = "nicely") |>
+  node_dconnected("x", "y", controlling_for = "m_jr") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
   geom_dag_edges() +
   geom_dag_collider_edges() +

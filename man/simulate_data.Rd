@@ -44,7 +44,7 @@ corresponding data. See \code{\link[dagitty:simulateSEM]{dagitty::simulateSEM()}
 details.
 }
 \examples{
-dagify(y ~ z, x ~ z) \%>\%
-  tidy_dagitty() \%>\%
+dagify(y ~ z, x ~ z) |>
+  tidy_dagitty() |>
   simulate_data()
 }

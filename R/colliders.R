@@ -25,14 +25,14 @@
 node_collider <- function(.dag, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
-  colliders <- purrr::map_lgl(vars, ~ is_collider(.tdy_dag, .x))
+  colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
   names(colliders) <- vars
   .tdy_dag <- dplyr::left_join(
     .tdy_dag,
     tibble::enframe(colliders, value = "colliders"),
     by = "name"
   )
-  purrr::map(vars[colliders], ~ dagitty::parents(pull_dag(.tdy_dag), .x))
+  purrr::map(vars[colliders], \(.x) dagitty::parents(pull_dag(.tdy_dag), .x))
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
@@ -72,9 +72,9 @@ ggdag_collider <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  p <- if_not_tidy_daggity(.tdy_dag, ...) %>%
-    node_collider() %>%
-    dplyr::mutate(colliders = forcats::fct_rev(colliders)) %>%
+  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+    node_collider() |>
+    dplyr::mutate(colliders = forcats::fct_rev(colliders)) |>
     ggplot2::ggplot(aes_dag(color = colliders))
 
   p <- p +
@@ -129,10 +129,10 @@ ggdag_collider <- function(
 activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
-  colliders <- purrr::map_lgl(vars, ~ is_collider(.tdy_dag, .x))
+  colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
   downstream_colliders <- purrr::map_lgl(
     vars,
-    ~ is_downstream_collider(.tdy_dag, .x)
+    \(.x) is_downstream_collider(.tdy_dag, .x)
   )
   collider_names <- unique(c(vars[colliders], vars[downstream_colliders]))
 
@@ -142,7 +142,7 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
   collider_paths <- purrr::map(
     adjusted_colliders,
-    ~ dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1]
+    \(.x) dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1]
   )
 
   activated_pairs <- purrr::map(collider_paths, unique_pairs)
@@ -163,19 +163,19 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
 }
 
 dagify_colliders <- function(.pairs_df, .tdy_dag) {
-  .pairs_df %>%
-    join_lhs_coords(.tdy_dag) %>%
-    join_rhs_coords(.tdy_dag) %>%
+  .pairs_df |>
+    join_lhs_coords(.tdy_dag) |>
+    join_rhs_coords(.tdy_dag) |>
     dplyr::mutate(
       direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)
-    ) %>%
+    ) |>
     dplyr::rename(name = Var1, to = Var2)
 }
 
 join_lhs_coords <- function(.x, .y) {
   ggdag_left_join(
     .x,
-    pull_dag_data(.y) %>% dplyr::select(name, x, y),
+    pull_dag_data(.y) |> dplyr::select(name, x, y),
     by = c("Var1" = "name")
   )
 }
@@ -183,7 +183,7 @@ join_lhs_coords <- function(.x, .y) {
 join_rhs_coords <- function(.x, .y) {
   ggdag_left_join(
     .x,
-    pull_dag_data(.y) %>% dplyr::select(name, xend = x, yend = y),
+    pull_dag_data(.y) |> dplyr::select(name, xend = x, yend = y),
     by = c("Var2" = "name")
   )
 }
@@ -231,5 +231,5 @@ is_downstream_collider <- function(.dag, .var) {
     .dag <- pull_dag(.dag)
   }
   var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
-  any(purrr::map_lgl(var_ancestors, ~ is_collider(.dag, .x)))
+  any(purrr::map_lgl(var_ancestors, \(.x) is_collider(.dag, .x)))
 }

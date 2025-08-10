@@ -61,9 +61,9 @@ if_not_tidy_daggity <- function(.dagitty, ...) {
 }
 
 unique_pairs <- function(x, exclude_identical = TRUE) {
-  pairs <- expand.grid(x, x) %>% purrr::map_dfc(as.character)
+  pairs <- expand.grid(x, x) |> purrr::map_dfc(as.character)
   if (exclude_identical) {
-    pairs <- pairs %>% dplyr::filter(Var1 != Var2)
+    pairs <- pairs |> dplyr::filter(Var1 != Var2)
   }
   pairs[!duplicated(t(apply(pairs, 1, sort))), ]
 }
@@ -71,8 +71,8 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
 formula2char <- function(fmla) {
   #  using default to avoid `formula.tools::as.character.formula()`
   char_fmla <- as.character.default(fmla)
-  rhs_vars <- char_fmla[[3]] %>%
-    stringr::str_split(" \\+ ") %>%
+  rhs_vars <- char_fmla[[3]] |>
+    stringr::str_split(" \\+ ") |>
     purrr::pluck(1)
   bidirectional <- any(stringr::str_detect(rhs_vars, "~"))
   rhs_vars <- stringr::str_replace_all(rhs_vars, "~", "")
@@ -133,9 +133,9 @@ n_collder_paths <- function(x) {
 
 collider_paths <- function(x) {
   if (has_collider_path(x)) {
-    paths <- pull_dag_data(x) %>%
-      dplyr::filter(collider_line) %>%
-      dplyr::mutate(collider_path_nodes = paste(name, "<->", to)) %>%
+    paths <- pull_dag_data(x) |>
+      dplyr::filter(collider_line) |>
+      dplyr::mutate(collider_path_nodes = paste(name, "<->", to)) |>
       dplyr::pull(collider_path_nodes)
   } else {
     paths <- c()

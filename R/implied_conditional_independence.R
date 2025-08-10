@@ -41,20 +41,22 @@ query_conditional_independence <- function(
     max.results = max.results
   )
 
-  ici %>%
+  ici |>
     purrr::imap(
-      ~ tibble::tibble(
-        set = .y,
-        a = .x$X,
-        b = .x$Y,
-        conditioned_on = if (rlang::is_empty(.x$Z)) {
-          list(NA_character_)
-        } else {
-          list(.x$Z)
-        }
-      )
-    ) %>%
-    purrr::list_rbind() %>%
+      \(.x, .y) {
+        tibble::tibble(
+          set = .y,
+          a = .x$X,
+          b = .x$Y,
+          conditioned_on = if (rlang::is_empty(.x$Z)) {
+            list(NA_character_)
+          } else {
+            list(.x$Z)
+          }
+        )
+      }
+    ) |>
+    purrr::list_rbind() |>
     tibble::as_tibble()
 }
 
@@ -105,7 +107,7 @@ test_conditional_independence <- function(
     abbreviate.names = abbreviate.names,
     tol = tol,
     loess.pars = loess.pars
-  ) %>%
+  ) |>
     tibble::as_tibble(rownames = "independence")
 
   test_results

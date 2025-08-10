@@ -23,9 +23,9 @@
 #' @examples
 #' g_ex <- dagify(y ~ x + z, x ~ z)
 #'
-#' g_ex %>% node_equivalent_class()
+#' g_ex |> node_equivalent_class()
 #'
-#' g_ex %>% ggdag_equivalent_dags()
+#' g_ex |> ggdag_equivalent_dags()
 #'
 #' @rdname equivalent
 #' @name Equivalent DAGs and Classes
@@ -34,10 +34,10 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
   extra_columns <- has_extra_columns(.dag)
 
-  layout_coords <- .dag %>%
-    pull_dag_data() %>%
-    dplyr::select(name, x, y) %>%
-    dplyr::distinct() %>%
+  layout_coords <- .dag |>
+    pull_dag_data() |>
+    dplyr::select(name, x, y) |>
+    dplyr::distinct() |>
     coords2list()
 
   updated_dag <- pull_dag(.dag)
@@ -48,8 +48,8 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
     extra_column_df <- select_extra_columns(.dag)
   }
 
-  update_dag_data(.dag) <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) %>%
-    purrr::map_df(map_equivalence, .id = "dag") %>%
+  update_dag_data(.dag) <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) |>
+    purrr::map_df(map_equivalence, .id = "dag") |>
     dplyr::as_tibble()
 
   if (extra_columns) {
@@ -79,8 +79,8 @@ get_extra_column_names <- function(.x) {
 }
 
 select_extra_columns <- function(.x) {
-  .x %>%
-    pull_dag_data() %>%
+  .x |>
+    pull_dag_data() |>
     dplyr::select(name, get_extra_column_names(.x))
 }
 
@@ -113,7 +113,7 @@ ggdag_equivalent_dags <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_equivalent_dags(...)
 
   p <- ggplot2::ggplot(.tdy_dag, aes_dag())
@@ -154,25 +154,25 @@ ggdag_equivalent_dags <- function(
 }
 
 hash <- function(x, y) {
-  purrr::pmap_chr(list(x, y), ~ paste0(sort(c(.x, .y)), collapse = "_"))
+  purrr::pmap_chr(list(x, y), \(.x, .y) paste0(sort(c(.x, .y)), collapse = "_"))
 }
 
 #' @rdname equivalent
 #' @export
 node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
-  ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) %>%
-    dagitty::edges(.) %>%
-    dplyr::filter(e == "--") %>%
-    dplyr::select(name = v, reversable = e, to = w) %>%
-    dplyr::mutate_at(c("name", "to"), as.character) %>%
-    dplyr::mutate(hash = hash(name, to)) %>%
+  ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) |>
+    dagitty::edges() |>
+    dplyr::filter(e == "--") |>
+    dplyr::select(name = v, reversable = e, to = w) |>
+    dplyr::mutate_at(c("name", "to"), as.character) |>
+    dplyr::mutate(hash = hash(name, to)) |>
     dplyr::select(hash, reversable)
 
-  .dag <- .dag %>%
-    dplyr::mutate(hash = hash(name, to)) %>%
-    dplyr::left_join(ec_data, by = "hash") %>%
-    dplyr::mutate(reversable = !is.na(reversable)) %>%
+  .dag <- .dag |>
+    dplyr::mutate(hash = hash(name, to)) |>
+    dplyr::left_join(ec_data, by = "hash") |>
+    dplyr::mutate(reversable = !is.na(reversable)) |>
     dplyr::select(-hash)
 
   .dag
@@ -203,12 +203,12 @@ ggdag_equivalent_class <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) %>%
+  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_equivalent_class(...)
 
   reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), reversable)
   non_reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), !reversable)
-  p <- .tdy_dag %>%
+  p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag(edge_alpha = reversable)) +
     geom_dag_edges(
       data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
