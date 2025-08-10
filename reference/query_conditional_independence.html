@@ -81,6 +81,7 @@ results as a forest plot.</p>
 <span></span>
 <span><span class="fu">ggdag_conditional_independence</span><span class="op">(</span></span>
 <span>  <span class="va">.test_result</span>,</span>
+<span>  sort <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  vline_linewidth <span class="op">=</span> <span class="fl">0.8</span>,</span>
 <span>  vline_color <span class="op">=</span> <span class="st">"grey70"</span>,</span>
 <span>  pointrange_fatten <span class="op">=</span> <span class="fl">3</span></span>
@@ -174,6 +175,11 @@ independently of a DAG.</p></dd>
 <dt id="arg--test-result">.test_result<a class="anchor" aria-label="anchor" href="#arg--test-result"></a></dt>
 <dd><p>A data frame containing the results of conditional
 independence tests created by <code>test_conditional_independence()</code>.</p></dd>
+
+
+<dt id="arg-sort">sort<a class="anchor" aria-label="anchor" href="#arg-sort"></a></dt>
+<dd><p>Logical indicating whether to sort the results by estimate value.
+Default is <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-vline-linewidth">vline_linewidth<a class="anchor" aria-label="anchor" href="#arg-vline-linewidth"></a></dt>
