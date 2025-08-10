@@ -128,6 +128,17 @@ dagify <- function(
 
 get_dagitty_edges <- function(.dag) {
   .edges <- dagitty::edges(.dag)
+
+  # Handle empty edges (DAG with no edges)
+  if (nrow(.edges) == 0 || ncol(.edges) == 0) {
+    # Return empty tibble with expected columns
+    return(tibble::tibble(
+      name = character(),
+      to = character(),
+      direction = character()
+    ))
+  }
+
   .edges %>%
     dplyr::select(-x, -y) %>%
     dplyr::rename(name = v, to = w, direction = e)
@@ -137,7 +148,7 @@ edges2df <- function(.edges) {
   no_outgoing_edges <- unique(.edges$to[!(.edges$to %in% .edges$name)])
   dplyr::bind_rows(
     .edges,
-    data.frame(
+    tibble::tibble(
       name = no_outgoing_edges,
       to = rep(NA, length(no_outgoing_edges))
     )
