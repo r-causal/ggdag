@@ -1,5 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/r-causal/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/r-causal/ggdag/actions)
@@ -11,6 +12,7 @@ maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lif
 coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg)](https://app.codecov.io/gh/malcolmbarrett/ggdag?branch=main)
 [![Total CRAN
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
+[![R-CMD-check](https://github.com/malcolmbarrett/ggdag/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/malcolmbarrett/ggdag/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs <a href="https://r-causal.github.io/ggdag/"><img src="man/figures/logo.png" align="right" height="138" /></a>
@@ -64,21 +66,21 @@ tidy_dag
 #> # Outcome: y
 #> #
 #> # A tibble: 13 × 8
-#>    name       x      y direction to       xend   yend circular
-#>    <chr>  <dbl>  <dbl> <fct>     <chr>   <dbl>  <dbl> <lgl>   
-#>  1 v     0.496  -3.40  ->        z1     1.83   -2.92  FALSE   
-#>  2 v     0.496  -3.40  ->        z2     0.0188 -2.08  FALSE   
-#>  3 w1    1.73   -1.94  ->        x      2.07   -1.42  FALSE   
-#>  4 w1    1.73   -1.94  ->        y      1.00   -0.944 FALSE   
-#>  5 w1    1.73   -1.94  ->        z1     1.83   -2.92  FALSE   
-#>  6 w1    1.73   -1.94  <->       w2     0.873  -1.56  FALSE   
-#>  7 w2    0.873  -1.56  ->        x      2.07   -1.42  FALSE   
-#>  8 w2    0.873  -1.56  ->        y      1.00   -0.944 FALSE   
-#>  9 w2    0.873  -1.56  ->        z2     0.0188 -2.08  FALSE   
-#> 10 x     2.07   -1.42  ->        y      1.00   -0.944 FALSE   
-#> 11 y     1.00   -0.944 <NA>      <NA>  NA      NA     FALSE   
-#> 12 z1    1.83   -2.92  ->        x      2.07   -1.42  FALSE   
-#> 13 z2    0.0188 -2.08  ->        y      1.00   -0.944 FALSE
+#>    name       x     y direction to      xend   yend circular
+#>    <chr>  <dbl> <dbl> <fct>     <chr>  <dbl>  <dbl> <lgl>   
+#>  1 v     -0.180 0.946 ->        z1     1.20   0.608 FALSE   
+#>  2 v     -0.180 0.946 ->        z2     0.177  2.32  FALSE   
+#>  3 w1     1.64  1.49  ->        x      2.23   1.70  FALSE   
+#>  4 w1     1.64  1.49  ->        y      1.63   2.71  FALSE   
+#>  5 w1     1.64  1.49  ->        z1     1.20   0.608 FALSE   
+#>  6 w1     1.64  1.49  <->       w2     1.16   2.30  FALSE   
+#>  7 w2     1.16  2.30  ->        x      2.23   1.70  FALSE   
+#>  8 w2     1.16  2.30  ->        y      1.63   2.71  FALSE   
+#>  9 w2     1.16  2.30  ->        z2     0.177  2.32  FALSE   
+#> 10 x      2.23  1.70  ->        y      1.63   2.71  FALSE   
+#> 11 y      1.63  2.71  <NA>      <NA>  NA     NA     FALSE   
+#> 12 z1     1.20  0.608 ->        x      2.23   1.70  FALSE   
+#> 13 z2     0.177 2.32  ->        y      1.63   2.71  FALSE
 
 #  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(
@@ -99,21 +101,21 @@ tidy_ggdag
 #> # Outcome: y
 #> #
 #> # A tibble: 13 × 8
-#>    name      x     y direction to     xend  yend circular
-#>    <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>   
-#>  1 v     -3.58  3.30 ->        z1    -4.05  4.63 FALSE   
-#>  2 v     -3.58  3.30 ->        z2    -2.23  3.74 FALSE   
-#>  3 w1    -3.03  5.74 ->        x     -3.20  5.14 FALSE   
-#>  4 w1    -3.03  5.74 ->        y     -1.98  5.22 FALSE   
-#>  5 w1    -3.03  5.74 ->        z1    -4.05  4.63 FALSE   
-#>  6 w1    -3.03  5.74 <->       w2    -2.35  4.72 FALSE   
-#>  7 w2    -2.35  4.72 ->        x     -3.20  5.14 FALSE   
-#>  8 w2    -2.35  4.72 ->        y     -1.98  5.22 FALSE   
-#>  9 w2    -2.35  4.72 ->        z2    -2.23  3.74 FALSE   
-#> 10 x     -3.20  5.14 ->        y     -1.98  5.22 FALSE   
-#> 11 y     -1.98  5.22 <NA>      <NA>  NA    NA    FALSE   
-#> 12 z1    -4.05  4.63 ->        x     -3.20  5.14 FALSE   
-#> 13 z2    -2.23  3.74 ->        y     -1.98  5.22 FALSE
+#>    name          x     y direction to         xend  yend circular
+#>    <chr>     <dbl> <dbl> <fct>     <chr>     <dbl> <dbl> <lgl>   
+#>  1 v      0.696     4.02 ->        z1     1.07      2.66 FALSE   
+#>  2 v      0.696     4.02 ->        z2    -0.669     3.67 FALSE   
+#>  3 w1     0.175     2.21 ->        x     -0.000636  1.61 FALSE   
+#>  4 w1     0.175     2.21 ->        y     -1.05      2.22 FALSE   
+#>  5 w1     0.175     2.21 ->        z1     1.07      2.66 FALSE   
+#>  6 w1     0.175     2.21 <->       w2    -0.613     2.67 FALSE   
+#>  7 w2    -0.613     2.67 ->        x     -0.000636  1.61 FALSE   
+#>  8 w2    -0.613     2.67 ->        y     -1.05      2.22 FALSE   
+#>  9 w2    -0.613     2.67 ->        z2    -0.669     3.67 FALSE   
+#> 10 x     -0.000636  1.61 ->        y     -1.05      2.22 FALSE   
+#> 11 y     -1.05      2.22 <NA>      <NA>  NA        NA    FALSE   
+#> 12 z1     1.07      2.66 ->        x     -0.000636  1.61 FALSE   
+#> 13 z2    -0.669     3.67 ->        y     -1.05      2.22 FALSE
 ```
 
 `ggdag` also provides functionality for analyzing DAGs and plotting them
