@@ -111,9 +111,9 @@ prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
       tidy_dag_edges_and_coords(coords_df)
   }
 
-  # TODO: remove this when circular is changed
-  if ("circular" %nin% names(value)) {
-    value$circular <- FALSE
+  # Remove circular column if all values are FALSE (issue #119)
+  if ("circular" %in% names(value) && all(!value$circular)) {
+    value$circular <- NULL
   }
 
   dplyr::as_tibble(value)

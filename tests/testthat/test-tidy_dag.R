@@ -15,18 +15,30 @@ test_that("tidied dags are in good shape", {
     "yend",
     "name",
     "direction",
-    "to",
-    "circular"
+    "to"
   )
   expect_true(all(expected_names %in% dag_col_names))
+  # circular should not be present for non-circular layouts (issue #119)
+  expect_false("circular" %in% dag_col_names)
   expect_equal(unique(pull_dag_data(tidy_dag)$name), c("x", "y", "z"))
   expect_equal(
     pull_dag_data(tidy_dag)$direction,
     factor(c("->", NA, "->", "->"), levels = c(c("->", "<->", "--")))
   )
-  expect_true(is.logical(pull_dag_data(tidy_dag)$circular))
   expect_true(is.numeric(pull_dag_data(tidy_dag)$x))
   expect_true(is.numeric(pull_dag_data(tidy_dag)$y))
+})
+
+test_that("circular column is present only when needed", {
+  # Non-circular layout should not have circular column
+  tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
+  expect_false("circular" %in% names(pull_dag_data(tidy_dag)))
+
+  # Linear circular layout should have circular column
+  tidy_dag_circular <- dagify(y ~ x + z, x ~ z) %>%
+    tidy_dagitty(layout = "linear", circular = TRUE)
+  expect_true("circular" %in% names(pull_dag_data(tidy_dag_circular)))
+  expect_true(all(pull_dag_data(tidy_dag_circular)$circular))
 })
 
 test_that("nodes without edges are captured correctly", {

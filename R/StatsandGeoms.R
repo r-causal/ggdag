@@ -1,3 +1,12 @@
+# Helper function to handle missing circular column (issue #119)
+handle_missing_circular_column <- function(data) {
+  if (!"circular" %in% names(data)) {
+    data$circular <- FALSE
+  }
+  data[is.na(data$circular), "circular"] <- FALSE
+  data
+}
+
 StatNodes <- ggplot2::ggproto(
   "StatNodes",
   ggplot2::Stat,
@@ -145,7 +154,7 @@ StatEdgeArc <- ggplot2::ggproto(
   ggraph::StatEdgeArc,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
-    data[is.na(data$circular), "circular"] <- FALSE
+    data <- handle_missing_circular_column(data)
 
     if (nrow(data) > 0) {
       data <- ggraph::StatEdgeArc$setup_data(data, params)
@@ -162,7 +171,7 @@ StatEdgeDiagonal <- ggplot2::ggproto(
   ggraph::StatEdgeDiagonal,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
-    data[is.na(data$circular), "circular"] <- FALSE
+    data <- handle_missing_circular_column(data)
 
     if (nrow(data) > 0) {
       data <- ggraph::StatEdgeDiagonal$setup_data(data, params)
