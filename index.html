@@ -102,21 +102,21 @@
 <span><span class="co">#&gt; # Outcome: y</span></span>
 <span><span class="co">#&gt; #</span></span>
 <span><span class="co">#&gt; # A tibble: 13 × 8</span></span>
-<span><span class="co">#&gt;    name       x      y direction to       xend   yend circular</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt;   </span></span>
-<span><span class="co">#&gt;  1 v     0.496  -3.40  -&gt;        z1     1.83   -2.92  FALSE   </span></span>
-<span><span class="co">#&gt;  2 v     0.496  -3.40  -&gt;        z2     0.0188 -2.08  FALSE   </span></span>
-<span><span class="co">#&gt;  3 w1    1.73   -1.94  -&gt;        x      2.07   -1.42  FALSE   </span></span>
-<span><span class="co">#&gt;  4 w1    1.73   -1.94  -&gt;        y      1.00   -0.944 FALSE   </span></span>
-<span><span class="co">#&gt;  5 w1    1.73   -1.94  -&gt;        z1     1.83   -2.92  FALSE   </span></span>
-<span><span class="co">#&gt;  6 w1    1.73   -1.94  &lt;-&gt;       w2     0.873  -1.56  FALSE   </span></span>
-<span><span class="co">#&gt;  7 w2    0.873  -1.56  -&gt;        x      2.07   -1.42  FALSE   </span></span>
-<span><span class="co">#&gt;  8 w2    0.873  -1.56  -&gt;        y      1.00   -0.944 FALSE   </span></span>
-<span><span class="co">#&gt;  9 w2    0.873  -1.56  -&gt;        z2     0.0188 -2.08  FALSE   </span></span>
-<span><span class="co">#&gt; 10 x     2.07   -1.42  -&gt;        y      1.00   -0.944 FALSE   </span></span>
-<span><span class="co">#&gt; 11 y     1.00   -0.944 &lt;NA&gt;      &lt;NA&gt;  NA      NA     FALSE   </span></span>
-<span><span class="co">#&gt; 12 z1    1.83   -2.92  -&gt;        x      2.07   -1.42  FALSE   </span></span>
-<span><span class="co">#&gt; 13 z2    0.0188 -2.08  -&gt;        y      1.00   -0.944 FALSE</span></span>
+<span><span class="co">#&gt;    name       x     y direction to      xend   yend circular</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt;   </span></span>
+<span><span class="co">#&gt;  1 v     -0.180 0.946 -&gt;        z1     1.20   0.608 FALSE   </span></span>
+<span><span class="co">#&gt;  2 v     -0.180 0.946 -&gt;        z2     0.177  2.32  FALSE   </span></span>
+<span><span class="co">#&gt;  3 w1     1.64  1.49  -&gt;        x      2.23   1.70  FALSE   </span></span>
+<span><span class="co">#&gt;  4 w1     1.64  1.49  -&gt;        y      1.63   2.71  FALSE   </span></span>
+<span><span class="co">#&gt;  5 w1     1.64  1.49  -&gt;        z1     1.20   0.608 FALSE   </span></span>
+<span><span class="co">#&gt;  6 w1     1.64  1.49  &lt;-&gt;       w2     1.16   2.30  FALSE   </span></span>
+<span><span class="co">#&gt;  7 w2     1.16  2.30  -&gt;        x      2.23   1.70  FALSE   </span></span>
+<span><span class="co">#&gt;  8 w2     1.16  2.30  -&gt;        y      1.63   2.71  FALSE   </span></span>
+<span><span class="co">#&gt;  9 w2     1.16  2.30  -&gt;        z2     0.177  2.32  FALSE   </span></span>
+<span><span class="co">#&gt; 10 x      2.23  1.70  -&gt;        y      1.63   2.71  FALSE   </span></span>
+<span><span class="co">#&gt; 11 y      1.63  2.71  &lt;NA&gt;      &lt;NA&gt;  NA     NA     FALSE   </span></span>
+<span><span class="co">#&gt; 12 z1     1.20  0.608 -&gt;        x      2.23   1.70  FALSE   </span></span>
+<span><span class="co">#&gt; 13 z2     0.177 2.32  -&gt;        y      1.63   2.71  FALSE</span></span>
 <span></span>
 <span><span class="co">#  using more R-like syntax to create the same DAG</span></span>
 <span><span class="va">tidy_ggdag</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagify.html">dagify</a></span><span class="op">(</span></span>
@@ -137,21 +137,21 @@
 <span><span class="co">#&gt; # Outcome: y</span></span>
 <span><span class="co">#&gt; #</span></span>
 <span><span class="co">#&gt; # A tibble: 13 × 8</span></span>
-<span><span class="co">#&gt;    name      x     y direction to     xend  yend circular</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   </span></span>
-<span><span class="co">#&gt;  1 v     -3.58  3.30 -&gt;        z1    -4.05  4.63 FALSE   </span></span>
-<span><span class="co">#&gt;  2 v     -3.58  3.30 -&gt;        z2    -2.23  3.74 FALSE   </span></span>
-<span><span class="co">#&gt;  3 w1    -3.03  5.74 -&gt;        x     -3.20  5.14 FALSE   </span></span>
-<span><span class="co">#&gt;  4 w1    -3.03  5.74 -&gt;        y     -1.98  5.22 FALSE   </span></span>
-<span><span class="co">#&gt;  5 w1    -3.03  5.74 -&gt;        z1    -4.05  4.63 FALSE   </span></span>
-<span><span class="co">#&gt;  6 w1    -3.03  5.74 &lt;-&gt;       w2    -2.35  4.72 FALSE   </span></span>
-<span><span class="co">#&gt;  7 w2    -2.35  4.72 -&gt;        x     -3.20  5.14 FALSE   </span></span>
-<span><span class="co">#&gt;  8 w2    -2.35  4.72 -&gt;        y     -1.98  5.22 FALSE   </span></span>
-<span><span class="co">#&gt;  9 w2    -2.35  4.72 -&gt;        z2    -2.23  3.74 FALSE   </span></span>
-<span><span class="co">#&gt; 10 x     -3.20  5.14 -&gt;        y     -1.98  5.22 FALSE   </span></span>
-<span><span class="co">#&gt; 11 y     -1.98  5.22 &lt;NA&gt;      &lt;NA&gt;  NA    NA    FALSE   </span></span>
-<span><span class="co">#&gt; 12 z1    -4.05  4.63 -&gt;        x     -3.20  5.14 FALSE   </span></span>
-<span><span class="co">#&gt; 13 z2    -2.23  3.74 -&gt;        y     -1.98  5.22 FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt;    name          x     y direction to         xend  yend circular</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   </span></span>
+<span><span class="co">#&gt;  1 v      0.696     4.02 -&gt;        z1     1.07      2.66 FALSE   </span></span>
+<span><span class="co">#&gt;  2 v      0.696     4.02 -&gt;        z2    -0.669     3.67 FALSE   </span></span>
+<span><span class="co">#&gt;  3 w1     0.175     2.21 -&gt;        x     -0.000636  1.61 FALSE   </span></span>
+<span><span class="co">#&gt;  4 w1     0.175     2.21 -&gt;        y     -1.05      2.22 FALSE   </span></span>
+<span><span class="co">#&gt;  5 w1     0.175     2.21 -&gt;        z1     1.07      2.66 FALSE   </span></span>
+<span><span class="co">#&gt;  6 w1     0.175     2.21 &lt;-&gt;       w2    -0.613     2.67 FALSE   </span></span>
+<span><span class="co">#&gt;  7 w2    -0.613     2.67 -&gt;        x     -0.000636  1.61 FALSE   </span></span>
+<span><span class="co">#&gt;  8 w2    -0.613     2.67 -&gt;        y     -1.05      2.22 FALSE   </span></span>
+<span><span class="co">#&gt;  9 w2    -0.613     2.67 -&gt;        z2    -0.669     3.67 FALSE   </span></span>
+<span><span class="co">#&gt; 10 x     -0.000636  1.61 -&gt;        y     -1.05      2.22 FALSE   </span></span>
+<span><span class="co">#&gt; 11 y     -1.05      2.22 &lt;NA&gt;      &lt;NA&gt;  NA        NA    FALSE   </span></span>
+<span><span class="co">#&gt; 12 z1     1.07      2.66 -&gt;        x     -0.000636  1.61 FALSE   </span></span>
+<span><span class="co">#&gt; 13 z2    -0.669     3.67 -&gt;        y     -1.05      2.22 FALSE</span></span></code></pre></div>
 <p><code>ggdag</code> also provides functionality for analyzing DAGs and plotting them in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">tidy_ggdag</span><span class="op">)</span> <span class="op">+</span></span>
@@ -239,6 +239,7 @@
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html" class="external-link"><img src="https://img.shields.io/badge/lifecycle-maturing-blue.svg" alt="Lifecycle: maturing"></a></li>
 <li><a href="https://app.codecov.io/gh/malcolmbarrett/ggdag?branch=main" class="external-link"><img src="https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></li>
 <li><a href="https://cran.r-project.org/package=ggdag" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/ggdag" alt="Total CRAN downloads"></a></li>
+<li><a href="https://github.com/malcolmbarrett/ggdag/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/malcolmbarrett/ggdag/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 </ul>
 </div>
 
