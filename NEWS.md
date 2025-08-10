@@ -3,6 +3,7 @@
 * Fixed `tidy_dagitty()` error when processing DAGs with no edges (#159)
 * Fixed `dag_paths()` error when no open paths exist between nodes (#180)
 * Introduced new functions `query_conditional_independence()`, `test_conditional_independence()`, and `ggdag_conditional_independence()` for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (#139)
+* Added `sort` parameter to `ggdag_conditional_independence()` with default `TRUE` to sort conditional independence tests by their estimates for improved readability (#170)
 * Introduced new functions `aes_dag()` and `geom_dag()` to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (#121)
 * Added new function `geom_label_repel2()` for more opinionated repelled labels that often look better on DAGs (#132)
 * Improved DAG data structure by removing unnecessary `circular` column when not needed. The column is now only included when using circular layouts. This simplifies the tidy DAG structure for most use cases (#119)

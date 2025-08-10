@@ -1,11 +1,9 @@
-Acyclic
 CES
 CMD
 CPDAGs
 Canonicalize
 Codecov
 Collapsibility
-Confounders
 DAGitty
 DAGs
 Dplyr
@@ -16,9 +14,6 @@ Lifecycle
 ORCID
 Rohrer
 SCMs
-SEM
-Undirected
-acyclic
 aes
 algorithmically
 bb
@@ -27,7 +22,6 @@ bidirected
 collapsibility
 colour
 confounder
-confounders
 dagitty
 de
 dendogram
@@ -36,8 +30,10 @@ dplyr
 edx
 fontface
 generalizability
+geom's
 geoms
 ggplot
+ggproto
 ggraph
 ggrepel
 glioma
@@ -46,11 +42,13 @@ grey
 halfcircle
 hjust
 independencies
+jointy
 lineheight
 linetype
 mismeasure
 misspecified
 mitre
+nameing
 plotmath
 pos
 pts
@@ -65,7 +63,7 @@ tidyverse
 tol
 unassociated
 unconfounded
-undirected
+unmapped
 unstratify
 unstyled
 varicella
