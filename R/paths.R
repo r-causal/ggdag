@@ -75,6 +75,14 @@ dag_paths <- function(
 
   vars <- c(from = from, to = to)
 
+  # Handle case where no open paths exist
+  if (length(pathways) == 0) {
+    # Add a path column with all NA values and a set column
+    update_dag_data(.tdy_dag) <- pull_dag_data(.tdy_dag) %>%
+      dplyr::mutate(path = NA_character_, set = "1")
+    return(.tdy_dag)
+  }
+
   update_dag_data(.tdy_dag) <- pathways %>%
     purrr::map_df(
       function(.x) {
