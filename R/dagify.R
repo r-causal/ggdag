@@ -94,7 +94,7 @@ dagify <- function(
   fmlas <- list(...)
   dag_txt <- purrr::map_chr(fmlas, formula2char)
   dag_txt <- paste(dag_txt, collapse = "; ") |>
-    paste("dag {", ., "}")
+    (\(x) paste("dag {", x, "}"))()
   dgty <- dagitty::dagitty(dag_txt)
   if (!is.null(exposure)) {
     dagitty::exposures(dgty) <- exposure

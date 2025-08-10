@@ -268,7 +268,7 @@ tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
       to = as.character(to),
       direction = factor(direction, levels = c("->", "<->", "--"), exclude = NA)
     ) |>
-    ggdag_left_join(coords_df, ., by = "name") |>
+    ggdag_left_join(coords_df, y = _, by = "name") |>
     ggdag_left_join(
       coords_df |> dplyr::select(name, x, y),
       by = c("to" = "name"),

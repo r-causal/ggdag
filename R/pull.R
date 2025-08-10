@@ -203,7 +203,7 @@ compile_dag_from_df <- function(.df) {
     dplyr::transmute(dag_formula = paste(name, direction, to_formula)) |>
     dplyr::pull() |>
     paste(collapse = "; ") |>
-    paste("dag {", ., "}") |>
+    (\(x) paste("dag {", x, "}"))() |>
     dagitty::dagitty()
 }
 

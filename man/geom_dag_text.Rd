@@ -147,8 +147,8 @@ Node text
 \examples{
 library(ggplot2)
 g <- dagify(m ~ x + y, y ~ x)
-g \%>\%
-  tidy_dagitty() \%>\%
+g |>
+  tidy_dagitty() |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_dag_point() +
   geom_dag_edges() +

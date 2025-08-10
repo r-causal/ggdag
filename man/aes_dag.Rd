@@ -22,8 +22,8 @@ mappings.
 }
 \examples{
 library(ggplot2)
-confounder_triangle() \%>\%
-  dag_adjustment_sets() \%>\%
+confounder_triangle() |>
+  dag_adjustment_sets() |>
   ggplot(aes_dag(color = adjusted)) +
   geom_dag() +
   facet_wrap(~set)

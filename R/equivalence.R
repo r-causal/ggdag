@@ -162,7 +162,7 @@ hash <- function(x, y) {
 node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
   ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) |>
-    dagitty::edges(.) |>
+    dagitty::edges() |>
     dplyr::filter(e == "--") |>
     dplyr::select(name = v, reversable = e, to = w) |>
     dplyr::mutate_at(c("name", "to"), as.character) |>

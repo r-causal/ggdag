@@ -63,13 +63,13 @@ to sync the data back to the DAG object or override it with another DAG; use
 }
 \examples{
 
-tidy_dagitty_obj <- dagify(y ~ x + z, x ~ z) \%>\%
+tidy_dagitty_obj <- dagify(y ~ x + z, x ~ z) |>
   tidy_dagitty()
 dag <- pull_dag(tidy_dagitty_obj)
 dag_data <- pull_dag_data(tidy_dagitty_obj)
 
-tidy_dagitty_obj \%>\%
-  dplyr::mutate(name = toupper(name)) \%>\%
+tidy_dagitty_obj |>
+  dplyr::mutate(name = toupper(name)) |>
   # recreate the DAG component
   update_dag()
 

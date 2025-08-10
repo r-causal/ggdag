@@ -97,7 +97,7 @@ dag_paths <- function(
           ) |>
           ggdag_left_join(
             pull_dag_data(.tdy_dag),
-            .,
+            y = _,
             by = c("name" = ".from", "to" = ".to")
           )
 
@@ -113,7 +113,7 @@ dag_paths <- function(
               filter(name == vars[[1]]) |>
               dplyr::slice(1) |>
               dplyr::mutate(path = "open path", to = NA, direction = NA) |>
-              dplyr::bind_rows(path_df, .)
+              (\(x) dplyr::bind_rows(path_df, x))()
           }
         }
 
@@ -125,7 +125,7 @@ dag_paths <- function(
             filter(name == vars[[2]]) |>
             dplyr::slice(1) |>
             dplyr::mutate(path = "open path", to = NA, direction = NA) |>
-            dplyr::bind_rows(path_df, .)
+            (\(x) dplyr::bind_rows(path_df, x))()
         }
 
         path_df

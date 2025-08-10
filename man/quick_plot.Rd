@@ -229,7 +229,7 @@ base functions create an object of class \code{dagitty}; \verb{ggdag_* } functio
 are wrappers that also call \code{ggdag()} on the \code{dagitty} object.
 }
 \examples{
-m_bias() \%>\% ggdag_adjust("m")
+m_bias() |> ggdag_adjust("m")
 ggdag_confounder_triangle()
 
 }

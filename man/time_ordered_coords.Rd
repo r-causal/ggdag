@@ -47,7 +47,7 @@ dagify(
   c3 ~ a,
   b1 ~ a,
   coords = time_ordered_coords()
-) \%>\% ggdag()
+) |> ggdag()
 
 coords <- time_ordered_coords(list(
   # time point 1
@@ -66,7 +66,7 @@ dagify(
   c3 ~ a,
   b1 ~ a,
   coords = coords
-) \%>\% ggdag()
+) |> ggdag()
 
 # or use a data frame
 x <- data.frame(
@@ -78,7 +78,7 @@ dagify(
   y ~ x1 + x2,
   a ~ z1 + z2 + z3,
   coords = time_ordered_coords(x)
-) \%>\%
+) |>
   ggdag()
 
 }

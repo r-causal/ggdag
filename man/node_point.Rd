@@ -132,8 +132,8 @@ following aesthetics (required aesthetics are in bold):
 \examples{
 library(ggplot2)
 g <- dagify(m ~ x + y, y ~ x)
-p <- g \%>\%
-  tidy_dagitty() \%>\%
+p <- g |>
+  tidy_dagitty() |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_dag_edges() +
   theme_dag()

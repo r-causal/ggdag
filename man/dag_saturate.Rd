@@ -48,11 +48,11 @@ together with saturated DAG.
 dag <- dagify(y ~ x, x ~ z)
 saturated_dag <- dag_saturate(dag)
 
-saturated_dag \%>\%
+saturated_dag |>
   ggdag(edge_type = "arc")
 
-saturated_dag \%>\%
-  dag_prune(c("x" = "y")) \%>\%
+saturated_dag |>
+  dag_prune(c("x" = "y")) |>
   ggdag(edge_type = "arc")
 }
 \seealso{

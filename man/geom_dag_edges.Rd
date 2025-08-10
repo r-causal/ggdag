@@ -103,7 +103,7 @@ dagify(
   z1 ~ w1 + v,
   z2 ~ w2 + v,
   w1 ~ ~w2
-) \%>\%
+) |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_dag_edges() +
   geom_dag_point() +
