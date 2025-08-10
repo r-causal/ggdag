@@ -20,3 +20,6 @@ docs
 ^pkgdown$
 ^[.]?air[.]toml$
 ^\.vscode$
+^CLAUDE\.md$
+^\.claude$
+^scratch$
