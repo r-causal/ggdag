@@ -92,6 +92,9 @@ dagify <- function(
   coords = NULL
 ) {
   fmlas <- list(...)
+
+  validate_dag_inputs(fmlas, exposure, outcome, latent)
+
   dag_txt <- purrr::map_chr(fmlas, formula2char)
   dag_txt <- paste(dag_txt, collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))()
@@ -124,6 +127,102 @@ dagify <- function(
     label(dgty) <- labels
   }
   dgty
+}
+
+validate_dag_formula <- function(fmla) {
+  vars <- all.vars(fmla, unique = FALSE)
+
+  if (length(vars) >= 2) {
+    lhs <- vars[1]
+    rhs <- vars[-1]
+
+    # Check for self-loops
+    if (lhs %in% rhs) {
+      stop(
+        "DAGs cannot contain cycles. Variable '",
+        lhs,
+        "' cannot cause itself.",
+        call. = FALSE
+      )
+    }
+  }
+
+  invisible(TRUE)
+}
+
+validate_dag_inputs <- function(
+  fmlas,
+  exposure = NULL,
+  outcome = NULL,
+  latent = NULL
+) {
+  # Validate each formula
+  purrr::walk(fmlas, validate_dag_formula)
+
+  # Check that exposure and outcome are different
+  if (!is.null(exposure) && !is.null(outcome)) {
+    if (any(exposure %in% outcome)) {
+      stop(
+        "A variable cannot be both exposure and outcome. ",
+        "Found: ",
+        paste(intersect(exposure, outcome), collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+
+  # Check that latent variables aren't also exposure or outcome
+  if (!is.null(latent)) {
+    if (!is.null(exposure) && any(latent %in% exposure)) {
+      stop(
+        "Latent variables cannot also be exposures. ",
+        "Found: ",
+        paste(intersect(latent, exposure), collapse = ", "),
+        call. = FALSE
+      )
+    }
+    if (!is.null(outcome) && any(latent %in% outcome)) {
+      stop(
+        "Latent variables cannot also be outcomes. ",
+        "Found: ",
+        paste(intersect(latent, outcome), collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
+
+  # Collect all variables mentioned in formulas
+  all_vars_in_dag <- unique(unlist(purrr::map(fmlas, ~ all.vars(.x))))
+
+  # Validate that exposure, outcome, and latent are in the DAG
+  if (!is.null(exposure) && !all(exposure %in% all_vars_in_dag)) {
+    missing <- setdiff(exposure, all_vars_in_dag)
+    stop(
+      "Exposure variable(s) not found in DAG: ",
+      paste(missing, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (!is.null(outcome) && !all(outcome %in% all_vars_in_dag)) {
+    missing <- setdiff(outcome, all_vars_in_dag)
+    stop(
+      "Outcome variable(s) not found in DAG: ",
+      paste(missing, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (!is.null(latent) && !all(latent %in% all_vars_in_dag)) {
+    missing <- setdiff(latent, all_vars_in_dag)
+    stop(
+      "Latent variable(s) not found in DAG: ",
+      paste(missing, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
 }
 
 get_dagitty_edges <- function(.dag) {

@@ -47,6 +47,10 @@ tidy_dagitty <- function(
     set.seed(seed)
   }
 
+  if (!dagitty::is.dagitty(.dagitty)) {
+    stop("Input must be a dagitty object")
+  }
+
   if (dagitty::graphType(.dagitty) != "dag") {
     stop("`.dagitty` must be of graph type `dag`")
   }
@@ -389,7 +393,7 @@ as.data.frame.tidy_dagitty <- function(
 #'
 #' @export
 #' @importFrom dplyr tbl_df
-tbl_df.tidy_daggity <- function(.tdy_dag) {
+tbl_df.tidy_dagitty <- function(.tdy_dag) {
   pull_dag_data(.tdy_dag)
 }
 
@@ -407,7 +411,7 @@ tbl_df.tidy_daggity <- function(.tdy_dag) {
 #'
 #' @export
 #' @importFrom dplyr as.tbl as_tibble
-as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
+as.tbl.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
   dplyr::as.tbl(
     pull_dag_data(x),
     row.names = row.names,
@@ -417,8 +421,8 @@ as.tbl.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
 }
 
 #' @export
-#' @rdname as.tbl.tidy_daggity
-as_tibble.tidy_daggity <- function(x, row.names = NULL, optional = FALSE, ...) {
+#' @rdname as.tbl.tidy_dagitty
+as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
   dplyr::as_tibble(
     pull_dag_data(x),
     row.names = row.names,

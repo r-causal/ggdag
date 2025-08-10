@@ -49,13 +49,6 @@ summarise.tidy_dagitty <- function(.data, ...) {
 
 #' @name dplyr
 #' @export
-#' @importFrom dplyr distinct
-distinct.tidy_dagitty <- function(.data, ..., .keep_all = FALSE) {
-  dplyr::distinct(pull_dag_data(.data), ..., .keep_all = .keep_all)
-}
-
-#' @name dplyr
-#' @export
 #' @importFrom dplyr arrange
 arrange.tidy_dagitty <- function(.data, ...) {
   update_dag_data(.data) <- dplyr::arrange(pull_dag_data(.data), ...)

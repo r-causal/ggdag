@@ -6,11 +6,11 @@
 \alias{filter.tidy_dagitty}
 \alias{mutate.tidy_dagitty}
 \alias{summarise.tidy_dagitty}
-\alias{distinct.tidy_dagitty}
 \alias{arrange.tidy_dagitty}
 \alias{group_by.tidy_dagitty}
 \alias{ungroup.tidy_dagitty}
 \alias{transmute.tidy_dagitty}
+\alias{distinct.tidy_dagitty}
 \alias{full_join.tidy_dagitty}
 \alias{inner_join.tidy_dagitty}
 \alias{left_join.tidy_dagitty}
@@ -33,8 +33,6 @@
 \method{mutate}{tidy_dagitty}(.data, ...)
 
 \method{summarise}{tidy_dagitty}(.data, ...)
-
-\method{distinct}{tidy_dagitty}(.data, ..., .keep_all = FALSE)
 
 \method{arrange}{tidy_dagitty}(.data, ...)
 
