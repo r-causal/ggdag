@@ -49,7 +49,7 @@ ggdag <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
-  if_not_tidy_daggity(.tdy_dag, ...) %>%
+  if_not_tidy_daggity(.tdy_dag, ...) |>
     ggplot2::ggplot(aes_dag()) +
     geom_dag(
       size = size,
@@ -120,7 +120,7 @@ ggdag_classic <- function(
 
   fontsize <- ifelse(!is.null(label_rect_size), label_rect_size, size * 3.57)
 
-  p <- .tdy_dag %>%
+  p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag()) +
     ggplot2::geom_text(
       ggplot2::aes(label = !!rlang::sym(text_label)),

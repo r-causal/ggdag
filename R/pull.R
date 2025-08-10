@@ -19,13 +19,13 @@
 #'
 #' @examples
 #'
-#' tidy_dagitty_obj <- dagify(y ~ x + z, x ~ z) %>%
+#' tidy_dagitty_obj <- dagify(y ~ x + z, x ~ z) |>
 #'   tidy_dagitty()
 #' dag <- pull_dag(tidy_dagitty_obj)
 #' dag_data <- pull_dag_data(tidy_dagitty_obj)
 #'
-#' tidy_dagitty_obj %>%
-#'   dplyr::mutate(name = toupper(name)) %>%
+#' tidy_dagitty_obj |>
+#'   dplyr::mutate(name = toupper(name)) |>
 #'   # recreate the DAG component
 #'   update_dag()
 #'
@@ -86,10 +86,10 @@ prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
   }
 
   if (is.null(coords) && layout == "time_ordered") {
-    coords <- value %>%
-      edges2df() %>%
-      auto_time_order() %>%
-      time_ordered_coords() %>%
+    coords <- value |>
+      edges2df() |>
+      auto_time_order() |>
+      time_ordered_coords() |>
       coords2list()
   }
 
@@ -98,16 +98,16 @@ prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
   }
 
   if (any(c("x", "y", "xend", "yend") %nin% names(value))) {
-    coords_df <- value %>%
-      dplyr::select(name, to) %>%
-      dplyr::filter(!is.na(name), !is.na(to)) %>%
+    coords_df <- value |>
+      dplyr::select(name, to) |>
+      dplyr::filter(!is.na(name), !is.na(to)) |>
       generate_layout(
         layout = layout,
         coords = coords,
         ...
       )
 
-    value <- value %>%
+    value <- value |>
       tidy_dag_edges_and_coords(coords_df)
   }
 
@@ -147,8 +147,8 @@ update_dag <- function(x, ...) {
 }
 
 recompile_dag <- function(.dag) {
-  new_dag <- .dag %>%
-    pull_dag_data() %>%
+  new_dag <- .dag |>
+    pull_dag_data() |>
     compile_dag_from_df()
 
   if ("status" %in% names(pull_dag_data(.dag))) {
@@ -162,9 +162,9 @@ recompile_dag <- function(.dag) {
   }
 
   if ("adjusted" %in% names(pull_dag_data(.dag))) {
-    .adjusted <- dplyr::filter(.dag, adjusted == "adjusted") %>%
-      pull_dag_data() %>%
-      dplyr::pull(name) %>%
+    .adjusted <- dplyr::filter(.dag, adjusted == "adjusted") |>
+      pull_dag_data() |>
+      dplyr::pull(name) |>
       empty2list()
   } else {
     .adjusted <- dagitty::adjustedNodes(pull_dag(.dag))
@@ -176,9 +176,9 @@ recompile_dag <- function(.dag) {
 
   dagitty::adjustedNodes(new_dag) <- .adjusted
 
-  dagitty::coordinates(new_dag) <- .dag %>%
-    pull_dag_data() %>%
-    select(name, x, y) %>%
+  dagitty::coordinates(new_dag) <- .dag |>
+    pull_dag_data() |>
+    select(name, x, y) |>
     coords2list()
 
   new_dag
@@ -189,21 +189,21 @@ compile_dag_from_df <- function(.df) {
     .df$direction <- "<-"
   }
 
-  .df %>%
-    dplyr::filter(!is.na(to)) %>%
+  .df |>
+    dplyr::filter(!is.na(to)) |>
     dplyr::mutate(
       direction = as.character(direction),
       direction = ifelse(direction == "<-", "->", direction)
-    ) %>%
-    dplyr::group_by(name, direction) %>%
+    ) |>
+    dplyr::group_by(name, direction) |>
     dplyr::summarise(
       to_formula = paste("{", paste(to, collapse = " "), "}"),
       .groups = "drop"
-    ) %>%
-    dplyr::transmute(dag_formula = paste(name, direction, to_formula)) %>%
-    dplyr::pull() %>%
-    paste(collapse = "; ") %>%
-    paste("dag {", ., "}") %>%
+    ) |>
+    dplyr::transmute(dag_formula = paste(name, direction, to_formula)) |>
+    dplyr::pull() |>
+    paste(collapse = "; ") |>
+    paste("dag {", ., "}") |>
     dagitty::dagitty()
 }
 
@@ -212,13 +212,13 @@ return_status <- function(.dag, .status) {
     .dag <- pull_dag_data(.dag)
   }
 
-  dplyr::filter(.dag, status == .status) %>%
-    dplyr::pull(name) %>%
+  dplyr::filter(.dag, status == .status) |>
+    dplyr::pull(name) |>
     empty2list()
 }
 
 empty2list <- function(.x) {
-  if (purrr::is_empty(.x)) {
+  if (length(.x) == 0) {
     list()
   } else {
     .x

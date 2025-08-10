@@ -103,10 +103,10 @@ dag_paths(bigger_dag)
 ```{r}
 library(dplyr)
 #  find how many variables are in between x and y in each path
-bigger_dag %>%
-  dag_paths() %>%
-  group_by(set) %>%
-  filter(!is.na(path) & !is.na(name)) %>%
+bigger_dag |>
+  dag_paths() |>
+  group_by(set) |>
+  filter(!is.na(path) & !is.na(name)) |>
   summarize(n_vars_between = n() - 1L)
 ```
 
@@ -137,8 +137,8 @@ ggdag_adjustment_set(bigger_dag)
 `ggdag()` and friends are, by and large, fairly thin wrappers around included `ggplot2` geoms for plotting nodes, text, and edges to and from variables. For example, `ggdag_parents()` can be made directly in `ggplot2` like this:
 
 ```{r}
-bigger_dag %>%
-  node_parents("x") %>%
+bigger_dag |>
+  node_parents("x") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
   geom_dag_point() +
   geom_dag_edges() +
@@ -157,7 +157,7 @@ You can also call edge functions directly, particularly if you only have directe
 dagify(
   y ~ x,
   m ~ x + y
-) %>%
+) |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_dag_point() +
   geom_dag_edges_arc() +
@@ -172,8 +172,8 @@ If you have bi-directed edges but would like to plot them as directed, `node_can
 dagify(
   y ~ x + z,
   x ~ ~z
-) %>%
-  node_canonical() %>%
+) |>
+  node_canonical() |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
   geom_dag_point() +
   geom_dag_edges_diagonal() +

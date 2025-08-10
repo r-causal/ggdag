@@ -43,14 +43,14 @@ theme_set(theme_dag())
 A DAG displays assumptions about the relationship between variables (often called nodes in the context of graphs). The assumptions we make take the form of lines (or edges) going from one node to another. These edges are *directed*, which means to say that they have a single arrowhead indicating their effect. Here's a simple DAG where we assume that *x* affects *y*:
 
 ```{r, fig.width = 4}
-dagify(y ~ x) %>%
+dagify(y ~ x) |>
   ggdag()
 ```
 
 You also sometimes see edges that look bi-directed, like this:
 
 ```{r, fig.width = 4}
-dagify(y ~ ~x) %>%
+dagify(y ~ ~x) |>
   ggdag()
 ```
 
@@ -58,7 +58,7 @@ But this is actually shorthand for an unmeasured cause of the two variables (in 
 
 ```{r, fig.width = 4}
 #  canonicalize the DAG: Add the latent variable in to the graph
-dagify(y ~ ~x) %>%
+dagify(y ~ ~x) |>
   ggdag_canonical()
 ```
 
@@ -69,7 +69,7 @@ dagify(
   y ~ x,
   x ~ a,
   a ~ y
-) %>%
+) |>
   ggdag()
 ```
 
@@ -183,7 +183,7 @@ dagify(
     "fever" = "Fever",
     "acetaminophen" = "Acetaminophen"
   )
-) %>%
+) |>
   ggdag_dseparated(
     from = "flu",
     to = "pox",

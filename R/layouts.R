@@ -30,7 +30,7 @@
 #'   c3 ~ a,
 #'   b1 ~ a,
 #'   coords = time_ordered_coords()
-#' ) %>% ggdag()
+#' ) |> ggdag()
 #'
 #' coords <- time_ordered_coords(list(
 #'   # time point 1
@@ -49,7 +49,7 @@
 #'   c3 ~ a,
 #'   b1 ~ a,
 #'   coords = coords
-#' ) %>% ggdag()
+#' ) |> ggdag()
 #'
 #' # or use a data frame
 #' x <- data.frame(
@@ -61,7 +61,7 @@
 #'   y ~ x1 + x2,
 #'   a ~ z1 + z2 + z3,
 #'   coords = time_ordered_coords(x)
-#' ) %>%
+#' ) |>
 #'   ggdag()
 #'
 #' @export
@@ -89,12 +89,12 @@ time_ordered_coords <- function(
     .vars <- split(.vars[[1]], .vars[[2]])
   }
 
-  purrr::map2_dfr(
+  do.call(rbind, Map(
+    spread_coords,
     time_points %||% seq_along(.vars),
     .vars,
-    spread_coords,
-    direction = direction
-  )
+    MoreArgs = list(direction = direction)
+  ))
 }
 
 spread_coords <- function(.time, .vars, direction) {
@@ -132,39 +132,39 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
   order_value <- 1
 
   while (nrow(graph) > 0) {
-    no_incoming <- graph %>%
-      dplyr::filter(!(name %in% to)) %>%
+    no_incoming <- graph |>
+      dplyr::filter(!(name %in% to)) |>
       dplyr::pull(name)
 
     # Add the names and order values to the orders data frame
     orders <- dplyr::add_row(orders, name = no_incoming, order = order_value)
 
     # Remove the rows with no incoming edges
-    graph <- graph %>%
+    graph <- graph |>
       dplyr::filter(!name %in% no_incoming)
 
     order_value <- order_value + 1
   }
 
   # Merge orders with the original tibble
-  final_result <- dplyr::left_join(orders, graph, by = "name") %>%
-    dplyr::select(name, order) %>%
+  final_result <- dplyr::left_join(orders, graph, by = "name") |>
+    dplyr::select(name, order) |>
     dplyr::distinct()
 
   if (sort_direction == "left") {
     return(final_result)
   }
 
-  final_result %>%
-    ggdag_left_join(graph2, by = "name") %>%
-    dplyr::group_by(name) %>%
-    dplyr::group_modify(~ right_sort_coords(.x, final_result)) %>%
+  final_result |>
+    ggdag_left_join(graph2, by = "name") |>
+    dplyr::group_by(name) |>
+    dplyr::group_modify(~ right_sort_coords(.x, final_result)) |>
     dplyr::ungroup()
 }
 
 right_sort_coords <- function(.x, .orders) {
-  coords <- .orders %>%
-    dplyr::filter(name %in% .x$to) %>%
+  coords <- .orders |>
+    dplyr::filter(name %in% .x$to) |>
     dplyr::pull(order)
 
   if (length(coords) == 0) {

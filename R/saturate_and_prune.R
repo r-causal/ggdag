@@ -22,11 +22,11 @@
 #' dag <- dagify(y ~ x, x ~ z)
 #' saturated_dag <- dag_saturate(dag)
 #'
-#' saturated_dag %>%
+#' saturated_dag |>
 #'   ggdag(edge_type = "arc")
 #'
-#' saturated_dag %>%
-#'   dag_prune(c("x" = "y")) %>%
+#' saturated_dag |>
+#'   dag_prune(c("x" = "y")) |>
 #'   ggdag(edge_type = "arc")
 #' @seealso [as_tidy_dagitty.list()]
 dag_saturate <- function(
@@ -37,10 +37,10 @@ dag_saturate <- function(
   ...
 ) {
   .dag <- pull_dag(.tdy_dag)
-  df_time_order <- .tdy_dag %>%
-    pull_dag_data() %>%
-    dplyr::select(name, to) %>%
-    auto_time_order() %>%
+  df_time_order <- .tdy_dag |>
+    pull_dag_data() |>
+    dplyr::select(name, to) |>
+    auto_time_order() |>
     dplyr::arrange(order)
 
   if (isTRUE(use_existing_coords)) {
@@ -49,7 +49,7 @@ dag_saturate <- function(
     coords <- NULL
   }
 
-  split(df_time_order$name, df_time_order$order) %>%
+  split(df_time_order$name, df_time_order$order) |>
     as_tidy_dagitty(
       exposure = dagitty::exposures(.dag),
       outcome = dagitty::outcomes(.dag),
@@ -68,15 +68,15 @@ dag_prune <- function(.tdy_dag, edges) {
   stopifnot(!is.null(names(edges)))
   edges <- tibble::enframe(edges, name = "name", value = "to")
 
-  single_edges <- .tdy_dag %>%
-    pull_dag_data() %>%
-    dplyr::group_by(name) %>%
-    dplyr::filter(dplyr::n() == 1) %>%
-    dplyr::ungroup() %>%
-    dplyr::inner_join(edges, by = c("name", "to")) %>%
+  single_edges <- .tdy_dag |>
+    pull_dag_data() |>
+    dplyr::group_by(name) |>
+    dplyr::filter(dplyr::n() == 1) |>
+    dplyr::ungroup() |>
+    dplyr::inner_join(edges, by = c("name", "to")) |>
     dplyr::select(name)
 
-  .tdy_dag %>%
+  .tdy_dag |>
     dplyr::mutate(
       direction = ifelse(name %in% single_edges$name, NA, direction),
       direction = factor(
@@ -87,7 +87,7 @@ dag_prune <- function(.tdy_dag, edges) {
       to = ifelse(name %in% single_edges$name, NA_character_, to),
       xend = ifelse(name %in% single_edges$name, NA_real_, xend),
       yend = ifelse(name %in% single_edges$name, NA_real_, yend)
-    ) %>%
-    dplyr::anti_join(edges, by = c("name", "to")) %>%
+    ) |>
+    dplyr::anti_join(edges, by = c("name", "to")) |>
     update_dag()
 }

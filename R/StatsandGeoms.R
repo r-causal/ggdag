@@ -26,13 +26,13 @@ StatNodesRepel <- ggplot2::ggproto(
     if (all(c("xend", "yend") %in% names(data))) {
       data <- unique(dplyr::select(data, -xend, -yend))
       if ("alpha" %in% names(data)) {
-        data %>%
+        data |>
           dplyr::filter(!is.na(alpha), !is.na(label))
       } else {
-        data %>%
-          dplyr::filter(!is.na(label)) %>%
-          group_by(PANEL) %>%
-          dplyr::distinct(label, .keep_all = TRUE) %>%
+        data |>
+          dplyr::filter(!is.na(label)) |>
+          group_by(PANEL) |>
+          dplyr::distinct(label, .keep_all = TRUE) |>
           ungroup()
       }
     } else {

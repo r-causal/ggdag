@@ -11,7 +11,7 @@
 #' @export
 #'
 #' @examples
-#' m_bias() %>% ggdag_adjust("m")
+#' m_bias() |> ggdag_adjust("m")
 #' ggdag_confounder_triangle()
 #'
 #' @rdname quick_plot
