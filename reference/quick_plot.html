@@ -308,7 +308,7 @@ If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">m_bias</span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="pipe.html">%&gt;%</a></span> <span class="fu"><a href="control_for.html">ggdag_adjust</a></span><span class="op">(</span><span class="st">"m"</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">m_bias</span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="control_for.html">ggdag_adjust</a></span><span class="op">(</span><span class="st">"m"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="quick_plot-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">ggdag_confounder_triangle</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="quick_plot-2.png" alt="" width="700" height="433"></span>

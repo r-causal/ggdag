@@ -265,7 +265,7 @@ grouping column or a <code>ggplot</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x_y_associated <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x_y_associated <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">dag_paths</span><span class="op">(</span>from <span class="op">=</span> <span class="st">"x"</span>, to <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A DAG with 3 nodes and 6 edges</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
@@ -285,11 +285,11 @@ grouping column or a <code>ggplot</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">8</span> 2     z         1     1 -&gt;        y         2     0 open path</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">9</span> 2     x         0     0 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>        2     0 open path</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x_y_associated <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
+<span class="r-in"><span><span class="fu"><a href="quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x_y_associated <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">ggdag_paths</span><span class="op">(</span>from <span class="op">=</span> <span class="st">"x"</span>, to <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="paths-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="quick_plot.html">butterfly_bias</a></span><span class="op">(</span>x_y_associated <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
+<span class="r-in"><span><span class="fu"><a href="quick_plot.html">butterfly_bias</a></span><span class="op">(</span>x_y_associated <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu">ggdag_paths_fan</span><span class="op">(</span>shadow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="paths-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>

@@ -116,12 +116,12 @@ from <code>x</code> to <code>y</code>.</p></dd>
 <span class="r-in"><span><span class="va">dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagify.html">dagify</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">x</span> <span class="op">~</span> <span class="va">z</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">saturated_dag</span> <span class="op">&lt;-</span> <span class="fu">dag_saturate</span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">saturated_dag</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
+<span class="r-in"><span><span class="va">saturated_dag</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="ggdag.html">ggdag</a></span><span class="op">(</span>edge_type <span class="op">=</span> <span class="st">"arc"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="dag_saturate-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">saturated_dag</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
-<span class="r-in"><span>  <span class="fu">dag_prune</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span> <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="pipe.html">%&gt;%</a></span></span></span>
+<span class="r-in"><span><span class="va">saturated_dag</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu">dag_prune</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span> <span class="op">=</span> <span class="st">"y"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="ggdag.html">ggdag</a></span><span class="op">(</span>edge_type <span class="op">=</span> <span class="st">"arc"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="dag_saturate-2.png" alt="" width="700" height="433"></span>
 </code></pre></div>

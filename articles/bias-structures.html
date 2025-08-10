@@ -101,7 +101,7 @@ and people who drink coffee are more likely to smoke. Coffee doesn’t
 actually cause lung cancer, but they are d-connected through smoking, so
 they will appear to be associated:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Coffee"</span>, y <span class="op">=</span> <span class="st">"Lung Cancer"</span>, z <span class="op">=</span> <span class="st">"Smoking"</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Coffee"</span>, y <span class="op">=</span> <span class="st">"Lung Cancer"</span>, z <span class="op">=</span> <span class="st">"Smoking"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span>text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-1-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>But if you think about it, this DAG is incorrect. Smoking doesn’t
@@ -123,7 +123,7 @@ this:</p>
 <span>    <span class="st">"smoking"</span> <span class="op">=</span> <span class="st">"Smoking"</span>,</span>
 <span>    <span class="st">"addictive"</span> <span class="op">=</span> <span class="st">"Addictive \nBehavior"</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span>layout <span class="op">=</span> <span class="st">"tree"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">coffee_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
@@ -154,7 +154,7 @@ Controlling for a collider–a node where two or more arrow heads
 meet–induces an association between its parents, through which
 confounding can flow:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">collider_triangle</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">collider_triangle</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span>controlling_for <span class="op">=</span> <span class="st">"m"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-4-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>Here, the example is fairly simple and easy to deal with: <em>m</em>
@@ -177,7 +177,7 @@ looks like this:</p>
 <span>  a <span class="op">=</span> <span class="st">"Income during Childhood"</span>,</span>
 <span>  b <span class="op">=</span> <span class="st">"Genetic Risk \nfor Diabetes"</span>,</span>
 <span>  m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
-<span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/ggdag.html">ggdag</a></span><span class="op">(</span>use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-5-1.png" width="2240" style="display: block; margin: auto;"></p>
 <p>From a classical confounding perspective, it seems like the mother’s
@@ -196,7 +196,7 @@ education to diabetes status:</p>
 <span>  a <span class="op">=</span> <span class="st">"Income during \nChildhood"</span>,</span>
 <span>  b <span class="op">=</span> <span class="st">"Genetic Risk \nfor Diabetes"</span>,</span>
 <span>  m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
-<span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span>controlling_for <span class="op">=</span> <span class="st">"m"</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="bias-structures_files/figure-html/unnamed-chunk-6-1.png" width="2400" style="display: block; margin: auto;"></p>
 <p>Again, this is relatively easy–just don’t control for the collider.
@@ -220,7 +220,7 @@ looking at people who have had it (note that from here on out, I’m not
 going to show the paths opened by adjusting for a collider, the default
 in <code>ggdag</code>, for clarity):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu">dagitty</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/coordinates.html" class="external-link">coordinates</a></span><span class="op">(</span><span class="fu"><a href="../reference/quick_plot.html">m_bias</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<code class="sourceCode R"><span><span class="va">coords</span> <span class="op">&lt;-</span> <span class="fu">dagitty</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/coordinates.html" class="external-link">coordinates</a></span><span class="op">(</span><span class="fu"><a href="../reference/quick_plot.html">m_bias</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/coordinates.html">coords2df</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">coords</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"readiness"</span>, <span class="st">"pain"</span>, <span class="st">"surgery"</span>, <span class="st">"ready_tool"</span>, <span class="st">"pain_change"</span><span class="op">)</span></span>
 <span></span>
@@ -239,7 +239,7 @@ in <code>ggdag</code>, for clarity):</p>
 <span>    surgery <span class="op">=</span> <span class="st">"Surgical \nStatus"</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  coords <span class="op">=</span> <span class="fu"><a href="../reference/coordinates.html">coords2list</a></span><span class="op">(</span><span class="va">coords</span><span class="op">)</span></span>
-<span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/control_for.html">control_for</a></span><span class="op">(</span><span class="st">"surgery"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/control_for.html">ggdag_adjust</a></span><span class="op">(</span><span class="va">surgical_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, collider_lines <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
@@ -398,7 +398,7 @@ bias via measurement error:</p>
 <span>  coords <span class="op">=</span> <span class="va">coords</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">cesd_dag</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="va">cesd_dag</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span></span>
 <span>    from <span class="op">=</span> <span class="st">"honors"</span>,</span>
 <span>    to <span class="op">=</span> <span class="st">"cesd_change"</span>,</span>
@@ -462,7 +462,7 @@ which opens up a back-door path:</p>
 <span>    smoking <span class="op">=</span> <span class="st">"Smoking"</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  coords <span class="op">=</span> <span class="va">coords</span></span>
-<span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span></span>
 <span>    <span class="st">"glioma"</span>,</span>
 <span>    <span class="st">"smoking"</span>,</span>
@@ -500,7 +500,7 @@ status:</p>
 <span>    dx_severity <span class="op">=</span> <span class="st">"Underyling \nHIV Severity"</span>,</span>
 <span>    cd4 <span class="op">=</span> <span class="st">"CD4 Count"</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="op">)</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/control_for.html">ggdag_adjust</a></span><span class="op">(</span></span>
 <span>    <span class="st">"follow_up"</span>,</span>
 <span>    layout <span class="op">=</span> <span class="st">"mds"</span>,</span>
