@@ -30,6 +30,7 @@ test_conditional_independence(
 
 ggdag_conditional_independence(
   .test_result,
+  sort = TRUE,
   vline_linewidth = 0.8,
   vline_color = "grey70",
   pointrange_fatten = 3
@@ -93,6 +94,9 @@ independently of a DAG.}
 
 \item{.test_result}{A data frame containing the results of conditional
 independence tests created by \code{test_conditional_independence()}.}
+
+\item{sort}{Logical indicating whether to sort the results by estimate value.
+Default is \code{TRUE}.}
 
 \item{vline_linewidth}{Line width for the vertical line indicating no effect.}
 

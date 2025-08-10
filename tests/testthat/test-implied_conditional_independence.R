@@ -78,3 +78,30 @@ test_that("`ggdag_conditional_independence()` works", {
   )
   expect_error(ggdag_conditional_independence(test_result))
 })
+
+test_that("`ggdag_conditional_independence()` sorting works correctly", {
+  test_result <- data.frame(
+    independence = c("x _||_ y", "y _||_ z", "a _||_ b"),
+    estimate = c(0.3, 0.1, 0.2),
+    lower = c(0.2, -0.1, 0.0),
+    upper = c(0.4, 0.3, 0.4)
+  )
+
+  # Test with default sort = TRUE
+  p1 <- ggdag_conditional_independence(test_result)
+  expect_doppelganger("sorted plot default", p1)
+
+  # Verify the order is sorted by estimate
+  plot_build <- ggplot2::ggplot_build(p1)
+  y_order <- levels(plot_build$plot$data$independence)
+  expect_equal(y_order, c("y & z", "a & b", "x & y"))
+
+  # Test with sort = FALSE
+  p2 <- ggdag_conditional_independence(test_result, sort = FALSE)
+  expect_doppelganger("unsorted plot", p2)
+
+  # Verify the order is preserved when sort = FALSE
+  plot_build2 <- ggplot2::ggplot_build(p2)
+  y_order2 <- plot_build2$plot$data$independence
+  expect_equal(as.character(y_order2), c("x & y", "y & z", "a & b"))
+})

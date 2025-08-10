@@ -11,6 +11,8 @@
 #' @inheritParams dagitty::localTests
 #' @param .test_result A data frame containing the results of conditional
 #'   independence tests created by `test_conditional_independence()`.
+#' @param sort Logical indicating whether to sort the results by estimate value.
+#'   Default is `TRUE`.
 #' @param vline_linewidth Line width for the vertical line indicating no effect.
 #' @param vline_color Color of the vertical line.
 #' @param pointrange_fatten Factor to fatten the point range.
@@ -114,6 +116,7 @@ test_conditional_independence <- function(
 #' @export
 ggdag_conditional_independence <- function(
   .test_result,
+  sort = TRUE,
   vline_linewidth = .8,
   vline_color = "grey70",
   pointrange_fatten = 3
@@ -129,6 +132,12 @@ ggdag_conditional_independence <- function(
     stringr::fixed("_||_"),
     "&"
   )
+
+  if (isTRUE(sort)) {
+    .test_result <- .test_result %>%
+      dplyr::arrange(.data[[estimate]]) %>%
+      dplyr::mutate(independence = forcats::fct_inorder(independence))
+  }
 
   ggplot2::ggplot(
     .test_result,
