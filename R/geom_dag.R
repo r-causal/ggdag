@@ -703,9 +703,7 @@ geom_dag_edges_arc <- function(
   ...
 ) {
   if (is.null(mapping)) {
-    mapping <- ggplot2::aes(circular = circular)
-  } else if (is.null(mapping$circular)) {
-    mapping$circular <- substitute(circular)
+    mapping <- ggplot2::aes()
   }
 
   ggplot2::layer(
@@ -768,9 +766,7 @@ geom_dag_edges_diagonal <- function(
   ...
 ) {
   if (is.null(mapping)) {
-    mapping <- ggplot2::aes(circular = circular)
-  } else if (is.null(mapping$circular)) {
-    mapping$circular <- substitute(circular)
+    mapping <- ggplot2::aes()
   }
 
   ggplot2::layer(

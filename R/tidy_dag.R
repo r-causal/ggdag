@@ -307,9 +307,16 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
     )
   }
 
-  ggraph_layout %>%
+  layout_df <- ggraph_layout %>%
     dplyr::select(name, x, y, circular) %>%
     dplyr::as_tibble()
+
+  # Remove circular column if all values are FALSE (issue #119)
+  if (all(!layout_df$circular)) {
+    layout_df$circular <- NULL
+  }
+
+  layout_df
 }
 
 check_verboten_layout <- function(layout) {

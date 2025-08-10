@@ -5,6 +5,7 @@
 * Introduced new functions `query_conditional_independence()`, `test_conditional_independence()`, and `ggdag_conditional_independence()` for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (#139)
 * Introduced new functions `aes_dag()` and `geom_dag()` to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (#121)
 * Added new function `geom_label_repel2()` for more opinionated repelled labels that often look better on DAGs (#132)
+* Improved DAG data structure by removing unnecessary `circular` column when not needed. The column is now only included when using circular layouts. This simplifies the tidy DAG structure for most use cases (#119)
 
 # ggdag 0.2.11
 

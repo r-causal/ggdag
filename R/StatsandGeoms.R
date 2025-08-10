@@ -145,6 +145,10 @@ StatEdgeArc <- ggplot2::ggproto(
   ggraph::StatEdgeArc,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
+    # Handle missing circular column (issue #119)
+    if (!"circular" %in% names(data)) {
+      data$circular <- FALSE
+    }
     data[is.na(data$circular), "circular"] <- FALSE
 
     if (nrow(data) > 0) {
@@ -162,6 +166,10 @@ StatEdgeDiagonal <- ggplot2::ggproto(
   ggraph::StatEdgeDiagonal,
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
+    # Handle missing circular column (issue #119)
+    if (!"circular" %in% names(data)) {
+      data$circular <- FALSE
+    }
     data[is.na(data$circular), "circular"] <- FALSE
 
     if (nrow(data) > 0) {

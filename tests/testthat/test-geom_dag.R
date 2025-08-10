@@ -95,3 +95,28 @@ test_that("labels also work", {
 
   expect_doppelganger("geom_dag_label() labels", p1)
 })
+
+test_that("circular layouts work correctly", {
+  # Test linear circular layout
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    a ~ b,
+    b ~ c,
+    c ~ a
+  )
+  
+  p_circular <- dag %>%
+    tidy_dagitty(layout = "linear", circular = TRUE) %>%
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_arc() +
+    geom_dag_point() +
+    geom_dag_text()
+  
+  expect_doppelganger("circular layout with arc edges", p_circular)
+  
+  # Test that circular column is present in circular layouts
+  tidy_dag_circular <- tidy_dagitty(dag, layout = "linear", circular = TRUE)
+  expect_true("circular" %in% names(pull_dag_data(tidy_dag_circular)))
+  expect_true(all(pull_dag_data(tidy_dag_circular)$circular))
+})
