@@ -112,7 +112,7 @@ test_that("list is correctly converted to a saturated, time-ordered DAG", {
   dag <- as_tidy_dagitty(node_groups)
   expect_s3_class(dag, "tidy_dagitty")
   expect_equal(nrow(pull_dag_data(dag)), 9)
-  coords_df <- pull_dag_data(dag) |>
+  coords_df <- pull_dag_data(dag) %>%
     dplyr::distinct(name, .keep_all = TRUE)
   pull_coords <- function(.n) {
     unname(dplyr::filter(coords_df, name == .n)$x)
