@@ -40,10 +40,9 @@ query_conditional_independence <- function(
   )
 
   ici |>
-    {\(x) do.call(rbind, lapply(seq_along(x), \(i) {
-      .x <- x[[i]]
-      tibble::tibble(
-        set = i,
+    purrr::imap(
+      \(.x, .y) tibble::tibble(
+        set = .y,
         a = .x$X,
         b = .x$Y,
         conditioned_on = if (rlang::is_empty(.x$Z)) {
@@ -52,7 +51,8 @@ query_conditional_independence <- function(
           list(.x$Z)
         }
       )
-    }))}() |>
+    ) |>
+    purrr::list_rbind() |>
     tibble::as_tibble()
 }
 

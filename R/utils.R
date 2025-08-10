@@ -61,7 +61,7 @@ if_not_tidy_daggity <- function(.dagitty, ...) {
 }
 
 unique_pairs <- function(x, exclude_identical = TRUE) {
-  pairs <- expand.grid(x, x) |> lapply(as.character) |> as.data.frame()
+  pairs <- expand.grid(x, x) |> purrr::map_dfc(as.character)
   if (exclude_identical) {
     pairs <- pairs |> dplyr::filter(Var1 != Var2)
   }
@@ -73,7 +73,7 @@ formula2char <- function(fmla) {
   char_fmla <- as.character.default(fmla)
   rhs_vars <- char_fmla[[3]] |>
     stringr::str_split(" \\+ ") |>
-    `[[`(1)
+    purrr::pluck(1)
   bidirectional <- any(stringr::str_detect(rhs_vars, "~"))
   rhs_vars <- stringr::str_replace_all(rhs_vars, "~", "")
   arrows <- ifelse(bidirectional, "<->", "<-")
@@ -92,21 +92,21 @@ edge_type_switch <- function(edge_type) {
 }
 
 is_empty_or_null <- function(x) {
-  is.null(x) || length(x) == 0
+  is.null(x) || purrr::is_empty(x)
 }
 
 is_false <- function(x) is.logical(x) && length(x) == 1L && !is.na(x) && !x
 
 has_exposure <- function(x) {
-  is_false(length(dagitty::exposures(pull_dag(x))) == 0)
+  is_false(purrr::is_empty(dagitty::exposures(pull_dag(x))))
 }
 
 has_outcome <- function(x) {
-  is_false(length(dagitty::outcomes(pull_dag(x))) == 0)
+  is_false(purrr::is_empty(dagitty::outcomes(pull_dag(x))))
 }
 
 has_latent <- function(x) {
-  is_false(length(dagitty::latents(pull_dag(x))) == 0)
+  is_false(purrr::is_empty(dagitty::latents(pull_dag(x))))
 }
 
 has_collider_path <- function(x) {

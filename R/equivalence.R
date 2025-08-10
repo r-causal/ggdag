@@ -49,11 +49,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
   }
 
   update_dag_data(.dag) <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) |>
-    {\(x) do.call(rbind, lapply(seq_along(x), \(i) {
-      result <- map_equivalence(x[[i]])
-      result$dag <- as.character(i)
-      result
-    }))}() |>
+    purrr::map_df(map_equivalence, .id = "dag") |>
     dplyr::as_tibble()
 
   if (extra_columns) {
@@ -64,7 +60,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 }
 
 has_extra_columns <- function(.x) {
-  length(get_extra_column_names(.x)) > 0
+  !purrr::is_empty(get_extra_column_names(.x))
 }
 
 get_extra_column_names <- function(.x) {
@@ -158,7 +154,7 @@ ggdag_equivalent_dags <- function(
 }
 
 hash <- function(x, y) {
-  mapply(\(.x, .y) paste0(sort(c(.x, .y)), collapse = "_"), x, y, USE.NAMES = FALSE)
+  purrr::pmap_chr(list(x, y), \(.x, .y) paste0(sort(c(.x, .y)), collapse = "_"))
 }
 
 #' @rdname equivalent

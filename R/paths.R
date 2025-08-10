@@ -83,10 +83,9 @@ dag_paths <- function(
     return(.tdy_dag)
   }
 
-  update_dag_data(.tdy_dag) <- do.call(rbind, lapply(
-      seq_along(pathways),
-      \(i) {
-        .x <- pathways[[i]]
+  update_dag_data(.tdy_dag) <- pathways |>
+    purrr::map_df(
+      function(.x) {
         path_df <- .x |>
           dag2() |>
           dagitty::edges() |>
@@ -129,10 +128,10 @@ dag_paths <- function(
             dplyr::bind_rows(path_df, .)
         }
 
-        path_df$set <- as.character(i)
         path_df
-      }
-    ))
+      },
+      .id = "set"
+    )
 
   if (paths_only) {
     .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")

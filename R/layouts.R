@@ -89,12 +89,12 @@ time_ordered_coords <- function(
     .vars <- split(.vars[[1]], .vars[[2]])
   }
 
-  do.call(rbind, Map(
-    spread_coords,
+  purrr::map2_dfr(
     time_points %||% seq_along(.vars),
     .vars,
-    MoreArgs = list(direction = direction)
-  ))
+    spread_coords,
+    direction = direction
+  )
 }
 
 spread_coords <- function(.time, .vars, direction) {
@@ -158,7 +158,7 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
   final_result |>
     ggdag_left_join(graph2, by = "name") |>
     dplyr::group_by(name) |>
-    dplyr::group_modify(~ right_sort_coords(.x, final_result)) |>
+    dplyr::group_modify(\(.x, .y) right_sort_coords(.x, final_result)) |>
     dplyr::ungroup()
 }
 

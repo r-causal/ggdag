@@ -92,7 +92,7 @@ dagify <- function(
   coords = NULL
 ) {
   fmlas <- list(...)
-  dag_txt <- sapply(fmlas, formula2char)
+  dag_txt <- purrr::map_chr(fmlas, formula2char)
   dag_txt <- paste(dag_txt, collapse = "; ") |>
     paste("dag {", ., "}")
   dgty <- dagitty::dagitty(dag_txt)

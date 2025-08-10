@@ -35,18 +35,20 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
     outcome = outcome
   )
 
-  i_vars <- lapply(instrumental_vars, `[[`, "I")
-  if (length(i_vars) == 0) {
+  i_vars <- purrr::map(instrumental_vars, "I")
+  if (purrr::is_empty(i_vars)) {
     .dag <- dplyr::mutate(
       .dag,
       instrumental = NA
     )
     return(.dag)
   }
-  adjust_for_vars <- lapply(instrumental_vars, `[[`, "Z")
+  adjust_for_vars <- purrr::map(instrumental_vars, "Z")
 
-  update_dag_data(.dag) <- do.call(rbind, Map(
-    \(.i, .z) {
+  update_dag_data(.dag) <- purrr::map2_df(
+    i_vars,
+    adjust_for_vars,
+    function(.i, .z) {
       conditional_vars <- ifelse(
         is.null(.z),
         "",
@@ -66,10 +68,8 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
         )
 
       pull_dag_data(.dag)
-    },
-    i_vars,
-    adjust_for_vars
-  ))
+    }
+  )
 
   .dag
 }

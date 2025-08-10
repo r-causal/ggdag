@@ -218,7 +218,7 @@ return_status <- function(.dag, .status) {
 }
 
 empty2list <- function(.x) {
-  if (length(.x) == 0) {
+  if (purrr::is_empty(.x)) {
     list()
   } else {
     .x

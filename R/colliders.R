@@ -25,14 +25,14 @@
 node_collider <- function(.dag, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
-  colliders <- sapply(vars, \(.x) is_collider(.tdy_dag, .x))
+  colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
   names(colliders) <- vars
   .tdy_dag <- dplyr::left_join(
     .tdy_dag,
     tibble::enframe(colliders, value = "colliders"),
     by = "name"
   )
-  lapply(vars[colliders], \(.x) dagitty::parents(pull_dag(.tdy_dag), .x))
+  purrr::map(vars[colliders], \(.x) dagitty::parents(pull_dag(.tdy_dag), .x))
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
@@ -129,8 +129,8 @@ ggdag_collider <- function(
 activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
-  colliders <- sapply(vars, \(.x) is_collider(.tdy_dag, .x))
-  downstream_colliders <- sapply(
+  colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
+  downstream_colliders <- purrr::map_lgl(
     vars,
     \(.x) is_downstream_collider(.tdy_dag, .x)
   )
@@ -140,18 +140,18 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
     return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
   }
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
-  collider_paths <- lapply(
+  collider_paths <- purrr::map(
     adjusted_colliders,
     \(.x) dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1]
   )
 
-  activated_pairs <- lapply(collider_paths, unique_pairs)
+  activated_pairs <- purrr::map(collider_paths, unique_pairs)
 
-  collider_lines <- do.call(rbind, lapply(
+  collider_lines <- purrr::map_df(
     activated_pairs,
     dagify_colliders,
     .tdy_dag = .tdy_dag
-  ))
+  )
 
   collider_lines$collider_line <- TRUE
   .tdy_dag <- dplyr::mutate(.tdy_dag, collider_line = FALSE)
@@ -231,5 +231,5 @@ is_downstream_collider <- function(.dag, .var) {
     .dag <- pull_dag(.dag)
   }
   var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
-  any(sapply(var_ancestors, \(.x) is_collider(.dag, .x)))
+  any(purrr::map_lgl(var_ancestors, \(.x) is_collider(.dag, .x)))
 }

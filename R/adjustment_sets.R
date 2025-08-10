@@ -54,7 +54,7 @@ dag_adjustment_sets <- function(
     outcome = outcome,
     ...
   )
-  is_empty_set <- length(sets) == 0
+  is_empty_set <- purrr::is_empty(sets)
   if (is_empty_set) {
     warning(
       "Failed to close backdoor paths. Common reasons include:
@@ -68,23 +68,24 @@ dag_adjustment_sets <- function(
   }
 
   update_dag_data(.tdy_dag) <-
-    do.call(rbind, lapply(
+    purrr::map_df(
       sets,
       \(.x) dplyr::mutate(
         pull_dag_data(.tdy_dag),
         adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"),
         set = paste0("{", paste(.x, collapse = ", "), "}")
       )
-    ))
+    )
 
   .tdy_dag
 }
 
 extract_sets <- function(sets) {
   sets <- unname(as.list(sets))
-  sets <- lapply(
+  sets <- purrr::map_if(
     sets,
-    \(.x) if (length(.x) == 0) "(Backdoor Paths Unconditionally Closed)" else .x
+    purrr::is_empty,
+    ~"(Backdoor Paths Unconditionally Closed)"
   )
 }
 
