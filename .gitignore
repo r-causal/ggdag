@@ -6,3 +6,6 @@ rhub.R
 revdep/
 cran-comments.md
 docs
+CLAUDE.md
+.claude/
+scratch/

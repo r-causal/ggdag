@@ -127,6 +127,40 @@ test_that("igraph attribute does not hitchhike onto tidy dag", {
   expect_null(attr(pull_dag_data(td), "graph"))
 })
 
+test_that("as_tidy_dagitty preserves edge direction from data frame (issue #177)", {
+  # Test case from issue #177
+  dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
+    as_tidy_dagitty()
+
+  # Extract the data and dagitty object
+  dag_data <- pull_dag_data(dag)
+  dag_obj <- pull_dag(dag)
+
+  # The data frame should show edges in the correct direction
+  # c -> x, c -> y, x -> y
+  edges <- dag_data %>%
+    dplyr::filter(!is.na(to)) %>%
+    dplyr::select(name, to, direction)
+
+  expect_equal(edges$name, c("c", "c", "x"))
+  expect_equal(edges$to, c("x", "y", "y"))
+  expect_equal(as.character(edges$direction), c("->", "->", "->"))
+
+  # The dagitty object should also have the same edges
+  # We can check this by converting back to string representation
+  dag_string <- as.character(dag_obj)
+
+  # The DAG should contain these edges in the correct direction
+  expect_true(grepl("c -> x", dag_string))
+  expect_true(grepl("c -> y", dag_string))
+  expect_true(grepl("x -> y", dag_string))
+
+  # It should NOT contain reversed edges
+  expect_false(grepl("x -> c", dag_string))
+  expect_false(grepl("y -> c", dag_string))
+  expect_false(grepl("y -> x", dag_string))
+})
+
 expect_function_produces_name <- function(tidy_dag, column) {
   .df <- pull_dag_data(tidy_dag)
   expect_true(all(column %in% names(.df)))
