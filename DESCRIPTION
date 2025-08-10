@@ -14,7 +14,7 @@ License: MIT + file LICENSE
 URL: https://github.com/r-causal/ggdag, https://r-causal.github.io/ggdag/
 BugReports: https://github.com/r-causal/ggdag/issues
 Depends: 
-    R (>= 3.4.0)
+    R (>= 4.1.0)
 Imports: 
     dagitty,
     dplyr,

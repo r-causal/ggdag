@@ -221,14 +221,14 @@ as_tidy_dagitty.list <- function(
     set.seed(seed)
   }
 
-  dag_edges <- purrr::map(
+  dag_edges <- lapply(
     seq_len(length(x) - 1),
     saturate_edges,
     time_points = x
-  ) %>%
+  ) |>
     dplyr::bind_rows()
 
-  dag_edges %>%
+  dag_edges |>
     as_tidy_dagitty(
       exposure = exposure,
       outcome = outcome,
@@ -283,8 +283,8 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
   if (is.null(coords)) {
     no_existing_coords <- TRUE
   } else {
-    no_existing_coords <- coords %>%
-      purrr::map_lgl(~ all(is.na(.x))) %>%
+    no_existing_coords <- coords |>
+      sapply(\(.x) all(is.na(.x))) |>
       all()
   }
 
@@ -525,8 +525,8 @@ print.tidy_dagitty <- function(x, ...) {
 #' @rdname coordinates
 #' @name coordinates
 coords2df <- function(coord_list) {
-  coord_df <- purrr::map(coord_list, tibble::enframe) %>%
-    purrr::reduce(ggdag_left_join, by = "name")
+  coord_df <- lapply(coord_list, tibble::enframe) |>
+    Reduce(f = ggdag_left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df
 }
