@@ -215,7 +215,10 @@ ggdag_equivalent_class <- function(
     p <- p +
       geom_dag_edges(
         data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
-        data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")
+        data_bidirected = dplyr::filter(
+          non_reversable_lines,
+          direction == "<->"
+        )
       ) +
       geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
       breaks(breaks) +

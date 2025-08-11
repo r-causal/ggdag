@@ -311,6 +311,7 @@ ggdag_m_bias <- function(
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,

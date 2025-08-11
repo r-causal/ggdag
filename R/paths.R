@@ -114,7 +114,13 @@ dag_paths <- function(
             path_df <- path_df |>
               filter(name == vars[[1]]) |>
               dplyr::slice(1) |>
-              dplyr::mutate(path = "open path", to = NA, direction = NA) |>
+              dplyr::mutate(
+                path = "open path",
+                to = NA,
+                direction = NA,
+                xend = NA,
+                yend = NA
+              ) |>
               (\(x) dplyr::bind_rows(path_df, x))()
           }
         }
@@ -126,7 +132,13 @@ dag_paths <- function(
           path_df <- path_df |>
             filter(name == vars[[2]]) |>
             dplyr::slice(1) |>
-            dplyr::mutate(path = "open path", to = NA, direction = NA) |>
+            dplyr::mutate(
+              path = "open path",
+              to = NA,
+              direction = NA,
+              xend = NA,
+              yend = NA
+            ) |>
             (\(x) dplyr::bind_rows(path_df, x))()
         }
 
@@ -183,10 +195,6 @@ ggdag_paths <- function(
       directed = directed
     ) |>
     ggplot2::ggplot(aes_dag(color = path)) +
-    geom_dag_edges(
-      ggplot2::aes(edge_colour = path),
-      show.legend = if (shadow) TRUE else FALSE
-    ) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
     breaks("open path") +
     expand_plot(
@@ -194,25 +202,59 @@ ggdag_paths <- function(
       expand_y = expansion(c(0.1, 0.1))
     )
 
-  if (shadow) {
-    vals <- c("unadjusted" = "black", "adjusted" = "grey80")
-  } else {
-    vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
-  }
+  if (use_edges) {
+    f_bidirected <- if (!shadow) {
+      function(x) {
+        dplyr::filter(
+          x,
+          path == "open path",
+          direction == "<->"
+        )
+      }
+    } else {
+      filter_direction("<->")
+    }
 
-  p <- p +
-    ggraph::scale_edge_color_discrete(
-      drop = FALSE,
-      na.value = if (shadow) "grey80" else "#FFFFFF00",
-      na.translate = if (shadow) TRUE else FALSE,
-      limits = "open path"
-    ) +
-    ggplot2::scale_color_discrete(
-      drop = FALSE,
-      na.value = if (shadow) "grey80" else "#FFFFFF00",
-      na.translate = if (shadow) TRUE else FALSE,
-      limits = "open path"
-    )
+    f_directed <- if (!shadow) {
+      function(x) {
+        dplyr::filter(
+          x,
+          path == "open path",
+          direction == "->"
+        )
+      }
+    } else {
+      filter_direction("->")
+    }
+
+    p <- p +
+      geom_dag_edges(
+        data_directed = f_directed,
+        data_bidirected = f_bidirected,
+        ggplot2::aes(edge_colour = path),
+        show.legend = if (shadow) TRUE else FALSE
+      )
+
+    if (shadow) {
+      vals <- c("unadjusted" = "black", "adjusted" = "grey80")
+    } else {
+      vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
+    }
+
+    p <- p +
+      ggraph::scale_edge_color_discrete(
+        drop = FALSE,
+        na.value = if (shadow) "grey80" else "#FFFFFF00",
+        na.translate = if (shadow) TRUE else FALSE,
+        limits = "open path"
+      ) +
+      ggplot2::scale_color_discrete(
+        drop = FALSE,
+        na.value = if (shadow) "grey80" else "#FFFFFF00",
+        na.translate = if (shadow) TRUE else FALSE,
+        limits = "open path"
+      )
+  }
 
   p <- p +
     geom_dag(
@@ -280,28 +322,34 @@ ggdag_paths_fan <- function(
       directed = directed,
       paths_only = !shadow
     ) |>
-    ggplot2::ggplot(aes_dag()) +
-    geom_dag_edges_fan(
-      ggplot2::aes(edge_colour = set, edge_alpha = path),
-      spread = spread
-    ) +
-    ggplot2::scale_alpha_manual(
-      drop = FALSE,
-      values = c("open path" = 1),
-      na.value = .35,
-      breaks = "open path",
-      limits = "open path"
-    ) +
-    ggraph::scale_edge_alpha_manual(
-      drop = FALSE,
-      values = c("open path" = 1),
-      na.value = .15,
-      breaks = "open path",
-      guide = "none",
-      limits = "open path"
-    ) +
-    ggraph::scale_edge_colour_discrete(name = "open path", drop = FALSE) +
-    ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path") +
+    ggplot2::ggplot(aes_dag())
+
+  if (use_edges) {
+    p <- p +
+      geom_dag_edges_fan(
+        ggplot2::aes(edge_colour = set, edge_alpha = path),
+        spread = spread
+      ) +
+      ggplot2::scale_alpha_manual(
+        drop = FALSE,
+        values = c("open path" = 1),
+        na.value = .35,
+        breaks = "open path",
+        limits = "open path"
+      ) +
+      ggraph::scale_edge_alpha_manual(
+        drop = FALSE,
+        values = c("open path" = 1),
+        na.value = .15,
+        breaks = "open path",
+        guide = "none",
+        limits = "open path"
+      ) +
+      ggraph::scale_edge_colour_discrete(name = "open path", drop = FALSE) +
+      ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path")
+  }
+
+  p <- p +
     expand_plot(
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))

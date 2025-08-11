@@ -10,7 +10,8 @@ ggdag_classic(
   size = 8,
   label_rect_size = NULL,
   text_label = "name",
-  text_col = "black"
+  text_col = "black",
+  use_edges = TRUE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ scaled relative ti \code{size}}
 \item{text_label}{text variable, with a default of "name"}
 
 \item{text_col}{text color, with a default of "black"}
+
+\item{use_edges}{logical value whether to include edges}
 }
 \value{
 a \code{ggplot}

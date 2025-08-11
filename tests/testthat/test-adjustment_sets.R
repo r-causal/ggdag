@@ -2,8 +2,16 @@ test_that("adjustment sets drawn correctly", {
   p1 <- ggdag_adjustment_set(test_dag)
   expect_doppelganger("ggdag_adjustment_set() renders", p1)
 
+  # Add edge count test
+  n_edges <- count_dag_edges(test_dag)
+  n_sets <- count_adjustment_sets(test_dag)
+  expect_edge_count(p1, n_edges * n_sets, "ggdag_adjustment_set default")
+
   p2 <- ggdag_adjustment_set(test_dag, shadow = FALSE)
   expect_doppelganger("ggdag_adjustment_set() renders without shadows", p2)
+
+  # Shadow parameter doesn't affect edge count for adjustment sets
+  expect_edge_count(p2, n_edges * n_sets, "ggdag_adjustment_set shadow=FALSE")
 })
 
 test_that("adjustment sets drawn correctly with width set low", {
@@ -12,6 +20,15 @@ test_that("adjustment sets drawn correctly with width set low", {
     {
       p <- ggdag_adjustment_set(test_dag)
       expect_doppelganger("ggdag_adjustment_set() renders with low width", p)
+
+      # Add edge count test - width doesn't affect edge count
+      n_edges <- count_dag_edges(test_dag)
+      n_sets <- count_adjustment_sets(test_dag)
+      expect_edge_count(
+        p,
+        n_edges * n_sets,
+        "ggdag_adjustment_set with low width"
+      )
     }
   )
 })
@@ -41,6 +58,205 @@ test_that("dag_adjustment_sets identifies correct adjustment sets", {
 
   # Check set column is created
   expect_true("set" %in% names(dag_data))
+})
+
+test_that("ggdag_adjustment_set respects use_edges parameter", {
+  # Create a DAG with adjustment set: y ~ x + z, x ~ z
+  # This should have 3 edges total: y <- x, y <- z, x <- z
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  # Test with use_edges = TRUE (should have edges)
+  p_with_edges <- ggdag_adjustment_set(dag, use_edges = TRUE)
+  analysis_with <- analyze_plot_edges(p_with_edges)
+
+  expect_true(
+    analysis_with$has_edge_layers,
+    "Should have edge layers when use_edges = TRUE"
+  )
+  expect_equal(
+    analysis_with$total_edges,
+    3,
+    info = "Should have exactly 3 edges when use_edges = TRUE"
+  )
+  expect_gt(
+    analysis_with$edge_layers,
+    0,
+    "Should have at least 1 edge layer when use_edges = TRUE"
+  )
+
+  # Test with use_edges = FALSE (should have NO edges)
+  p_without_edges <- ggdag_adjustment_set(dag, use_edges = FALSE)
+  analysis_without <- analyze_plot_edges(p_without_edges)
+
+  expect_false(
+    analysis_without$has_edge_layers,
+    paste(
+      "Should have NO edge layers when use_edges = FALSE, but found:",
+      analysis_without$edge_layers
+    )
+  )
+  expect_equal(
+    analysis_without$total_edges,
+    0,
+    info = paste(
+      "Should have 0 edges when use_edges = FALSE, but found:",
+      analysis_without$total_edges
+    )
+  )
+  expect_equal(
+    analysis_without$edge_layers,
+    0,
+    info = "Should have 0 edge layers when use_edges = FALSE"
+  )
+})
+
+test_that("ggdag_adjust respects use_edges parameter", {
+  # Create a DAG and control for z: y ~ x + z, x ~ z
+  # This should have 3 edges total: y <- x, y <- z, x <- z
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  # Test with use_edges = TRUE (should have edges)
+  p_with_edges <- ggdag_adjust(dag, var = "z", use_edges = TRUE)
+  analysis_with <- analyze_plot_edges(p_with_edges)
+
+  expect_true(
+    analysis_with$has_edge_layers,
+    "Should have edge layers when use_edges = TRUE"
+  )
+  expect_equal(
+    analysis_with$total_edges,
+    3,
+    info = "Should have exactly 3 edges when use_edges = TRUE"
+  )
+  expect_gt(
+    analysis_with$edge_layers,
+    0,
+    "Should have at least 1 edge layer when use_edges = TRUE"
+  )
+
+  # Test with use_edges = FALSE (should have NO edges)
+  p_without_edges <- ggdag_adjust(dag, var = "z", use_edges = FALSE)
+  analysis_without <- analyze_plot_edges(p_without_edges)
+
+  expect_false(
+    analysis_without$has_edge_layers,
+    paste(
+      "Should have NO edge layers when use_edges = FALSE, but found:",
+      analysis_without$edge_layers
+    )
+  )
+  expect_equal(
+    analysis_without$total_edges,
+    0,
+    info = paste(
+      "Should have 0 edges when use_edges = FALSE, but found:",
+      analysis_without$total_edges
+    )
+  )
+  expect_equal(
+    analysis_without$edge_layers,
+    0,
+    info = "Should have 0 edge layers when use_edges = FALSE"
+  )
+})
+
+test_that("ggdag_adjustment_set handles complex DAG with bidirected edges", {
+  # Complex DAG with bidirected edge from ?ggdag
+  dag <- dagify(
+    y ~ x + z2 + w2 + w1,
+    x ~ z1 + w1,
+    z1 ~ w1 + v,
+    z2 ~ w2 + v,
+    w1 ~ ~w2, # bidirected edge
+    exposure = "x",
+    outcome = "y"
+  )
+
+  # Count edges in base DAG
+  dag_edges <- dagitty::edges(dag)
+  n_dag_edges <- nrow(dag_edges)
+  expect_equal(n_dag_edges, 11, info = "Base DAG should have 11 edges")
+
+  # Get adjustment sets to know how many facets we'll have
+  adj_sets <- dag_adjustment_sets(dag)
+  dag_data <- pull_dag_data(adj_sets)
+  n_sets <- length(unique(dag_data$set))
+
+  # Test with use_edges = TRUE
+  # Expected: n_edges * n_sets = 11 * n_sets
+  p_with_edges <- ggdag_adjustment_set(dag, use_edges = TRUE)
+  analysis_with <- analyze_plot_edges(p_with_edges)
+
+  expect_true(
+    analysis_with$has_edge_layers,
+    "Should have edge layers when use_edges = TRUE"
+  )
+  expect_equal(
+    analysis_with$total_edges,
+    n_dag_edges * n_sets,
+    info = paste("Should have", n_dag_edges * n_sets, "edge-panel combinations")
+  )
+
+  # Test with use_edges = FALSE
+  p_without_edges <- ggdag_adjustment_set(dag, use_edges = FALSE)
+  analysis_without <- analyze_plot_edges(p_without_edges)
+
+  expect_false(
+    analysis_without$has_edge_layers,
+    "Should have NO edge layers when use_edges = FALSE"
+  )
+  expect_equal(
+    analysis_without$total_edges,
+    0,
+    info = "Should have 0 edges when use_edges = FALSE"
+  )
+})
+
+test_that("ggdag_adjust handles complex DAG with bidirected edges", {
+  # Complex DAG with bidirected edge from ?ggdag
+  dag <- dagify(
+    y ~ x + z2 + w2 + w1,
+    x ~ z1 + w1,
+    z1 ~ w1 + v,
+    z2 ~ w2 + v,
+    w1 ~ ~w2, # bidirected edge
+    exposure = "x",
+    outcome = "y"
+  )
+
+  # Count edges in base DAG
+  dag_edges <- dagitty::edges(dag)
+  n_dag_edges <- nrow(dag_edges)
+  expect_equal(n_dag_edges, 11, info = "Base DAG should have 11 edges")
+
+  # Test adjusting for w1
+  p_with_edges <- ggdag_adjust(dag, var = "w1", use_edges = TRUE)
+  analysis_with <- analyze_plot_edges(p_with_edges)
+
+  expect_true(
+    analysis_with$has_edge_layers,
+    "Should have edge layers when use_edges = TRUE"
+  )
+  # ggdag_adjust doesn't create facets, so just n_dag_edges
+  expect_equal(
+    analysis_with$total_edges,
+    n_dag_edges,
+    info = "Should have exactly 11 edges when use_edges = TRUE"
+  )
+
+  # Test with use_edges = FALSE
+  p_without_edges <- ggdag_adjust(dag, var = "w1", use_edges = FALSE)
+  analysis_without <- analyze_plot_edges(p_without_edges)
+
+  expect_false(
+    analysis_without$has_edge_layers,
+    "Should have NO edge layers when use_edges = FALSE"
+  )
+  expect_equal(
+    analysis_without$total_edges,
+    0,
+    info = "Should have 0 edges when use_edges = FALSE"
+  )
 })
 
 test_that("dag_adjustment_sets handles multiple adjustment sets", {

@@ -132,22 +132,24 @@ ggdag_adjustment_set <- function(
     scale_adjusted() +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
-  if (shadow) {
-    vals <- c("unadjusted" = "black", "adjusted" = "grey80")
-  } else {
-    vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
-  }
+  if (use_edges) {
+    if (shadow) {
+      vals <- c("unadjusted" = "black", "adjusted" = "grey80")
+    } else {
+      vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
+    }
 
-  p <- p +
-    geom_dag_edges(
-      ggplot2::aes(edge_colour = adjusted),
-      show.legend = if (shadow) TRUE else FALSE
-    ) +
-    ggraph::scale_edge_colour_manual(
-      drop = FALSE,
-      values = vals,
-      limits = names(vals)
-    )
+    p <- p +
+      geom_dag_edges(
+        ggplot2::aes(edge_colour = adjusted),
+        show.legend = if (shadow) TRUE else FALSE
+      ) +
+      ggraph::scale_edge_colour_manual(
+        drop = FALSE,
+        values = vals,
+        limits = names(vals)
+      )
+  }
 
   p <- p +
     geom_dag(
@@ -303,16 +305,20 @@ ggdag_adjust <- function(
 
   p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag(col = adjusted, shape = adjusted)) +
-    geom_dag_edges(
-      ggplot2::aes(edge_alpha = adjusted),
-      start_cap = ggraph::circle(edge_cap, "mm"),
-      end_cap = ggraph::circle(edge_cap, "mm")
-    ) +
     scale_adjusted(include_alpha = TRUE) +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
-  if (collider_lines) {
-    p <- p + geom_dag_collider_edges()
+  if (use_edges) {
+    p <- p +
+      geom_dag_edges(
+        ggplot2::aes(edge_alpha = adjusted),
+        start_cap = ggraph::circle(edge_cap, "mm"),
+        end_cap = ggraph::circle(edge_cap, "mm")
+      )
+
+    if (collider_lines) {
+      p <- p + geom_dag_collider_edges()
+    }
   }
 
   p <- p +

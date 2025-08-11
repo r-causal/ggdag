@@ -1,9 +1,19 @@
+#' @importFrom stats setNames
 # Helper function to handle missing circular column (issue #119)
 handle_missing_circular_column <- function(data) {
   if (!"circular" %in% names(data)) {
     data$circular <- FALSE
   }
   data[is.na(data$circular), "circular"] <- FALSE
+  data
+}
+
+convert_group_to_integer <- function(data) {
+  if (!is.null(data) && "group" %in% names(data) && is.character(data$group)) {
+    unique_groups <- unique(data$group)
+    group_mapping <- setNames(seq_along(unique_groups), unique_groups)
+    data$group <- as.integer(group_mapping[data$group])
+  }
   data
 }
 
@@ -142,10 +152,17 @@ StatEdgeLink <- ggplot2::ggproto(
 
     if (nrow(data) > 0) {
       data <- ggraph::StatEdgeLink$setup_data(data, params)
+      data <- convert_group_to_integer(data)
     } else {
       data <- NULL
     }
     data
+  },
+  compute_panel = function(data, scales, ...) {
+    # Call parent method
+    data <- ggraph::StatEdgeLink$compute_panel(data, scales, ...)
+    # Convert groups to integer after computation
+    convert_group_to_integer(data)
   }
 )
 
@@ -158,10 +175,15 @@ StatEdgeArc <- ggplot2::ggproto(
 
     if (nrow(data) > 0) {
       data <- ggraph::StatEdgeArc$setup_data(data, params)
+      data <- convert_group_to_integer(data)
     } else {
       data <- NULL
     }
     data
+  },
+  compute_panel = function(data, scales, ...) {
+    data <- ggraph::StatEdgeArc$compute_panel(data, scales, ...)
+    convert_group_to_integer(data)
   },
   default_aes = ggplot2::aes(filter = TRUE)
 )
@@ -175,10 +197,15 @@ StatEdgeDiagonal <- ggplot2::ggproto(
 
     if (nrow(data) > 0) {
       data <- ggraph::StatEdgeDiagonal$setup_data(data, params)
+      data <- convert_group_to_integer(data)
     } else {
       data <- NULL
     }
     data
+  },
+  compute_panel = function(data, scales, ...) {
+    data <- ggraph::StatEdgeDiagonal$compute_panel(data, scales, ...)
+    convert_group_to_integer(data)
   },
   default_aes = ggplot2::aes(filter = TRUE)
 )
@@ -195,10 +222,15 @@ StatEdgeFan <- ggplot2::ggproto(
       data$to <- rank(data$to)
 
       data <- ggraph::StatEdgeFan$setup_data(data, params)
+      data <- convert_group_to_integer(data)
     } else {
       data <- NULL
     }
     data
+  },
+  compute_panel = function(data, scales, ...) {
+    data <- ggraph::StatEdgeFan$compute_panel(data, scales, ...)
+    convert_group_to_integer(data)
   },
   default_aes = ggplot2::aes(filter = TRUE)
 )

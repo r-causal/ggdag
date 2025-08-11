@@ -115,8 +115,10 @@ spread_coords <- function(.time, .vars, direction) {
 }
 
 calculate_spread <- function(n) {
-  if (n == 0) return(numeric(0))
-  
+  if (n == 0) {
+    return(numeric(0))
+  }
+
   spread <- seq(-floor(n / 2), ceiling(n / 2) - 1)
   if (n %% 2 == 0) {
     spread[spread >= 0] <- spread[spread >= 0] + 1
