@@ -214,6 +214,7 @@ is_collider <- function(.dag, .var, downstream = TRUE) {
   if (is.tidy_dagitty(.dag)) {
     .dag <- pull_dag(.dag)
   }
+  validate_nodes_exist(.dag, .var, arg = ".var")
   n_parents <- dagitty::parents(.dag, .var)
   collider <- length(n_parents) > 1
   downstream_collider <- is_downstream_collider(.dag, .var)
@@ -230,6 +231,7 @@ is_downstream_collider <- function(.dag, .var) {
   if (is.tidy_dagitty(.dag)) {
     .dag <- pull_dag(.dag)
   }
+  validate_nodes_exist(.dag, .var, arg = ".var")
   var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
   any(purrr::map_lgl(var_ancestors, \(.x) is_collider(.dag, .x)))
 }

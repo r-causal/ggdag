@@ -228,7 +228,7 @@ test_that("remove_grid creates correct theme modification", {
 })
 
 test_that("theme functions work with ggplot", {
-  library(ggplot2)
+  library(ggplot2, exclude = "expansion")
   p <- ggdag(dagify(y ~ x))
 
   # Test that themes can be added to plots

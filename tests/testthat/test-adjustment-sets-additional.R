@@ -3,15 +3,13 @@ test_that("control_for handles non-existent nodes", {
   tidy_dag <- tidy_dagitty(dag)
 
   # Try to control for non-existent node
-  expect_error(
-    control_for(tidy_dag, "non_existent"),
-    "not a variable"
+  expect_ggdag_error(
+    control_for(tidy_dag, "non_existent")
   )
 
   # Try to control for multiple nodes, some non-existent
-  expect_error(
-    control_for(tidy_dag, c("z", "non_existent")),
-    "not a variable"
+  expect_ggdag_error(
+    control_for(tidy_dag, c("z", "non_existent"))
   )
 })
 
@@ -53,13 +51,12 @@ test_that("dag_adjustment_sets handles edge cases", {
     x ~ u,
     latent = "u"
   )
-  expect_warning(
+  expect_ggdag_warning(
     result_collider <- dag_adjustment_sets(
       dag_collider,
       exposure = "x",
       outcome = "y"
-    ),
-    "Failed to close backdoor paths"
+    )
   )
   expect_s3_class(result_collider, "tidy_dagitty")
 })
@@ -166,10 +163,9 @@ test_that("is_collider and is_downstream_collider work correctly", {
   expect_true(is_downstream_collider(tidy_dag, "w"))
 
   # Test with non-existent node - should error
-  expect_error(is_collider(tidy_dag, "non_existent"), "not a variable")
-  expect_error(
-    is_downstream_collider(tidy_dag, "non_existent"),
-    "not a variable"
+  expect_ggdag_error(is_collider(tidy_dag, "non_existent"))
+  expect_ggdag_error(
+    is_downstream_collider(tidy_dag, "non_existent")
   )
 })
 

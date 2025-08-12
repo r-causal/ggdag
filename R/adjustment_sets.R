@@ -56,11 +56,14 @@ dag_adjustment_sets <- function(
   )
   is_empty_set <- purrr::is_empty(sets)
   if (is_empty_set) {
-    warning(
-      "Failed to close backdoor paths. Common reasons include:
-            * graph is not acyclic
-            * backdoor paths are not closeable with given set of variables
-            * necessary variables are unmeasured (latent)"
+    warn(
+      c(
+        "Failed to close all backdoor paths.",
+        "!" = "Common reasons include:",
+        "*" = "Graph is not acyclic",
+        "*" = "Backdoor paths are not closeable with given set of variables",
+        "*" = "Necessary variables are unmeasured (latent)"
+      )
     )
     sets <- "(No Way to Block Backdoor Paths)"
   } else {
@@ -238,6 +241,7 @@ control_for <- function(
   ...
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+  validate_nodes_exist(.tdy_dag, var, arg = "var")
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
   update_dag(.tdy_dag) <- updated_dag
@@ -294,8 +298,12 @@ ggdag_adjust <- function(
   } else {
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
     if (is.null(var)) {
-      stop(
-        "an adjusting variable needs to be set, either via `var` or `control_for()`"
+      abort(
+        c(
+          "An adjusting variable needs to be set.",
+          "i" = "Use {.arg var} or {.fun control_for} to specify adjusting variables."
+        ),
+        error_class = "ggdag_missing_error"
       )
     }
     if (!"adjusted" %in% names(pull_dag_data(.tdy_dag))) {

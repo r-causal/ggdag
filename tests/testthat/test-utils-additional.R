@@ -53,13 +53,10 @@ test_that("deprecated argument handlers work when argument is not present", {
 
 test_that("if_not_tidy_daggity with pathological inputs", {
   # Test with various non-dagitty objects - should all give "Input must be a dagitty object"
-  expect_error(if_not_tidy_daggity(NULL), "Input must be a dagitty object")
-  expect_error(if_not_tidy_daggity(list()), "Input must be a dagitty object")
-  expect_error(
-    if_not_tidy_daggity("not a dag"),
-    "Input must be a dagitty object"
-  )
-  expect_error(if_not_tidy_daggity(42), "Input must be a dagitty object")
+  expect_ggdag_error(if_not_tidy_daggity(NULL))
+  expect_ggdag_error(if_not_tidy_daggity(list()))
+  expect_ggdag_error(if_not_tidy_daggity("not a dag"))
+  expect_ggdag_error(if_not_tidy_daggity(42))
 
   # Test with actual tidy_dagitty (should return the object)
   dag <- dagify(y ~ x)

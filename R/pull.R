@@ -38,6 +38,17 @@ pull_dag <- function(x, ...) {
 }
 
 #' @export
+pull_dag.default <- function(x, ...) {
+  abort(
+    c(
+      "{.fun pull_dag} requires a {.cls tidy_dagitty} or {.cls dagitty} object.",
+      "x" = "You provided a {.cls {class(x)}} object."
+    ),
+    error_class = "ggdag_type_error"
+  )
+}
+
+#' @export
 #' @rdname pull_dag
 pull_dag.tidy_dagitty <- function(x, ...) {
   x$dag
@@ -53,6 +64,17 @@ pull_dag.dagitty <- function(x, ...) {
 #' @rdname pull_dag
 pull_dag_data <- function(x, ...) {
   UseMethod("pull_dag_data")
+}
+
+#' @export
+pull_dag_data.default <- function(x, ...) {
+  abort(
+    c(
+      "{.fun pull_dag_data} requires a {.cls tidy_dagitty} or {.cls dagitty} object.",
+      "x" = "You provided a {.cls {class(x)}} object."
+    ),
+    error_class = "ggdag_type_error"
+  )
 }
 
 #' @export
@@ -76,13 +98,19 @@ pull_dag_data.dagitty <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag_data<-.tidy_dagitty` <- function(x, value) {
-  x$data <- prep_dag_data(value)
+  x$data <- prep_dag_data(value, call = rlang::caller_env())
   x
 }
 
-prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
+prep_dag_data <- function(
+  value,
+  layout = "nicely",
+  coords = NULL,
+  ...,
+  call = rlang::caller_env()
+) {
   if (any(c("name", "to") %nin% names(value))) {
-    stop("Columns `name` and `to` not found")
+    assert_columns_exist(value, c("name", "to"), call = call)
   }
 
   if (is.null(coords) && layout == "time_ordered") {
@@ -141,7 +169,15 @@ update_dag <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag<-.tidy_dagitty` <- function(x, value) {
-  stopifnot(dagitty::is.dagitty(value))
+  if (!dagitty::is.dagitty(value)) {
+    abort(
+      c(
+        "{.arg value} must be a {.cls dagitty} object.",
+        "x" = "You provided a {.cls {class(value)}} object."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
   x$dag <- value
   x
 }

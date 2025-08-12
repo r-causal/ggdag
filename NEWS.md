@@ -1,5 +1,6 @@
 # ggdag (development version)
 
+* All error messages, warnings, and informational messages now use the cli package for better formatting and user experience. This change adds custom error classes (`ggdag_error`, `ggdag_warning`) that enable programmatic error handling (#191).
 * Fixed `tidy_dagitty()` error when processing DAGs with no edges (#159)
 * Fixed `dag_paths()` error when no open paths exist between nodes (#180)
 * Introduced new functions `query_conditional_independence()`, `test_conditional_independence()`, and `ggdag_conditional_independence()` for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (#139)

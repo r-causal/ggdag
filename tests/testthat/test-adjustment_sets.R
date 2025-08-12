@@ -296,9 +296,8 @@ test_that("dag_adjustment_sets handles no valid adjustment sets with warning", {
     latent = "u"
   )
 
-  expect_warning(
-    adj_sets <- dag_adjustment_sets(no_adjust_dag),
-    "Failed to close backdoor paths"
+  expect_ggdag_warning(
+    adj_sets <- dag_adjustment_sets(no_adjust_dag)
   )
 
   dag_data <- pull_dag_data(adj_sets)
@@ -441,9 +440,8 @@ test_that("control_for handles var with no matches", {
   dag <- dagify(y ~ x)
 
   # Should error when variable doesn't exist in DAG
-  expect_error(
-    control_for(dag, "z"),
-    "is not a variable"
+  expect_ggdag_error(
+    control_for(dag, "z")
   )
 })
 
@@ -489,16 +487,14 @@ test_that("ggdag_adjust handles node styling", {
   )
 
   # Test use_labels with new API
-  expect_warning(
-    p1 <- ggdag_adjust(dag, "z", use_labels = "label"),
-    "use_labels.*must be a logical"
+  expect_ggdag_warning(
+    p1 <- ggdag_adjust(dag, "z", use_labels = "label")
   )
   expect_s3_class(p1, "ggplot")
 
   # Test with text = FALSE (deprecated)
-  expect_warning(
-    p2 <- ggdag_adjust(dag, "z", text = FALSE),
-    "text.*no longer accepts logicals"
+  expect_ggdag_warning(
+    p2 <- ggdag_adjust(dag, "z", text = FALSE)
   )
   expect_s3_class(p2, "ggplot")
 
