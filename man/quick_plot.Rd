@@ -7,11 +7,21 @@
 \alias{confounder_triangle}
 \alias{collider_triangle}
 \alias{mediation_triangle}
+\alias{quartet_collider}
+\alias{quartet_confounder}
+\alias{quartet_mediator}
+\alias{quartet_m_bias}
+\alias{quartet_time_collider}
 \alias{ggdag_m_bias}
 \alias{ggdag_butterfly_bias}
 \alias{ggdag_confounder_triangle}
 \alias{ggdag_collider_triangle}
 \alias{ggdag_mediation_triangle}
+\alias{ggdag_quartet_collider}
+\alias{ggdag_quartet_confounder}
+\alias{ggdag_quartet_mediator}
+\alias{ggdag_quartet_m_bias}
+\alias{ggdag_quartet_time_collider}
 \title{Quickly create a DAGs with common structures of bias}
 \usage{
 m_bias(
@@ -37,6 +47,34 @@ confounder_triangle(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE)
 collider_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
 
 mediation_triangle(x = NULL, y = NULL, m = NULL, x_y_associated = FALSE)
+
+quartet_collider(x = NULL, y = NULL, z = NULL, x_y_associated = TRUE)
+
+quartet_confounder(x = NULL, y = NULL, z = NULL, x_y_associated = TRUE)
+
+quartet_mediator(x = NULL, y = NULL, z = NULL, x_y_associated = FALSE)
+
+quartet_m_bias(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  u1 = NULL,
+  u2 = NULL,
+  x_y_associated = TRUE
+)
+
+quartet_time_collider(
+  x0 = NULL,
+  x1 = NULL,
+  x2 = NULL,
+  x3 = NULL,
+  y1 = NULL,
+  y2 = NULL,
+  y3 = NULL,
+  z1 = NULL,
+  z2 = NULL,
+  z3 = NULL
+)
 
 ggdag_m_bias(
   x = NULL,
@@ -171,11 +209,143 @@ ggdag_mediation_triangle(
   node = deprecated(),
   stylized = deprecated()
 )
+
+ggdag_quartet_collider(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  x_y_associated = TRUE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL
+)
+
+ggdag_quartet_confounder(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  x_y_associated = TRUE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL
+)
+
+ggdag_quartet_mediator(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  x_y_associated = FALSE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL
+)
+
+ggdag_quartet_m_bias(
+  x = NULL,
+  y = NULL,
+  z = NULL,
+  u1 = NULL,
+  u2 = NULL,
+  x_y_associated = TRUE,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL
+)
+
+ggdag_quartet_time_collider(
+  x0 = NULL,
+  x1 = NULL,
+  x2 = NULL,
+  x3 = NULL,
+  y1 = NULL,
+  y2 = NULL,
+  y3 = NULL,
+  z1 = NULL,
+  z2 = NULL,
+  z3 = NULL,
+  size = 1,
+  edge_type = "link_arc",
+  node_size = 16,
+  text_size = 3.88,
+  label_size = text_size,
+  text_col = "white",
+  label_col = "black",
+  edge_width = 0.6,
+  edge_cap = 8,
+  arrow_length = 5,
+  use_edges = TRUE,
+  use_nodes = TRUE,
+  use_stylized = FALSE,
+  use_text = TRUE,
+  use_labels = FALSE,
+  text = NULL,
+  label = NULL
+)
 }
 \arguments{
 \item{x, y, a, b, m, z}{Character vector. Optional label. Default is \code{NULL}}
 
 \item{x_y_associated}{Logical. Are x and y associated? Default is \code{FALSE}.}
+
+\item{u1, u2}{Character vector. Optional label for unmeasured nodes, used in \code{quartet_m_bias()}. Default is \code{NULL}}
+
+\item{x0, x1, x2, x3, y1, y2, y3, z1, z2, z3}{Character vector. Optional labels for time-indexed nodes, used in \code{quartet_time_collider()}. Default is \code{NULL}}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}
@@ -228,8 +398,42 @@ a DAG of class \code{dagitty} or a \code{ggplot}
 base functions create an object of class \code{dagitty}; \verb{ggdag_* } functions
 are wrappers that also call \code{ggdag()} on the \code{dagitty} object.
 }
+\details{
+The \verb{quartet_*} functions create DAGs that represent the causal quartet,
+which are four example datasets with identical statistical properties but
+different causal structures. These are inspired by Anscombe's quartet and
+demonstrate that statistical summaries alone cannot determine causal
+relationships.
+
+The four structures represent different relationships between exposure (x),
+outcome (y), and a covariate (z):
+\itemize{
+\item Collider: z is caused by both x and y (should not adjust for z)
+\item Confounder: z causes both x and y (must adjust for z)
+\item Mediator: z is on the causal path from x to y (adjust for direct effect only)
+\item M-bias: z is a collider with unmeasured confounders u1 and u2 (should not adjust for z)
+}
+
+The time-varying collider (\code{quartet_time_collider()}) demonstrates how
+time-ordering can help identify causal relationships when variables are
+measured at multiple time points.
+}
 \examples{
 m_bias() |> ggdag_adjust("m")
 ggdag_confounder_triangle()
 
+# Causal Quartets
+ggdag_quartet_collider()
+ggdag_quartet_confounder()
+ggdag_quartet_mediator()
+ggdag_quartet_m_bias()
+
+# Time-varying collider
+ggdag_quartet_time_collider()
+
+}
+\references{
+D'Agostino McGowan L, Gerke T, Barrett M (2023). "Causal inference is not just a
+statistics problem." Journal of Statistics and Data Science Education, 32(1), 1-4.
+\doi{10.1080/26939169.2023.2276446}
 }
