@@ -96,6 +96,9 @@ test_that("collider edge cases", {
 })
 
 test_that("dag_label edge cases", {
+  # minor differences in old windows versions; not important so skip on windows
+  skip_on_os("windows")
+
   dag <- dagify(y ~ x)
   tidy_dag <- tidy_dagitty(dag)
 
