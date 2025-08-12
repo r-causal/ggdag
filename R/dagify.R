@@ -120,7 +120,13 @@ dagify <- function(
         coords() |>
         coords2list()
     } else {
-      stop("`coords` must be of class `list`, `data.frame`, or `function`")
+      abort(
+        c(
+          "{.arg coords} must be a named list, data.frame, or function.",
+          "x" = "You provided a {.cls {class(coords)}} object."
+        ),
+        error_class = "ggdag_type_error"
+      )
     }
   }
   if (!is.null(labels)) {
@@ -138,11 +144,13 @@ validate_dag_formula <- function(fmla) {
 
     # Check for self-loops
     if (lhs %in% rhs) {
-      stop(
-        "DAGs cannot contain cycles. Variable '",
-        lhs,
-        "' cannot cause itself.",
-        call. = FALSE
+      abort(
+        c(
+          "Self-loops are not allowed in DAGs.",
+          "x" = "Variable {.val {lhs}} cannot depend on itself.",
+          "i" = "Remove the self-referencing formula."
+        ),
+        error_class = "ggdag_dag_error"
       )
     }
   }
@@ -162,11 +170,12 @@ validate_dag_inputs <- function(
   # Check that exposure and outcome are different
   if (!is.null(exposure) && !is.null(outcome)) {
     if (any(exposure %in% outcome)) {
-      stop(
-        "A variable cannot be both exposure and outcome. ",
-        "Found: ",
-        paste(intersect(exposure, outcome), collapse = ", "),
-        call. = FALSE
+      abort(
+        c(
+          "A variable cannot be both exposure and outcome.",
+          "x" = "Found: {.val {intersect(exposure, outcome)}}"
+        ),
+        error_class = "ggdag_dag_error"
       )
     }
   }
@@ -174,19 +183,21 @@ validate_dag_inputs <- function(
   # Check that latent variables aren't also exposure or outcome
   if (!is.null(latent)) {
     if (!is.null(exposure) && any(latent %in% exposure)) {
-      stop(
-        "Latent variables cannot also be exposures. ",
-        "Found: ",
-        paste(intersect(latent, exposure), collapse = ", "),
-        call. = FALSE
+      abort(
+        c(
+          "Latent variables cannot also be exposures.",
+          "x" = "Found: {.val {intersect(latent, exposure)}}"
+        ),
+        error_class = "ggdag_dag_error"
       )
     }
     if (!is.null(outcome) && any(latent %in% outcome)) {
-      stop(
-        "Latent variables cannot also be outcomes. ",
-        "Found: ",
-        paste(intersect(latent, outcome), collapse = ", "),
-        call. = FALSE
+      abort(
+        c(
+          "Latent variables cannot also be outcomes.",
+          "x" = "Found: {.val {intersect(latent, outcome)}}"
+        ),
+        error_class = "ggdag_dag_error"
       )
     }
   }
@@ -197,28 +208,37 @@ validate_dag_inputs <- function(
   # Validate that exposure, outcome, and latent are in the DAG
   if (!is.null(exposure) && !all(exposure %in% all_vars_in_dag)) {
     missing <- setdiff(exposure, all_vars_in_dag)
-    stop(
-      "Exposure variable(s) not found in DAG: ",
-      paste(missing, collapse = ", "),
-      call. = FALSE
+    abort(
+      c(
+        "Exposure variable(s) not found in DAG.",
+        "x" = "Missing: {.val {missing}}",
+        "i" = "Available variables: {.val {all_vars_in_dag}}"
+      ),
+      error_class = "ggdag_missing_error"
     )
   }
 
   if (!is.null(outcome) && !all(outcome %in% all_vars_in_dag)) {
     missing <- setdiff(outcome, all_vars_in_dag)
-    stop(
-      "Outcome variable(s) not found in DAG: ",
-      paste(missing, collapse = ", "),
-      call. = FALSE
+    abort(
+      c(
+        "Outcome variable(s) not found in DAG.",
+        "x" = "Missing: {.val {missing}}",
+        "i" = "Available variables: {.val {all_vars_in_dag}}"
+      ),
+      error_class = "ggdag_missing_error"
     )
   }
 
   if (!is.null(latent) && !all(latent %in% all_vars_in_dag)) {
     missing <- setdiff(latent, all_vars_in_dag)
-    stop(
-      "Latent variable(s) not found in DAG: ",
-      paste(missing, collapse = ", "),
-      call. = FALSE
+    abort(
+      c(
+        "Latent variable(s) not found in DAG.",
+        "x" = "Missing: {.val {missing}}",
+        "i" = "Available variables: {.val {all_vars_in_dag}}"
+      ),
+      error_class = "ggdag_missing_error"
     )
   }
 

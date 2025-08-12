@@ -48,11 +48,23 @@ tidy_dagitty <- function(
   }
 
   if (!dagitty::is.dagitty(.dagitty)) {
-    stop("Input must be a dagitty object")
+    abort(
+      c(
+        "Input must be a {.cls dagitty} object.",
+        "x" = "You provided a {.cls {class(.dagitty)}} object."
+      ),
+      error_class = "ggdag_type_error"
+    )
   }
 
   if (dagitty::graphType(.dagitty) != "dag") {
-    stop("`.dagitty` must be of graph type `dag`")
+    abort(
+      c(
+        "{.arg .dagitty} must be of graph type {.val dag}.",
+        "x" = "Graph type is {.val {dagitty::graphType(.dagitty)}}."
+      ),
+      error_class = "ggdag_dag_error"
+    )
   }
 
   dag_edges <- get_dagitty_edges(.dagitty)
@@ -325,7 +337,12 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
 
 check_verboten_layout <- function(layout) {
   if (layout %in% c("dendogram")) {
-    stop("Layout type `", layout, "` not supported in ggdag", call. = FALSE)
+    abort(
+      c(
+        "Layout type {.val {layout}} is not supported in ggdag.",
+        "i" = "See {.help ggraph::create_layout} for available layouts."
+      )
+    )
   }
 }
 

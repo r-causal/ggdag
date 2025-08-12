@@ -92,9 +92,8 @@ test_that("transmute.tidy_dagitty creates new columns and drops others", {
   expect_s3_class(transmuted, "tidy_dagitty")
 
   # Test transmute without essential columns - should error
-  expect_error(
-    transmute(dag, doubled_x = x * 2),
-    "Columns `name` and `to` not found"
+  expect_ggdag_error(
+    transmute(dag, doubled_x = x * 2)
   )
 })
 
@@ -123,9 +122,8 @@ test_that("distinct.tidy_dagitty removes duplicate rows", {
 
   # Test without .keep_all - this may not include required columns
   # so it might fail prep_dag_data validation
-  expect_error(
-    distinct(dag_with_dup, group),
-    "Columns `name` and `to` not found"
+  expect_ggdag_error(
+    distinct(dag_with_dup, group)
   )
 
   # Should preserve tidy_dagitty class with .keep_all = TRUE
@@ -305,9 +303,8 @@ test_that("deprecated underscore methods still work with warnings", {
   expect_equal(nrow(pull_dag_data(sliced)), 2)
 
   # Test summarise_ - errors because it tries to preserve tidy_dagitty
-  expect_error(
-    summarise_(dag, n = ~ n()),
-    "Columns `name` and `to` not found"
+  expect_ggdag_error(
+    summarise_(dag, n = ~ n())
   )
 })
 
@@ -349,9 +346,8 @@ test_that("multiple dplyr operations can be chained", {
   expect_true("is_exposure" %in% names(pull_dag_data(selected)))
 
   # select without essential columns returns error
-  expect_error(
-    result |> select(name, x, y, is_exposure),
-    "Columns.*not found"
+  expect_ggdag_error(
+    result |> select(name, x, y, is_exposure)
   )
 })
 

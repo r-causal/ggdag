@@ -1,8 +1,7 @@
 test_that("tidied dags are in good shape", {
   .mag <- dagitty::dagitty("mag{ x<-> y }")
-  expect_error(
-    tidy_dagitty(.mag),
-    "`.dagitty` must be of graph type `dag`"
+  expect_ggdag_error(
+    tidy_dagitty(.mag)
   )
   tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
   expect_true(dagitty::is.dagitty(pull_dag(tidy_dag)))
@@ -54,9 +53,8 @@ test_that("nodes without edges are captured correctly", {
 })
 
 test_that("`as_tidy_dagitty()` returns correct objects", {
-  expect_error(
-    as_tidy_dagitty(data.frame()),
-    "Columns `name` and `to` not found"
+  expect_ggdag_error(
+    as_tidy_dagitty(data.frame())
   )
 
   df_dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
@@ -128,9 +126,8 @@ test_that("list is correctly converted to a saturated, time-ordered DAG", {
 
 
 test_that("Forbidden layouts error", {
-  expect_error(
-    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendogram"),
-    "Layout type `dendogram` not supported in ggdag"
+  expect_ggdag_error(
+    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendogram")
   )
 })
 

@@ -16,6 +16,7 @@ BugReports: https://github.com/r-causal/ggdag/issues
 Depends: 
     R (>= 4.1.0)
 Imports: 
+    cli (>= 3.0.0),
     dagitty,
     dplyr,
     forcats,

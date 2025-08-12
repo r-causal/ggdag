@@ -178,9 +178,8 @@ test_that("geom_dag_collider_edges creates correct layer", {
   expect_equal(layer_custom$aes_params$linewidth, 2)
 
   # Test deprecated size parameter
-  expect_warning(
-    layer_size <- geom_dag_collider_edges(size = 2),
-    "`size` is deprecated"
+  expect_ggdag_warning(
+    layer_size <- geom_dag_collider_edges(size = 2)
   )
 })
 
@@ -261,27 +260,23 @@ test_that("geom_dag main function works with different options", {
   expect_equal(geoms_sizes[[3]]$aes_params$size, 5)
 
   # Test deprecated parameters
-  expect_warning(
-    geom_dag(node = "deprecated"),
-    "deprecated"
+  expect_ggdag_warning(
+    geom_dag(node = "deprecated")
   )
 
-  expect_warning(
-    geom_dag(stylized = "deprecated"),
-    "deprecated"
+  expect_ggdag_warning(
+    geom_dag(stylized = "deprecated")
   )
 
   # Test deprecated text parameter with logical
-  expect_warning(
-    geoms_text_logical <- geom_dag(text = FALSE),
-    "no longer accepts logicals"
+  expect_ggdag_warning(
+    geoms_text_logical <- geom_dag(text = FALSE)
   )
   expect_null(geoms_text_logical[[3]])
 
   # Test deprecated use_labels with character
-  expect_warning(
-    geoms_labels_char <- geom_dag(use_labels = "label"),
-    "must be a logical"
+  expect_ggdag_warning(
+    geoms_labels_char <- geom_dag(use_labels = "label")
   )
   expect_s3_class(geoms_labels_char[[4]], "LayerInstance")
 })

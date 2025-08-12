@@ -143,7 +143,9 @@ geom_dag_text <- function(
 ) {
   if (!missing(nudge_x) || !missing(nudge_y)) {
     if (!missing(position)) {
-      stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
+      abort(
+        "Specify either {.arg position} or {.arg nudge_x}/{.arg nudge_y}, not both."
+      )
     }
 
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
@@ -228,7 +230,9 @@ geom_dag_label <- function(
 ) {
   if (!missing(nudge_x) || !missing(nudge_y)) {
     if (!missing(position)) {
-      stop("Specify either `position` or `nudge_x`/`nudge_y`", call. = FALSE)
+      abort(
+        "Specify either {.arg position} or {.arg nudge_x}/{.arg nudge_y}, not both."
+      )
     }
 
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
@@ -926,7 +930,13 @@ geom_dag_collider_edges <- function(
     ))
   }
   if (!is.null(size)) {
-    warning("`size` is deprecated for lines. Please use `linewidth`")
+    warn(
+      c(
+        "{.arg size} is deprecated for lines.",
+        "i" = "Please use {.arg linewidth} instead."
+      ),
+      warning_class = "ggdag_deprecated"
+    )
     linewidth <- size
   }
 

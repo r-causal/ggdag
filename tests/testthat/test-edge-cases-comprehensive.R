@@ -72,12 +72,12 @@ test_that("edge cases in adjustment set functions", {
   # Test ggdag_adjust deprecated parameters
   expect_warning(
     ggdag_adjust(dag, var = "x", node = "deprecated"),
-    "deprecated"
+    class = "lifecycle_warning_deprecated"
   )
 
   expect_warning(
     ggdag_adjust(dag, var = "x", stylized = "deprecated"),
-    "deprecated"
+    class = "lifecycle_warning_deprecated"
   )
 })
 
@@ -100,9 +100,8 @@ test_that("dag_label edge cases", {
   tidy_dag <- tidy_dagitty(dag)
 
   # Test with NULL labels (should warn)
-  expect_warning(
-    dag_label(tidy_dag, labels = NULL),
-    "no labels provided"
+  expect_ggdag_warning(
+    dag_label(tidy_dag, labels = NULL)
   )
 
   # Test when labels already exist
@@ -177,7 +176,7 @@ test_that("geom_dag edge cases", {
   # Test deprecated scale_dag
   expect_warning(
     p + scale_dag(breaks = c("x", "y")),
-    "deprecated"
+    class = "deprecatedWarning"
   )
 
   expect_true(is_empty_or_null(NULL))
@@ -237,7 +236,7 @@ test_that("pull functions edge cases", {
 
   # Test pull_dag.data.frame (should fail)
   df <- data.frame(name = "x", to = "y")
-  expect_error(pull_dag(df))
+  expect_ggdag_error(pull_dag(df))
 })
 
 test_that("tidy_dag additional edge cases", {
@@ -253,7 +252,7 @@ test_that("tidy_dag additional edge cases", {
 
   # Test if_not_tidy_daggity with data.frame
   df <- data.frame(x = 1:3, y = 4:6)
-  expect_error(if_not_tidy_daggity(df))
+  expect_ggdag_error(if_not_tidy_daggity(df))
 
   # Test arrange_coords with custom coords
   coords <- list(
@@ -267,10 +266,10 @@ test_that("tidy_dag additional edge cases", {
   expect_equal(unname(result_df$y[result_df$name == "a"]), 0)
 
   # Test pull_dag.list
-  expect_error(pull_dag(list(a = 1, b = 2)))
+  expect_ggdag_error(pull_dag(list(a = 1, b = 2)))
 
   # Test pull_dag_data.list
-  expect_error(pull_dag_data(list(a = 1, b = 2)))
+  expect_ggdag_error(pull_dag_data(list(a = 1, b = 2)))
 
   # Test has_exposure/outcome with no exposure/outcome
   dag_no_exp <- dagify(y ~ x)

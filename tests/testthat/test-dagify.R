@@ -5,76 +5,54 @@ test_that("dagify creates correct dagitty", {
 })
 
 test_that("dagify rejects self-loops with helpful error", {
-  expect_error(
-    dagify(x ~ x),
-    "DAGs cannot contain cycles. Variable 'x' cannot cause itself.",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(x ~ x)
   )
 
-  expect_error(
-    dagify(y ~ x + y),
-    "DAGs cannot contain cycles. Variable 'y' cannot cause itself.",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x + y)
   )
 
-  expect_error(
-    dagify(y ~ x, x ~ z, z ~ z),
-    "DAGs cannot contain cycles. Variable 'z' cannot cause itself.",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, x ~ z, z ~ z)
   )
 })
 
 test_that("dagify validates exposure and outcome constraints", {
-  expect_error(
-    dagify(y ~ x, exposure = "x", outcome = "x"),
-    "A variable cannot be both exposure and outcome. Found: x",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, exposure = "x", outcome = "x")
   )
 
-  expect_error(
-    dagify(y ~ x, exposure = c("x", "y"), outcome = c("y", "z")),
-    "A variable cannot be both exposure and outcome. Found: y",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, exposure = c("x", "y"), outcome = c("y", "z"))
   )
 })
 
 test_that("dagify validates latent variable constraints", {
-  expect_error(
-    dagify(y ~ x + u, x ~ u, exposure = "u", latent = "u"),
-    "Latent variables cannot also be exposures. Found: u",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x + u, x ~ u, exposure = "u", latent = "u")
   )
 
-  expect_error(
-    dagify(y ~ x + u, x ~ u, outcome = "u", latent = "u"),
-    "Latent variables cannot also be outcomes. Found: u",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x + u, x ~ u, outcome = "u", latent = "u")
   )
 })
 
 test_that("dagify validates variables exist in DAG", {
-  expect_error(
-    dagify(y ~ x, exposure = "z"),
-    "Exposure variable(s) not found in DAG: z",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, exposure = "z")
   )
 
-  expect_error(
-    dagify(y ~ x, outcome = "z"),
-    "Outcome variable(s) not found in DAG: z",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, outcome = "z")
   )
 
-  expect_error(
-    dagify(y ~ x, latent = "z"),
-    "Latent variable(s) not found in DAG: z",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, latent = "z")
   )
 
-  expect_error(
-    dagify(y ~ x, exposure = c("x", "z", "w")),
-    "Exposure variable(s) not found in DAG: z, w",
-    fixed = TRUE
+  expect_ggdag_error(
+    dagify(y ~ x, exposure = c("x", "z", "w"))
   )
 })
 

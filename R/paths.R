@@ -58,7 +58,13 @@ dag_paths <- function(
     to <- dagitty::outcomes(pull_dag(.tdy_dag))
   }
   if (is.null(from) || is.null(to)) {
-    stop("`exposure` and `outcome` must be set!")
+    abort(
+      c(
+        "Both {.arg from} (exposure) and {.arg to} (outcome) must be set.",
+        "i" = "Use {.code dag_paths(dag, from = \"x\", to = \"y\")} to specify paths."
+      ),
+      error_class = "ggdag_missing_error"
+    )
   }
 
   pathways <- dagitty::paths(

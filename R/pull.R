@@ -82,7 +82,7 @@ pull_dag_data.dagitty <- function(x, ...) {
 
 prep_dag_data <- function(value, layout = "nicely", coords = NULL, ...) {
   if (any(c("name", "to") %nin% names(value))) {
-    stop("Columns `name` and `to` not found")
+    assert_columns_exist(value, c("name", "to"))
   }
 
   if (is.null(coords) && layout == "time_ordered") {
@@ -141,7 +141,15 @@ update_dag <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag<-.tidy_dagitty` <- function(x, value) {
-  stopifnot(dagitty::is.dagitty(value))
+  if (!dagitty::is.dagitty(value)) {
+    abort(
+      c(
+        "{.arg value} must be a {.cls dagitty} object.",
+        "x" = "You provided a {.cls {class(value)}} object."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
   x$dag <- value
   x
 }

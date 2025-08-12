@@ -82,7 +82,14 @@ node_dconnected <- function(
     to <- dagitty::outcomes(pull_dag(.tdy_dag))
   }
   if (is_empty_or_null(from) || is_empty_or_null(to)) {
-    stop("`from` and `to` must be set!")
+    abort(
+      c(
+        "Both {.arg from} and {.arg to} must be set.",
+        "i" = "Set {.arg from} to specify the starting variable.",
+        "i" = "Set {.arg to} to specify the ending variable."
+      ),
+      error_class = "ggdag_missing_error"
+    )
   }
 
   if (!is.null(controlling_for)) {
@@ -145,7 +152,14 @@ node_dseparated <- function(
     to <- dagitty::outcomes(pull_dag(.tdy_dag))
   }
   if (is_empty_or_null(from) || is_empty_or_null(to)) {
-    stop("`from` and `to` must be set!")
+    abort(
+      c(
+        "Both {.arg from} and {.arg to} must be set.",
+        "i" = "Set {.arg from} to specify the starting variable.",
+        "i" = "Set {.arg to} to specify the ending variable."
+      ),
+      error_class = "ggdag_missing_error"
+    )
   }
 
   if (!is.null(controlling_for)) {
@@ -209,7 +223,14 @@ node_drelationship <- function(
     to <- dagitty::outcomes(pull_dag(.tdy_dag))
   }
   if (is_empty_or_null(from) || is_empty_or_null(to)) {
-    stop("`from` and `to` must be set!")
+    abort(
+      c(
+        "Both {.arg from} and {.arg to} must be set.",
+        "i" = "Set {.arg from} to specify the starting variable.",
+        "i" = "Set {.arg to} to specify the ending variable."
+      ),
+      error_class = "ggdag_missing_error"
+    )
   }
 
   if (!is.null(controlling_for)) {

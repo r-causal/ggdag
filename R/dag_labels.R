@@ -58,7 +58,7 @@ dag_label <- function(.tdy_dag, labels = NULL) {
     labels <- label(pull_dag(.tdy_dag))
   }
   if (is.null(labels)) {
-    warning("no labels provided")
+    warn("No labels provided")
     return(.tdy_dag)
   }
 

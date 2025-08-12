@@ -11,9 +11,8 @@ test_that("`query_conditional_independence()` returns a tibble of independencies
   expect_named(result, c("set", "a", "b", "conditioned_on"))
   expect_type(result$conditioned_on, "list")
 
-  expect_error(
-    query_conditional_independence(letters),
-    "Expected a DAG object"
+  expect_ggdag_error(
+    query_conditional_independence(letters)
   )
 })
 
@@ -37,14 +36,13 @@ test_that("`test_conditional_independence()` works", {
   expect_equal(nrow(result), nrow(query_conditional_independence(test_dag)))
   expect_length(result, 5)
 
-  expect_error(test_conditional_independence(test_dag))
+  expect_ggdag_error(test_conditional_independence(test_dag))
 
-  expect_error(
-    test_conditional_independence(letters, letters),
-    "Expected a DAG object"
+  expect_ggdag_error(
+    test_conditional_independence(letters, letters)
   )
 
-  expect_error(test_conditional_independence(test_dag, letters))
+  expect_ggdag_error(test_conditional_independence(test_dag, letters))
 })
 
 
@@ -77,7 +75,7 @@ test_that("`ggdag_conditional_independence()` works", {
     lower = numeric(),
     upper = numeric()
   )
-  expect_error(ggdag_conditional_independence(test_result))
+  expect_ggdag_error(ggdag_conditional_independence(test_result))
 })
 
 test_that("`ggdag_conditional_independence()` sorting works correctly", {

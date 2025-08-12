@@ -212,3 +212,84 @@ ggraph_create_layout <- function(...) {
 
   .df
 }
+
+# Custom CLI functions ----
+
+#' Custom abort function with ggdag error class
+#' @noRd
+abort <- function(
+  ...,
+  error_class = NULL,
+  call = rlang::caller_env(),
+  .envir = parent.frame()
+) {
+  cli::cli_abort(
+    ...,
+    class = c(error_class, "ggdag_error"),
+    call = call,
+    .envir = .envir
+  )
+}
+
+#' Custom warn function with ggdag warning class
+#' @noRd
+warn <- function(
+  ...,
+  warning_class = NULL,
+  call = rlang::caller_env(),
+  .envir = parent.frame()
+) {
+  cli::cli_warn(
+    ...,
+    class = c(warning_class, "ggdag_warning"),
+    call = call,
+    .envir = .envir
+  )
+}
+
+#' Custom inform function for messages
+#' @noRd
+inform <- function(..., .envir = parent.frame()) {
+  cli::cli_inform(
+    ...,
+    .envir = .envir
+  )
+}
+
+# Assertion helpers ----
+
+#' Assert input is a tidy_dagitty or dagitty object
+#' @noRd
+assert_dag_type <- function(
+  x,
+  arg = rlang::caller_arg(x),
+  call = rlang::caller_env()
+) {
+  if (!is.tidy_dagitty(x) && !dagitty::is.dagitty(x)) {
+    abort(
+      c(
+        "{.arg {arg}} must be a {.cls tidy_dagitty} or {.cls dagitty} object.",
+        "i" = "You provided a {.cls {class(x)}} object."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+}
+
+#' Assert required columns exist in data
+#' @noRd
+assert_columns_exist <- function(data, columns, call = rlang::caller_env()) {
+  missing_cols <- setdiff(columns, names(data))
+  if (length(missing_cols) > 0) {
+    abort(
+      c(
+        "Required columns are missing from the data.",
+        "x" = "Missing columns: {.field {missing_cols}}",
+        "i" = "Available columns: {.field {names(data)}}"
+      ),
+      error_class = "ggdag_columns_error",
+      call = call
+    )
+  }
+}

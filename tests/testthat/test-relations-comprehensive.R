@@ -358,7 +358,7 @@ test_that("ggdag_adjacent creates correct plots", {
 
 test_that("relations functions handle edge cases", {
   # Single node DAG
-  expect_error(dagify(x ~ x), "Variable 'x' cannot cause itself")
+  expect_ggdag_error(dagify(x ~ x))
 
   # Disconnected DAG
   disconnected_dag <- dagify(
@@ -379,7 +379,7 @@ test_that("relations functions handle edge cases", {
 
   # Variable not in DAG
   dag <- dagify(y ~ x)
-  expect_error(node_children(dag, "z"))
+  expect_ggdag_error(node_children(dag, "z"))
 })
 
 test_that("complex DAG relationships work correctly", {

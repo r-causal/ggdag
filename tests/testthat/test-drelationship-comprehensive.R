@@ -40,9 +40,8 @@ test_that("node_dconnected identifies d-connected nodes correctly", {
   expect_true("d_relationship" %in% names(pull_dag_data(result_auto)))
 
   # Test error when from/to not set and no exposure/outcome
-  expect_error(
-    node_dconnected(dag),
-    "`from` and `to` must be set!"
+  expect_ggdag_error(
+    node_dconnected(dag)
   )
 
   # Test as_factor parameter
@@ -104,9 +103,8 @@ test_that("node_dseparated identifies d-separated nodes correctly", {
   expect_true("d_relationship" %in% names(pull_dag_data(result_auto)))
 
   # Test error handling
-  expect_error(
-    node_dseparated(dag),
-    "`from` and `to` must be set!"
+  expect_ggdag_error(
+    node_dseparated(dag)
   )
 })
 
@@ -315,9 +313,8 @@ test_that("d-relationship functions handle complex DAGs", {
 
 test_that("d-relationship functions handle edge cases", {
   # Self-loop should error during dagify
-  expect_error(
-    dagify(x ~ x),
-    "Variable 'x' cannot cause itself"
+  expect_ggdag_error(
+    dagify(x ~ x)
   )
 
   # Disconnected nodes
