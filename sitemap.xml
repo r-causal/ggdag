@@ -13,7 +13,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/adjustment_sets.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/aes_dag.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/as.data.frame.tidy_dagitty.html</loc></url>
-<url><loc>https://r-causal.github.io/ggdag/reference/as.tbl.tidy_daggity.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/as.tbl.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/as_tbl_graph.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/as_tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/canonicalize.html</loc></url>
@@ -58,7 +58,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/scale_adjusted.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/simulate_data.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/status.html</loc></url>
-<url><loc>https://r-causal.github.io/ggdag/reference/tbl_df.tidy_daggity.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/tbl_df.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/theme_dag_blank.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/theme_dag_grey.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/tidy_dagitty.html</loc></url>
