@@ -62,7 +62,6 @@ reference:
     - ggplot.tidy_dagitty
     - print.tidy_dagitty
     - remove_axes
-    - tbl_df.tidy_daggity
 
 navbar:
   type: default
