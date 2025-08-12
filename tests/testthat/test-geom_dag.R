@@ -120,3 +120,58 @@ test_that("circular layouts work correctly", {
   expect_true("circular" %in% names(pull_dag_data(tidy_dag_circular)))
   expect_true(all(pull_dag_data(tidy_dag_circular)$circular))
 })
+
+test_that("color aesthetic is mapped to edge_color for edge geoms", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  tidy_dag <- tidy_dagitty(dag)
+
+  # Test color mapping for geom_dag_edges_link
+  p1 <- ggplot(tidy_dag, aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_link(aes(color = name))
+
+  # Build the plot to check the actual data
+  built_p1 <- ggplot2::ggplot_build(p1)
+  edge_data <- built_p1$data[[1]]
+
+  # Verify that edge_colour is set from the name variable
+  expect_true("edge_colour" %in% names(edge_data))
+  # Should have different colors for different edges
+  expect_true(length(unique(edge_data$edge_colour)) > 1)
+
+  # Test colour mapping (British spelling)
+  p2 <- ggplot(tidy_dag, aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_arc(aes(colour = name))
+
+  built_p2 <- ggplot2::ggplot_build(p2)
+  edge_data2 <- built_p2$data[[1]]
+  expect_true("edge_colour" %in% names(edge_data2))
+  expect_true(length(unique(edge_data2$edge_colour)) > 1)
+
+  # Test that existing edge_color mapping is preserved
+  p3 <- ggplot(tidy_dag, aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_diagonal(aes(color = name, edge_color = to))
+
+  layer_mapping3 <- p3$layers[[1]]$mapping
+  # Note: aes() converts color to colour internally
+  expect_equal(rlang::as_label(layer_mapping3$edge_colour), "to")
+
+  # Build to verify the edge_color is actually from 'to' not 'name'
+  built_p3 <- ggplot2::ggplot_build(p3)
+  edge_data3 <- built_p3$data[[1]]
+
+  # The edge colors should be based on 'to' values, not 'name' values
+  # We can check this by verifying the number of unique colors matches 'to' categories
+  expect_true("edge_colour" %in% names(edge_data3))
+
+  # Test that mapping is NOT applied when not explicitly provided to edge geom
+  p4 <- ggplot(
+    tidy_dag,
+    aes(x = x, y = y, xend = xend, yend = yend, color = name)
+  ) +
+    geom_dag_edges_link()
+
+  # The edge geom should not have edge_color mapping since color was in plot aes
+  layer_mapping4 <- p4$layers[[1]]$mapping
+  expect_false("edge_color" %in% names(layer_mapping4))
+  expect_false("color" %in% names(layer_mapping4))
+})

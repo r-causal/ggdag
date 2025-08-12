@@ -259,6 +259,7 @@ GeomDAGEdgePath <- ggplot2::ggproto(
     }
     data
   },
+  optional_aes = c("colour", "color"),
   non_missing_aes = c("direction", "direction_type"),
   default_aes = ggplot2::aes(
     linewidth = NA,
