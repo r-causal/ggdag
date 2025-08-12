@@ -64,6 +64,7 @@ reference:
     - print.tidy_dagitty
     - remove_axes
     - tbl_df.tidy_daggity
+    - as.tbl.tidy_daggity
 
 navbar:
   type: default
