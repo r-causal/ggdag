@@ -38,7 +38,10 @@ theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
     base_family = base_family
   ) %+replace%
     ggplot2::theme(
-      strip.text = ggplot2::element_text(face = "bold"),
+      strip.text = ggplot2::element_text(
+        face = "bold",
+        margin = ggplot2::margin(5, 5, 5, 5)
+      ),
       axis.text = ggplot2::element_blank(),
       axis.title = ggplot2::element_blank(),
       panel.grid = ggplot2::element_blank(),

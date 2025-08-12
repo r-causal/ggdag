@@ -9,6 +9,7 @@
 * Added new function `geom_label_repel2()` for more opinionated repelled labels that often look better on DAGs (#132)
 * Improved DAG data structure by removing unnecessary `circular` column when not needed. The column is now only included when using circular layouts. This simplifies the tidy DAG structure for most use cases (#119)
 * Edge geoms now support mapping `color`/`colour` aesthetics to `edge_color`/`edge_colour` for more intuitive usage, matching ggplot2 conventions (#166)
+* Fixed `theme_dag()` facet labels being clipped by adding margin to strip text (#173)
 
 # ggdag 0.2.11
 
