@@ -14,9 +14,11 @@
 
     Code
       expr
-    Condition <simpleError>
-      Error in `.checkAllNames()`:
-      ! z is not a variable in `x`
+    Condition <ggdag_missing_nodes_error>
+      Error in `control_for()`:
+      ! `var` not found in DAG.
+      x Missing: "z"
+      i Available nodes: "x" and "y"
 
 # ggdag_adjust handles node styling
 

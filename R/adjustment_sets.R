@@ -241,6 +241,7 @@ control_for <- function(
   ...
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+  validate_nodes_exist(.tdy_dag, var, arg = "var")
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
   update_dag(.tdy_dag) <- updated_dag

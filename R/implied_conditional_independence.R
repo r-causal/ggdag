@@ -80,6 +80,18 @@ test_conditional_independence <- function(
 ) {
   assert_dag_type(.tdy_dag, arg = ".tdy_dag")
 
+  # Validate that either data or sample.cov is provided
+  if (is.null(data) && is.null(sample.cov)) {
+    abort(
+      c(
+        "Either {.arg data} or {.arg sample.cov} must be provided.",
+        "i" = "Use {.arg data} to provide raw data.",
+        "i" = "Use {.arg sample.cov} to provide a covariance matrix."
+      ),
+      error_class = "ggdag_missing_data_error"
+    )
+  }
+
   test_results <- dagitty::localTests(
     pull_dag(.tdy_dag),
     data = data,

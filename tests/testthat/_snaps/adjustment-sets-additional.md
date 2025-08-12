@@ -2,17 +2,21 @@
 
     Code
       expr
-    Condition <simpleError>
-      Error in `.checkAllNames()`:
-      ! non_existent is not a variable in `x`
+    Condition <ggdag_missing_nodes_error>
+      Error in `control_for()`:
+      ! `var` not found in DAG.
+      x Missing: "non_existent"
+      i Available nodes: "x", "y", and "z"
 
 ---
 
     Code
       expr
-    Condition <simpleError>
-      Error in `.checkAllNames()`:
-      ! non_existent is not a variable in `x`
+    Condition <ggdag_missing_nodes_error>
+      Error in `control_for()`:
+      ! `var` not found in DAG.
+      x Missing: "non_existent"
+      i Available nodes: "x", "y", and "z"
 
 # dag_adjustment_sets handles edge cases
 
@@ -30,15 +34,19 @@
 
     Code
       expr
-    Condition <simpleError>
-      Error in `.checkAllNames()`:
-      ! non_existent is not a variable in `x`
+    Condition <ggdag_missing_nodes_error>
+      Error in `is_collider()`:
+      ! `.var` not found in DAG.
+      x Missing: "non_existent"
+      i Available nodes: "m", "w", "x", "y", and "z"
 
 ---
 
     Code
       expr
-    Condition <simpleError>
-      Error in `.checkAllNames()`:
-      ! non_existent is not a variable in `x`
+    Condition <ggdag_missing_nodes_error>
+      Error in `is_downstream_collider()`:
+      ! `.var` not found in DAG.
+      x Missing: "non_existent"
+      i Available nodes: "m", "w", "x", "y", and "z"
 

@@ -11,9 +11,11 @@
 
     Code
       expr
-    Condition <simpleError>
-      Error in `dagitty::localTests()`:
-      ! Please provide either data or sample covariance matrix!
+    Condition <ggdag_missing_data_error>
+      Error in `test_conditional_independence()`:
+      ! Either `data` or `sample.cov` must be provided.
+      i Use `data` to provide raw data.
+      i Use `sample.cov` to provide a covariance matrix.
 
 ---
 

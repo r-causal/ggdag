@@ -65,6 +65,7 @@
 #' @name Assess familial relationships between variables
 node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
   .children <- dagitty::children(pull_dag(.tdy_dag), .var)
   .tdy_dag <- dplyr::mutate(
@@ -89,6 +90,7 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
   .parent <- dagitty::parents(pull_dag(.tdy_dag), .var)
   .tdy_dag <- dplyr::mutate(
@@ -109,6 +111,7 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
   .ancestors <- dagitty::ancestors(pull_dag(.tdy_dag), .var)[-1]
   .tdy_dag <- dplyr::mutate(
@@ -132,6 +135,7 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
   .descendants <- dagitty::descendants(pull_dag(.tdy_dag), .var)[-1]
   .tdy_dag <- dplyr::mutate(
@@ -156,6 +160,7 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
   .blanket <- dagitty::markovBlanket(pull_dag(.tdy_dag), .var)
   .tdy_dag <- dplyr::mutate(
@@ -181,6 +186,7 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
 #' @export
 node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
   .adjacent <- dagitty::adjacentNodes(pull_dag(.tdy_dag), .var)
   .tdy_dag <- dplyr::mutate(

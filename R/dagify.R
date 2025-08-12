@@ -93,7 +93,13 @@ dagify <- function(
 ) {
   fmlas <- list(...)
 
-  validate_dag_inputs(fmlas, exposure, outcome, latent)
+  validate_dag_inputs(
+    fmlas,
+    exposure,
+    outcome,
+    latent,
+    call = rlang::current_env()
+  )
 
   dag_txt <- purrr::map_chr(fmlas, formula2char)
   dag_txt <- paste(dag_txt, collapse = "; ") |>
@@ -135,7 +141,7 @@ dagify <- function(
   dgty
 }
 
-validate_dag_formula <- function(fmla) {
+validate_dag_formula <- function(fmla, call = rlang::caller_env()) {
   vars <- all.vars(fmla, unique = FALSE)
 
   if (length(vars) >= 2) {
@@ -150,7 +156,8 @@ validate_dag_formula <- function(fmla) {
           "x" = "Variable {.val {lhs}} cannot depend on itself.",
           "i" = "Remove the self-referencing formula."
         ),
-        error_class = "ggdag_dag_error"
+        error_class = "ggdag_dag_error",
+        call = call
       )
     }
   }
@@ -162,10 +169,11 @@ validate_dag_inputs <- function(
   fmlas,
   exposure = NULL,
   outcome = NULL,
-  latent = NULL
+  latent = NULL,
+  call = rlang::caller_env()
 ) {
   # Validate each formula
-  purrr::walk(fmlas, validate_dag_formula)
+  purrr::walk(fmlas, \(f) validate_dag_formula(f, call = call))
 
   # Check that exposure and outcome are different
   if (!is.null(exposure) && !is.null(outcome)) {

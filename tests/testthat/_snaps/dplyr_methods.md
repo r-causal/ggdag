@@ -3,7 +3,7 @@
     Code
       expr
     Condition <ggdag_columns_error>
-      Error in `prep_dag_data()`:
+      Error in `transmute()`:
       ! Required columns are missing from the data.
       x Missing columns: name and to
       i Available columns: doubled_x
@@ -13,7 +13,7 @@
     Code
       expr
     Condition <ggdag_columns_error>
-      Error in `prep_dag_data()`:
+      Error in `distinct()`:
       ! Required columns are missing from the data.
       x Missing columns: name and to
       i Available columns: group
@@ -23,7 +23,7 @@
     Code
       expr
     Condition <ggdag_columns_error>
-      Error in `prep_dag_data()`:
+      Error in `summarise_()`:
       ! Required columns are missing from the data.
       x Missing columns: name and to
       i Available columns: n
@@ -33,7 +33,7 @@
     Code
       expr
     Condition <ggdag_columns_error>
-      Error in `prep_dag_data()`:
+      Error in `select()`:
       ! Required columns are missing from the data.
       x Missing columns: to
       i Available columns: name, x, y, and is_exposure

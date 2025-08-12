@@ -293,3 +293,37 @@ assert_columns_exist <- function(data, columns, call = rlang::caller_env()) {
     )
   }
 }
+
+#' Validate that nodes exist in DAG
+#' @noRd
+validate_nodes_exist <- function(
+  .tdy_dag,
+  nodes,
+  arg = rlang::caller_arg(nodes),
+  call = rlang::caller_env()
+) {
+  # Get all nodes in the DAG
+  if (is.tidy_dagitty(.tdy_dag)) {
+    all_nodes <- unique(pull_dag_data(.tdy_dag)$name)
+  } else if (dagitty::is.dagitty(.tdy_dag)) {
+    all_nodes <- names(.tdy_dag)
+  } else {
+    assert_dag_type(.tdy_dag, call = call)
+  }
+
+  # Check which nodes don't exist
+  missing_nodes <- setdiff(nodes, all_nodes)
+  if (length(missing_nodes) > 0) {
+    abort(
+      c(
+        "{.arg {arg}} not found in DAG.",
+        "x" = "Missing: {.val {missing_nodes}}",
+        "i" = "Available nodes: {.val {all_nodes}}"
+      ),
+      error_class = "ggdag_missing_nodes_error",
+      call = call
+    )
+  }
+
+  invisible(TRUE)
+}

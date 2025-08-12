@@ -12,7 +12,7 @@
     Code
       expr
     Condition <ggdag_columns_error>
-      Error in `prep_dag_data()`:
+      Error in `as_tidy_dagitty()`:
       ! Required columns are missing from the data.
       x Missing columns: name and to
       i Available columns:

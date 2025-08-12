@@ -9,3 +9,4 @@ docs
 CLAUDE.md
 .claude/
 scratch/
+tests/testthat/Rplots.pdf

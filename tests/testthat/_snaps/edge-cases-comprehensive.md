@@ -18,9 +18,10 @@
 
     Code
       expr
-    Condition <simpleError>
-      Error in `UseMethod()`:
-      ! no applicable method for 'pull_dag' applied to an object of class "data.frame"
+    Condition <ggdag_type_error>
+      Error in `pull_dag()`:
+      ! `pull_dag()` requires a <tidy_dagitty> or <dagitty> object.
+      x You provided a <data.frame> object.
 
 # tidy_dag additional edge cases
 
@@ -35,15 +36,17 @@
 
     Code
       expr
-    Condition <simpleError>
-      Error in `UseMethod()`:
-      ! no applicable method for 'pull_dag' applied to an object of class "list"
+    Condition <ggdag_type_error>
+      Error in `pull_dag()`:
+      ! `pull_dag()` requires a <tidy_dagitty> or <dagitty> object.
+      x You provided a <list> object.
 
 ---
 
     Code
       expr
-    Condition <simpleError>
-      Error in `UseMethod()`:
-      ! no applicable method for 'pull_dag_data' applied to an object of class "list"
+    Condition <ggdag_type_error>
+      Error in `pull_dag_data()`:
+      ! `pull_dag_data()` requires a <tidy_dagitty> or <dagitty> object.
+      x You provided a <list> object.
 
