@@ -49,6 +49,7 @@ test_that("`test_conditional_independence()` works", {
 
 
 test_that("`ggdag_conditional_independence()` works", {
+  set.seed(1)
   test_result <- data.frame(
     independence = c("x _||_ y", "y _||_ z"),
     estimate = c(0.1, 0.2),

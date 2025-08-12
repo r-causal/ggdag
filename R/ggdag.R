@@ -88,6 +88,7 @@ ggdag <- function(
 #'   scaled relative ti `size`
 #' @param text_label text variable, with a default of "name"
 #' @param text_col text color, with a default of "black"
+#' @param use_edges logical value whether to include edges
 #'
 #' @return a `ggplot`
 #' @export
@@ -114,7 +115,8 @@ ggdag_classic <- function(
   size = 8,
   label_rect_size = NULL,
   text_label = "name",
-  text_col = "black"
+  text_col = "black",
+  use_edges = TRUE
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
 
@@ -128,23 +130,25 @@ ggdag_classic <- function(
       col = text_col
     )
 
-  if (
-    any(
-      pull_dag_data(.tdy_dag)$direction == "<->" &
-        !is.na(pull_dag_data(.tdy_dag)$direction)
-    )
-  ) {
-    p <- p +
-      geom_dag_edges(ggplot2::aes(
-        start_cap = ggraph::label_rect(name, fontsize = fontsize),
-        end_cap = ggraph::label_rect(to, fontsize = fontsize)
-      ))
-  } else {
-    p <- p +
-      geom_dag_edges_link(ggplot2::aes(
-        start_cap = ggraph::label_rect(name, fontsize = fontsize),
-        end_cap = ggraph::label_rect(to, fontsize = fontsize)
-      ))
+  if (use_edges) {
+    if (
+      any(
+        pull_dag_data(.tdy_dag)$direction == "<->" &
+          !is.na(pull_dag_data(.tdy_dag)$direction)
+      )
+    ) {
+      p <- p +
+        geom_dag_edges(ggplot2::aes(
+          start_cap = ggraph::label_rect(name, fontsize = fontsize),
+          end_cap = ggraph::label_rect(to, fontsize = fontsize)
+        ))
+    } else {
+      p <- p +
+        geom_dag_edges_link(ggplot2::aes(
+          start_cap = ggraph::label_rect(name, fontsize = fontsize),
+          end_cap = ggraph::label_rect(to, fontsize = fontsize)
+        ))
+    }
   }
 
   p

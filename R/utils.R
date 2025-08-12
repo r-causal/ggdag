@@ -65,7 +65,9 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
   if (exclude_identical) {
     pairs <- pairs |> dplyr::filter(Var1 != Var2)
   }
-  pairs[!duplicated(t(apply(pairs, 1, sort))), ]
+  # Sort each pair and remove names to ensure proper comparison
+  sorted_pairs <- apply(pairs, 1, \(row) sort(unname(row)), simplify = FALSE)
+  pairs[!duplicated(sorted_pairs), ]
 }
 
 formula2char <- function(fmla) {
@@ -119,10 +121,10 @@ n_nodes <- function(x) {
 }
 
 n_edges <- function(x) {
-  sum(!is.na(pull_dag_data(x)$direction)) - n_collder_paths(x)
+  sum(!is.na(pull_dag_data(x)$direction)) - n_collider_paths(x)
 }
 
-n_collder_paths <- function(x) {
+n_collider_paths <- function(x) {
   if (has_collider_path(x)) {
     n <- sum(pull_dag_data(x)$collider_line)
   } else {
@@ -180,15 +182,6 @@ ggdag_left_join <- function(...) {
 }
 
 `%nin%` <- Negate(`%in%`)
-
-check_arg_node <- function(node, use_nodes, what = "geom_dag") {
-  if (is_present(node)) {
-    deprecate_soft("0.3.0", paste0(what, "(node)"), paste0(what, "(use_nodes)"))
-    use_nodes <- node
-  } else {
-    use_nodes
-  }
-}
 
 check_arg_node <- function(node, use_nodes, what = "geom_dag") {
   if (is_present(node)) {

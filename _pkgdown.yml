@@ -55,7 +55,6 @@ reference:
 - title: Misc
   contents:
     - as.data.frame.tidy_dagitty
-    - as.tbl.tidy_daggity
     - as_tbl_graph
     - dplyr
     - expand_plot
@@ -63,7 +62,8 @@ reference:
     - ggplot.tidy_dagitty
     - print.tidy_dagitty
     - remove_axes
-    - tbl_df.tidy_daggity
+    - as.tbl.tidy_dagitty
+    - tbl_df.tidy_dagitty
 
 navbar:
   type: default

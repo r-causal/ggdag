@@ -44,3 +44,100 @@ test_that("dags ............", {
   p5 <- ggdag_equivalent_dags(labelled_dag, use_labels = TRUE)
   expect_doppelganger("ggdag_equivalent_class() plots labels", p5)
 })
+
+test_that("ggdag_equivalent_class respects use_edges parameter (issue #167)", {
+  # Create a DAG with reversible edges: y ~ x + z, x ~ z
+  # This DAG has 3 edges total: y <- x, y <- z, x <- z
+  # In equivalent class: y <- z is reversible, others are not
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  # Test with use_edges = TRUE (should have 3 edges)
+  p_with_edges <- ggdag_equivalent_class(dag, use_edges = TRUE)
+  analysis_with <- analyze_plot_edges(p_with_edges)
+
+  expect_true(
+    analysis_with$has_edge_layers,
+    "Should have edge layers when use_edges = TRUE"
+  )
+  expect_equal(
+    analysis_with$total_edges,
+    3,
+    info = "Should have exactly 3 edges when use_edges = TRUE"
+  )
+  expect_gt(
+    analysis_with$edge_layers,
+    0,
+    "Should have at least 1 edge layer when use_edges = TRUE"
+  )
+
+  # Test with use_edges = FALSE (should have NO edges)
+  p_without_edges <- ggdag_equivalent_class(dag, use_edges = FALSE)
+  analysis_without <- analyze_plot_edges(p_without_edges)
+
+  expect_false(
+    analysis_without$has_edge_layers,
+    paste(
+      "Should have NO edge layers when use_edges = FALSE, but found:",
+      analysis_without$edge_layers
+    )
+  )
+  expect_equal(
+    analysis_without$total_edges,
+    0,
+    info = paste(
+      "Should have 0 edges when use_edges = FALSE, but found:",
+      analysis_without$total_edges
+    )
+  )
+  expect_equal(
+    analysis_without$edge_layers,
+    0,
+    info = "Should have 0 edge layers when use_edges = FALSE"
+  )
+})
+
+test_that("ggdag_equivalent_class handles complex DAG with bidirected edges", {
+  # Complex DAG with bidirected edge from ?ggdag
+  dag <- dagify(
+    y ~ x + z2 + w2 + w1,
+    x ~ z1 + w1,
+    z1 ~ w1 + v,
+    z2 ~ w2 + v,
+    w1 ~ ~w2, # bidirected edge
+    exposure = "x",
+    outcome = "y"
+  )
+
+  # Count edges in base DAG
+  dag_edges <- dagitty::edges(dag)
+  n_dag_edges <- nrow(dag_edges)
+  expect_equal(n_dag_edges, 11, info = "Base DAG should have 11 edges")
+
+  # Test with use_edges = TRUE
+  p_with_edges <- ggdag_equivalent_class(dag, use_edges = TRUE)
+  analysis_with <- analyze_plot_edges(p_with_edges)
+
+  expect_true(
+    analysis_with$has_edge_layers,
+    "Should have edge layers when use_edges = TRUE"
+  )
+  expect_equal(
+    analysis_with$total_edges,
+    11,
+    info = "Should have exactly 11 edges when use_edges = TRUE"
+  )
+
+  # Test with use_edges = FALSE
+  p_without_edges <- ggdag_equivalent_class(dag, use_edges = FALSE)
+  analysis_without <- analyze_plot_edges(p_without_edges)
+
+  expect_false(
+    analysis_without$has_edge_layers,
+    "Should have NO edge layers when use_edges = FALSE"
+  )
+  expect_equal(
+    analysis_without$total_edges,
+    0,
+    info = "Should have 0 edges when use_edges = FALSE"
+  )
+})

@@ -209,18 +209,25 @@ ggdag_equivalent_class <- function(
   reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), reversable)
   non_reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), !reversable)
   p <- .tdy_dag |>
-    ggplot2::ggplot(aes_dag(edge_alpha = reversable)) +
-    geom_dag_edges(
-      data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
-      data_bidirected = dplyr::filter(non_reversable_lines, direction == "<->")
-    ) +
-    geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
-    breaks(breaks) +
-    ggraph::scale_edge_alpha_manual(
-      name = "Reversable",
-      drop = FALSE,
-      values = c(.30, 1)
-    )
+    ggplot2::ggplot(aes_dag(edge_alpha = reversable))
+
+  if (use_edges) {
+    p <- p +
+      geom_dag_edges(
+        data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
+        data_bidirected = dplyr::filter(
+          non_reversable_lines,
+          direction == "<->"
+        )
+      ) +
+      geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
+      breaks(breaks) +
+      ggraph::scale_edge_alpha_manual(
+        name = "Reversable",
+        drop = FALSE,
+        values = c(.30, 1)
+      )
+  }
 
   p <- p +
     geom_dag(

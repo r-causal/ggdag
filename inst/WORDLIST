@@ -45,6 +45,7 @@ independencies
 jointy
 lineheight
 linetype
+magrittr
 mismeasure
 misspecified
 mitre

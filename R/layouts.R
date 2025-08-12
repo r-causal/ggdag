@@ -115,6 +115,10 @@ spread_coords <- function(.time, .vars, direction) {
 }
 
 calculate_spread <- function(n) {
+  if (n == 0) {
+    return(numeric(0))
+  }
+
   spread <- seq(-floor(n / 2), ceiling(n / 2) - 1)
   if (n %% 2 == 0) {
     spread[spread >= 0] <- spread[spread >= 0] + 1
@@ -159,7 +163,8 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
     ggdag_left_join(graph2, by = "name") |>
     dplyr::group_by(name) |>
     dplyr::group_modify(\(.x, .y) right_sort_coords(.x, final_result)) |>
-    dplyr::ungroup()
+    dplyr::ungroup() |>
+    dplyr::distinct()
 }
 
 right_sort_coords <- function(.x, .orders) {
