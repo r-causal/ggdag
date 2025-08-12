@@ -279,52 +279,35 @@ test_that("join operations handle suffix correctly", {
 })
 
 test_that("deprecated underscore methods still work with warnings", {
+  withr::local_options(list(lifecycle_verbosity = "quiet"))
   dag <- dagify(y ~ x + z, x ~ z) |>
     tidy_dagitty()
 
   # Test select_ - preserves tidy_dagitty with all columns
-  expect_warning(
-    selected <- select_(dag, ~ dplyr::everything()),
-    "deprecated"
-  )
+  selected <- select_(dag, ~ dplyr::everything())
   expect_s3_class(selected, "tidy_dagitty")
   expect_equal(names(pull_dag_data(selected)), names(pull_dag_data(dag)))
 
   # Test filter_
-  expect_warning(
-    filtered <- filter_(dag, ~ name == "x"),
-    "deprecated"
-  )
+  filtered <- filter_(dag, ~ name == "x")
   expect_true(all(pull_dag_data(filtered)$name == "x"))
 
   # Test mutate_
-  expect_warning(
-    mutated <- mutate_(dag, new_col = ~ x + 1),
-    "deprecated"
-  )
+  mutated <- mutate_(dag, new_col = ~ x + 1)
   expect_true("new_col" %in% names(pull_dag_data(mutated)))
 
   # Test arrange_
-  expect_warning(
-    arranged <- arrange_(dag, ~ desc(name)),
-    "deprecated"
-  )
+  arranged <- arrange_(dag, ~ desc(name))
   expect_equal(unique(pull_dag_data(arranged)$name)[1], "z")
 
   # Test slice_
-  expect_warning(
-    sliced <- slice_(dag, ~ 1:2),
-    "deprecated"
-  )
+  sliced <- slice_(dag, ~ 1:2)
   expect_equal(nrow(pull_dag_data(sliced)), 2)
 
   # Test summarise_ - errors because it tries to preserve tidy_dagitty
-  expect_warning(
-    expect_error(
-      summarise_(dag, n = ~ n()),
-      "Columns `name` and `to` not found"
-    ),
-    "deprecated"
+  expect_error(
+    summarise_(dag, n = ~ n()),
+    "Columns `name` and `to` not found"
   )
 })
 

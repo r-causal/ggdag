@@ -53,10 +53,13 @@ test_that("dag_adjustment_sets handles edge cases", {
     x ~ u,
     latent = "u"
   )
-  result_collider <- dag_adjustment_sets(
-    dag_collider,
-    exposure = "x",
-    outcome = "y"
+  expect_warning(
+    result_collider <- dag_adjustment_sets(
+      dag_collider,
+      exposure = "x",
+      outcome = "y"
+    ),
+    "Failed to close backdoor paths"
   )
   expect_s3_class(result_collider, "tidy_dagitty")
 })

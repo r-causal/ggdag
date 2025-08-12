@@ -298,7 +298,7 @@ ggdag_adjust <- function(
         "an adjusting variable needs to be set, either via `var` or `control_for()`"
       )
     }
-    if (is.null(pull_dag_data(.tdy_dag)$adjusted)) {
+    if (!"adjusted" %in% names(pull_dag_data(.tdy_dag))) {
       .tdy_dag <- .tdy_dag |> control_for(var)
     }
   }

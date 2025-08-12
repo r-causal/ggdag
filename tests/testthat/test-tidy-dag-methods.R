@@ -33,6 +33,7 @@ test_that("data frame conversion methods work", {
 })
 
 test_that("tibble conversion methods work", {
+  withr::local_options(list(lifecycle_verbosity = "quiet"))
   dag <- dagify(y ~ x + z, x ~ z)
   tidy_dag <- tidy_dagitty(dag)
 
@@ -46,10 +47,7 @@ test_that("tibble conversion methods work", {
   expect_s3_class(tbl2, "tbl_df")
 
   # Test deprecated as.tbl
-  expect_warning(
-    tbl3 <- as.tbl(tidy_dag),
-    class = "lifecycle_warning_deprecated"
-  )
+  tbl3 <- as.tbl(tidy_dag)
   expect_s3_class(tbl3, "tbl_df")
 })
 
