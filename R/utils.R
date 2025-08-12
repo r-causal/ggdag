@@ -121,10 +121,10 @@ n_nodes <- function(x) {
 }
 
 n_edges <- function(x) {
-  sum(!is.na(pull_dag_data(x)$direction)) - n_collder_paths(x)
+  sum(!is.na(pull_dag_data(x)$direction)) - n_collider_paths(x)
 }
 
-n_collder_paths <- function(x) {
+n_collider_paths <- function(x) {
   if (has_collider_path(x)) {
     n <- sum(pull_dag_data(x)$collider_line)
   } else {

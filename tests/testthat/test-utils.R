@@ -171,10 +171,10 @@ test_that("n_edges counts edges correctly", {
 })
 
 
-test_that("n_collder_paths counts collider paths correctly", {
+test_that("n_collider_paths counts collider paths correctly", {
   # DAG without collider paths
   dag_no_collider <- dagify(y ~ x, x ~ z)
-  expect_equal(n_collder_paths(tidy_dagitty(dag_no_collider)), 0)
+  expect_equal(n_collider_paths(tidy_dagitty(dag_no_collider)), 0)
 
   # DAG with collider paths
   dag_with_collider <- dagify(
@@ -188,7 +188,7 @@ test_that("n_collder_paths counts collider paths correctly", {
     tidy_dagitty() |>
     activate_collider_paths(adjust_for = "y")
 
-  expect_gt(n_collder_paths(tidy_dag), 0)
+  expect_gt(n_collider_paths(tidy_dag), 0)
 })
 
 test_that("collider_paths returns correct paths", {
