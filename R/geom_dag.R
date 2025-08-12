@@ -448,6 +448,29 @@ filter_direction <- function(.direction) {
   }
 }
 
+# Helper function to expand edge aesthetics
+# Maps colour/color to edge_colour/edge_color if not already set
+expand_edge_aes <- function(mapping) {
+  if (is.null(mapping)) {
+    return(mapping)
+  }
+
+  # Get the aesthetic names
+  aes_names <- names(mapping)
+
+  # Check if colour is mapped but edge_colour is not
+  if ("colour" %in% aes_names && !"edge_colour" %in% aes_names) {
+    mapping$edge_colour <- mapping$colour
+  }
+
+  # Check if color is mapped but edge_color is not
+  if ("color" %in% aes_names && !"edge_color" %in% aes_names) {
+    mapping$edge_color <- mapping$color
+  }
+
+  mapping
+}
+
 #' Directed and bidirected DAG edges
 #'
 #' @param mapping Set of aesthetic mappings created by aes() or aes_(). If
@@ -544,6 +567,8 @@ geom_dag_edges <- function(
   fold = FALSE,
   ...
 ) {
+  mapping <- expand_edge_aes(mapping)
+
   list(
     geom_dag_edges_link(
       mapping,
@@ -667,6 +692,8 @@ geom_dag_edges_link <- function(
   inherit.aes = TRUE,
   ...
 ) {
+  mapping <- expand_edge_aes(mapping)
+
   ggplot2::layer(
     mapping = mapping,
     geom = GeomDAGEdgePath,
@@ -709,6 +736,8 @@ geom_dag_edges_arc <- function(
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
+
+  mapping <- expand_edge_aes(mapping)
 
   ggplot2::layer(
     mapping = mapping,
@@ -772,6 +801,8 @@ geom_dag_edges_diagonal <- function(
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
+
+  mapping <- expand_edge_aes(mapping)
 
   ggplot2::layer(
     data = data,
@@ -837,6 +868,8 @@ geom_dag_edges_fan <- function(
     mapping$from <- substitute(name)
     mapping$to <- substitute(to)
   }
+
+  mapping <- expand_edge_aes(mapping)
 
   ggplot2::layer(
     data = data,
