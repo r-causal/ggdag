@@ -14,7 +14,7 @@ test_that("quick plots render correctly", {
     "ggdag_collider_triangle() is triangle, too",
     ggdag_collider_triangle()
   )
-  
+
   # Causal quartet plots
   expect_doppelganger(
     "ggdag_quartet_collider() shows collider structure",
