@@ -377,3 +377,239 @@ test_that("quick plot edge cases work correctly", {
   dag3 <- collider_triangle(m = "αβγ")
   expect_equal(label(dag3)[["m"]], "αβγ")
 })
+
+test_that("quartet_collider creates correct DAG structure", {
+  # Default collider with x-y association
+  dag1 <- quartet_collider()
+  expect_s3_class(dag1, "dagitty")
+
+  # Check structure
+  edges <- dagitty::edges(dag1)
+  expect_equal(nrow(edges), 3) # x->y, x->z, y->z
+  expect_true(all(
+    c("x -> z", "y -> z", "x -> y") %in% paste(edges$v, "->", edges$w)
+  ))
+
+  # Without x-y association
+  dag2 <- quartet_collider(x_y_associated = FALSE)
+  edges2 <- dagitty::edges(dag2)
+  expect_equal(nrow(edges2), 2)
+  expect_false("x -> y" %in% paste(edges2$v, "->", edges2$w))
+
+  # With labels
+  dag3 <- quartet_collider(x = "Exposure", y = "Outcome", z = "Collider")
+  labels <- label(dag3)
+  expect_equal(labels[["z"]], "Collider")
+
+  # Check z is collider
+  tidy_dag <- tidy_dagitty(dag1)
+  colliders <- node_collider(tidy_dag)
+  collider_data <- pull_dag_data(colliders)
+  z_row <- collider_data[collider_data$name == "z", ]
+  expect_equal(as.character(z_row$colliders), "Collider")
+})
+
+test_that("quartet_confounder creates correct DAG structure", {
+  # Default confounder
+  dag1 <- quartet_confounder()
+  expect_s3_class(dag1, "dagitty")
+
+  # Check structure
+  edges <- dagitty::edges(dag1)
+  expect_equal(nrow(edges), 3) # z->x, z->y, x->y
+  expect_true(all(
+    c("z -> x", "z -> y", "x -> y") %in% paste(edges$v, "->", edges$w)
+  ))
+
+  # Without x-y association
+  dag2 <- quartet_confounder(x_y_associated = FALSE)
+  edges2 <- dagitty::edges(dag2)
+  expect_equal(nrow(edges2), 2)
+  expect_false("x -> y" %in% paste(edges2$v, "->", edges2$w))
+
+  # Check exposure and outcome
+  expect_equal(dagitty::exposures(dag1), "x")
+  expect_equal(dagitty::outcomes(dag1), "y")
+})
+
+test_that("quartet_mediator creates correct DAG structure", {
+  # Default mediator without x-y association
+  dag1 <- quartet_mediator()
+  expect_s3_class(dag1, "dagitty")
+
+  # Check structure
+  edges <- dagitty::edges(dag1)
+  expect_equal(nrow(edges), 2) # x->z, z->y
+  expect_true(all(c("x -> z", "z -> y") %in% paste(edges$v, "->", edges$w)))
+
+  # With x-y association (direct effect)
+  dag2 <- quartet_mediator(x_y_associated = TRUE)
+  edges2 <- dagitty::edges(dag2)
+  expect_equal(nrow(edges2), 3)
+  expect_true("x -> y" %in% paste(edges2$v, "->", edges2$w))
+
+  # Check z is on path from x to y
+  paths <- dagitty::paths(dag1, from = "x", to = "y")
+  expect_true(length(paths$paths) > 0)
+  expect_true(any(grepl("z", paths$paths)))
+})
+
+test_that("quartet_m_bias creates correct DAG structure", {
+  # Default m-bias with x-y association
+  dag1 <- quartet_m_bias()
+  expect_s3_class(dag1, "dagitty")
+
+  # Check structure
+  edges <- dagitty::edges(dag1)
+  expect_equal(nrow(edges), 5) # u1->z, u2->z, u1->x, u2->y, x->y
+  expect_true(all(
+    c("u1 -> z", "u2 -> z", "u1 -> x", "u2 -> y", "x -> y") %in%
+      paste(edges$v, "->", edges$w)
+  ))
+
+  # Without x-y association
+  dag2 <- quartet_m_bias(x_y_associated = FALSE)
+  edges2 <- dagitty::edges(dag2)
+  expect_equal(nrow(edges2), 4)
+  expect_false("x -> y" %in% paste(edges2$v, "->", edges2$w))
+
+  # With labels including u1 and u2
+  dag3 <- quartet_m_bias(
+    x = "X",
+    y = "Y",
+    z = "Z",
+    u1 = "Unmeasured1",
+    u2 = "Unmeasured2"
+  )
+  labels <- label(dag3)
+  expect_equal(labels[["u1"]], "Unmeasured1")
+  expect_equal(labels[["u2"]], "Unmeasured2")
+})
+
+test_that("quartet_time_collider creates correct DAG structure", {
+  # Time-varying collider
+  dag1 <- quartet_time_collider()
+  expect_s3_class(dag1, "dagitty")
+
+  # Check structure
+  edges <- dagitty::edges(dag1)
+  expect_equal(nrow(edges), 8)
+  expect_true(all(
+    c(
+      "x1 -> y2",
+      "x2 -> y3",
+      "x1 -> x2",
+      "x1 -> z2",
+      "x2 -> z3",
+      "y2 -> z2",
+      "y3 -> z3",
+      "z2 -> z3"
+    ) %in%
+      paste(edges$v, "->", edges$w)
+  ))
+
+  # With labels
+  dag2 <- quartet_time_collider(
+    x0 = "X0",
+    x1 = "X1",
+    x2 = "X2",
+    x3 = "X3",
+    y1 = "Y1",
+    y2 = "Y2",
+    y3 = "Y3",
+    z1 = "Z1",
+    z2 = "Z2",
+    z3 = "Z3"
+  )
+  labels <- label(dag2)
+  expect_equal(length(labels), 10)
+  expect_equal(labels[["x2"]], "X2")
+
+  # Check exposure and outcome
+  expect_equal(dagitty::exposures(dag1), "x2")
+  expect_equal(dagitty::outcomes(dag1), "y3")
+})
+
+test_that("ggdag_quartet functions create plots correctly", {
+  # Test all quartet ggdag functions
+  p1 <- ggdag_quartet_collider()
+  expect_s3_class(p1, "gg")
+
+  p2 <- ggdag_quartet_confounder()
+  expect_s3_class(p2, "gg")
+
+  p3 <- ggdag_quartet_mediator()
+  expect_s3_class(p3, "gg")
+
+  p4 <- ggdag_quartet_m_bias()
+  expect_s3_class(p4, "gg")
+
+  p5 <- ggdag_quartet_time_collider()
+  expect_s3_class(p5, "gg")
+
+  # Test with labels
+  p6 <- ggdag_quartet_collider(x = "E", y = "O", z = "C")
+  expect_true("label" %in% names(p6$data))
+
+  # Test parameter passing
+  p7 <- ggdag_quartet_confounder(
+    use_nodes = FALSE,
+    use_text = FALSE,
+    edge_type = "arc"
+  )
+  expect_s3_class(p7, "gg")
+})
+
+test_that("quartet functions have correct default x_y_associated values", {
+  # Collider and confounder default to TRUE
+  dag1 <- quartet_collider()
+  edges1 <- dagitty::edges(dag1)
+  expect_true("x -> y" %in% paste(edges1$v, "->", edges1$w))
+
+  dag2 <- quartet_confounder()
+  edges2 <- dagitty::edges(dag2)
+  expect_true("x -> y" %in% paste(edges2$v, "->", edges2$w))
+
+  # Mediator defaults to FALSE
+  dag3 <- quartet_mediator()
+  edges3 <- dagitty::edges(dag3)
+  expect_false("x -> y" %in% paste(edges3$v, "->", edges3$w))
+
+  # M-bias defaults to TRUE
+  dag4 <- quartet_m_bias()
+  edges4 <- dagitty::edges(dag4)
+  expect_true("x -> y" %in% paste(edges4$v, "->", edges4$w))
+})
+
+test_that("all ggdag quartet plots accept standard parameters", {
+  # Test that all quartet functions accept the standard ggdag parameters
+  funcs <- list(
+    ggdag_quartet_collider,
+    ggdag_quartet_confounder,
+    ggdag_quartet_mediator,
+    ggdag_quartet_m_bias,
+    ggdag_quartet_time_collider
+  )
+
+  purrr::walk(funcs, \(func) {
+    # Should all accept these parameters without error
+    p <- func(
+      size = 1.5,
+      edge_type = "diagonal",
+      node_size = 18,
+      text_size = 4,
+      label_size = 4,
+      text_col = "black",
+      label_col = "white",
+      edge_width = 0.8,
+      edge_cap = 10,
+      arrow_length = 6,
+      use_edges = TRUE,
+      use_nodes = TRUE,
+      use_stylized = FALSE,
+      use_text = TRUE,
+      use_labels = FALSE
+    )
+    expect_s3_class(p, "gg")
+  })
+})
