@@ -403,7 +403,7 @@ The \verb{quartet_*} functions create DAGs that represent the causal quartet,
 which are four example datasets with identical statistical properties but
 different causal structures. These are inspired by Anscombe's quartet and
 demonstrate that statistical summaries alone cannot determine causal
-relationships.
+relationships. See \href{https://www.r-causal.org/chapters/05-not-just-a-stats-problem}{Causal Inference in R}
 
 The four structures represent different relationships between exposure (x),
 outcome (y), and a covariate (z):
