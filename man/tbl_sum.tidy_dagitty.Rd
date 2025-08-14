@@ -17,3 +17,4 @@ A named character vector
 \description{
 Provide a succinct summary of a tidy_dagitty object
 }
+\keyword{internal}

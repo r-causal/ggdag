@@ -448,6 +448,11 @@ as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
   )
 }
 
+# Helper function to combine pillar subtle styling with cli formatting
+subtle_inline <- function(text, .envir = parent.frame()) {
+  pillar::style_subtle(cli::format_inline(text, .envir = .envir))
+}
+
 #' Provide a succinct summary of a tidy_dagitty object
 #'
 #' @param x an object of class `tidy_dagitty`
@@ -455,6 +460,7 @@ as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
 #'
 #' @return A named character vector
 #' @export
+#' @keywords internal
 #' @importFrom pillar tbl_sum
 tbl_sum.tidy_dagitty <- function(x, ...) {
   coll <- function(x, ...) paste(x, collapse = ", ", ...)
@@ -576,6 +582,7 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
 #'
 #' @return Character vector of formatted output
 #' @export
+#' @keywords internal
 format.tidy_dagitty <- function(
   x,
   ...,
@@ -586,18 +593,14 @@ format.tidy_dagitty <- function(
   # Get the header from tbl_sum
   header <- tbl_sum(x)
 
-  # Add DAG section header - combine cli formatting with pillar subtle style
-  formatted_output <- pillar::style_subtle(cli::format_inline(
-    "# {.strong DAG:}"
-  ))
+  # Add DAG section header
+  formatted_output <- subtle_inline("# {.strong DAG:}")
 
-  # Format the header using both cli and pillar
+  # Format the header
   for (i in seq_along(header)) {
     formatted_output <- c(
       formatted_output,
-      pillar::style_subtle(cli::format_inline(
-        "# {names(header)[i]}: {header[i]}"
-      ))
+      subtle_inline("# {names(header)[i]}: {header[i]}")
     )
   }
 
@@ -605,10 +608,7 @@ format.tidy_dagitty <- function(
   formatted_output <- c(formatted_output, pillar::style_subtle("#"))
 
   # Add Data section header
-  formatted_output <- c(
-    formatted_output,
-    pillar::style_subtle(cli::format_inline("# {.strong Data:}"))
-  )
+  formatted_output <- c(formatted_output, subtle_inline("# {.strong Data:}"))
 
   # Format the data using pillar's format for the tibble
   data_formatted <- format(
@@ -624,13 +624,12 @@ format.tidy_dagitty <- function(
 }
 
 #' @export
+#' @keywords internal
 #' @importFrom pillar tbl_format_footer
 tbl_format_footer.tidy_dagitty <- function(x, setup, ...) {
-  # Add our custom footer with both cli formatting and subtle style
-  info_line <- pillar::style_subtle(
-    cli::format_inline(
-      "# {cli::symbol$info} Use `{.topic [pull_dag()](pull_dag)}` to retrieve the DAG object and `{.topic [pull_dag_data()](pull_dag_data)}` for the data frame"
-    )
+  # Add our custom footer
+  info_line <- subtle_inline(
+    "# {cli::symbol$info} Use `{.topic [pull_dag()](pull_dag)}` to retrieve the DAG object and `{.topic [pull_dag_data()](pull_dag_data)}` for the data frame"
   )
 
   info_line

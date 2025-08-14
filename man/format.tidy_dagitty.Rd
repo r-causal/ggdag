@@ -23,3 +23,4 @@ Character vector of formatted output
 \description{
 Format a \code{tidy_dagitty} object
 }
+\keyword{internal}
