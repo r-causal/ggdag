@@ -458,36 +458,99 @@ as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
 #' @importFrom pillar tbl_sum
 tbl_sum.tidy_dagitty <- function(x, ...) {
   coll <- function(x, ...) paste(x, collapse = ", ", ...)
-  
-  # Build the summary information to match existing tests
+
+  # Get DAG component once
+  dag <- pull_dag(x)
+
+  # Get counts from DAG component
+  node_count <- length(names(dag))
+  edge_count <- nrow(dagitty::edges(dag))
+
   summary_info <- c(
-    "A DAG with" = paste0(n_nodes(x), " nodes and ", n_edges(x), " edges")
+    "A DAG with" = paste0(node_count, " nodes and ", edge_count, " edges")
   )
-  
+
   if (has_exposure(x)) {
-    summary_info <- c(summary_info, 
-      "Exposure" = coll(dagitty::exposures(pull_dag(x)))
-    )
+    summary_info <- c(summary_info, "Exposure" = coll(dagitty::exposures(dag)))
   }
-  
+
   if (has_outcome(x)) {
-    summary_info <- c(summary_info, 
-      "Outcome" = coll(dagitty::outcomes(pull_dag(x)))
-    )
+    summary_info <- c(summary_info, "Outcome" = coll(dagitty::outcomes(dag)))
   }
-  
+
   if (has_latent(x)) {
-    summary_info <- c(summary_info, 
-      "Latent Variable" = coll(dagitty::latents(pull_dag(x)))
+    summary_info <- c(
+      summary_info,
+      "Latent Variable" = coll(dagitty::latents(dag))
     )
   }
-  
+
   if (has_collider_path(x)) {
-    summary_info <- c(summary_info, 
+    summary_info <- c(
+      summary_info,
       "Paths opened by conditioning on a collider" = coll(collider_paths(x))
     )
   }
-  
+
+  # Check for special analysis results
+  data <- pull_dag_data(x)
+
+  # Adjustment sets
+  if (all(c("adjusted", "set") %in% names(data))) {
+    unique_sets <- unique(data$set)
+    n_sets <- length(unique_sets)
+    
+    # Check if it's the special case of unconditionally closed paths
+    if (n_sets == 1 && grepl("Backdoor.*Closed", unique_sets[1])) {
+      summary_info <- c(
+        summary_info,
+        "Adjustment sets" = "0 (Backdoor paths unconditionally closed)"
+      )
+    } else {
+      set_text <- if (n_sets == 1) "set" else "sets"
+      summary_info <- c(
+        summary_info,
+        "Adjustment sets" = paste0(
+          n_sets,
+          " ",
+          set_text,
+          ": ",
+          paste(unique_sets, collapse = ", ")
+        )
+      )
+    }
+  }
+
+  # Paths
+  if (all(c("path", "set") %in% names(data))) {
+    dag <- pull_dag(x)
+    paths_obj <- dagitty::paths(dag)
+    
+    if (!is.null(paths_obj) && length(paths_obj$paths) > 0) {
+      open_paths <- paths_obj$paths[paths_obj$open]
+      
+      if (length(open_paths) > 0) {
+        # Format paths with curly braces
+        formatted_paths <- paste0("{", open_paths, "}")
+        
+        path_text <- if (length(open_paths) == 1) "open path" else "open paths"
+        summary_info <- c(
+          summary_info,
+          "Paths" = paste0(
+            length(open_paths),
+            " ",
+            path_text,
+            ": ",
+            paste(formatted_paths, collapse = ", ")
+          )
+        )
+      } else {
+        # No open paths
+        summary_info <- c(summary_info, "Paths" = "0 open paths")
+      }
+    }
+  }
+
   summary_info
 }
 
@@ -501,10 +564,16 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
 #'
 #' @return Character vector of formatted output
 #' @export
-format.tidy_dagitty <- function(x, ..., n = NULL, width = NULL, n_extra = NULL) {
+format.tidy_dagitty <- function(
+  x,
+  ...,
+  n = NULL,
+  width = NULL,
+  n_extra = NULL
+) {
   # Get the header from tbl_sum
   header <- tbl_sum(x)
-  
+
   # Format the header using pillar's style
   formatted_header <- character()
   for (i in seq_along(header)) {
@@ -518,13 +587,19 @@ format.tidy_dagitty <- function(x, ..., n = NULL, width = NULL, n_extra = NULL) 
       )
     )
   }
-  
+
   # Add separator
   formatted_header <- c(formatted_header, pillar::style_subtle("#"))
-  
+
   # Format the data using pillar's format for the tibble
-  data_formatted <- format(pull_dag_data(x), n = n, width = width, n_extra = n_extra, ...)
-  
+  data_formatted <- format(
+    pull_dag_data(x),
+    n = n,
+    width = width,
+    n_extra = n_extra,
+    ...
+  )
+
   # Combine header and data
   c(formatted_header, data_formatted)
 }

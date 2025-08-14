@@ -6,7 +6,7 @@
       Warning in `dag_label()`:
       No labels provided
     Output
-      # A DAG with 2 nodes and 1 edges
+      # A DAG with: 2 nodes and 1 edges
       #
       # A tibble: 2 x 7
         name       x      y direction to      xend   yend
