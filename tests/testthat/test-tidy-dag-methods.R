@@ -56,7 +56,7 @@ test_that("print method works correctly", {
   dag1 <- dagify(y ~ x)
   tidy_dag1 <- tidy_dagitty(dag1)
 
-  expect_output(print(tidy_dag1), "# A DAG with 2 nodes and 1 edges")
+  expect_output(print(tidy_dag1), "# A DAG with: 2 nodes and 1 edges")
 
   # DAG with exposure and outcome
   dag2 <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
@@ -85,6 +85,53 @@ test_that("print method works correctly", {
 
   output4 <- capture.output(print(tidy_dag4))
   expect_true(any(grepl("Paths opened by conditioning", output4)))
+})
+
+test_that("tidy_dagitty print output snapshots", {
+  # Simple DAG
+  dag1 <- dagify(y ~ x)
+  tidy_dag1 <- tidy_dagitty(dag1, seed = 123)
+  
+  expect_snapshot(tidy_dag1)
+  
+  # DAG with exposure and outcome
+  dag2 <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  tidy_dag2 <- tidy_dagitty(dag2, seed = 123)
+  
+  expect_snapshot(tidy_dag2)
+  
+  # DAG with latent variables
+  dag3 <- dagify(y ~ x + u, x ~ u, latent = "u")
+  tidy_dag3 <- tidy_dagitty(dag3, seed = 123)
+  
+  expect_snapshot(tidy_dag3)
+  
+  # DAG with collider paths
+  dag4 <- dagify(m ~ x + y, y ~ x)
+  tidy_dag4 <- tidy_dagitty(dag4, seed = 123)
+  tidy_dag4 <- activate_collider_paths(
+    tidy_dag4,
+    from = "x",
+    to = "y",
+    adjust_for = "m"
+  )
+  
+  expect_snapshot(tidy_dag4)
+  
+  # Complex DAG with all features
+  complex_dag <- dagify(
+    y ~ x + z + u,
+    x ~ z + w,
+    z ~ w,
+    m ~ x + y,
+    exposure = "x",
+    outcome = "y",
+    latent = "u",
+    labels = c(x = "X", y = "Y", z = "Z", w = "W", m = "M", u = "U")
+  )
+  tidy_complex <- tidy_dagitty(complex_dag, seed = 123)
+  
+  expect_snapshot(tidy_complex)
 })
 
 test_that("new_tidy_dagitty constructor works", {

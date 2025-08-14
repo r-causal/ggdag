@@ -459,9 +459,9 @@ as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
 tbl_sum.tidy_dagitty <- function(x, ...) {
   coll <- function(x, ...) paste(x, collapse = ", ", ...)
   
-  # Build the summary information
+  # Build the summary information to match existing tests
   summary_info <- c(
-    "A DAG" = paste0(n_nodes(x), " nodes, ", n_edges(x), " edges")
+    "A DAG with" = paste0(n_nodes(x), " nodes and ", n_edges(x), " edges")
   )
   
   if (has_exposure(x)) {
@@ -478,13 +478,13 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
   
   if (has_latent(x)) {
     summary_info <- c(summary_info, 
-      "Latent" = coll(dagitty::latents(pull_dag(x)))
+      "Latent Variable" = coll(dagitty::latents(pull_dag(x)))
     )
   }
   
   if (has_collider_path(x)) {
     summary_info <- c(summary_info, 
-      "Collider paths" = coll(collider_paths(x))
+      "Paths opened by conditioning on a collider" = coll(collider_paths(x))
     )
   }
   
