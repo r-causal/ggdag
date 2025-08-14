@@ -465,7 +465,7 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
   # Get counts from DAG component
   node_count <- length(names(dag))
   edge_count <- nrow(dagitty::edges(dag))
-  
+
   # Proper pluralization
   node_text <- if (node_count == 1) "node" else "nodes"
   edge_text <- if (edge_count == 1) "edge" else "edges"
