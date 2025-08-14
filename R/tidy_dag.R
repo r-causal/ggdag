@@ -448,69 +448,95 @@ as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
   )
 }
 
+#' Provide a succinct summary of a tidy_dagitty object
+#'
+#' @param x an object of class `tidy_dagitty`
+#' @param ... Ignored
+#'
+#' @return A named character vector
+#' @export
+#' @importFrom pillar tbl_sum
+tbl_sum.tidy_dagitty <- function(x, ...) {
+  coll <- function(x, ...) paste(x, collapse = ", ", ...)
+  
+  # Build the summary information
+  summary_info <- c(
+    "A DAG" = paste0(n_nodes(x), " nodes, ", n_edges(x), " edges")
+  )
+  
+  if (has_exposure(x)) {
+    summary_info <- c(summary_info, 
+      "Exposure" = coll(dagitty::exposures(pull_dag(x)))
+    )
+  }
+  
+  if (has_outcome(x)) {
+    summary_info <- c(summary_info, 
+      "Outcome" = coll(dagitty::outcomes(pull_dag(x)))
+    )
+  }
+  
+  if (has_latent(x)) {
+    summary_info <- c(summary_info, 
+      "Latent" = coll(dagitty::latents(pull_dag(x)))
+    )
+  }
+  
+  if (has_collider_path(x)) {
+    summary_info <- c(summary_info, 
+      "Collider paths" = coll(collider_paths(x))
+    )
+  }
+  
+  summary_info
+}
+
+#' Format a `tidy_dagitty` object
+#'
+#' @param x an object of class `tidy_dagitty`
+#' @param ... optional arguments passed to format
+#' @param n Number of rows to show
+#' @param width Width of output
+#' @param n_extra Number of extra columns to print
+#'
+#' @return Character vector of formatted output
+#' @export
+format.tidy_dagitty <- function(x, ..., n = NULL, width = NULL, n_extra = NULL) {
+  # Get the header from tbl_sum
+  header <- tbl_sum(x)
+  
+  # Format the header using pillar's style
+  formatted_header <- character()
+  for (i in seq_along(header)) {
+    formatted_header <- c(
+      formatted_header,
+      paste0(
+        pillar::style_subtle("# "),
+        pillar::style_subtle(names(header)[i]),
+        pillar::style_subtle(": "),
+        pillar::style_subtle(header[i])
+      )
+    )
+  }
+  
+  # Add separator
+  formatted_header <- c(formatted_header, pillar::style_subtle("#"))
+  
+  # Format the data using pillar's format for the tibble
+  data_formatted <- format(pull_dag_data(x), n = n, width = width, n_extra = n_extra, ...)
+  
+  # Combine header and data
+  c(formatted_header, data_formatted)
+}
+
 #' Print a `tidy_dagitty`
 #'
 #' @param x an object of class `tidy_dagitty`
-#' @param ... optional arguments passed to `print()`
+#' @param ... optional arguments passed to `format()`
 #'
 #' @export
 print.tidy_dagitty <- function(x, ...) {
-  cat_subtle <- function(...) cat(pillar::style_subtle(paste(...)))
-  coll <- function(x, ...) paste(x, collapse = ", ", ...)
-
-  cat_subtle(
-    "# A DAG with ",
-    n_nodes(x),
-    " nodes and ",
-    n_edges(x),
-    " edges\n",
-    sep = ""
-  )
-  cat_subtle("#\n")
-  if (has_exposure(x)) {
-    cat_subtle(
-      "# Exposure: ",
-      coll(dagitty::exposures(pull_dag(x))),
-      "\n",
-      sep = ""
-    )
-  }
-  if (has_outcome(x)) {
-    cat_subtle(
-      "# Outcome: ",
-      coll(dagitty::outcomes(pull_dag(x))),
-      "\n",
-      sep = ""
-    )
-  }
-  if (has_latent(x)) {
-    cat_subtle(
-      "# Latent Variable: ",
-      coll(dagitty::latents(pull_dag(x))),
-      "\n",
-      sep = ""
-    )
-  }
-  if (has_collider_path(x)) {
-    cat_subtle(
-      "# Paths opened by conditioning on a collider: ",
-      coll(collider_paths(x)),
-      "\n",
-      sep = ""
-    )
-  }
-  if (
-    any(c(
-      has_collider_path(x),
-      has_exposure(x),
-      has_outcome(x),
-      has_latent(x)
-    ))
-  ) {
-    cat_subtle("#\n")
-  }
-
-  print(pull_dag_data(x), ...)
+  writeLines(format(x, ...))
   invisible(x)
 }
 

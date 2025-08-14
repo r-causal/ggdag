@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{an object of class \code{tidy_dagitty}}
 
-\item{...}{optional arguments passed to \code{print()}}
+\item{...}{optional arguments passed to \code{format()}}
 }
 \description{
 Print a \code{tidy_dagitty}
