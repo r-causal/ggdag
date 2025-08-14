@@ -56,7 +56,7 @@ test_that("print method works correctly", {
   dag1 <- dagify(y ~ x)
   tidy_dag1 <- tidy_dagitty(dag1)
 
-  expect_output(print(tidy_dag1), "# A DAG with: 2 nodes and 1 edges")
+  expect_output(print(tidy_dag1), "# A `dagitty` DAG with: 2 nodes and 1 edge")
 
   # DAG with exposure and outcome
   dag2 <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")

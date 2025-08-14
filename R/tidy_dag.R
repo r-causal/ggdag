@@ -465,9 +465,21 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
   # Get counts from DAG component
   node_count <- length(names(dag))
   edge_count <- nrow(dagitty::edges(dag))
+  
+  # Proper pluralization
+  node_text <- if (node_count == 1) "node" else "nodes"
+  edge_text <- if (edge_count == 1) "edge" else "edges"
 
   summary_info <- c(
-    "A DAG with" = paste0(node_count, " nodes and ", edge_count, " edges")
+    "A `dagitty` DAG with" = paste0(
+      node_count,
+      " ",
+      node_text,
+      " and ",
+      edge_count,
+      " ",
+      edge_text
+    )
   )
 
   if (has_exposure(x)) {
@@ -499,7 +511,7 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
   if (all(c("adjusted", "set") %in% names(data))) {
     unique_sets <- unique(data$set)
     n_sets <- length(unique_sets)
-    
+
     # Check if it's the special case of unconditionally closed paths
     if (n_sets == 1 && grepl("Backdoor.*Closed", unique_sets[1])) {
       summary_info <- c(
@@ -525,14 +537,14 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
   if (all(c("path", "set") %in% names(data))) {
     dag <- pull_dag(x)
     paths_obj <- dagitty::paths(dag)
-    
+
     if (!is.null(paths_obj) && length(paths_obj$paths) > 0) {
       open_paths <- paths_obj$paths[paths_obj$open]
-      
+
       if (length(open_paths) > 0) {
         # Format paths with curly braces
         formatted_paths <- paste0("{", open_paths, "}")
-        
+
         path_text <- if (length(open_paths) == 1) "open path" else "open paths"
         summary_info <- c(
           summary_info,
@@ -574,27 +586,29 @@ format.tidy_dagitty <- function(
   # Get the header from tbl_sum
   header <- tbl_sum(x)
 
-  # Add DAG section header
-  formatted_output <- pillar::style_subtle("# DAG:")
-  
-  # Format the header using pillar's style
+  # Add DAG section header - combine cli formatting with pillar subtle style
+  formatted_output <- pillar::style_subtle(cli::format_inline(
+    "# {.strong DAG:}"
+  ))
+
+  # Format the header using both cli and pillar
   for (i in seq_along(header)) {
     formatted_output <- c(
       formatted_output,
-      paste0(
-        pillar::style_subtle("# "),
-        pillar::style_subtle(names(header)[i]),
-        pillar::style_subtle(": "),
-        pillar::style_subtle(header[i])
-      )
+      pillar::style_subtle(cli::format_inline(
+        "# {names(header)[i]}: {header[i]}"
+      ))
     )
   }
 
   # Add separator
   formatted_output <- c(formatted_output, pillar::style_subtle("#"))
-  
+
   # Add Data section header
-  formatted_output <- c(formatted_output, pillar::style_subtle("# Data:"))
+  formatted_output <- c(
+    formatted_output,
+    pillar::style_subtle(cli::format_inline("# {.strong Data:}"))
+  )
 
   # Format the data using pillar's format for the tibble
   data_formatted <- format(
@@ -606,19 +620,19 @@ format.tidy_dagitty <- function(
   )
 
   # Combine everything
-  c(formatted_output, data_formatted)
+  c(formatted_output, data_formatted, pillar::style_subtle("#"))
 }
 
 #' @export
 #' @importFrom pillar tbl_format_footer
 tbl_format_footer.tidy_dagitty <- function(x, setup, ...) {
-  # Add our custom footer
-  info_line <- paste0(
-    pillar::style_subtle("# "),
-    pillar::style_subtle(cli::symbol$info),
-    pillar::style_subtle(" Use `pull_dag()` for the DAG, `pull_dag_data()` for data")
+  # Add our custom footer with both cli formatting and subtle style
+  info_line <- pillar::style_subtle(
+    cli::format_inline(
+      "# {cli::symbol$info} Use `{.topic [pull_dag()](pull_dag)}` to retrieve the DAG object and `{.topic [pull_dag_data()](pull_dag_data)}` for the data frame"
+    )
   )
-  
+
   info_line
 }
 
@@ -631,10 +645,10 @@ tbl_format_footer.tidy_dagitty <- function(x, setup, ...) {
 print.tidy_dagitty <- function(x, ...) {
   # Use pillar's formatting system to include footer
   formatted <- format(x, ...)
-  
+
   # Add footer
-  footer <- tbl_format_footer(x, setup = NULL, ...)
-  
+  footer <- tbl_format_footer(x, setup = NULL)
+
   writeLines(c(formatted, footer))
   invisible(x)
 }
