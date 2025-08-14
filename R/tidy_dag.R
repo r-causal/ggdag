@@ -574,11 +574,13 @@ format.tidy_dagitty <- function(
   # Get the header from tbl_sum
   header <- tbl_sum(x)
 
+  # Add DAG section header
+  formatted_output <- pillar::style_subtle("# DAG:")
+  
   # Format the header using pillar's style
-  formatted_header <- character()
   for (i in seq_along(header)) {
-    formatted_header <- c(
-      formatted_header,
+    formatted_output <- c(
+      formatted_output,
       paste0(
         pillar::style_subtle("# "),
         pillar::style_subtle(names(header)[i]),
@@ -589,7 +591,10 @@ format.tidy_dagitty <- function(
   }
 
   # Add separator
-  formatted_header <- c(formatted_header, pillar::style_subtle("#"))
+  formatted_output <- c(formatted_output, pillar::style_subtle("#"))
+  
+  # Add Data section header
+  formatted_output <- c(formatted_output, pillar::style_subtle("# Data:"))
 
   # Format the data using pillar's format for the tibble
   data_formatted <- format(
@@ -600,8 +605,21 @@ format.tidy_dagitty <- function(
     ...
   )
 
-  # Combine header and data
-  c(formatted_header, data_formatted)
+  # Combine everything
+  c(formatted_output, data_formatted)
+}
+
+#' @export
+#' @importFrom pillar tbl_format_footer
+tbl_format_footer.tidy_dagitty <- function(x, setup, ...) {
+  # Add our custom footer
+  info_line <- paste0(
+    pillar::style_subtle("# "),
+    pillar::style_subtle(cli::symbol$info),
+    pillar::style_subtle(" Use `pull_dag()` for the DAG, `pull_dag_data()` for data")
+  )
+  
+  info_line
 }
 
 #' Print a `tidy_dagitty`
@@ -611,7 +629,13 @@ format.tidy_dagitty <- function(
 #'
 #' @export
 print.tidy_dagitty <- function(x, ...) {
-  writeLines(format(x, ...))
+  # Use pillar's formatting system to include footer
+  formatted <- format(x, ...)
+  
+  # Add footer
+  footer <- tbl_format_footer(x, setup = NULL, ...)
+  
+  writeLines(c(formatted, footer))
   invisible(x)
 }
 
