@@ -62,7 +62,7 @@
                         <h4 data-toc-skip class="author">Malcolm
 Barrett</h4>
             
-            <h4 data-toc-skip class="date">2025-08-13</h4>
+            <h4 data-toc-skip class="date">2025-08-14</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/main/vignettes/intro-to-ggdag.Rmd" class="external-link"><code>vignettes/intro-to-ggdag.Rmd</code></a></small>
       <div class="d-none name"><code>intro-to-ggdag.Rmd</code></div>
@@ -92,15 +92,19 @@ your DAG directly.</p>
 <span></span>
 <span><span class="va">dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/dagitty.html" class="external-link">dagitty</a></span><span class="op">(</span><span class="st">"dag{y &lt;- z -&gt; x}"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A DAG with 3 nodes and 2 edges</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # A tibble: 4 × 7</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">DAG:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A `dagitty` DAG with: 3 nodes and 2 edges</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 7</span></span></span>
 <span><span class="co">#&gt;   name        x      y direction to       xend   yend</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> x      0.044<span style="text-decoration: underline;">9</span> -<span style="color: #BB0000;">0.238</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> y     -<span style="color: #BB0000;">1.60</span>    1.36  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> z     -<span style="color: #BB0000;">0.774</span>   0.556 -&gt;        x      0.044<span style="text-decoration: underline;">9</span> -<span style="color: #BB0000;">0.238</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> z     -<span style="color: #BB0000;">0.774</span>   0.556 -&gt;        y     -<span style="color: #BB0000;">1.60</span>    1.36</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> z     -<span style="color: #BB0000;">0.774</span>   0.556 -&gt;        y     -<span style="color: #BB0000;">1.60</span>    1.36 </span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span></span></code></pre></div>
 <p>Note that, while <code>dagitty</code> supports a number of graph
 types, <code>ggdag</code> currently only supports DAGs.</p>
 <p><code>dagitty</code> uses a syntax similar to the <a href="https://graphviz.gitlab.io/doc/info/lang.html" class="external-link">dot language of
@@ -119,18 +123,21 @@ coordinates and labels for each node.</p>
 <span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="va">dagified</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A DAG with 3 nodes and 2 edges</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # Exposure: x</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # Outcome: y</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # A tibble: 4 × 7</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">DAG:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A `dagitty` DAG with: 3 nodes and 2 edges</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Exposure: x</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Outcome: y</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 7</span></span></span>
 <span><span class="co">#&gt;   name        x      y direction to       xend   yend</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> x     -<span style="color: #BB0000;">2.00</span>    0.939 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> y      0.034<span style="text-decoration: underline;">3</span> -<span style="color: #BB0000;">0.106</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> z     -<span style="color: #BB0000;">0.982</span>   0.416 -&gt;        x     -<span style="color: #BB0000;">2.00</span>    0.939</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> z     -<span style="color: #BB0000;">0.982</span>   0.416 -&gt;        y      0.034<span style="text-decoration: underline;">3</span> -<span style="color: #BB0000;">0.106</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> z     -<span style="color: #BB0000;">0.982</span>   0.416 -&gt;        y      0.034<span style="text-decoration: underline;">3</span> -<span style="color: #BB0000;">0.106</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span></span></code></pre></div>
 <p>Currently, <code>ggdag</code> supports directed (<code>x ~ y</code>)
 and bi-directed (<code>a ~~ b</code>) relationships</p>
 <p><code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> uses layout functions from
@@ -174,18 +181,21 @@ nodes or the entire DAG. A simple example is
 variable:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/variable_family.html">node_parents</a></span><span class="op">(</span><span class="va">tidy_dag</span>, <span class="st">"x"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A DAG with 3 nodes and 2 edges</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # Exposure: x</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # Outcome: y</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # A tibble: 4 × 8</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">DAG:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A `dagitty` DAG with: 3 nodes and 2 edges</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Exposure: x</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Outcome: y</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 8</span></span></span>
 <span><span class="co">#&gt;   name       x     y direction to      xend   yend parent</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> x      1.43  0.756 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     child </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> y     -<span style="color: #BB0000;">0.835</span> 1.12  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> z      0.298 0.938 -&gt;        x      1.43   0.756 parent</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> z      0.298 0.938 -&gt;        y     -<span style="color: #BB0000;">0.835</span>  1.12  parent</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> z      0.298 0.938 -&gt;        y     -<span style="color: #BB0000;">0.835</span>  1.12  parent</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span></span></code></pre></div>
 <p>Or working with the entire DAG to produce a <code>tidy_dagitty</code>
 that has all pathways between two variables:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
@@ -198,12 +208,14 @@ that has all pathways between two variables:</p>
 <span><span class="co">#  automatically searches the paths between the variables labelled exposure and</span></span>
 <span><span class="co">#  outcome</span></span>
 <span><span class="fu"><a href="../reference/paths.html">dag_paths</a></span><span class="op">(</span><span class="va">bigger_dag</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A DAG with 4 nodes and 15 edges</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # Exposure: x</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # Outcome: y</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; #</span></span></span>
-<span><span class="co"><span style="color: #949494;">#&gt; # A tibble: 20 × 9</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">DAG:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A `dagitty` DAG with: 4 nodes and 5 edges</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Exposure: x</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Outcome: y</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Paths: 3 open paths: {x -&gt; y}, {x &lt;- a -&gt; y}, {x &lt;- b -&gt; y}</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 20 × 9</span></span></span>
 <span><span class="co">#&gt;    set   name       x      y direction to     xend   yend path     </span></span>
 <span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> 1     a     -<span style="color: #BB0000;">0.554</span> -<span style="color: #BB0000;">1.23</span>  -&gt;        x     -<span style="color: #BB0000;">1.46</span> -<span style="color: #BB0000;">0.618</span> <span style="color: #BB0000;">NA</span>       </span></span>
@@ -225,7 +237,9 @@ that has all pathways between two variables:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">17</span> 3     b     -<span style="color: #BB0000;">2.51</span>  -<span style="color: #BB0000;">0.914</span> -&gt;        y     -<span style="color: #BB0000;">1.60</span> -<span style="color: #BB0000;">1.53</span>  open path</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">18</span> 3     x     -<span style="color: #BB0000;">1.46</span>  -<span style="color: #BB0000;">0.618</span> -&gt;        y     -<span style="color: #BB0000;">1.60</span> -<span style="color: #BB0000;">1.53</span>  <span style="color: #BB0000;">NA</span>       </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">19</span> 3     y     -<span style="color: #BB0000;">1.60</span>  -<span style="color: #BB0000;">1.53</span>  <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     open path</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">20</span> 3     x     -<span style="color: #BB0000;">1.46</span>  -<span style="color: #BB0000;">0.618</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     open path</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">20</span> 3     x     -<span style="color: #BB0000;">1.46</span>  -<span style="color: #BB0000;">0.618</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     open path</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span></span></code></pre></div>
 <p><code>ggdag</code> also supports <a href="https://r4ds.had.co.nz/pipes.html" class="external-link">piping</a> of functions and
 includes the pipe internally (so you don’t need to load
 <code>dplyr</code> or <code>magrittr</code>). Basic <code>dplyr</code>

@@ -28,6 +28,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/equivalent.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/exogenous.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/expand_plot.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/format.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/fortify.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/geom_dag.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/geom_dag_collider_edges.html</loc></url>
@@ -59,6 +60,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/simulate_data.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/status.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/tbl_df.tidy_dagitty.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/tbl_sum.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/theme_dag_blank.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/theme_dag_grey.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/tidy_dagitty.html</loc></url>

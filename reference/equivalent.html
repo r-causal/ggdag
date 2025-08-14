@@ -235,8 +235,10 @@ column for equivalent classes, or a <code>ggplot</code></p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">g_ex</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagify.html">dagify</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span>, <span class="va">x</span> <span class="op">~</span> <span class="va">z</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">g_ex</span> <span class="op">|&gt;</span> <span class="fu">node_equivalent_class</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A DAG with 3 nodes and 3 edges</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">DAG:</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A `dagitty` DAG with: 3 nodes and 3 edges</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 8</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   name      x     y direction to     xend  yend reversable</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>     </span>
@@ -244,6 +246,8 @@ column for equivalent classes, or a <code>ggplot</code></p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> y       0.5     1 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>      <span style="color: #BB0000;">NA</span> FALSE     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> z       0.5     3 -&gt;        x       0       2 TRUE      </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> z       0.5     3 -&gt;        y       0.5     1 TRUE      </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">g_ex</span> <span class="op">|&gt;</span> <span class="fu">ggdag_equivalent_dags</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="equivalent-1.png" alt="" width="700" height="433"></span>

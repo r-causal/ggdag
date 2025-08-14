@@ -88,10 +88,11 @@ pathways</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">collided_dag</span> <span class="op">&lt;-</span> <span class="fu">activate_collider_paths</span><span class="op">(</span><span class="va">dag</span>, adjust_for <span class="op">=</span> <span class="st">"m"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">collided_dag</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A DAG with 3 nodes and 3 edges</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">DAG:</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A `dagitty` DAG with: 3 nodes and 3 edges</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># Paths opened by conditioning on a collider: x &lt;-&gt; y, x &lt;-&gt; y</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 8</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   name       x      y direction to      xend   yend collider_line</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>        </span>
@@ -101,6 +102,8 @@ pathways</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.404 -<span style="color: #BB0000;">0.256</span> -&gt;        x      0.871 -<span style="color: #BB0000;">1.14</span>  FALSE        </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> x      0.871 -<span style="color: #BB0000;">1.14</span>  &lt;-&gt;       y      0.404 -<span style="color: #BB0000;">0.256</span> TRUE         </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span> x      0.871 -<span style="color: #BB0000;">1.14</span>  &lt;-&gt;       y      0.404 -<span style="color: #BB0000;">0.256</span> TRUE         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
