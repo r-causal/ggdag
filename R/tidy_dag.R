@@ -448,69 +448,207 @@ as_tibble.tidy_dagitty <- function(x, row.names = NULL, optional = FALSE, ...) {
   )
 }
 
+# Helper function to combine pillar subtle styling with cli formatting
+subtle_inline <- function(text, .envir = parent.frame()) {
+  pillar::style_subtle(cli::format_inline(text, .envir = .envir))
+}
+
+#' Provide a succinct summary of a tidy_dagitty object
+#'
+#' @param x an object of class `tidy_dagitty`
+#' @param ... Ignored
+#'
+#' @return A named character vector
+#' @export
+#' @keywords internal
+#' @importFrom pillar tbl_sum
+tbl_sum.tidy_dagitty <- function(x, ...) {
+  coll <- function(x, ...) paste(x, collapse = ", ", ...)
+
+  # Get DAG component once
+  dag <- pull_dag(x)
+
+  # Get counts from DAG component
+  node_count <- length(names(dag))
+  edge_count <- nrow(dagitty::edges(dag))
+
+  # Proper pluralization
+  node_text <- if (node_count == 1) "node" else "nodes"
+  edge_text <- if (edge_count == 1) "edge" else "edges"
+
+  summary_info <- c(
+    "A `dagitty` DAG with" = paste0(
+      node_count,
+      " ",
+      node_text,
+      " and ",
+      edge_count,
+      " ",
+      edge_text
+    )
+  )
+
+  if (has_exposure(x)) {
+    summary_info <- c(summary_info, "Exposure" = coll(dagitty::exposures(dag)))
+  }
+
+  if (has_outcome(x)) {
+    summary_info <- c(summary_info, "Outcome" = coll(dagitty::outcomes(dag)))
+  }
+
+  if (has_latent(x)) {
+    summary_info <- c(
+      summary_info,
+      "Latent Variable" = coll(dagitty::latents(dag))
+    )
+  }
+
+  if (has_collider_path(x)) {
+    summary_info <- c(
+      summary_info,
+      "Paths opened by conditioning on a collider" = coll(collider_paths(x))
+    )
+  }
+
+  # Check for special analysis results
+  data <- pull_dag_data(x)
+
+  # Adjustment sets
+  if (all(c("adjusted", "set") %in% names(data))) {
+    unique_sets <- unique(data$set)
+    n_sets <- length(unique_sets)
+
+    # Check if it's the special case of unconditionally closed paths
+    if (n_sets == 1 && grepl("Backdoor.*Closed", unique_sets[1])) {
+      summary_info <- c(
+        summary_info,
+        "Adjustment sets" = "0 (Backdoor paths unconditionally closed)"
+      )
+    } else {
+      set_text <- if (n_sets == 1) "set" else "sets"
+      summary_info <- c(
+        summary_info,
+        "Adjustment sets" = paste0(
+          n_sets,
+          " ",
+          set_text,
+          ": ",
+          paste(unique_sets, collapse = ", ")
+        )
+      )
+    }
+  }
+
+  # Paths
+  if (all(c("path", "set") %in% names(data))) {
+    dag <- pull_dag(x)
+    paths_obj <- dagitty::paths(dag)
+
+    if (!is.null(paths_obj) && length(paths_obj$paths) > 0) {
+      open_paths <- paths_obj$paths[paths_obj$open]
+
+      if (length(open_paths) > 0) {
+        # Format paths with curly braces
+        formatted_paths <- paste0("{", open_paths, "}")
+
+        path_text <- if (length(open_paths) == 1) "open path" else "open paths"
+        summary_info <- c(
+          summary_info,
+          "Paths" = paste0(
+            length(open_paths),
+            " ",
+            path_text,
+            ": ",
+            paste(formatted_paths, collapse = ", ")
+          )
+        )
+      } else {
+        # No open paths
+        summary_info <- c(summary_info, "Paths" = "0 open paths")
+      }
+    }
+  }
+
+  summary_info
+}
+
+#' Format a `tidy_dagitty` object
+#'
+#' @param x an object of class `tidy_dagitty`
+#' @param ... optional arguments passed to format
+#' @param n Number of rows to show
+#' @param width Width of output
+#' @param n_extra Number of extra columns to print
+#'
+#' @return Character vector of formatted output
+#' @export
+#' @keywords internal
+format.tidy_dagitty <- function(
+  x,
+  ...,
+  n = NULL,
+  width = NULL,
+  n_extra = NULL
+) {
+  # Get the header from tbl_sum
+  header <- tbl_sum(x)
+
+  # Add DAG section header
+  formatted_output <- subtle_inline("# {.strong DAG:}")
+
+  # Format the header
+  for (i in seq_along(header)) {
+    formatted_output <- c(
+      formatted_output,
+      subtle_inline("# {names(header)[i]}: {header[i]}")
+    )
+  }
+
+  # Add separator
+  formatted_output <- c(formatted_output, pillar::style_subtle("#"))
+
+  # Add Data section header
+  formatted_output <- c(formatted_output, subtle_inline("# {.strong Data:}"))
+
+  # Format the data using pillar's format for the tibble
+  data_formatted <- format(
+    pull_dag_data(x),
+    n = n,
+    width = width,
+    n_extra = n_extra,
+    ...
+  )
+
+  # Combine everything
+  c(formatted_output, data_formatted, pillar::style_subtle("#"))
+}
+
+#' @export
+#' @keywords internal
+#' @importFrom pillar tbl_format_footer
+tbl_format_footer.tidy_dagitty <- function(x, setup, ...) {
+  # Add our custom footer
+  info_line <- subtle_inline(
+    "# {cli::symbol$info} Use `{.topic [pull_dag()](pull_dag)}` to retrieve the DAG object and `{.topic [pull_dag_data()](pull_dag_data)}` for the data frame"
+  )
+
+  info_line
+}
+
 #' Print a `tidy_dagitty`
 #'
 #' @param x an object of class `tidy_dagitty`
-#' @param ... optional arguments passed to `print()`
+#' @param ... optional arguments passed to `format()`
 #'
 #' @export
 print.tidy_dagitty <- function(x, ...) {
-  cat_subtle <- function(...) cat(pillar::style_subtle(paste(...)))
-  coll <- function(x, ...) paste(x, collapse = ", ", ...)
+  # Use pillar's formatting system to include footer
+  formatted <- format(x, ...)
 
-  cat_subtle(
-    "# A DAG with ",
-    n_nodes(x),
-    " nodes and ",
-    n_edges(x),
-    " edges\n",
-    sep = ""
-  )
-  cat_subtle("#\n")
-  if (has_exposure(x)) {
-    cat_subtle(
-      "# Exposure: ",
-      coll(dagitty::exposures(pull_dag(x))),
-      "\n",
-      sep = ""
-    )
-  }
-  if (has_outcome(x)) {
-    cat_subtle(
-      "# Outcome: ",
-      coll(dagitty::outcomes(pull_dag(x))),
-      "\n",
-      sep = ""
-    )
-  }
-  if (has_latent(x)) {
-    cat_subtle(
-      "# Latent Variable: ",
-      coll(dagitty::latents(pull_dag(x))),
-      "\n",
-      sep = ""
-    )
-  }
-  if (has_collider_path(x)) {
-    cat_subtle(
-      "# Paths opened by conditioning on a collider: ",
-      coll(collider_paths(x)),
-      "\n",
-      sep = ""
-    )
-  }
-  if (
-    any(c(
-      has_collider_path(x),
-      has_exposure(x),
-      has_outcome(x),
-      has_latent(x)
-    ))
-  ) {
-    cat_subtle("#\n")
-  }
+  # Add footer
+  footer <- tbl_format_footer(x, setup = NULL)
 
-  print(pull_dag_data(x), ...)
+  writeLines(c(formatted, footer))
   invisible(x)
 }
 

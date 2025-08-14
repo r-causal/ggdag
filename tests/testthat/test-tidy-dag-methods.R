@@ -56,7 +56,7 @@ test_that("print method works correctly", {
   dag1 <- dagify(y ~ x)
   tidy_dag1 <- tidy_dagitty(dag1)
 
-  expect_output(print(tidy_dag1), "# A DAG with 2 nodes and 1 edges")
+  expect_output(print(tidy_dag1), "# A `dagitty` DAG with: 2 nodes and 1 edge")
 
   # DAG with exposure and outcome
   dag2 <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
@@ -85,6 +85,56 @@ test_that("print method works correctly", {
 
   output4 <- capture.output(print(tidy_dag4))
   expect_true(any(grepl("Paths opened by conditioning", output4)))
+})
+
+test_that("tidy_dagitty print output snapshots", {
+  # Skip on Windows due to minor RNG differences in coordinates
+  skip_on_os("windows")
+
+  # Simple DAG
+  dag1 <- dagify(y ~ x)
+  tidy_dag1 <- tidy_dagitty(dag1, seed = 123)
+
+  expect_snapshot(tidy_dag1)
+
+  # DAG with exposure and outcome
+  dag2 <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  tidy_dag2 <- tidy_dagitty(dag2, seed = 123)
+
+  expect_snapshot(tidy_dag2)
+
+  # DAG with latent variables
+  dag3 <- dagify(y ~ x + u, x ~ u, latent = "u")
+  tidy_dag3 <- tidy_dagitty(dag3, seed = 123)
+
+  expect_snapshot(tidy_dag3)
+
+  # DAG with collider paths
+  dag4 <- dagify(m ~ x + y, y ~ x)
+  tidy_dag4 <- tidy_dagitty(dag4, seed = 123)
+  tidy_dag4 <- activate_collider_paths(
+    tidy_dag4,
+    from = "x",
+    to = "y",
+    adjust_for = "m"
+  )
+
+  expect_snapshot(tidy_dag4)
+
+  # Complex DAG with all features
+  complex_dag <- dagify(
+    y ~ x + z + u,
+    x ~ z + w,
+    z ~ w,
+    m ~ x + y,
+    exposure = "x",
+    outcome = "y",
+    latent = "u",
+    labels = c(x = "X", y = "Y", z = "Z", w = "W", m = "M", u = "U")
+  )
+  tidy_complex <- tidy_dagitty(complex_dag, seed = 123)
+
+  expect_snapshot(tidy_complex)
 })
 
 test_that("new_tidy_dagitty constructor works", {
@@ -210,4 +260,74 @@ test_that("tidy_dagitty with use_existing_coords = FALSE", {
   # Coordinates should be different from original
   # (with seed they should be consistent but different from manual coords)
   expect_true(coords_new$x["x"] != 0 || coords_new$y["x"] != 0)
+})
+
+test_that("dag_adjustment_sets print output snapshots", {
+  # Skip on Windows due to minor RNG differences in coordinates
+  skip_on_os("windows")
+
+  # Simple DAG with one adjustment set
+  dag1 <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+  adj_sets1 <- dag_adjustment_sets(dag1)
+
+  expect_snapshot(adj_sets1)
+
+  # Complex DAG with multiple adjustment sets
+  dag2 <- dagify(
+    y ~ x + z2 + w2 + w1,
+    x ~ z1 + w1,
+    z1 ~ w1 + v,
+    z2 ~ w2 + v,
+    w1 ~ ~w2,
+    exposure = "x",
+    outcome = "y"
+  )
+  adj_sets2 <- dag_adjustment_sets(dag2)
+
+  expect_snapshot(adj_sets2)
+
+  # DAG with no adjustment sets needed
+  dag3 <- dagify(y ~ x, exposure = "x", outcome = "y")
+  adj_sets3 <- dag_adjustment_sets(dag3)
+
+  expect_snapshot(adj_sets3)
+})
+
+test_that("dag_paths print output snapshots", {
+  # Skip on Windows due to minor RNG differences in coordinates
+  skip_on_os("windows")
+
+  # Simple DAG with paths
+  dag1 <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+  paths1 <- dag_paths(dag1, from = "x", to = "y", seed = 123)
+
+  expect_snapshot(paths1)
+
+  # Complex DAG with multiple paths
+  dag2 <- dagify(
+    y ~ x + z + w,
+    x ~ z,
+    z ~ w,
+    exposure = "x",
+    outcome = "y"
+  )
+  paths2 <- dag_paths(dag2, from = "x", to = "y", seed = 123)
+
+  expect_snapshot(paths2)
+
+  # DAG with only direct path
+  dag3 <- dagify(y ~ x, exposure = "x", outcome = "y")
+  paths3 <- dag_paths(dag3, from = "x", to = "y", seed = 123)
+
+  expect_snapshot(paths3)
 })
