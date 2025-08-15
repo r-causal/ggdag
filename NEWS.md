@@ -1,5 +1,14 @@
 # ggdag (development version)
 
+* Introduced new `query_*()` API for direct analytical queries on DAGs (#185). These functions return tibbles with results rather than tidy DAG objects for plotting:
+  - `query_adjustment_sets()`: Find adjustment sets to close backdoor paths
+  - `query_paths()`: Find and analyze paths between nodes
+  - `query_instrumental()`: Identify instrumental variables
+  - `query_dseparated()`/`query_dconnected()`: Test d-separation relationships
+  - `query_colliders()`: Identify collider nodes
+  - `query_exogenous()`: Find exogenous variables
+  - `query_parents()`, `query_children()`, `query_ancestors()`, `query_descendants()`: Query node relationships
+  - `query_markov_blanket()`: Find Markov blankets
 * All error messages, warnings, and informational messages now use the cli package for better formatting and user experience. This change adds custom error classes (`ggdag_error`, `ggdag_warning`) that enable programmatic error handling (#191).
 * Fixed `tidy_dagitty()` error when processing DAGs with no edges (#159)
 * Fixed `dag_paths()` error when no open paths exist between nodes (#180)

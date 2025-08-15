@@ -55,6 +55,7 @@ mismeasure
 misspecified
 mitre
 nameing
+parentless
 plotmath
 pos
 pts
@@ -64,6 +65,7 @@ tbl
 tdy
 tetrads
 tibble
+tibbles
 tidygraph
 tidyverse
 tol
