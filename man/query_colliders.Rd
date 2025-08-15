@@ -13,6 +13,7 @@ query_colliders(.tdy_dag)
 A tibble with columns:
 \itemize{
 \item \code{node}: The collider node
+\item \code{parent_set}: String representation of parent nodes
 \item \code{parents}: List column containing the parent nodes
 \item \code{is_activated}: Logical indicating if the collider is conditioned on
 }

@@ -9,10 +9,11 @@ test_that("query_adjustment_sets works correctly", {
 
   result <- query_adjustment_sets(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("set_id", "type", "effect", "variables"))
+  expect_named(result, c("set_id", "type", "effect", "set", "variables"))
   expect_equal(nrow(result), 1)
   expect_equal(result$type, "minimal")
   expect_equal(result$effect, "total")
+  expect_equal(result$set, "{z}")
   expect_equal(result$variables[[1]], "z")
 
   # Multiple adjustment sets
@@ -38,6 +39,7 @@ test_that("query_adjustment_sets works correctly", {
 
   result3 <- query_adjustment_sets(dag3)
   expect_equal(nrow(result3), 1)
+  expect_equal(result3$set, "{}")
   expect_equal(length(result3$variables[[1]]), 0)
 
   # Test with explicit exposure/outcome
@@ -66,10 +68,13 @@ test_that("query_paths works correctly", {
 
   result <- query_paths(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("path_id", "from", "to", "path", "open"))
+  expect_named(result, c("path_id", "from", "to", "path", "variables", "open"))
   expect_gt(nrow(result), 0)
   expect_true(all(result$from == "x"))
   expect_true(all(result$to == "y"))
+  # Check variables are extracted correctly
+  path1_vars <- result$variables[[1]]
+  expect_true(all(c("x", "y") %in% path1_vars))
 
   # Test with conditioning
   result2 <- query_paths(dag, conditioned_on = "z")
@@ -100,9 +105,13 @@ test_that("query_instrumental works correctly", {
 
   result <- query_instrumental(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("instrument", "exposure", "outcome", "conditioned_on"))
+  expect_named(
+    result,
+    c("instrument", "exposure", "outcome", "conditioning_set", "conditioned_on")
+  )
   expect_equal(nrow(result), 1)
   expect_equal(result$instrument, "z")
+  expect_true(is.na(result$conditioning_set))
 
   # No instrumental variables
   dag2 <- dagify(
@@ -126,22 +135,49 @@ test_that("query_dseparated and query_dconnected work correctly", {
   # Test d-separation
   result <- query_dseparated(dag, from = "x", to = "z")
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("from", "to", "conditioned_on", "dseparated"))
+  expect_named(
+    result,
+    c(
+      "from_set",
+      "from",
+      "to_set",
+      "to",
+      "conditioning_set",
+      "conditioned_on",
+      "dseparated"
+    )
+  )
   expect_equal(nrow(result), 1)
+  expect_equal(result$from_set, "{x}")
+  expect_equal(result$to_set, "{z}")
+  expect_true(is.na(result$conditioning_set))
   expect_false(result$dseparated) # x and z are d-connected through w
 
   # Test with conditioning
   result2 <- query_dseparated(dag, from = "x", to = "z", conditioned_on = "w")
+  expect_equal(result2$conditioning_set, "{w}")
   expect_true(result2$dseparated) # conditioning on w d-separates x and z
 
   # Test d-connection
   result3 <- query_dconnected(dag, from = "x", to = "z")
-  expect_named(result3, c("from", "to", "conditioned_on", "dconnected"))
+  expect_named(
+    result3,
+    c(
+      "from_set",
+      "from",
+      "to_set",
+      "to",
+      "conditioning_set",
+      "conditioned_on",
+      "dconnected"
+    )
+  )
   expect_true(result3$dconnected)
   expect_equal(result3$dconnected, !result$dseparated)
 
   # Test with multiple variables
   result4 <- query_dseparated(dag, from = c("x", "w"), to = "y")
+  expect_equal(result4$from_set, "{w, x}")
   expect_equal(length(result4$from[[1]]), 2)
 })
 
@@ -167,9 +203,10 @@ test_that("query_colliders works correctly", {
 
   result <- query_colliders(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("node", "parents", "is_activated"))
+  expect_named(result, c("node", "parent_set", "parents", "is_activated"))
   expect_equal(nrow(result), 1)
   expect_equal(result$node, "z")
+  expect_equal(result$parent_set, "{x, y}")
   expect_setequal(result$parents[[1]], c("x", "y"))
   expect_false(result$is_activated)
 
@@ -226,15 +263,17 @@ test_that("query_parents works correctly", {
   # Query all nodes
   result <- query_parents(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("node", "parents", "n_parents"))
+  expect_named(result, c("node", "parent_set", "parents", "n_parents"))
   expect_equal(nrow(result), 4)
 
   # Check specific nodes
   y_row <- result[result$node == "y", ]
+  expect_equal(y_row$parent_set, "{x, z}")
   expect_setequal(y_row$parents[[1]], c("x", "z"))
   expect_equal(y_row$n_parents, 2)
 
   w_row <- result[result$node == "w", ]
+  expect_true(is.na(w_row$parent_set))
   expect_true(is.na(w_row$parents[[1]][1]))
   expect_equal(w_row$n_parents, 0)
 
@@ -252,13 +291,15 @@ test_that("query_children works correctly", {
 
   result <- query_children(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("node", "children", "n_children"))
+  expect_named(result, c("node", "child_set", "children", "n_children"))
 
   x_row <- result[result$node == "x", ]
+  expect_equal(x_row$child_set, "{w, y}")
   expect_setequal(x_row$children[[1]], c("y", "w"))
   expect_equal(x_row$n_children, 2)
 
   y_row <- result[result$node == "y", ]
+  expect_true(is.na(y_row$child_set))
   expect_true(is.na(y_row$children[[1]][1]))
   expect_equal(y_row$n_children, 0)
 })
@@ -271,12 +312,16 @@ test_that("query_ancestors works correctly", {
   )
 
   result <- query_ancestors(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("node", "ancestor_set", "ancestors", "n_ancestors"))
 
   y_row <- result[result$node == "y", ]
+  expect_equal(y_row$ancestor_set, "{w, x, z}")
   expect_setequal(y_row$ancestors[[1]], c("x", "z", "w"))
   expect_equal(y_row$n_ancestors, 3)
 
   w_row <- result[result$node == "w", ]
+  expect_true(is.na(w_row$ancestor_set))
   expect_true(is.na(w_row$ancestors[[1]][1]))
   expect_equal(w_row$n_ancestors, 0)
 })
@@ -289,12 +334,19 @@ test_that("query_descendants works correctly", {
   )
 
   result <- query_descendants(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(
+    result,
+    c("node", "descendant_set", "descendants", "n_descendants")
+  )
 
   w_row <- result[result$node == "w", ]
+  expect_equal(w_row$descendant_set, "{x, y, z}")
   expect_setequal(w_row$descendants[[1]], c("x", "z", "y"))
   expect_equal(w_row$n_descendants, 3)
 
   y_row <- result[result$node == "y", ]
+  expect_true(is.na(y_row$descendant_set))
   expect_true(is.na(y_row$descendants[[1]][1]))
   expect_equal(y_row$n_descendants, 0)
 })
@@ -309,12 +361,13 @@ test_that("query_markov_blanket works correctly", {
 
   result <- query_markov_blanket(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("node", "markov_blanket", "blanket_size"))
+  expect_named(result, c("node", "blanket", "blanket_vars", "blanket_size"))
 
   # Check x's Markov blanket
   x_row <- result[result$node == "x", ]
   # Should include: w (parent), y and a (children), z (co-parent of y)
-  expect_setequal(x_row$markov_blanket[[1]], c("w", "y", "a", "z"))
+  expect_equal(x_row$blanket, "{a, w, y, z}")
+  expect_setequal(x_row$blanket_vars[[1]], c("w", "y", "a", "z"))
   expect_equal(x_row$blanket_size, 4)
 
   # Query specific variable

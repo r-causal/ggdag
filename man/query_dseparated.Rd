@@ -18,8 +18,11 @@ query_dseparated(.tdy_dag, from, to, conditioned_on = NULL)
 \value{
 A tibble with columns:
 \itemize{
+\item \code{from_set}: String representation of source nodes
 \item \code{from}: List column of source nodes
+\item \code{to_set}: String representation of target nodes
 \item \code{to}: List column of target nodes
+\item \code{conditioning_set}: String representation of conditioning variables
 \item \code{conditioned_on}: List column of conditioning variables
 \item \code{dseparated}: Logical indicating d-separation
 }

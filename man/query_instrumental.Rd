@@ -28,6 +28,7 @@ A tibble with columns:
 \item \code{instrument}: The instrumental variable
 \item \code{exposure}: The exposure variable
 \item \code{outcome}: The outcome variable
+\item \code{conditioning_set}: String representation of conditioning variables
 \item \code{conditioned_on}: List column of required conditioning variables
 }
 }

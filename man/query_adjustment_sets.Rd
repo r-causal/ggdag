@@ -36,6 +36,7 @@ A tibble with columns:
 \item \code{set_id}: Integer identifier for each adjustment set
 \item \code{type}: Type of adjustment set (minimal, canonical, or all)
 \item \code{effect}: Effect type (total or direct)
+\item \code{set}: String representation of the adjustment set (e.g., "\{a, b, c\}")
 \item \code{variables}: List column containing the variables in each set
 }
 }

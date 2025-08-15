@@ -28,6 +28,7 @@ NULL
 #'   - `set_id`: Integer identifier for each adjustment set
 #'   - `type`: Type of adjustment set (minimal, canonical, or all)
 #'   - `effect`: Effect type (total or direct)
+#'   - `set`: String representation of the adjustment set (e.g., "\{a, b, c\}")
 #'   - `variables`: List column containing the variables in each set
 #'
 #' @export
@@ -85,6 +86,7 @@ query_adjustment_sets <- function(
       set_id = integer(),
       type = character(),
       effect = character(),
+      set = character(),
       variables = list()
     ))
   }
@@ -94,17 +96,21 @@ query_adjustment_sets <- function(
     adj_sets <- adj_sets[seq_len(max.results)]
   }
 
+  # Convert sets to list of character vectors
+  variables_list <- purrr::map(adj_sets, \(x) {
+    if (length(x) == 0) {
+      character()
+    } else {
+      as.character(x)
+    }
+  })
+
   tibble::tibble(
     set_id = seq_along(adj_sets),
     type = type,
     effect = effect,
-    variables = purrr::map(adj_sets, \(x) {
-      if (length(x) == 0) {
-        character()
-      } else {
-        as.character(x)
-      }
-    })
+    set = unname(purrr::map_chr(variables_list, create_set_string)),
+    variables = variables_list
   )
 }
 
@@ -125,6 +131,7 @@ query_adjustment_sets <- function(
 #'   - `from`: Starting node
 #'   - `to`: Ending node
 #'   - `path`: Character string representation of the path
+#'   - `variables`: List column containing all variables in the path
 #'   - `open`: Logical indicating if the path is open
 #'
 #' @export
@@ -183,9 +190,17 @@ query_paths <- function(
       from = character(),
       to = character(),
       path = character(),
+      variables = list(),
       open = logical()
     ))
   }
+
+  # Extract variables from each path
+  variables_list <- purrr::map(paths_obj$paths, \(path_str) {
+    # Remove all arrow types and split on remaining spaces
+    clean_path <- stringr::str_replace_all(path_str, " <->| ->| <-", " ")
+    unique(stringr::str_trim(stringr::str_split(clean_path, "\\s+")[[1]]))
+  })
 
   # Convert paths to tibble
   path_df <- purrr::imap(paths_obj$paths, \(path, idx) {
@@ -193,7 +208,8 @@ query_paths <- function(
       path_id = idx,
       from = from,
       to = to,
-      path = paste(path, collapse = " -> "),
+      path = path,
+      variables = list(variables_list[[idx]]),
       open = paths_obj$open[idx]
     )
   }) |>
@@ -217,6 +233,7 @@ query_paths <- function(
 #'   - `instrument`: The instrumental variable
 #'   - `exposure`: The exposure variable
 #'   - `outcome`: The outcome variable
+#'   - `conditioning_set`: String representation of conditioning variables
 #'   - `conditioned_on`: List column of required conditioning variables
 #'
 #' @export
@@ -268,6 +285,7 @@ query_instrumental <- function(
       instrument = character(),
       exposure = character(),
       outcome = character(),
+      conditioning_set = character(),
       conditioned_on = list()
     ))
   }
@@ -275,15 +293,18 @@ query_instrumental <- function(
   # Convert to tibble
   purrr::map(seq_along(ivs), \(idx) {
     iv_info <- ivs[[idx]]
+    cond_vars <- if (is.null(iv_info$Z) || length(iv_info$Z) == 0) {
+      NA_character_
+    } else {
+      iv_info$Z
+    }
+
     tibble::tibble(
       instrument = iv_info$I,
       exposure = exposure,
       outcome = outcome,
-      conditioned_on = if (is.null(iv_info$Z) || length(iv_info$Z) == 0) {
-        list(NA_character_)
-      } else {
-        list(iv_info$Z)
-      }
+      conditioning_set = create_set_string(cond_vars),
+      conditioned_on = list(cond_vars)
     )
   }) |>
     purrr::list_rbind()
@@ -299,8 +320,11 @@ query_instrumental <- function(
 #' @param conditioned_on Character vector of conditioning variables.
 #'
 #' @return A tibble with columns:
+#'   - `from_set`: String representation of source nodes
 #'   - `from`: List column of source nodes
+#'   - `to_set`: String representation of target nodes
 #'   - `to`: List column of target nodes
+#'   - `conditioning_set`: String representation of conditioning variables
 #'   - `conditioned_on`: List column of conditioning variables
 #'   - `dseparated`: Logical indicating d-separation
 #'
@@ -341,16 +365,20 @@ query_dseparated <- function(
     Z = conditioned_on
   )
 
+  # Handle conditioning set
+  cond_vars <- if (is.null(conditioned_on) || length(conditioned_on) == 0) {
+    NA_character_
+  } else {
+    conditioned_on
+  }
+
   tibble::tibble(
+    from_set = create_set_string(from),
     from = list(from),
+    to_set = create_set_string(to),
     to = list(to),
-    conditioned_on = if (
-      is.null(conditioned_on) || length(conditioned_on) == 0
-    ) {
-      list(NA_character_)
-    } else {
-      list(conditioned_on)
-    },
+    conditioning_set = create_set_string(cond_vars),
+    conditioned_on = list(cond_vars),
     dseparated = is_dsep
   )
 }
@@ -363,8 +391,11 @@ query_dseparated <- function(
 #' @inheritParams query_dseparated
 #'
 #' @return A tibble with columns:
+#'   - `from_set`: String representation of source nodes
 #'   - `from`: List column of source nodes
+#'   - `to_set`: String representation of target nodes
 #'   - `to`: List column of target nodes
+#'   - `conditioning_set`: String representation of conditioning variables
 #'   - `conditioned_on`: List column of conditioning variables
 #'   - `dconnected`: Logical indicating d-connection
 #'
@@ -400,6 +431,7 @@ query_dconnected <- function(
 #'
 #' @return A tibble with columns:
 #'   - `node`: The collider node
+#'   - `parent_set`: String representation of parent nodes
 #'   - `parents`: List column containing the parent nodes
 #'   - `is_activated`: Logical indicating if the collider is conditioned on
 #'
@@ -426,6 +458,7 @@ query_colliders <- function(.tdy_dag) {
     if (length(parents) >= 2) {
       tibble::tibble(
         node = node,
+        parent_set = create_set_string(parents),
         parents = list(parents),
         is_activated = node %in% dagitty::adjustedNodes(.dag)
       )
@@ -438,6 +471,7 @@ query_colliders <- function(.tdy_dag) {
   if (is.null(collider_info) || nrow(collider_info) == 0) {
     return(tibble::tibble(
       node = character(),
+      parent_set = character(),
       parents = list(),
       is_activated = logical()
     ))
@@ -500,6 +534,7 @@ query_exogenous <- function(.tdy_dag) {
 #'
 #' @return A tibble with columns:
 #'   - `node`: The node
+#'   - `parent_set`: String representation of parent nodes
 #'   - `parents`: List column containing parent nodes
 #'   - `n_parents`: Number of parents
 #'
@@ -529,13 +564,12 @@ query_parents <- function(.tdy_dag, .var = NULL) {
   purrr::map(nodes, \(node) {
     parents <- dagitty::parents(.dag, node)
     n_par <- length(parents)
+    parent_vars <- if (n_par == 0) NA_character_ else parents
+
     tibble::tibble(
       node = node,
-      parents = if (n_par == 0) {
-        list(NA_character_)
-      } else {
-        list(parents)
-      },
+      parent_set = create_set_string(parent_vars),
+      parents = list(parent_vars),
       n_parents = n_par
     )
   }) |>
@@ -550,6 +584,7 @@ query_parents <- function(.tdy_dag, .var = NULL) {
 #'
 #' @return A tibble with columns:
 #'   - `node`: The node
+#'   - `child_set`: String representation of child nodes
 #'   - `children`: List column containing child nodes
 #'   - `n_children`: Number of children
 #'
@@ -579,13 +614,12 @@ query_children <- function(.tdy_dag, .var = NULL) {
   purrr::map(nodes, \(node) {
     children <- dagitty::children(.dag, node)
     n_child <- length(children)
+    child_vars <- if (n_child == 0) NA_character_ else children
+
     tibble::tibble(
       node = node,
-      children = if (n_child == 0) {
-        list(NA_character_)
-      } else {
-        list(children)
-      },
+      child_set = create_set_string(child_vars),
+      children = list(child_vars),
       n_children = n_child
     )
   }) |>
@@ -600,6 +634,7 @@ query_children <- function(.tdy_dag, .var = NULL) {
 #'
 #' @return A tibble with columns:
 #'   - `node`: The node
+#'   - `ancestor_set`: String representation of ancestor nodes
 #'   - `ancestors`: List column containing ancestor nodes
 #'   - `n_ancestors`: Number of ancestors
 #'
@@ -631,13 +666,12 @@ query_ancestors <- function(.tdy_dag, .var = NULL) {
     # Remove self from ancestors
     ancestors <- setdiff(ancestors, node)
     n_anc <- length(ancestors)
+    ancestor_vars <- if (n_anc == 0) NA_character_ else ancestors
+
     tibble::tibble(
       node = node,
-      ancestors = if (n_anc == 0) {
-        list(NA_character_)
-      } else {
-        list(ancestors)
-      },
+      ancestor_set = create_set_string(ancestor_vars),
+      ancestors = list(ancestor_vars),
       n_ancestors = n_anc
     )
   }) |>
@@ -652,6 +686,7 @@ query_ancestors <- function(.tdy_dag, .var = NULL) {
 #'
 #' @return A tibble with columns:
 #'   - `node`: The node
+#'   - `descendant_set`: String representation of descendant nodes
 #'   - `descendants`: List column containing descendant nodes
 #'   - `n_descendants`: Number of descendants
 #'
@@ -683,13 +718,12 @@ query_descendants <- function(.tdy_dag, .var = NULL) {
     # Remove self from descendants
     descendants <- setdiff(descendants, node)
     n_desc <- length(descendants)
+    descendant_vars <- if (n_desc == 0) NA_character_ else descendants
+
     tibble::tibble(
       node = node,
-      descendants = if (n_desc == 0) {
-        list(NA_character_)
-      } else {
-        list(descendants)
-      },
+      descendant_set = create_set_string(descendant_vars),
+      descendants = list(descendant_vars),
       n_descendants = n_desc
     )
   }) |>
@@ -705,7 +739,8 @@ query_descendants <- function(.tdy_dag, .var = NULL) {
 #'
 #' @return A tibble with columns:
 #'   - `node`: The node
-#'   - `markov_blanket`: List column containing Markov blanket nodes
+#'   - `blanket`: String representation of Markov blanket nodes
+#'   - `blanket_vars`: List column containing Markov blanket nodes
 #'   - `blanket_size`: Size of the Markov blanket
 #'
 #' @export
@@ -734,13 +769,12 @@ query_markov_blanket <- function(.tdy_dag, .var = NULL) {
   # Get Markov blanket for each node
   purrr::map(nodes, \(node) {
     mb <- dagitty::markovBlanket(.dag, node)
+    blanket_vars <- if (length(mb) == 0) NA_character_ else mb
+
     tibble::tibble(
       node = node,
-      markov_blanket = if (length(mb) == 0) {
-        list(NA_character_)
-      } else {
-        list(mb)
-      },
+      blanket = create_set_string(blanket_vars),
+      blanket_vars = list(blanket_vars),
       blanket_size = length(mb)
     )
   }) |>
@@ -756,6 +790,17 @@ query_markov_blanket <- function(.tdy_dag, .var = NULL) {
 #' @keywords internal
 .empty_set_as_list <- function() {
   list(NA_character_)
+}
+
+#' @keywords internal
+create_set_string <- function(vars) {
+  if (is.null(vars) || (length(vars) == 1 && is.na(vars))) {
+    return(NA_character_)
+  } else if (length(vars) == 0) {
+    return("{}")
+  } else {
+    paste0("{", paste(sort(vars), collapse = ", "), "}")
+  }
 }
 
 #' @keywords internal

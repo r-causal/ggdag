@@ -16,7 +16,8 @@ parents for all nodes.}
 A tibble with columns:
 \itemize{
 \item \code{node}: The node
-\item \code{markov_blanket}: List column containing Markov blanket nodes
+\item \code{blanket}: String representation of Markov blanket nodes
+\item \code{blanket_vars}: List column containing Markov blanket nodes
 \item \code{blanket_size}: Size of the Markov blanket
 }
 }

@@ -33,6 +33,7 @@ A tibble with columns:
 \item \code{from}: Starting node
 \item \code{to}: Ending node
 \item \code{path}: Character string representation of the path
+\item \code{variables}: List column containing all variables in the path
 \item \code{open}: Logical indicating if the path is open
 }
 }

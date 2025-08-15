@@ -16,6 +16,7 @@ parents for all nodes.}
 A tibble with columns:
 \itemize{
 \item \code{node}: The node
+\item \code{ancestor_set}: String representation of ancestor nodes
 \item \code{ancestors}: List column containing ancestor nodes
 \item \code{n_ancestors}: Number of ancestors
 }

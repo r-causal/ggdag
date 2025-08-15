@@ -2,14 +2,16 @@ test_that("`query_conditional_independence()` returns a tibble of independencies
   result <- query_conditional_independence(test_dag)
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 15)
-  expect_named(result, c("set", "a", "b", "conditioned_on"))
+  expect_named(result, c("set", "a", "b", "conditioning_set", "conditioned_on"))
   expect_type(result$conditioned_on, "list")
+  expect_type(result$conditioning_set, "character")
 
   result <- query_conditional_independence(test_dag, type = "all.pairs")
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 57)
-  expect_named(result, c("set", "a", "b", "conditioned_on"))
+  expect_named(result, c("set", "a", "b", "conditioning_set", "conditioned_on"))
   expect_type(result$conditioned_on, "list")
+  expect_type(result$conditioning_set, "character")
 
   expect_ggdag_error(
     query_conditional_independence(letters)

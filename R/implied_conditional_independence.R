@@ -37,15 +37,18 @@ query_conditional_independence <- function(
   ici |>
     purrr::imap(
       \(.x, .y) {
+        cond_vars <- if (rlang::is_empty(.x$Z)) {
+          NA_character_
+        } else {
+          .x$Z
+        }
+
         tibble::tibble(
           set = .y,
           a = .x$X,
           b = .x$Y,
-          conditioned_on = if (rlang::is_empty(.x$Z)) {
-            list(NA_character_)
-          } else {
-            list(.x$Z)
-          }
+          conditioning_set = create_set_string(cond_vars),
+          conditioned_on = list(cond_vars)
         )
       }
     ) |>
