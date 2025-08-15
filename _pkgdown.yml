@@ -32,6 +32,11 @@ reference:
     - starts_with("is_")
     - is.tidy_dagitty
 
+- title: Query Functions
+  desc: Direct analytical queries that return tibbles
+  contents:
+    - starts_with("query_")
+
 - title: ggplot2 geoms, themes, and scales
   contents:
     - starts_with("geom")
