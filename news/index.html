@@ -40,7 +40,25 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="ggdag-development-version">ggdag (development version)<a class="anchor" aria-label="anchor" href="#ggdag-development-version"></a></h2>
-<ul><li>All error messages, warnings, and informational messages now use the cli package for better formatting and user experience. This change adds custom error classes (<code>ggdag_error</code>, <code>ggdag_warning</code>) that enable programmatic error handling (<a href="https://github.com/r-causal/ggdag/issues/191" class="external-link">#191</a>).</li>
+<ul><li>Introduced new <code>query_*()</code> API for direct analytical queries on DAGs (<a href="https://github.com/r-causal/ggdag/issues/185" class="external-link">#185</a>). These functions return tibbles with results rather than tidy DAG objects for plotting:
+<ul><li>
+<code><a href="../reference/query_adjustment_sets.html">query_adjustment_sets()</a></code>: Find adjustment sets to close backdoor paths</li>
+<li>
+<code><a href="../reference/query_paths.html">query_paths()</a></code>: Find and analyze paths between nodes</li>
+<li>
+<code><a href="../reference/query_instrumental.html">query_instrumental()</a></code>: Identify instrumental variables</li>
+<li>
+<code><a href="../reference/query_dseparated.html">query_dseparated()</a></code>/<code><a href="../reference/query_dconnected.html">query_dconnected()</a></code>: Test d-separation relationships</li>
+<li>
+<code><a href="../reference/query_colliders.html">query_colliders()</a></code>: Identify collider nodes</li>
+<li>
+<code><a href="../reference/query_exogenous.html">query_exogenous()</a></code>: Find exogenous variables</li>
+<li>
+<code><a href="../reference/query_parents.html">query_parents()</a></code>, <code><a href="../reference/query_children.html">query_children()</a></code>, <code><a href="../reference/query_ancestors.html">query_ancestors()</a></code>, <code><a href="../reference/query_descendants.html">query_descendants()</a></code>: Query node relationships</li>
+<li>
+<code><a href="../reference/query_markov_blanket.html">query_markov_blanket()</a></code>: Find Markov blankets</li>
+</ul></li>
+<li>All error messages, warnings, and informational messages now use the cli package for better formatting and user experience. This change adds custom error classes (<code>ggdag_error</code>, <code>ggdag_warning</code>) that enable programmatic error handling (<a href="https://github.com/r-causal/ggdag/issues/191" class="external-link">#191</a>).</li>
 <li>Fixed <code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> error when processing DAGs with no edges (<a href="https://github.com/r-causal/ggdag/issues/159" class="external-link">#159</a>)</li>
 <li>Fixed <code><a href="../reference/paths.html">dag_paths()</a></code> error when no open paths exist between nodes (<a href="https://github.com/r-causal/ggdag/issues/180" class="external-link">#180</a>)</li>
 <li>Introduced new functions <code><a href="../reference/query_conditional_independence.html">query_conditional_independence()</a></code>, <code><a href="../reference/query_conditional_independence.html">test_conditional_independence()</a></code>, and <code><a href="../reference/query_conditional_independence.html">ggdag_conditional_independence()</a></code> for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (<a href="https://github.com/r-causal/ggdag/issues/139" class="external-link">#139</a>)</li>
