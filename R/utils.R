@@ -48,6 +48,7 @@ utils::globalVariables(
     "set",
     "adjacent",
     "blanket",
+    ":=",
     "collider_path_nodes",
     "ggplot2::expansion"
   )

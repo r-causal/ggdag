@@ -1,0 +1,362 @@
+test_that("query_adjustment_sets works correctly", {
+  # Simple confounding
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_adjustment_sets(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("set_id", "type", "effect", "variables"))
+  expect_equal(nrow(result), 1)
+  expect_equal(result$type, "minimal")
+  expect_equal(result$effect, "total")
+  expect_equal(result$variables[[1]], "z")
+
+  # Multiple adjustment sets
+  dag2 <- dagify(
+    y ~ x + a + b + c,
+    x ~ a + b,
+    a ~ d,
+    b ~ d,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result2 <- query_adjustment_sets(dag2, type = "all")
+  expect_gt(nrow(result2), 1)
+  expect_true(all(result2$type == "all"))
+
+  # No adjustment needed
+  dag3 <- dagify(
+    y ~ x,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result3 <- query_adjustment_sets(dag3)
+  expect_equal(nrow(result3), 1)
+  expect_equal(length(result3$variables[[1]]), 0)
+
+  # Test with explicit exposure/outcome
+  result4 <- query_adjustment_sets(dag, exposure = "z", outcome = "y")
+  expect_equal(nrow(result4), 1)
+})
+
+test_that("query_adjustment_sets handles errors correctly", {
+  dag <- dagify(y ~ x)
+
+  # No exposure or outcome
+  expect_error(query_adjustment_sets(dag), "No exposure variable")
+
+  dag2 <- dagify(y ~ x, exposure = "x")
+  expect_error(query_adjustment_sets(dag2), "No outcome variable")
+})
+
+test_that("query_paths works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("path_id", "from", "to", "path", "open"))
+  expect_gt(nrow(result), 0)
+  expect_true(all(result$from == "x"))
+  expect_true(all(result$to == "y"))
+
+  # Test with conditioning
+  result2 <- query_paths(dag, conditioned_on = "z")
+  expect_true(any(result2$open != result$open))
+
+  # Test directed paths
+  result3 <- query_paths(dag, directed = TRUE)
+  expect_lte(nrow(result3), nrow(result))
+
+  # No paths
+  dag2 <- dagify(
+    y ~ z,
+    x ~ w
+  )
+  result4 <- query_paths(dag2, from = "x", to = "y")
+  expect_equal(nrow(result4), 0)
+})
+
+test_that("query_instrumental works correctly", {
+  # Classic IV setup
+  dag <- dagify(
+    y ~ x + u,
+    x ~ z + u,
+    exposure = "x",
+    outcome = "y",
+    latent = "u"
+  )
+
+  result <- query_instrumental(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("instrument", "exposure", "outcome", "conditioned_on"))
+  expect_equal(nrow(result), 1)
+  expect_equal(result$instrument, "z")
+
+  # No instrumental variables
+  dag2 <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result2 <- query_instrumental(dag2)
+  expect_equal(nrow(result2), 0)
+})
+
+test_that("query_dseparated and query_dconnected work correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w
+  )
+
+  # Test d-separation
+  result <- query_dseparated(dag, from = "x", to = "z")
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("from", "to", "conditioned_on", "dseparated"))
+  expect_equal(nrow(result), 1)
+  expect_false(result$dseparated) # x and z are d-connected through w
+
+  # Test with conditioning
+  result2 <- query_dseparated(dag, from = "x", to = "z", conditioned_on = "w")
+  expect_true(result2$dseparated) # conditioning on w d-separates x and z
+
+  # Test d-connection
+  result3 <- query_dconnected(dag, from = "x", to = "z")
+  expect_named(result3, c("from", "to", "conditioned_on", "dconnected"))
+  expect_true(result3$dconnected)
+  expect_equal(result3$dconnected, !result$dseparated)
+
+  # Test with multiple variables
+  result4 <- query_dseparated(dag, from = c("x", "w"), to = "y")
+  expect_equal(length(result4$from[[1]]), 2)
+})
+
+test_that("query_dseparated validates inputs", {
+  dag <- dagify(y ~ x)
+
+  expect_error(
+    query_dseparated(dag, from = 1, to = "y"),
+    "must be a character vector"
+  )
+  expect_error(
+    query_dseparated(dag, from = "x", to = 1),
+    "must be a character vector"
+  )
+})
+
+test_that("query_colliders works correctly", {
+  # Simple collider
+  dag <- dagify(
+    z ~ x + y,
+    w ~ z
+  )
+
+  result <- query_colliders(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("node", "parents", "is_activated"))
+  expect_equal(nrow(result), 1)
+  expect_equal(result$node, "z")
+  expect_setequal(result$parents[[1]], c("x", "y"))
+  expect_false(result$is_activated)
+
+  # No colliders
+  dag2 <- dagify(
+    y ~ x,
+    z ~ x
+  )
+
+  result2 <- query_colliders(dag2)
+  expect_equal(nrow(result2), 0)
+
+  # Multiple colliders
+  dag3 <- dagify(
+    z ~ x + y,
+    w ~ a + b
+  )
+
+  result3 <- query_colliders(dag3)
+  expect_equal(nrow(result3), 2)
+  expect_setequal(result3$node, c("z", "w"))
+})
+
+test_that("query_exogenous works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w
+  )
+
+  result <- query_exogenous(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("node", "n_descendants"))
+  expect_setequal(result$node, c("w", "z"))
+
+  # Check descendant counts
+  w_row <- result[result$node == "w", ]
+  expect_equal(w_row$n_descendants, 2) # x and y
+
+  z_row <- result[result$node == "z", ]
+  expect_equal(z_row$n_descendants, 1) # y
+
+  # No exogenous variables (cyclic would be invalid, so this is theoretical)
+  dag2 <- dagify(y ~ x)
+  result2 <- query_exogenous(dag2)
+  expect_equal(result2$node, "x")
+})
+
+test_that("query_parents works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w
+  )
+
+  # Query all nodes
+  result <- query_parents(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("node", "parents", "n_parents"))
+  expect_equal(nrow(result), 4)
+
+  # Check specific nodes
+  y_row <- result[result$node == "y", ]
+  expect_setequal(y_row$parents[[1]], c("x", "z"))
+  expect_equal(y_row$n_parents, 2)
+
+  w_row <- result[result$node == "w", ]
+  expect_true(is.na(w_row$parents[[1]][1]))
+  expect_equal(w_row$n_parents, 0)
+
+  # Query specific variable
+  result2 <- query_parents(dag, .var = "y")
+  expect_equal(nrow(result2), 1)
+  expect_equal(result2$node, "y")
+})
+
+test_that("query_children works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    w ~ x
+  )
+
+  result <- query_children(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("node", "children", "n_children"))
+
+  x_row <- result[result$node == "x", ]
+  expect_setequal(x_row$children[[1]], c("y", "w"))
+  expect_equal(x_row$n_children, 2)
+
+  y_row <- result[result$node == "y", ]
+  expect_true(is.na(y_row$children[[1]][1]))
+  expect_equal(y_row$n_children, 0)
+})
+
+test_that("query_ancestors works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w
+  )
+
+  result <- query_ancestors(dag)
+
+  y_row <- result[result$node == "y", ]
+  expect_setequal(y_row$ancestors[[1]], c("x", "z", "w"))
+  expect_equal(y_row$n_ancestors, 3)
+
+  w_row <- result[result$node == "w", ]
+  expect_true(is.na(w_row$ancestors[[1]][1]))
+  expect_equal(w_row$n_ancestors, 0)
+})
+
+test_that("query_descendants works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w
+  )
+
+  result <- query_descendants(dag)
+
+  w_row <- result[result$node == "w", ]
+  expect_setequal(w_row$descendants[[1]], c("x", "z", "y"))
+  expect_equal(w_row$n_descendants, 3)
+
+  y_row <- result[result$node == "y", ]
+  expect_true(is.na(y_row$descendants[[1]][1]))
+  expect_equal(y_row$n_descendants, 0)
+})
+
+test_that("query_markov_blanket works correctly", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w,
+    a ~ x
+  )
+
+  result <- query_markov_blanket(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("node", "markov_blanket", "blanket_size"))
+
+  # Check x's Markov blanket
+  x_row <- result[result$node == "x", ]
+  # Should include: w (parent), y and a (children), z (co-parent of y)
+  expect_setequal(x_row$markov_blanket[[1]], c("w", "y", "a", "z"))
+  expect_equal(x_row$blanket_size, 4)
+
+  # Query specific variable
+  result2 <- query_markov_blanket(dag, .var = "x")
+  expect_equal(nrow(result2), 1)
+  expect_equal(result2$node, "x")
+})
+
+test_that("helper functions work correctly", {
+  # Test .empty_set_as_list
+  empty <- .empty_set_as_list()
+  expect_equal(empty, list(NA_character_))
+
+  # Test .dagitty_set_to_tibble
+  set_list <- list(c("a", "b"), c("c"))
+  result <- .dagitty_set_to_tibble(set_list)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, "variables")
+  expect_equal(nrow(result), 2)
+
+  # Empty set
+  result2 <- .dagitty_set_to_tibble(list())
+  expect_equal(nrow(result2), 0)
+
+  # Custom name
+  result3 <- .dagitty_set_to_tibble(set_list, "custom_name")
+  expect_named(result3, "custom_name")
+})
+
+test_that("all query functions validate input", {
+  # Not a DAG
+  not_dag <- list(x = 1)
+
+  expect_error(query_adjustment_sets(not_dag))
+  expect_error(query_paths(not_dag))
+  expect_error(query_instrumental(not_dag))
+  expect_error(query_dseparated(not_dag, "x", "y"))
+  expect_error(query_colliders(not_dag))
+  expect_error(query_exogenous(not_dag))
+  expect_error(query_parents(not_dag))
+  expect_error(query_children(not_dag))
+  expect_error(query_ancestors(not_dag))
+  expect_error(query_descendants(not_dag))
+  expect_error(query_markov_blanket(not_dag))
+})
