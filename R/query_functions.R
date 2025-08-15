@@ -294,7 +294,7 @@ query_instrumental <- function(
   purrr::map(seq_along(ivs), \(idx) {
     iv_info <- ivs[[idx]]
     cond_vars <- if (is.null(iv_info$Z) || length(iv_info$Z) == 0) {
-      NA_character_
+      character()
     } else {
       iv_info$Z
     }
@@ -367,7 +367,7 @@ query_dseparated <- function(
 
   # Handle conditioning set
   cond_vars <- if (is.null(conditioned_on) || length(conditioned_on) == 0) {
-    NA_character_
+    character()
   } else {
     conditioned_on
   }

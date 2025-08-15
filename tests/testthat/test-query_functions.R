@@ -111,7 +111,7 @@ test_that("query_instrumental works correctly", {
   )
   expect_equal(nrow(result), 1)
   expect_equal(result$instrument, "z")
-  expect_true(is.na(result$conditioning_set))
+  expect_equal(result$conditioning_set, "{}")
 
   # No instrumental variables
   dag2 <- dagify(
@@ -150,7 +150,7 @@ test_that("query_dseparated and query_dconnected work correctly", {
   expect_equal(nrow(result), 1)
   expect_equal(result$from_set, "{x}")
   expect_equal(result$to_set, "{z}")
-  expect_true(is.na(result$conditioning_set))
+  expect_equal(result$conditioning_set, "{}")
   expect_false(result$dseparated) # x and z are d-connected through w
 
   # Test with conditioning
