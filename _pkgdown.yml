@@ -26,6 +26,7 @@ reference:
   contents:
     - starts_with("node_")
     - starts_with("dag_")
+    - starts_with("edge_")
     - starts_with("ggdag")
     - control_for
     - activate_collider_paths

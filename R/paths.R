@@ -22,8 +22,9 @@
 #' @inheritParams geom_dag
 #' @param spread the width of the fan spread
 #'
-#' @return a `tidy_dagitty` with a `path` column for path variables and a `set`
-#'   grouping column or a `ggplot`.
+#' @return a `tidy_dagitty` with a `path` column for path variables, a `set`
+#'   grouping column, and a `path_type` column classifying paths as "backdoor"
+#'   or "direct", or a `ggplot`.
 #'
 #' @examples
 #' confounder_triangle(x_y_associated = TRUE) |>
@@ -67,17 +68,60 @@ dag_paths <- function(
     )
   }
 
-  pathways <- dagitty::paths(
+  # Get all paths (directed = FALSE)
+  all_paths_raw <- dagitty::paths(
     pull_dag(.tdy_dag),
     from,
     to,
     Z = adjust_for,
     limit = limit,
-    directed = directed
-  ) |>
-    dplyr::as_tibble() |>
-    dplyr::filter(open) |>
-    dplyr::pull(paths)
+    directed = FALSE
+  )
+
+  # Convert to tibble, handling empty paths
+  if (length(all_paths_raw$paths) == 0) {
+    all_paths_info <- tibble::tibble(paths = character(), open = logical())
+  } else {
+    all_paths_info <- dplyr::as_tibble(all_paths_raw)
+  }
+
+  # Get directed paths to identify causal paths
+  causal_paths_raw <- dagitty::paths(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    Z = adjust_for,
+    limit = limit,
+    directed = TRUE
+  )
+
+  # Convert to tibble, handling empty paths
+  if (length(causal_paths_raw$paths) == 0) {
+    causal_paths_info <- tibble::tibble(paths = character(), open = logical())
+  } else {
+    causal_paths_info <- dplyr::as_tibble(causal_paths_raw)
+  }
+
+  # Filter for open paths
+  if (nrow(all_paths_info) == 0 || all(all_paths_info$open == FALSE)) {
+    all_open_paths <- character(0)
+  } else {
+    all_open_paths <- all_paths_info |>
+      dplyr::filter(open) |>
+      dplyr::pull(paths)
+  }
+
+  if (nrow(causal_paths_info) == 0 || all(causal_paths_info$open == FALSE)) {
+    causal_open_paths <- character(0)
+  } else {
+    causal_open_paths <- causal_paths_info |>
+      dplyr::filter(open) |>
+      dplyr::pull(paths)
+  }
+
+  # Determine path types
+  pathways <- all_open_paths
+  path_types <- ifelse(pathways %in% causal_open_paths, "direct", "backdoor")
 
   vars <- c(from = from, to = to)
 
@@ -85,61 +129,47 @@ dag_paths <- function(
   if (length(pathways) == 0) {
     # Add a path column with all NA values and a set column
     update_dag_data(.tdy_dag) <- pull_dag_data(.tdy_dag) |>
-      dplyr::mutate(path = NA_character_, set = "1")
+      dplyr::mutate(path = NA_character_, path_type = NA_character_, set = "1")
     return(.tdy_dag)
   }
 
-  update_dag_data(.tdy_dag) <- pathways |>
-    purrr::map_df(
-      function(.x) {
-        path_df <- .x |>
-          dag2() |>
-          dagitty::edges() |>
-          dplyr::select(.from = v, .to = w) |>
-          dplyr::mutate(
-            .from = as.character(.from),
-            .to = as.character(.to),
-            path = "open path"
-          ) |>
-          (\(x) {
-            ggdag_left_join(
-              pull_dag_data(.tdy_dag),
-              x,
-              by = c("name" = ".from", "to" = ".to")
-            )
-          })()
-
-        any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
-        if (any_x_unopend) {
-          x_has_no_children <- any(
-            path_df$name == vars[[1]] & is.na(path_df$to)
+  update_dag_data(.tdy_dag) <- purrr::map2_df(
+    pathways,
+    path_types,
+    function(.x, .path_type) {
+      path_df <- .x |>
+        dag2() |>
+        dagitty::edges() |>
+        dplyr::select(.from = v, .to = w) |>
+        dplyr::mutate(
+          .from = as.character(.from),
+          .to = as.character(.to),
+          path = "open path",
+          path_type = .path_type
+        ) |>
+        (\(x) {
+          ggdag_left_join(
+            pull_dag_data(.tdy_dag),
+            x,
+            by = c("name" = ".from", "to" = ".to")
           )
-          if (x_has_no_children) {
-            path_df[path_df$name == vars[[1]], "path"] <- "open path"
-          } else {
-            path_df <- path_df |>
-              filter(name == vars[[1]]) |>
-              dplyr::slice(1) |>
-              dplyr::mutate(
-                path = "open path",
-                to = NA,
-                direction = NA,
-                xend = NA,
-                yend = NA
-              ) |>
-              (\(x) dplyr::bind_rows(path_df, x))()
-          }
-        }
+        })()
 
-        y_has_no_children <- any(path_df$name == vars[[2]] & is.na(path_df$to))
-        if (y_has_no_children) {
-          path_df[path_df$name == vars[[2]], "path"] <- "open path"
+      any_x_unopend <- any(path_df$name == vars[[1]] & is.na(path_df$path))
+      if (any_x_unopend) {
+        x_has_no_children <- any(
+          path_df$name == vars[[1]] & is.na(path_df$to)
+        )
+        if (x_has_no_children) {
+          path_df[path_df$name == vars[[1]], "path"] <- "open path"
+          path_df[path_df$name == vars[[1]], "path_type"] <- .path_type
         } else {
           path_df <- path_df |>
-            filter(name == vars[[2]]) |>
+            filter(name == vars[[1]]) |>
             dplyr::slice(1) |>
             dplyr::mutate(
               path = "open path",
+              path_type = .path_type,
               to = NA,
               direction = NA,
               xend = NA,
@@ -147,11 +177,31 @@ dag_paths <- function(
             ) |>
             (\(x) dplyr::bind_rows(path_df, x))()
         }
+      }
 
-        path_df
-      },
-      .id = "set"
-    )
+      y_has_no_children <- any(path_df$name == vars[[2]] & is.na(path_df$to))
+      if (y_has_no_children) {
+        path_df[path_df$name == vars[[2]], "path"] <- "open path"
+        path_df[path_df$name == vars[[2]], "path_type"] <- .path_type
+      } else {
+        path_df <- path_df |>
+          filter(name == vars[[2]]) |>
+          dplyr::slice(1) |>
+          dplyr::mutate(
+            path = "open path",
+            path_type = .path_type,
+            to = NA,
+            direction = NA,
+            xend = NA,
+            yend = NA
+          ) |>
+          (\(x) dplyr::bind_rows(path_df, x))()
+      }
+
+      path_df
+    },
+    .id = "set"
+  )
 
   if (paths_only) {
     .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")
@@ -384,4 +434,224 @@ ggdag_paths_fan <- function(
     )
 
   p
+}
+
+# Helper function to extract edges from paths
+extract_edges_from_paths <- function(paths) {
+  if (length(paths) == 0) {
+    return(tibble::tibble(from = character(), to = character()))
+  }
+
+  edges_list <- purrr::map(paths, \(path) {
+    path_dag <- dag2(path)
+    edges <- dagitty::edges(path_dag)
+    tibble::tibble(
+      from = as.character(edges$v),
+      to = as.character(edges$w)
+    )
+  })
+
+  dplyr::bind_rows(edges_list) |>
+    dplyr::distinct()
+}
+
+#' Classify DAG edges as backdoor or direct
+#'
+#' `edge_backdoor()` identifies edges as being on backdoor paths or direct
+#' causal paths between an exposure and outcome. This function adds edge-level
+#' information to the tidy DAG object, classifying each edge based on the types
+#' of paths it appears on.
+#'
+#' @param .dag input graph, an object of class `tidy_dagitty` or
+#'   `dagitty`
+#' @param from character vector of length 1, name of exposure variable. Default
+#'   is `NULL`, in which case it will check the input DAG for exposure.
+#' @param to character vector of length 1, name of exposure variable. Default is
+#'   `NULL`, in which case it will check the input DAG for exposure.
+#' @param adjust_for character vector, a set of variables to control for.
+#'   Default is `NULL`.
+#' @param ... additional arguments passed to `tidy_dagitty()`
+#' @param open_only logical. If `TRUE` (default), only considers open paths. If
+#'   `FALSE`, includes information about closed paths as well.
+#'
+#' @return A `tidy_dagitty` object with additional columns:
+#'   * `edge_type`: "backdoor", "direct", or "both" classification for each edge
+#'   * `open`: logical indicating if the edge is part of an open path
+#'   * `path_type`: the classification, or NA for closed paths when
+#'     `open_only = TRUE`
+#'
+#' @details
+#' Edges are classified by examining the paths between exposure and outcome:
+#' * Direct edges appear only on directed causal paths
+#' * Backdoor edges appear only on backdoor paths
+#' * Both edges appear on both direct and backdoor paths
+#'
+#' @examples
+#' # Create a DAG with both direct and backdoor paths
+#' dag <- dagify(
+#'   y ~ x + z,
+#'   x ~ z,
+#'   exposure = "x",
+#'   outcome = "y"
+#' )
+#'
+#' # Classify edges
+#' edge_backdoor(dag)
+#'
+#' # Include closed paths
+#' edge_backdoor(dag, open_only = FALSE)
+#'
+#' @export
+edge_backdoor <- function(
+  .dag,
+  from = NULL,
+  to = NULL,
+  adjust_for = NULL,
+  open_only = TRUE,
+  ...
+) {
+  .tdy_dag <- if_not_tidy_daggity(.dag, ...)
+
+  if (is.null(from)) {
+    from <- dagitty::exposures(pull_dag(.tdy_dag))
+    if (length(from) == 0) from <- NULL
+  }
+  if (is.null(to)) {
+    to <- dagitty::outcomes(pull_dag(.tdy_dag))
+    if (length(to) == 0) to <- NULL
+  }
+  if (is.null(from) || is.null(to)) {
+    abort(
+      c(
+        "Both {.arg from} (exposure) and {.arg to} (outcome) must be set.",
+        "i" = "Use {.code edge_backdoor(dag, from = \"x\", to = \"y\")} to specify paths."
+      ),
+      error_class = "ggdag_missing_error"
+    )
+  }
+
+  # Get all paths (both open and closed)
+  all_paths <- dagitty::paths(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    Z = adjust_for,
+    directed = FALSE
+  )
+
+  # Get directed causal paths
+  causal_paths <- dagitty::paths(
+    pull_dag(.tdy_dag),
+    from,
+    to,
+    Z = adjust_for,
+    directed = TRUE
+  )
+
+  # Separate open and closed paths
+  if (length(all_paths$paths) == 0) {
+    all_open_paths <- character(0)
+    all_closed_paths <- character(0)
+  } else {
+    all_open_paths <- all_paths$paths[all_paths$open]
+    all_closed_paths <- all_paths$paths[!all_paths$open]
+  }
+
+  if (length(causal_paths$paths) == 0) {
+    causal_open_paths <- character(0)
+    causal_closed_paths <- character(0)
+  } else {
+    causal_open_paths <- causal_paths$paths[causal_paths$open]
+    causal_closed_paths <- causal_paths$paths[!causal_paths$open]
+  }
+
+  # Calculate backdoor paths (open non-causal paths)
+  backdoor_open_paths <- setdiff(all_open_paths, causal_open_paths)
+  backdoor_closed_paths <- setdiff(all_closed_paths, causal_closed_paths)
+
+  # Extract edges from different path types
+  backdoor_open_edges <- extract_edges_from_paths(backdoor_open_paths)
+  backdoor_closed_edges <- extract_edges_from_paths(backdoor_closed_paths)
+  direct_open_edges <- extract_edges_from_paths(causal_open_paths)
+  direct_closed_edges <- extract_edges_from_paths(causal_closed_paths)
+
+  # Add classification to edges
+  if (nrow(backdoor_open_edges) > 0) {
+    backdoor_open_edges$edge_type <- "backdoor"
+    backdoor_open_edges$open <- TRUE
+  }
+
+  if (nrow(backdoor_closed_edges) > 0) {
+    backdoor_closed_edges$edge_type <- "backdoor"
+    backdoor_closed_edges$open <- FALSE
+  }
+
+  if (nrow(direct_open_edges) > 0) {
+    direct_open_edges$edge_type <- "direct"
+    direct_open_edges$open <- TRUE
+  }
+
+  if (nrow(direct_closed_edges) > 0) {
+    direct_closed_edges$edge_type <- "direct"
+    direct_closed_edges$open <- FALSE
+  }
+
+  # Combine all edge classifications
+  all_edge_info <- dplyr::bind_rows(
+    backdoor_open_edges,
+    if (!open_only) backdoor_closed_edges,
+    direct_open_edges,
+    if (!open_only) direct_closed_edges
+  )
+
+  # Handle empty edge case
+  if (nrow(all_edge_info) == 0) {
+    # No paths found, return original data with NA columns
+    dag_data <- pull_dag_data(.tdy_dag)
+    updated_data <- dag_data |>
+      dplyr::mutate(
+        edge_type = NA_character_,
+        open = NA,
+        path_type = NA_character_
+      )
+    update_dag_data(.tdy_dag) <- updated_data
+    return(.tdy_dag)
+  }
+
+  # Classify edges based on which path types they appear on
+  edge_classifications <- all_edge_info |>
+    dplyr::group_by(from, to) |>
+    dplyr::summarise(
+      edge_type = if ("backdoor" %in% edge_type && "direct" %in% edge_type) {
+        "both"
+      } else if ("backdoor" %in% edge_type) {
+        "backdoor"
+      } else {
+        "direct"
+      },
+      open = any(open),
+      .groups = "drop"
+    )
+
+  # Join with the tidy dag data
+  dag_data <- pull_dag_data(.tdy_dag)
+
+  # Add the edge classification
+  updated_data <- dag_data |>
+    dplyr::left_join(
+      edge_classifications,
+      by = c("name" = "from", "to" = "to")
+    ) |>
+    dplyr::mutate(
+      path_type = if (open_only) {
+        ifelse(open %in% TRUE, edge_type, NA_character_)
+      } else {
+        edge_type
+      }
+    )
+
+  # Update the tidy dag
+  update_dag_data(.tdy_dag) <- updated_data
+
+  .tdy_dag
 }

@@ -1,5 +1,7 @@
 # ggdag (development version)
 
+* Added `edge_backdoor()` function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (#137)
+* Enhanced `dag_paths()` and `query_paths()` to include `path_type` column that classifies paths as "backdoor" or "direct" (#137)
 * Introduced new `query_*()` API for direct analytical queries on DAGs (#185). These functions return tibbles with results rather than tidy DAG objects for plotting:
   - `query_adjustment_sets()`: Find adjustment sets to close backdoor paths
   - `query_paths()`: Find and analyze paths between nodes
