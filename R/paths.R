@@ -624,14 +624,14 @@ edge_backdoor <- function(
   edge_classifications <- all_edge_info |>
     dplyr::group_by(from, to) |>
     dplyr::summarise(
-      edge_type = if ("backdoor" %in% edge_type && "direct" %in% edge_type) {
+      edge_type = if ("backdoor" %in% .data$edge_type && "direct" %in% .data$edge_type) {
         "both"
-      } else if ("backdoor" %in% edge_type) {
+      } else if ("backdoor" %in% .data$edge_type) {
         "backdoor"
       } else {
         "direct"
       },
-      open = any(open),
+      open = any(.data$open),
       .groups = "drop"
     )
 
