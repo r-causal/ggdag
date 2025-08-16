@@ -34,10 +34,8 @@ Default is \code{NULL}.}
 \value{
 A \code{tidy_dagitty} object with additional columns:
 \itemize{
-\item \code{edge_type}: "backdoor", "direct", or "both" classification for each edge
+\item \code{path_type}: "backdoor", "direct", or "both" classification for each edge
 \item \code{open}: logical indicating if the edge is part of an open path
-\item \code{path_type}: the classification, or NA for closed paths when
-\code{open_only = TRUE}
 }
 }
 \description{
@@ -53,6 +51,9 @@ Edges are classified by examining the paths between exposure and outcome:
 \item Backdoor edges appear only on backdoor paths
 \item Both edges appear on both direct and backdoor paths
 }
+
+When \code{open_only = TRUE} (default), \code{path_type} will be NA for edges that are
+only part of closed paths.
 }
 \examples{
 # Create a DAG with both direct and backdoor paths

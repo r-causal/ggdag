@@ -477,16 +477,17 @@ extract_edges_from_paths <- function(paths) {
 #'   `FALSE`, includes information about closed paths as well.
 #'
 #' @return A `tidy_dagitty` object with additional columns:
-#'   * `edge_type`: "backdoor", "direct", or "both" classification for each edge
+#'   * `path_type`: "backdoor", "direct", or "both" classification for each edge
 #'   * `open`: logical indicating if the edge is part of an open path
-#'   * `path_type`: the classification, or NA for closed paths when
-#'     `open_only = TRUE`
 #'
 #' @details
 #' Edges are classified by examining the paths between exposure and outcome:
 #' * Direct edges appear only on directed causal paths
 #' * Backdoor edges appear only on backdoor paths
 #' * Both edges appear on both direct and backdoor paths
+#'
+#' When `open_only = TRUE` (default), `path_type` will be NA for edges that are
+#' only part of closed paths.
 #'
 #' @examples
 #' # Create a DAG with both direct and backdoor paths
@@ -612,9 +613,8 @@ edge_backdoor <- function(
     dag_data <- pull_dag_data(.tdy_dag)
     updated_data <- dag_data |>
       dplyr::mutate(
-        edge_type = NA_character_,
-        open = NA,
-        path_type = NA_character_
+        path_type = NA_character_,
+        open = NA
       )
     update_dag_data(.tdy_dag) <- updated_data
     return(.tdy_dag)
@@ -624,7 +624,9 @@ edge_backdoor <- function(
   edge_classifications <- all_edge_info |>
     dplyr::group_by(from, to) |>
     dplyr::summarise(
-      edge_type = if ("backdoor" %in% .data$edge_type && "direct" %in% .data$edge_type) {
+      path_type = if (
+        "backdoor" %in% .data$edge_type && "direct" %in% .data$edge_type
+      ) {
         "both"
       } else if ("backdoor" %in% .data$edge_type) {
         "backdoor"
@@ -643,14 +645,15 @@ edge_backdoor <- function(
     dplyr::left_join(
       edge_classifications,
       by = c("name" = "from", "to" = "to")
-    ) |>
-    dplyr::mutate(
-      path_type = if (open_only) {
-        ifelse(open %in% TRUE, edge_type, NA_character_)
-      } else {
-        edge_type
-      }
     )
+
+  # If open_only = TRUE, set path_type to NA for closed paths
+  if (open_only) {
+    updated_data <- updated_data |>
+      dplyr::mutate(
+        path_type = ifelse(open %in% TRUE, path_type, NA_character_)
+      )
+  }
 
   # Update the tidy dag
   update_dag_data(.tdy_dag) <- updated_data

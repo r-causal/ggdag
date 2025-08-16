@@ -464,39 +464,38 @@ test_that("edge_backdoor() classifies edges correctly", {
   dag_data <- pull_dag_data(result)
 
   # Check that new columns exist
-  expect_true("edge_type" %in% names(dag_data))
-  expect_true("open" %in% names(dag_data))
   expect_true("path_type" %in% names(dag_data))
+  expect_true("open" %in% names(dag_data))
 
   # Check specific edge classifications
   # x -> y should be direct
   x_to_y <- dag_data |>
     dplyr::filter(name == "x", to == "y") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(x_to_y, "direct")
 
   # z -> x should be backdoor (part of x <- z -> y)
   z_to_x <- dag_data |>
     dplyr::filter(name == "z", to == "x") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(z_to_x, "backdoor")
 
   # z -> y should be backdoor
   z_to_y <- dag_data |>
     dplyr::filter(name == "z", to == "y") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(z_to_y, "backdoor")
 
   # x -> m should be direct (part of x -> m -> y)
   x_to_m <- dag_data |>
     dplyr::filter(name == "x", to == "m") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(x_to_m, "direct")
 
   # m -> y should be direct
   m_to_y <- dag_data |>
     dplyr::filter(name == "m", to == "y") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(m_to_y, "direct")
 })
 
@@ -535,8 +534,8 @@ test_that("edge_backdoor() handles closed paths correctly", {
   expect_true(any(dag_data_all$open == FALSE, na.rm = TRUE))
   # Edges that are on paths between x and y should have path_type
   edges_on_paths <- dag_data_all |>
-    dplyr::filter(!is.na(edge_type))
-  expect_true(all(!is.na(edges_on_paths$path_type)))
+    dplyr::filter(!is.na(path_type))
+  expect_true(nrow(edges_on_paths) > 0)
 })
 
 test_that("edge_backdoor() handles no paths gracefully", {
@@ -552,13 +551,11 @@ test_that("edge_backdoor() handles no paths gracefully", {
   dag_data <- pull_dag_data(result)
 
   # Should have columns but all NA
-  expect_true("edge_type" %in% names(dag_data))
-  expect_true("open" %in% names(dag_data))
   expect_true("path_type" %in% names(dag_data))
+  expect_true("open" %in% names(dag_data))
 
-  expect_true(all(is.na(dag_data$edge_type)))
-  expect_true(all(is.na(dag_data$open)))
   expect_true(all(is.na(dag_data$path_type)))
+  expect_true(all(is.na(dag_data$open)))
 })
 
 test_that("edge_backdoor() requires exposure and outcome", {
@@ -592,24 +589,24 @@ test_that("edge_backdoor() correctly classifies edges appearing on both paths", 
   # And on backdoor path: v1 <- v4 -> v2 -> v3
   v2_to_v3 <- dag_data |>
     dplyr::filter(name == "v2", to == "v3") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(v2_to_v3, "both")
 
   # v1 -> v2 should be "direct" (only on direct path)
   v1_to_v2 <- dag_data |>
     dplyr::filter(name == "v1", to == "v2") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(v1_to_v2, "direct")
 
   # v4 -> v1 should be "backdoor" (only on backdoor path)
   v4_to_v1 <- dag_data |>
     dplyr::filter(name == "v4", to == "v1") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(v4_to_v1, "backdoor")
 
   # v4 -> v2 should be "backdoor" (only on backdoor path)
   v4_to_v2 <- dag_data |>
     dplyr::filter(name == "v4", to == "v2") |>
-    dplyr::pull(edge_type)
+    dplyr::pull(path_type)
   expect_equal(v4_to_v2, "backdoor")
 })
