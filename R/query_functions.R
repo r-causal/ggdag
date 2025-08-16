@@ -131,6 +131,7 @@ query_adjustment_sets <- function(
 #'   - `from`: Starting node
 #'   - `to`: Ending node
 #'   - `path`: Character string representation of the path
+#'   - `path_type`: Character classification as "backdoor" or "direct"
 #'   - `variables`: List column containing all variables in the path
 #'   - `open`: Logical indicating if the path is open
 #'
@@ -190,9 +191,26 @@ query_paths <- function(
       from = character(),
       to = character(),
       path = character(),
+      path_type = character(),
       variables = list(),
       open = logical()
     ))
+  }
+
+  # Get directed paths to classify path types (if not already directed)
+  if (!directed) {
+    directed_paths_obj <- dagitty::paths(
+      .dag,
+      from = from,
+      to = to,
+      directed = TRUE,
+      limit = limit,
+      Z = conditioned_on
+    )
+    directed_paths <- directed_paths_obj$paths
+  } else {
+    # If already directed, all paths are direct
+    directed_paths <- paths_obj$paths
   }
 
   # Extract variables from each path
@@ -202,6 +220,13 @@ query_paths <- function(
     unique(stringr::str_trim(stringr::str_split(clean_path, "\\s+")[[1]]))
   })
 
+  # Classify paths as backdoor or direct
+  path_types <- ifelse(
+    paths_obj$paths %in% directed_paths,
+    "direct",
+    "backdoor"
+  )
+
   # Convert paths to tibble
   path_df <- purrr::imap(paths_obj$paths, \(path, idx) {
     tibble::tibble(
@@ -209,6 +234,7 @@ query_paths <- function(
       from = from,
       to = to,
       path = path,
+      path_type = path_types[idx],
       variables = list(variables_list[[idx]]),
       open = paths_obj$open[idx]
     )

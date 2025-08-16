@@ -50,7 +50,9 @@ utils::globalVariables(
     "blanket",
     ":=",
     "collider_path_nodes",
-    "ggplot2::expansion"
+    "ggplot2::expansion",
+    "open",
+    "path_type"
   )
 )
 
