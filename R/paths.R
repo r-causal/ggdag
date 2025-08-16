@@ -9,8 +9,8 @@
 #'   `dagitty`
 #' @param from character vector of length 1, name of exposure variable. Default
 #'   is `NULL`, in which case it will check the input DAG for exposure.
-#' @param to character vector of length 1, name of exposure variable. Default is
-#'   `NULL`, in which case it will check the input DAG for exposure.
+#' @param to character vector of length 1, name of outcome variable. Default is
+#'   `NULL`, in which case it will check the input DAG for outcome.
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is `NULL`.
 #' @param directed logical. Should only directed paths be shown?
@@ -468,8 +468,8 @@ extract_edges_from_paths <- function(paths) {
 #'   `dagitty`
 #' @param from character vector of length 1, name of exposure variable. Default
 #'   is `NULL`, in which case it will check the input DAG for exposure.
-#' @param to character vector of length 1, name of exposure variable. Default is
-#'   `NULL`, in which case it will check the input DAG for exposure.
+#' @param to character vector of length 1, name of outcome variable. Default is
+#'   `NULL`, in which case it will check the input DAG for outcome.
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is `NULL`.
 #' @param ... additional arguments passed to `tidy_dagitty()`

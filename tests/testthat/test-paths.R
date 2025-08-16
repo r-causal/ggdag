@@ -518,7 +518,7 @@ test_that("edge_backdoor() handles closed paths correctly", {
   open_edges <- dag_data_open |>
     dplyr::filter(open == TRUE)
 
-  expect_true(all(open_edges$edge_type == "direct"))
+  expect_true(all(open_edges$path_type == "direct"))
 
   # Test with open_only = FALSE
   result_all <- edge_backdoor(
