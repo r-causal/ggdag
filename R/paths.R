@@ -250,9 +250,9 @@ ggdag_paths <- function(
       limit = limit,
       directed = directed
     ) |>
-    ggplot2::ggplot(aes_dag(color = path)) +
+    ggplot2::ggplot(aes_dag(color = path_type)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
-    breaks("open path") +
+    breaks(c("direct", "backdoor"), name = "path") +
     expand_plot(
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
@@ -287,7 +287,7 @@ ggdag_paths <- function(
       geom_dag_edges(
         data_directed = f_directed,
         data_bidirected = f_bidirected,
-        ggplot2::aes(edge_colour = path),
+        ggplot2::aes(edge_colour = path_type),
         show.legend = if (shadow) TRUE else FALSE
       )
 
@@ -299,16 +299,18 @@ ggdag_paths <- function(
 
     p <- p +
       ggraph::scale_edge_color_discrete(
+        name = "path",
         drop = FALSE,
         na.value = if (shadow) "grey80" else "#FFFFFF00",
         na.translate = if (shadow) TRUE else FALSE,
-        limits = "open path"
+        limits = c("direct", "backdoor")
       ) +
       ggplot2::scale_color_discrete(
+        name = "path",
         drop = FALSE,
         na.value = if (shadow) "grey80" else "#FFFFFF00",
         na.translate = if (shadow) TRUE else FALSE,
-        limits = "open path"
+        limits = c("direct", "backdoor")
       )
   }
 

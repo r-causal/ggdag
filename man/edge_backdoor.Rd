@@ -34,7 +34,7 @@ Default is \code{NULL}.}
 \value{
 A \code{tidy_dagitty} object with additional columns:
 \itemize{
-\item \code{edge_type}: "backdoor" or "direct" classification for each edge
+\item \code{edge_type}: "backdoor", "direct", or "both" classification for each edge
 \item \code{open}: logical indicating if the edge is part of an open path
 \item \code{path_type}: the classification, or NA for closed paths when
 \code{open_only = TRUE}
@@ -50,9 +50,8 @@ of paths it appears on.
 Edges are classified by examining the paths between exposure and outcome:
 \itemize{
 \item Direct edges appear only on directed causal paths
-\item Backdoor edges appear on paths that are not directed causal paths
-\item Edges can be on both types of paths and will be classified based on
-whether they appear on any backdoor paths
+\item Backdoor edges appear only on backdoor paths
+\item Both edges appear on both direct and backdoor paths
 }
 }
 \examples{
