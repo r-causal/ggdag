@@ -40,7 +40,10 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="ggdag-development-version">ggdag (development version)<a class="anchor" aria-label="anchor" href="#ggdag-development-version"></a></h2>
-<ul><li>Introduced new <code>query_*()</code> API for direct analytical queries on DAGs (<a href="https://github.com/r-causal/ggdag/issues/185" class="external-link">#185</a>). These functions return tibbles with results rather than tidy DAG objects for plotting:
+<ul><li>Added <code><a href="../reference/edge_backdoor.html">edge_backdoor()</a></code> function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
+<li>Enhanced <code><a href="../reference/paths.html">dag_paths()</a></code> and <code><a href="../reference/query_paths.html">query_paths()</a></code> to include <code>path_type</code> column that classifies paths as “backdoor” or “direct” (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
+<li>Changed default aesthetic in <code><a href="../reference/paths.html">ggdag_paths()</a></code> from coloring by path status to coloring by path type (direct vs backdoor), providing more informative visualization of causal pathways</li>
+<li>Introduced new <code>query_*()</code> API for direct analytical queries on DAGs (<a href="https://github.com/r-causal/ggdag/issues/185" class="external-link">#185</a>). These functions return tibbles with results rather than tidy DAG objects for plotting:
 <ul><li>
 <code><a href="../reference/query_adjustment_sets.html">query_adjustment_sets()</a></code>: Find adjustment sets to close backdoor paths</li>
 <li>
