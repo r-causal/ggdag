@@ -68,7 +68,10 @@ test_that("query_paths works correctly", {
 
   result <- query_paths(dag)
   expect_s3_class(result, "tbl_df")
-  expect_named(result, c("path_id", "from", "to", "path", "variables", "open"))
+  expect_named(
+    result,
+    c("path_id", "from", "to", "path", "path_type", "variables", "open")
+  )
   expect_gt(nrow(result), 0)
   expect_true(all(result$from == "x"))
   expect_true(all(result$to == "y"))
@@ -91,6 +94,58 @@ test_that("query_paths works correctly", {
   )
   result4 <- query_paths(dag2, from = "x", to = "y")
   expect_equal(nrow(result4), 0)
+})
+
+test_that("query_paths correctly classifies path types", {
+  # Simple DAG with direct and backdoor paths
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+  expect_true("path_type" %in% names(result))
+
+  # Check that we have both types of paths
+  expect_true("direct" %in% result$path_type)
+  expect_true("backdoor" %in% result$path_type)
+
+  # Direct path should be x -> y
+  direct_paths <- result[result$path_type == "direct", ]
+  expect_equal(nrow(direct_paths), 1)
+  expect_true(grepl("x -> y", direct_paths$path))
+
+  # Backdoor path should be x <- z -> y
+  backdoor_paths <- result[result$path_type == "backdoor", ]
+  expect_equal(nrow(backdoor_paths), 1)
+  expect_true(grepl("z", backdoor_paths$path))
+
+  # DAG with only direct paths
+  dag2 <- dagify(
+    y ~ x,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result2 <- query_paths(dag2)
+  expect_true(all(result2$path_type == "direct"))
+
+  # DAG with only backdoor paths
+  dag3 <- dagify(
+    y ~ z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result3 <- query_paths(dag3)
+  expect_true(all(result3$path_type == "backdoor"))
+
+  # When directed = TRUE, all paths should be direct
+  result4 <- query_paths(dag, directed = TRUE)
+  expect_true(all(result4$path_type == "direct"))
 })
 
 test_that("query_instrumental works correctly", {

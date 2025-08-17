@@ -188,18 +188,18 @@
       # Paths: 2 open paths: {x -> y}, {x <- z -> y}
       #
       # Data:
-      # A tibble: 9 x 9
-        set   name       x       y direction to      xend    yend path     
-        <chr> <chr>  <dbl>   <dbl> <fct>     <chr>  <dbl>   <dbl> <chr>    
-      1 1     x      0.335  0.635  ->        y     -0.469  0.0367 open path
-      2 1     y     -0.469  0.0367 <NA>      <NA>  NA     NA      open path
-      3 1     z      0.451 -0.361  ->        x      0.335  0.635  <NA>     
-      4 1     z      0.451 -0.361  ->        y     -0.469  0.0367 <NA>     
-      5 2     x      0.335  0.635  ->        y     -0.469  0.0367 <NA>     
-      6 2     y     -0.469  0.0367 <NA>      <NA>  NA     NA      open path
-      7 2     z      0.451 -0.361  ->        x      0.335  0.635  open path
-      8 2     z      0.451 -0.361  ->        y     -0.469  0.0367 open path
-      9 2     x      0.335  0.635  <NA>      <NA>  NA     NA      open path
+      # A tibble: 9 x 10
+        set   name       x       y direction to      xend    yend path      path_type
+        <chr> <chr>  <dbl>   <dbl> <fct>     <chr>  <dbl>   <dbl> <chr>     <chr>    
+      1 1     x      0.335  0.635  ->        y     -0.469  0.0367 open path direct   
+      2 1     y     -0.469  0.0367 <NA>      <NA>  NA     NA      open path direct   
+      3 1     z      0.451 -0.361  ->        x      0.335  0.635  <NA>      <NA>     
+      4 1     z      0.451 -0.361  ->        y     -0.469  0.0367 <NA>      <NA>     
+      5 2     x      0.335  0.635  ->        y     -0.469  0.0367 <NA>      <NA>     
+      6 2     y     -0.469  0.0367 <NA>      <NA>  NA     NA      open path backdoor 
+      7 2     z      0.451 -0.361  ->        x      0.335  0.635  open path backdoor 
+      8 2     z      0.451 -0.361  ->        y     -0.469  0.0367 open path backdoor 
+      9 2     x      0.335  0.635  <NA>      <NA>  NA     NA      open path backdoor 
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
@@ -215,29 +215,29 @@
       # Paths: 3 open paths: {x -> y}, {x <- z -> y}, {x <- z <- w -> y}
       #
       # Data:
-      # A tibble: 20 x 9
-         set   name      x     y direction to     xend   yend path     
-         <chr> <chr> <dbl> <dbl> <fct>     <chr> <dbl>  <dbl> <chr>    
-       1 1     w     0.417 0.337 ->        y      1.50  0.202 <NA>     
-       2 1     w     0.417 0.337 ->        z      1.21  1.08  <NA>     
-       3 1     x     2.30  0.948 ->        y      1.50  0.202 open path
-       4 1     y     1.50  0.202 <NA>      <NA>  NA    NA     open path
-       5 1     z     1.21  1.08  ->        x      2.30  0.948 <NA>     
-       6 1     z     1.21  1.08  ->        y      1.50  0.202 <NA>     
-       7 2     w     0.417 0.337 ->        y      1.50  0.202 <NA>     
-       8 2     w     0.417 0.337 ->        z      1.21  1.08  <NA>     
-       9 2     x     2.30  0.948 ->        y      1.50  0.202 <NA>     
-      10 2     y     1.50  0.202 <NA>      <NA>  NA    NA     open path
-      11 2     z     1.21  1.08  ->        x      2.30  0.948 open path
-      12 2     z     1.21  1.08  ->        y      1.50  0.202 open path
-      13 2     x     2.30  0.948 <NA>      <NA>  NA    NA     open path
-      14 3     w     0.417 0.337 ->        y      1.50  0.202 open path
-      15 3     w     0.417 0.337 ->        z      1.21  1.08  open path
-      16 3     x     2.30  0.948 ->        y      1.50  0.202 <NA>     
-      17 3     y     1.50  0.202 <NA>      <NA>  NA    NA     open path
-      18 3     z     1.21  1.08  ->        x      2.30  0.948 open path
-      19 3     z     1.21  1.08  ->        y      1.50  0.202 <NA>     
-      20 3     x     2.30  0.948 <NA>      <NA>  NA    NA     open path
+      # A tibble: 20 x 10
+         set   name      x     y direction to     xend   yend path      path_type
+         <chr> <chr> <dbl> <dbl> <fct>     <chr> <dbl>  <dbl> <chr>     <chr>    
+       1 1     w     0.417 0.337 ->        y      1.50  0.202 <NA>      <NA>     
+       2 1     w     0.417 0.337 ->        z      1.21  1.08  <NA>      <NA>     
+       3 1     x     2.30  0.948 ->        y      1.50  0.202 open path direct   
+       4 1     y     1.50  0.202 <NA>      <NA>  NA    NA     open path direct   
+       5 1     z     1.21  1.08  ->        x      2.30  0.948 <NA>      <NA>     
+       6 1     z     1.21  1.08  ->        y      1.50  0.202 <NA>      <NA>     
+       7 2     w     0.417 0.337 ->        y      1.50  0.202 <NA>      <NA>     
+       8 2     w     0.417 0.337 ->        z      1.21  1.08  <NA>      <NA>     
+       9 2     x     2.30  0.948 ->        y      1.50  0.202 <NA>      <NA>     
+      10 2     y     1.50  0.202 <NA>      <NA>  NA    NA     open path backdoor 
+      11 2     z     1.21  1.08  ->        x      2.30  0.948 open path backdoor 
+      12 2     z     1.21  1.08  ->        y      1.50  0.202 open path backdoor 
+      13 2     x     2.30  0.948 <NA>      <NA>  NA    NA     open path backdoor 
+      14 3     w     0.417 0.337 ->        y      1.50  0.202 open path backdoor 
+      15 3     w     0.417 0.337 ->        z      1.21  1.08  open path backdoor 
+      16 3     x     2.30  0.948 ->        y      1.50  0.202 <NA>      <NA>     
+      17 3     y     1.50  0.202 <NA>      <NA>  NA    NA     open path backdoor 
+      18 3     z     1.21  1.08  ->        x      2.30  0.948 open path backdoor 
+      19 3     z     1.21  1.08  ->        y      1.50  0.202 <NA>      <NA>     
+      20 3     x     2.30  0.948 <NA>      <NA>  NA    NA     open path backdoor 
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
@@ -253,11 +253,11 @@
       # Paths: 1 open path: {x -> y}
       #
       # Data:
-      # A tibble: 2 x 9
-        set   name       x     y direction to      xend   yend path     
-        <chr> <chr>  <dbl> <dbl> <fct>     <chr>  <dbl>  <dbl> <chr>    
-      1 1     x     -0.611 0.166 ->        y      0.181  0.784 open path
-      2 1     y      0.181 0.784 <NA>      <NA>  NA     NA     open path
+      # A tibble: 2 x 10
+        set   name       x     y direction to      xend   yend path      path_type
+        <chr> <chr>  <dbl> <dbl> <fct>     <chr>  <dbl>  <dbl> <chr>     <chr>    
+      1 1     x     -0.611 0.166 ->        y      0.181  0.784 open path direct   
+      2 1     y      0.181 0.784 <NA>      <NA>  NA     NA     open path direct   
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

@@ -85,8 +85,8 @@ ggdag_paths_fan(
 \item{from}{character vector of length 1, name of exposure variable. Default
 is \code{NULL}, in which case it will check the input DAG for exposure.}
 
-\item{to}{character vector of length 1, name of exposure variable. Default is
-\code{NULL}, in which case it will check the input DAG for exposure.}
+\item{to}{character vector of length 1, name of outcome variable. Default is
+\code{NULL}, in which case it will check the input DAG for outcome.}
 
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}
@@ -152,8 +152,9 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{spread}{the width of the fan spread}
 }
 \value{
-a \code{tidy_dagitty} with a \code{path} column for path variables and a \code{set}
-grouping column or a \code{ggplot}.
+a \code{tidy_dagitty} with a \code{path} column for path variables, a \code{set}
+grouping column, and a \code{path_type} column classifying paths as "backdoor"
+or "direct", or a \code{ggplot}.
 }
 \description{
 \code{dag_paths} finds open paths between a given exposure and outcome.
