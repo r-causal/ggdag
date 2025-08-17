@@ -103,7 +103,7 @@ dag_paths <- function(
   }
 
   # Filter for open paths
-  if (nrow(all_paths_info) == 0 || all(all_paths_info$open == FALSE)) {
+  if (nrow(all_paths_info) == 0 || all(!all_paths_info$open)) {
     all_open_paths <- character(0)
   } else {
     all_open_paths <- all_paths_info |>
@@ -111,7 +111,7 @@ dag_paths <- function(
       dplyr::pull(paths)
   }
 
-  if (nrow(causal_paths_info) == 0 || all(causal_paths_info$open == FALSE)) {
+  if (nrow(causal_paths_info) == 0 || all(!causal_paths_info$open)) {
     causal_open_paths <- character(0)
   } else {
     causal_open_paths <- causal_paths_info |>
@@ -651,7 +651,11 @@ edge_backdoor <- function(
   if (open_only) {
     updated_data <- updated_data |>
       dplyr::mutate(
-        path_type = ifelse(open %in% TRUE, path_type, NA_character_)
+        path_type = dplyr::if_else(
+          !is.na(open) & open,
+          path_type,
+          NA_character_
+        )
       )
   }
 

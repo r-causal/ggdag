@@ -516,7 +516,7 @@ test_that("edge_backdoor() handles closed paths correctly", {
   # With c adjusted, x <- z -> c <- y path is closed
   # Only x -> y is open
   open_edges <- dag_data_open |>
-    dplyr::filter(open == TRUE)
+    dplyr::filter(open)
 
   expect_true(all(open_edges$path_type == "direct"))
 
@@ -531,7 +531,7 @@ test_that("edge_backdoor() handles closed paths correctly", {
   dag_data_all <- pull_dag_data(result_all)
 
   # Should have both open and closed path information
-  expect_true(any(dag_data_all$open == FALSE, na.rm = TRUE))
+  expect_true(any(!dag_data_all$open, na.rm = TRUE))
   # Edges that are on paths between x and y should have path_type
   edges_on_paths <- dag_data_all |>
     dplyr::filter(!is.na(path_type))

@@ -85,8 +85,8 @@ ggdag_paths_fan(
 \item{from}{character vector of length 1, name of exposure variable. Default
 is \code{NULL}, in which case it will check the input DAG for exposure.}
 
-\item{to}{character vector of length 1, name of exposure variable. Default is
-\code{NULL}, in which case it will check the input DAG for exposure.}
+\item{to}{character vector of length 1, name of outcome variable. Default is
+\code{NULL}, in which case it will check the input DAG for outcome.}
 
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}

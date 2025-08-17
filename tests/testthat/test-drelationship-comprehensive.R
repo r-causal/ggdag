@@ -94,7 +94,7 @@ test_that("node_dseparated identifies d-separated nodes correctly", {
   result_no_control_df <- pull_dag_data(result_no_control)
   expect_true("collider_line" %in% names(result_no_control_df))
   expect_true("adjusted" %in% names(result_no_control_df))
-  expect_true(all(result_no_control_df$collider_line == FALSE))
+  expect_true(all(!result_no_control_df$collider_line))
   expect_true(all(result_no_control_df$adjusted == "unadjusted"))
 
   # Test with exposure/outcome
