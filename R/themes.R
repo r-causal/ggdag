@@ -135,7 +135,14 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #' whenever [geom_dag_collider_edges()] is used. `scale_dag()` is deprecated in
 #' favor of `scale_adjusted()`.
 #'
-#' @param include_alpha Logical. Include alpha-related scales?
+#' @param include_linetype Logical. Include linetype scale for dashed lines on
+#'   collider edges? Default is TRUE.
+#' @param include_shape Logical. Include shape scale for adjustment status
+#'   (squares for adjusted, circles for unadjusted)? Default is TRUE.
+#' @param include_color Logical. Include color scale for adjustment status?
+#'   Default is TRUE.
+#' @param include_alpha Logical. Include alpha scales for de-emphasizing edges
+#'   from adjusted variables? Default is FALSE.
 #' @param breaks One of:
 #'
 #'   - NULL for no breaks
