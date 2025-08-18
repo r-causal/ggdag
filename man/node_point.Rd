@@ -13,7 +13,8 @@ geom_dag_node(
   ...,
   na.rm = FALSE,
   show.legend = NA,
-  inherit.aes = TRUE
+  inherit.aes = TRUE,
+  key_glyph = NULL
 )
 
 geom_dag_point(
@@ -23,7 +24,8 @@ geom_dag_point(
   ...,
   na.rm = FALSE,
   show.legend = NA,
-  inherit.aes = TRUE
+  inherit.aes = TRUE,
+  key_glyph = NULL
 )
 }
 \arguments{

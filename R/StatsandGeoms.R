@@ -1,3 +1,214 @@
+# Custom Legend Key Functions for ggdag
+# Focused implementation of essential glyph functions for better legend appearance
+
+#' @importFrom grid pointsGrob segmentsGrob gpar arrow unit grobTree
+#' @importFrom ggplot2 .pt .stroke alpha
+
+# Helper function to calculate appropriate legend box size
+# Mimics ggplot2's default calculation but with a scale factor
+calculate_key_box_size <- function(size, linewidth = 0, scale_factor = 1) {
+  # ggplot2's default: (size + linewidth) / 10 converts mm to cm
+  # We apply our scale factor to get proportional box size
+  ((size * scale_factor) + linewidth) / 10
+}
+
+#' DAG point legend key (25% size)
+#'
+#' A custom legend key function that draws points at 25% of their normal size
+#' with proportionally sized legend boxes. This creates much more compact
+#' legends while maintaining visual clarity.
+#'
+#' @param data A data frame containing aesthetic information for the legend key
+#' @param params Additional parameters (not currently used)
+#' @param size Legend key size (not currently used)
+#'
+#' @return A grob object for the legend key
+#' @export
+draw_key_dag_point <- function(data, params, size) {
+  scale_factor <- 0.25
+  point_size <- (data$size %||% 16) * scale_factor
+
+  grob <- pointsGrob(
+    0.5,
+    0.5,
+    pch = data$shape %||% 19,
+    gp = gpar(
+      col = alpha(data$colour %||% "black", data$alpha %||% 1),
+      fill = alpha(data$fill %||% data$colour %||% "black", data$alpha %||% 1),
+      fontsize = point_size * .pt,
+      lwd = (data$stroke %||% 0.5) * .stroke / 3
+    )
+  )
+
+  box_size <- calculate_key_box_size(
+    data$size %||% 16,
+    data$linewidth %||% 0,
+    scale_factor
+  )
+
+  attr(grob, "width") <- box_size
+  attr(grob, "height") <- box_size
+
+  grob
+}
+
+#' Combined DAG legend key (horizontal node-edge-node)
+#'
+#' A custom legend key function that displays a complete DAG representation
+#' showing two nodes connected by an arrow. This provides a unified legend
+#' entry for plots that show both nodes and edges.
+#'
+#' @param data A data frame containing aesthetic information for the legend key
+#' @param params Additional parameters (not currently used)
+#' @param size Legend key size (not currently used)
+#'
+#' @return A grob object for the legend key
+#' @export
+draw_key_dag_combined <- function(data, params, size) {
+  grob <- grobTree(
+    # First point
+    pointsGrob(
+      0.2,
+      0.5,
+      pch = 19,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        fill = alpha(
+          data$fill %||% data$colour %||% "black",
+          data$alpha %||% 1
+        ),
+        fontsize = 3 * .pt
+      )
+    ),
+    # Arrow
+    segmentsGrob(
+      0.35,
+      0.5,
+      0.65,
+      0.5,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        lwd = 0.5 * .pt
+      ),
+      arrow = arrow(length = unit(2, "mm"), type = "closed")
+    ),
+    # Second point
+    pointsGrob(
+      0.8,
+      0.5,
+      pch = 19,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        fill = alpha(
+          data$fill %||% data$colour %||% "black",
+          data$alpha %||% 1
+        ),
+        fontsize = 3 * .pt
+      )
+    )
+  )
+
+  # Wider box for horizontal arrangement, but still proportional
+  box_height <- calculate_key_box_size(data$size %||% 16, 0, 0.4)
+  box_width <- box_height * 2 # Twice as wide for horizontal layout
+
+  attr(grob, "width") <- box_width
+  attr(grob, "height") <- box_height
+
+  grob
+}
+
+#' Collider pattern legend key (many-to-one)
+#'
+#' A custom legend key function that displays a collider pattern with two
+#' nodes pointing to one central node. This is particularly useful for
+#' visualizing collider relationships in DAGs.
+#'
+#' @param data A data frame containing aesthetic information for the legend key
+#' @param params Additional parameters (not currently used)
+#' @param size Legend key size (not currently used)
+#'
+#' @return A grob object for the legend key
+#' @export
+draw_key_dag_collider <- function(data, params, size) {
+  grob <- grobTree(
+    # Upper input point
+    pointsGrob(
+      0.2,
+      0.75,
+      pch = 19,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        fill = alpha(
+          data$fill %||% data$colour %||% "black",
+          data$alpha %||% 1
+        ),
+        fontsize = 3 * .pt
+      )
+    ),
+    # Lower input point
+    pointsGrob(
+      0.2,
+      0.25,
+      pch = 19,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        fill = alpha(
+          data$fill %||% data$colour %||% "black",
+          data$alpha %||% 1
+        ),
+        fontsize = 3 * .pt
+      )
+    ),
+    # Output point
+    pointsGrob(
+      0.8,
+      0.5,
+      pch = 19,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        fill = alpha(
+          data$fill %||% data$colour %||% "black",
+          data$alpha %||% 1
+        ),
+        fontsize = 3 * .pt
+      )
+    ),
+    # Upper arrow
+    segmentsGrob(
+      0.35,
+      0.7,
+      0.65,
+      0.55,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        lwd = 0.4 * .pt
+      ),
+      arrow = arrow(length = unit(1.5, "mm"), type = "closed")
+    ),
+    # Lower arrow
+    segmentsGrob(
+      0.35,
+      0.3,
+      0.65,
+      0.45,
+      gp = gpar(
+        col = alpha(data$colour %||% "black", data$alpha %||% 1),
+        lwd = 0.4 * .pt
+      ),
+      arrow = arrow(length = unit(1.5, "mm"), type = "closed")
+    )
+  )
+
+  # Square box for collider pattern
+  box_size <- calculate_key_box_size(data$size %||% 16, 0, 0.5)
+
+  attr(grob, "width") <- box_size
+  attr(grob, "height") <- box_size
+
+  grob
+}
+
 #' @importFrom stats setNames
 # Helper function to handle missing circular column (issue #119)
 handle_missing_circular_column <- function(data) {
@@ -61,7 +272,8 @@ GeomDagPoint <- ggplot2::ggproto(
     fill = NA,
     alpha = NA,
     stroke = 0.5
-  )
+  ),
+  draw_key = draw_key_dag_point
 )
 
 GeomDagNode <- ggplot2::ggproto(
@@ -125,7 +337,7 @@ GeomDagNode <- ggplot2::ggproto(
       )
     )
   },
-  draw_key = ggplot2::draw_key_point
+  draw_key = draw_key_dag_point
 )
 
 GeomDagText <- ggplot2::ggproto(
