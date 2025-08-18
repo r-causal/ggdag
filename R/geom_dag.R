@@ -1252,8 +1252,8 @@ geom_dag <- function(
   }
 
   list(
-    edge_geom,
     node_geom,
+    edge_geom,
     text_geom,
     label_geom
   )

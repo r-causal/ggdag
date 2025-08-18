@@ -126,7 +126,7 @@ test_that("scale_adjusted creates correct scales", {
   # Without alpha
   scales <- scale_adjusted(include_alpha = FALSE)
   expect_type(scales, "list")
-  expect_length(scales, 5) # 3 scales + 2 NULLs for alpha scales
+  expect_length(scales, 3)
 
   # Check linetype scale
   expect_s3_class(scales[[1]], "ScaleDiscrete")
@@ -146,10 +146,6 @@ test_that("scale_adjusted creates correct scales", {
   expect_s3_class(scales[[3]], "ScaleDiscrete")
   expect_equal(scales[[3]]$aesthetics, "colour")
   expect_equal(scales[[3]]$limits, c("adjusted", "unadjusted"))
-
-  # Without alpha, positions 4 and 5 should be NULL
-  expect_null(scales[[4]])
-  expect_null(scales[[5]])
 
   # With alpha
   scales_alpha <- scale_adjusted(include_alpha = TRUE)

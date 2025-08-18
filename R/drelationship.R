@@ -338,7 +338,7 @@ ggdag_drelationship <- function(
       node = node,
       stylized = stylized
     ) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("d-connected", "d-separated"), name = "d-relationship") +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
@@ -363,6 +363,7 @@ ggdag_dseparated <- function(
   edge_width = 0.6,
   edge_cap = 10,
   arrow_length = 5,
+  use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
@@ -389,6 +390,7 @@ ggdag_dseparated <- function(
     edge_width = edge_width,
     edge_cap = edge_cap,
     arrow_length = arrow_length,
+    use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
@@ -419,6 +421,7 @@ ggdag_dconnected <- function(
   edge_width = 0.6,
   edge_cap = 10,
   arrow_length = 5,
+  use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
@@ -445,6 +448,7 @@ ggdag_dconnected <- function(
     edge_width = edge_width,
     edge_cap = edge_cap,
     arrow_length = arrow_length,
+    use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,

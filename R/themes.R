@@ -149,28 +149,39 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #'
 #' @export
 #' @rdname scale_adjusted
-scale_adjusted <- function(include_alpha = FALSE) {
-  list(
+scale_adjusted <- function(
+  include_linetype = TRUE,
+  include_shape = TRUE,
+  include_color = TRUE,
+  include_alpha = FALSE
+) {
+  scales <- list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
     ggplot2::scale_shape_manual(
       values = c("adjusted" = 15, "unadjusted" = 19),
       limits = c("adjusted", "unadjusted")
     ),
     ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
-    if (include_alpha) {
-      ggplot2::scale_alpha_manual(
-        values = c("adjusted" = .30, "unadjusted" = 1),
-        limits = c("adjusted", "unadjusted")
-      )
-    },
-    if (include_alpha) {
-      ggraph::scale_edge_alpha_manual(
-        name = NULL,
-        values = c("adjusted" = .30, "unadjusted" = 1),
-        limits = c("adjusted", "unadjusted")
-      )
-    }
+    ggplot2::scale_alpha_manual(
+      values = c("adjusted" = .30, "unadjusted" = 1),
+      limits = c("adjusted", "unadjusted")
+    ),
+    ggraph::scale_edge_alpha_manual(
+      name = NULL,
+      values = c("adjusted" = .30, "unadjusted" = 1),
+      limits = c("adjusted", "unadjusted")
+    )
   )
+
+  # Filter scales based on arguments
+  keep_scale <- c(
+    include_linetype,
+    include_shape,
+    include_color,
+    include_alpha,
+    include_alpha
+  )
+  scales[keep_scale]
 }
 
 breaks <- function(
