@@ -265,7 +265,7 @@ dag |>
   geom_dag_text(col = "white") +
   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
   theme_dag() +
-  scale_adjusted() +
+  scale_adjusted(include_color = FALSE) +
   scale_color_hue(breaks = c("parent", "child"))
 
 ggdag_parents(dag, "y")
@@ -282,7 +282,7 @@ dag |>
   geom_dag_text(col = "white") +
   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
   theme_dag() +
-  scale_adjusted() +
+  scale_adjusted(include_color = FALSE) +
   scale_color_hue(breaks = c("parent", "child"))
 
 }

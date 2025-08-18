@@ -41,7 +41,7 @@
 #'   geom_dag_text(col = "white") +
 #'   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
 #'   theme_dag() +
-#'   scale_adjusted() +
+#'   scale_adjusted(include_color = FALSE) +
 #'   scale_color_hue(breaks = c("parent", "child"))
 #'
 #' ggdag_parents(dag, "y")
@@ -58,7 +58,7 @@
 #'   geom_dag_text(col = "white") +
 #'   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
 #'   theme_dag() +
-#'   scale_adjusted() +
+#'   scale_adjusted(include_color = FALSE) +
 #'   scale_color_hue(breaks = c("parent", "child"))
 #'
 #' @rdname variable_family
@@ -236,7 +236,7 @@ ggdag_children <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_children(.var) |>
     ggplot2::ggplot(aes_dag(color = children)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("parent", "child"), drop = FALSE)
 
   p <- p +
@@ -294,7 +294,7 @@ ggdag_parents <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_parents(.var) |>
     ggplot2::ggplot(aes_dag(color = parent)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("parent", "child"), drop = FALSE)
 
   p <- p +
@@ -351,7 +351,7 @@ ggdag_ancestors <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_ancestors(.var) |>
     ggplot2::ggplot(aes_dag(color = ancestor)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("ancestor", "descendant"), drop = FALSE)
 
   p <- p +
@@ -409,7 +409,7 @@ ggdag_descendants <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_descendants(.var) |>
     ggplot2::ggplot(aes_dag(color = descendant)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("ancestor", "descendant"), drop = FALSE)
 
   p <- p +
@@ -468,7 +468,7 @@ ggdag_markov_blanket <- function(
     node_markov_blanket(.var) |>
     ggplot2::ggplot(aes_dag(color = blanket)) +
     geom_dag_text(col = "white") +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("Markov blanket", "center variable"))
 
   p <- p +
@@ -526,7 +526,7 @@ ggdag_adjacent <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_adjacent(.var) |>
     ggplot2::ggplot(aes_dag(color = adjacent)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("adjacent", "center variable"))
 
   p <- p +

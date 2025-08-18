@@ -211,7 +211,7 @@ dag |>
   geom_dag_node() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_adjusted()
+  scale_adjusted(include_color = FALSE)
 
 dag |>
   node_dconnected("x", "y", controlling_for = "m") |>
@@ -221,7 +221,7 @@ dag |>
   geom_dag_node() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_adjusted()
+  scale_adjusted(include_color = FALSE)
 
 dagify(m ~ x + y, m_jr ~ m) |>
   tidy_dagitty(layout = "nicely") |>
@@ -232,5 +232,5 @@ dagify(m ~ x + y, m_jr ~ m) |>
   geom_dag_node() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_adjusted()
+  scale_adjusted(include_color = FALSE)
 }

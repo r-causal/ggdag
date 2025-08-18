@@ -80,7 +80,7 @@ ggdag_status <- function(
   p <- if_not_tidy_daggity(.tdy_dag) |>
     node_status(...) |>
     ggplot2::ggplot(aes_dag(color = status)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("exposure", "outcome", "latent"))
 
   p <- p +
