@@ -95,6 +95,8 @@ ggdag_collider <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = unified_legend,
+      key_glyph = draw_key_dag_point,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,

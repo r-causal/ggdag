@@ -235,7 +235,7 @@ test_that("geom_dag main function works with different options", {
 
   # With stylized nodes
   geoms_stylized <- geom_dag(use_stylized = TRUE)
-  expect_equal(class(geoms_stylized[[1]]$geom)[1], "GeomDagNode")
+  expect_equal(class(geoms_stylized[[1]]$geom)[2], "GeomDagNode")
 
   # With different edge types
   geoms_arc <- geom_dag(edge_type = "arc")

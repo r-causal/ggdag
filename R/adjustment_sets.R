@@ -145,7 +145,7 @@ ggdag_adjustment_set <- function(
     p <- p +
       geom_dag_edges(
         ggplot2::aes(edge_colour = adjusted),
-        show.legend = if (shadow) TRUE else FALSE
+        show.legend = FALSE
       ) +
       ggraph::scale_edge_colour_manual(
         drop = FALSE,
@@ -170,6 +170,7 @@ ggdag_adjustment_set <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      key_glyph = draw_key_dag_point,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
@@ -286,6 +287,7 @@ ggdag_adjust <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  key_glyph = draw_key_dag_point,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -346,6 +348,7 @@ ggdag_adjust <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,

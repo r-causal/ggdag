@@ -7,6 +7,17 @@
 # Helper function to calculate appropriate legend box size
 # Mimics ggplot2's default calculation but with a scale factor
 calculate_key_box_size <- function(size, linewidth = 0, scale_factor = 1) {
+  # Handle NA values by replacing with defaults
+  if (is.na(size)) {
+    size <- 16
+  }
+  if (is.na(linewidth)) {
+    linewidth <- 0
+  }
+  if (is.na(scale_factor)) {
+    scale_factor <- 1
+  }
+
   # ggplot2's default: (size + linewidth) / 10 converts mm to cm
   # We apply our scale factor to get proportional box size
   ((size * scale_factor) + linewidth) / 10
@@ -70,7 +81,7 @@ draw_key_dag_combined <- function(data, params, size) {
     pointsGrob(
       0.2,
       0.5,
-      pch = 19,
+      pch = data$shape %||% 19,
       gp = gpar(
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         fill = alpha(
@@ -87,6 +98,7 @@ draw_key_dag_combined <- function(data, params, size) {
       0.65,
       0.5,
       gp = gpar(
+        fill = alpha(data$colour %||% "black", data$alpha %||% 1),
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         lwd = 0.5 * .pt
       ),
@@ -96,7 +108,7 @@ draw_key_dag_combined <- function(data, params, size) {
     pointsGrob(
       0.8,
       0.5,
-      pch = 19,
+      pch = data$shape %||% 19,
       gp = gpar(
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         fill = alpha(
@@ -136,7 +148,7 @@ draw_key_dag_collider <- function(data, params, size) {
     pointsGrob(
       0.2,
       0.75,
-      pch = 19,
+      pch = data$shape %||% 19,
       gp = gpar(
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         fill = alpha(
@@ -150,7 +162,7 @@ draw_key_dag_collider <- function(data, params, size) {
     pointsGrob(
       0.2,
       0.25,
-      pch = 19,
+      pch = data$shape %||% 19,
       gp = gpar(
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         fill = alpha(
@@ -164,7 +176,7 @@ draw_key_dag_collider <- function(data, params, size) {
     pointsGrob(
       0.8,
       0.5,
-      pch = 19,
+      pch = data$shape %||% 19,
       gp = gpar(
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         fill = alpha(
@@ -181,6 +193,7 @@ draw_key_dag_collider <- function(data, params, size) {
       0.65,
       0.55,
       gp = gpar(
+        fill = alpha(data$colour %||% "black", data$alpha %||% 1),
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         lwd = 0.4 * .pt
       ),
@@ -193,6 +206,7 @@ draw_key_dag_collider <- function(data, params, size) {
       0.65,
       0.45,
       gp = gpar(
+        fill = alpha(data$colour %||% "black", data$alpha %||% 1),
         col = alpha(data$colour %||% "black", data$alpha %||% 1),
         lwd = 0.4 * .pt
       ),
@@ -202,6 +216,59 @@ draw_key_dag_collider <- function(data, params, size) {
 
   # Square box for collider pattern
   box_size <- calculate_key_box_size(data$size %||% 16, 0, 0.5)
+
+  attr(grob, "width") <- box_size
+  attr(grob, "height") <- box_size
+
+  grob
+}
+
+#' DAG edge legend key (arrow only)
+#'
+#' A custom legend key function that displays only an arrow (edge) without nodes.
+#' This is appropriate for edge-specific legends where nodes are not relevant.
+#'
+#' @param data A data frame containing aesthetic information for the legend key
+#' @param params Additional parameters (not currently used)
+#' @param size Legend key size (not currently used)
+#'
+#' @return A grob object for the legend key
+#' @export
+draw_key_dag_edge <- function(data, params, size) {
+  # always use a single arrow head
+  arrow <- params[["arrow"]]
+  if (!is.null(arrow)) {
+    arrow$ends <- 2L
+  }
+
+  # Draw a horizontal line with an arrow
+  grob <- segmentsGrob(
+    0.2,
+    0.5,
+    0.8,
+    0.5,
+    gp = gpar(
+      col = alpha(
+        data$edge_colour %||% data$colour %||% "black",
+        data$edge_alpha %||% data$alpha %||% 1
+      ),
+      fill = alpha(
+        data$edge_colour %||% data$colour %||% "black",
+        data$edge_alpha %||% data$alpha %||% 1
+      ),
+      lwd = (data$edge_width %||% 0.6) * .stroke * .7,
+      lty = data$edge_linetype %||% data$linetype %||% 1
+    ),
+    arrow = arrow
+  )
+
+  # Use standard box size for consistency
+  # Handle both NULL and NA values for linewidth
+  linewidth <- data$linewidth
+  if (is.null(linewidth) || is.na(linewidth)) {
+    linewidth <- 0.5
+  }
+  box_size <- calculate_key_box_size(16, linewidth, 0.4)
 
   attr(grob, "width") <- box_size
   attr(grob, "height") <- box_size
@@ -492,7 +559,8 @@ GeomDAGEdgePath <- ggplot2::ggproto(
     lineheight = 1.2,
     direction = "->",
     direction_type = "->"
-  )
+  ),
+  draw_key = draw_key_dag_edge
 )
 
 

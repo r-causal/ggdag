@@ -103,6 +103,12 @@ display.}
 rather than combining with them. This is most useful for helper functions
 that define both data and aesthetics and shouldn't inherit behaviour from
 the default plot specification, e.g. \code{\link[ggplot2:borders]{borders()}}.}
+
+\item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
+If \code{NULL} (the default), the glyph is chosen automatically based on the
+\code{unified_legend} setting. When provided, this overrides the automatic
+selection. Common options include \code{draw_key_dag_point},
+\code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
 }
 \description{
 \code{geom_dag_node} and \code{geom_dag_point} are very similar to

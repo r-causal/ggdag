@@ -289,6 +289,8 @@ ggdag_drelationship <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -333,6 +335,8 @@ ggdag_drelationship <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = unified_legend,
+      key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
@@ -368,6 +372,8 @@ ggdag_dseparated <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -399,6 +405,8 @@ ggdag_dseparated <- function(
     text = !!rlang::enquo(text),
     node = node,
     stylized = stylized,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
     collider_lines = collider_lines
   )
 }
@@ -426,6 +434,8 @@ ggdag_dconnected <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -457,6 +467,8 @@ ggdag_dconnected <- function(
     text = !!rlang::enquo(text),
     node = node,
     stylized = stylized,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
     collider_lines = collider_lines
   )
 }

@@ -287,8 +287,7 @@ ggdag_paths <- function(
       geom_dag_edges(
         data_directed = f_directed,
         data_bidirected = f_bidirected,
-        ggplot2::aes(edge_colour = .data$path_type),
-        show.legend = if (shadow) TRUE else FALSE
+        ggplot2::aes(edge_colour = .data$path_type)
       )
 
     if (shadow) {
@@ -303,13 +302,14 @@ ggdag_paths <- function(
         drop = FALSE,
         na.value = if (shadow) "grey80" else "#FFFFFF00",
         na.translate = if (shadow) TRUE else FALSE,
-        limits = c("direct", "backdoor")
+        limits = c("direct", "backdoor"),
+        guide = "none" # Hide edge legend
       ) +
       ggplot2::scale_color_discrete(
         name = "path",
         drop = FALSE,
         na.value = if (shadow) "grey80" else "#FFFFFF00",
-        na.translate = if (shadow) TRUE else FALSE,
+        na.translate = TRUE,
         limits = c("direct", "backdoor")
       )
   }
@@ -331,6 +331,8 @@ ggdag_paths <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = TRUE,
+      key_glyph = draw_key_dag_combined,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
@@ -366,6 +368,7 @@ ggdag_paths_fan <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -429,6 +432,7 @@ ggdag_paths_fan <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = unified_legend,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,

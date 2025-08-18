@@ -8,6 +8,11 @@
 #' @export
 #'
 #' @inheritParams ggplot2::geom_point
+#' @param key_glyph A function to use for drawing the legend key glyph for nodes.
+#'   If `NULL` (the default), the glyph is chosen automatically based on the
+#'   `unified_legend` setting. When provided, this overrides the automatic
+#'   selection. Common options include `draw_key_dag_point`,
+#'   `draw_key_dag_combined`, and `draw_key_dag_collider`.
 #'
 #' @section Aesthetics: `geom_dag_node` and `geom_dag_point` understand the
 #'   following aesthetics (required aesthetics are in bold):
@@ -1077,6 +1082,11 @@ aes_dag <- function(...) {
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
 #'   cleaner, more compact legends. Default is `TRUE`.
+#' @param key_glyph A function to use for drawing the legend key glyph for nodes.
+#'   If `NULL` (the default), the glyph is chosen automatically based on the
+#'   `unified_legend` setting. When provided, this overrides the automatic
+#'   selection. Common options include `draw_key_dag_point`,
+#'   `draw_key_dag_combined`, and `draw_key_dag_collider`.
 #' @param label The bare name of a column to use for `geom_dag_label_repel()`.
 #'   If `use_labels = TRUE`, the default is to use `label`.
 #' @param text The bare name of a column to use for `geom_dag_text()`. If
@@ -1116,6 +1126,7 @@ geom_dag <- function(
   use_text = TRUE,
   use_labels = FALSE,
   unified_legend = TRUE,
+  key_glyph = NULL,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -1179,8 +1190,10 @@ geom_dag <- function(
   }
 
   if (isTRUE(use_nodes)) {
-    # Determine key glyph based on unified_legend setting
-    node_key_glyph <- if (isTRUE(unified_legend) && isTRUE(use_edges)) {
+    # Determine key glyph: use provided glyph or select based on unified_legend
+    node_key_glyph <- if (!is.null(key_glyph)) {
+      key_glyph
+    } else if (isTRUE(unified_legend) && isTRUE(use_edges)) {
       draw_key_dag_combined
     } else {
       draw_key_dag_point

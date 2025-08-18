@@ -53,7 +53,7 @@
       i Please use the `stylized` argument instead.
     Output
       [[1]]
-      geom_dag_point: na.rm = FALSE
+      : na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 
       
