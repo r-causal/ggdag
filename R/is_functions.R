@@ -158,7 +158,7 @@ is_instrumental <- function(.dag, .var, exposure = NULL, outcome = NULL) {
 
   # instrumentalVariables returns a list with potentially complex structure
   # Check if .var appears anywhere in the results
-  any(vapply(ivs, \(iv) .var %in% unlist(iv), logical(1)))
+  purrr::some(ivs, \(iv) .var %in% unlist(iv))
 }
 
 #' @rdname is_node_properties
