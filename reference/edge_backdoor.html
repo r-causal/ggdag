@@ -69,18 +69,17 @@ of paths it appears on.</p>
 
 
 <dl><dt id="arg--dag">.dag<a class="anchor" aria-label="anchor" href="#arg--dag"></a></dt>
-<dd><p>input graph, an object of class <code>tidy_dagitty</code> or
-<code>dagitty</code></p></dd>
+<dd><p>A <code>tidy_dagitty</code> or <code>dagitty</code> object</p></dd>
 
 
 <dt id="arg-from">from<a class="anchor" aria-label="anchor" href="#arg-from"></a></dt>
-<dd><p>character vector of length 1, name of exposure variable. Default
-is <code>NULL</code>, in which case it will check the input DAG for exposure.</p></dd>
+<dd><p>A character vector with starting node name(s), or <code>NULL</code>. If
+<code>NULL</code>, checks DAG for exposure variable.</p></dd>
 
 
 <dt id="arg-to">to<a class="anchor" aria-label="anchor" href="#arg-to"></a></dt>
-<dd><p>character vector of length 1, name of outcome variable. Default is
-<code>NULL</code>, in which case it will check the input DAG for outcome.</p></dd>
+<dd><p>A character vector with ending node name(s), or <code>NULL</code>. If <code>NULL</code>,
+checks DAG for outcome variable.</p></dd>
 
 
 <dt id="arg-adjust-for">adjust_for<a class="anchor" aria-label="anchor" href="#arg-adjust-for"></a></dt>

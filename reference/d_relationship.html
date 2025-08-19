@@ -184,28 +184,27 @@ relationship. See <code><a href="https://rdrr.io/pkg/dagitty/man/dconnected.html
 
 
 <dl><dt id="arg--tdy-dag">.tdy_dag<a class="anchor" aria-label="anchor" href="#arg--tdy-dag"></a></dt>
-<dd><p>input graph, an object of class <code>tidy_dagitty</code> or
-<code>dagitty</code></p></dd>
+<dd><p>A <code>tidy_dagitty</code> or <code>dagitty</code> object</p></dd>
 
 
 <dt id="arg-from">from<a class="anchor" aria-label="anchor" href="#arg-from"></a></dt>
-<dd><p>a character vector, the starting variable (must by in DAG). If
+<dd><p>A character vector with starting node name(s), or <code>NULL</code>. If
 <code>NULL</code>, checks DAG for exposure variable.</p></dd>
 
 
 <dt id="arg-to">to<a class="anchor" aria-label="anchor" href="#arg-to"></a></dt>
-<dd><p>a character vector, the ending variable (must by in DAG). If
-<code>NULL</code>, checks DAG for outcome variable.</p></dd>
+<dd><p>A character vector with ending node name(s), or <code>NULL</code>. If <code>NULL</code>,
+checks DAG for outcome variable.</p></dd>
 
 
 <dt id="arg-controlling-for">controlling_for<a class="anchor" aria-label="anchor" href="#arg-controlling-for"></a></dt>
-<dd><p>a character vector, variables in the DAG to control
-for.</p></dd>
+<dd><p>A set of variables to control for. This can be a
+character vector of variable names, a list of the form <code>list(c(...))</code>, or
+<code>NULL</code>. When <code>NULL</code>, no control is applied. Default is <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-as-factor">as_factor<a class="anchor" aria-label="anchor" href="#arg-as-factor"></a></dt>
-<dd><p>logical. Should the <code>d_relationship</code> variable be a
-factor?</p></dd>
+<dd><p>Logical. Should the column be a factor?</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -310,8 +309,8 @@ If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p>
 
 
 <dt id="arg-collider-lines">collider_lines<a class="anchor" aria-label="anchor" href="#arg-collider-lines"></a></dt>
-<dd><p>logical. Should the plot show paths activated by
-adjusting for a collider?</p></dd>
+<dd><p>Logical. Should paths opened by conditioning on
+colliders be shown?</p></dd>
 
 </dl></div>
     <div class="section level2">

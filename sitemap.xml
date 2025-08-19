@@ -22,6 +22,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/coordinates.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/d_relationship.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dag.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/dag_params.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dag_saturate.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dagify.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dot-validate_query_input.html</loc></url>
@@ -53,6 +54,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/is_confounder.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/label.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/node_point.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/path_params.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/paths.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/pipe.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/print.tidy_dagitty.html</loc></url>
