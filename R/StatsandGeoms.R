@@ -320,7 +320,7 @@ StatNodesRepel <- ggplot2::ggproto(
         data |>
           dplyr::filter(!is.na(label)) |>
           group_by(PANEL) |>
-          dplyr::distinct(label, .keep_all = TRUE) |>
+          dplyr::distinct(x, y, label, .keep_all = TRUE) |>
           ungroup()
       }
     } else {
