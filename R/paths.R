@@ -4,9 +4,9 @@
 #' `ggdag_paths` and `ggdag_paths_fan` plot all open paths. See
 #' [dagitty::paths()] for details.
 #'
-#' @inheritParams dagitty::paths
 #' @inheritParams dag_params
 #' @inheritParams path_params
+#' @inheritParams dagitty::paths
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is `NULL`.
 #' @param directed logical. Should only directed paths be shown?

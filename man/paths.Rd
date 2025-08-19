@@ -82,9 +82,11 @@ ggdag_paths_fan(
 \arguments{
 \item{.dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{from}{name(s) of first variable(s).}
+\item{from}{A character vector with starting node name(s), or \code{NULL}. If
+\code{NULL}, checks DAG for exposure variable.}
 
-\item{to}{name(s) of last variable(s).}
+\item{to}{A character vector with ending node name(s), or \code{NULL}. If \code{NULL},
+checks DAG for outcome variable.}
 
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}
