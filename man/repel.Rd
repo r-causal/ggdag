@@ -5,6 +5,7 @@
 \alias{geom_dag_text_repel}
 \alias{geom_dag_label_repel}
 \alias{geom_dag_label_repel2}
+\alias{geom_dag_text_repel2}
 \title{Repulsive textual annotations}
 \usage{
 geom_dag_text_repel(
@@ -55,6 +56,14 @@ geom_dag_label_repel2(
   box.padding = 2,
   max.overlaps = Inf,
   label.size = NA,
+  ...
+)
+
+geom_dag_text_repel2(
+  mapping = NULL,
+  data = NULL,
+  box.padding = 2,
+  max.overlaps = Inf,
   ...
 )
 }
@@ -139,7 +148,9 @@ These functions are minor modifications of those in the ggrepel package.
 \code{geom_dag_label_repel()} draws a rectangle underneath the text, making it
 easier to read. The text labels repel away from each other and away from the
 data points. \code{geom_dag_label_repel2()} is a slightly stylized version of
-geom_dag_label_repel()` that often looks better on DAGs.
+\code{geom_dag_label_repel()} that often looks better on DAGs.
+\code{geom_dag_text_repel2()} is a slightly stylized version of
+\code{geom_dag_text_repel()} that often looks better on DAGs.
 }
 \examples{
 library(ggplot2)
