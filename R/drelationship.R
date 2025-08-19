@@ -27,7 +27,8 @@
 #'
 #' dag |>
 #'   node_dseparated("x", "y") |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+#'              col = d_relationship)) +
 #'   geom_dag_edges() +
 #'   geom_dag_collider_edges() +
 #'   geom_dag_node() +
@@ -37,7 +38,8 @@
 #'
 #' dag |>
 #'   node_dconnected("x", "y", controlling_for = "m") |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+#'              col = d_relationship)) +
 #'   geom_dag_edges() +
 #'   geom_dag_collider_edges() +
 #'   geom_dag_node() +
@@ -48,7 +50,8 @@
 #' dagify(m ~ x + y, m_jr ~ m) |>
 #'   tidy_dagitty(layout = "nicely") |>
 #'   node_dconnected("x", "y", controlling_for = "m_jr") |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted, col = d_relationship)) +
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+#'              col = d_relationship)) +
 #'   geom_dag_edges() +
 #'   geom_dag_collider_edges() +
 #'   geom_dag_node() +
@@ -103,10 +106,10 @@ node_dconnected <- function(
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     d_relationship = ifelse(
-      name %in% c(.from, .to) & .dconnected,
+      .data$name %in% c(.from, .to) & .dconnected,
       "d-connected",
       ifelse(
-        name %in% c(.from, .to) & !.dconnected,
+        .data$name %in% c(.from, .to) & !.dconnected,
         "d-separated",
         NA
       )
@@ -116,7 +119,7 @@ node_dconnected <- function(
     .tdy_dag <- mutate(
       .tdy_dag,
       d_relationship = factor(
-        d_relationship,
+        .data$d_relationship,
         levels = c("d-connected", "d-separated"),
         exclude = NA
       )
@@ -175,10 +178,10 @@ node_dseparated <- function(
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     d_relationship = ifelse(
-      name %in% c(.from, .to) & !.dseparated,
+      .data$name %in% c(.from, .to) & !.dseparated,
       "d-connected",
       ifelse(
-        name %in% c(.from, .to) & .dseparated,
+        .data$name %in% c(.from, .to) & .dseparated,
         "d-separated",
         NA
       )
@@ -188,7 +191,7 @@ node_dseparated <- function(
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
       d_relationship = factor(
-        d_relationship,
+        .data$d_relationship,
         levels = c("d-connected", "d-separated"),
         exclude = NA
       )
@@ -240,8 +243,8 @@ node_drelationship <- function(
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     d_relationship = dplyr::case_when(
-      name %in% c(.from, .to) & !.dseparated ~ "d-connected",
-      name %in% c(.from, .to) & .dseparated ~ "d-separated",
+      .data$name %in% c(.from, .to) & !.dseparated ~ "d-connected",
+      .data$name %in% c(.from, .to) & .dseparated ~ "d-separated",
       TRUE ~ NA_character_
     )
   )
@@ -249,7 +252,7 @@ node_drelationship <- function(
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
       d_relationship = factor(
-        d_relationship,
+        .data$d_relationship,
         levels = c("d-connected", "d-separated"),
         exclude = NA
       )
@@ -299,9 +302,9 @@ ggdag_drelationship <- function(
 
   has_adjusted <- "adjusted" %in% names(pull_dag_data(df))
   if (has_adjusted) {
-    mapping <- aes_dag(shape = adjusted, color = d_relationship)
+    mapping <- aes_dag(shape = .data$adjusted, color = .data$d_relationship)
   } else {
-    mapping <- aes_dag(color = d_relationship)
+    mapping <- aes_dag(color = .data$d_relationship)
   }
 
   p <- ggplot2::ggplot(df, mapping)

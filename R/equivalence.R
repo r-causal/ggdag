@@ -36,7 +36,7 @@ node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
 
   layout_coords <- .dag |>
     pull_dag_data() |>
-    dplyr::select(name, x, y) |>
+    dplyr::select("name", "x", "y") |>
     dplyr::distinct() |>
     coords2list()
 
@@ -81,7 +81,7 @@ get_extra_column_names <- function(.x) {
 select_extra_columns <- function(.x) {
   .x |>
     pull_dag_data() |>
-    dplyr::select(name, get_extra_column_names(.x))
+    dplyr::select("name", get_extra_column_names(.x))
 }
 
 map_equivalence <- function(.x) {
@@ -167,16 +167,16 @@ node_equivalent_class <- function(.dag, layout = "auto") {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
   ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) |>
     dagitty::edges() |>
-    dplyr::filter(e == "--") |>
-    dplyr::select(name = v, reversable = e, to = w) |>
+    dplyr::filter(.data$e == "--") |>
+    dplyr::select(name = "v", reversable = "e", to = "w") |>
     dplyr::mutate_at(c("name", "to"), as.character) |>
-    dplyr::mutate(hash = hash(name, to)) |>
-    dplyr::select(hash, reversable)
+    dplyr::mutate(hash = hash(.data$name, .data$to)) |>
+    dplyr::select("hash", "reversable")
 
   .dag <- .dag |>
-    dplyr::mutate(hash = hash(name, to)) |>
+    dplyr::mutate(hash = hash(.data$name, .data$to)) |>
     dplyr::left_join(ec_data, by = "hash") |>
-    dplyr::mutate(reversable = !is.na(reversable)) |>
+    dplyr::mutate(reversable = !is.na(.data$reversable)) |>
     dplyr::select(-hash)
 
   .dag
@@ -212,18 +212,24 @@ ggdag_equivalent_class <- function(
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_equivalent_class(...)
 
-  reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), reversable)
-  non_reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), !reversable)
+  reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), .data$reversable)
+  non_reversable_lines <- dplyr::filter(
+    pull_dag_data(.tdy_dag),
+    !.data$reversable
+  )
   p <- .tdy_dag |>
-    ggplot2::ggplot(aes_dag(edge_alpha = reversable))
+    ggplot2::ggplot(aes_dag(edge_alpha = .data$reversable))
 
   if (use_edges) {
     p <- p +
       geom_dag_edges(
-        data_directed = dplyr::filter(non_reversable_lines, direction != "<->"),
+        data_directed = dplyr::filter(
+          non_reversable_lines,
+          .data$direction != "<->"
+        ),
         data_bidirected = dplyr::filter(
           non_reversable_lines,
-          direction == "<->"
+          .data$direction == "<->"
         )
       ) +
       geom_dag_edges_link(data = reversable_lines, arrow = NULL) +

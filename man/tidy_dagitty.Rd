@@ -51,7 +51,7 @@ dag <- dagitty("dag {
 tidy_dagitty(dag)
 
 tidy_dagitty(dag, layout = "fr") |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
   geom_dag_node() +
   geom_dag_text() +
   geom_dag_edges() +

@@ -34,7 +34,7 @@
       
       
       [[3]]
-      mapping: label = ~name 
+      mapping: label = ~.data$name 
       geom_dag_text: parse = FALSE, check_overlap = FALSE, na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 
@@ -72,7 +72,7 @@
       
       
       [[3]]
-      mapping: label = ~name 
+      mapping: label = ~.data$name 
       geom_dag_text: parse = FALSE, check_overlap = FALSE, na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 

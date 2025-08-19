@@ -153,7 +153,7 @@ ggdag(g, text = FALSE) + geom_dag_label()
 
 g |>
   tidy_dagitty() |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
   geom_dag_edges(aes(
     start_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm")),
     end_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm"))

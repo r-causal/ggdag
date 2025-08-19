@@ -39,7 +39,7 @@ dag_saturate <- function(
   .dag <- pull_dag(.tdy_dag)
   df_time_order <- .tdy_dag |>
     pull_dag_data() |>
-    dplyr::select(name, to) |>
+    dplyr::select("name", "to") |>
     auto_time_order() |>
     dplyr::arrange(order)
 
@@ -70,23 +70,27 @@ dag_prune <- function(.tdy_dag, edges) {
 
   single_edges <- .tdy_dag |>
     pull_dag_data() |>
-    dplyr::group_by(name) |>
+    dplyr::group_by(.data$name) |>
     dplyr::filter(dplyr::n() == 1) |>
     dplyr::ungroup() |>
     dplyr::inner_join(edges, by = c("name", "to")) |>
-    dplyr::select(name)
+    dplyr::select("name")
 
   .tdy_dag |>
     dplyr::mutate(
-      direction = ifelse(name %in% single_edges$name, NA, direction),
+      direction = ifelse(
+        .data$name %in% single_edges$name,
+        NA,
+        .data$direction
+      ),
       direction = factor(
-        direction,
+        .data$direction,
         levels = 1:3,
         labels = c("->", "<->", "--")
       ),
-      to = ifelse(name %in% single_edges$name, NA_character_, to),
-      xend = ifelse(name %in% single_edges$name, NA_real_, xend),
-      yend = ifelse(name %in% single_edges$name, NA_real_, yend)
+      to = ifelse(.data$name %in% single_edges$name, NA_character_, .data$to),
+      xend = ifelse(.data$name %in% single_edges$name, NA_real_, .data$xend),
+      yend = ifelse(.data$name %in% single_edges$name, NA_real_, .data$yend)
     ) |>
     dplyr::anti_join(edges, by = c("name", "to")) |>
     update_dag()

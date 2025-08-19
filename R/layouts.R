@@ -137,22 +137,22 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
 
   while (nrow(graph) > 0) {
     no_incoming <- graph |>
-      dplyr::filter(!(name %in% to)) |>
-      dplyr::pull(name)
+      dplyr::filter(!(.data$name %in% .data$to)) |>
+      dplyr::pull(.data$name)
 
     # Add the names and order values to the orders data frame
     orders <- dplyr::add_row(orders, name = no_incoming, order = order_value)
 
     # Remove the rows with no incoming edges
     graph <- graph |>
-      dplyr::filter(!name %in% no_incoming)
+      dplyr::filter(!.data$name %in% no_incoming)
 
     order_value <- order_value + 1
   }
 
   # Merge orders with the original tibble
   final_result <- dplyr::left_join(orders, graph, by = "name") |>
-    dplyr::select(name, order) |>
+    dplyr::select(.data$name, .data$order) |>
     dplyr::distinct()
 
   if (sort_direction == "left") {
@@ -161,7 +161,7 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
 
   final_result |>
     ggdag_left_join(graph2, by = "name") |>
-    dplyr::group_by(name) |>
+    dplyr::group_by(.data$name) |>
     dplyr::group_modify(\(.x, .y) right_sort_coords(.x, final_result)) |>
     dplyr::ungroup() |>
     dplyr::distinct()
@@ -169,8 +169,8 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
 
 right_sort_coords <- function(.x, .orders) {
   coords <- .orders |>
-    dplyr::filter(name %in% .x$to) |>
-    dplyr::pull(order)
+    dplyr::filter(.data$name %in% .x$to) |>
+    dplyr::pull(.data$order)
 
   if (length(coords) == 0) {
     dplyr::tibble(order = .x$order)

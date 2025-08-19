@@ -26,7 +26,7 @@ node_exogenous <- function(.dag, ...) {
 
   dplyr::mutate(
     .dag,
-    exogenous = ifelse(name %in% exogenous_vars, "exogenous", NA)
+    exogenous = ifelse(.data$name %in% exogenous_vars, "exogenous", NA)
   )
 }
 
@@ -58,7 +58,7 @@ ggdag_exogenous <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_exogenous() |>
-    ggplot2::ggplot(aes_dag(color = exogenous)) +
+    ggplot2::ggplot(aes_dag(color = .data$exogenous)) +
     scale_adjusted(include_color = FALSE) +
     breaks("exogenous")
 

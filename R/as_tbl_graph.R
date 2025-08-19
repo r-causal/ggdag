@@ -27,7 +27,7 @@
 #' @name as_tbl_graph
 as_tbl_graph.tidy_dagitty <- function(x, directed = TRUE, ...) {
   pull_dag_data(x) |>
-    dplyr::filter(!is.na(to)) |>
+    dplyr::filter(!is.na(.data$to)) |>
     tidygraph::as_tbl_graph(directed = directed, ...)
 }
 
@@ -35,6 +35,6 @@ as_tbl_graph.tidy_dagitty <- function(x, directed = TRUE, ...) {
 #' @name as_tbl_graph
 as_tbl_graph.dagitty <- function(x, directed = TRUE, ...) {
   dagitty::edges(x) |>
-    dplyr::select(from = v, to = w, direction = e) |>
+    dplyr::select(from = "v", to = "w", direction = "e") |>
     tidygraph::as_tbl_graph(directed = directed, ...)
 }

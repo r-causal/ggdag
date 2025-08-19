@@ -267,8 +267,8 @@ get_dagitty_edges <- function(.dag) {
   }
 
   .edges |>
-    dplyr::select(-x, -y) |>
-    dplyr::rename(name = v, to = w, direction = e)
+    dplyr::select(-"x", -"y") |>
+    dplyr::rename(name = "v", to = "w", direction = "e")
 }
 
 edges2df <- function(.edges) {

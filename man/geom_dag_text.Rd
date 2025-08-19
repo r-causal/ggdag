@@ -149,7 +149,7 @@ library(ggplot2)
 g <- dagify(m ~ x + y, y ~ x)
 g |>
   tidy_dagitty() |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
   geom_dag_point() +
   geom_dag_edges() +
   geom_dag_text() +

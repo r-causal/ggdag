@@ -37,7 +37,8 @@
 #'   geom_dag_edges() +
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
-#'   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
+#'   geom_dag_label_repel(aes(label = children, fill = children),
+#'                        col = "white", show.legend = FALSE) +
 #'   theme_dag() +
 #'   scale_adjusted(include_color = FALSE) +
 #'   scale_color_hue(breaks = c("parent", "child"))
@@ -54,7 +55,8 @@
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
 #'   geom_dag_text(col = "white") +
-#'   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
+#'   geom_dag_label_repel(aes(label = parent, fill = parent),
+#'                        col = "white", show.legend = FALSE) +
 #'   theme_dag() +
 #'   scale_adjusted(include_color = FALSE) +
 #'   scale_color_hue(breaks = c("parent", "child"))
@@ -69,15 +71,15 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     children = dplyr::case_when(
-      name %in% .children ~ "child",
-      name == .var ~ "parent",
+      .data$name %in% .children ~ "child",
+      .data$name == .var ~ "parent",
       TRUE ~ NA_character_
     )
   )
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
-      children = factor(children, exclude = NA)
+      children = factor(.data$children, exclude = NA)
     )
   }
 
@@ -94,13 +96,16 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     parent = dplyr::case_when(
-      name %in% .parent ~ "parent",
-      name == .var ~ "child",
+      .data$name %in% .parent ~ "parent",
+      .data$name == .var ~ "child",
       TRUE ~ NA
     )
   )
   if (as_factor) {
-    .tdy_dag <- dplyr::mutate(.tdy_dag, parent = factor(parent, exclude = NA))
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      parent = factor(.data$parent, exclude = NA)
+    )
   }
   .tdy_dag
 }
@@ -115,15 +120,15 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     ancestor = dplyr::case_when(
-      name %in% .ancestors ~ "ancestor",
-      name == .var ~ "descendant",
+      .data$name %in% .ancestors ~ "ancestor",
+      .data$name == .var ~ "descendant",
       TRUE ~ NA_character_
     )
   )
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
-      ancestor = factor(ancestor, exclude = NA)
+      ancestor = factor(.data$ancestor, exclude = NA)
     )
   }
   .tdy_dag
@@ -139,15 +144,15 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     descendant = dplyr::case_when(
-      name %in% .descendants ~ "descendant",
-      name == .var ~ "ancestor",
+      .data$name %in% .descendants ~ "descendant",
+      .data$name == .var ~ "ancestor",
       TRUE ~ NA_character_
     )
   )
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
-      descendant = factor(descendant, exclude = NA)
+      descendant = factor(.data$descendant, exclude = NA)
     )
   }
 
@@ -164,8 +169,8 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     blanket = dplyr::case_when(
-      name %in% .blanket ~ "Markov blanket",
-      name == .var ~ "center variable",
+      .data$name %in% .blanket ~ "Markov blanket",
+      .data$name == .var ~ "center variable",
       TRUE ~ NA_character_
     )
   )
@@ -173,7 +178,7 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
-      blanket = factor(blanket, exclude = NA)
+      blanket = factor(.data$blanket, exclude = NA)
     )
   }
 
@@ -190,15 +195,15 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     adjacent = dplyr::case_when(
-      name %in% .adjacent ~ "adjacent",
-      name == .var ~ "center variable",
+      .data$name %in% .adjacent ~ "adjacent",
+      .data$name == .var ~ "center variable",
       TRUE ~ NA_character_
     )
   )
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
-      adjacent = factor(adjacent, exclude = NA)
+      adjacent = factor(.data$adjacent, exclude = NA)
     )
   }
 
@@ -234,7 +239,7 @@ ggdag_children <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_children(.var) |>
-    ggplot2::ggplot(aes_dag(color = children)) +
+    ggplot2::ggplot(aes_dag(color = .data$children)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("parent", "child"), drop = FALSE)
 
@@ -295,7 +300,7 @@ ggdag_parents <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_parents(.var) |>
-    ggplot2::ggplot(aes_dag(color = parent)) +
+    ggplot2::ggplot(aes_dag(color = .data$parent)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("parent", "child"), drop = FALSE)
 
@@ -355,7 +360,7 @@ ggdag_ancestors <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_ancestors(.var) |>
-    ggplot2::ggplot(aes_dag(color = ancestor)) +
+    ggplot2::ggplot(aes_dag(color = .data$ancestor)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("ancestor", "descendant"), drop = FALSE)
 
@@ -416,7 +421,7 @@ ggdag_descendants <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_descendants(.var) |>
-    ggplot2::ggplot(aes_dag(color = descendant)) +
+    ggplot2::ggplot(aes_dag(color = .data$descendant)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("ancestor", "descendant"), drop = FALSE)
 
@@ -477,7 +482,7 @@ ggdag_markov_blanket <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_markov_blanket(.var) |>
-    ggplot2::ggplot(aes_dag(color = blanket)) +
+    ggplot2::ggplot(aes_dag(color = .data$blanket)) +
     geom_dag_text(col = "white") +
     scale_adjusted(include_color = FALSE) +
     breaks(c("Markov blanket", "center variable"))
@@ -539,7 +544,7 @@ ggdag_adjacent <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_adjacent(.var) |>
-    ggplot2::ggplot(aes_dag(color = adjacent)) +
+    ggplot2::ggplot(aes_dag(color = .data$adjacent)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("adjacent", "center variable"))
 

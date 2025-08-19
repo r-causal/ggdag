@@ -31,7 +31,7 @@
 #' tidy_dagitty(dag)
 #'
 #' tidy_dagitty(dag, layout = "fr") |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_node() +
 #'   geom_dag_text() +
 #'   geom_dag_edges() +
@@ -82,7 +82,7 @@ tidy_dagitty <- function(
   }
 
   coords_df <- dag_edges |>
-    dplyr::select(name, to) |>
+    dplyr::select("name", "to") |>
     generate_layout(
       layout = layout,
       vertices = names(.dagitty),
@@ -94,7 +94,7 @@ tidy_dagitty <- function(
     tidy_dag_edges_and_coords(coords_df)
 
   coords <- tidy_dag |>
-    dplyr::distinct(name, x, y) |>
+    dplyr::distinct(.data$name, .data$x, .data$y) |>
     coords2list()
 
   .labels <- label(.dagitty)
@@ -200,15 +200,15 @@ as_tidy_dagitty.data.frame <- function(
   }
 
   if ("adjusted" %in% names(tidy_dag)) {
-    .adjusted <- dplyr::filter(tidy_dag, adjusted == "adjusted") |>
-      dplyr::pull(name) |>
+    .adjusted <- dplyr::filter(tidy_dag, .data$adjusted == "adjusted") |>
+      dplyr::pull(.data$name) |>
       empty2list()
 
     dagitty::adjustedNodes(.dagitty) <- .adjusted
   }
 
   dagitty::coordinates(.dagitty) <- tidy_dag |>
-    select(name, x, y) |>
+    select("name", "x", "y") |>
     coords2list()
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
@@ -280,17 +280,30 @@ tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
 
   dag_edges |>
     dplyr::mutate(
-      name = as.character(name),
-      to = as.character(to),
-      direction = factor(direction, levels = c("->", "<->", "--"), exclude = NA)
+      name = as.character(.data$name),
+      to = as.character(.data$to),
+      direction = factor(
+        .data$direction,
+        levels = c("->", "<->", "--"),
+        exclude = NA
+      )
     ) |>
     (\(x) ggdag_left_join(coords_df, x, by = "name"))() |>
     ggdag_left_join(
-      coords_df |> dplyr::select(name, x, y),
+      coords_df |> dplyr::select("name", "x", "y"),
       by = c("to" = "name"),
       suffix = c("", "end")
     ) |>
-    dplyr::select(name, x, y, direction, to, xend, yend, dplyr::everything())
+    dplyr::select(
+      "name",
+      "x",
+      "y",
+      "direction",
+      "to",
+      "xend",
+      "yend",
+      dplyr::everything()
+    )
 }
 
 generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
@@ -324,7 +337,7 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
   }
 
   layout_df <- ggraph_layout |>
-    dplyr::select(name, x, y, circular) |>
+    dplyr::select("name", "x", "y", "circular") |>
     dplyr::as_tibble()
 
   # Remove circular column if all values are FALSE (issue #119)
@@ -694,10 +707,10 @@ coords2df <- function(coord_list) {
 #' @export
 coords2list <- function(coord_df) {
   x <- coord_df |>
-    dplyr::select(name, x) |>
+    dplyr::select("name", "x") |>
     tibble::deframe()
   y <- coord_df |>
-    dplyr::select(name, y) |>
+    dplyr::select("name", "y") |>
     tibble::deframe()
   list(x = x, y = y)
 }

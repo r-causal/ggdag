@@ -36,7 +36,7 @@
 #' g <- dagify(m ~ x + y, y ~ x)
 #' p <- g |>
 #'   tidy_dagitty() |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_edges() +
 #'   theme_dag()
 #'
@@ -131,7 +131,7 @@ geom_dag_point <- function(
 #' g <- dagify(m ~ x + y, y ~ x)
 #' g |>
 #'   tidy_dagitty() |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_point() +
 #'   geom_dag_edges() +
 #'   geom_dag_text() +
@@ -161,10 +161,10 @@ geom_dag_text <- function(
   }
 
   if (is.null(mapping)) {
-    mapping <- ggplot2::aes(label = name)
+    mapping <- ggplot2::aes(label = .data$name)
   }
   if (is.null(mapping$label)) {
-    mapping$label <- substitute(name)
+    mapping$label <- rlang::expr(.data$name)
   }
 
   ggplot2::layer(
@@ -216,7 +216,7 @@ geom_dag_text <- function(
 #'
 #' g |>
 #'   tidy_dagitty() |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_edges(aes(
 #'     start_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm")),
 #'     end_cap = label_rect(name, padding = margin(2.5, 2.5, 2.5, 2.5, "mm"))
@@ -248,10 +248,10 @@ geom_dag_label <- function(
   }
 
   if (is.null(mapping)) {
-    mapping <- ggplot2::aes(label = name)
+    mapping <- ggplot2::aes(label = .data$name)
   }
   if (is.null(mapping$label)) {
-    mapping$label <- substitute(name)
+    mapping$label <- rlang::expr(.data$name)
   }
 
   ggplot2::layer(
@@ -300,10 +300,10 @@ geom_dag_label <- function(
 #'
 #' g |>
 #'   tidy_dagitty() |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
-#'   geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
+#'   geom_dag_text_repel(aes(label = .data$name), show.legend = FALSE) +
 #'   theme_dag()
 #'
 #' g |>
@@ -313,12 +313,12 @@ geom_dag_label <- function(
 #'     "y" = "Here's the outcome",
 #'     "m" = "Here is where they collide"
 #'   )) |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
 #'   geom_dag_text() +
 #'   geom_dag_label_repel(
-#'     aes(label = label, fill = label),
+#'     aes(label = .data$label, fill = .data$label),
 #'     col = "white",
 #'     show.legend = FALSE
 #'   ) +
@@ -358,7 +358,7 @@ geom_dag_text_repel <- function(
       na.rm = na.rm,
       box.padding = box.padding,
       point.padding = point.padding,
-      segment.colour = segment.color %||% segment.colour,
+      segment.colour = segment.color,
       segment.size = segment.size,
       fontface = fontface,
       arrow = arrow,
@@ -412,7 +412,7 @@ geom_dag_label_repel <- function(
       point.padding = point.padding,
       label.r = label.r,
       label.size = label.size,
-      segment.colour = segment.color %||% segment.colour,
+      segment.colour = segment.color,
       segment.size = segment.size,
       arrow = arrow,
       na.rm = na.rm,
@@ -448,9 +448,9 @@ geom_dag_label_repel2 <- function(
 
 filter_direction <- function(.direction) {
   function(x) {
-    x <- dplyr::filter(x, direction == .direction)
+    x <- dplyr::filter(x, .data$direction == .direction)
     if ("collider_line" %in% names(x)) {
-      x <- dplyr::filter(x, !collider_line)
+      x <- dplyr::filter(x, !.data$collider_line)
     }
 
     x
@@ -552,7 +552,7 @@ expand_edge_aes <- function(mapping) {
 #'   z2 ~ w2 + v,
 #'   w1 ~ ~w2
 #' ) |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
 #'   geom_dag_text() +
@@ -679,7 +679,7 @@ geom_dag_edges <- function(
 #'   z2 ~ w2 + v,
 #'   L ~ w1 + w2
 #' ) |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
 #'   geom_dag_point() +
 #'   geom_dag_text() +
 #'   theme_dag()
@@ -872,10 +872,10 @@ geom_dag_edges_fan <- function(
   ...
 ) {
   if (is.null(mapping)) {
-    mapping <- ggplot2::aes(from = name, to = to)
+    mapping <- ggplot2::aes(from = .data$name, to = .data$to)
   } else if (is.null(mapping$from)) {
-    mapping$from <- substitute(name)
-    mapping$to <- substitute(to)
+    mapping$from <- rlang::expr(.data$name)
+    mapping$to <- rlang::expr(.data$to)
   }
 
   mapping <- expand_edge_aes(mapping)
@@ -953,12 +953,14 @@ geom_dag_collider_edges <- function(
   inherit.aes = TRUE
 ) {
   if (is.null(data)) {
-    data <- function(x) dplyr::filter(x, direction == "<->", collider_line)
+    data <- function(x) {
+      dplyr::filter(x, .data$direction == "<->", .data$collider_line)
+    }
   }
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(
       linetype = factor(
-        collider_line,
+        .data$collider_line,
         levels = TRUE,
         "activated by \nadjustment \nfor collider"
       )
@@ -966,7 +968,7 @@ geom_dag_collider_edges <- function(
   }
   if (is.null(mapping$linetype)) {
     mapping$linetype <- substitute(factor(
-      collider_line,
+      .data$collider_line,
       levels = TRUE,
       "activated by \nadjustment \nfor collider"
     ))
@@ -1027,7 +1029,7 @@ geom_dag_collider_edges <- function(
 #' library(ggplot2)
 #' confounder_triangle() |>
 #'   dag_adjustment_sets() |>
-#'   ggplot(aes_dag(color = adjusted)) +
+#'   ggplot(aes_dag(color = .data$adjusted)) +
 #'   geom_dag() +
 #'   facet_wrap(~set)
 #'
@@ -1035,10 +1037,10 @@ geom_dag_collider_edges <- function(
 aes_dag <- function(...) {
   addtl_aes <- ggplot2::aes(...)
   default_aes <- ggplot2::aes(
-    x = x,
-    y = y,
-    xend = xend,
-    yend = yend
+    x = .data$x,
+    y = .data$y,
+    xend = .data$xend,
+    yend = .data$yend
   )
 
   default_aes[names(addtl_aes)] <- addtl_aes

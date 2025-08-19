@@ -38,15 +38,18 @@ node_status <- function(.dag, as_factor = TRUE, ...) {
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     status = dplyr::case_when(
-      name %in% .exposures ~ "exposure",
-      name %in% .outcomes ~ "outcome",
-      name %in% .latents ~ "latent",
+      .data$name %in% .exposures ~ "exposure",
+      .data$name %in% .outcomes ~ "outcome",
+      .data$name %in% .latents ~ "latent",
       TRUE ~ NA
     )
   )
 
   if (as_factor) {
-    .tdy_dag <- dplyr::mutate(.tdy_dag, status = factor(status, exclude = NA))
+    .tdy_dag <- dplyr::mutate(
+      .tdy_dag,
+      status = factor(.data$status, exclude = NA)
+    )
   }
 
   .tdy_dag
@@ -80,7 +83,7 @@ ggdag_status <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag) |>
     node_status(...) |>
-    ggplot2::ggplot(aes_dag(color = status)) +
+    ggplot2::ggplot(aes_dag(color = .data$status)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("exposure", "outcome", "latent"))
 

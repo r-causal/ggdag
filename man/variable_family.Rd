@@ -273,7 +273,8 @@ dag |>
   geom_dag_edges() +
   geom_dag_node() +
   geom_dag_text(col = "white") +
-  geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
+  geom_dag_label_repel(aes(label = children, fill = children),
+                       col = "white", show.legend = FALSE) +
   theme_dag() +
   scale_adjusted(include_color = FALSE) +
   scale_color_hue(breaks = c("parent", "child"))
@@ -290,7 +291,8 @@ dag |>
   geom_dag_edges() +
   geom_dag_point() +
   geom_dag_text(col = "white") +
-  geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
+  geom_dag_label_repel(aes(label = parent, fill = parent),
+                       col = "white", show.legend = FALSE) +
   theme_dag() +
   scale_adjusted(include_color = FALSE) +
   scale_color_hue(breaks = c("parent", "child"))
