@@ -73,8 +73,8 @@ ggdag_collider <- function(
 ) {
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_collider() |>
-    dplyr::mutate(colliders = forcats::fct_rev(colliders)) |>
-    ggplot2::ggplot(aes_dag(color = colliders))
+    dplyr::mutate(colliders = forcats::fct_rev(.data$colliders)) |>
+    ggplot2::ggplot(aes_dag(color = .data$colliders))
 
   p <- p +
     geom_dag(
@@ -169,13 +169,13 @@ dagify_colliders <- function(.pairs_df, .tdy_dag) {
     dplyr::mutate(
       direction = factor("<->", levels = c("<-", "->", "<->"), exclude = NA)
     ) |>
-    dplyr::rename(name = Var1, to = Var2)
+    dplyr::rename(name = "Var1", to = "Var2")
 }
 
 join_lhs_coords <- function(.x, .y) {
   ggdag_left_join(
     .x,
-    pull_dag_data(.y) |> dplyr::select(name, x, y),
+    pull_dag_data(.y) |> dplyr::select("name", "x", "y"),
     by = c("Var1" = "name")
   )
 }
@@ -183,7 +183,8 @@ join_lhs_coords <- function(.x, .y) {
 join_rhs_coords <- function(.x, .y) {
   ggdag_left_join(
     .x,
-    pull_dag_data(.y) |> dplyr::select(name, xend = x, yend = y),
+    pull_dag_data(.y) |>
+      dplyr::select("name", xend = "x", yend = "y"),
     by = c("Var2" = "name")
   )
 }

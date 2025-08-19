@@ -141,14 +141,14 @@ ggdag_classic <- function(
     ) {
       p <- p +
         geom_dag_edges(ggplot2::aes(
-          start_cap = ggraph::label_rect(name, fontsize = fontsize),
-          end_cap = ggraph::label_rect(to, fontsize = fontsize)
+          start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
+          end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
         ))
     } else {
       p <- p +
         geom_dag_edges_link(ggplot2::aes(
-          start_cap = ggraph::label_rect(name, fontsize = fontsize),
-          end_cap = ggraph::label_rect(to, fontsize = fontsize)
+          start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
+          end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
         ))
     }
   }

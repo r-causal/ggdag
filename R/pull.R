@@ -127,8 +127,8 @@ prep_dag_data <- function(
 
   if (any(c("x", "y", "xend", "yend") %nin% names(value))) {
     coords_df <- value |>
-      dplyr::select(name, to) |>
-      dplyr::filter(!is.na(name), !is.na(to)) |>
+      dplyr::select("name", "to") |>
+      dplyr::filter(!is.na(.data$name), !is.na(.data$to)) |>
       generate_layout(
         layout = layout,
         coords = coords,
@@ -198,9 +198,9 @@ recompile_dag <- function(.dag) {
   }
 
   if ("adjusted" %in% names(pull_dag_data(.dag))) {
-    .adjusted <- dplyr::filter(.dag, adjusted == "adjusted") |>
+    .adjusted <- dplyr::filter(.dag, .data$adjusted == "adjusted") |>
       pull_dag_data() |>
-      dplyr::pull(name) |>
+      dplyr::pull(.data$name) |>
       empty2list()
   } else {
     .adjusted <- dagitty::adjustedNodes(pull_dag(.dag))
@@ -214,7 +214,7 @@ recompile_dag <- function(.dag) {
 
   dagitty::coordinates(new_dag) <- .dag |>
     pull_dag_data() |>
-    select(name, x, y) |>
+    select("name", "x", "y") |>
     coords2list()
 
   new_dag
@@ -226,17 +226,19 @@ compile_dag_from_df <- function(.df) {
   }
 
   .df |>
-    dplyr::filter(!is.na(to)) |>
+    dplyr::filter(!is.na(.data$to)) |>
     dplyr::mutate(
-      direction = as.character(direction),
-      direction = ifelse(direction == "<-", "->", direction)
+      direction = as.character(.data$direction),
+      direction = ifelse(.data$direction == "<-", "->", .data$direction)
     ) |>
-    dplyr::group_by(name, direction) |>
+    dplyr::group_by(.data$name, .data$direction) |>
     dplyr::summarise(
-      to_formula = paste("{", paste(to, collapse = " "), "}"),
+      to_formula = paste("{", paste(.data$to, collapse = " "), "}"),
       .groups = "drop"
     ) |>
-    dplyr::transmute(dag_formula = paste(name, direction, to_formula)) |>
+    dplyr::transmute(
+      dag_formula = paste(.data$name, .data$direction, .data$to_formula)
+    ) |>
     dplyr::pull() |>
     paste(collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))() |>
@@ -248,8 +250,8 @@ return_status <- function(.dag, .status) {
     .dag <- pull_dag_data(.dag)
   }
 
-  dplyr::filter(.dag, status == .status) |>
-    dplyr::pull(name) |>
+  dplyr::filter(.dag, .data$status == .status) |>
+    dplyr::pull(.data$name) |>
     empty2list()
 }
 

@@ -71,7 +71,7 @@ dag_adjustment_sets <- function(
       \(.x) {
         dplyr::mutate(
           pull_dag_data(.tdy_dag),
-          adjusted = ifelse(name %in% .x, "adjusted", "unadjusted"),
+          adjusted = ifelse(.data$name %in% .x, "adjusted", "unadjusted"),
           set = paste0("{", paste(.x, collapse = ", "), "}")
         )
       }
@@ -122,12 +122,16 @@ ggdag_adjustment_set <- function(
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
     dplyr::mutate(
-      blocked = ifelse(adjusted == "unadjusted", NA, "blocked by\nadjustment")
+      blocked = ifelse(
+        .data$adjusted == "unadjusted",
+        NA,
+        "blocked by\nadjustment"
+      )
     )
 
   p <- ggplot2::ggplot(
     .tdy_dag,
-    aes_dag(shape = adjusted, color = adjusted)
+    aes_dag(shape = .data$adjusted, color = .data$adjusted)
   ) +
     ggplot2::facet_wrap(~set) +
     scale_adjusted() +
@@ -252,12 +256,12 @@ control_for <- function(
   }
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
-    adjusted = ifelse(name %in% var, "adjusted", "unadjusted")
+    adjusted = ifelse(.data$name %in% var, "adjusted", "unadjusted")
   )
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
-      adjusted = factor(adjusted, exclude = NA)
+      adjusted = factor(.data$adjusted, exclude = NA)
     )
   }
   .tdy_dag
@@ -315,14 +319,14 @@ ggdag_adjust <- function(
   }
 
   p <- .tdy_dag |>
-    ggplot2::ggplot(aes_dag(col = adjusted, shape = adjusted)) +
+    ggplot2::ggplot(aes_dag(col = .data$adjusted, shape = .data$adjusted)) +
     scale_adjusted(include_alpha = TRUE) +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (use_edges) {
     p <- p +
       geom_dag_edges(
-        ggplot2::aes(edge_alpha = adjusted),
+        ggplot2::aes(edge_alpha = .data$adjusted),
         start_cap = ggraph::circle(edge_cap, "mm"),
         end_cap = ggraph::circle(edge_cap, "mm")
       )

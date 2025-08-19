@@ -104,7 +104,7 @@ dag_paths <- function(
   } else {
     all_open_paths <- all_paths_info |>
       dplyr::filter(open) |>
-      dplyr::pull(paths)
+      dplyr::pull(.data$paths)
   }
 
   if (nrow(causal_paths_info) == 0 || all(!causal_paths_info$open)) {
@@ -112,7 +112,7 @@ dag_paths <- function(
   } else {
     causal_open_paths <- causal_paths_info |>
       dplyr::filter(open) |>
-      dplyr::pull(paths)
+      dplyr::pull(.data$paths)
   }
 
   # Determine path types
@@ -136,10 +136,10 @@ dag_paths <- function(
       path_df <- .x |>
         dag2() |>
         dagitty::edges() |>
-        dplyr::select(.from = v, .to = w) |>
+        dplyr::select(.from = "v", .to = "w") |>
         dplyr::mutate(
-          .from = as.character(.from),
-          .to = as.character(.to),
+          .from = as.character(.data$.from),
+          .to = as.character(.data$.to),
           path = "open path",
           path_type = .path_type
         ) |>
@@ -161,7 +161,7 @@ dag_paths <- function(
           path_df[path_df$name == vars[[1]], "path_type"] <- .path_type
         } else {
           path_df <- path_df |>
-            filter(name == vars[[1]]) |>
+            filter(.data$name == vars[[1]]) |>
             dplyr::slice(1) |>
             dplyr::mutate(
               path = "open path",
@@ -181,7 +181,7 @@ dag_paths <- function(
         path_df[path_df$name == vars[[2]], "path_type"] <- .path_type
       } else {
         path_df <- path_df |>
-          filter(name == vars[[2]]) |>
+          filter(.data$name == vars[[2]]) |>
           dplyr::slice(1) |>
           dplyr::mutate(
             path = "open path",
@@ -200,7 +200,7 @@ dag_paths <- function(
   )
 
   if (paths_only) {
-    .tdy_dag <- dplyr::filter(.tdy_dag, path == "open path")
+    .tdy_dag <- dplyr::filter(.tdy_dag, .data$path == "open path")
   }
 
   .tdy_dag
@@ -259,8 +259,8 @@ ggdag_paths <- function(
       function(x) {
         dplyr::filter(
           x,
-          path == "open path",
-          direction == "<->"
+          .data$path == "open path",
+          .data$direction == "<->"
         )
       }
     } else {
@@ -271,8 +271,8 @@ ggdag_paths <- function(
       function(x) {
         dplyr::filter(
           x,
-          path == "open path",
-          direction == "->"
+          .data$path == "open path",
+          .data$direction == "->"
         )
       }
     } else {
@@ -312,7 +312,9 @@ ggdag_paths <- function(
 
   p <- p +
     geom_dag(
-      data = if (!shadow) function(x) dplyr::filter(x, path == "open path"),
+      data = if (!shadow) {
+        function(x) dplyr::filter(x, .data$path == "open path")
+      },
       size = size,
       node_size = node_size,
       text_size = text_size,
@@ -384,7 +386,7 @@ ggdag_paths_fan <- function(
   if (use_edges) {
     p <- p +
       geom_dag_edges_fan(
-        ggplot2::aes(edge_colour = set, edge_alpha = path),
+        ggplot2::aes(edge_colour = .data$set, edge_alpha = .data$path),
         spread = spread
       ) +
       ggplot2::scale_alpha_manual(
@@ -618,7 +620,7 @@ edge_backdoor <- function(
 
   # Classify edges based on which path types they appear on
   edge_classifications <- all_edge_info |>
-    dplyr::group_by(from, to) |>
+    dplyr::group_by(.data$from, .data$to) |>
     dplyr::summarise(
       path_type = if (
         "backdoor" %in% .data$edge_type && "direct" %in% .data$edge_type
@@ -649,7 +651,7 @@ edge_backdoor <- function(
       dplyr::mutate(
         path_type = dplyr::if_else(
           !is.na(open) & open,
-          path_type,
+          .data$path_type,
           NA_character_
         )
       )

@@ -154,10 +154,10 @@ g <- dagify(
 
 g |>
   tidy_dagitty() |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
   geom_dag_edges() +
   geom_dag_point() +
-  geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
+  geom_dag_text_repel(aes(label = .data$name), show.legend = FALSE) +
   theme_dag()
 
 g |>
@@ -167,12 +167,12 @@ g |>
     "y" = "Here's the outcome",
     "m" = "Here is where they collide"
   )) |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
   geom_dag_edges() +
   geom_dag_point() +
   geom_dag_text() +
   geom_dag_label_repel(
-    aes(label = label, fill = label),
+    aes(label = .data$label, fill = .data$label),
     col = "white",
     show.legend = FALSE
   ) +

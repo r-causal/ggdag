@@ -300,7 +300,7 @@ StatNodes <- ggplot2::ggproto(
   ggplot2::Stat,
   compute_layer = function(data, scales, params) {
     if (all(c("xend", "yend") %in% names(data))) {
-      unique(dplyr::select(data, -xend, -yend))
+      unique(dplyr::select(data, -"xend", -"yend"))
     } else {
       unique(data)
     }
@@ -312,7 +312,7 @@ StatNodesRepel <- ggplot2::ggproto(
   ggplot2::Stat,
   compute_layer = function(data, scales, params) {
     if (all(c("xend", "yend") %in% names(data))) {
-      data <- unique(dplyr::select(data, -xend, -yend))
+      data <- unique(dplyr::select(data, -"xend", -"yend"))
       if ("alpha" %in% names(data)) {
         data |>
           dplyr::filter(!is.na(alpha), !is.na(label))

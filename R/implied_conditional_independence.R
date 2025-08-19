@@ -152,14 +152,14 @@ ggdag_conditional_independence <- function(
   if (isTRUE(sort)) {
     .test_result <- .test_result %>%
       dplyr::arrange(.data[[estimate]]) %>%
-      dplyr::mutate(independence = forcats::fct_inorder(independence))
+      dplyr::mutate(independence = forcats::fct_inorder(.data$independence))
   }
 
   ggplot2::ggplot(
     .test_result,
     ggplot2::aes(
       x = .data[[estimate]],
-      y = independence
+      y = .data$independence
     )
   ) +
     ggplot2::geom_vline(

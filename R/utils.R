@@ -1,58 +1,8 @@
 #  variables used in various NSE calls
 utils::globalVariables(
   c(
-    ".",
-    "x",
-    "y",
-    "xend",
-    "yend",
-    "adjusted",
-    "collider_line",
-    "collider",
-    "name",
-    "from",
-    "to",
-    "direction",
-    "Var1",
-    "Var2",
-    "ancestor",
-    "children",
-    "circular",
-    "collider_line",
-    "colliders",
-    "d_relationship",
-    "descendant",
-    "direction",
-    "e",
-    "exogenous",
-    "from",
-    "independence",
-    "instrumental",
-    "name",
-    "parent",
-    "reversable",
-    "segment.colour",
-    "status",
-    "to",
-    "to_formula",
-    "type",
-    "v",
-    "w",
-    ".ggraph.orig_index",
-    ".ggraph.index",
-    "from",
-    ".from",
-    ".to",
-    "path",
-    "paths",
-    "set",
-    "adjacent",
-    "blanket",
     ":=",
-    "collider_path_nodes",
-    "ggplot2::expansion",
-    "open",
-    "path_type"
+    "ggplot2::expansion"
   )
 )
 
@@ -66,7 +16,7 @@ if_not_tidy_daggity <- function(.dagitty, ...) {
 unique_pairs <- function(x, exclude_identical = TRUE) {
   pairs <- expand.grid(x, x) |> purrr::map_dfc(as.character)
   if (exclude_identical) {
-    pairs <- pairs |> dplyr::filter(Var1 != Var2)
+    pairs <- pairs |> dplyr::filter(.data$Var1 != .data$Var2)
   }
   # Sort each pair and remove names to ensure proper comparison
   sorted_pairs <- apply(pairs, 1, \(row) sort(unname(row)), simplify = FALSE)
@@ -139,9 +89,9 @@ n_collider_paths <- function(x) {
 collider_paths <- function(x) {
   if (has_collider_path(x)) {
     paths <- pull_dag_data(x) |>
-      dplyr::filter(collider_line) |>
-      dplyr::mutate(collider_path_nodes = paste(name, "<->", to)) |>
-      dplyr::pull(collider_path_nodes)
+      dplyr::filter(.data$collider_line) |>
+      dplyr::mutate(collider_path_nodes = paste(.data$name, "<->", .data$to)) |>
+      dplyr::pull(.data$collider_path_nodes)
   } else {
     paths <- c()
   }

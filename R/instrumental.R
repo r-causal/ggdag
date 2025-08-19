@@ -57,7 +57,7 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
       }
       .dag <- .dag |>
         dplyr::mutate(
-          instrumental = ifelse(name == .i, "instrumental", NA)
+          instrumental = ifelse(.data$name == .i, "instrumental", NA)
         )
 
       pull_dag_data(.dag)
