@@ -66,6 +66,7 @@ test_that("repelled labels work", {
 })
 
 test_that("different edge types work", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1,
@@ -89,6 +90,7 @@ test_that("different edge types work", {
   expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })
 test_that("labels also work", {
+  withr::local_seed(1234)
   g <- dagify(
     m ~ x + y,
     y ~ x,
