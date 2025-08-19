@@ -136,7 +136,6 @@ ggdag_adjustment_set <- function(
   ) +
     ggplot2::facet_wrap(~set) +
     scale_adjusted() +
-    # ggplot2::guides(color = "none") +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
   if (use_edges) {
