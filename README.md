@@ -60,27 +60,30 @@ dag <- dagitty::dagitty("dag {
 tidy_dag <- tidy_dagitty(dag)
 
 tidy_dag
-#> # A DAG with 7 nodes and 12 edges
-#> #
+#> # DAG:
+#> # A `dagitty` DAG with: 7 nodes and 12 edges
 #> # Exposure: x
 #> # Outcome: y
 #> #
-#> # A tibble: 13 × 8
-#>    name       x     y direction to      xend   yend circular
-#>    <chr>  <dbl> <dbl> <fct>     <chr>  <dbl>  <dbl> <lgl>   
-#>  1 v     -0.180 0.946 ->        z1     1.20   0.608 FALSE   
-#>  2 v     -0.180 0.946 ->        z2     0.177  2.32  FALSE   
-#>  3 w1     1.64  1.49  ->        x      2.23   1.70  FALSE   
-#>  4 w1     1.64  1.49  ->        y      1.63   2.71  FALSE   
-#>  5 w1     1.64  1.49  ->        z1     1.20   0.608 FALSE   
-#>  6 w1     1.64  1.49  <->       w2     1.16   2.30  FALSE   
-#>  7 w2     1.16  2.30  ->        x      2.23   1.70  FALSE   
-#>  8 w2     1.16  2.30  ->        y      1.63   2.71  FALSE   
-#>  9 w2     1.16  2.30  ->        z2     0.177  2.32  FALSE   
-#> 10 x      2.23  1.70  ->        y      1.63   2.71  FALSE   
-#> 11 y      1.63  2.71  <NA>      <NA>  NA     NA     FALSE   
-#> 12 z1     1.20  0.608 ->        x      2.23   1.70  FALSE   
-#> 13 z2     0.177 2.32  ->        y      1.63   2.71  FALSE
+#> # Data:
+#> # A tibble: 13 × 7
+#>    name       x     y direction to      xend   yend
+#>    <chr>  <dbl> <dbl> <fct>     <chr>  <dbl>  <dbl>
+#>  1 v     -0.180 0.946 ->        z1     1.20   0.608
+#>  2 v     -0.180 0.946 ->        z2     0.177  2.32 
+#>  3 w1     1.64  1.49  ->        x      2.23   1.70 
+#>  4 w1     1.64  1.49  ->        y      1.63   2.71 
+#>  5 w1     1.64  1.49  ->        z1     1.20   0.608
+#>  6 w1     1.64  1.49  <->       w2     1.16   2.30 
+#>  7 w2     1.16  2.30  ->        x      2.23   1.70 
+#>  8 w2     1.16  2.30  ->        y      1.63   2.71 
+#>  9 w2     1.16  2.30  ->        z2     0.177  2.32 
+#> 10 x      2.23  1.70  ->        y      1.63   2.71 
+#> 11 y      1.63  2.71  <NA>      <NA>  NA     NA    
+#> 12 z1     1.20  0.608 ->        x      2.23   1.70 
+#> 13 z2     0.177 2.32  ->        y      1.63   2.71 
+#> #
+#> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
 #  using more R-like syntax to create the same DAG
 tidy_ggdag <- dagify(
@@ -91,31 +94,34 @@ tidy_ggdag <- dagify(
   w1 ~ ~w2, # bidirected path
   exposure = "x",
   outcome = "y"
-) %>%
+) |>
   tidy_dagitty()
 
 tidy_ggdag
-#> # A DAG with 7 nodes and 12 edges
-#> #
+#> # DAG:
+#> # A `dagitty` DAG with: 7 nodes and 12 edges
 #> # Exposure: x
 #> # Outcome: y
 #> #
-#> # A tibble: 13 × 8
-#>    name          x     y direction to         xend  yend circular
-#>    <chr>     <dbl> <dbl> <fct>     <chr>     <dbl> <dbl> <lgl>   
-#>  1 v      0.696     4.02 ->        z1     1.07      2.66 FALSE   
-#>  2 v      0.696     4.02 ->        z2    -0.669     3.67 FALSE   
-#>  3 w1     0.175     2.21 ->        x     -0.000636  1.61 FALSE   
-#>  4 w1     0.175     2.21 ->        y     -1.05      2.22 FALSE   
-#>  5 w1     0.175     2.21 ->        z1     1.07      2.66 FALSE   
-#>  6 w1     0.175     2.21 <->       w2    -0.613     2.67 FALSE   
-#>  7 w2    -0.613     2.67 ->        x     -0.000636  1.61 FALSE   
-#>  8 w2    -0.613     2.67 ->        y     -1.05      2.22 FALSE   
-#>  9 w2    -0.613     2.67 ->        z2    -0.669     3.67 FALSE   
-#> 10 x     -0.000636  1.61 ->        y     -1.05      2.22 FALSE   
-#> 11 y     -1.05      2.22 <NA>      <NA>  NA        NA    FALSE   
-#> 12 z1     1.07      2.66 ->        x     -0.000636  1.61 FALSE   
-#> 13 z2    -0.669     3.67 ->        y     -1.05      2.22 FALSE
+#> # Data:
+#> # A tibble: 13 × 7
+#>    name          x     y direction to         xend  yend
+#>    <chr>     <dbl> <dbl> <fct>     <chr>     <dbl> <dbl>
+#>  1 v      0.696     4.02 ->        z1     1.07      2.66
+#>  2 v      0.696     4.02 ->        z2    -0.669     3.67
+#>  3 w1     0.175     2.21 ->        x     -0.000636  1.61
+#>  4 w1     0.175     2.21 ->        y     -1.05      2.22
+#>  5 w1     0.175     2.21 ->        z1     1.07      2.66
+#>  6 w1     0.175     2.21 <->       w2    -0.613     2.67
+#>  7 w2    -0.613     2.67 ->        x     -0.000636  1.61
+#>  8 w2    -0.613     2.67 ->        y     -1.05      2.22
+#>  9 w2    -0.613     2.67 ->        z2    -0.669     3.67
+#> 10 x     -0.000636  1.61 ->        y     -1.05      2.22
+#> 11 y     -1.05      2.22 <NA>      <NA>  NA        NA   
+#> 12 z1     1.07      2.66 ->        x     -0.000636  1.61
+#> 13 z2    -0.669     3.67 ->        y     -1.05      2.22
+#> #
+#> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```
 
 `ggdag` also provides functionality for analyzing DAGs and plotting them
@@ -139,9 +145,9 @@ As well as geoms and other functions for plotting them directly in
 `ggplot2`:
 
 ``` r
-dagify(m ~ x + y) %>%
-  tidy_dagitty() %>%
-  node_dconnected("x", "y", controlling_for = "m") %>%
+dagify(m ~ x + y) |>
+  tidy_dagitty() |>
+  node_dconnected("x", "y", controlling_for = "m") |>
   ggplot(aes(
     x = x,
     y = y,
@@ -155,7 +161,7 @@ dagify(m ~ x + y) %>%
   geom_dag_point() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_adjusted() +
+  scale_adjusted(include_color = FALSE) +
   expand_plot(expand_y = expansion(c(0.2, 0.2))) +
   scale_color_viridis_d(
     name = "d-relationship",

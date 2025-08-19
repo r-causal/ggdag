@@ -72,6 +72,7 @@ ggdag_paths_fan(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -150,6 +151,11 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 
 \item{spread}{the width of the fan spread}
+
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+cleaner, more compact legends. Default is \code{TRUE}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{path} column for path variables, a \code{set}

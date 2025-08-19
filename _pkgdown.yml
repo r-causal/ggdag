@@ -44,6 +44,7 @@ reference:
     - starts_with("theme")
     - starts_with("scale")
     - aes_dag
+    - starts_with("draw_key_dag")
 
 - title: Common Structures of Bias
   contents:

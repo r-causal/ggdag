@@ -21,6 +21,8 @@ geom_dag(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = NULL,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -76,6 +78,17 @@ and the node borders).}
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
 \item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+cleaner, more compact legends. Default is \code{TRUE}.}
+
+\item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
+If \code{NULL} (the default), the glyph is chosen automatically based on the
+\code{unified_legend} setting. When provided, this overrides the automatic
+selection. Common options include \code{draw_key_dag_point},
+\code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
 
 \item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
 If \code{use_labels = TRUE}, the default is to use \code{label}.}

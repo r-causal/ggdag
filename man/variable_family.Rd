@@ -47,6 +47,7 @@ ggdag_children(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -72,6 +73,7 @@ ggdag_parents(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -97,6 +99,7 @@ ggdag_ancestors(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -122,6 +125,7 @@ ggdag_descendants(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -147,6 +151,7 @@ ggdag_markov_blanket(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -172,6 +177,7 @@ ggdag_adjacent(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -223,6 +229,11 @@ and the node borders).}
 
 \item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
 
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+cleaner, more compact legends. Default is \code{TRUE}.}
+
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
 
@@ -265,7 +276,7 @@ dag |>
   geom_dag_text(col = "white") +
   geom_dag_label_repel(aes(label = children, fill = children), col = "white", show.legend = FALSE) +
   theme_dag() +
-  scale_adjusted() +
+  scale_adjusted(include_color = FALSE) +
   scale_color_hue(breaks = c("parent", "child"))
 
 ggdag_parents(dag, "y")
@@ -282,7 +293,7 @@ dag |>
   geom_dag_text(col = "white") +
   geom_dag_label_repel(aes(label = parent, fill = parent), col = "white", show.legend = FALSE) +
   theme_dag() +
-  scale_adjusted() +
+  scale_adjusted(include_color = FALSE) +
   scale_color_hue(breaks = c("parent", "child"))
 
 }

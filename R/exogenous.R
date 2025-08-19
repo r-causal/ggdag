@@ -50,6 +50,7 @@ ggdag_exogenous <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -58,7 +59,7 @@ ggdag_exogenous <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_exogenous() |>
     ggplot2::ggplot(aes_dag(color = exogenous)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks("exogenous")
 
   p <- p +
@@ -78,6 +79,8 @@ ggdag_exogenous <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = unified_legend,
+      key_glyph = draw_key_dag_point,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,

@@ -72,6 +72,7 @@ ggdag_status <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -80,7 +81,7 @@ ggdag_status <- function(
   p <- if_not_tidy_daggity(.tdy_dag) |>
     node_status(...) |>
     ggplot2::ggplot(aes_dag(color = status)) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("exposure", "outcome", "latent"))
 
   p <- p +
@@ -100,6 +101,8 @@ ggdag_status <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = unified_legend,
+      key_glyph = draw_key_dag_point,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,

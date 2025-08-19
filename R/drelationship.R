@@ -41,7 +41,7 @@
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
 #'   theme_dag() +
-#'   scale_adjusted()
+#'   scale_adjusted(include_color = FALSE)
 #'
 #' dag |>
 #'   node_dconnected("x", "y", controlling_for = "m") |>
@@ -51,7 +51,7 @@
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
 #'   theme_dag() +
-#'   scale_adjusted()
+#'   scale_adjusted(include_color = FALSE)
 #'
 #' dagify(m ~ x + y, m_jr ~ m) |>
 #'   tidy_dagitty(layout = "nicely") |>
@@ -62,7 +62,7 @@
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
 #'   theme_dag() +
-#'   scale_adjusted()
+#'   scale_adjusted(include_color = FALSE)
 #' @rdname d_relationship
 #' @name Assess d-separation between variables
 node_dconnected <- function(
@@ -289,6 +289,8 @@ ggdag_drelationship <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -333,12 +335,14 @@ ggdag_drelationship <- function(
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
+      unified_legend = unified_legend,
+      key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
       stylized = stylized
     ) +
-    scale_adjusted() +
+    scale_adjusted(include_color = FALSE) +
     breaks(c("d-connected", "d-separated"), name = "d-relationship") +
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
@@ -363,10 +367,13 @@ ggdag_dseparated <- function(
   edge_width = 0.6,
   edge_cap = 10,
   arrow_length = 5,
+  use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -389,6 +396,7 @@ ggdag_dseparated <- function(
     edge_width = edge_width,
     edge_cap = edge_cap,
     arrow_length = arrow_length,
+    use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
@@ -397,6 +405,8 @@ ggdag_dseparated <- function(
     text = !!rlang::enquo(text),
     node = node,
     stylized = stylized,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
     collider_lines = collider_lines
   )
 }
@@ -419,10 +429,13 @@ ggdag_dconnected <- function(
   edge_width = 0.6,
   edge_cap = 10,
   arrow_length = 5,
+  use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -445,6 +458,7 @@ ggdag_dconnected <- function(
     edge_width = edge_width,
     edge_cap = edge_cap,
     arrow_length = arrow_length,
+    use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
@@ -453,6 +467,8 @@ ggdag_dconnected <- function(
     text = !!rlang::enquo(text),
     node = node,
     stylized = stylized,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
     collider_lines = collider_lines
   )
 }

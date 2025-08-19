@@ -148,11 +148,12 @@ test_that("all ggdag_*() functions have exact expected edge counts", {
   # ggdag_canonical might modify the DAG structure, need to check
   p_canonical <- ggdag_canonical(test_dag)
   canonical_data <- ggplot2::ggplot_build(p_canonical)$data[[1]]
-  canonical_edges <- length(unique(canonical_data$group))
   test_ggdag_function(
     ggdag_canonical,
     "ggdag_canonical",
-    expected_with_edges = canonical_edges
+    # after canonicalization, the bidirected edge becomes two directed edges
+    # resulting in 12 edges total
+    expected_with_edges = 12
   )
 })
 

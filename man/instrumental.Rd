@@ -28,6 +28,7 @@ ggdag_instrumental(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -81,6 +82,11 @@ and the node borders).}
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
 \item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+cleaner, more compact legends. Default is \code{TRUE}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}

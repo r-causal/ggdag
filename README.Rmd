@@ -25,7 +25,7 @@ set.seed(1542)
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs <a href="https://r-causal.github.io/ggdag/"><img src="man/figures/logo.png" align="right" height="138" /></a>
 
-Tidy, analyze, and plot causal directed acyclic graphs (DAGs). `ggdag` uses the powerful `dagitty` package to create and analyze structural causal models and plot them using `ggplot2` and `ggraph` in a consistent and easy manner. 
+Tidy, analyze, and plot causal directed acyclic graphs (DAGs). `ggdag` uses the powerful `dagitty` package to create and analyze structural causal models and plot them using `ggplot2` and `ggraph` in a consistent and easy manner.
 
 ## Installation
 
@@ -90,7 +90,7 @@ ggdag_adjustment_set(tidy_ggdag, node_size = 14) +
 
 As well as geoms and other functions for plotting them directly in `ggplot2`:
 
-```{r ggdag_geoms, dpi=300} 
+```{r ggdag_geoms, dpi=300}
 dagify(m ~ x + y) |>
   tidy_dagitty() |>
   node_dconnected("x", "y", controlling_for = "m") |>
@@ -107,7 +107,7 @@ dagify(m ~ x + y) |>
   geom_dag_point() +
   geom_dag_text(col = "white") +
   theme_dag() +
-  scale_adjusted() +
+  scale_adjusted(include_color = FALSE) +
   expand_plot(expand_y = expansion(c(0.2, 0.2))) +
   scale_color_viridis_d(
     name = "d-relationship",

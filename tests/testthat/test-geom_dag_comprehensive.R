@@ -211,19 +211,19 @@ test_that("filter_direction works correctly", {
 test_that("geom_dag main function works with different options", {
   # Basic usage - all defaults
   geoms <- geom_dag()
-  expect_length(geoms, 4) # edges, nodes, text, labels
-  expect_type(geoms[[1]], "list") # edges returns a list
-  expect_s3_class(geoms[[2]], "LayerInstance") # nodes
+  expect_length(geoms, 4) # nodes, edges, text, labels
+  expect_s3_class(geoms[[1]], "LayerInstance") # nodes
+  expect_type(geoms[[2]], "list") # edges returns a list
   expect_s3_class(geoms[[3]], "LayerInstance") # text
   expect_null(geoms[[4]]) # labels off by default
 
-  # Without edges
-  geoms_no_edges <- geom_dag(use_edges = FALSE)
-  expect_null(geoms_no_edges[[1]])
-
   # Without nodes
   geoms_no_nodes <- geom_dag(use_nodes = FALSE)
-  expect_null(geoms_no_nodes[[2]])
+  expect_null(geoms_no_nodes[[1]])
+
+  # Without edges
+  geoms_no_edges <- geom_dag(use_edges = FALSE)
+  expect_null(geoms_no_edges[[2]])
 
   # Without text
   geoms_no_text <- geom_dag(use_text = FALSE)
@@ -235,14 +235,14 @@ test_that("geom_dag main function works with different options", {
 
   # With stylized nodes
   geoms_stylized <- geom_dag(use_stylized = TRUE)
-  expect_equal(class(geoms_stylized[[2]]$geom)[1], "GeomDagNode")
+  expect_true(inherits(geoms_stylized[[1]]$geom, "GeomDagNode"))
 
   # With different edge types
   geoms_arc <- geom_dag(edge_type = "arc")
-  expect_s3_class(geoms_arc[[1]], "LayerInstance")
+  expect_s3_class(geoms_arc[[2]], "LayerInstance")
 
   geoms_diagonal <- geom_dag(edge_type = "diagonal")
-  expect_s3_class(geoms_diagonal[[1]], "LayerInstance")
+  expect_s3_class(geoms_diagonal[[2]], "LayerInstance")
 
   # Test size parameter scaling
   geoms_sizes <- geom_dag(
@@ -255,7 +255,7 @@ test_that("geom_dag main function works with different options", {
     arrow_length = 10
   )
   # size = 2 should scale node_size to 40 (20 * 2)
-  expect_equal(geoms_sizes[[2]]$aes_params$size, 40)
+  expect_equal(geoms_sizes[[1]]$aes_params$size, 40)
   # text_size is passed directly without size multiplier
   expect_equal(geoms_sizes[[3]]$aes_params$size, 5)
 

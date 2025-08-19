@@ -5,12 +5,27 @@
 \alias{scale_dag}
 \title{Common scale adjustments for DAGs}
 \usage{
-scale_adjusted(include_alpha = FALSE)
+scale_adjusted(
+  include_linetype = TRUE,
+  include_shape = TRUE,
+  include_color = TRUE,
+  include_alpha = FALSE
+)
 
 scale_dag(breaks = ggplot2::waiver())
 }
 \arguments{
-\item{include_alpha}{Logical. Include alpha-related scales?}
+\item{include_linetype}{Logical. Include linetype scale for dashed lines on
+collider edges? Default is TRUE.}
+
+\item{include_shape}{Logical. Include shape scale for adjustment status
+(squares for adjusted, circles for unadjusted)? Default is TRUE.}
+
+\item{include_color}{Logical. Include color scale for adjustment status?
+Default is TRUE.}
+
+\item{include_alpha}{Logical. Include alpha scales for de-emphasizing edges
+from adjusted variables? Default is FALSE.}
 
 \item{breaks}{One of:
 \itemize{

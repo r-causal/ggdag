@@ -135,7 +135,14 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #' whenever [geom_dag_collider_edges()] is used. `scale_dag()` is deprecated in
 #' favor of `scale_adjusted()`.
 #'
-#' @param include_alpha Logical. Include alpha-related scales?
+#' @param include_linetype Logical. Include linetype scale for dashed lines on
+#'   collider edges? Default is TRUE.
+#' @param include_shape Logical. Include shape scale for adjustment status
+#'   (squares for adjusted, circles for unadjusted)? Default is TRUE.
+#' @param include_color Logical. Include color scale for adjustment status?
+#'   Default is TRUE.
+#' @param include_alpha Logical. Include alpha scales for de-emphasizing edges
+#'   from adjusted variables? Default is FALSE.
 #' @param breaks One of:
 #'
 #'   - NULL for no breaks
@@ -149,28 +156,39 @@ theme_dag_gray_grid <- theme_dag_grey_grid
 #'
 #' @export
 #' @rdname scale_adjusted
-scale_adjusted <- function(include_alpha = FALSE) {
-  list(
+scale_adjusted <- function(
+  include_linetype = TRUE,
+  include_shape = TRUE,
+  include_color = TRUE,
+  include_alpha = FALSE
+) {
+  scales <- list(
     ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
     ggplot2::scale_shape_manual(
       values = c("adjusted" = 15, "unadjusted" = 19),
       limits = c("adjusted", "unadjusted")
     ),
     ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
-    if (include_alpha) {
-      ggplot2::scale_alpha_manual(
-        values = c("adjusted" = .30, "unadjusted" = 1),
-        limits = c("adjusted", "unadjusted")
-      )
-    },
-    if (include_alpha) {
-      ggraph::scale_edge_alpha_manual(
-        name = NULL,
-        values = c("adjusted" = .30, "unadjusted" = 1),
-        limits = c("adjusted", "unadjusted")
-      )
-    }
+    ggplot2::scale_alpha_manual(
+      values = c("adjusted" = .30, "unadjusted" = 1),
+      limits = c("adjusted", "unadjusted")
+    ),
+    ggraph::scale_edge_alpha_manual(
+      name = NULL,
+      values = c("adjusted" = .30, "unadjusted" = 1),
+      limits = c("adjusted", "unadjusted")
+    )
   )
+
+  # Filter scales based on arguments
+  keep_scale <- c(
+    include_linetype,
+    include_shape,
+    include_color,
+    include_alpha,
+    include_alpha
+  )
+  scales[keep_scale]
 }
 
 breaks <- function(
