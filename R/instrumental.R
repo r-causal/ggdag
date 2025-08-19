@@ -4,14 +4,7 @@
 #' outcome. `ggdag_instrumental` plots all instrumental variables. See
 #' [dagitty::instrumentalVariables()] for details.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
-#' @param exposure character vector of length 1, name of exposure variable.
-#'   Default is `NULL`, in which case it will check the input DAG for
-#'   exposure.
-#' @param outcome character vector of length 1, name of exposure variable.
-#'   Default is `NULL`, in which case it will check the input DAG for
-#'   exposure.
+#' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #'

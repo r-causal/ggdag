@@ -7,15 +7,13 @@
 #' `ggdag_*()` functions plot the results. See
 #' [dagitty::children] for details.
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param edge_type a character vector, the edge geom to use. One of:
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param .var a character vector, the variable to be assessed (must by in DAG)
 #' @inheritParams geom_dag
-#' @param as_factor logical. Should the relationship variable be a factor?
 #'
 #' @return a `tidy_dagitty` with an column related to the given
 #'   relationship for variable D relationship or a `ggplot`

@@ -2,8 +2,7 @@
 #'
 #' `ggdag()` is a wrapper to quickly plot DAGs.
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #'
@@ -83,8 +82,7 @@ ggdag <- function(
 #' `ggdag_classic()` is a wrapper to quickly plot DAGs in a more
 #' traditional style.
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @param size text size, with a default of 8.
 #' @param label_rect_size specify the `fontsize` argument in

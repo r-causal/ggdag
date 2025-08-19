@@ -7,7 +7,7 @@
 query_status(.tdy_dag, .var = NULL)
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{.var}{Character vector of variables to query. If NULL, returns
 status for all nodes.}

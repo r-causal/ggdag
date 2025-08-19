@@ -7,8 +7,7 @@
 is_confounder(.tdy_dag, z, x, y, direct = FALSE)
 }
 \arguments{
-\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{z}{a character vector, the potential confounder}
 

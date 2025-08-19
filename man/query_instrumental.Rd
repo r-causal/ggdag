@@ -12,7 +12,7 @@ query_instrumental(
 )
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{exposure}{Character vector of exposure variable names. If NULL,
 uses the exposure defined in the DAG.}

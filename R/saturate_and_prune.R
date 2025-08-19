@@ -6,7 +6,7 @@
 #' takes an existing DAG and removes edges. This is most useful when used
 #' together with saturated DAG.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param use_existing_coords Logical, indicating whether to use existing node
 #'   coordinates.
 #' @param edges A named character vector where the name is the starting node and

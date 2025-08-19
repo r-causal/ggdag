@@ -7,8 +7,7 @@
 activate_collider_paths(.tdy_dag, adjust_for, ...)
 }
 \arguments{
-\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{adjust_for}{a character vector, the variable(s) to adjust for.}
 

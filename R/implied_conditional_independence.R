@@ -6,7 +6,7 @@
 #' the DAG on a given dataset. `ggdag_conditional_independence()` plots the
 #' results as a forest plot.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @inheritParams dagitty::impliedConditionalIndependencies
 #' @inheritParams dagitty::localTests
 #' @param .test_result A data frame containing the results of conditional

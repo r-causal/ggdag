@@ -80,14 +80,13 @@ ggdag_paths_fan(
 )
 }
 \arguments{
-\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{from}{character vector of length 1, name of exposure variable. Default
-is \code{NULL}, in which case it will check the input DAG for exposure.}
+\item{from}{A character vector with starting node name(s), or \code{NULL}. If
+\code{NULL}, checks DAG for exposure variable.}
 
-\item{to}{character vector of length 1, name of outcome variable. Default is
-\code{NULL}, in which case it will check the input DAG for outcome.}
+\item{to}{A character vector with ending node name(s), or \code{NULL}. If \code{NULL},
+checks DAG for outcome variable.}
 
 \item{adjust_for}{character vector, a set of variables to control for.
 Default is \code{NULL}.}
@@ -103,6 +102,8 @@ is not useful except for the most simple models.}
 if they are part of the path.}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
+
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{shadow}{logical. Show edges which are not on an open path?}
 

@@ -15,8 +15,7 @@ simulate_data(
 )
 }
 \arguments{
-\item{.tdy_dag}{the input DAG, which can be a \code{tidy_dagitty} or
-\code{dagitty} object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{b.default}{default path coefficient applied to arrows for which no
 coefficient is defined in the model syntax.}

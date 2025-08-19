@@ -2,12 +2,7 @@
 #'
 #' See [dagitty::adjustmentSets()] for details.
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
-#' @param exposure a character vector, the exposure variable. Default is
-#'   `NULL`, in which case it will be determined from the DAG.
-#' @param outcome a character vector, the outcome variable. Default is
-#'   `NULL`, in which case it will be determined from the DAG.
+#' @inheritParams dag_params
 #' @param ... additional arguments to `adjustmentSets`
 #' @param shadow logical. Show paths blocked by adjustment?
 #' @inheritParams geom_dag
@@ -190,8 +185,7 @@ ggdag_adjustment_set <- function(
 
 #' Assess if a variable confounds a relationship
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param z a character vector, the potential confounder
 #' @param x,y a character vector, the variables z may confound.
 #' @param direct logical. Only consider direct confounding? Default is
@@ -220,14 +214,13 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 
 #' Adjust for variables and activate any biasing paths that result
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param var a character vector, the variable(s) to adjust for.
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #' @param collider_lines logical. Should the plot show paths activated by
 #'   adjusting for a collider?
-#' @param as_factor logical. Should the `adjusted` column be a factor?
+#' @inheritParams dag_params
 #' @param activate_colliders logical. Include colliders activated by adjustment?
 #'
 #' @return a `tidy_dagitty` with a `adjusted` column for adjusted

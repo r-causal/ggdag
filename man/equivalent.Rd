@@ -74,7 +74,7 @@ for details. Alternatively, \code{"time_ordered"} will use
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 
-\item{.tdy_dag}{an object of class \code{tidy_dagitty} or \code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}

@@ -37,7 +37,7 @@ ggdag_conditional_independence(
 )
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{type}{can be one of "missing.edge", "basis.set", or "all.pairs". With the first, one or 
 more minimal testable implication (with the smallest possible conditioning set)
