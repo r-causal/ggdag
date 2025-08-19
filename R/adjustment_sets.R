@@ -125,7 +125,10 @@ ggdag_adjustment_set <- function(
   expand_y = expansion(c(0.2, 0.2))
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
-    dag_adjustment_sets(exposure = exposure, outcome = outcome, ...)
+    dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
+    dplyr::mutate(
+      blocked = ifelse(adjusted == "unadjusted", NA, "blocked by\nadjustment")
+    )
 
   p <- ggplot2::ggplot(
     .tdy_dag,
@@ -133,24 +136,30 @@ ggdag_adjustment_set <- function(
   ) +
     ggplot2::facet_wrap(~set) +
     scale_adjusted() +
+    # ggplot2::guides(color = "none") +
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
   if (use_edges) {
     if (shadow) {
-      vals <- c("unadjusted" = "black", "adjusted" = "grey80")
+      vals <- c("blocked by\nadjustment" = "grey80")
+      p <- p +
+        geom_dag_edges(ggplot2::aes(edge_colour = .data$blocked))
     } else {
-      vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
+      vals <- c("blocked by\nadjustment" = "#FFFFFF00")
+      p <- p +
+        geom_dag_edges(
+          ggplot2::aes(edge_colour = .data$blocked),
+          show.legend = FALSE
+        )
     }
 
     p <- p +
-      geom_dag_edges(
-        ggplot2::aes(edge_colour = adjusted),
-        show.legend = FALSE
-      ) +
       ggraph::scale_edge_colour_manual(
-        drop = FALSE,
+        name = "",
+        drop = TRUE,
         values = vals,
-        limits = names(vals)
+        limits = names(vals),
+        na.value = "black"
       )
   }
 
