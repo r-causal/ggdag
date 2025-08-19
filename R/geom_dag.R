@@ -277,7 +277,9 @@ geom_dag_label <- function(
 #' `geom_dag_label_repel()` draws a rectangle underneath the text, making it
 #' easier to read. The text labels repel away from each other and away from the
 #' data points. `geom_dag_label_repel2()` is a slightly stylized version of
-#' geom_dag_label_repel()` that often looks better on DAGs.
+#' `geom_dag_label_repel()` that often looks better on DAGs.
+#' `geom_dag_text_repel2()` is a slightly stylized version of
+#' `geom_dag_text_repel()` that often looks better on DAGs.
 #'
 #' @inheritParams ggrepel::geom_text_repel
 #' @inheritParams ggrepel::geom_label_repel
@@ -442,6 +444,24 @@ geom_dag_label_repel2 <- function(
     box.padding = box.padding,
     max.overlaps = max.overlaps,
     label.size = label.size,
+    ...
+  )
+}
+
+#' @rdname repel
+#' @export
+geom_dag_text_repel2 <- function(
+  mapping = NULL,
+  data = NULL,
+  box.padding = 2,
+  max.overlaps = Inf,
+  ...
+) {
+  geom_dag_text_repel(
+    mapping = mapping,
+    data = data,
+    box.padding = box.padding,
+    max.overlaps = max.overlaps,
     ...
   )
 }
