@@ -34,12 +34,13 @@ ggdag_collider(
 )
 }
 \arguments{
-\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{as_factor}{treat \code{collider} variable as factor}
+\item{as_factor}{Logical. Should the column be a factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
+
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}

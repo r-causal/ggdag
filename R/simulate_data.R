@@ -6,8 +6,7 @@
 #' corresponding data. See [dagitty::simulateSEM()] for
 #' details.
 #'
-#' @param .tdy_dag the input DAG, which can be a `tidy_dagitty` or
-#'   `dagitty` object.
+#' @inheritParams dag_params
 #' @param b.default default path coefficient applied to arrows for which no
 #'   coefficient is defined in the model syntax.
 #' @param b.lower lower bound for random path coefficients, applied if b.default

@@ -27,7 +27,7 @@ has_labels(.tdy_dag)
 
 \item{value}{a character vector}
 
-\item{.tdy_dag}{an object of class \code{tidy_dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{labels}{a character vector}
 }

@@ -36,18 +36,17 @@ ggdag_instrumental(
 )
 }
 \arguments{
-\item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{exposure}{character vector of length 1, name of exposure variable.
-Default is \code{NULL}, in which case it will check the input DAG for
-exposure.}
+\item{exposure}{A character vector, the exposure variable. Default is
+\code{NULL}, in which case it will be determined from the DAG.}
 
-\item{outcome}{character vector of length 1, name of exposure variable.
-Default is \code{NULL}, in which case it will check the input DAG for
-exposure.}
+\item{outcome}{A character vector, the outcome variable. Default is \code{NULL},
+in which case it will be determined from the DAG.}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
+
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}

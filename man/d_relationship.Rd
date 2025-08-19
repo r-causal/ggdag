@@ -126,20 +126,19 @@ ggdag_dconnected(
 )
 }
 \arguments{
-\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{from}{a character vector, the starting variable (must by in DAG). If
+\item{from}{A character vector with starting node name(s), or \code{NULL}. If
 \code{NULL}, checks DAG for exposure variable.}
 
-\item{to}{a character vector, the ending variable (must by in DAG). If
-\code{NULL}, checks DAG for outcome variable.}
+\item{to}{A character vector with ending node name(s), or \code{NULL}. If \code{NULL},
+checks DAG for outcome variable.}
 
-\item{controlling_for}{a character vector, variables in the DAG to control
-for.}
+\item{controlling_for}{A set of variables to control for. This can be a
+character vector of variable names, a list of the form \code{list(c(...))}, or
+\code{NULL}. When \code{NULL}, no control is applied. Default is \code{NULL}.}
 
-\item{as_factor}{logical. Should the \code{d_relationship} variable be a
-factor?}
+\item{as_factor}{Logical. Should the column be a factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
@@ -198,8 +197,8 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 
 \item{stylized}{Deprecated.}
 
-\item{collider_lines}{logical. Should the plot show paths activated by
-adjusting for a collider?}
+\item{collider_lines}{Logical. Should paths opened by conditioning on
+colliders be shown?}
 }
 \value{
 a \code{tidy_dagitty} with a \code{d_relationship} column for

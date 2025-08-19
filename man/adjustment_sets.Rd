@@ -37,14 +37,13 @@ ggdag_adjustment_set(
 )
 }
 \arguments{
-\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{exposure}{a character vector, the exposure variable. Default is
+\item{exposure}{A character vector, the exposure variable. Default is
 \code{NULL}, in which case it will be determined from the DAG.}
 
-\item{outcome}{a character vector, the outcome variable. Default is
-\code{NULL}, in which case it will be determined from the DAG.}
+\item{outcome}{A character vector, the outcome variable. Default is \code{NULL},
+in which case it will be determined from the DAG.}
 
 \item{...}{additional arguments to \code{adjustmentSets}}
 

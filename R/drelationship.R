@@ -8,20 +8,12 @@
 #' produce the same output and are just different ways of thinking about the
 #' relationship. See [dagitty::dseparated()] for details.
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param from a character vector, the starting variable (must by in DAG). If
-#'   `NULL`, checks DAG for exposure variable.
-#' @param to a character vector, the ending variable (must by in DAG). If
-#'   `NULL`, checks DAG for outcome variable.
-#' @param controlling_for a character vector, variables in the DAG to control
-#'   for.
+#' @inheritParams path_params
 #' @inheritParams geom_dag
-#' @param collider_lines logical. Should the plot show paths activated by
-#'   adjusting for a collider?
-#' @param as_factor logical. Should the `d_relationship` variable be a
-#'   factor?
+#' @inheritParams path_params
+#' @inheritParams dag_params
 #'
 #' @return a `tidy_dagitty` with a `d_relationship` column for
 #'   variable D relationship or a `ggplot`

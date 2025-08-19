@@ -5,7 +5,7 @@
 #'
 #' @param x an object of either class `tidy_dagitty` or `dagitty`
 #' @param value a character vector
-#' @param .tdy_dag an object of class `tidy_dagitty`
+#' @inheritParams dag_params
 #'
 #' @return `label` returns the label attribute of x
 #' @export

@@ -13,7 +13,7 @@ NULL
 #' Unlike `dag_adjustment_sets()`, this function returns a tibble with the
 #' adjustment sets as list columns rather than a tidy_dagitty object.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param exposure A character vector of exposure variable names. If NULL,
 #'   uses the exposure defined in the DAG.
 #' @param outcome A character vector of outcome variable names. If NULL,
@@ -119,7 +119,7 @@ query_adjustment_sets <- function(
 #' Find all paths between specified nodes in a DAG and determine if they are
 #' open or closed given a conditioning set.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param from Character vector of starting nodes. If NULL, uses exposure from DAG.
 #' @param to Character vector of ending nodes. If NULL, uses outcome from DAG.
 #' @param directed Logical. If TRUE, only considers directed paths.
@@ -248,7 +248,7 @@ query_paths <- function(
 #'
 #' Identify instrumental variables for a given exposure-outcome pair.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param exposure Character vector of exposure variable names. If NULL,
 #'   uses the exposure defined in the DAG.
 #' @param outcome Character vector of outcome variable names. If NULL,
@@ -340,7 +340,7 @@ query_instrumental <- function(
 #'
 #' Test whether sets of variables are d-separated in a DAG given a conditioning set.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param from Character vector of nodes or a list of node sets.
 #' @param to Character vector of nodes or a list of node sets.
 #' @param conditioned_on Character vector of conditioning variables.
@@ -453,7 +453,7 @@ query_dconnected <- function(
 #' Identify all collider nodes in a DAG. A collider is a node with two or more
 #' parents.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #'
 #' @return A tibble with columns:
 #'   - `node`: The collider node
@@ -510,7 +510,7 @@ query_colliders <- function(.tdy_dag) {
 #'
 #' Identify exogenous (parentless) variables in a DAG.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #'
 #' @return A tibble with columns:
 #'   - `node`: The exogenous variable
@@ -554,7 +554,7 @@ query_exogenous <- function(.tdy_dag) {
 #'
 #' Find parent nodes for specified variables in a DAG.
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param .var Character vector of variables to query. If NULL, returns
 #'   parents for all nodes.
 #'
@@ -811,7 +811,7 @@ query_markov_blanket <- function(.tdy_dag, .var = NULL) {
 #'
 #' Query the status of variables in a DAG (exposure, outcome, or latent).
 #'
-#' @param .tdy_dag A tidy DAG object.
+#' @inheritParams dag_params
 #' @param .var Character vector of variables to query. If NULL, returns
 #'   status for all nodes.
 #'

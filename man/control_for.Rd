@@ -39,12 +39,11 @@ ggdag_adjust(
 )
 }
 \arguments{
-\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{var}{a character vector, the variable(s) to adjust for.}
 
-\item{as_factor}{logical. Should the \code{adjusted} column be a factor?}
+\item{as_factor}{Logical. Should the column be a factor?}
 
 \item{activate_colliders}{logical. Include colliders activated by adjustment?}
 

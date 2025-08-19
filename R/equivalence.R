@@ -10,7 +10,7 @@
 #'
 #' @param .dag input graph, an object of class `tidy_dagitty` or `dagitty`
 #' @param n maximal number of returned graphs.
-#' @param .tdy_dag an object of class `tidy_dagitty` or `dagitty`
+#' @inheritParams dag_params
 #' @inheritParams geom_dag
 #' @inheritParams tidy_dagitty
 #' @inheritParams scale_adjusted

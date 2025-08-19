@@ -7,7 +7,7 @@
 query_colliders(.tdy_dag)
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 }
 \value{
 A tibble with columns:

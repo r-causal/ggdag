@@ -16,7 +16,7 @@ dag_saturate(
 dag_prune(.tdy_dag, edges)
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{use_existing_coords}{Logical, indicating whether to use existing node
 coordinates.}

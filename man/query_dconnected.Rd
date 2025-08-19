@@ -7,7 +7,7 @@
 query_dconnected(.tdy_dag, from, to, conditioned_on = NULL)
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{from}{Character vector of nodes or a list of node sets.}
 

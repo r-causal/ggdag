@@ -14,7 +14,7 @@ query_paths(
 )
 }
 \arguments{
-\item{.tdy_dag}{A tidy DAG object.}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{from}{Character vector of starting nodes. If NULL, uses exposure from DAG.}
 

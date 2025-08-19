@@ -4,9 +4,7 @@
 #' `node_collider` tags colliders and `ggdag_collider` plots all
 #' exogenous variables.
 #'
-#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
-#' @param as_factor treat `collider` variable as factor
+#' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #'
@@ -112,8 +110,7 @@ ggdag_collider <- function(
 #' `activate_collider_paths` activates any such pathways given a variable
 #' or set of variables to adjust for and adds them to the `tidy_dagitty`.
 #'
-#' @param .tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
+#' @inheritParams dag_params
 #' @param adjust_for a character vector, the variable(s) to adjust for.
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #'

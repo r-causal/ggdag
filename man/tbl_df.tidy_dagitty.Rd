@@ -7,7 +7,7 @@
 tbl_df.tidy_dagitty(.tdy_dag)
 }
 \arguments{
-\item{.tdy_dag}{an object of class \code{tidy_dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 }
 \description{
 Convert a \code{tidy_dagitty} object to tbl_df

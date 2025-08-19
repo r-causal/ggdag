@@ -406,7 +406,7 @@ as.data.frame.tidy_dagitty <- function(
 
 #' Convert a `tidy_dagitty` object to tbl_df
 #'
-#' @param .tdy_dag an object of class `tidy_dagitty`
+#' @inheritParams dag_params
 #'
 #' @export
 #' @importFrom dplyr tbl_df

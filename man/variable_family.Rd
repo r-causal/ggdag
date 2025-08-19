@@ -185,12 +185,11 @@ ggdag_adjacent(
 )
 }
 \arguments{
-\item{.tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
-\code{dagitty}}
+\item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
 \item{.var}{a character vector, the variable to be assessed (must by in DAG)}
 
-\item{as_factor}{logical. Should the relationship variable be a factor?}
+\item{as_factor}{Logical. Should the column be a factor?}
 
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 

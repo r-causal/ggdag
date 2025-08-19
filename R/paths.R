@@ -5,12 +5,8 @@
 #' [dagitty::paths()] for details.
 #'
 #' @inheritParams dagitty::paths
-#' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
-#' @param from character vector of length 1, name of exposure variable. Default
-#'   is `NULL`, in which case it will check the input DAG for exposure.
-#' @param to character vector of length 1, name of outcome variable. Default is
-#'   `NULL`, in which case it will check the input DAG for outcome.
+#' @inheritParams dag_params
+#' @inheritParams path_params
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is `NULL`.
 #' @param directed logical. Should only directed paths be shown?
@@ -468,12 +464,8 @@ extract_edges_from_paths <- function(paths) {
 #' information to the tidy DAG object, classifying each edge based on the types
 #' of paths it appears on.
 #'
-#' @param .dag input graph, an object of class `tidy_dagitty` or
-#'   `dagitty`
-#' @param from character vector of length 1, name of exposure variable. Default
-#'   is `NULL`, in which case it will check the input DAG for exposure.
-#' @param to character vector of length 1, name of outcome variable. Default is
-#'   `NULL`, in which case it will check the input DAG for outcome.
+#' @inheritParams dag_params
+#' @inheritParams path_params
 #' @param adjust_for character vector, a set of variables to control for.
 #'   Default is `NULL`.
 #' @param ... additional arguments passed to `tidy_dagitty()`
