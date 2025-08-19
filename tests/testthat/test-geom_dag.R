@@ -48,12 +48,25 @@ test_that("repelled labels work", {
       seed = 1234
     )
 
+  p4 <- g %>%
+    tidy_dagitty() %>%
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel2(
+      aes(label = name),
+      show.legend = FALSE,
+      seed = 1234
+    )
+
   expect_doppelganger("geom_dag_text_repel() repels names", p1)
   expect_doppelganger("geom_dag_label_repel() repels labels", p2)
   expect_doppelganger("geom_dag_label_repel2() repels labels", p3)
+  expect_doppelganger("geom_dag_text_repel2() repels names", p4)
 })
 
 test_that("different edge types work", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1,
@@ -77,6 +90,7 @@ test_that("different edge types work", {
   expect_doppelganger("geom_dag_edges_fan() is fany", p + geom_dag_edges_fan())
 })
 test_that("labels also work", {
+  withr::local_seed(1234)
   g <- dagify(
     m ~ x + y,
     y ~ x,
