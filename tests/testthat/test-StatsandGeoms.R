@@ -24,10 +24,10 @@ test_that("StatNodesRepel handles duplicate labels at different positions correc
     PANEL = c(1, 1, 1, 1),
     stringsAsFactors = FALSE
   )
-  
+
   # Test the compute_layer function
   result <- StatNodesRepel$compute_layer(test_data, NULL, NULL)
-  
+
   # Should keep all 4 rows since they have different positions
   # even though "unmeasured" appears twice
   expect_equal(nrow(result), 4)
@@ -45,10 +45,10 @@ test_that("StatNodesRepel removes true duplicates (same position and label)", {
     PANEL = c(1, 1, 1, 1),
     stringsAsFactors = FALSE
   )
-  
+
   # Test the compute_layer function
   result <- StatNodesRepel$compute_layer(test_data, NULL, NULL)
-  
+
   # Should remove the true duplicate but keep others
   expect_equal(nrow(result), 3)
   # Should keep first occurrence of duplicate
