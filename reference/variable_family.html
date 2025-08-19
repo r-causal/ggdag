@@ -91,6 +91,7 @@ functions label variables depending on their relationship. The
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -116,6 +117,7 @@ functions label variables depending on their relationship. The
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -141,6 +143,7 @@ functions label variables depending on their relationship. The
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -166,6 +169,7 @@ functions label variables depending on their relationship. The
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -191,6 +195,7 @@ functions label variables depending on their relationship. The
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -216,6 +221,7 @@ functions label variables depending on their relationship. The
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -309,6 +315,13 @@ and the node borders).</p></dd>
 <dd><p>A logical value. Include <code><a href="repel.html">geom_dag_label_repel()</a></code>?</p></dd>
 
 
+<dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>
+<dd><p>A logical value. When <code>TRUE</code> and both <code>use_edges</code> and
+<code>use_nodes</code> are <code>TRUE</code>, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+cleaner, more compact legends. Default is <code>TRUE</code>.</p></dd>
+
+
 <dt id="arg-text">text<a class="anchor" aria-label="anchor" href="#arg-text"></a></dt>
 <dd><p>The bare name of a column to use for <code><a href="geom_dag_text.html">geom_dag_text()</a></code>. If
 <code>use_text = TRUE</code>, the default is to use <code>name</code>.</p></dd>
@@ -355,7 +368,7 @@ relationship for variable D relationship or a <code>ggplot</code></p>
 <span class="r-in"><span>  <span class="fu"><a href="geom_dag_text.html">geom_dag_text</a></span><span class="op">(</span>col <span class="op">=</span> <span class="st">"white"</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="repel.html">geom_dag_label_repel</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">children</span>, fill <span class="op">=</span> <span class="va">children</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">"white"</span>, show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="scale_adjusted.html">scale_adjusted</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="scale_adjusted.html">scale_adjusted</a></span><span class="op">(</span>include_color <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_hue.html" class="external-link">scale_color_hue</a></span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parent"</span>, <span class="st">"child"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="variable_family-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
@@ -376,7 +389,7 @@ relationship for variable D relationship or a <code>ggplot</code></p>
 <span class="r-in"><span>  <span class="fu"><a href="geom_dag_text.html">geom_dag_text</a></span><span class="op">(</span>col <span class="op">=</span> <span class="st">"white"</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="repel.html">geom_dag_label_repel</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">parent</span>, fill <span class="op">=</span> <span class="va">parent</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">"white"</span>, show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="scale_adjusted.html">scale_adjusted</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="scale_adjusted.html">scale_adjusted</a></span><span class="op">(</span>include_color <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_hue.html" class="external-link">scale_color_hue</a></span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"parent"</span>, <span class="st">"child"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="variable_family-6.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>

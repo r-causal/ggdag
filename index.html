@@ -96,27 +96,30 @@
 <span><span class="va">tidy_dag</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">tidy_dag</span></span>
-<span><span class="co">#&gt; # A DAG with 7 nodes and 12 edges</span></span>
-<span><span class="co">#&gt; #</span></span>
+<span><span class="co">#&gt; # DAG:</span></span>
+<span><span class="co">#&gt; # A `dagitty` DAG with: 7 nodes and 12 edges</span></span>
 <span><span class="co">#&gt; # Exposure: x</span></span>
 <span><span class="co">#&gt; # Outcome: y</span></span>
 <span><span class="co">#&gt; #</span></span>
-<span><span class="co">#&gt; # A tibble: 13 × 8</span></span>
-<span><span class="co">#&gt;    name       x     y direction to      xend   yend circular</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;lgl&gt;   </span></span>
-<span><span class="co">#&gt;  1 v     -0.180 0.946 -&gt;        z1     1.20   0.608 FALSE   </span></span>
-<span><span class="co">#&gt;  2 v     -0.180 0.946 -&gt;        z2     0.177  2.32  FALSE   </span></span>
-<span><span class="co">#&gt;  3 w1     1.64  1.49  -&gt;        x      2.23   1.70  FALSE   </span></span>
-<span><span class="co">#&gt;  4 w1     1.64  1.49  -&gt;        y      1.63   2.71  FALSE   </span></span>
-<span><span class="co">#&gt;  5 w1     1.64  1.49  -&gt;        z1     1.20   0.608 FALSE   </span></span>
-<span><span class="co">#&gt;  6 w1     1.64  1.49  &lt;-&gt;       w2     1.16   2.30  FALSE   </span></span>
-<span><span class="co">#&gt;  7 w2     1.16  2.30  -&gt;        x      2.23   1.70  FALSE   </span></span>
-<span><span class="co">#&gt;  8 w2     1.16  2.30  -&gt;        y      1.63   2.71  FALSE   </span></span>
-<span><span class="co">#&gt;  9 w2     1.16  2.30  -&gt;        z2     0.177  2.32  FALSE   </span></span>
-<span><span class="co">#&gt; 10 x      2.23  1.70  -&gt;        y      1.63   2.71  FALSE   </span></span>
-<span><span class="co">#&gt; 11 y      1.63  2.71  &lt;NA&gt;      &lt;NA&gt;  NA     NA     FALSE   </span></span>
-<span><span class="co">#&gt; 12 z1     1.20  0.608 -&gt;        x      2.23   1.70  FALSE   </span></span>
-<span><span class="co">#&gt; 13 z2     0.177 2.32  -&gt;        y      1.63   2.71  FALSE</span></span>
+<span><span class="co">#&gt; # Data:</span></span>
+<span><span class="co">#&gt; # A tibble: 13 × 7</span></span>
+<span><span class="co">#&gt;    name       x     y direction to      xend   yend</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt;  1 v     -0.180 0.946 -&gt;        z1     1.20   0.608</span></span>
+<span><span class="co">#&gt;  2 v     -0.180 0.946 -&gt;        z2     0.177  2.32 </span></span>
+<span><span class="co">#&gt;  3 w1     1.64  1.49  -&gt;        x      2.23   1.70 </span></span>
+<span><span class="co">#&gt;  4 w1     1.64  1.49  -&gt;        y      1.63   2.71 </span></span>
+<span><span class="co">#&gt;  5 w1     1.64  1.49  -&gt;        z1     1.20   0.608</span></span>
+<span><span class="co">#&gt;  6 w1     1.64  1.49  &lt;-&gt;       w2     1.16   2.30 </span></span>
+<span><span class="co">#&gt;  7 w2     1.16  2.30  -&gt;        x      2.23   1.70 </span></span>
+<span><span class="co">#&gt;  8 w2     1.16  2.30  -&gt;        y      1.63   2.71 </span></span>
+<span><span class="co">#&gt;  9 w2     1.16  2.30  -&gt;        z2     0.177  2.32 </span></span>
+<span><span class="co">#&gt; 10 x      2.23  1.70  -&gt;        y      1.63   2.71 </span></span>
+<span><span class="co">#&gt; 11 y      1.63  2.71  &lt;NA&gt;      &lt;NA&gt;  NA     NA    </span></span>
+<span><span class="co">#&gt; 12 z1     1.20  0.608 -&gt;        x      2.23   1.70 </span></span>
+<span><span class="co">#&gt; 13 z2     0.177 2.32  -&gt;        y      1.63   2.71 </span></span>
+<span><span class="co">#&gt; #</span></span>
+<span><span class="co">#&gt; # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span>
 <span></span>
 <span><span class="co">#  using more R-like syntax to create the same DAG</span></span>
 <span><span class="va">tidy_ggdag</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/dagify.html">dagify</a></span><span class="op">(</span></span>
@@ -127,31 +130,34 @@
 <span>  <span class="va">w1</span> <span class="op">~</span> <span class="op">~</span><span class="va">w2</span>, <span class="co"># bidirected path</span></span>
 <span>  exposure <span class="op">=</span> <span class="st">"x"</span>,</span>
 <span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>
-<span><span class="op">)</span> <span class="op"><a href="reference/pipe.html">%&gt;%</a></span></span>
+<span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">tidy_ggdag</span></span>
-<span><span class="co">#&gt; # A DAG with 7 nodes and 12 edges</span></span>
-<span><span class="co">#&gt; #</span></span>
+<span><span class="co">#&gt; # DAG:</span></span>
+<span><span class="co">#&gt; # A `dagitty` DAG with: 7 nodes and 12 edges</span></span>
 <span><span class="co">#&gt; # Exposure: x</span></span>
 <span><span class="co">#&gt; # Outcome: y</span></span>
 <span><span class="co">#&gt; #</span></span>
-<span><span class="co">#&gt; # A tibble: 13 × 8</span></span>
-<span><span class="co">#&gt;    name          x     y direction to         xend  yend circular</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   </span></span>
-<span><span class="co">#&gt;  1 v      0.696     4.02 -&gt;        z1     1.07      2.66 FALSE   </span></span>
-<span><span class="co">#&gt;  2 v      0.696     4.02 -&gt;        z2    -0.669     3.67 FALSE   </span></span>
-<span><span class="co">#&gt;  3 w1     0.175     2.21 -&gt;        x     -0.000636  1.61 FALSE   </span></span>
-<span><span class="co">#&gt;  4 w1     0.175     2.21 -&gt;        y     -1.05      2.22 FALSE   </span></span>
-<span><span class="co">#&gt;  5 w1     0.175     2.21 -&gt;        z1     1.07      2.66 FALSE   </span></span>
-<span><span class="co">#&gt;  6 w1     0.175     2.21 &lt;-&gt;       w2    -0.613     2.67 FALSE   </span></span>
-<span><span class="co">#&gt;  7 w2    -0.613     2.67 -&gt;        x     -0.000636  1.61 FALSE   </span></span>
-<span><span class="co">#&gt;  8 w2    -0.613     2.67 -&gt;        y     -1.05      2.22 FALSE   </span></span>
-<span><span class="co">#&gt;  9 w2    -0.613     2.67 -&gt;        z2    -0.669     3.67 FALSE   </span></span>
-<span><span class="co">#&gt; 10 x     -0.000636  1.61 -&gt;        y     -1.05      2.22 FALSE   </span></span>
-<span><span class="co">#&gt; 11 y     -1.05      2.22 &lt;NA&gt;      &lt;NA&gt;  NA        NA    FALSE   </span></span>
-<span><span class="co">#&gt; 12 z1     1.07      2.66 -&gt;        x     -0.000636  1.61 FALSE   </span></span>
-<span><span class="co">#&gt; 13 z2    -0.669     3.67 -&gt;        y     -1.05      2.22 FALSE</span></span></code></pre></div>
+<span><span class="co">#&gt; # Data:</span></span>
+<span><span class="co">#&gt; # A tibble: 13 × 7</span></span>
+<span><span class="co">#&gt;    name          x     y direction to         xend  yend</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt;  1 v      0.696     4.02 -&gt;        z1     1.07      2.66</span></span>
+<span><span class="co">#&gt;  2 v      0.696     4.02 -&gt;        z2    -0.669     3.67</span></span>
+<span><span class="co">#&gt;  3 w1     0.175     2.21 -&gt;        x     -0.000636  1.61</span></span>
+<span><span class="co">#&gt;  4 w1     0.175     2.21 -&gt;        y     -1.05      2.22</span></span>
+<span><span class="co">#&gt;  5 w1     0.175     2.21 -&gt;        z1     1.07      2.66</span></span>
+<span><span class="co">#&gt;  6 w1     0.175     2.21 &lt;-&gt;       w2    -0.613     2.67</span></span>
+<span><span class="co">#&gt;  7 w2    -0.613     2.67 -&gt;        x     -0.000636  1.61</span></span>
+<span><span class="co">#&gt;  8 w2    -0.613     2.67 -&gt;        y     -1.05      2.22</span></span>
+<span><span class="co">#&gt;  9 w2    -0.613     2.67 -&gt;        z2    -0.669     3.67</span></span>
+<span><span class="co">#&gt; 10 x     -0.000636  1.61 -&gt;        y     -1.05      2.22</span></span>
+<span><span class="co">#&gt; 11 y     -1.05      2.22 &lt;NA&gt;      &lt;NA&gt;  NA        NA   </span></span>
+<span><span class="co">#&gt; 12 z1     1.07      2.66 -&gt;        x     -0.000636  1.61</span></span>
+<span><span class="co">#&gt; 13 z2    -0.669     3.67 -&gt;        y     -1.05      2.22</span></span>
+<span><span class="co">#&gt; #</span></span>
+<span><span class="co">#&gt; # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span></code></pre></div>
 <p><code>ggdag</code> also provides functionality for analyzing DAGs and plotting them in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">tidy_ggdag</span><span class="op">)</span> <span class="op">+</span></span>
@@ -163,9 +169,9 @@
 <p><img src="reference/figures/ggdag-2.png" width="100%"></p>
 <p>As well as geoms and other functions for plotting them directly in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">m</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">y</span><span class="op">)</span> <span class="op"><a href="reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="reference/pipe.html">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="reference/d_relationship.html">node_dconnected</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span>, controlling_for <span class="op">=</span> <span class="st">"m"</span><span class="op">)</span> <span class="op"><a href="reference/pipe.html">%&gt;%</a></span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">m</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">y</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/d_relationship.html">node_dconnected</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span>, controlling_for <span class="op">=</span> <span class="st">"m"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span></span>
 <span>    x <span class="op">=</span> <span class="va">x</span>,</span>
 <span>    y <span class="op">=</span> <span class="va">y</span>,</span>
@@ -179,7 +185,7 @@
 <span>  <span class="fu"><a href="reference/node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="reference/geom_dag_text.html">geom_dag_text</a></span><span class="op">(</span>col <span class="op">=</span> <span class="st">"white"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="reference/theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="reference/scale_adjusted.html">scale_adjusted</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="reference/scale_adjusted.html">scale_adjusted</a></span><span class="op">(</span>include_color <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="reference/expand_plot.html">expand_plot</a></span><span class="op">(</span>expand_y <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expansion</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_color_viridis_d</a></span><span class="op">(</span></span>
 <span>    name <span class="op">=</span> <span class="st">"d-relationship"</span>,</span>

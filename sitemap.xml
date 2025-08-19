@@ -26,6 +26,10 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/dagify.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dot-validate_query_input.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dplyr.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/draw_key_dag_collider.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/draw_key_dag_combined.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/draw_key_dag_edge.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/draw_key_dag_point.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/edge_backdoor.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/equivalent.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/exogenous.html</loc></url>

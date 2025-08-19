@@ -66,7 +66,12 @@ favor of <code>scale_adjusted()</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">scale_adjusted</span><span class="op">(</span>include_alpha <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">scale_adjusted</span><span class="op">(</span></span>
+<span>  include_linetype <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_shape <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_color <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_alpha <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">scale_dag</span><span class="op">(</span>breaks <span class="op">=</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/waiver.html" class="external-link">waiver</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -75,8 +80,24 @@ favor of <code>scale_adjusted()</code>.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-include-alpha">include_alpha<a class="anchor" aria-label="anchor" href="#arg-include-alpha"></a></dt>
-<dd><p>Logical. Include alpha-related scales?</p></dd>
+<dl><dt id="arg-include-linetype">include_linetype<a class="anchor" aria-label="anchor" href="#arg-include-linetype"></a></dt>
+<dd><p>Logical. Include linetype scale for dashed lines on
+collider edges? Default is TRUE.</p></dd>
+
+
+<dt id="arg-include-shape">include_shape<a class="anchor" aria-label="anchor" href="#arg-include-shape"></a></dt>
+<dd><p>Logical. Include shape scale for adjustment status
+(squares for adjusted, circles for unadjusted)? Default is TRUE.</p></dd>
+
+
+<dt id="arg-include-color">include_color<a class="anchor" aria-label="anchor" href="#arg-include-color"></a></dt>
+<dd><p>Logical. Include color scale for adjustment status?
+Default is TRUE.</p></dd>
+
+
+<dt id="arg-include-alpha">include_alpha<a class="anchor" aria-label="anchor" href="#arg-include-alpha"></a></dt>
+<dd><p>Logical. Include alpha scales for de-emphasizing edges
+from adjusted variables? Default is FALSE.</p></dd>
 
 
 <dt id="arg-breaks">breaks<a class="anchor" aria-label="anchor" href="#arg-breaks"></a></dt>

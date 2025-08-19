@@ -61,7 +61,8 @@ slightly stylized and includes an internal white circle, while
 <span>  <span class="va">...</span>,</span>
 <span>  na.rm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  key_glyph <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">geom_dag_point</span><span class="op">(</span></span>
@@ -71,7 +72,8 @@ slightly stylized and includes an internal white circle, while
 <span>  <span class="va">...</span>,</span>
 <span>  na.rm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  key_glyph <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -159,6 +161,14 @@ display.</p></dd>
 rather than combining with them. This is most useful for helper functions
 that define both data and aesthetics and shouldn't inherit behaviour from
 the default plot specification, e.g. <code><a href="https://ggplot2.tidyverse.org/reference/borders.html" class="external-link">borders()</a></code>.</p></dd>
+
+
+<dt id="arg-key-glyph">key_glyph<a class="anchor" aria-label="anchor" href="#arg-key-glyph"></a></dt>
+<dd><p>A function to use for drawing the legend key glyph for nodes.
+If <code>NULL</code> (the default), the glyph is chosen automatically based on the
+<code>unified_legend</code> setting. When provided, this overrides the automatic
+selection. Common options include <code>draw_key_dag_point</code>,
+<code>draw_key_dag_combined</code>, and <code>draw_key_dag_collider</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

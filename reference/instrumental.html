@@ -73,6 +73,7 @@ outcome. <code>ggdag_instrumental</code> plots all instrumental variables. See
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
@@ -167,6 +168,13 @@ and the node borders).</p></dd>
 
 <dt id="arg-use-labels">use_labels<a class="anchor" aria-label="anchor" href="#arg-use-labels"></a></dt>
 <dd><p>A logical value. Include <code><a href="repel.html">geom_dag_label_repel()</a></code>?</p></dd>
+
+
+<dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>
+<dd><p>A logical value. When <code>TRUE</code> and both <code>use_edges</code> and
+<code>use_nodes</code> are <code>TRUE</code>, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+cleaner, more compact legends. Default is <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-text">text<a class="anchor" aria-label="anchor" href="#arg-text"></a></dt>
