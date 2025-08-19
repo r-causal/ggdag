@@ -467,4 +467,51 @@ test_that("all query functions validate input", {
   expect_error(query_ancestors(not_dag))
   expect_error(query_descendants(not_dag))
   expect_error(query_markov_blanket(not_dag))
+  expect_error(query_status(not_dag))
+})
+
+test_that("query_status works correctly", {
+  # DAG with all status types
+  dag <- dagify(
+    l ~ x + y,
+    y ~ x,
+    exposure = "x",
+    outcome = "y",
+    latent = "l"
+  )
+
+  result <- query_status(dag)
+  expect_s3_class(result, "tbl_df")
+  expect_named(result, c("name", "status"))
+  expect_equal(nrow(result), 3)
+
+  # Check specific statuses
+  expect_equal(result$status[result$name == "x"], "exposure")
+  expect_equal(result$status[result$name == "y"], "outcome")
+  expect_equal(result$status[result$name == "l"], "latent")
+
+  # Query specific variables
+  result2 <- query_status(dag, .var = c("x", "l"))
+  expect_equal(nrow(result2), 2)
+  expect_setequal(result2$name, c("x", "l"))
+
+  # DAG with no special status
+  dag2 <- dagify(
+    y ~ x + z,
+    x ~ w
+  )
+
+  result3 <- query_status(dag2)
+  expect_true(all(is.na(result3$status)))
+
+  # Mixed status
+  dag3 <- dagify(
+    y ~ x + z,
+    x ~ w,
+    exposure = "x"
+  )
+
+  result4 <- query_status(dag3)
+  expect_equal(sum(!is.na(result4$status)), 1)
+  expect_equal(result4$status[result4$name == "x"], "exposure")
 })
