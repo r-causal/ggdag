@@ -807,6 +807,65 @@ query_markov_blanket <- function(.tdy_dag, .var = NULL) {
     purrr::list_rbind()
 }
 
+#' Query Variable Status
+#'
+#' Query the status of variables in a DAG (exposure, outcome, or latent).
+#'
+#' @param .tdy_dag A tidy DAG object.
+#' @param .var Character vector of variables to query. If NULL, returns
+#'   status for all nodes.
+#'
+#' @return A tibble with columns:
+#'   - `name`: The variable name
+#'   - `status`: The variable status (exposure, outcome, latent, or NA)
+#'
+#' @export
+#' @examples
+#' library(ggdag)
+#' dag <- dagify(
+#'   l ~ x + y,
+#'   y ~ x,
+#'   exposure = "x",
+#'   outcome = "y",
+#'   latent = "l"
+#' )
+#'
+#' query_status(dag)
+#' query_status(dag, .var = "x")
+query_status <- function(.tdy_dag, .var = NULL) {
+  .validate_query_input(.tdy_dag)
+
+  .dag <- pull_dag(.tdy_dag)
+
+  # Get exposures, outcomes, and latents
+  .exposures <- dagitty::exposures(.dag)
+  .outcomes <- dagitty::outcomes(.dag)
+  .latents <- dagitty::latents(.dag)
+
+  # Get nodes to query
+  nodes <- if (is.null(.var)) {
+    names(.dag)
+  } else {
+    .var
+  }
+
+  # Create status for each node
+  purrr::map(nodes, \(node) {
+    status <- dplyr::case_when(
+      node %in% .exposures ~ "exposure",
+      node %in% .outcomes ~ "outcome",
+      node %in% .latents ~ "latent",
+      TRUE ~ NA_character_
+    )
+
+    tibble::tibble(
+      name = node,
+      status = status
+    )
+  }) |>
+    purrr::list_rbind()
+}
+
 #' Internal helper functions
 #' @keywords internal
 .validate_query_input <- function(.tdy_dag, arg_name = ".tdy_dag") {
