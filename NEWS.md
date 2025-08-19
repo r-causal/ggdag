@@ -1,5 +1,14 @@
 # ggdag (development version)
 
+* Added comprehensive set of `is_*()` functions for testing DAG properties:
+  - `is_acyclic()`: Test if a DAG is acyclic
+  - `is_adjustment_set()`: Test if a set of variables is a valid adjustment set
+  - `is_d_separated()`, `is_d_connected()`: Test d-separation relationships
+  - `is_exogenous()`: Test if a variable has no parents
+  - `is_instrumental()`: Test if a variable is instrumental
+  - `is_exposure()`, `is_outcome()`, `is_latent()`: Test variable status
+  - `is_parent()`, `is_child()`, `is_ancestor()`, `is_descendant()`: Test node relationships
+  - `is_adjacent()`: Test if two nodes are adjacent
 * Added `edge_backdoor()` function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (#137)
 * Enhanced `dag_paths()` and `query_paths()` to include `path_type` column that classifies paths as "backdoor" or "direct" (#137)
 * Changed default aesthetic in `ggdag_paths()` from coloring by path status to coloring by path type (direct vs backdoor), providing more informative visualization of causal pathways
