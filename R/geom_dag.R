@@ -345,6 +345,8 @@ geom_dag_text_repel <- function(
   show.legend = NA,
   inherit.aes = TRUE
 ) {
+  dots <- rlang::list2(...)
+  segment.colour <- dots[["segment.colour"]]
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -358,7 +360,7 @@ geom_dag_text_repel <- function(
       na.rm = na.rm,
       box.padding = box.padding,
       point.padding = point.padding,
-      segment.colour = segment.color,
+      segment.colour = segment.color %||% segment.colour,
       segment.size = segment.size,
       fontface = fontface,
       arrow = arrow,
@@ -397,6 +399,8 @@ geom_dag_label_repel <- function(
   show.legend = NA,
   inherit.aes = TRUE
 ) {
+  dots <- rlang::list2(...)
+  segment.colour <- dots[["segment.colour"]]
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -412,7 +416,7 @@ geom_dag_label_repel <- function(
       point.padding = point.padding,
       label.r = label.r,
       label.size = label.size,
-      segment.colour = segment.color,
+      segment.colour = segment.color %||% segment.colour,
       segment.size = segment.size,
       arrow = arrow,
       na.rm = na.rm,
