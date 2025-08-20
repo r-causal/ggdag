@@ -1,7 +1,7 @@
 set.seed(1234)
 
 test_that("d relationships correctly identified", {
-  test_dag <- dagify(m ~ x + y) %>%
+  test_dag <- dagify(m ~ x + y) |>
     tidy_dagitty()
   p1 <- ggdag_drelationship(test_dag, "x", "y")
   p2 <- ggdag_drelationship(test_dag, "x", "y", controlling_for = "m")

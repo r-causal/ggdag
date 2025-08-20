@@ -31,12 +31,12 @@ test_that("dags ............", {
     ),
     exposure = "x",
     outcome = "y"
-  ) %>%
+  ) |>
     tidy_dagitty()
 
-  labelled_dag2 <- labelled_dag %>%
+  labelled_dag2 <- labelled_dag |>
     # also add node status
-    node_status() %>%
+    node_status() |>
     node_equivalent_dags()
 
   expect_names(pull_dag_data(labelled_dag2), c("label", "status"))
