@@ -527,3 +527,123 @@ test_that("color aesthetic is mapped to edge_color for edge geoms", {
   expect_false("edge_color" %in% names(layer_mapping4))
   expect_false("color" %in% names(layer_mapping4))
 })
+
+test_that("position_nudge_repel works with geom_dag_text_repel", {
+  withr::local_seed(1234)
+  test_dag <- dagify(
+    y ~ x + z,
+    z ~ x
+  )
+
+  # Test position_nudge_repel
+  p_position <- test_dag |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      position = ggrepel::position_nudge_repel(x = 0.2, y = 0.2),
+      min.segment.length = 0
+    )
+
+  expect_doppelganger("repel-position-nudge", p_position)
+})
+
+test_that("nudge_x and nudge_y parameters work with geom_dag_text_repel", {
+  withr::local_seed(1234)
+  test_dag <- dagify(
+    y ~ x + z,
+    z ~ x
+  )
+
+  # Test nudge_x and nudge_y
+  p_nudge <- test_dag |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      nudge_x = 0.2,
+      nudge_y = 0.2,
+      min.segment.length = 0
+    )
+
+  expect_doppelganger("repel-nudge-params", p_nudge)
+})
+
+test_that("position_nudge_repel works with geom_dag_label_repel", {
+  withr::local_seed(1234)
+  test_dag <- dagify(
+    y ~ x + z,
+    z ~ x
+  )
+
+  # Test position_nudge_repel with labels
+  p_label_position <- test_dag |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel(
+      aes(label = name),
+      position = ggrepel::position_nudge_repel(x = 0.15, y = 0.15),
+      min.segment.length = 0
+    )
+
+  expect_doppelganger("repel-label-position-nudge", p_label_position)
+})
+
+test_that("nudge_x and nudge_y work with geom_dag_label_repel", {
+  withr::local_seed(1234)
+  test_dag <- dagify(
+    y ~ x + z,
+    z ~ x
+  )
+
+  # Test nudge params with labels
+  p_label_nudge <- test_dag |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel(
+      aes(label = name),
+      nudge_x = 0.15,
+      nudge_y = 0.15,
+      min.segment.length = 0
+    )
+
+  expect_doppelganger("repel-label-nudge-params", p_label_nudge)
+})
+
+test_that("nudge parameters work with vectors", {
+  withr::local_seed(1234)
+
+  # Create dag with known node order
+  dag_ordered <- dagify(
+    d ~ a + b + c,
+    c ~ a + b,
+    b ~ a,
+    coords = list(
+      x = c(a = 0, b = 1, c = 2, d = 3),
+      y = c(a = 0, b = 0, c = 0, d = 0)
+    )
+  )
+
+  # Test vector nudges
+  p_vector <- dag_ordered |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      nudge_x = c(0, 0.1, 0.2, 0.3),
+      nudge_y = c(0.3, 0.2, 0.1, 0),
+      min.segment.length = 0
+    )
+
+  expect_doppelganger("repel-vector-nudges", p_vector)
+})

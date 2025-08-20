@@ -5,6 +5,8 @@
   - `segment.alpha` now defaults to 1 but can be overridden by users
   - All segment.* parameters (e.g., `segment.linetype`, `segment.curvature`, `segment.angle`) now pass through correctly via `...`
   - Parameters like `point.size` and `point.colour` can also be passed through `...`
+  - Fixed support for `ggrepel::position_nudge_repel()` - users can now use either `nudge_x`/`nudge_y` parameters or `position = position_nudge_repel()`
+  - Both approaches now work with vector inputs for differential nudging of labels
 
 * Added comprehensive set of `is_*()` functions for testing DAG properties:
   - `is_acyclic()`: Test if a DAG is acyclic

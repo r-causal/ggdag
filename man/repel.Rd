@@ -247,6 +247,31 @@ g |>
   geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
   theme_dag()
 
+# Use nudge_x and nudge_y to push labels away from nodes
+g |>
+  tidy_dagitty() |>
+  ggplot(aes_dag()) +
+  geom_dag_edges() +
+  geom_dag_point() +
+  geom_dag_text_repel(
+    aes(label = name),
+    nudge_x = 0.1,
+    nudge_y = 0.1
+  ) +
+  theme_dag()
+
+# Use position_nudge_repel for the same effect
+g |>
+  tidy_dagitty() |>
+  ggplot(aes_dag()) +
+  geom_dag_edges() +
+  geom_dag_point() +
+  geom_dag_text_repel(
+    aes(label = name),
+    position = ggrepel::position_nudge_repel(x = 0.1, y = 0.1)
+  ) +
+  theme_dag()
+
 g |>
   tidy_dagitty() |>
   dag_label(labels = c(

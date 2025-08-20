@@ -330,6 +330,31 @@ geom_dag_label <- function(
 #'   geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
 #'   theme_dag()
 #'
+#' # Use nudge_x and nudge_y to push labels away from nodes
+#' g |>
+#'   tidy_dagitty() |>
+#'   ggplot(aes_dag()) +
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text_repel(
+#'     aes(label = name),
+#'     nudge_x = 0.1,
+#'     nudge_y = 0.1
+#'   ) +
+#'   theme_dag()
+#'
+#' # Use position_nudge_repel for the same effect
+#' g |>
+#'   tidy_dagitty() |>
+#'   ggplot(aes_dag()) +
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text_repel(
+#'     aes(label = name),
+#'     position = ggrepel::position_nudge_repel(x = 0.1, y = 0.1)
+#'   ) +
+#'   theme_dag()
+#'
 #' g |>
 #'   tidy_dagitty() |>
 #'   dag_label(labels = c(
@@ -413,6 +438,14 @@ geom_dag_text_repel <- function(
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
   stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+
+  # If nudge_x or nudge_y are provided and position is "identity",
+  # convert to position_nudge_repel for proper behavior
+  if (
+    identical(position, "identity") && (any(nudge_x != 0) || any(nudge_y != 0))
+  ) {
+    position <- ggrepel::position_nudge_repel(x = nudge_x, y = nudge_y)
+  }
 
   # Build params list
   params <- list(
@@ -501,6 +534,14 @@ geom_dag_label_repel <- function(
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
   stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+
+  # If nudge_x or nudge_y are provided and position is "identity",
+  # convert to position_nudge_repel for proper behavior
+  if (
+    identical(position, "identity") && (any(nudge_x != 0) || any(nudge_y != 0))
+  ) {
+    position <- ggrepel::position_nudge_repel(x = nudge_x, y = nudge_y)
+  }
 
   # Build params list
   params <- list(
