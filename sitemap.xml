@@ -52,6 +52,9 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/is.tidy_dagitty.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/is_collider.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/is_confounder.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/is_dag_properties.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/is_node_properties.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/is_node_relationships.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/label.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/node_point.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/path_params.html</loc></url>

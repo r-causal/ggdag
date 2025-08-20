@@ -40,7 +40,25 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="ggdag-development-version">ggdag (development version)<a class="anchor" aria-label="anchor" href="#ggdag-development-version"></a></h2>
-<ul><li>Added <code><a href="../reference/edge_backdoor.html">edge_backdoor()</a></code> function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
+<ul><li>Added comprehensive set of <code>is_*()</code> functions for testing DAG properties:
+<ul><li>
+<code><a href="../reference/is_dag_properties.html">is_acyclic()</a></code>: Test if a DAG is acyclic</li>
+<li>
+<code><a href="../reference/is_dag_properties.html">is_adjustment_set()</a></code>: Test if a set of variables is a valid adjustment set</li>
+<li>
+<code><a href="../reference/is_dag_properties.html">is_d_separated()</a></code>, <code><a href="../reference/is_dag_properties.html">is_d_connected()</a></code>: Test d-separation relationships</li>
+<li>
+<code><a href="../reference/is_node_properties.html">is_exogenous()</a></code>: Test if a variable has no parents</li>
+<li>
+<code><a href="../reference/is_node_properties.html">is_instrumental()</a></code>: Test if a variable is instrumental</li>
+<li>
+<code><a href="../reference/is_node_properties.html">is_exposure()</a></code>, <code><a href="../reference/is_node_properties.html">is_outcome()</a></code>, <code><a href="../reference/is_node_properties.html">is_latent()</a></code>: Test variable status</li>
+<li>
+<code><a href="../reference/is_node_relationships.html">is_parent()</a></code>, <code><a href="../reference/is_node_relationships.html">is_child()</a></code>, <code><a href="../reference/is_node_relationships.html">is_ancestor()</a></code>, <code><a href="../reference/is_node_relationships.html">is_descendant()</a></code>: Test node relationships</li>
+<li>
+<code><a href="../reference/is_node_relationships.html">is_adjacent()</a></code>: Test if two nodes are adjacent</li>
+</ul></li>
+<li>Added <code><a href="../reference/edge_backdoor.html">edge_backdoor()</a></code> function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
 <li>Enhanced <code><a href="../reference/paths.html">dag_paths()</a></code> and <code><a href="../reference/query_paths.html">query_paths()</a></code> to include <code>path_type</code> column that classifies paths as “backdoor” or “direct” (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
 <li>Changed default aesthetic in <code><a href="../reference/paths.html">ggdag_paths()</a></code> from coloring by path status to coloring by path type (direct vs backdoor), providing more informative visualization of causal pathways</li>
 <li>Introduced new <code>query_*()</code> API for direct analytical queries on DAGs (<a href="https://github.com/r-causal/ggdag/issues/185" class="external-link">#185</a>). These functions return tibbles with results rather than tidy DAG objects for plotting:
