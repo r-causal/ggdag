@@ -263,6 +263,8 @@ test_that("coordinate conversion functions work forward and backwards", {
 })
 
 test_that("tidy_dagitty warns about cyclic graphs", {
+  # avoid RNG differences on old R versions on Windows
+  skip_on_os("windows")
   # Simple 2-node cycle
   cyclic_dag1 <- dagitty::dagitty("dag { A -> B -> A }")
   expect_ggdag_warning(
