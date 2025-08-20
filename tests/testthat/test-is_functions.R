@@ -138,8 +138,8 @@ test_that("node relationship functions work correctly", {
   # Test is_adjacent()
   expect_true(is_adjacent(dag, "x", "y"))
   expect_true(is_adjacent(dag, "y", "x")) # adjacency is symmetric
-  # Note: dagitty considers nodes adjacent if they're connected through any path
   expect_true(is_adjacent(dag, "z", "y"))
+  expect_false(is_adjacent(dag, "z", "m"))
 })
 
 test_that("functions handle tidy_dagitty objects", {
