@@ -309,7 +309,7 @@ test_that("tidy_dagitty warns about cyclic graphs", {
   expect_no_warning(pull_dag(tidy_cyclic))
   expect_no_warning(pull_dag_data(tidy_cyclic))
 
-  # Warning should propagate through if_not_tidy_daggity
+  # Warning should propagate through if_not_tidy_dagitty
   expect_warning(
     expect_warning(
       dag_adjustment_sets(cyclic_dag1, exposure = "A", outcome = "B"),
