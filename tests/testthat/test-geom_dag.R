@@ -120,17 +120,23 @@ test_that("circular layouts work correctly", {
     c ~ a
   )
 
-  p_circular <- dag |>
-    tidy_dagitty(layout = "linear", circular = TRUE) |>
-    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_edges_arc() +
-    geom_dag_point() +
-    geom_dag_text()
+  expect_warning(
+    p_circular <- dag |>
+      tidy_dagitty(layout = "linear", circular = TRUE) |>
+      ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+      geom_dag_edges_arc() +
+      geom_dag_point() +
+      geom_dag_text(),
+    class = "ggdag_cyclic_warning"
+  )
 
   expect_doppelganger("circular layout with arc edges", p_circular)
 
   # Test that circular column is present in circular layouts
-  tidy_dag_circular <- tidy_dagitty(dag, layout = "linear", circular = TRUE)
+  expect_warning(
+    tidy_dag_circular <- tidy_dagitty(dag, layout = "linear", circular = TRUE),
+    class = "ggdag_cyclic_warning"
+  )
   expect_true("circular" %in% names(pull_dag_data(tidy_dag_circular)))
   expect_true(all(pull_dag_data(tidy_dag_circular)$circular))
 })

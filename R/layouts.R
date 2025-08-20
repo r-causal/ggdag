@@ -152,7 +152,7 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
 
   # Merge orders with the original tibble
   final_result <- dplyr::left_join(orders, graph, by = "name") |>
-    dplyr::select(.data$name, .data$order) |>
+    dplyr::select("name", "order") |>
     dplyr::distinct()
 
   if (sort_direction == "left") {
@@ -170,7 +170,7 @@ auto_time_order <- function(graph, sort_direction = c("right", "left")) {
 right_sort_coords <- function(.x, .orders) {
   coords <- .orders |>
     dplyr::filter(.data$name %in% .x$to) |>
-    dplyr::pull(.data$order)
+    dplyr::pull("order")
 
   if (length(coords) == 0) {
     dplyr::tibble(order = .x$order)
