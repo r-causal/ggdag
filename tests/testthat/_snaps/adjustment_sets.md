@@ -2,7 +2,7 @@
 
     Code
       expr
-    Condition
+    Condition <ggdag_failed_to_close_backdoor_warning>
       Warning in `dag_adjustment_sets()`:
       Failed to close all backdoor paths.
       ! Common reasons include:
@@ -24,7 +24,7 @@
 
     Code
       expr
-    Condition
+    Condition <lifecycle_warning_deprecated>
       Warning:
       The `use_labels` argument of `geom_dag()` must be a logical as of ggdag 0.3.0.
       i Set `use_labels = TRUE` and `label = label`
@@ -33,7 +33,7 @@
 
     Code
       expr
-    Condition
+    Condition <lifecycle_warning_deprecated>
       Warning:
       The `text` argument of `geom_dag()` no longer accepts logicals as of ggdag 0.3.0.
       i Set `use_text = FALSE`. To use a variable other than node names, set `text = variable_name`

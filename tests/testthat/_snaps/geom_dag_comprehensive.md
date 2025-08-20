@@ -2,7 +2,7 @@
 
     Code
       expr
-    Condition
+    Condition <ggdag_deprecated>
       Warning in `geom_dag_collider_edges()`:
       `size` is deprecated for lines.
       i Please use `linewidth` instead.
@@ -11,7 +11,7 @@
 
     Code
       expr
-    Condition
+    Condition <lifecycle_warning_deprecated>
       Warning:
       The `node` argument of `geom_dag()` is deprecated as of ggdag 0.3.0.
       i Please use the `use_nodes` argument instead.
@@ -47,7 +47,7 @@
 
     Code
       expr
-    Condition
+    Condition <lifecycle_warning_deprecated>
       Warning:
       The `stylized` argument of `geom_dag()` is deprecated as of ggdag 0.3.0.
       i Please use the `stylized` argument instead.
@@ -85,7 +85,7 @@
 
     Code
       expr
-    Condition
+    Condition <lifecycle_warning_deprecated>
       Warning:
       The `text` argument of `geom_dag()` no longer accepts logicals as of ggdag 0.3.0.
       i Set `use_text = FALSE`. To use a variable other than node names, set `text = variable_name`
@@ -94,7 +94,7 @@
 
     Code
       expr
-    Condition
+    Condition <lifecycle_warning_deprecated>
       Warning:
       The `use_labels` argument of `geom_dag()` must be a logical as of ggdag 0.3.0.
       i Set `use_labels = TRUE` and `label = label`

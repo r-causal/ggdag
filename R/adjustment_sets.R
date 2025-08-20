@@ -58,7 +58,8 @@ dag_adjustment_sets <- function(
         "*" = "Graph is not acyclic",
         "*" = "Backdoor paths are not closeable with given set of variables",
         "*" = "Necessary variables are unmeasured (latent)"
-      )
+      ),
+      warning_class = "ggdag_failed_to_close_backdoor_warning"
     )
     sets <- "(No Way to Block Backdoor Paths)"
   } else {

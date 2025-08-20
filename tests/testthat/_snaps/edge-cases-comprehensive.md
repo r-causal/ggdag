@@ -2,7 +2,7 @@
 
     Code
       expr
-    Condition
+    Condition <ggdag_warning>
       Warning in `dag_label()`:
       No labels provided
     Output

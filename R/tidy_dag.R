@@ -67,6 +67,8 @@ tidy_dagitty <- function(
     )
   }
 
+  check_acyclic(.dagitty)
+
   dag_edges <- get_dagitty_edges(.dagitty)
 
   if (layout == "time_ordered") {

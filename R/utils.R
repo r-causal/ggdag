@@ -280,3 +280,26 @@ validate_nodes_exist <- function(
 
   invisible(TRUE)
 }
+
+#' Check if DAG is acyclic and warn if not
+#' @noRd
+check_acyclic <- function(.dag, call = rlang::caller_env()) {
+  dag_obj <- pull_dag(.dag)
+
+  if (!is_acyclic(dag_obj)) {
+    cycle <- dagitty::findCycle(dag_obj)
+    cycle_str <- paste(cycle, collapse = " -> ")
+
+    warn(
+      c(
+        "Graph contains a cycle and is not a valid DAG.",
+        "!" = "Cycle detected: {cycle_str}",
+        "i" = "Causal diagram algorithms require acyclic graphs.",
+        "i" = "Consider revising your DAG specification."
+      ),
+      warning_class = "ggdag_cyclic_warning",
+      call = call
+    )
+  }
+  invisible(NULL)
+}

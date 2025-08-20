@@ -22,7 +22,7 @@
 
     Code
       expr
-    Condition
+    Condition <ggdag_failed_to_close_backdoor_warning>
       Warning in `dag_adjustment_sets()`:
       Failed to close all backdoor paths.
       ! Common reasons include:

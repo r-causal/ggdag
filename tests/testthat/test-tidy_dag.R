@@ -261,3 +261,62 @@ test_that("coordinate conversion functions work forward and backwards", {
   expect_equal(nrow(coord_df), length(coords$x))
   expect_equal(coords, coords2list(coord_df))
 })
+
+test_that("tidy_dagitty warns about cyclic graphs", {
+  # avoid RNG differences on old R versions on Windows
+  skip_on_os("windows")
+  # Simple 2-node cycle
+  cyclic_dag1 <- dagitty::dagitty("dag { A -> B -> A }")
+  expect_ggdag_warning(
+    tidy_dagitty(cyclic_dag1)
+  )
+
+  # Verify the warning message contains the cycle
+  expect_warning(
+    tidy_dagitty(cyclic_dag1),
+    regexp = "A -> B -> A"
+  )
+
+  # 3-node cycle
+  cyclic_dag2 <- dagitty::dagitty("dag { X -> Y -> Z -> X }")
+  expect_warning(
+    tidy_dagitty(cyclic_dag2),
+    regexp = "X -> Y -> Z -> X"
+  )
+
+  # Self-loop
+  cyclic_dag3 <- dagitty::dagitty("dag { A -> A }")
+  expect_warning(
+    tidy_dagitty(cyclic_dag3),
+    regexp = "A -> A"
+  )
+
+  # Complex graph with cycle
+  cyclic_dag4 <- dagitty::dagitty("dag { A -> B -> C -> D -> B E -> F }")
+  expect_warning(
+    tidy_dagitty(cyclic_dag4),
+    regexp = "B -> C -> D -> B"
+  )
+
+  # No warning for acyclic graphs
+  acyclic_dag <- dagitty::dagitty("dag { A -> B -> C }")
+  expect_no_warning(tidy_dagitty(acyclic_dag))
+
+  # The warning should occur only once, not on subsequent operations
+  expect_warning(
+    tidy_cyclic <- tidy_dagitty(cyclic_dag1),
+    class = "ggdag_cyclic_warning"
+  )
+  # Operations on already tidied dag should not re-warn
+  expect_no_warning(pull_dag(tidy_cyclic))
+  expect_no_warning(pull_dag_data(tidy_cyclic))
+
+  # Warning should propagate through if_not_tidy_dagitty
+  expect_warning(
+    expect_warning(
+      dag_adjustment_sets(cyclic_dag1, exposure = "A", outcome = "B"),
+      class = "ggdag_cyclic_warning"
+    ),
+    class = "ggdag_failed_to_close_backdoor_warning"
+  )
+})
