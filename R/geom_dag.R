@@ -285,6 +285,28 @@ geom_dag_label <- function(
 #' @inheritParams ggrepel::geom_label_repel
 #' @param fontface A character vector. Default is "bold"
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
+#' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
+#'   use ggrepel's default behavior, or provide a value between 0 and 1
+#'
+#' @details
+#' These geoms are wrappers around [ggrepel::geom_text_repel()] and
+#' [ggrepel::geom_label_repel()] that use the custom `StatNodesRepel`
+#' for better handling of DAG data. All arguments available in ggrepel
+#' functions are supported.
+#'
+#' Additional segment parameters can be passed through `...`, including:
+#' - `segment.linetype`: Line style
+#' - `segment.alpha`: Line transparency
+#' - `segment.curvature`: Curve amount
+#' - `segment.angle`: Curve angle
+#' - `segment.ncp`: Number of control points
+#' - `segment.shape`: Control point position
+#' - `segment.square`: Square formation control points
+#' - `segment.squareShape`: Square formation shape
+#' - `segment.inflect`: Add inflection point
+#' - `segment.debug`: Show debug information
+#'
+#' You can also pass `point.size` and `point.colour` through `...`.
 #'
 #' @importFrom purrr %||%
 #' @export
@@ -302,10 +324,10 @@ geom_dag_label <- function(
 #'
 #' g |>
 #'   tidy_dagitty() |>
-#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
+#'   ggplot(aes_dag()) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
-#'   geom_dag_text_repel(aes(label = .data$name), show.legend = FALSE) +
+#'   geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
 #'   theme_dag()
 #'
 #' g |>
@@ -315,14 +337,41 @@ geom_dag_label <- function(
 #'     "y" = "Here's the outcome",
 #'     "m" = "Here is where they collide"
 #'   )) |>
-#'   ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
+#'   ggplot(aes_dag()) +
 #'   geom_dag_edges() +
 #'   geom_dag_point() +
 #'   geom_dag_text() +
 #'   geom_dag_label_repel(
-#'     aes(label = .data$label, fill = .data$label),
+#'     aes(label = label, fill = label),
 #'     col = "white",
 #'     show.legend = FALSE
+#'   ) +
+#'   theme_dag()
+#'
+#' # Use directional repulsion
+#' g |>
+#'   tidy_dagitty() |>
+#'   ggplot(aes_dag()) +
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text_repel(
+#'     aes(label = name),
+#'     direction = "y",
+#'     seed = 1234
+#'   ) +
+#'   theme_dag()
+#'
+#' # Customize segment appearance
+#' g |>
+#'   tidy_dagitty() |>
+#'   ggplot(aes_dag()) +
+#'   geom_dag_edges() +
+#'   geom_dag_point() +
+#'   geom_dag_text_repel(
+#'     aes(label = name),
+#'     segment.linetype = 2,
+#'     segment.alpha = 0.5,
+#'     segment.curvature = -0.3
 #'   ) +
 #'   theme_dag()
 #'
@@ -331,48 +380,82 @@ geom_dag_label <- function(
 geom_dag_text_repel <- function(
   mapping = NULL,
   data = NULL,
+  stat = "identity",
+  position = "identity",
   parse = FALSE,
   ...,
   box.padding = 1.25,
   point.padding = 1.5,
+  min.segment.length = 0.5,
   segment.color = "#666666",
+  segment.alpha = 1,
   fontface = "bold",
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
+  force_pull = 1,
+  max.time = 0.5,
   max.iter = 2000,
+  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
   nudge_x = 0,
   nudge_y = 0,
+  xlim = c(NA, NA),
+  ylim = c(NA, NA),
   na.rm = FALSE,
   show.legend = NA,
+  direction = c("both", "y", "x"),
+  seed = NA,
+  verbose = FALSE,
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
   segment.colour <- dots[["segment.colour"]]
+
+  # Use StatNodesRepel if stat is "identity", otherwise use provided stat
+  stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+
+  # Build params list
+  params <- list(
+    parse = parse,
+    na.rm = na.rm,
+    box.padding = box.padding,
+    point.padding = point.padding,
+    min.segment.length = min.segment.length,
+    segment.colour = segment.color %||% segment.colour,
+    segment.size = segment.size,
+    fontface = fontface,
+    arrow = arrow,
+    force = force,
+    force_pull = force_pull,
+    max.time = max.time,
+    max.iter = max.iter,
+    max.overlaps = max.overlaps,
+    nudge_x = nudge_x,
+    nudge_y = nudge_y,
+    xlim = xlim,
+    ylim = ylim,
+    direction = match.arg(direction),
+    seed = seed,
+    verbose = verbose
+  )
+
+  # Add segment.alpha if provided
+  if (!is.null(segment.alpha)) {
+    params$segment.alpha <- segment.alpha
+  }
+
+  # Add any additional parameters from dots
+  params <- c(params, dots[!names(dots) %in% names(params)])
+
   ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodesRepel,
+    stat = stat_to_use,
     geom = ggrepel::GeomTextRepel,
-    position = "identity",
+    position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      parse = parse,
-      na.rm = na.rm,
-      box.padding = box.padding,
-      point.padding = point.padding,
-      segment.colour = segment.color %||% segment.colour,
-      segment.size = segment.size,
-      fontface = fontface,
-      arrow = arrow,
-      force = force,
-      max.iter = max.iter,
-      nudge_x = nudge_x,
-      nudge_y = nudge_y,
-      segment.alpha = 1,
-      ...
-    )
+    params = params
   )
 }
 
@@ -383,6 +466,8 @@ geom_dag_text_repel <- function(
 geom_dag_label_repel <- function(
   mapping = NULL,
   data = NULL,
+  stat = "identity",
+  position = "identity",
   parse = FALSE,
   ...,
   box.padding = grid::unit(1.25, "lines"),
@@ -390,45 +475,77 @@ geom_dag_label_repel <- function(
   point.padding = grid::unit(1.5, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
+  min.segment.length = 0.5,
   segment.color = "grey50",
+  segment.alpha = 1,
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
+  force_pull = 1,
+  max.time = 0.5,
   max.iter = 2000,
+  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
   nudge_x = 0,
   nudge_y = 0,
+  xlim = c(NA, NA),
+  ylim = c(NA, NA),
   na.rm = FALSE,
   show.legend = NA,
+  direction = c("both", "y", "x"),
+  seed = NA,
+  verbose = FALSE,
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
   segment.colour <- dots[["segment.colour"]]
+
+  # Use StatNodesRepel if stat is "identity", otherwise use provided stat
+  stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+
+  # Build params list
+  params <- list(
+    parse = parse,
+    box.padding = box.padding,
+    label.padding = label.padding,
+    point.padding = point.padding,
+    label.r = label.r,
+    label.size = label.size,
+    min.segment.length = min.segment.length,
+    segment.colour = segment.color %||% segment.colour,
+    segment.size = segment.size,
+    arrow = arrow,
+    na.rm = na.rm,
+    force = force,
+    force_pull = force_pull,
+    max.time = max.time,
+    max.iter = max.iter,
+    max.overlaps = max.overlaps,
+    nudge_x = nudge_x,
+    nudge_y = nudge_y,
+    xlim = xlim,
+    ylim = ylim,
+    direction = match.arg(direction),
+    seed = seed,
+    verbose = verbose
+  )
+
+  # Add segment.alpha if provided
+  if (!is.null(segment.alpha)) {
+    params$segment.alpha <- segment.alpha
+  }
+
+  # Add any additional parameters from dots
+  params <- c(params, dots[!names(dots) %in% names(params)])
+
   ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodesRepel,
+    stat = stat_to_use,
     geom = ggrepel::GeomLabelRepel,
-    position = "identity",
+    position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      parse = parse,
-      box.padding = box.padding,
-      label.padding = label.padding,
-      point.padding = point.padding,
-      label.r = label.r,
-      label.size = label.size,
-      segment.colour = segment.color %||% segment.colour,
-      segment.size = segment.size,
-      arrow = arrow,
-      na.rm = na.rm,
-      force = force,
-      max.iter = max.iter,
-      nudge_x = nudge_x,
-      nudge_y = nudge_y,
-      segment.alpha = 1,
-      ...
-    )
+    params = params
   )
 }
 

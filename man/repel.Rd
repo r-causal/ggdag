@@ -11,26 +11,40 @@
 geom_dag_text_repel(
   mapping = NULL,
   data = NULL,
+  stat = "identity",
+  position = "identity",
   parse = FALSE,
   ...,
   box.padding = 1.25,
   point.padding = 1.5,
+  min.segment.length = 0.5,
   segment.color = "#666666",
+  segment.alpha = 1,
   fontface = "bold",
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
+  force_pull = 1,
+  max.time = 0.5,
   max.iter = 2000,
+  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
   nudge_x = 0,
   nudge_y = 0,
+  xlim = c(NA, NA),
+  ylim = c(NA, NA),
   na.rm = FALSE,
   show.legend = NA,
+  direction = c("both", "y", "x"),
+  seed = NA,
+  verbose = FALSE,
   inherit.aes = TRUE
 )
 
 geom_dag_label_repel(
   mapping = NULL,
   data = NULL,
+  stat = "identity",
+  position = "identity",
   parse = FALSE,
   ...,
   box.padding = grid::unit(1.25, "lines"),
@@ -38,15 +52,25 @@ geom_dag_label_repel(
   point.padding = grid::unit(1.5, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
+  min.segment.length = 0.5,
   segment.color = "grey50",
+  segment.alpha = 1,
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
+  force_pull = 1,
+  max.time = 0.5,
   max.iter = 2000,
+  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
   nudge_x = 0,
   nudge_y = 0,
+  xlim = c(NA, NA),
+  ylim = c(NA, NA),
   na.rm = FALSE,
   show.legend = NA,
+  direction = c("both", "y", "x"),
+  seed = NA,
+  verbose = FALSE,
   inherit.aes = TRUE
 )
 
@@ -77,6 +101,12 @@ defined for the plot.}
 \item{data}{A data frame. If specified, overrides the default data frame
 defined at the top level of the plot.}
 
+\item{stat}{The statistical transformation to use on the data for this
+layer, as a string.}
+
+\item{position}{Position adjustment, either as a string, or the result of
+a call to a position adjustment function.}
+
 \item{parse}{If TRUE, the labels will be parsed into expressions and
 displayed as described in ?plotmath}
 
@@ -99,7 +129,14 @@ by passing \code{unit(x, "units")}).}
 number. Defaults to 0. (Default unit is lines, but other units can be
 specified by passing \code{unit(x, "units")}).}
 
+\item{min.segment.length}{Skip drawing segments shorter than this, as unit or
+number. Defaults to 0.5. (Default unit is lines, but other units can be
+specified by passing \code{unit(x, "units")}).}
+
 \item{segment.color, segment.size}{See \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}}
+
+\item{segment.alpha}{Transparency of the line segment. Set to NULL (default) to
+use ggrepel's default behavior, or provide a value between 0 and 1}
 
 \item{fontface}{A character vector. Default is "bold"}
 
@@ -108,12 +145,27 @@ specified by passing \code{unit(x, "units")}).}
 \item{force}{Force of repulsion between overlapping text labels. Defaults
 to 1.}
 
+\item{force_pull}{Force of attraction between a text label and its
+corresponding data point. Defaults to 1.}
+
+\item{max.time}{Maximum number of seconds to try to resolve overlaps.
+Defaults to 0.5.}
+
 \item{max.iter}{Maximum number of iterations to try to resolve overlaps.
 Defaults to 10000.}
+
+\item{max.overlaps}{Exclude text labels when they overlap too many other
+things. For each text label, we count how many other text labels or other
+data points it overlaps, and exclude the text label if it has too many overlaps.
+Defaults to 10.}
 
 \item{nudge_x, nudge_y}{Horizontal and vertical adjustments to nudge the
 starting position of each text label. The units for \code{nudge_x} and
 \code{nudge_y} are the same as for the data units on the x-axis and y-axis.}
+
+\item{xlim, ylim}{Limits for the x and y axes. Text labels will be constrained
+to these limits. By default, text labels are constrained to the entire plot
+area.}
 
 \item{na.rm}{If \code{FALSE} (the default), removes missing values with
 a warning.  If \code{TRUE} silently removes missing values.}
@@ -121,6 +173,13 @@ a warning.  If \code{TRUE} silently removes missing values.}
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped.
 \code{FALSE} never includes, and \code{TRUE} always includes.}
+
+\item{direction}{"both", "x", or "y" -- direction in which to adjust position of labels}
+
+\item{seed}{Random seed passed to \code{\link[base]{set.seed}}. Defaults to
+\code{NA}, which means that \code{set.seed} will not be called.}
+
+\item{verbose}{If \code{TRUE}, some diagnostics of the repel algorithm are printed}
 
 \item{inherit.aes}{If \code{FALSE}, overrides the default aesthetics,
 rather than combining with them. This is most useful for helper functions
@@ -136,11 +195,6 @@ to 0.15. (Default unit is lines, but other units can be specified by
 passing \code{unit(x, "units")}).}
 
 \item{label.size}{Size of label border, in mm.}
-
-\item{max.overlaps}{Exclude text labels when they overlap too many other
-things. For each text label, we count how many other text labels or other
-data points it overlaps, and exclude the text label if it has too many overlaps.
-Defaults to 10.}
 }
 \description{
 These functions are minor modifications of those in the ggrepel package.
@@ -151,6 +205,28 @@ data points. \code{geom_dag_label_repel2()} is a slightly stylized version of
 \code{geom_dag_label_repel()} that often looks better on DAGs.
 \code{geom_dag_text_repel2()} is a slightly stylized version of
 \code{geom_dag_text_repel()} that often looks better on DAGs.
+}
+\details{
+These geoms are wrappers around \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}} and
+\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_label_repel()}} that use the custom \code{StatNodesRepel}
+for better handling of DAG data. All arguments available in ggrepel
+functions are supported.
+
+Additional segment parameters can be passed through \code{...}, including:
+\itemize{
+\item \code{segment.linetype}: Line style
+\item \code{segment.alpha}: Line transparency
+\item \code{segment.curvature}: Curve amount
+\item \code{segment.angle}: Curve angle
+\item \code{segment.ncp}: Number of control points
+\item \code{segment.shape}: Control point position
+\item \code{segment.square}: Square formation control points
+\item \code{segment.squareShape}: Square formation shape
+\item \code{segment.inflect}: Add inflection point
+\item \code{segment.debug}: Show debug information
+}
+
+You can also pass \code{point.size} and \code{point.colour} through \code{...}.
 }
 \examples{
 library(ggplot2)
@@ -165,10 +241,10 @@ g <- dagify(
 
 g |>
   tidy_dagitty() |>
-  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
+  ggplot(aes_dag()) +
   geom_dag_edges() +
   geom_dag_point() +
-  geom_dag_text_repel(aes(label = .data$name), show.legend = FALSE) +
+  geom_dag_text_repel(aes(label = name), show.legend = FALSE) +
   theme_dag()
 
 g |>
@@ -178,14 +254,41 @@ g |>
     "y" = "Here's the outcome",
     "m" = "Here is where they collide"
   )) |>
-  ggplot(aes(x = .data$x, y = .data$y, xend = .data$xend, yend = .data$yend)) +
+  ggplot(aes_dag()) +
   geom_dag_edges() +
   geom_dag_point() +
   geom_dag_text() +
   geom_dag_label_repel(
-    aes(label = .data$label, fill = .data$label),
+    aes(label = label, fill = label),
     col = "white",
     show.legend = FALSE
+  ) +
+  theme_dag()
+
+# Use directional repulsion
+g |>
+  tidy_dagitty() |>
+  ggplot(aes_dag()) +
+  geom_dag_edges() +
+  geom_dag_point() +
+  geom_dag_text_repel(
+    aes(label = name),
+    direction = "y",
+    seed = 1234
+  ) +
+  theme_dag()
+
+# Customize segment appearance
+g |>
+  tidy_dagitty() |>
+  ggplot(aes_dag()) +
+  geom_dag_edges() +
+  geom_dag_point() +
+  geom_dag_text_repel(
+    aes(label = name),
+    segment.linetype = 2,
+    segment.alpha = 0.5,
+    segment.curvature = -0.3
   ) +
   theme_dag()
 

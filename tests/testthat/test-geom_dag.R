@@ -65,6 +65,338 @@ test_that("repelled labels work", {
   expect_doppelganger("geom_dag_text_repel2() repels names", p4)
 })
 
+test_that("repel directional parameters work", {
+  withr::local_seed(1234)
+  g <- dagify(
+    m ~ x + y,
+    y ~ x,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  # Test direction = "y"
+  p_direction_y <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      direction = "y"
+    )
+
+  expect_doppelganger("repel direction y only", p_direction_y)
+
+  # Test direction = "x"
+  p_direction_x <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      direction = "x"
+    )
+
+  expect_doppelganger("repel direction x only", p_direction_x)
+})
+
+test_that("repel segment parameters work", {
+  withr::local_seed(1234)
+  g <- dagify(
+    m ~ x + y,
+    y ~ x,
+    z ~ x + y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  # Test segment.linetype
+  p_linetype <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      segment.linetype = 2
+    )
+
+  expect_doppelganger("repel segment linetype dashed", p_linetype)
+
+  # Test segment.alpha
+  p_alpha <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      segment.alpha = 0.3
+    )
+
+  expect_doppelganger("repel segment alpha 0.3", p_alpha)
+
+  # Test segment.curvature
+  p_curve <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      segment.curvature = -0.5
+    )
+
+  expect_doppelganger("repel segment curvature negative", p_curve)
+
+  # Test combination of segment parameters
+  p_combo <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel(
+      aes(label = name),
+      segment.linetype = 3,
+      segment.alpha = 0.5,
+      segment.curvature = 0.3,
+      segment.size = 1.5
+    )
+
+  expect_doppelganger("repel segment parameters combined", p_combo)
+})
+
+test_that("repel min.segment.length works", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x,
+    z ~ x,
+    a ~ x
+  )
+
+  # With default min.segment.length
+  p_default <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(aes(label = name))
+
+  expect_doppelganger("repel default min segment length", p_default)
+
+  # With longer min.segment.length
+  p_longer <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      min.segment.length = 2
+    )
+
+  expect_doppelganger("repel longer min segment length", p_longer)
+
+  # With zero min.segment.length (all segments shown)
+  p_zero <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      min.segment.length = 0
+    )
+
+  expect_doppelganger("repel zero min segment length", p_zero)
+})
+
+test_that("repel xlim and ylim constraints work", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x + z,
+    z ~ a + b,
+    x ~ a + b
+  )
+
+  # Constrain labels to center region
+  p_constrained <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      xlim = c(-0.5, 0.5),
+      ylim = c(-0.5, 0.5)
+    )
+
+  expect_doppelganger("repel constrained to center", p_constrained)
+})
+
+test_that("repel max.overlaps parameter works", {
+  withr::local_seed(1234)
+  # Create a dense DAG where labels will overlap
+  g <- dagify(
+    y ~ x1 + x2 + x3 + x4,
+    x1 ~ z,
+    x2 ~ z,
+    x3 ~ z,
+    x4 ~ z
+  )
+
+  # With default max.overlaps
+  p_default_overlaps <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(aes(label = name))
+
+  expect_doppelganger("repel default max overlaps", p_default_overlaps)
+
+  # With restricted max.overlaps
+  p_restricted <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      max.overlaps = 2
+    )
+
+  expect_doppelganger("repel max overlaps 2", p_restricted)
+
+  # With infinite max.overlaps (show all)
+  p_infinite <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      max.overlaps = Inf
+    )
+
+  expect_doppelganger("repel infinite max overlaps", p_infinite)
+})
+
+test_that("repel seed parameter ensures reproducibility", {
+  g <- dagify(
+    y ~ x + z,
+    z ~ x
+  )
+
+  # Same seed should produce same layout
+  p_seed1 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      seed = 9999
+    )
+
+  p_seed2 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      seed = 9999
+    )
+
+  # These should be identical
+  expect_doppelganger("repel seed 9999 first", p_seed1)
+  expect_doppelganger("repel seed 9999 second", p_seed2)
+
+  # Different seed should produce different layout
+  p_seed_different <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      seed = 1111
+    )
+
+  expect_doppelganger("repel seed 1111", p_seed_different)
+})
+
+test_that("repel point.size parameter works", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x,
+    z ~ x
+  )
+
+  # Ignore data points completely
+  p_no_points <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      point.size = NA
+    )
+
+  expect_doppelganger("repel ignoring data points", p_no_points)
+
+  # Large point padding
+  p_large_padding <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel(
+      aes(label = name),
+      point.padding = 3
+    )
+
+  expect_doppelganger("repel large point padding", p_large_padding)
+})
+
+test_that("repel2 functions with custom defaults work visually", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  # Test text repel2 with overlapping labels
+  p_text_repel2 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_text_repel2(
+      aes(label = name)
+    )
+
+  expect_doppelganger("text repel2 custom defaults", p_text_repel2)
+
+  # Test label repel2 with overlapping labels
+  p_label_repel2 <- g |>
+    tidy_dagitty() |>
+    adjust_for("m") |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel2(
+      aes(label = name, fill = adjusted)
+    )
+
+  expect_doppelganger("label repel2 custom defaults", p_label_repel2)
+})
+
 test_that("different edge types work", {
   withr::local_seed(1234)
   p <- dagify(

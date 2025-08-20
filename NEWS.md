@@ -1,5 +1,11 @@
 # ggdag (development version)
 
+* `geom_dag_text_repel()` and `geom_dag_label_repel()` now support all current ggrepel parameters (#172):
+  - Added `stat`, `position`, `min.segment.length`, `force_pull`, `max.time`, `max.overlaps`, `xlim`, `ylim`, `direction`, `seed`, and `verbose` parameters
+  - `segment.alpha` now defaults to 1 but can be overridden by users
+  - All segment.* parameters (e.g., `segment.linetype`, `segment.curvature`, `segment.angle`) now pass through correctly via `...`
+  - Parameters like `point.size` and `point.colour` can also be passed through `...`
+
 * Added comprehensive set of `is_*()` functions for testing DAG properties:
   - `is_acyclic()`: Test if a DAG is acyclic
   - `is_adjustment_set()`: Test if a set of variables is a valid adjustment set
