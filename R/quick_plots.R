@@ -614,6 +614,7 @@ ggdag_m_bias <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -631,7 +632,8 @@ ggdag_m_bias <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -659,6 +661,7 @@ ggdag_butterfly_bias <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -676,7 +679,8 @@ ggdag_butterfly_bias <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -702,6 +706,7 @@ ggdag_confounder_triangle <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -719,7 +724,8 @@ ggdag_confounder_triangle <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -745,6 +751,7 @@ ggdag_collider_triangle <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -762,7 +769,8 @@ ggdag_collider_triangle <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -788,6 +796,7 @@ ggdag_mediation_triangle <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -805,7 +814,8 @@ ggdag_mediation_triangle <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -831,6 +841,7 @@ ggdag_quartet_collider <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL
 ) {
@@ -846,7 +857,8 @@ ggdag_quartet_collider <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -872,6 +884,7 @@ ggdag_quartet_confounder <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL
 ) {
@@ -887,7 +900,8 @@ ggdag_quartet_confounder <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -913,6 +927,7 @@ ggdag_quartet_mediator <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL
 ) {
@@ -928,7 +943,8 @@ ggdag_quartet_mediator <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -956,6 +972,7 @@ ggdag_quartet_m_bias <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL
 ) {
@@ -971,7 +988,8 @@ ggdag_quartet_m_bias <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }
 
@@ -1003,6 +1021,7 @@ ggdag_quartet_time_collider <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL
 ) {
@@ -1018,6 +1037,7 @@ ggdag_quartet_time_collider <- function(
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
-    use_labels = use_labels
+    use_labels = use_labels,
+    label_geom = label_geom
   )
 }

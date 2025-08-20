@@ -47,6 +47,7 @@ ggdag_children(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -73,6 +74,7 @@ ggdag_parents(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -99,6 +101,7 @@ ggdag_ancestors(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -125,6 +128,7 @@ ggdag_descendants(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -151,6 +155,7 @@ ggdag_markov_blanket(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -177,6 +182,7 @@ ggdag_adjacent(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -228,6 +234,11 @@ and the node borders).}
 
 \item{use_labels}{A logical value. Include a label geom? The specific geom
 used is controlled by \code{label_geom}.}
+
+\item{label_geom}{A geom function to use for drawing labels when
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
+include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+and \code{geom_dag_text_repel2}.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
