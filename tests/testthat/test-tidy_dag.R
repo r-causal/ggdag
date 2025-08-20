@@ -265,9 +265,8 @@ test_that("coordinate conversion functions work forward and backwards", {
 test_that("tidy_dagitty warns about cyclic graphs", {
   # Simple 2-node cycle
   cyclic_dag1 <- dagitty::dagitty("dag { A -> B -> A }")
-  expect_warning(
-    tidy_dagitty(cyclic_dag1),
-    class = "ggdag_cyclic_warning"
+  expect_ggdag_warning(
+    tidy_dagitty(cyclic_dag1)
   )
 
   # Verify the warning message contains the cycle

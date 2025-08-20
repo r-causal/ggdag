@@ -11,5 +11,5 @@ expect_ggdag_error <- function(expr) {
 #' Expect ggdag warning with snapshot
 #' @noRd
 expect_ggdag_warning <- function(expr) {
-  testthat::expect_snapshot(expr)
+  testthat::expect_snapshot(expr, cnd_class = TRUE)
 }
