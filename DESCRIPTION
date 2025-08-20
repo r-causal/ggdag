@@ -22,7 +22,7 @@ Imports:
     forcats,
     ggplot2 (>= 3.0.0),
     ggraph (>= 2.0.0),
-    ggrepel,
+    ggrepel (>= 0.9.6),
     igraph,
     lifecycle (>= 0.2.0),
     magrittr,
