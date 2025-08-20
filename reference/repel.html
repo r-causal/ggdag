@@ -69,26 +69,40 @@ data points. <code>geom_dag_label_repel2()</code> is a slightly stylized version
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">geom_dag_text_repel</span><span class="op">(</span></span>
 <span>  mapping <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  stat <span class="op">=</span> <span class="st">"identity"</span>,</span>
+<span>  position <span class="op">=</span> <span class="st">"identity"</span>,</span>
 <span>  parse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  box.padding <span class="op">=</span> <span class="fl">1.25</span>,</span>
 <span>  point.padding <span class="op">=</span> <span class="fl">1.5</span>,</span>
+<span>  min.segment.length <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  segment.color <span class="op">=</span> <span class="st">"#666666"</span>,</span>
+<span>  segment.alpha <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  fontface <span class="op">=</span> <span class="st">"bold"</span>,</span>
 <span>  segment.size <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  arrow <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  force_pull <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  max.time <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  max.iter <span class="op">=</span> <span class="fl">2000</span>,</span>
+<span>  max.overlaps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"ggrepel.max.overlaps"</span>, default <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
 <span>  nudge_x <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  nudge_y <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  xlim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="cn">NA</span><span class="op">)</span>,</span>
+<span>  ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="cn">NA</span><span class="op">)</span>,</span>
 <span>  na.rm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"y"</span>, <span class="st">"x"</span><span class="op">)</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">geom_dag_label_repel</span><span class="op">(</span></span>
 <span>  mapping <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  stat <span class="op">=</span> <span class="st">"identity"</span>,</span>
+<span>  position <span class="op">=</span> <span class="st">"identity"</span>,</span>
 <span>  parse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  box.padding <span class="op">=</span> <span class="fu">grid</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">1.25</span>, <span class="st">"lines"</span><span class="op">)</span>,</span>
@@ -96,15 +110,25 @@ data points. <code>geom_dag_label_repel2()</code> is a slightly stylized version
 <span>  point.padding <span class="op">=</span> <span class="fu">grid</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">1.5</span>, <span class="st">"lines"</span><span class="op">)</span>,</span>
 <span>  label.r <span class="op">=</span> <span class="fu">grid</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/grid/unit.html" class="external-link">unit</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="st">"lines"</span><span class="op">)</span>,</span>
 <span>  label.size <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  min.segment.length <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  segment.color <span class="op">=</span> <span class="st">"grey50"</span>,</span>
+<span>  segment.alpha <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  segment.size <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  arrow <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  force_pull <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  max.time <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  max.iter <span class="op">=</span> <span class="fl">2000</span>,</span>
+<span>  max.overlaps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"ggrepel.max.overlaps"</span>, default <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
 <span>  nudge_x <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  nudge_y <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  xlim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="cn">NA</span><span class="op">)</span>,</span>
+<span>  ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="cn">NA</span><span class="op">)</span>,</span>
 <span>  na.rm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"y"</span>, <span class="st">"x"</span><span class="op">)</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -143,6 +167,16 @@ defined for the plot.</p></dd>
 defined at the top level of the plot.</p></dd>
 
 
+<dt id="arg-stat">stat<a class="anchor" aria-label="anchor" href="#arg-stat"></a></dt>
+<dd><p>The statistical transformation to use on the data for this
+layer, as a string.</p></dd>
+
+
+<dt id="arg-position">position<a class="anchor" aria-label="anchor" href="#arg-position"></a></dt>
+<dd><p>Position adjustment, either as a string, or the result of
+a call to a position adjustment function.</p></dd>
+
+
 <dt id="arg-parse">parse<a class="anchor" aria-label="anchor" href="#arg-parse"></a></dt>
 <dd><p>If TRUE, the labels will be parsed into expressions and
 displayed as described in ?plotmath</p></dd>
@@ -171,8 +205,19 @@ number. Defaults to 0. (Default unit is lines, but other units can be
 specified by passing <code>unit(x, "units")</code>).</p></dd>
 
 
+<dt id="arg-min-segment-length">min.segment.length<a class="anchor" aria-label="anchor" href="#arg-min-segment-length"></a></dt>
+<dd><p>Skip drawing segments shorter than this, as unit or
+number. Defaults to 0.5. (Default unit is lines, but other units can be
+specified by passing <code>unit(x, "units")</code>).</p></dd>
+
+
 <dt id="arg-segment-color-segment-size">segment.color, segment.size<a class="anchor" aria-label="anchor" href="#arg-segment-color-segment-size"></a></dt>
 <dd><p>See <code><a href="https://ggrepel.slowkow.com/reference/geom_text_repel.html" class="external-link">ggrepel::geom_text_repel()</a></code></p></dd>
+
+
+<dt id="arg-segment-alpha">segment.alpha<a class="anchor" aria-label="anchor" href="#arg-segment-alpha"></a></dt>
+<dd><p>Transparency of the line segment. Set to NULL (default) to
+use ggrepel's default behavior, or provide a value between 0 and 1</p></dd>
 
 
 <dt id="arg-fontface">fontface<a class="anchor" aria-label="anchor" href="#arg-fontface"></a></dt>
@@ -188,15 +233,38 @@ specified by passing <code>unit(x, "units")</code>).</p></dd>
 to 1.</p></dd>
 
 
+<dt id="arg-force-pull">force_pull<a class="anchor" aria-label="anchor" href="#arg-force-pull"></a></dt>
+<dd><p>Force of attraction between a text label and its
+corresponding data point. Defaults to 1.</p></dd>
+
+
+<dt id="arg-max-time">max.time<a class="anchor" aria-label="anchor" href="#arg-max-time"></a></dt>
+<dd><p>Maximum number of seconds to try to resolve overlaps.
+Defaults to 0.5.</p></dd>
+
+
 <dt id="arg-max-iter">max.iter<a class="anchor" aria-label="anchor" href="#arg-max-iter"></a></dt>
 <dd><p>Maximum number of iterations to try to resolve overlaps.
 Defaults to 10000.</p></dd>
+
+
+<dt id="arg-max-overlaps">max.overlaps<a class="anchor" aria-label="anchor" href="#arg-max-overlaps"></a></dt>
+<dd><p>Exclude text labels when they overlap too many other
+things. For each text label, we count how many other text labels or other
+data points it overlaps, and exclude the text label if it has too many overlaps.
+Defaults to 10.</p></dd>
 
 
 <dt id="arg-nudge-x-nudge-y">nudge_x, nudge_y<a class="anchor" aria-label="anchor" href="#arg-nudge-x-nudge-y"></a></dt>
 <dd><p>Horizontal and vertical adjustments to nudge the
 starting position of each text label. The units for <code>nudge_x</code> and
 <code>nudge_y</code> are the same as for the data units on the x-axis and y-axis.</p></dd>
+
+
+<dt id="arg-xlim-ylim">xlim, ylim<a class="anchor" aria-label="anchor" href="#arg-xlim-ylim"></a></dt>
+<dd><p>Limits for the x and y axes. Text labels will be constrained
+to these limits. By default, text labels are constrained to the entire plot
+area.</p></dd>
 
 
 <dt id="arg-na-rm">na.rm<a class="anchor" aria-label="anchor" href="#arg-na-rm"></a></dt>
@@ -208,6 +276,19 @@ a warning.  If <code>TRUE</code> silently removes missing values.</p></dd>
 <dd><p>logical. Should this layer be included in the legends?
 <code>NA</code>, the default, includes if any aesthetics are mapped.
 <code>FALSE</code> never includes, and <code>TRUE</code> always includes.</p></dd>
+
+
+<dt id="arg-direction">direction<a class="anchor" aria-label="anchor" href="#arg-direction"></a></dt>
+<dd><p>"both", "x", or "y" – direction in which to adjust position of labels</p></dd>
+
+
+<dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
+<dd><p>Random seed passed to <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></code>. Defaults to
+<code>NA</code>, which means that <code>set.seed</code> will not be called.</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>If <code>TRUE</code>, some diagnostics of the repel algorithm are printed</p></dd>
 
 
 <dt id="arg-inherit-aes">inherit.aes<a class="anchor" aria-label="anchor" href="#arg-inherit-aes"></a></dt>
@@ -232,14 +313,25 @@ passing <code>unit(x, "units")</code>).</p></dd>
 <dt id="arg-label-size">label.size<a class="anchor" aria-label="anchor" href="#arg-label-size"></a></dt>
 <dd><p>Size of label border, in mm.</p></dd>
 
-
-<dt id="arg-max-overlaps">max.overlaps<a class="anchor" aria-label="anchor" href="#arg-max-overlaps"></a></dt>
-<dd><p>Exclude text labels when they overlap too many other
-things. For each text label, we count how many other text labels or other
-data points it overlaps, and exclude the text label if it has too many overlaps.
-Defaults to 10.</p></dd>
-
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>These geoms are wrappers around <code><a href="https://ggrepel.slowkow.com/reference/geom_text_repel.html" class="external-link">ggrepel::geom_text_repel()</a></code> and
+<code><a href="https://ggrepel.slowkow.com/reference/geom_text_repel.html" class="external-link">ggrepel::geom_label_repel()</a></code> that use the custom <code>StatNodesRepel</code>
+for better handling of DAG data. All arguments available in ggrepel
+functions are supported.</p>
+<p>Additional segment parameters can be passed through <code>...</code>, including:</p><ul><li><p><code>segment.linetype</code>: Line style</p></li>
+<li><p><code>segment.alpha</code>: Line transparency</p></li>
+<li><p><code>segment.curvature</code>: Curve amount</p></li>
+<li><p><code>segment.angle</code>: Curve angle</p></li>
+<li><p><code>segment.ncp</code>: Number of control points</p></li>
+<li><p><code>segment.shape</code>: Control point position</p></li>
+<li><p><code>segment.square</code>: Square formation control points</p></li>
+<li><p><code>segment.squareShape</code>: Square formation shape</p></li>
+<li><p><code>segment.inflect</code>: Add inflection point</p></li>
+<li><p><code>segment.debug</code>: Show debug information</p></li>
+</ul><p>You can also pass <code>point.size</code> and <code>point.colour</code> through <code>...</code>.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -255,12 +347,39 @@ Defaults to 10.</p></dd>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">g</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">x</span>, y <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">y</span>, xend <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">xend</span>, yend <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">yend</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="geom_dag_edges.html">geom_dag_edges</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>  <span class="fu">geom_dag_text_repel</span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">name</span><span class="op">)</span>, show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag_text_repel</span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">name</span><span class="op">)</span>, show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="repel-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Use nudge_x and nudge_y to push labels away from nodes</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="geom_dag_edges.html">geom_dag_edges</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag_text_repel</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">name</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    nudge_x <span class="op">=</span> <span class="fl">0.1</span>,</span></span>
+<span class="r-in"><span>    nudge_y <span class="op">=</span> <span class="fl">0.1</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="repel-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Use position_nudge_repel for the same effect</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="geom_dag_edges.html">geom_dag_edges</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag_text_repel</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">name</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    position <span class="op">=</span> <span class="fu">ggrepel</span><span class="fu">::</span><span class="fu"><a href="https://ggrepel.slowkow.com/reference/position_nudge_repel.html" class="external-link">position_nudge_repel</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">0.1</span>, y <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="repel-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">g</span> <span class="op">|&gt;</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
@@ -269,17 +388,46 @@ Defaults to 10.</p></dd>
 <span class="r-in"><span>    <span class="st">"y"</span> <span class="op">=</span> <span class="st">"Here's the outcome"</span>,</span></span>
 <span class="r-in"><span>    <span class="st">"m"</span> <span class="op">=</span> <span class="st">"Here is where they collide"</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">x</span>, y <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">y</span>, xend <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">xend</span>, yend <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">yend</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="geom_dag_edges.html">geom_dag_edges</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="geom_dag_text.html">geom_dag_text</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu">geom_dag_label_repel</span><span class="op">(</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">label</span>, fill <span class="op">=</span> <span class="va">.data</span><span class="op">$</span><span class="va">label</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">label</span>, fill <span class="op">=</span> <span class="va">label</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    col <span class="op">=</span> <span class="st">"white"</span>,</span></span>
 <span class="r-in"><span>    show.legend <span class="op">=</span> <span class="cn">FALSE</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="repel-2.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="repel-4.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Use directional repulsion</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="geom_dag_edges.html">geom_dag_edges</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag_text_repel</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">name</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    direction <span class="op">=</span> <span class="st">"y"</span>,</span></span>
+<span class="r-in"><span>    seed <span class="op">=</span> <span class="fl">1234</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="repel-5.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Customize segment appearance</span></span></span>
+<span class="r-in"><span><span class="va">g</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="geom_dag_edges.html">geom_dag_edges</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="node_point.html">geom_dag_point</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag_text_repel</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="va">name</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    segment.linetype <span class="op">=</span> <span class="fl">2</span>,</span></span>
+<span class="r-in"><span>    segment.alpha <span class="op">=</span> <span class="fl">0.5</span>,</span></span>
+<span class="r-in"><span>    segment.curvature <span class="op">=</span> <span class="op">-</span><span class="fl">0.3</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="repel-6.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

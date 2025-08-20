@@ -40,7 +40,20 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="ggdag-development-version">ggdag (development version)<a class="anchor" aria-label="anchor" href="#ggdag-development-version"></a></h2>
-<ul><li>Added comprehensive set of <code>is_*()</code> functions for testing DAG properties:
+<ul><li>
+<code><a href="../reference/repel.html">geom_dag_text_repel()</a></code> and <code><a href="../reference/repel.html">geom_dag_label_repel()</a></code> now support all current ggrepel parameters (<a href="https://github.com/r-causal/ggdag/issues/172" class="external-link">#172</a>):
+<ul><li>Added <code>stat</code>, <code>position</code>, <code>min.segment.length</code>, <code>force_pull</code>, <code>max.time</code>, <code>max.overlaps</code>, <code>xlim</code>, <code>ylim</code>, <code>direction</code>, <code>seed</code>, and <code>verbose</code> parameters</li>
+<li>
+<code>segment.alpha</code> now defaults to 1 but can be overridden by users</li>
+<li>All segment.* parameters (e.g., <code>segment.linetype</code>, <code>segment.curvature</code>, <code>segment.angle</code>) now pass through correctly via <code>...</code>
+</li>
+<li>Parameters like <code>point.size</code> and <code>point.colour</code> can also be passed through <code>...</code>
+</li>
+<li>Fixed support for <code><a href="https://ggrepel.slowkow.com/reference/position_nudge_repel.html" class="external-link">ggrepel::position_nudge_repel()</a></code> - users can now use either <code>nudge_x</code>/<code>nudge_y</code> parameters or <code>position = position_nudge_repel()</code>
+</li>
+<li>Both approaches now work with vector inputs for differential nudging of labels</li>
+</ul></li>
+<li>Added comprehensive set of <code>is_*()</code> functions for testing DAG properties:
 <ul><li>
 <code><a href="../reference/is_dag_properties.html">is_acyclic()</a></code>: Test if a DAG is acyclic</li>
 <li>
