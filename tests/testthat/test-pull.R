@@ -19,12 +19,12 @@ test_that("pull_dag and pull_dag_data return the correct objects", {
 })
 
 test_that("updating DAG and DAG data work", {
-  tidy_dagitty_obj <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
+  tidy_dagitty_obj <- dagify(y ~ x + z, x ~ z) |> tidy_dagitty()
   dag <- pull_dag(tidy_dagitty_obj)
   dag_data <- pull_dag_data(tidy_dagitty_obj)
 
-  tidy_dagitty_obj <- tidy_dagitty_obj %>%
-    dplyr::mutate(name = toupper(name), to = toupper(to)) %>%
+  tidy_dagitty_obj <- tidy_dagitty_obj |>
+    dplyr::mutate(name = toupper(name), to = toupper(to)) |>
     # recreate the DAG component
     update_dag()
 
@@ -34,7 +34,7 @@ test_that("updating DAG and DAG data work", {
     names(pull_dag(tidy_dagitty_obj))
   )
 
-  tidy_dagitty_obj <- tidy_dagitty_obj %>%
+  tidy_dagitty_obj <- tidy_dagitty_obj |>
     dplyr::left_join(
       data.frame(
         name = c("Y", "X", "Z"),
@@ -42,7 +42,7 @@ test_that("updating DAG and DAG data work", {
         adjusted = c("unadjusted", "unadjusted", "adjusted")
       ),
       by = "name"
-    ) %>%
+    ) |>
     # recreate the DAG component
     update_dag()
 

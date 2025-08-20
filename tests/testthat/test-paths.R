@@ -54,16 +54,16 @@ test_that("DAG paths are identified and drawn correctly", {
     coords = coords_butterfly
   )
 
-  p1 <- confounder_triangle_dag %>%
+  p1 <- confounder_triangle_dag |>
     ggdag_paths(from = "x", to = "y")
 
-  p2 <- butterfly_bias_dag %>%
+  p2 <- butterfly_bias_dag |>
     ggdag_paths_fan()
 
-  p3 <- confounder_triangle_dag %>%
+  p3 <- confounder_triangle_dag |>
     ggdag_paths(from = "x", to = "y", shadow = FALSE)
 
-  p4 <- butterfly_bias_dag %>%
+  p4 <- butterfly_bias_dag |>
     ggdag_paths_fan(shadow = FALSE)
 
   expect_doppelganger("ggdag_paths() draws 2 open paths", p1)

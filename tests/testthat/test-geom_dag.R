@@ -10,22 +10,22 @@ test_that("repelled labels work", {
     labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
   )
 
-  p1 <- g %>%
-    tidy_dagitty() %>%
+  p1 <- g |>
+    tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
     geom_dag_text_repel(aes(label = name), show.legend = FALSE, seed = 1234)
 
-  p2 <- g %>%
-    tidy_dagitty() %>%
+  p2 <- g |>
+    tidy_dagitty() |>
     dag_label(
       labels = c(
         "x" = "This is the exposure",
         "y" = "Here's the outcome",
         "m" = "Here is where they collide"
       )
-    ) %>%
+    ) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
@@ -37,8 +37,8 @@ test_that("repelled labels work", {
       seed = 1234
     )
 
-  p3 <- g %>%
-    tidy_dagitty() %>%
+  p3 <- g |>
+    tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
@@ -48,8 +48,8 @@ test_that("repelled labels work", {
       seed = 1234
     )
 
-  p4 <- g %>%
-    tidy_dagitty() %>%
+  p4 <- g |>
+    tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
@@ -73,7 +73,7 @@ test_that("different edge types work", {
     z1 ~ w1 + v,
     z2 ~ w2 + v,
     L ~ w1 + w2
-  ) %>%
+  ) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_point() +
     geom_dag_text()
@@ -100,8 +100,8 @@ test_that("labels also work", {
     labels = c("x" = "Exposure", "y" = "Outcome", "m" = "Collider")
   )
 
-  p1 <- g %>%
-    tidy_dagitty() %>%
+  p1 <- g |>
+    tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges() +
     geom_dag_point() +
@@ -120,8 +120,8 @@ test_that("circular layouts work correctly", {
     c ~ a
   )
 
-  p_circular <- dag %>%
-    tidy_dagitty(layout = "linear", circular = TRUE) %>%
+  p_circular <- dag |>
+    tidy_dagitty(layout = "linear", circular = TRUE) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_edges_arc() +
     geom_dag_point() +

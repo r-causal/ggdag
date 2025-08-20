@@ -150,8 +150,8 @@ ggdag_conditional_independence <- function(
   )
 
   if (isTRUE(sort)) {
-    .test_result <- .test_result %>%
-      dplyr::arrange(.data[[estimate]]) %>%
+    .test_result <- .test_result |>
+      dplyr::arrange(.data[[estimate]]) |>
       dplyr::mutate(independence = forcats::fct_inorder(.data$independence))
   }
 

@@ -23,7 +23,7 @@ test_that("many colliders activated are processed correctly", {
     y ~ b + x,
     exposure = "x",
     outcome = "y"
-  ) %>%
+  ) |>
     activate_collider_paths(adjust_for = c("m"))
 
   expect_true(is.tidy_dagitty(x))

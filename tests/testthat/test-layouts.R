@@ -43,9 +43,9 @@ test_that("time ordered layout works", {
 
   # specifying in dagify or tidy_dagitty is the same
   expect_equal(
-    tidy_dagitty(auto_coords_layout, layout = "time_ordered") %>%
+    tidy_dagitty(auto_coords_layout, layout = "time_ordered") |>
       pull_dag_data(),
-    tidy_dagitty(auto_coords_coords) %>% pull_dag_data()
+    tidy_dagitty(auto_coords_coords) |> pull_dag_data()
   )
 
   # or use a data frame
@@ -59,7 +59,7 @@ test_that("time ordered layout works", {
     y ~ x1 + x2,
     a ~ z1 + z2 + z3,
     coords = time_ordered_coords(x)
-  ) %>%
+  ) |>
     ggdag()
 
   expect_doppelganger("list time ordered coords", p1)

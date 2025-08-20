@@ -3,7 +3,7 @@ test_that("tidied dags are in good shape", {
   expect_ggdag_error(
     tidy_dagitty(.mag)
   )
-  tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
+  tidy_dag <- dagify(y ~ x + z, x ~ z) |> tidy_dagitty()
   expect_true(dagitty::is.dagitty(pull_dag(tidy_dag)))
   expect_true(dplyr::is.tbl(pull_dag_data(tidy_dag)))
   dag_col_names <- names(pull_dag_data(tidy_dag))
@@ -30,11 +30,11 @@ test_that("tidied dags are in good shape", {
 
 test_that("circular column is present only when needed", {
   # Non-circular layout should not have circular column
-  tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
+  tidy_dag <- dagify(y ~ x + z, x ~ z) |> tidy_dagitty()
   expect_false("circular" %in% names(pull_dag_data(tidy_dag)))
 
   # Linear circular layout should have circular column
-  tidy_dag_circular <- dagify(y ~ x + z, x ~ z) %>%
+  tidy_dag_circular <- dagify(y ~ x + z, x ~ z) |>
     tidy_dagitty(layout = "linear", circular = TRUE)
   expect_true("circular" %in% names(pull_dag_data(tidy_dag_circular)))
   expect_true(all(pull_dag_data(tidy_dag_circular)$circular))
@@ -57,7 +57,7 @@ test_that("`as_tidy_dagitty()` returns correct objects", {
     as_tidy_dagitty(data.frame())
   )
 
-  df_dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
+  df_dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
     as_tidy_dagitty(seed = 1234, layout = "time_ordered")
   expect_true(is.tidy_dagitty(df_dag))
   expect_true(dagitty::is.dagitty(pull_dag(df_dag)))
@@ -80,7 +80,7 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
     yend = 1
   )
 
-  df_dag <- .df %>%
+  df_dag <- .df |>
     as_tidy_dagitty(seed = 1234)
 
   expect_true(is.tidy_dagitty(df_dag))
@@ -95,10 +95,10 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
       adjusted = c("unadjusted", "unadjusted", "adjusted")
     ),
     by = "name"
-  ) %>%
+  ) |>
     dplyr::mutate(x = 1, y = 1, xend = 1, yend = 1)
 
-  status_dag <- as_tidy_dagitty(.df) %>% pull_dag()
+  status_dag <- as_tidy_dagitty(.df) |> pull_dag()
   expect_identical(dagitty::exposures(status_dag), "x")
   expect_identical(dagitty::outcomes(status_dag), "y")
   expect_identical(dagitty::latents(status_dag), "c")
@@ -110,7 +110,7 @@ test_that("list is correctly converted to a saturated, time-ordered DAG", {
   dag <- as_tidy_dagitty(node_groups)
   expect_s3_class(dag, "tidy_dagitty")
   expect_equal(nrow(pull_dag_data(dag)), 9)
-  coords_df <- pull_dag_data(dag) %>%
+  coords_df <- pull_dag_data(dag) |>
     dplyr::distinct(name, .keep_all = TRUE)
   pull_coords <- function(.n) {
     unname(dplyr::filter(coords_df, name == .n)$x)
@@ -168,7 +168,7 @@ test_that("DAGs with no edges are handled correctly (issue #159)", {
 
 test_that("as_tidy_dagitty preserves edge direction from data frame (issue #177)", {
   # Test case from issue #177
-  dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) %>%
+  dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
     as_tidy_dagitty()
 
   # Extract the data and dagitty object
@@ -177,8 +177,8 @@ test_that("as_tidy_dagitty preserves edge direction from data frame (issue #177)
 
   # The data frame should show edges in the correct direction
   # c -> x, c -> y, x -> y
-  edges <- dag_data %>%
-    dplyr::filter(!is.na(to)) %>%
+  edges <- dag_data |>
+    dplyr::filter(!is.na(to)) |>
     dplyr::select(name, to, direction)
 
   expect_equal(edges$name, c("c", "c", "x"))
@@ -206,7 +206,7 @@ expect_function_produces_name <- function(tidy_dag, column) {
 }
 
 test_that("node functions produce correct columns", {
-  tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
+  tidy_dag <- dagify(y ~ x + z, x ~ z) |> tidy_dagitty()
   expect_function_produces_name(node_ancestors(tidy_dag, "y"), "ancestor")
   expect_function_produces_name(node_children(tidy_dag, "z"), "children")
   expect_function_produces_name(node_collider(tidy_dag), "colliders")
@@ -243,7 +243,7 @@ test_that("node functions produce correct columns", {
 })
 
 test_that("`as_tibble()` and friends convert data frames", {
-  tidy_dag <- dagify(y ~ x + z, x ~ z) %>% tidy_dagitty()
+  tidy_dag <- dagify(y ~ x + z, x ~ z) |> tidy_dagitty()
   df_dag1 <- dplyr::as_tibble(tidy_dag)
   expect_true(dplyr::is.tbl(df_dag1))
 
