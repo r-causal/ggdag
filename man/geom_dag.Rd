@@ -21,6 +21,7 @@ geom_dag(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   key_glyph = NULL,
   label = NULL,
@@ -77,7 +78,13 @@ and the node borders).}
 
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
-\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+\item{use_labels}{A logical value. Include a label geom? The specific geom
+used is controlled by \code{label_geom}.}
+
+\item{label_geom}{A geom function to use for drawing labels when
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
+include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+and \code{geom_dag_text_repel2}.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
@@ -90,7 +97,7 @@ If \code{NULL} (the default), the glyph is chosen automatically based on the
 selection. Common options include \code{draw_key_dag_point},
 \code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
 
-\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+\item{label}{The bare name of a column to use for labels.
 If \code{use_labels = TRUE}, the default is to use \code{label}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
@@ -124,5 +131,24 @@ ggplot(dag, aes_dag()) +
   geom_dag(size = 1.5)
 ggplot(dag, aes_dag()) +
   geom_dag(size = 1.5, text_size = 8)
+
+# Using different label geoms
+dag_labeled <- dagify(
+  y ~ x,
+  z ~ y,
+  labels = c(x = "Exposure", y = "Outcome", z = "Mediator")
+)
+
+# Default: repelling labels
+ggplot(dag_labeled, aes_dag()) +
+  geom_dag(use_labels = TRUE)
+
+# Static labels
+ggplot(dag_labeled, aes_dag()) +
+  geom_dag(use_labels = TRUE, label_geom = geom_dag_label)
+
+# Repelling text instead of labels
+ggplot(dag_labeled, aes_dag()) +
+  geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel)
 
 }

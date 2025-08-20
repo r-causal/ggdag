@@ -1,5 +1,7 @@
 # ggdag (development version)
 
+* `geom_dag()` gains a `label_geom` parameter that allows users to specify which geom function to use for labels when `use_labels = TRUE` (#133). The default remains `geom_dag_label_repel` for backward compatibility, but users can now choose any label/text geom function such as `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, or `geom_dag_text_repel2`.
+
 * `geom_dag_text_repel()` and `geom_dag_label_repel()` now support all current ggrepel parameters (#172):
   - Added `stat`, `position`, `min.segment.length`, `force_pull`, `max.time`, `max.overlaps`, `xlim`, `ylim`, `direction`, `seed`, and `verbose` parameters
   - `segment.alpha` now defaults to 1 but can be overridden by users

@@ -81,7 +81,8 @@ and the node borders).}
 
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
-\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+\item{use_labels}{A logical value. Include a label geom? The specific geom
+used is controlled by \code{label_geom}.}
 
 \item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
 If \code{NULL} (the default), the glyph is chosen automatically based on the
@@ -92,7 +93,7 @@ selection. Common options include \code{draw_key_dag_point},
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
 
-\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+\item{label}{The bare name of a column to use for labels.
 If \code{use_labels = TRUE}, the default is to use \code{label}.}
 
 \item{node}{Deprecated.}
