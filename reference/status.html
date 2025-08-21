@@ -68,6 +68,7 @@ dagitty::VariableStatus() for details."><meta property="og:image" content="https
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  label_geom <span class="op">=</span> <span class="va">geom_dag_label_repel</span>,</span>
 <span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -154,7 +155,15 @@ and the node borders).</p></dd>
 
 
 <dt id="arg-use-labels">use_labels<a class="anchor" aria-label="anchor" href="#arg-use-labels"></a></dt>
-<dd><p>A logical value. Include <code><a href="repel.html">geom_dag_label_repel()</a></code>?</p></dd>
+<dd><p>A logical value. Include a label geom? The specific geom
+used is controlled by <code>label_geom</code>.</p></dd>
+
+
+<dt id="arg-label-geom">label_geom<a class="anchor" aria-label="anchor" href="#arg-label-geom"></a></dt>
+<dd><p>A geom function to use for drawing labels when
+<code>use_labels = TRUE</code>. Default is <code>geom_dag_label_repel</code>. Other options
+include <code>geom_dag_label</code>, <code>geom_dag_text_repel</code>, <code>geom_dag_label_repel2</code>,
+and <code>geom_dag_text_repel2</code>.</p></dd>
 
 
 <dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>
@@ -170,7 +179,7 @@ cleaner, more compact legends. Default is <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
-<dd><p>The bare name of a column to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
+<dd><p>The bare name of a column to use for labels.
 If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p></dd>
 
 
@@ -212,12 +221,12 @@ variable statuses.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 8</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x       y direction to      xend    yend status  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> l      0.472  0.045<span style="text-decoration: underline;">4</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>      latent  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x     -<span style="color: #BB0000;">0.207</span>  0.773  -&gt;        l      0.472  0.045<span style="text-decoration: underline;">4</span> exposure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x     -<span style="color: #BB0000;">0.207</span>  0.773  -&gt;        y     -<span style="color: #BB0000;">0.498</span> -<span style="color: #BB0000;">0.179</span>  exposure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y     -<span style="color: #BB0000;">0.498</span> -<span style="color: #BB0000;">0.179</span>  -&gt;        l      0.472  0.045<span style="text-decoration: underline;">4</span> outcome </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x      y direction to      xend   yend status  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> l     -<span style="color: #BB0000;">0.381</span> -<span style="color: #BB0000;">0.181</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     latent  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x      0.324  0.524 -&gt;        l     -<span style="color: #BB0000;">0.381</span> -<span style="color: #BB0000;">0.181</span> exposure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x      0.324  0.524 -&gt;        y      0.582 -<span style="color: #BB0000;">0.439</span> exposure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.582 -<span style="color: #BB0000;">0.439</span> -&gt;        l     -<span style="color: #BB0000;">0.381</span> -<span style="color: #BB0000;">0.181</span> outcome </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span>
 <span class="r-in"><span><span class="fu">ggdag_status</span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span></span>

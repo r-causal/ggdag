@@ -40,8 +40,9 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="ggdag-development-version">ggdag (development version)<a class="anchor" aria-label="anchor" href="#ggdag-development-version"></a></h2>
-<ul><li>
-<code><a href="../reference/repel.html">geom_dag_text_repel()</a></code> and <code><a href="../reference/repel.html">geom_dag_label_repel()</a></code> now support all current ggrepel parameters (<a href="https://github.com/r-causal/ggdag/issues/172" class="external-link">#172</a>):
+<ul><li><p><code><a href="../reference/geom_dag.html">geom_dag()</a></code> gains a <code>label_geom</code> parameter that allows users to specify which geom function to use for labels when <code>use_labels = TRUE</code> (<a href="https://github.com/r-causal/ggdag/issues/133" class="external-link">#133</a>). The default remains <code>geom_dag_label_repel</code> for backward compatibility, but users can now choose any label/text geom function such as <code>geom_dag_label</code>, <code>geom_dag_text_repel</code>, <code>geom_dag_label_repel2</code>, or <code>geom_dag_text_repel2</code>.</p></li>
+<li>
+<p><code><a href="../reference/repel.html">geom_dag_text_repel()</a></code> and <code><a href="../reference/repel.html">geom_dag_label_repel()</a></code> now support all current ggrepel parameters (<a href="https://github.com/r-causal/ggdag/issues/172" class="external-link">#172</a>):</p>
 <ul><li>Added <code>stat</code>, <code>position</code>, <code>min.segment.length</code>, <code>force_pull</code>, <code>max.time</code>, <code>max.overlaps</code>, <code>xlim</code>, <code>ylim</code>, <code>direction</code>, <code>seed</code>, and <code>verbose</code> parameters</li>
 <li>
 <code>segment.alpha</code> now defaults to 1 but can be overridden by users</li>
@@ -53,7 +54,8 @@
 </li>
 <li>Both approaches now work with vector inputs for differential nudging of labels</li>
 </ul></li>
-<li>Added comprehensive set of <code>is_*()</code> functions for testing DAG properties:
+<li>
+<p>Added comprehensive set of <code>is_*()</code> functions for testing DAG properties:</p>
 <ul><li>
 <code><a href="../reference/is_dag_properties.html">is_acyclic()</a></code>: Test if a DAG is acyclic</li>
 <li>
@@ -71,10 +73,11 @@
 <li>
 <code><a href="../reference/is_node_relationships.html">is_adjacent()</a></code>: Test if two nodes are adjacent</li>
 </ul></li>
-<li>Added <code><a href="../reference/edge_backdoor.html">edge_backdoor()</a></code> function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
-<li>Enhanced <code><a href="../reference/paths.html">dag_paths()</a></code> and <code><a href="../reference/query_paths.html">query_paths()</a></code> to include <code>path_type</code> column that classifies paths as “backdoor” or “direct” (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</li>
-<li>Changed default aesthetic in <code><a href="../reference/paths.html">ggdag_paths()</a></code> from coloring by path status to coloring by path type (direct vs backdoor), providing more informative visualization of causal pathways</li>
-<li>Introduced new <code>query_*()</code> API for direct analytical queries on DAGs (<a href="https://github.com/r-causal/ggdag/issues/185" class="external-link">#185</a>). These functions return tibbles with results rather than tidy DAG objects for plotting:
+<li><p>Added <code><a href="../reference/edge_backdoor.html">edge_backdoor()</a></code> function to classify edges as being on backdoor paths, direct causal paths, or both between exposure and outcome (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</p></li>
+<li><p>Enhanced <code><a href="../reference/paths.html">dag_paths()</a></code> and <code><a href="../reference/query_paths.html">query_paths()</a></code> to include <code>path_type</code> column that classifies paths as “backdoor” or “direct” (<a href="https://github.com/r-causal/ggdag/issues/137" class="external-link">#137</a>)</p></li>
+<li><p>Changed default aesthetic in <code><a href="../reference/paths.html">ggdag_paths()</a></code> from coloring by path status to coloring by path type (direct vs backdoor), providing more informative visualization of causal pathways</p></li>
+<li>
+<p>Introduced new <code>query_*()</code> API for direct analytical queries on DAGs (<a href="https://github.com/r-causal/ggdag/issues/185" class="external-link">#185</a>). These functions return tibbles with results rather than tidy DAG objects for plotting:</p>
 <ul><li>
 <code><a href="../reference/query_adjustment_sets.html">query_adjustment_sets()</a></code>: Find adjustment sets to close backdoor paths</li>
 <li>
@@ -92,17 +95,17 @@
 <li>
 <code><a href="../reference/query_markov_blanket.html">query_markov_blanket()</a></code>: Find Markov blankets</li>
 </ul></li>
-<li>All error messages, warnings, and informational messages now use the cli package for better formatting and user experience. This change adds custom error classes (<code>ggdag_error</code>, <code>ggdag_warning</code>) that enable programmatic error handling (<a href="https://github.com/r-causal/ggdag/issues/191" class="external-link">#191</a>).</li>
-<li>Fixed <code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> error when processing DAGs with no edges (<a href="https://github.com/r-causal/ggdag/issues/159" class="external-link">#159</a>)</li>
-<li>Fixed <code><a href="../reference/paths.html">dag_paths()</a></code> error when no open paths exist between nodes (<a href="https://github.com/r-causal/ggdag/issues/180" class="external-link">#180</a>)</li>
-<li>Introduced new functions <code><a href="../reference/query_conditional_independence.html">query_conditional_independence()</a></code>, <code><a href="../reference/query_conditional_independence.html">test_conditional_independence()</a></code>, and <code><a href="../reference/query_conditional_independence.html">ggdag_conditional_independence()</a></code> for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (<a href="https://github.com/r-causal/ggdag/issues/139" class="external-link">#139</a>)</li>
-<li>Added <code>sort</code> parameter to <code><a href="../reference/query_conditional_independence.html">ggdag_conditional_independence()</a></code> with default <code>TRUE</code> to sort conditional independence tests by their estimates for improved readability (<a href="https://github.com/r-causal/ggdag/issues/170" class="external-link">#170</a>)</li>
-<li>Introduced new functions <code><a href="../reference/aes_dag.html">aes_dag()</a></code> and <code><a href="../reference/geom_dag.html">geom_dag()</a></code> to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (<a href="https://github.com/r-causal/ggdag/issues/121" class="external-link">#121</a>)</li>
-<li>Added new function <code>geom_label_repel2()</code> for more opinionated repelled labels that often look better on DAGs (<a href="https://github.com/r-causal/ggdag/issues/132" class="external-link">#132</a>)</li>
-<li>Improved DAG data structure by removing unnecessary <code>circular</code> column when not needed. The column is now only included when using circular layouts. This simplifies the tidy DAG structure for most use cases (<a href="https://github.com/r-causal/ggdag/issues/119" class="external-link">#119</a>)</li>
-<li>Edge geoms now support mapping <code>color</code>/<code>colour</code> aesthetics to <code>edge_color</code>/<code>edge_colour</code> for more intuitive usage, matching ggplot2 conventions (<a href="https://github.com/r-causal/ggdag/issues/166" class="external-link">#166</a>)</li>
-<li>Fixed <code><a href="../reference/theme_dag_blank.html">theme_dag()</a></code> facet labels being clipped by adding margin to strip text (<a href="https://github.com/r-causal/ggdag/issues/173" class="external-link">#173</a>)</li>
-<li>Added quick plot functions for the causal quartet: <code><a href="../reference/quick_plot.html">quartet_collider()</a></code>, <code><a href="../reference/quick_plot.html">quartet_confounder()</a></code>, <code><a href="../reference/quick_plot.html">quartet_mediator()</a></code>, <code><a href="../reference/quick_plot.html">quartet_m_bias()</a></code>, and <code><a href="../reference/quick_plot.html">quartet_time_collider()</a></code>, along with their <code>ggdag_*</code> counterparts. These functions create DAGs representing the causal quartet from D’Agostino McGowan, Gerke, and Barrett (2023), demonstrating that statistical properties alone cannot determine causal relationships (<a href="https://github.com/r-causal/ggdag/issues/171" class="external-link">#171</a>)</li>
+<li><p>All error messages, warnings, and informational messages now use the cli package for better formatting and user experience. This change adds custom error classes (<code>ggdag_error</code>, <code>ggdag_warning</code>) that enable programmatic error handling (<a href="https://github.com/r-causal/ggdag/issues/191" class="external-link">#191</a>).</p></li>
+<li><p>Fixed <code><a href="../reference/tidy_dagitty.html">tidy_dagitty()</a></code> error when processing DAGs with no edges (<a href="https://github.com/r-causal/ggdag/issues/159" class="external-link">#159</a>)</p></li>
+<li><p>Fixed <code><a href="../reference/paths.html">dag_paths()</a></code> error when no open paths exist between nodes (<a href="https://github.com/r-causal/ggdag/issues/180" class="external-link">#180</a>)</p></li>
+<li><p>Introduced new functions <code><a href="../reference/query_conditional_independence.html">query_conditional_independence()</a></code>, <code><a href="../reference/query_conditional_independence.html">test_conditional_independence()</a></code>, and <code><a href="../reference/query_conditional_independence.html">ggdag_conditional_independence()</a></code> for detecting, testing, and visualizing implied conditional independencies in a given DAG and dataset (<a href="https://github.com/r-causal/ggdag/issues/139" class="external-link">#139</a>)</p></li>
+<li><p>Added <code>sort</code> parameter to <code><a href="../reference/query_conditional_independence.html">ggdag_conditional_independence()</a></code> with default <code>TRUE</code> to sort conditional independence tests by their estimates for improved readability (<a href="https://github.com/r-causal/ggdag/issues/170" class="external-link">#170</a>)</p></li>
+<li><p>Introduced new functions <code><a href="../reference/aes_dag.html">aes_dag()</a></code> and <code><a href="../reference/geom_dag.html">geom_dag()</a></code> to simplify specification of ggplot code for most DAGs. Also refactored most quick plots to use these functions (<a href="https://github.com/r-causal/ggdag/issues/121" class="external-link">#121</a>)</p></li>
+<li><p>Added new function <code>geom_label_repel2()</code> for more opinionated repelled labels that often look better on DAGs (<a href="https://github.com/r-causal/ggdag/issues/132" class="external-link">#132</a>)</p></li>
+<li><p>Improved DAG data structure by removing unnecessary <code>circular</code> column when not needed. The column is now only included when using circular layouts. This simplifies the tidy DAG structure for most use cases (<a href="https://github.com/r-causal/ggdag/issues/119" class="external-link">#119</a>)</p></li>
+<li><p>Edge geoms now support mapping <code>color</code>/<code>colour</code> aesthetics to <code>edge_color</code>/<code>edge_colour</code> for more intuitive usage, matching ggplot2 conventions (<a href="https://github.com/r-causal/ggdag/issues/166" class="external-link">#166</a>)</p></li>
+<li><p>Fixed <code><a href="../reference/theme_dag_blank.html">theme_dag()</a></code> facet labels being clipped by adding margin to strip text (<a href="https://github.com/r-causal/ggdag/issues/173" class="external-link">#173</a>)</p></li>
+<li><p>Added quick plot functions for the causal quartet: <code><a href="../reference/quick_plot.html">quartet_collider()</a></code>, <code><a href="../reference/quick_plot.html">quartet_confounder()</a></code>, <code><a href="../reference/quick_plot.html">quartet_mediator()</a></code>, <code><a href="../reference/quick_plot.html">quartet_m_bias()</a></code>, and <code><a href="../reference/quick_plot.html">quartet_time_collider()</a></code>, along with their <code>ggdag_*</code> counterparts. These functions create DAGs representing the causal quartet from D’Agostino McGowan, Gerke, and Barrett (2023), demonstrating that statistical properties alone cannot determine causal relationships (<a href="https://github.com/r-causal/ggdag/issues/171" class="external-link">#171</a>)</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.11" id="ggdag-0211">ggdag 0.2.11<a class="anchor" aria-label="anchor" href="#ggdag-0211"></a></h2><p class="text-muted">CRAN release: 2024-01-24</p>

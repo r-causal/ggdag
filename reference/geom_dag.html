@@ -86,6 +86,7 @@ that point, you should use the underlying geoms directly.</p>
 <span>  use_stylized <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  label_geom <span class="op">=</span> <span class="va">geom_dag_label_repel</span>,</span>
 <span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  key_glyph <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -174,7 +175,15 @@ and the node borders).</p></dd>
 
 
 <dt id="arg-use-labels">use_labels<a class="anchor" aria-label="anchor" href="#arg-use-labels"></a></dt>
-<dd><p>A logical value. Include <code><a href="repel.html">geom_dag_label_repel()</a></code>?</p></dd>
+<dd><p>A logical value. Include a label geom? The specific geom
+used is controlled by <code>label_geom</code>.</p></dd>
+
+
+<dt id="arg-label-geom">label_geom<a class="anchor" aria-label="anchor" href="#arg-label-geom"></a></dt>
+<dd><p>A geom function to use for drawing labels when
+<code>use_labels = TRUE</code>. Default is <code>geom_dag_label_repel</code>. Other options
+include <code>geom_dag_label</code>, <code>geom_dag_text_repel</code>, <code>geom_dag_label_repel2</code>,
+and <code>geom_dag_text_repel2</code>.</p></dd>
 
 
 <dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>
@@ -193,7 +202,7 @@ selection. Common options include <code>draw_key_dag_point</code>,
 
 
 <dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
-<dd><p>The bare name of a column to use for <code><a href="repel.html">geom_dag_label_repel()</a></code>.
+<dd><p>The bare name of a column to use for labels.
 If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p></dd>
 
 
@@ -229,6 +238,28 @@ If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p>
 <span class="r-in"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">dag</span>, <span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>  <span class="fu">geom_dag</span><span class="op">(</span>size <span class="op">=</span> <span class="fl">1.5</span>, text_size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="geom_dag-3.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Using different label geoms</span></span></span>
+<span class="r-in"><span><span class="va">dag_labeled</span> <span class="op">&lt;-</span> <span class="fu"><a href="dagify.html">dagify</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">y</span> <span class="op">~</span> <span class="va">x</span>,</span></span>
+<span class="r-in"><span>  <span class="va">z</span> <span class="op">~</span> <span class="va">y</span>,</span></span>
+<span class="r-in"><span>  labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Exposure"</span>, y <span class="op">=</span> <span class="st">"Outcome"</span>, z <span class="op">=</span> <span class="st">"Mediator"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Default: repelling labels</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">dag_labeled</span>, <span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag</span><span class="op">(</span>use_labels <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="geom_dag-4.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Static labels</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">dag_labeled</span>, <span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag</span><span class="op">(</span>use_labels <span class="op">=</span> <span class="cn">TRUE</span>, label_geom <span class="op">=</span> <span class="va">geom_dag_label</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="geom_dag-5.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Repelling text instead of labels</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">dag_labeled</span>, <span class="fu"><a href="aes_dag.html">aes_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu">geom_dag</span><span class="op">(</span>use_labels <span class="op">=</span> <span class="cn">TRUE</span>, label_geom <span class="op">=</span> <span class="va">geom_dag_text_repel</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="geom_dag-6.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
