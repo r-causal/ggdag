@@ -42,6 +42,7 @@ ggdag_paths(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -72,6 +73,7 @@ ggdag_paths_fan(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -139,12 +141,18 @@ and the node borders).}
 
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
-\item{use_labels}{A logical value. Include \code{geom_dag_label_repel()}?}
+\item{use_labels}{A logical value. Include a label geom? The specific geom
+used is controlled by \code{label_geom}.}
+
+\item{label_geom}{A geom function to use for drawing labels when
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
+include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+and \code{geom_dag_text_repel2}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
 
-\item{label}{The bare name of a column to use for \code{geom_dag_label_repel()}.
+\item{label}{The bare name of a column to use for labels.
 If \code{use_labels = TRUE}, the default is to use \code{label}.}
 
 \item{node}{Deprecated.}

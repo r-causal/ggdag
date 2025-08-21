@@ -1261,7 +1261,12 @@ aes_dag <- function(...) {
 #' @param use_nodes A logical value. Include `geom_dag_point()`?
 #' @param use_stylized A logical value. Include `geom_dag_node()`?
 #' @param use_text A logical value. Include `geom_dag_text()`?
-#' @param use_labels A logical value. Include `geom_dag_label_repel()`?
+#' @param use_labels A logical value. Include a label geom? The specific geom
+#'   used is controlled by `label_geom`.
+#' @param label_geom A geom function to use for drawing labels when
+#'   `use_labels = TRUE`. Default is `geom_dag_label_repel`. Other options
+#'   include `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
+#'   and `geom_dag_text_repel2`.
 #' @param unified_legend A logical value. When `TRUE` and both `use_edges` and
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
@@ -1271,7 +1276,7 @@ aes_dag <- function(...) {
 #'   `unified_legend` setting. When provided, this overrides the automatic
 #'   selection. Common options include `draw_key_dag_point`,
 #'   `draw_key_dag_combined`, and `draw_key_dag_collider`.
-#' @param label The bare name of a column to use for `geom_dag_label_repel()`.
+#' @param label The bare name of a column to use for labels.
 #'   If `use_labels = TRUE`, the default is to use `label`.
 #' @param text The bare name of a column to use for `geom_dag_text()`. If
 #'   `use_text = TRUE`, the default is to use `name`.
@@ -1291,6 +1296,25 @@ aes_dag <- function(...) {
 #' ggplot(dag, aes_dag()) +
 #'   geom_dag(size = 1.5, text_size = 8)
 #'
+#' # Using different label geoms
+#' dag_labeled <- dagify(
+#'   y ~ x,
+#'   z ~ y,
+#'   labels = c(x = "Exposure", y = "Outcome", z = "Mediator")
+#' )
+#'
+#' # Default: repelling labels
+#' ggplot(dag_labeled, aes_dag()) +
+#'   geom_dag(use_labels = TRUE)
+#'
+#' # Static labels
+#' ggplot(dag_labeled, aes_dag()) +
+#'   geom_dag(use_labels = TRUE, label_geom = geom_dag_label)
+#'
+#' # Repelling text instead of labels
+#' ggplot(dag_labeled, aes_dag()) +
+#'   geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel)
+#'
 #' @export
 geom_dag <- function(
   data = NULL,
@@ -1309,6 +1333,7 @@ geom_dag <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
+  label_geom = geom_dag_label_repel,
   unified_legend = TRUE,
   key_glyph = NULL,
   label = NULL,
@@ -1463,25 +1488,42 @@ geom_dag <- function(
       label <- rlang::get_expr(label)
     }
 
-    label_geom <- geom_dag_label_repel(
-      ggplot2::aes(label = !!label),
+    # Build common parameters
+    common_params <- list(
+      mapping = ggplot2::aes(label = !!label),
       data = data,
       size = sizes[["label"]] * 1.1,
       col = label_col,
-      show.legend = FALSE,
-      box.padding = sizes[["box_padding"]],
-      max.overlaps = Inf,
-      label.padding = 0.1,
+      show.legend = FALSE
     )
+
+    # Add parameters that might be used by repel functions
+    # These will be ignored by geoms that don't use them
+    if (
+      identical(label_geom, geom_dag_label_repel) ||
+        identical(label_geom, geom_dag_label_repel2)
+    ) {
+      common_params$box.padding <- sizes[["box_padding"]]
+      common_params$max.overlaps <- Inf
+      common_params$label.padding <- 0.1
+    } else if (
+      identical(label_geom, geom_dag_text_repel) ||
+        identical(label_geom, geom_dag_text_repel2)
+    ) {
+      common_params$box.padding <- sizes[["box_padding"]]
+      common_params$max.overlaps <- Inf
+    }
+
+    label_geom_result <- do.call(label_geom, common_params)
   } else {
-    label_geom <- NULL
+    label_geom_result <- NULL
   }
 
   list(
     node_geom,
     edge_geom,
     text_geom,
-    label_geom
+    label_geom_result
   )
 }
 

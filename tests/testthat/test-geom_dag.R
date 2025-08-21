@@ -647,3 +647,43 @@ test_that("nudge parameters work with vectors", {
 
   expect_doppelganger("repel-vector-nudges", p_vector)
 })
+
+test_that("geom_dag() label_geom parameter produces correct visuals", {
+  withr::local_seed(1234)
+  dag_labeled <- dagify(
+    y ~ x + z,
+    z ~ x,
+    labels = c(x = "Exposure", y = "Outcome", z = "Mediator")
+  )
+
+  # Default: repelling labels
+  p_default <- ggplot(dag_labeled, aes_dag()) +
+    geom_dag(use_labels = TRUE) +
+    theme_dag()
+
+  # Static labels
+  p_static <- ggplot(dag_labeled, aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label) +
+    theme_dag()
+
+  # Repelling text
+  p_text_repel <- ggplot(dag_labeled, aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel) +
+    theme_dag()
+
+  # Alternative repelling labels
+  p_label_repel2 <- ggplot(dag_labeled, aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label_repel2) +
+    theme_dag()
+
+  # Alternative repelling text
+  p_text_repel2 <- ggplot(dag_labeled, aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel2) +
+    theme_dag()
+
+  expect_doppelganger("geom_dag-default-label_geom", p_default)
+  expect_doppelganger("geom_dag-static-labels", p_static)
+  expect_doppelganger("geom_dag-text-repel", p_text_repel)
+  expect_doppelganger("geom_dag-label-repel2", p_label_repel2)
+  expect_doppelganger("geom_dag-text-repel2", p_text_repel2)
+})

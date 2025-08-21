@@ -45,6 +45,7 @@ ggdag_canonical <- function(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = NULL,
+  label_geom = geom_dag_label_repel,
   label = NULL,
   text = NULL,
   node = deprecated(),
@@ -55,7 +56,7 @@ ggdag_canonical <- function(
     ggdag(
       node_size = node_size,
       text_size = text_size,
-      label_size,
+      label_size = label_size,
       edge_type = edge_type,
       text_col = text_col,
       label_col = label_col,
@@ -63,6 +64,7 @@ ggdag_canonical <- function(
       use_nodes = use_nodes,
       use_stylized = use_stylized,
       use_text = use_text,
-      use_labels = use_labels
+      use_labels = use_labels,
+      label_geom = label_geom
     )
 }

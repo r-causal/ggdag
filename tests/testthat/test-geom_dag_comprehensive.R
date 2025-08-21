@@ -308,6 +308,57 @@ test_that("text and label enquo handling works", {
   expect_equal(rlang::quo_text(label_mapping$label), "custom_label")
 })
 
+test_that("label_geom parameter works correctly", {
+  # Default behavior - should use geom_dag_label_repel
+  geoms_default <- geom_dag(use_labels = TRUE)
+  expect_s3_class(geoms_default[[4]], "LayerInstance")
+  expect_s3_class(geoms_default[[4]]$geom, "GeomLabelRepel")
+
+  # Using geom_dag_label (static labels)
+  geoms_static <- geom_dag(use_labels = TRUE, label_geom = geom_dag_label)
+  expect_s3_class(geoms_static[[4]], "LayerInstance")
+  expect_s3_class(geoms_static[[4]]$geom, "GeomLabel")
+
+  # Using geom_dag_text_repel
+  geoms_text_repel <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_text_repel
+  )
+  expect_s3_class(geoms_text_repel[[4]], "LayerInstance")
+  expect_s3_class(geoms_text_repel[[4]]$geom, "GeomTextRepel")
+
+  # Using geom_dag_label_repel2
+  geoms_label_repel2 <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_label_repel2
+  )
+  expect_s3_class(geoms_label_repel2[[4]], "LayerInstance")
+  expect_s3_class(geoms_label_repel2[[4]]$geom, "GeomLabelRepel")
+
+  # Using geom_dag_text_repel2
+  geoms_text_repel2 <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_text_repel2
+  )
+  expect_s3_class(geoms_text_repel2[[4]], "LayerInstance")
+  expect_s3_class(geoms_text_repel2[[4]]$geom, "GeomTextRepel")
+
+  # Parameters are passed correctly
+  geoms_params <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_label,
+    label_size = 5,
+    label_col = "blue"
+  )
+  # Size should be scaled by size parameter (1) and multiplied by 1.1
+  expect_equal(geoms_params[[4]]$aes_params$size, 5 * 1.1)
+  expect_equal(geoms_params[[4]]$aes_params$colour, "blue")
+
+  # When use_labels = FALSE, label_geom is ignored
+  geoms_no_labels <- geom_dag(use_labels = FALSE, label_geom = geom_dag_label)
+  expect_null(geoms_no_labels[[4]])
+})
+
 test_that("ggname creates properly named grobs", {
   grob <- ggname("test_prefix", grid::textGrob("test"))
   # ggname adds a suffix to make names unique
