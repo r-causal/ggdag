@@ -65,3 +65,51 @@ test_that("time ordered layout works", {
   expect_doppelganger("list time ordered coords", p1)
   expect_doppelganger("df time ordered coords", p2)
 })
+
+test_that("layout = time_ordered_coords() (function) works in tidy_dagitty", {
+  dag <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a
+  )
+
+  result_fn <- tidy_dagitty(dag, layout = time_ordered_coords())
+  result_str <- tidy_dagitty(dag, layout = "time_ordered")
+
+  expect_equal(
+    pull_dag_data(result_fn),
+    pull_dag_data(result_str)
+  )
+})
+
+test_that("layout = time_ordered_coords(list(...)) (tibble) works in tidy_dagitty", {
+  coords <- time_ordered_coords(list(
+    "a",
+    c("b1", "b2"),
+    c("c1", "c2", "c3"),
+    "d"
+  ))
+
+  dag <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a
+  )
+
+  result <- tidy_dagitty(dag, layout = coords)
+  expect_s3_class(result, "tidy_dagitty")
+})
+
+test_that("layout = time_ordered_coords() works through ggdag()", {
+  dag <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a
+  )
+
+  p <- ggdag(dag, layout = time_ordered_coords())
+  expect_s3_class(p, "ggplot")
+})

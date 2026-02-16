@@ -4,7 +4,10 @@
 #' @param seed a numeric seed for reproducible layout generation
 #' @param layout a layout available in `ggraph`. See [ggraph::create_layout()]
 #'   for details. Alternatively, `"time_ordered"` will use
-#'   `time_ordered_coords()` to algorithmically sort the graph by time.
+#'   `time_ordered_coords()` to algorithmically sort the graph by time. You can
+#'   also pass the result of `time_ordered_coords()` directly: either the
+#'   function returned when called with no arguments, or the coordinate tibble
+#'   returned when called with arguments.
 #' @param ... optional arguments passed to `ggraph::create_layout()`
 #' @param use_existing_coords (Advanced). Logical. Use the coordinates produced
 #'   by `dagitty::coordinates(.dagitty)`? If the coordinates are empty,
@@ -71,13 +74,22 @@ tidy_dagitty <- function(
 
   dag_edges <- get_dagitty_edges(.dagitty)
 
-  if (layout == "time_ordered") {
+  if (is.function(layout)) {
+    coords <- dag_edges |>
+      edges2df() |>
+      layout() |>
+      coords2list()
+    dagitty::coordinates(.dagitty) <- coords
+    layout <- "nicely"
+  } else if (is.data.frame(layout)) {
+    dagitty::coordinates(.dagitty) <- coords2list(layout)
+    layout <- "nicely"
+  } else if (identical(layout, "time_ordered")) {
     coords <- dag_edges |>
       edges2df() |>
       auto_time_order() |>
       time_ordered_coords() |>
       coords2list()
-
     dagitty::coordinates(.dagitty) <- coords
   } else {
     check_verboten_layout(layout)
@@ -351,6 +363,9 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
 }
 
 check_verboten_layout <- function(layout) {
+  if (!is.character(layout)) {
+    return(invisible())
+  }
   if (layout %in% c("dendogram")) {
     abort(
       c(
