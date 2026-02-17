@@ -42,10 +42,10 @@
       #
       # Data:
       # A tibble: 2 x 7
-        name       x      y direction to      xend   yend
-        <chr>  <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl>
-      1 A     -0.363 -0.364 ->        B      0.202  0.197
-      2 B      0.202  0.197 ->        A     -0.363 -0.364
+        name       x        y direction to      xend     yend
+        <chr>  <dbl>    <dbl> <fct>     <chr>  <dbl>    <dbl>
+      1 A      0.395 1.83e-17 ->        B     -0.395 9.47e-18
+      2 B     -0.395 9.47e-18 ->        A      0.395 1.83e-17
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

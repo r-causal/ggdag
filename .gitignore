@@ -8,5 +8,6 @@ cran-comments.md
 docs
 CLAUDE.md
 .claude/
+.beads/
 scratch/
 tests/testthat/Rplots.pdf

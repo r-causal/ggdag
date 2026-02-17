@@ -113,12 +113,21 @@ prep_dag_data <- function(
     assert_columns_exist(value, c("name", "to"), call = call)
   }
 
-  if (is.null(coords) && layout == "time_ordered") {
-    coords <- value |>
-      edges2df() |>
-      auto_time_order() |>
-      time_ordered_coords() |>
-      coords2list()
+  if (is.null(coords)) {
+    if (is.function(layout)) {
+      coords <- value |>
+        edges2df() |>
+        layout() |>
+        coords2list()
+    } else if (is.data.frame(layout)) {
+      coords <- coords2list(layout)
+    } else if (identical(layout, "time_ordered")) {
+      coords <- value |>
+        edges2df() |>
+        auto_time_order() |>
+        time_ordered_coords() |>
+        coords2list()
+    }
   }
 
   if ("direction" %nin% names(value)) {
