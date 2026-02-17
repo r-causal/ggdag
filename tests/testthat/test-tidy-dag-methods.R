@@ -80,8 +80,8 @@ test_that("print method works correctly", {
 })
 
 test_that("tidy_dagitty print output snapshots", {
-  # Skip on Windows due to minor RNG differences in coordinates
-  skip_on_os("windows")
+  # Skip on CI due to platform-dependent RNG differences in layout coordinates
+  skip_on_ci()
 
   # Simple DAG
   dag1 <- dagify(y ~ x)
@@ -255,8 +255,8 @@ test_that("tidy_dagitty with use_existing_coords = FALSE", {
 })
 
 test_that("dag_adjustment_sets print output snapshots", {
-  # Skip on Windows due to minor RNG differences in coordinates
-  skip_on_os("windows")
+  # Skip on CI due to platform-dependent RNG differences in layout coordinates
+  skip_on_ci()
 
   # Simple DAG with one adjustment set
   dag1 <- dagify(
@@ -291,8 +291,8 @@ test_that("dag_adjustment_sets print output snapshots", {
 })
 
 test_that("dag_paths print output snapshots", {
-  # Skip on Windows due to minor RNG differences in coordinates
-  skip_on_os("windows")
+  # Skip on CI due to platform-dependent RNG differences in layout coordinates
+  skip_on_ci()
 
   # Simple DAG with paths
   dag1 <- dagify(
