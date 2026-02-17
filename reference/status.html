@@ -221,12 +221,12 @@ variable statuses.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># </span><span style="color: #949494; font-weight: bold;">Data:</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 8</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name       x      y direction to      xend   yend status  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> l     -<span style="color: #BB0000;">0.381</span> -<span style="color: #BB0000;">0.181</span> <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>     <span style="color: #BB0000;">NA</span>     latent  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x      0.324  0.524 -&gt;        l     -<span style="color: #BB0000;">0.381</span> -<span style="color: #BB0000;">0.181</span> exposure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x      0.324  0.524 -&gt;        y      0.582 -<span style="color: #BB0000;">0.439</span> exposure</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      0.582 -<span style="color: #BB0000;">0.439</span> -&gt;        l     -<span style="color: #BB0000;">0.381</span> -<span style="color: #BB0000;">0.181</span> outcome </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name          x      y direction to         xend   yend status  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> l     -<span style="color: #BB0000;">5.00</span><span style="color: #949494;">e</span><span style="color: #BB0000;">- 1</span>  0.288 <span style="color: #BB0000;">NA</span>        <span style="color: #BB0000;">NA</span>    <span style="color: #BB0000;">NA</span>   <span style="color: #949494;"> </span>    <span style="color: #BB0000;">NA</span>     latent  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> x      5.00<span style="color: #949494;">e</span><span style="color: #BB0000;">- 1</span>  0.288 -&gt;        l     -<span style="color: #BB0000;">5.00</span><span style="color: #949494;">e</span><span style="color: #BB0000;">- 1</span>  0.288 exposure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> x      5.00<span style="color: #949494;">e</span><span style="color: #BB0000;">- 1</span>  0.288 -&gt;        y      1.28<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> -<span style="color: #BB0000;">0.577</span> exposure</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> y      1.28<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span> -<span style="color: #BB0000;">0.577</span> -&gt;        l     -<span style="color: #BB0000;">5.00</span><span style="color: #949494;">e</span><span style="color: #BB0000;">- 1</span>  0.288 outcome </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span>
 <span class="r-in"><span><span class="fu">ggdag_status</span><span class="op">(</span><span class="va">dag</span><span class="op">)</span></span></span>
@@ -243,7 +243,7 @@ variable statuses.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>

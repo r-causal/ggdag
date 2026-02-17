@@ -62,7 +62,7 @@
                         <h4 data-toc-skip class="author">Malcolm
 Barrett</h4>
             
-            <h4 data-toc-skip class="date">2025-08-21</h4>
+            <h4 data-toc-skip class="date">2026-02-17</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/r-causal/ggdag/blob/main/vignettes/bias-structures.Rmd" class="external-link"><code>vignettes/bias-structures.Rmd</code></a></small>
       <div class="d-none name"><code>bias-structures.Rmd</code></div>
@@ -80,7 +80,7 @@ that refers to misspecified models.</em></p>
 <code class="sourceCode R"><span><span class="co">#  set theme of all DAGs to `theme_dag()`</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/r-causal/ggdag" class="external-link">ggdag</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme_get.html" class="external-link">theme_set</a></span><span class="op">(</span><span class="fu"><a href="../reference/theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/get_theme.html" class="external-link">theme_set</a></span><span class="op">(</span><span class="fu"><a href="../reference/theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
@@ -103,7 +103,7 @@ they will appear to be associated:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">confounder_triangle</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Coffee"</span>, y <span class="op">=</span> <span class="st">"Lung Cancer"</span>, z <span class="op">=</span> <span class="st">"Smoking"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dconnected</a></span><span class="op">(</span>text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-1-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-1-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>But if you think about it, this DAG is incorrect. Smoking doesn’t
 cause coffee drinking; something else, say a predilection towards
 addictive substances, causes a person to both smoke and drink coffee.
@@ -127,12 +127,12 @@ this:</p>
 <span>  <span class="fu"><a href="../reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span>layout <span class="op">=</span> <span class="st">"tree"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">coffee_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-2-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-2-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>Which one is the confounder, addictive behavior or smoking? Only one
 or the other needs to be controlled for to block the path:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/adjustment_sets.html">ggdag_adjustment_set</a></span><span class="op">(</span><span class="va">coffee_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, shadow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-3-1.png" width="2400" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-3-1.png" class="r-plt" alt="" width="2400" style="display: block; margin: auto;"></p>
 <p>Focusing on individual confounders, rather than confounding pathways,
 is a common error in thinking about adjusting our estimates. We should
 be more concerned blocking all confounding pathways than with including
@@ -156,7 +156,7 @@ confounding can flow:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">collider_triangle</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span>controlling_for <span class="op">=</span> <span class="st">"m"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-4-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-4-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>Here, the example is fairly simple and easy to deal with: <em>m</em>
 is a child of <em>x</em> and <em>y</em> and just shouldn’t be adjusted
 for. It can get more complicated, though, when <em>m</em> is something
@@ -179,7 +179,7 @@ looks like this:</p>
 <span>  m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/ggdag.html">ggdag</a></span><span class="op">(</span>use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-5-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>From a classical confounding perspective, it seems like the mother’s
 diabetes status might be a confounder: it’s associated with both the
 exposure and outcome, and it’s not a descendant of either. However, the
@@ -198,7 +198,7 @@ education to diabetes status:</p>
 <span>  m <span class="op">=</span> <span class="st">"Mother's Diabetes"</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/d_relationship.html">ggdag_dseparated</a></span><span class="op">(</span>controlling_for <span class="op">=</span> <span class="st">"m"</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-6-1.png" width="2400" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="2400" style="display: block; margin: auto;"></p>
 <p>Again, this is relatively easy–just don’t control for the collider.
 But what about when your study design already stratifies on <em>m</em>?
 Let’s consider an example where <em>m</em> represents having surgery.
@@ -243,7 +243,7 @@ in <code>ggdag</code>, for clarity):</p>
 <span>  <span class="fu"><a href="../reference/control_for.html">control_for</a></span><span class="op">(</span><span class="st">"surgery"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/control_for.html">ggdag_adjust</a></span><span class="op">(</span><span class="va">surgical_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, collider_lines <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-7-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>We can’t unstratify by surgical status, so our best bet is to block
 the back-door path opened by stratifying on it. We can’t adjust for the
 latent variable (and, if we’re measuring it really well, the latent
@@ -252,7 +252,7 @@ for baseline pain. Note that, technically, surgical status is part of
 the adjustment set:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/adjustment_sets.html">ggdag_adjustment_set</a></span><span class="op">(</span><span class="va">surgical_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span>, shadow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-8-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>What about if a variable is both a collider and a cause of the
 exposure and outcome (a classical confounder)? This is an extension of
 M-bias sometimes called butterfly bias or bow-tie bias. The variable is
@@ -261,14 +261,14 @@ back-door path that is confounding the relationship between <em>x</em>
 and <em>y</em>. What to do?</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/quick_plot.html">ggdag_butterfly_bias</a></span><span class="op">(</span>edge_type <span class="op">=</span> <span class="st">"diagonal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-9-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>The strategy is basically the same as above; we need to control for
 <em>m</em> to block the back-door path, but that opens up a relationship
 between <em>a</em> and <em>b</em>, so we need to block that path,
 too.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/adjustment_sets.html">ggdag_adjustment_set</a></span><span class="op">(</span><span class="fu"><a href="../reference/quick_plot.html">butterfly_bias</a></span><span class="op">(</span><span class="op">)</span>, shadow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-10-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-10-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>Adjusting for either set, {<em>a</em>, <em>m</em>} or {<em>b</em>,
 <em>m</em>}, will give allow us to estimate the causal effect of
 <em>x</em> on <em>y</em>.</p>
@@ -334,7 +334,7 @@ life.</p>
 <span>  coords <span class="op">=</span> <span class="va">coords</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">bladder_dag</span>, text <span class="op">=</span> <span class="cn">FALSE</span>, use_labels <span class="op">=</span> <span class="st">"label"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-11-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>For the outcome, the bias only depends on how well diagnosis of
 bladder cancer represents actually having bladder cancer. For the
 exposure, however, it also depends on if you have cancer or not: people
@@ -407,7 +407,7 @@ bias via measurement error:</p>
 <span>    use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
 <span>    collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-12-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>Because both the baseline score and the change are due, in part, to
 measurement error at baseline, controlling for baseline CES-D score (a
 collider) causes change in CES-D and receiving an honors degree to be
@@ -471,7 +471,7 @@ which opens up a back-door path:</p>
 <span>    use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
 <span>    collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-13-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>Even though smoking doesn’t actually cause glioma, it will appear as
 if there is an association. Actually, in this case, it may make smoking
 appear to be <em>protective</em> against glioma, since controls are more
@@ -508,7 +508,7 @@ status:</p>
 <span>    use_labels <span class="op">=</span> <span class="st">"label"</span>,</span>
 <span>    collider_lines <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="bias-structures_files/figure-html/unnamed-chunk-14-1.png" width="2240" style="display: block; margin: auto;"></p>
+<p><img src="bias-structures_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="" width="2240" style="display: block; margin: auto;"></p>
 <p>But follow-up is downstream from a collider, symptoms. Controlling
 for a downstream collider induces bias and, because we only have
 information on people who remain in the study, we are inadvertently
@@ -545,7 +545,7 @@ data.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>
