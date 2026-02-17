@@ -41,14 +41,6 @@ test_that("tibble conversion methods work", {
   tbl <- as_tibble(tidy_dag)
   expect_s3_class(tbl, "tbl_df")
   expect_s3_class(tbl, "data.frame")
-
-  # Test tbl_df method
-  tbl2 <- tbl_df(tidy_dag)
-  expect_s3_class(tbl2, "tbl_df")
-
-  # Test deprecated as.tbl
-  tbl3 <- as.tbl(tidy_dag)
-  expect_s3_class(tbl3, "tbl_df")
 })
 
 test_that("print method works correctly", {

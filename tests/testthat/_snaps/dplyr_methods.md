@@ -18,16 +18,6 @@
       x Missing columns: name and to
       i Available columns: group
 
-# deprecated underscore methods still work with warnings
-
-    Code
-      expr
-    Condition <ggdag_columns_error>
-      Error in `summarise_()`:
-      ! Required columns are missing from the data.
-      x Missing columns: name and to
-      i Available columns: n
-
 # multiple dplyr operations can be chained
 
     Code
