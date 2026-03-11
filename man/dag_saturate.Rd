@@ -23,7 +23,10 @@ coordinates.}
 
 \item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
 for details. Alternatively, \code{"time_ordered"} will use
-\code{time_ordered_coords()} to algorithmically sort the graph by time.}
+\code{time_ordered_coords()} to algorithmically sort the graph by time. You can
+also pass the result of \code{time_ordered_coords()} directly: either the
+function returned when called with no arguments, or the coordinate tibble
+returned when called with arguments.}
 
 \item{seed}{a numeric seed for reproducible layout generation}
 

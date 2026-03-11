@@ -36,7 +36,7 @@ geom_dag_text_repel(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
 
@@ -70,7 +70,7 @@ geom_dag_label_repel(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
 
@@ -80,6 +80,7 @@ geom_dag_label_repel2(
   box.padding = 2,
   max.overlaps = Inf,
   label.size = NA,
+  linewidth = 0,
   ...
 )
 

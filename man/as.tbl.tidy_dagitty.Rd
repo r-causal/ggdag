@@ -5,7 +5,7 @@
 \alias{as_tibble.tidy_dagitty}
 \title{Convert a \code{tidy_dagitty} object to tbl}
 \usage{
-\method{as.tbl}{tidy_dagitty}(x, row.names = NULL, optional = FALSE, ...)
+as.tbl.tidy_dagitty(x, row.names = NULL, optional = FALSE, ...)
 
 \method{as_tibble}{tidy_dagitty}(x, row.names = NULL, optional = FALSE, ...)
 }
