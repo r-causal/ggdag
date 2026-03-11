@@ -43,10 +43,7 @@
 <text x='594.06' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='594.06' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='366.35' y='287.75' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<line x1='112.32' y1='283.88' x2='100.74' y2='283.91' style='stroke-width: 1.07; stroke: #7F7F7F;' />
-<line x1='595.89' y1='478.24' x2='594.87' y2='491.24' style='stroke-width: 1.07; stroke: #7F7F7F;' />
-<line x1='586.48' y1='94.28' x2='591.32' y2='76.41' style='stroke-width: 1.07; stroke: #7F7F7F;' />
-<line x1='376.95' y1='251.33' x2='369.59' y2='273.96' style='stroke-width: 1.07; stroke: #7F7F7F;' />
+<line x1='376.95' y1='251.33' x2='373.35' y2='262.39' style='stroke-width: 1.07; stroke: #7F7F7F;' />
 <polygon points='114.48,298.24 182.58,298.24 182.49,298.24 182.84,298.23 183.18,298.16 183.51,298.03 183.81,297.86 184.08,297.64 184.31,297.38 184.49,297.09 184.63,296.77 184.71,296.43 184.74,296.08 184.74,296.08 184.74,271.68 184.74,271.68 184.71,271.33 184.63,270.99 184.49,270.67 184.31,270.38 184.08,270.12 183.81,269.90 183.51,269.73 183.18,269.60 182.84,269.53 182.58,269.52 114.48,269.52 114.74,269.53 114.39,269.52 114.05,269.56 113.71,269.66 113.40,269.81 113.11,270.01 112.86,270.25 112.65,270.52 112.49,270.83 112.38,271.16 112.33,271.50 112.32,271.68 112.32,296.08 112.33,295.91 112.33,296.26 112.38,296.60 112.49,296.93 112.65,297.24 112.86,297.51 113.11,297.76 113.40,297.95 113.71,298.10 114.05,298.20 114.39,298.24 ' style='stroke-width: 0.53; fill: #FFFFFF;' />
 <text x='148.53' y='279.32' text-anchor='middle' style='font-size: 12.14px; font-family: sans;' textLength='69.54px' lengthAdjust='spacingAndGlyphs'>Unmeasured</text>
 <text x='148.53' y='296.80' text-anchor='middle' style='font-size: 12.14px; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>

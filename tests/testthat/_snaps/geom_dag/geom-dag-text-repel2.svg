@@ -38,9 +38,6 @@
 <text x='64.98' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='655.02' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='360.00' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<line x1='54.24' y1='91.64' x2='60.60' y2='78.99' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='645.94' y1='96.41' x2='651.89' y2='79.30' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='338.26' y1='543.11' x2='351.87' y2='531.51' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='53.33' y='101.80' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
 <text x='619.50' y='101.81' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
 <text x='312.84' y='548.26' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='47.25px' lengthAdjust='spacingAndGlyphs'>Mediator</text>

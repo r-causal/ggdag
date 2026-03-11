@@ -39,9 +39,6 @@
 <text x='658.16' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='94.53' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='376.34' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<line x1='650.18' y1='92.44' x2='655.38' y2='75.42' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='116.32' y1='49.61' x2='103.13' y2='59.72' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='354.42' y1='518.38' x2='367.74' y2='508.18' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='622.72' y='97.86' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
 <text x='142.77' y='52.83' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
 <text x='320.88' y='523.51' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>

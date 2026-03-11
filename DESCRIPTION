@@ -1,7 +1,7 @@
 Package: ggdag
 Title: Analyze and Create Elegant Directed Acyclic Graphs
 Version: 0.2.13.9000
-Authors@R: 
+Authors@R:
     person("Malcolm", "Barrett", , "malcolmbarrett@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0299-5825"))
 Description: Tidy, analyze, and plot directed acyclic graphs (DAGs).
@@ -13,16 +13,16 @@ Description: Tidy, analyze, and plot directed acyclic graphs (DAGs).
 License: MIT + file LICENSE
 URL: https://github.com/r-causal/ggdag, https://r-causal.github.io/ggdag/
 BugReports: https://github.com/r-causal/ggdag/issues
-Depends: 
+Depends:
     R (>= 4.1.0)
-Imports: 
+Imports:
     cli (>= 3.0.0),
     dagitty,
     dplyr,
     forcats,
     ggplot2 (>= 3.0.0),
     ggraph (>= 2.0.0),
-    ggrepel (>= 0.9.6),
+    ggrepel (>= 0.9.7),
     igraph,
     lifecycle (>= 0.2.0),
     magrittr,
@@ -32,7 +32,7 @@ Imports:
     stringr,
     tibble,
     tidygraph
-Suggests: 
+Suggests:
     covr,
     knitr,
     rmarkdown,
@@ -40,7 +40,7 @@ Suggests:
     testthat (>= 3.0.0),
     vdiffr (>= 1.0.2),
     withr
-VignetteBuilder: 
+VignetteBuilder:
     knitr
 Config/testthat/edition: 3
 Encoding: UTF-8

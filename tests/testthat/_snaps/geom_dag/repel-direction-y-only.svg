@@ -36,7 +36,6 @@
 <circle cx='658.16' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='94.53' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='376.34' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='658.16' y1='483.55' x2='658.16' y2='492.23' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='658.16' y='481.75' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
 <text x='94.53' y='527.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='376.34' y='48.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>

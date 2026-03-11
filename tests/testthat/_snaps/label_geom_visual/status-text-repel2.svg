@@ -43,9 +43,7 @@
 <text x='594.06' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='594.06' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='366.53' y='287.75' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<line x1='110.23' y1='284.00' x2='100.74' y2='283.98' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='597.31' y1='479.95' x2='595.60' y2='491.30' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='357.98' y1='314.54' x2='363.71' y2='294.03' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='357.98' y1='314.54' x2='360.43' y2='305.78' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='146.80' y='279.44' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='69.54px' lengthAdjust='spacingAndGlyphs'>Unmeasured</text>
 <text x='146.80' y='296.92' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
 <text x='597.33' y='478.15' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>

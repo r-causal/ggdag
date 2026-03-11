@@ -430,7 +430,7 @@ geom_dag_text_repel <- function(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
@@ -526,7 +526,7 @@ geom_dag_label_repel <- function(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
@@ -598,6 +598,7 @@ geom_dag_label_repel2 <- function(
   box.padding = 2,
   max.overlaps = Inf,
   label.size = NA,
+  linewidth = 0,
   ...
 ) {
   geom_dag_label_repel(
@@ -606,6 +607,7 @@ geom_dag_label_repel2 <- function(
     box.padding = box.padding,
     max.overlaps = max.overlaps,
     label.size = label.size,
+    linewidth = linewidth,
     ...
   )
 }
