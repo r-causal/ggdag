@@ -106,6 +106,7 @@ geom_dag_point <- function(
 #' Node text
 #'
 #' @inheritParams ggplot2::geom_text
+#' @param nudge_x,nudge_y Horizontal and vertical adjustment to nudge labels by.
 #'
 #' @section Aesthetics:
 #' `geom_dag_text` understand the following aesthetics (required aesthetics are in bold):
@@ -187,6 +188,7 @@ geom_dag_text <- function(
 #' Node text labels
 #'
 #' @inheritParams ggplot2::geom_label
+#' @param nudge_x,nudge_y Horizontal and vertical adjustment to nudge labels by.
 #'
 #' @section Aesthetics:
 #' `geom_dag_label` understand the following aesthetics (required aesthetics are in bold):
@@ -284,6 +286,8 @@ geom_dag_label <- function(
 #' @inheritParams ggrepel::geom_text_repel
 #' @inheritParams ggrepel::geom_label_repel
 #' @param fontface A character vector. Default is "bold"
+#' @param linewidth Width of the label border in `geom_dag_label_repel2()`.
+#'   Default is 0 (no border). Set to a positive value to show borders.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1

@@ -97,6 +97,8 @@ lists which parameters it can accept.
 \item{parse}{If \code{TRUE}, the labels will be parsed into expressions and
 displayed as described in \code{?plotmath}.}
 
+\item{nudge_x, nudge_y}{Horizontal and vertical adjustment to nudge labels by.}
+
 \item{check_overlap}{If \code{TRUE}, text that overlaps previous text in the
 same layer will not be plotted. \code{check_overlap} happens at draw time and in
 the order of the data. Therefore data should be arranged by the label
