@@ -37,10 +37,10 @@
 <circle cx='377.33' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='377.33' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='658.32' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='118.94' y1='489.17' x2='106.22' y2='496.16' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='399.84' y1='54.03' x2='387.23' y2='60.91' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='355.03' y1='513.74' x2='367.42' y2='506.99' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='680.82' y1='489.28' x2='668.22' y2='496.17' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='118.94' y1='489.17' x2='116.20' y2='490.68' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='399.84' y1='54.03' x2='397.23' y2='55.46' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='355.03' y1='513.74' x2='357.42' y2='512.43' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='680.82' y1='489.28' x2='678.21' y2='490.71' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='119.61' y='487.37' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>a</text>
 <text x='400.43' y='52.23' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='354.43' y='523.14' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>

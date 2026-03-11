@@ -1,5 +1,7 @@
 # ggdag (development version)
 
+* Updated compatibility with ggrepel >= 0.9.7. `geom_dag_label_repel2()` now uses `linewidth = 0` (instead of `label.size = NA`) to hide label borders, matching ggrepel's new `linewidth` aesthetic. The `verbose` parameter in repel functions now defaults to `getOption("verbose", default = FALSE)`.
+
 * `geom_dag()` gains a `label_geom` parameter that allows users to specify which geom function to use for labels when `use_labels = TRUE` (#133). The default remains `geom_dag_label_repel` for backward compatibility, but users can now choose any label/text geom function such as `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, or `geom_dag_text_repel2`.
 
 * `geom_dag_text_repel()` and `geom_dag_label_repel()` now support all current ggrepel parameters (#172):

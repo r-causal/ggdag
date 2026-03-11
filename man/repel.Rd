@@ -36,7 +36,7 @@ geom_dag_text_repel(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
 
@@ -70,7 +70,7 @@ geom_dag_label_repel(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
 
@@ -80,6 +80,7 @@ geom_dag_label_repel2(
   box.padding = 2,
   max.overlaps = Inf,
   label.size = NA,
+  linewidth = 0,
   ...
 )
 
@@ -195,6 +196,9 @@ to 0.15. (Default unit is lines, but other units can be specified by
 passing \code{unit(x, "units")}).}
 
 \item{label.size}{Size of label border, in mm.}
+
+\item{linewidth}{Width of the label border in \code{geom_dag_label_repel2()}.
+Default is 0 (no border). Set to a positive value to show borders.}
 }
 \description{
 These functions are minor modifications of those in the ggrepel package.

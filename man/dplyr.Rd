@@ -58,17 +58,17 @@
 
 \method{slice}{tidy_dagitty}(.data, ..., .dots = list())
 
-\method{select_}{tidy_dagitty}(.data, ..., .dots = list())
+select_.tidy_dagitty(.data, ..., .dots = list())
 
-\method{filter_}{tidy_dagitty}(.data, ..., .dots = list())
+filter_.tidy_dagitty(.data, ..., .dots = list())
 
-\method{mutate_}{tidy_dagitty}(.data, ..., .dots = list())
+mutate_.tidy_dagitty(.data, ..., .dots = list())
 
-\method{summarise_}{tidy_dagitty}(.data, ..., .dots = list())
+summarise_.tidy_dagitty(.data, ..., .dots = list())
 
-\method{arrange_}{tidy_dagitty}(.data, ..., .dots = list())
+arrange_.tidy_dagitty(.data, ..., .dots = list())
 
-\method{slice_}{tidy_dagitty}(.data, ..., .dots = list())
+slice_.tidy_dagitty(.data, ..., .dots = list())
 }
 \arguments{
 \item{.data}{data object of class \code{tidy_dagitty}}
