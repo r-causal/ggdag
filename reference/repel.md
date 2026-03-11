@@ -40,7 +40,7 @@ geom_dag_text_repel(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
 
@@ -74,7 +74,7 @@ geom_dag_label_repel(
   show.legend = NA,
   direction = c("both", "y", "x"),
   seed = NA,
-  verbose = FALSE,
+  verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
 
@@ -84,6 +84,7 @@ geom_dag_label_repel2(
   box.padding = 2,
   max.overlaps = Inf,
   label.size = NA,
+  linewidth = 0,
   ...
 )
 
@@ -263,6 +264,11 @@ geom_dag_text_repel2(
 - label.size:
 
   Size of label border, in mm.
+
+- linewidth:
+
+  Width of the label border in `geom_dag_label_repel2()`. Default is 0
+  (no border). Set to a positive value to show borders.
 
 ## Details
 

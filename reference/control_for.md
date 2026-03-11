@@ -187,17 +187,17 @@ control_for(dag, var = "m")
 #> # A tibble: 11 × 9
 #>    name         x         y direction to        xend      yend collider_line
 #>    <chr>    <dbl>     <dbl> <fct>     <chr>    <dbl>     <dbl> <lgl>        
-#>  1 a      1.45    -3.78e-10 ->        m      0.00284  3.69e-12 FALSE        
-#>  2 a      1.45    -3.78e-10 ->        x      2.71     1.43e-10 FALSE        
-#>  3 b     -1.45     1.68e-10 ->        m      0.00284  3.69e-12 FALSE        
-#>  4 b     -1.45     1.68e-10 ->        y     -2.71     6.34e-11 FALSE        
-#>  5 m      0.00284  3.69e-12 NA        NA    NA       NA        FALSE        
-#>  6 x      2.71     1.43e-10 NA        NA    NA       NA        FALSE        
-#>  7 y     -2.71     6.34e-11 NA        NA    NA       NA        FALSE        
-#>  8 a      1.45    -3.78e-10 <->       b     -1.45     1.68e-10 TRUE         
-#>  9 a      1.45    -3.78e-10 <->       b     -1.45     1.68e-10 TRUE         
-#> 10 a      1.45    -3.78e-10 <->       b     -1.45     1.68e-10 TRUE         
-#> 11 a      1.45    -3.78e-10 <->       b     -1.45     1.68e-10 TRUE         
+#>  1 a      1.44    -2.95e-10 ->        m     -0.00334 -6.27e-10 FALSE        
+#>  2 a      1.44    -2.95e-10 ->        x      2.71     4.78e-10 FALSE        
+#>  3 b     -1.45     3.25e-12 ->        m     -0.00334 -6.27e-10 FALSE        
+#>  4 b     -1.45     3.25e-12 ->        y     -2.70     4.41e-10 FALSE        
+#>  5 m     -0.00334 -6.27e-10 NA        NA    NA       NA        FALSE        
+#>  6 x      2.71     4.78e-10 NA        NA    NA       NA        FALSE        
+#>  7 y     -2.70     4.41e-10 NA        NA    NA       NA        FALSE        
+#>  8 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
+#>  9 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
+#> 10 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
+#> 11 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
 #> # ℹ 1 more variable: adjusted <fct>
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame

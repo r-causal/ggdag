@@ -53,7 +53,7 @@ geom_dag_text(
 
   The statistical transformation to use on the data for this layer. When
   using a `geom_*()` function to construct a layer, the `stat` argument
-  can be used the override the default coupling between geoms and stats.
+  can be used to override the default coupling between geoms and stats.
   The `stat` argument accepts the following:
 
   - A `Stat` ggproto subclass, for example `StatCount`.
@@ -70,15 +70,15 @@ geom_dag_text(
 
 - position:
 
-  A position adjustment to use on the data for this layer. Cannot be
-  jointy specified with `nudge_x` or `nudge_y`. This can be used in
-  various ways, including to prevent overplotting and improving the
-  display. The `position` argument accepts the following:
+  A position adjustment to use on the data for this layer. This can be
+  used in various ways, including to prevent overplotting and improving
+  the display. The `position` argument accepts the following:
 
   - The result of calling a position function, such as
     [`position_jitter()`](https://ggplot2.tidyverse.org/reference/position_jitter.html).
+    This method allows for passing extra arguments to the position.
 
-  - A string nameing the position adjustment. To give the position as a
+  - A string naming the position adjustment. To give the position as a
     string, strip the function name of the `position_` prefix. For
     example, to use
     [`position_jitter()`](https://ggplot2.tidyverse.org/reference/position_jitter.html),
@@ -134,9 +134,7 @@ geom_dag_text(
 
 - nudge_x, nudge_y:
 
-  Horizontal and vertical adjustment to nudge labels by. Useful for
-  offsetting text from points, particularly on discrete scales. Cannot
-  be jointly specified with `position`.
+  Horizontal and vertical adjustment to nudge labels by.
 
 - check_overlap:
 
@@ -158,7 +156,9 @@ geom_dag_text(
   logical. Should this layer be included in the legends? `NA`, the
   default, includes if any aesthetics are mapped. `FALSE` never
   includes, and `TRUE` always includes. It can also be a named logical
-  vector to finely select the aesthetics to display.
+  vector to finely select the aesthetics to display. To include legend
+  keys for all levels, even when no data exists, use `TRUE`. If `NA`,
+  all levels are shown in legend, but unobserved levels are omitted.
 
 - inherit.aes:
 
@@ -166,7 +166,7 @@ geom_dag_text(
   with them. This is most useful for helper functions that define both
   data and aesthetics and shouldn't inherit behaviour from the default
   plot specification, e.g.
-  [`borders()`](https://ggplot2.tidyverse.org/reference/annotation_borders.html).
+  [`annotation_borders()`](https://ggplot2.tidyverse.org/reference/annotation_borders.html).
 
 ## Aesthetics
 

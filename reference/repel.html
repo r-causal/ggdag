@@ -94,7 +94,7 @@ data points. <code>geom_dag_label_repel2()</code> is a slightly stylized version
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"y"</span>, <span class="st">"x"</span><span class="op">)</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"verbose"</span>, default <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -128,7 +128,7 @@ data points. <code>geom_dag_label_repel2()</code> is a slightly stylized version
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"both"</span>, <span class="st">"y"</span>, <span class="st">"x"</span><span class="op">)</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"verbose"</span>, default <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -138,6 +138,7 @@ data points. <code>geom_dag_label_repel2()</code> is a slightly stylized version
 <span>  box.padding <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  max.overlaps <span class="op">=</span> <span class="cn">Inf</span>,</span>
 <span>  label.size <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  linewidth <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -312,6 +313,11 @@ passing <code>unit(x, "units")</code>).</p></dd>
 
 <dt id="arg-label-size">label.size<a class="anchor" aria-label="anchor" href="#arg-label-size"></a></dt>
 <dd><p>Size of label border, in mm.</p></dd>
+
+
+<dt id="arg-linewidth">linewidth<a class="anchor" aria-label="anchor" href="#arg-linewidth"></a></dt>
+<dd><p>Width of the label border in <code>geom_dag_label_repel2()</code>.
+Default is 0 (no border). Set to a positive value to show borders.</p></dd>
 
 </dl></div>
     <div class="section level2">

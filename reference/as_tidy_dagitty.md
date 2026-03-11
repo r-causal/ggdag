@@ -77,7 +77,11 @@ as_tidy_dagitty(
   [`ggraph::create_layout()`](https://ggraph.data-imaginist.com/reference/ggraph.html)
   for details. Alternatively, `"time_ordered"` will use
   [`time_ordered_coords()`](https://r-causal.github.io/ggdag/reference/time_ordered_coords.md)
-  to algorithmically sort the graph by time.
+  to algorithmically sort the graph by time. You can also pass the
+  result of
+  [`time_ordered_coords()`](https://r-causal.github.io/ggdag/reference/time_ordered_coords.md)
+  directly: either the function returned when called with no arguments,
+  or the coordinate tibble returned when called with arguments.
 
 - exposure:
 
@@ -130,10 +134,10 @@ data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
 #> # A tibble: 4 × 7
 #>   name          x      y direction to         xend   yend
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>     <dbl>  <dbl>
-#> 1 c      4.97e- 1  0.287 ->        x     -4.97e- 1  0.287
-#> 2 c      4.97e- 1  0.287 ->        y     -2.05e-10 -0.574
-#> 3 x     -4.97e- 1  0.287 ->        y     -2.05e-10 -0.574
-#> 4 y     -2.05e-10 -0.574 NA        NA    NA        NA    
+#> 1 c     -5.02e- 1 -0.290 ->        x      5.02e- 1 -0.290
+#> 2 c     -5.02e- 1 -0.290 ->        y      1.81e-11  0.579
+#> 3 x      5.02e- 1 -0.290 ->        y      1.81e-11  0.579
+#> 4 y      1.81e-11  0.579 NA        NA    NA        NA    
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

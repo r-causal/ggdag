@@ -85,7 +85,11 @@ ggdag_equivalent_class(
   [`ggraph::create_layout()`](https://ggraph.data-imaginist.com/reference/ggraph.html)
   for details. Alternatively, `"time_ordered"` will use
   [`time_ordered_coords()`](https://r-causal.github.io/ggdag/reference/time_ordered_coords.md)
-  to algorithmically sort the graph by time.
+  to algorithmically sort the graph by time. You can also pass the
+  result of
+  [`time_ordered_coords()`](https://r-causal.github.io/ggdag/reference/time_ordered_coords.md)
+  directly: either the function returned when called with no arguments,
+  or the coordinate tibble returned when called with arguments.
 
 - ...:
 

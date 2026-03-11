@@ -30,7 +30,11 @@ tidy_dagitty(
   [`ggraph::create_layout()`](https://ggraph.data-imaginist.com/reference/ggraph.html)
   for details. Alternatively, `"time_ordered"` will use
   [`time_ordered_coords()`](https://r-causal.github.io/ggdag/reference/time_ordered_coords.md)
-  to algorithmically sort the graph by time.
+  to algorithmically sort the graph by time. You can also pass the
+  result of
+  [`time_ordered_coords()`](https://r-causal.github.io/ggdag/reference/time_ordered_coords.md)
+  directly: either the function returned when called with no arguments,
+  or the coordinate tibble returned when called with arguments.
 
 - ...:
 
@@ -73,21 +77,21 @@ tidy_dagitty(dag)
 #> #
 #> # Data:
 #> # A tibble: 13 × 7
-#>    name       x        y direction to      xend   yend
-#>    <chr>  <dbl>    <dbl> <fct>     <chr>  <dbl>  <dbl>
-#>  1 V      1.50  -0.00126 ->        Z1     0.504 -1.01 
-#>  2 V      1.50  -0.00126 ->        Z2     0.511  1.01 
-#>  3 W1    -0.944 -0.579   ->        X     -0.321 -0.477
-#>  4 W1    -0.944 -0.579   ->        Y     -0.930  0.593
-#>  5 W1    -0.944 -0.579   ->        Z1     0.504 -1.01 
-#>  6 W1    -0.944 -0.579   <->       W2    -0.317  0.465
-#>  7 W2    -0.317  0.465   ->        X     -0.321 -0.477
-#>  8 W2    -0.317  0.465   ->        Y     -0.930  0.593
-#>  9 W2    -0.317  0.465   ->        Z2     0.511  1.01 
-#> 10 X     -0.321 -0.477   ->        Y     -0.930  0.593
-#> 11 Y     -0.930  0.593   NA        NA    NA     NA    
-#> 12 Z1     0.504 -1.01    ->        X     -0.321 -0.477
-#> 13 Z2     0.511  1.01    ->        Y     -0.930  0.593
+#>    name       x       y direction to      xend   yend
+#>    <chr>  <dbl>   <dbl> <fct>     <chr>  <dbl>  <dbl>
+#>  1 V      1.50   0.0443 ->        Z1     0.531 -0.984
+#>  2 V      1.50   0.0443 ->        Z2     0.484  1.02 
+#>  3 W1    -0.318 -0.512  ->        X     -0.939 -0.583
+#>  4 W1    -0.318 -0.512  ->        Y     -0.935  0.586
+#>  5 W1    -0.318 -0.512  ->        Z1     0.531 -0.984
+#>  6 W1    -0.318 -0.512  <->       W2    -0.327  0.426
+#>  7 W2    -0.327  0.426  ->        X     -0.939 -0.583
+#>  8 W2    -0.327  0.426  ->        Y     -0.935  0.586
+#>  9 W2    -0.327  0.426  ->        Z2     0.484  1.02 
+#> 10 X     -0.939 -0.583  ->        Y     -0.935  0.586
+#> 11 Y     -0.935  0.586  NA        NA    NA     NA    
+#> 12 Z1     0.531 -0.984  ->        X     -0.939 -0.583
+#> 13 Z2     0.484  1.02   ->        Y     -0.935  0.586
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

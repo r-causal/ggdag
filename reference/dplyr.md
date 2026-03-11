@@ -53,23 +53,17 @@ semi_join(x, y, by = NULL, copy = FALSE, ...)
 # S3 method for class 'tidy_dagitty'
 slice(.data, ..., .dots = list())
 
-# S3 method for class 'tidy_dagitty'
-select_(.data, ..., .dots = list())
+select_.tidy_dagitty(.data, ..., .dots = list())
 
-# S3 method for class 'tidy_dagitty'
-filter_(.data, ..., .dots = list())
+filter_.tidy_dagitty(.data, ..., .dots = list())
 
-# S3 method for class 'tidy_dagitty'
-mutate_(.data, ..., .dots = list())
+mutate_.tidy_dagitty(.data, ..., .dots = list())
 
-# S3 method for class 'tidy_dagitty'
-summarise_(.data, ..., .dots = list())
+summarise_.tidy_dagitty(.data, ..., .dots = list())
 
-# S3 method for class 'tidy_dagitty'
-arrange_(.data, ..., .dots = list())
+arrange_.tidy_dagitty(.data, ..., .dots = list())
 
-# S3 method for class 'tidy_dagitty'
-slice_(.data, ..., .dots = list())
+slice_.tidy_dagitty(.data, ..., .dots = list())
 ```
 
 ## Arguments

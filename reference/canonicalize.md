@@ -140,11 +140,11 @@ node_canonical(dag)
 #> # A tibble: 5 × 7
 #>   name          x             y direction to         xend          yend
 #>   <chr>     <dbl>         <dbl> <fct>     <chr>     <dbl>         <dbl>
-#> 1 L1     0.816    -0.0000000164 ->        x      0.000478 -0.805       
-#> 2 L1     0.816    -0.0000000164 ->        z      0.000478  0.805       
-#> 3 x      0.000478 -0.805        ->        y     -0.817     0.0000000160
-#> 4 y     -0.817     0.0000000160 NA        NA    NA        NA           
-#> 5 z      0.000478  0.805        ->        y     -0.817     0.0000000160
+#> 1 L1    -0.000782  0.803        ->        x     -0.817     0.0000000178
+#> 2 L1    -0.000782  0.803        ->        z      0.818    -0.0000000183
+#> 3 x     -0.817     0.0000000178 ->        y     -0.000782 -0.803       
+#> 4 y     -0.000782 -0.803        NA        NA    NA        NA           
+#> 5 z      0.818    -0.0000000183 ->        y     -0.000782 -0.803       
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ggdag_canonical(dag)

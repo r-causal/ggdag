@@ -94,10 +94,10 @@ edge_backdoor(dag)
 #> # A tibble: 4 × 9
 #>   name          x      y direction to      xend   yend path_type open 
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl> <chr>     <lgl>
-#> 1 x      4.99e- 1  0.288 ->        y     -0.499  0.288 direct    TRUE 
-#> 2 y     -4.99e- 1  0.288 NA        NA    NA     NA     NA        NA   
-#> 3 z      1.64e-10 -0.576 ->        x      0.499  0.288 backdoor  TRUE 
-#> 4 z      1.64e-10 -0.576 ->        y     -0.499  0.288 backdoor  TRUE 
+#> 1 x      5.01e- 1  0.289 ->        y     -0.501  0.289 direct    TRUE 
+#> 2 y     -5.01e- 1  0.289 NA        NA    NA     NA     NA        NA   
+#> 3 z     -9.60e-11 -0.579 ->        x      0.501  0.289 backdoor  TRUE 
+#> 4 z     -9.60e-11 -0.579 ->        y     -0.501  0.289 backdoor  TRUE 
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
@@ -112,10 +112,10 @@ edge_backdoor(dag, open_only = FALSE)
 #> # A tibble: 4 × 9
 #>   name          x      y direction to      xend   yend path_type open 
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl> <chr>     <lgl>
-#> 1 x      4.97e- 1 -0.287 ->        y     -0.497 -0.287 direct    TRUE 
-#> 2 y     -4.97e- 1 -0.287 NA        NA    NA     NA     NA        NA   
-#> 3 z      8.41e-11  0.574 ->        x      0.497 -0.287 backdoor  TRUE 
-#> 4 z      8.41e-11  0.574 ->        y     -0.497 -0.287 backdoor  TRUE 
+#> 1 x      5.02e- 1  0.290 ->        y     -0.502  0.290 direct    TRUE 
+#> 2 y     -5.02e- 1  0.290 NA        NA    NA     NA     NA        NA   
+#> 3 z      1.13e-10 -0.580 ->        x      0.502  0.290 backdoor  TRUE 
+#> 4 z      1.13e-10 -0.580 ->        y     -0.502  0.290 backdoor  TRUE 
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```

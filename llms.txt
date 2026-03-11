@@ -466,12 +466,12 @@ Direct analytical queries that return tibbles
   [`anti_join(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   [`semi_join(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   [`slice(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
-  [`select_(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
-  [`filter_(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
-  [`mutate_(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
-  [`summarise_(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
-  [`arrange_(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
-  [`slice_(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`select_.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`filter_.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`mutate_.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`summarise_.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`arrange_.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`slice_.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   :
 
   Dplyr verb methods for `tidy_dagitty` objects
@@ -498,7 +498,7 @@ Direct analytical queries that return tibbles
   [`remove_grid()`](https://r-causal.github.io/ggdag/reference/remove_axes.md)
   : Quickly remove plot axes and grids
 
-- [`as.tbl(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/as.tbl.tidy_dagitty.md)
+- [`as.tbl.tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/as.tbl.tidy_dagitty.md)
   [`as_tibble(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/as.tbl.tidy_dagitty.md)
   :
 

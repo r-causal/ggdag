@@ -172,10 +172,10 @@ node_collider(dag)
 #> # A tibble: 4 × 8
 #>   name          x      y direction to         xend   yend colliders   
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>     <dbl>  <dbl> <fct>       
-#> 1 m      4.99e- 1 -0.288 NA        NA    NA        NA     Collider    
-#> 2 x     -4.99e- 1 -0.288 ->        m      4.99e- 1 -0.288 Non-Collider
-#> 3 x     -4.99e- 1 -0.288 ->        y      2.98e-10  0.577 Non-Collider
-#> 4 y      2.98e-10  0.577 ->        m      4.99e- 1 -0.288 Non-Collider
+#> 1 m      4.98e- 1 -0.287 NA        NA    NA        NA     Collider    
+#> 2 x     -4.98e- 1 -0.287 ->        m      4.98e- 1 -0.287 Non-Collider
+#> 3 x     -4.98e- 1 -0.287 ->        y      3.90e-10  0.575 Non-Collider
+#> 4 y      3.90e-10  0.575 ->        m      4.98e- 1 -0.287 Non-Collider
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ggdag_collider(dag)

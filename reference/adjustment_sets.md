@@ -189,18 +189,18 @@ tidy_dagitty(dag) |> dag_adjustment_sets()
 #> #
 #> # Data:
 #> # A tibble: 36 × 9
-#>    name       x      y direction to      xend   yend adjusted   set         
-#>    <chr>  <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl> <chr>      <chr>       
-#>  1 v      0.542 -1.39  ->        z1    -0.716 -0.760 unadjusted {w1, w2, z2}
-#>  2 v      0.542 -1.39  ->        z2     1.16  -0.171 unadjusted {w1, w2, z2}
-#>  3 w1    -0.590  0.687 ->        x     -1.28   0.149 adjusted   {w1, w2, z2}
-#>  4 w1    -0.590  0.687 ->        y      0.115  0.440 adjusted   {w1, w2, z2}
-#>  5 w1    -0.590  0.687 ->        z1    -0.716 -0.760 adjusted   {w1, w2, z2}
-#>  6 w1    -0.590  0.687 <->       w2     0.768  1.05  adjusted   {w1, w2, z2}
-#>  7 w2     0.768  1.05  ->        y      0.115  0.440 adjusted   {w1, w2, z2}
-#>  8 w2     0.768  1.05  ->        z2     1.16  -0.171 adjusted   {w1, w2, z2}
-#>  9 x     -1.28   0.149 ->        y      0.115  0.440 unadjusted {w1, w2, z2}
-#> 10 y      0.115  0.440 NA        NA    NA     NA     unadjusted {w1, w2, z2}
+#>    name        x       y direction to       xend    yend adjusted   set         
+#>    <chr>   <dbl>   <dbl> <fct>     <chr>   <dbl>   <dbl> <chr>      <chr>       
+#>  1 v     -0.631   1.36   ->        z1     0.659   0.796  unadjusted {w1, w2, z2}
+#>  2 v     -0.631   1.36   ->        z2    -1.17    0.104  unadjusted {w1, w2, z2}
+#>  3 w1     0.633  -0.658  ->        x      1.29   -0.0707 adjusted   {w1, w2, z2}
+#>  4 w1     0.633  -0.658  ->        y     -0.0837 -0.441  adjusted   {w1, w2, z2}
+#>  5 w1     0.633  -0.658  ->        z1     0.659   0.796  adjusted   {w1, w2, z2}
+#>  6 w1     0.633  -0.658  <->       w2    -0.700  -1.09   adjusted   {w1, w2, z2}
+#>  7 w2    -0.700  -1.09   ->        y     -0.0837 -0.441  adjusted   {w1, w2, z2}
+#>  8 w2    -0.700  -1.09   ->        z2    -1.17    0.104  adjusted   {w1, w2, z2}
+#>  9 x      1.29   -0.0707 ->        y     -0.0837 -0.441  unadjusted {w1, w2, z2}
+#> 10 y     -0.0837 -0.441  NA        NA    NA      NA      unadjusted {w1, w2, z2}
 #> # ℹ 26 more rows
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame

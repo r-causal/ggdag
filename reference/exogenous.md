@@ -166,15 +166,15 @@ node_exogenous(dag)
 #> #
 #> # Data:
 #> # A tibble: 7 × 8
-#>   name       x         y direction to      xend          yend exogenous
-#>   <chr>  <dbl>     <dbl> <fct>     <chr>  <dbl>         <dbl> <chr>    
-#> 1 b     -1.44   2.10e- 8 NA        NA    NA     NA            NA       
-#> 2 x1    -0.518 -7.15e- 1 ->        b     -1.44   0.0000000210 exogenous
-#> 3 x1    -0.518 -7.15e- 1 ->        y      0.568 -0.0000000501 exogenous
-#> 4 x2    -0.518  7.15e- 1 ->        b     -1.44   0.0000000210 exogenous
-#> 5 x2    -0.518  7.15e- 1 ->        y      0.568 -0.0000000501 exogenous
-#> 6 x3     1.90  -7.51e-10 ->        y      0.568 -0.0000000501 exogenous
-#> 7 y      0.568 -5.01e- 8 NA        NA    NA     NA            NA       
+#>   name       x         y direction to      xend      yend exogenous
+#>   <chr>  <dbl>     <dbl> <fct>     <chr>  <dbl>     <dbl> <chr>    
+#> 1 b      1.45   1.64e-10 NA        NA    NA     NA        NA       
+#> 2 x1     0.521  7.08e- 1 ->        b      1.45   1.64e-10 exogenous
+#> 3 x1     0.521  7.08e- 1 ->        y     -0.573 -1.36e-10 exogenous
+#> 4 x2     0.521 -7.08e- 1 ->        b      1.45   1.64e-10 exogenous
+#> 5 x2     0.521 -7.08e- 1 ->        y     -0.573 -1.36e-10 exogenous
+#> 6 x3    -1.92   1.18e-10 ->        y     -0.573 -1.36e-10 exogenous
+#> 7 y     -0.573 -1.36e-10 NA        NA    NA     NA        NA       
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```

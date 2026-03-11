@@ -50,12 +50,12 @@ collided_dag
 #> # A tibble: 6 × 8
 #>   name          x      y direction to         xend   yend collider_line
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>     <dbl>  <dbl> <lgl>        
-#> 1 m      5.01e- 1  0.289 NA        NA    NA        NA     FALSE        
-#> 2 x     -5.01e- 1  0.289 ->        m      5.01e- 1  0.289 FALSE        
-#> 3 y     -5.55e-10 -0.578 ->        m      5.01e- 1  0.289 FALSE        
-#> 4 y     -5.55e-10 -0.578 ->        x     -5.01e- 1  0.289 FALSE        
-#> 5 x     -5.01e- 1  0.289 <->       y     -5.55e-10 -0.578 TRUE         
-#> 6 x     -5.01e- 1  0.289 <->       y     -5.55e-10 -0.578 TRUE         
+#> 1 m     -5.02e- 1 -0.290 NA        NA    NA        NA     FALSE        
+#> 2 x      5.02e- 1 -0.290 ->        m     -5.02e- 1 -0.290 FALSE        
+#> 3 y      1.15e-10  0.579 ->        m     -5.02e- 1 -0.290 FALSE        
+#> 4 y      1.15e-10  0.579 ->        x      5.02e- 1 -0.290 FALSE        
+#> 5 x      5.02e- 1 -0.290 <->       y      1.15e-10  0.579 TRUE         
+#> 6 x      5.02e- 1 -0.290 <->       y      1.15e-10  0.579 TRUE         
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```

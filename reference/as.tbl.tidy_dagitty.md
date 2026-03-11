@@ -5,8 +5,7 @@ Convert a `tidy_dagitty` object to tbl
 ## Usage
 
 ``` r
-# S3 method for class 'tidy_dagitty'
-as.tbl(x, row.names = NULL, optional = FALSE, ...)
+as.tbl.tidy_dagitty(x, row.names = NULL, optional = FALSE, ...)
 
 # S3 method for class 'tidy_dagitty'
 as_tibble(x, row.names = NULL, optional = FALSE, ...)

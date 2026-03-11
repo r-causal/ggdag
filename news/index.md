@@ -2,6 +2,13 @@
 
 ## ggdag (development version)
 
+- Updated compatibility with ggrepel \>= 0.9.7.
+  [`geom_dag_label_repel2()`](https://r-causal.github.io/ggdag/reference/repel.md)
+  now uses `linewidth = 0` (instead of `label.size = NA`) to hide label
+  borders, matching ggrepel’s new `linewidth` aesthetic. The `verbose`
+  parameter in repel functions now defaults to
+  `getOption("verbose", default = FALSE)`.
+
 - [`geom_dag()`](https://r-causal.github.io/ggdag/reference/geom_dag.md)
   gains a `label_geom` parameter that allows users to specify which geom
   function to use for labels when `use_labels = TRUE`
