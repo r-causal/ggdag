@@ -33,7 +33,8 @@ ggdag_conditional_independence(
   sort = TRUE,
   vline_linewidth = 0.8,
   vline_color = "grey70",
-  pointrange_fatten = 3
+  point_size = NULL,
+  pointrange_fatten = deprecated()
 )
 }
 \arguments{
@@ -102,7 +103,11 @@ Default is \code{TRUE}.}
 
 \item{vline_color}{Color of the vertical line.}
 
-\item{pointrange_fatten}{Factor to fatten the point range.}
+\item{point_size}{Size of the point in the point range. Default is \code{NULL},
+which uses the ggplot2 theme default.}
+
+\item{pointrange_fatten}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use
+\code{point_size} instead.}
 }
 \value{
 Either a tibble summarizing the conditional independencies in the DAG

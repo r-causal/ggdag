@@ -66,7 +66,7 @@ test_that("`ggdag_conditional_independence()` works", {
     test_result,
     vline_linewidth = 1,
     vline_color = "purple",
-    pointrange_fatten = 4
+    point_size = 3
   )
 
   expect_doppelganger("real tests plot", p2)
@@ -78,6 +78,30 @@ test_that("`ggdag_conditional_independence()` works", {
     upper = numeric()
   )
   expect_ggdag_error(ggdag_conditional_independence(test_result))
+})
+
+test_that("deprecated `pointrange_fatten` still maps to `point_size`", {
+  test_result <- data.frame(
+    independence = c("x _||_ y", "y _||_ z"),
+    estimate = c(0.1, 0.2),
+    lower = c(-0.1, 0.1),
+    upper = c(0.3, 0.4)
+  )
+
+  p_new <- ggdag_conditional_independence(test_result, point_size = 5)
+  p_old <- withr::with_options(
+    list(lifecycle_verbosity = "quiet"),
+    ggdag_conditional_independence(test_result, pointrange_fatten = 5)
+  )
+
+  build_new <- ggplot2::ggplot_build(p_new)
+  build_old <- ggplot2::ggplot_build(p_old)
+  expect_equal(build_new$data[[2]]$size, build_old$data[[2]]$size)
+
+  expect_warning(
+    ggdag_conditional_independence(test_result, pointrange_fatten = 5),
+    "pointrange_fatten"
+  )
 })
 
 test_that("`ggdag_conditional_independence()` sorting works correctly", {
