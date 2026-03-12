@@ -431,7 +431,7 @@ geom_dag_text_repel <- function(
   n_edge_points = NULL,
   n_node_points = NULL,
   box.padding = 1.25,
-  point.padding = 1.5,
+  point.padding = 1,
   min.segment.length = 0.5,
   segment.color = "#666666",
   segment.alpha = 1,
@@ -534,7 +534,7 @@ geom_dag_label_repel <- function(
   n_node_points = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1.5, "lines"),
+  point.padding = grid::unit(1, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
   min.segment.length = 0.5,
@@ -1574,12 +1574,37 @@ geom_dag <- function(
     label_geom_result <- NULL
   }
 
-  list(
+  # Inject debug layer when option is set and a repel label geom is used
+  debug_geom <- NULL
+  if (
+    isTRUE(getOption("ggdag.debug_repel_points")) &&
+      !is.null(label_geom_result)
+  ) {
+    is_repel <- identical(label_geom, geom_dag_label_repel) ||
+      identical(label_geom, geom_dag_label_repel2) ||
+      identical(label_geom, geom_dag_text_repel) ||
+      identical(label_geom, geom_dag_text_repel2)
+    if (is_repel) {
+      debug_geom <- make_debug_repel_layer(
+        node_size = common_params$node_size,
+        n_edge_points = common_params$n_edge_points,
+        n_node_points = common_params$n_node_points
+      )
+    }
+  }
+
+  result <- list(
     node_geom,
     edge_geom,
     text_geom,
     label_geom_result
   )
+
+  if (!is.null(debug_geom)) {
+    result <- c(result, list(debug_geom))
+  }
+
+  result
 }
 
 is_quo_logical <- function(x) {

@@ -304,11 +304,11 @@ test_that("StatNodesRepel generates node skeleton points", {
     NULL
   )
 
-  # 3 nodes + 3 nodes * 8 skeleton points = 27
-  expect_equal(nrow(result), 27)
+  # 3 nodes + 3 nodes * 25 disc points = 78
+  expect_equal(nrow(result), 78)
 
   skeleton_rows <- result[result$label == "", ]
-  expect_equal(nrow(skeleton_rows), 24)
+  expect_equal(nrow(skeleton_rows), 75)
 })
 
 test_that("StatNodesRepel skeleton points have label='' and point.size=0", {
@@ -327,7 +327,7 @@ test_that("StatNodesRepel skeleton points have label='' and point.size=0", {
   )
 
   skeleton_rows <- result[result$label == "", ]
-  expect_equal(nrow(skeleton_rows), 12)
+  expect_equal(nrow(skeleton_rows), 50)
   expect_true(all(skeleton_rows$label == ""))
   expect_true(all(skeleton_rows[["point.size"]] == 0))
 })
@@ -368,9 +368,9 @@ test_that("StatNodesRepel skeleton preserves PANEL", {
   )
 
   skeleton_rows <- result[result$label == "", ]
-  # Each panel: 2 nodes * 4 points = 8 skeleton points
-  expect_equal(sum(skeleton_rows$PANEL == 1), 8)
-  expect_equal(sum(skeleton_rows$PANEL == 2), 8)
+  # Each panel: 2 nodes * 25 disc points = 50 skeleton points
+  expect_equal(sum(skeleton_rows$PANEL == 1), 50)
+  expect_equal(sum(skeleton_rows$PANEL == 2), 50)
 })
 
 test_that("StatNodesRepel skeleton radius scales with node_size", {
@@ -421,11 +421,11 @@ test_that("StatNodesRepel skeleton + edge fake points coexist", {
   )
 
   fake_rows <- result[result$label == "", ]
-  # 2 edges * 5 edge points + 2 nodes * 4 skeleton points = 18
-  expect_equal(nrow(fake_rows), 18)
+  # 2 edges * 5 edge points + 2 nodes * 25 disc points = 60
+  expect_equal(nrow(fake_rows), 60)
 
-  # Total: 2 real nodes + 18 fake = 20
-  expect_equal(nrow(result), 20)
+  # Total: 2 real nodes + 60 fake = 62
+  expect_equal(nrow(result), 62)
 })
 
 test_that("StatNodesRepel skeleton skipped for single node", {
@@ -463,8 +463,8 @@ test_that("StatNodesRepel default n_node_points is 12", {
   )
 
   skeleton_rows <- result[result$label == "", ]
-  # 2 nodes * 12 points = 24
-  expect_equal(nrow(skeleton_rows), 24)
+  # 2 nodes * 25 disc points = 50
+  expect_equal(nrow(skeleton_rows), 50)
 })
 
 test_that("dag_layer() creates correct S3 class", {

@@ -1,4 +1,7 @@
 set.seed(1234)
+# Enable to render purple dots at all fake repel points (edge + node disc)
+# for visual review of ggrepel placement boundaries:
+# options(ggdag.debug_repel_points = TRUE)
 
 test_dag <- dagify(
   y ~ x + z2 + w2 + w1,

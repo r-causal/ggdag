@@ -307,6 +307,26 @@ StatNodes <- ggplot2::ggproto(
   }
 )
 
+generate_disc_points <- function(node_radius, n_node_points) {
+  # Dense filled disc: center + 4 concentric rings with staggered angles.
+  # Each ring is offset by half a step so points cover diagonals, not just axes.
+  n_rings <- 4
+  disc_points <- data.frame(dx = 0, dy = 0) # center point
+  for (ring in seq_len(n_rings)) {
+    r <- node_radius * ring / n_rings
+    # Scale points per ring with circumference; generous minimum
+    n_ring <- max(6, round(n_node_points * ring / sum(seq_len(n_rings))))
+    # Stagger each ring by half a step to avoid cross pattern
+    offset <- if (ring %% 2 == 0) pi / n_ring else 0
+    ring_angles <- seq(0, 2 * pi, length.out = n_ring + 1)[-1] + offset
+    disc_points <- rbind(
+      disc_points,
+      data.frame(dx = r * cos(ring_angles), dy = r * sin(ring_angles))
+    )
+  }
+  disc_points
+}
+
 StatNodesRepel <- ggplot2::ggproto(
   "StatNodesRepel",
   ggplot2::Stat,
@@ -364,21 +384,21 @@ StatNodesRepel <- ggplot2::ggproto(
       data[["point.size"]] <- node_size * .pt / 14.4
     }
 
-    # Generate skeleton points around node perimeters
+    # Generate filled disc of points covering each node
     if (n_node_points > 0 && nrow(data) > 1) {
-      dists <- as.matrix(stats::dist(data[, c("x", "y")]))
-      diag(dists) <- Inf
-      min_dists <- apply(dists, 1, min)
-      median_gap <- stats::median(min_dists)
-      node_radius <- median_gap * (node_size / 16) * 0.15
+      x_range <- diff(range(data$x))
+      y_range <- diff(range(data$y))
+      avg_range <- mean(c(x_range, y_range))
+      node_radius <- node_size * avg_range / 400
 
-      angles <- seq(0, 2 * pi, length.out = n_node_points + 1)[-1]
+      disc_points <- generate_disc_points(node_radius, n_node_points)
+
       node_skeleton <- do.call(
         rbind,
         lapply(seq_len(nrow(data)), function(i) {
           data.frame(
-            x = data$x[i] + node_radius * cos(angles),
-            y = data$y[i] + node_radius * sin(angles),
+            x = data$x[i] + disc_points$dx,
+            y = data$y[i] + disc_points$dy,
             label = "",
             point.size = 0,
             PANEL = data$PANEL[i],
@@ -396,6 +416,107 @@ StatNodesRepel <- ggplot2::ggproto(
     data
   }
 )
+
+StatDebugRepelPoints <- ggplot2::ggproto(
+  "StatDebugRepelPoints",
+  ggplot2::Stat,
+  optional_aes = c("xend", "yend"),
+  extra_params = c("na.rm", "node_size", "n_edge_points", "n_node_points"),
+  compute_layer = function(data, params, layout) {
+    node_size <- params$node_size %||% 16
+    n_edge_points <- params$n_edge_points %||% 50
+    n_node_points <- params$n_node_points %||% 12
+    has_edges <- all(c("xend", "yend") %in% names(data))
+
+    fake_points <- NULL
+
+    # Edge fake points
+    if (has_edges && n_edge_points > 0) {
+      edges <- unique(data[
+        !is.na(data$xend),
+        c("x", "y", "xend", "yend", "PANEL")
+      ])
+      if (nrow(edges) > 0) {
+        t_vals <- seq(0, 1, length.out = n_edge_points + 2)[
+          -c(1, n_edge_points + 2)
+        ]
+        fake_points <- do.call(
+          rbind,
+          lapply(seq_len(nrow(edges)), function(i) {
+            data.frame(
+              x = edges$x[i] + t_vals * (edges$xend[i] - edges$x[i]),
+              y = edges$y[i] + t_vals * (edges$yend[i] - edges$y[i]),
+              PANEL = edges$PANEL[i],
+              stringsAsFactors = FALSE
+            )
+          })
+        )
+      }
+    }
+
+    # Node disc points (filled, not just perimeter)
+    nodes <- unique(data[, c("x", "y", "PANEL")])
+    if (n_node_points > 0 && nrow(nodes) > 1) {
+      x_range <- diff(range(nodes$x))
+      y_range <- diff(range(nodes$y))
+      avg_range <- mean(c(x_range, y_range))
+      node_radius <- node_size * avg_range / 400
+
+      disc_points <- generate_disc_points(node_radius, n_node_points)
+
+      node_skeleton <- do.call(
+        rbind,
+        lapply(seq_len(nrow(nodes)), function(i) {
+          data.frame(
+            x = nodes$x[i] + disc_points$dx,
+            y = nodes$y[i] + disc_points$dy,
+            PANEL = nodes$PANEL[i],
+            stringsAsFactors = FALSE
+          )
+        })
+      )
+      fake_points <- rbind(fake_points, node_skeleton)
+    }
+
+    if (is.null(fake_points) || nrow(fake_points) == 0) {
+      return(data.frame(x = numeric(), y = numeric(), PANEL = integer()))
+    }
+
+    fake_points
+  }
+)
+
+make_debug_repel_layer <- function(
+  node_size = NULL,
+  n_edge_points = NULL,
+  n_node_points = NULL
+) {
+  # inherit.aes = FALSE avoids inheriting color/fill mappings that don't exist
+  # in the debug stat's output. Map x, y, xend, yend explicitly so edge fake
+  # points can be computed. xend/yend always exist in DAG data.
+  ggplot2::layer(
+    data = NULL,
+    mapping = ggplot2::aes(
+      x = .data$x,
+      y = .data$y,
+      xend = .data$xend,
+      yend = .data$yend
+    ),
+    stat = StatDebugRepelPoints,
+    geom = ggplot2::GeomPoint,
+    position = "identity",
+    show.legend = FALSE,
+    inherit.aes = FALSE,
+    params = list(
+      colour = "purple",
+      size = 3,
+      na.rm = TRUE,
+      node_size = node_size,
+      n_edge_points = n_edge_points,
+      n_node_points = n_node_points
+    )
+  )
+}
 
 dag_layer <- function(layer, discover = character()) {
   structure(
@@ -417,7 +538,18 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
     }
   }
 
-  ggplot2::ggplot_add(layer, plot, ...)
+  plot <- ggplot2::ggplot_add(layer, plot, ...)
+
+  if (isTRUE(getOption("ggdag.debug_repel_points"))) {
+    debug_layer <- make_debug_repel_layer(
+      node_size = layer$stat_params$node_size,
+      n_edge_points = layer$stat_params$n_edge_points,
+      n_node_points = layer$stat_params$n_node_points
+    )
+    plot <- ggplot2::ggplot_add(debug_layer, plot, ...)
+  }
+
+  plot
 }
 
 discover_node_size <- function(plot) {
