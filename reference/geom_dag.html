@@ -87,6 +87,8 @@ that point, you should use the underlying geoms directly.</p>
 <span>  use_text <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  use_labels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  label_geom <span class="op">=</span> <span class="va">geom_dag_label_repel</span>,</span>
+<span>  n_edge_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  n_node_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  key_glyph <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -184,6 +186,19 @@ used is controlled by <code>label_geom</code>.</p></dd>
 <code>use_labels = TRUE</code>. Default is <code>geom_dag_label_repel</code>. Other options
 include <code>geom_dag_label</code>, <code>geom_dag_text_repel</code>, <code>geom_dag_label_repel2</code>,
 and <code>geom_dag_text_repel2</code>.</p></dd>
+
+
+<dt id="arg-n-edge-points">n_edge_points<a class="anchor" aria-label="anchor" href="#arg-n-edge-points"></a></dt>
+<dd><p>Number of invisible points to interpolate along each
+edge for label repulsion. Passed to repel label geoms. Defaults to <code>NULL</code>
+(uses <code>StatNodesRepel</code> default of 50). Set to 0 to disable.</p></dd>
+
+
+<dt id="arg-n-node-points">n_node_points<a class="anchor" aria-label="anchor" href="#arg-n-node-points"></a></dt>
+<dd><p>Number of invisible skeleton points to place around each
+node's perimeter for label repulsion. Passed to repel label geoms.
+Defaults to <code>NULL</code> (uses <code>StatNodesRepel</code> default of 12). Set to 0 to
+disable.</p></dd>
 
 
 <dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>

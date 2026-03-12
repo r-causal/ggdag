@@ -32,6 +32,8 @@ geom_dag(
   use_text = TRUE,
   use_labels = FALSE,
   label_geom = geom_dag_label_repel,
+  n_edge_points = NULL,
+  n_node_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   label = NULL,
@@ -135,6 +137,18 @@ geom_dag(
   Default is `geom_dag_label_repel`. Other options include
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
+
+- n_edge_points:
+
+  Number of invisible points to interpolate along each edge for label
+  repulsion. Passed to repel label geoms. Defaults to `NULL` (uses
+  `StatNodesRepel` default of 50). Set to 0 to disable.
+
+- n_node_points:
+
+  Number of invisible skeleton points to place around each node's
+  perimeter for label repulsion. Passed to repel label geoms. Defaults
+  to `NULL` (uses `StatNodesRepel` default of 12). Set to 0 to disable.
 
 - unified_legend:
 

@@ -19,8 +19,11 @@ geom_dag_text_repel(
   position = "identity",
   parse = FALSE,
   ...,
+  node_size = NULL,
+  n_edge_points = NULL,
+  n_node_points = NULL,
   box.padding = 1.25,
-  point.padding = 1.5,
+  point.padding = 1,
   min.segment.length = 0.5,
   segment.color = "#666666",
   segment.alpha = 1,
@@ -31,7 +34,7 @@ geom_dag_text_repel(
   force_pull = 1,
   max.time = 0.5,
   max.iter = 2000,
-  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
+  max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
   xlim = c(NA, NA),
@@ -51,9 +54,12 @@ geom_dag_label_repel(
   position = "identity",
   parse = FALSE,
   ...,
+  node_size = NULL,
+  n_edge_points = NULL,
+  n_node_points = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1.5, "lines"),
+  point.padding = grid::unit(1, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
   min.segment.length = 0.5,
@@ -65,7 +71,7 @@ geom_dag_label_repel(
   force_pull = 1,
   max.time = 0.5,
   max.iter = 2000,
-  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
+  max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
   xlim = c(NA, NA),
@@ -141,6 +147,32 @@ geom_dag_text_repel2(
     `stat` associated with the layer.
 
   - Other arguments passed on to the stat.
+
+- node_size:
+
+  The size of the DAG nodes, used to compute the `point.size` aesthetic
+  so that labels repel from the node boundary rather than the node
+  center. Defaults to `NULL`, which auto-discovers the size from a node
+  layer
+  ([`geom_dag_node()`](https://r-causal.github.io/ggdag/reference/node_point.md)
+  or
+  [`geom_dag_point()`](https://r-causal.github.io/ggdag/reference/node_point.md))
+  already added to the plot. Falls back to 16 if no node layer is found.
+
+- n_edge_points:
+
+  Number of invisible points to interpolate along each edge. These
+  "fake" points participate in ggrepel's repulsion calculation so that
+  labels avoid overlapping edges. Defaults to `NULL`, which uses the
+  `StatNodesRepel` default of 50. Set to 0 to disable edge-aware
+  repulsion.
+
+- n_node_points:
+
+  Number of invisible points to place around each node's perimeter.
+  These skeleton points help ggrepel push labels away from node
+  boundaries. Defaults to `NULL`, which uses the `StatNodesRepel`
+  default of 12. Set to 0 to disable node skeleton repulsion.
 
 - box.padding:
 
