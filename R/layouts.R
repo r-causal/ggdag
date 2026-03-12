@@ -19,6 +19,14 @@
 #'   `"left"` or `"right"` of in the graph as is reasonable. Default is right,
 #'   meaning the nodes will be as close as possible in time to their
 #'   descendants.
+#' @param fixed_time A named numeric vector pinning specific nodes to time
+#'   points (e.g., `c(x = 3, z = 1)`). Only used in auto mode (`.vars =
+#'   NULL`). Other nodes are placed automatically while respecting these
+#'   constraints. Pinned times are 1-based and preserved in the output.
+#' @param adjust_exposure_outcome If `TRUE` (default), automatically shift the
+#'   outcome forward by one time point when it shares a layer with the
+#'   exposure. All descendants of the outcome are also shifted. Only applies in
+#'   auto mode and when the DAG has exposure and outcome set.
 #'
 #' @return A tibble with three columns: `name`, `x`, and `y`.
 #'
@@ -70,17 +78,22 @@ time_ordered_coords <- function(
   .vars = NULL,
   time_points = NULL,
   direction = c("x", "y"),
-  auto_sort_direction = c("right", "left")
+  auto_sort_direction = c("right", "left"),
+  fixed_time = NULL,
+  adjust_exposure_outcome = TRUE
 ) {
   direction <- match.arg(direction)
   auto_sort_direction <- match.arg(auto_sort_direction)
 
   if (is.null(.vars)) {
-    auto_time_ordered_coords <- function(.df) {
+    auto_time_ordered_coords <- function(.df, ...) {
       compute_time_ordered_layout(
         .df,
         direction = direction,
-        sort_direction = auto_sort_direction
+        sort_direction = auto_sort_direction,
+        fixed_time = fixed_time,
+        adjust_exposure_outcome = adjust_exposure_outcome,
+        ...
       )
     }
 

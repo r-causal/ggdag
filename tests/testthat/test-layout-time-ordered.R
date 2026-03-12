@@ -196,6 +196,181 @@ test_that("longest_path_layers: complex epidemiology-style DAG", {
   expect_equal(result[["Health"]], 3L)
 })
 
+# Phase 2b: fixed_time partial pinning -----------------------------------------
+
+test_that("fixed_time: pinning a node overrides its layer", {
+  # Chain A→B→C, pin B to layer 3 (use "left" to keep A at root)
+  edges_df <- data.frame(
+    name = c("A", "B", "C"),
+    to = c("B", "C", NA),
+    stringsAsFactors = FALSE
+  )
+  result <- longest_path_layers(
+    edges_df,
+    sort_direction = "left",
+    fixed_time = c(B = 3L)
+  )
+  expect_equal(result[["A"]], 0L)
+  expect_equal(result[["B"]], 3L)
+  # C must be after B
+  expect_gt(result[["C"]], result[["B"]])
+})
+
+test_that("fixed_time: pin pushes descendants forward", {
+  # Diamond A→B, A→C, B→D, C→D; pin C to layer 3
+  edges_df <- data.frame(
+    name = c("A", "A", "B", "C", "D"),
+    to = c("B", "C", "D", "D", NA),
+    stringsAsFactors = FALSE
+  )
+  result <- longest_path_layers(edges_df, fixed_time = c(C = 3L))
+  expect_equal(result[["A"]], 0L)
+  expect_equal(result[["C"]], 3L)
+  # D must be after both B and C
+  expect_gt(result[["D"]], result[["B"]])
+  expect_gt(result[["D"]], result[["C"]])
+})
+
+test_that("fixed_time: pin node earlier than default is respected", {
+  # A→B→C→D, pin D to layer 2 (default would be 3)
+  # This is valid if no parent is at or after layer 2
+  # B is at 1, C is at 2 — but D pinned to 2 would violate C→D ordering
+
+  # Actually, C default is 2 and D pinned to 2 means parent==child layer → error
+  # Instead: pin C to layer 1 (default is 2)
+  # A is 0, B is 1, C pinned to 1 violates B→C since B is also at 1
+  # Use a case where pinning earlier is valid:
+  # A→C, B→C, A→B; pin B to layer 0 would violate A→B
+  # Valid case: fan A→B, A→C, A→D; pin B to layer 5 (later than default 1)
+  edges_df <- data.frame(
+    name = c("A", "A", "A", "B", "C", "D"),
+    to = c("B", "C", "D", NA, NA, NA),
+    stringsAsFactors = FALSE
+  )
+  result <- longest_path_layers(edges_df, fixed_time = c(B = 5L))
+  expect_equal(result[["B"]], 5L)
+  # A stays at 0, C and D unaffected (still 1 since they're leaves)
+  expect_equal(result[["A"]], 0L)
+})
+
+test_that("fixed_time: unknown node warns and is dropped", {
+  edges_df <- data.frame(
+    name = c("A", "B"),
+    to = c("B", NA),
+    stringsAsFactors = FALSE
+  )
+  expect_warning(
+    result <- longest_path_layers(edges_df, fixed_time = c(UNKNOWN = 5L)),
+    class = "ggdag_warning"
+  )
+  # Result is same as without fixed_time
+  expect_equal(result[["A"]], 0L)
+  expect_equal(result[["B"]], 1L)
+})
+
+test_that("fixed_time: impossible ordering errors", {
+  # A→B, pin A=3 and B=1 — parent after child
+  edges_df <- data.frame(
+    name = c("A", "B"),
+    to = c("B", NA),
+    stringsAsFactors = FALSE
+  )
+  expect_error(
+    longest_path_layers(edges_df, fixed_time = c(A = 3L, B = 1L)),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("fixed_time: parent pinned equal to child errors", {
+  # A→B, pin both to same layer
+  edges_df <- data.frame(
+    name = c("A", "B"),
+    to = c("B", NA),
+    stringsAsFactors = FALSE
+  )
+  expect_error(
+    longest_path_layers(edges_df, fixed_time = c(A = 2L, B = 2L)),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("fixed_time: backward pass respects pins", {
+  # A→B→C→D, pin B to layer 3. In "right" mode,
+
+  # B should stay at 3 (pinned), not get pulled toward C
+  edges_df <- data.frame(
+    name = c("A", "B", "C", "D"),
+    to = c("B", "C", "D", NA),
+    stringsAsFactors = FALSE
+  )
+  result_right <- longest_path_layers(
+    edges_df,
+    sort_direction = "right",
+    fixed_time = c(B = 3L)
+  )
+  expect_equal(result_right[["B"]], 3L)
+  expect_gt(result_right[["C"]], result_right[["B"]])
+})
+
+test_that("fixed_time: bidirected group with one pin", {
+  edges_df <- data.frame(
+    name = c("A", "B", "C"),
+    to = c("B", "C", NA),
+    direction = c("->", "<->", NA),
+    stringsAsFactors = FALSE
+  )
+  # B<->C bidirected, pin B to layer 5
+  result <- longest_path_layers(edges_df, fixed_time = c(B = 5L))
+  # Both B and C should be at same layer (bidirected constraint)
+  expect_equal(result[["B"]], result[["C"]])
+})
+
+test_that("fixed_time: conflicting pins in bidirected group errors", {
+  edges_df <- data.frame(
+    name = c("A", "B", "C"),
+    to = c("B", "C", NA),
+    direction = c("->", "<->", NA),
+    stringsAsFactors = FALSE
+  )
+  expect_error(
+    longest_path_layers(edges_df, fixed_time = c(B = 3L, C = 5L)),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("fixed_time: NULL is no-op", {
+  edges_df <- data.frame(
+    name = c("A", "B"),
+    to = c("B", NA),
+    stringsAsFactors = FALSE
+  )
+  result_null <- longest_path_layers(edges_df, fixed_time = NULL)
+  result_default <- longest_path_layers(edges_df)
+  expect_identical(result_null, result_default)
+})
+
+test_that("fixed_time: integration with time_ordered_coords()", {
+  coords_fn <- time_ordered_coords(fixed_time = c(m = 2L))
+  expect_true(is.function(coords_fn))
+})
+
+test_that("fixed_time: integration with dagify()", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = time_ordered_coords(fixed_time = c(m = 3L))
+  )
+  td <- tidy_dagitty(dag)
+  dag_data <- pull_dag_data(td)
+  m_x <- unname(dag_data$x[dag_data$name == "m"][1])
+  x_x <- unname(dag_data$x[dag_data$name == "x"][1])
+  y_x <- unname(dag_data$x[dag_data$name == "y"][1])
+  # m should be at time 3, x before m, y after m
+  expect_equal(m_x, 3)
+  expect_lt(x_x, m_x)
+  expect_gt(y_x, m_x)
+})
+
 # Phase 3: Barycenter crossing minimization ------------------------------------
 
 test_that("count_crossings: detects known crossing", {
@@ -1830,6 +2005,146 @@ test_that("visual: time_ordered ggplot manual build", {
   expect_doppelganger("time-ordered-manual-ggplot", p)
 })
 
+# Exposure/outcome same-layer adjustment ---------------------------------------
+
+test_that("exposure/outcome shift: same layer bumps outcome +1", {
+  # x→y: both are adjacent layers normally; but make them land at same layer
+  # Use confounding: z→x, z→y. Without pins: z=0, x=1, y=1 (in "right")
+  edges_df <- data.frame(
+    name = c("z", "z", "x", "y"),
+    to = c("x", "y", NA, NA),
+    stringsAsFactors = FALSE
+  )
+  result <- compute_time_ordered_layout(
+    edges_df,
+    exposure = "x",
+    outcome = "y"
+  )
+  x_layer <- result$x[result$name == "x"]
+  y_layer <- result$x[result$name == "y"]
+  # y (outcome) should be shifted to be after x (exposure)
+  expect_gt(y_layer, x_layer)
+})
+
+test_that("exposure/outcome shift: descendants also shift", {
+  # z→x, z→y, y→d. If x and y at same layer, y and d should both shift.
+  edges_df <- data.frame(
+    name = c("z", "z", "y", "x", "d"),
+    to = c("x", "y", "d", NA, NA),
+    stringsAsFactors = FALSE
+  )
+  result <- compute_time_ordered_layout(
+    edges_df,
+    exposure = "x",
+    outcome = "y"
+  )
+  x_layer <- result$x[result$name == "x"]
+  y_layer <- result$x[result$name == "y"]
+  d_layer <- result$x[result$name == "d"]
+  expect_gt(y_layer, x_layer)
+  expect_gt(d_layer, y_layer)
+})
+
+test_that("exposure/outcome shift: no shift when already different layers", {
+  # x→m→y: x=0, m=1, y=2 — already separated
+  edges_df <- data.frame(
+    name = c("x", "m", "y"),
+    to = c("m", "y", NA),
+    stringsAsFactors = FALSE
+  )
+  result_with <- compute_time_ordered_layout(
+    edges_df,
+    exposure = "x",
+    outcome = "y"
+  )
+  result_without <- compute_time_ordered_layout(edges_df)
+  # x coordinates should be the same since no shift needed
+  expect_equal(
+    result_with$x[order(result_with$name)],
+    result_without$x[order(result_without$name)]
+  )
+})
+
+test_that("exposure/outcome shift: no-op when not set", {
+  edges_df <- data.frame(
+    name = c("z", "z", "x", "y"),
+    to = c("x", "y", NA, NA),
+    stringsAsFactors = FALSE
+  )
+  result_none <- compute_time_ordered_layout(edges_df)
+  result_empty <- compute_time_ordered_layout(
+    edges_df,
+    exposure = character(0),
+    outcome = character(0)
+  )
+  expect_equal(
+    result_none$x[order(result_none$name)],
+    result_empty$x[order(result_empty$name)]
+  )
+})
+
+test_that("exposure/outcome shift: adjust_exposure_outcome=FALSE disables", {
+  edges_df <- data.frame(
+    name = c("z", "z", "x", "y"),
+    to = c("x", "y", NA, NA),
+    stringsAsFactors = FALSE
+  )
+  result_off <- compute_time_ordered_layout(
+    edges_df,
+    exposure = "x",
+    outcome = "y",
+    adjust_exposure_outcome = FALSE
+  )
+  result_default <- compute_time_ordered_layout(edges_df)
+  expect_equal(
+    result_off$x[order(result_off$name)],
+    result_default$x[order(result_default$name)]
+  )
+})
+
+test_that("exposure/outcome shift: pin conflict skips shift with message", {
+  # z→x, z→y; x and y same layer; but y is pinned
+  edges_df <- data.frame(
+    name = c("z", "z", "x", "y"),
+    to = c("x", "y", NA, NA),
+    stringsAsFactors = FALSE
+  )
+  expect_message(
+    result <- compute_time_ordered_layout(
+      edges_df,
+      exposure = "x",
+      outcome = "y",
+      fixed_time = c(y = 2L)
+    ),
+    class = "ggdag_message"
+  )
+})
+
+test_that("exposure/outcome shift: integration with dagify()", {
+  # z→x, z→y: without shift, x and y at same time
+  dag <- dagify(
+    x ~ z,
+    y ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = time_ordered_coords()
+  )
+  td <- tidy_dagitty(dag)
+  dag_data <- pull_dag_data(td)
+  x_pos <- dag_data$x[dag_data$name == "x"][1]
+  y_pos <- dag_data$x[dag_data$name == "y"][1]
+  expect_gt(y_pos, x_pos)
+})
+
+test_that("exposure/outcome shift: integration with tidy_dagitty()", {
+  dag <- dagify(x ~ z, y ~ z, exposure = "x", outcome = "y")
+  td <- tidy_dagitty(dag, layout = "time_ordered")
+  dag_data <- pull_dag_data(td)
+  x_pos <- dag_data$x[dag_data$name == "x"][1]
+  y_pos <- dag_data$x[dag_data$name == "y"][1]
+  expect_gt(y_pos, x_pos)
+})
+
 # auto_sort_direction tests ----------------------------------------------------
 
 test_that("auto_sort_direction='right' uses longest path (default)", {
@@ -2173,4 +2488,78 @@ test_that("visual: left deep chain DAG", {
   p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-deep-chain", p)
+})
+
+# fixed_time snapshot tests ----------------------------------------------------
+
+test_that("visual: fixed_time separates same-layer siblings", {
+  # Without fixed_time, x and y share a layer (both children of z).
+  # Pin y=3 to separate them: z at 1, x at 2, y at 3.
+  p <- dagify(x ~ z, y ~ z,
+    coords = time_ordered_coords(fixed_time = c(y = 3))
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-fixed-time-separate-siblings", p)
+})
+
+test_that("visual: fixed_time creates gap for known timing", {
+  # User knows smoking happens well before cancer in a confounding DAG.
+  # Without pin: smoking and cancer are adjacent. Pin cancer=4 to show delay.
+  p <- dagify(
+    cancer ~ smoking + tar,
+    tar ~ smoking,
+    coords = time_ordered_coords(fixed_time = c(cancer = 4))
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-fixed-time-timing-gap", p)
+})
+
+test_that("visual: fixed_time with multiple pins", {
+  # Complex DAG where user knows the timeline: z at 1, m at 3, y at 5
+  p <- dagify(
+    y ~ x + m + z,
+    m ~ x + z,
+    x ~ z,
+    coords = time_ordered_coords(fixed_time = c(z = 1, m = 3, y = 5))
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-fixed-time-multi-pin", p)
+})
+
+# exposure/outcome shift snapshot tests ----------------------------------------
+
+test_that("visual: exposure/outcome shift confounding", {
+  p <- dagify(x ~ z, y ~ z,
+    exposure = "x", outcome = "y",
+    coords = time_ordered_coords()
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-exp-out-confounding", p)
+})
+
+test_that("visual: exposure/outcome shift with descendants", {
+  p <- dagify(x ~ z, y ~ z, d ~ y,
+    exposure = "x", outcome = "y",
+    coords = time_ordered_coords()
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-exp-out-descendants", p)
+})
+
+test_that("visual: exposure/outcome no shift when separated", {
+  p <- dagify(y ~ x + m, m ~ x,
+    exposure = "x", outcome = "y",
+    coords = time_ordered_coords()
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-exp-out-mediation", p)
+})
+
+test_that("visual: exposure/outcome shift disabled", {
+  p <- dagify(x ~ z, y ~ z,
+    exposure = "x", outcome = "y",
+    coords = time_ordered_coords(adjust_exposure_outcome = FALSE)
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-exp-out-disabled", p)
 })

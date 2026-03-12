@@ -74,6 +74,37 @@ enforce_spacing <- function(positions, layers, min_spacing) {
 
 #' Assign nodes to time layers
 #'
+#' Find all descendants of a node in a directed graph
+#'
+#' BFS from `node` following directed edges to find all reachable nodes.
+#'
+#' @param node Character scalar: the starting node.
+#' @param directed_edges Data frame with `name` and `to` columns (directed edges
+#'   only, no NAs in `to`).
+#' @return Character vector of descendant node names (not including `node`).
+#' @noRd
+find_descendants <- function(node, directed_edges) {
+  adj <- list()
+  for (i in seq_len(nrow(directed_edges))) {
+    src <- directed_edges$name[i]
+    tgt <- directed_edges$to[i]
+    adj[[src]] <- c(adj[[src]], tgt)
+  }
+
+  visited <- character(0)
+  queue <- adj[[node]] %||% character(0)
+  while (length(queue) > 0) {
+    current <- queue[1]
+    queue <- queue[-1]
+    if (current %in% visited) {
+      next
+    }
+    visited <- c(visited, current)
+    queue <- c(queue, adj[[current]] %||% character(0))
+  }
+  visited
+}
+
 #' Modified Kahn's algorithm (BFS topological sort) that tracks the longest
 #' incoming path to each node. With `sort_direction = "left"`, nodes are placed
 #' as far left (early) as possible — each node sits one layer after its latest
@@ -87,7 +118,11 @@ enforce_spacing <- function(positions, layers, min_spacing) {
 #'   `"left"` (close to ancestors).
 #' @return A named integer vector mapping node names to 0-based layer indices.
 #' @noRd
-longest_path_layers <- function(edges_df, sort_direction = "right") {
+longest_path_layers <- function(
+  edges_df,
+  sort_direction = "right",
+  fixed_time = NULL
+) {
   edges_df$name <- as.character(edges_df$name)
   edges_df$to <- as.character(edges_df$to)
   all_nodes <- unique(c(edges_df$name, edges_df$to))
@@ -137,13 +172,85 @@ longest_path_layers <- function(edges_df, sort_direction = "right") {
     }
   }
 
+  # Apply fixed_time pins
+  if (!is.null(fixed_time) && length(fixed_time) > 0) {
+    pin_names <- names(fixed_time)
+    fixed_time <- stats::setNames(as.integer(fixed_time), pin_names)
+
+    # Warn and drop unknown nodes
+    unknown <- setdiff(pin_names, all_nodes)
+    if (length(unknown) > 0) {
+      cli::cli_warn(
+        c(
+          "{.arg fixed_time} contains node{?s} not in the DAG: {.val {unknown}}.",
+          "i" = "These will be ignored."
+        ),
+        class = "ggdag_warning"
+      )
+      fixed_time <- fixed_time[pin_names %in% all_nodes]
+      pin_names <- names(fixed_time)
+    }
+
+    if (length(fixed_time) > 0) {
+      # Validate: no directed edge has parent pinned >= child pinned
+      for (i in seq_len(nrow(directed))) {
+        src <- directed$name[i]
+        tgt <- directed$to[i]
+        if (src %in% pin_names && tgt %in% pin_names) {
+          if (fixed_time[[src]] >= fixed_time[[tgt]]) {
+            cli::cli_abort(
+              c(
+                "Pinned times violate DAG ordering.",
+                "x" = "{.val {src}} (time {fixed_time[[src]]}) must be before {.val {tgt}} (time {fixed_time[[tgt]]})."
+              ),
+              class = "ggdag_dag_error"
+            )
+          }
+        }
+      }
+
+      # Override pinned nodes
+      for (nm in pin_names) {
+        dist[[nm]] <- fixed_time[[nm]]
+      }
+
+      # Re-propagate: ensure all non-pinned descendants respect ordering
+      # Use topo order (process nodes with all parents already processed)
+      topo_in_deg <- stats::setNames(integer(length(all_nodes)), all_nodes)
+      for (i in seq_len(nrow(directed))) {
+        topo_in_deg[[directed$to[i]]] <- topo_in_deg[[directed$to[i]]] + 1L
+      }
+      topo_queue <- names(topo_in_deg[topo_in_deg == 0L])
+      while (length(topo_queue) > 0) {
+        node <- topo_queue[1]
+        topo_queue <- topo_queue[-1]
+        for (child in adj[[node]]) {
+          if (!(child %in% pin_names)) {
+            min_valid <- dist[[node]] + 1L
+            if (dist[[child]] < min_valid) {
+              dist[[child]] <- min_valid
+            }
+          }
+          topo_in_deg[[child]] <- topo_in_deg[[child]] - 1L
+          if (topo_in_deg[[child]] == 0L) {
+            topo_queue <- c(topo_queue, child)
+          }
+        }
+      }
+    }
+  }
+
+  pinned <- if (!is.null(fixed_time)) names(fixed_time) else character(0)
+
   # For "right": backward pass pushing nodes toward their children
   # Each node is set to min(child_layer) - 1, using the original (left-aligned)
-
-  # layers so updates don't cascade
+  # layers so updates don't cascade. Pinned nodes are never moved.
   if (identical(sort_direction, "right")) {
     original <- dist
     for (node in names(dist)) {
+      if (node %in% pinned) {
+        next
+      }
       children <- adj[[node]]
       if (length(children) > 0) {
         min_child_layer <- min(original[children])
@@ -186,6 +293,23 @@ longest_path_layers <- function(edges_df, sort_direction = "right") {
       if (length(grp_nodes) < 2) {
         next
       }
+
+      # Check for conflicting pins within the bidirected group
+      grp_pinned <- grp_nodes[grp_nodes %in% pinned]
+      if (length(grp_pinned) >= 2) {
+        pin_values <- dist[grp_pinned]
+        if (length(unique(pin_values)) > 1) {
+          cli::cli_abort(
+            c(
+              "Conflicting {.arg fixed_time} values in bidirected group.",
+              "x" = "Nodes {.val {grp_pinned}} are connected by bidirected edges and must share the same layer,
+but are pinned to different times: {.val {pin_values}}."
+            ),
+            class = "ggdag_dag_error"
+          )
+        }
+      }
+
       max_layer <- max(dist[grp_nodes])
       for (node in grp_nodes) {
         dist[[node]] <- max_layer
@@ -654,13 +778,18 @@ compute_time_ordered_layout <- function(
   edges_df,
   direction = "x",
   sort_direction = "right",
+  fixed_time = NULL,
+  exposure = character(0),
+  outcome = character(0),
+  adjust_exposure_outcome = TRUE,
   node_radius = 26,
   layer_gap = 180,
   node_gap = 85,
   min_spacing = 72,
   iterations = 350L,
   sweeps = 40L,
-  max_correction_passes = 50L
+  max_correction_passes = 50L,
+  ...
 ) {
   edges_df$name <- as.character(edges_df$name)
   edges_df$to <- as.character(edges_df$to)
@@ -676,8 +805,68 @@ compute_time_ordered_layout <- function(
     directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   }
 
+  # Convert user-facing 1-based fixed_time to internal 0-based layers
+  internal_fixed_time <- fixed_time
+  if (!is.null(internal_fixed_time) && length(internal_fixed_time) > 0) {
+    internal_fixed_time <- stats::setNames(
+      as.integer(internal_fixed_time) - 1L,
+      names(internal_fixed_time)
+    )
+  }
+
   # Stage 1: Layer assignment (handles bidirected internally)
-  layer_assign <- longest_path_layers(edges_df, sort_direction = sort_direction)
+  layer_assign <- longest_path_layers(
+    edges_df,
+    sort_direction = sort_direction,
+    fixed_time = internal_fixed_time
+  )
+
+  # Exposure/outcome same-layer adjustment
+  if (
+    isTRUE(adjust_exposure_outcome) &&
+      length(exposure) > 0 &&
+      length(outcome) > 0
+  ) {
+    pinned <- if (!is.null(internal_fixed_time)) {
+      names(internal_fixed_time)
+    } else {
+      character(0)
+    }
+
+    for (exp_node in exposure) {
+      for (out_node in outcome) {
+        if (
+          !(exp_node %in% names(layer_assign)) ||
+            !(out_node %in% names(layer_assign))
+        ) {
+          next
+        }
+        if (layer_assign[[exp_node]] == layer_assign[[out_node]]) {
+          # Check if outcome is pinned — if so, skip with message
+          if (out_node %in% pinned) {
+            cli::cli_inform(
+              c(
+                "Outcome {.val {out_node}} shares a layer with exposure
+{.val {exp_node}}, but was not shifted because it has a
+{.arg fixed_time} pin.",
+                "i" = "Remove the pin or adjust it manually to separate them."
+              ),
+              class = "ggdag_message"
+            )
+            next
+          }
+          # Shift outcome and all descendants +1
+          descendants <- find_descendants(out_node, directed)
+          shift_nodes <- c(out_node, descendants)
+          for (nd in shift_nodes) {
+            if (nd %in% names(layer_assign) && !(nd %in% pinned)) {
+              layer_assign[[nd]] <- layer_assign[[nd]] + 1L
+            }
+          }
+        }
+      }
+    }
+  }
 
   # Stage 2: Build layer_nodes and barycenter sort
   max_layer <- max(layer_assign)
@@ -726,7 +915,12 @@ compute_time_ordered_layout <- function(
 
   # Normalize: x → integer layer indices (1, 2, 3, ...)
   # y → centered per layer, scaled so avg spacing ≈ 1
-  normalize_positions(positions, layer_assign, direction)
+  normalize_positions(
+    positions,
+    layer_assign,
+    direction,
+    fixed_time = fixed_time
+  )
 }
 
 #' Normalize pixel-space positions to ggdag-friendly coordinates
@@ -736,15 +930,31 @@ compute_time_ordered_layout <- function(
 #' @param direction `"x"` or `"y"` — swap axes if `"y"`.
 #' @return A tibble with `name`, `x`, `y`.
 #' @noRd
-normalize_positions <- function(positions, layer_assign, direction = "x") {
+normalize_positions <- function(
+  positions,
+  layer_assign,
+  direction = "x",
+  fixed_time = NULL
+) {
   node_names <- names(positions$x)
 
-  # x: map layer indices to 1, 2, 3, ...
+  # x: map layer indices to sequential integers
+  # When fixed_time is used, preserve the actual layer values (shifted to start
+
+  # at 1) so pinned nodes keep their requested time point.
   unique_layers <- sort(unique(layer_assign))
-  layer_map <- stats::setNames(
-    seq_along(unique_layers),
-    as.character(unique_layers)
-  )
+  if (!is.null(fixed_time) && length(fixed_time) > 0) {
+    # Preserve user's 1-based time points: internal 0-based + 1
+    layer_map <- stats::setNames(
+      unique_layers + 1L,
+      as.character(unique_layers)
+    )
+  } else {
+    layer_map <- stats::setNames(
+      seq_along(unique_layers),
+      as.character(unique_layers)
+    )
+  }
   norm_x <- vapply(
     node_names,
     function(n) {

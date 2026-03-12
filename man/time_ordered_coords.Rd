@@ -8,7 +8,9 @@ time_ordered_coords(
   .vars = NULL,
   time_points = NULL,
   direction = c("x", "y"),
-  auto_sort_direction = c("right", "left")
+  auto_sort_direction = c("right", "left"),
+  fixed_time = NULL,
+  adjust_exposure_outcome = TRUE
 )
 }
 \arguments{
@@ -26,6 +28,15 @@ variables should be time-ordered. Either "x" or "y". Default is "x".}
 \code{"left"} or \code{"right"} of in the graph as is reasonable. Default is right,
 meaning the nodes will be as close as possible in time to their
 descendants.}
+
+\item{fixed_time}{A named numeric vector pinning specific nodes to time
+points (e.g., \code{c(x = 3, z = 1)}). Only used in auto mode (\code{.vars = NULL}). Other nodes are placed automatically while respecting these
+constraints. Pinned times are 1-based and preserved in the output.}
+
+\item{adjust_exposure_outcome}{If \code{TRUE} (default), automatically shift the
+outcome forward by one time point when it shares a layer with the
+exposure. All descendants of the outcome are also shifted. Only applies in
+auto mode and when the DAG has exposure and outcome set.}
 }
 \value{
 A tibble with three columns: \code{name}, \code{x}, and \code{y}.

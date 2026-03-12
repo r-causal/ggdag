@@ -123,7 +123,10 @@ dagify <- function(
       dagitty::coordinates(dgty) <- dgty |>
         get_dagitty_edges() |>
         edges2df() |>
-        coords() |>
+        coords(
+          exposure = dagitty::exposures(dgty),
+          outcome = dagitty::outcomes(dgty)
+        ) |>
         coords2list()
     } else {
       abort(

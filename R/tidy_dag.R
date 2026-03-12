@@ -78,7 +78,10 @@ tidy_dagitty <- function(
   if (is.function(layout)) {
     coords <- dag_edges |>
       edges2df() |>
-      layout() |>
+      layout(
+        exposure = dagitty::exposures(.dagitty),
+        outcome = dagitty::outcomes(.dagitty)
+      ) |>
       coords2list()
     dagitty::coordinates(.dagitty) <- coords
     layout <- "nicely"
@@ -88,7 +91,10 @@ tidy_dagitty <- function(
   } else if (identical(layout, "time_ordered")) {
     coords <- dag_edges |>
       edges2df() |>
-      compute_time_ordered_layout() |>
+      compute_time_ordered_layout(
+        exposure = dagitty::exposures(.dagitty),
+        outcome = dagitty::outcomes(.dagitty)
+      ) |>
       coords2list()
     dagitty::coordinates(.dagitty) <- coords
   } else {
