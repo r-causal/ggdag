@@ -290,7 +290,9 @@ geom_dag_label <- function(
 #'   Default is 0 (no border). Set to a positive value to show borders.
 #' @param node_size The size of the DAG nodes, used to compute the
 #'   `point.size` aesthetic so that labels repel from the node boundary
-#'   rather than the node center. Defaults to 16 (matching `geom_dag_node()`).
+#'   rather than the node center. Defaults to `NULL`, which auto-discovers the
+#'   size from a node layer (`geom_dag_node()` or `geom_dag_point()`) already
+#'   added to the plot. Falls back to 16 if no node layer is found.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -416,7 +418,7 @@ geom_dag_text_repel <- function(
   position = "identity",
   parse = FALSE,
   ...,
-  node_size = 16,
+  node_size = NULL,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -489,7 +491,7 @@ geom_dag_text_repel <- function(
   # Add any additional parameters from dots
   params <- c(params, dots[!names(dots) %in% names(params)])
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = stat_to_use,
@@ -499,6 +501,8 @@ geom_dag_text_repel <- function(
     inherit.aes = inherit.aes,
     params = params
   )
+
+  dag_layer(layer, discover = "node_size")
 }
 
 #' @rdname repel
@@ -512,7 +516,7 @@ geom_dag_label_repel <- function(
   position = "identity",
   parse = FALSE,
   ...,
-  node_size = 16,
+  node_size = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -589,7 +593,7 @@ geom_dag_label_repel <- function(
   # Add any additional parameters from dots
   params <- c(params, dots[!names(dots) %in% names(params)])
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = stat_to_use,
@@ -599,6 +603,8 @@ geom_dag_label_repel <- function(
     inherit.aes = inherit.aes,
     params = params
   )
+
+  dag_layer(layer, discover = "node_size")
 }
 
 #' @rdname repel
@@ -1530,6 +1536,10 @@ geom_dag <- function(
     }
 
     label_geom_result <- do.call(label_geom, common_params)
+    # Unwrap dag_layer since geom_dag() already threads node_size explicitly
+    if (inherits(label_geom_result, "dag_layer")) {
+      label_geom_result <- label_geom_result$layer
+    }
   } else {
     label_geom_result <- NULL
   }

@@ -337,6 +337,45 @@ StatNodesRepel <- ggplot2::ggproto(
   }
 )
 
+dag_layer <- function(layer, discover = character()) {
+  structure(
+    list(layer = layer, discover = discover),
+    class = "dag_layer"
+  )
+}
+
+#' @exportS3Method ggplot2::ggplot_add
+ggplot_add.dag_layer <- function(object, plot, ...) {
+  layer <- object$layer
+
+  if ("node_size" %in% object$discover) {
+    if (is.null(layer$stat_params$node_size)) {
+      discovered <- discover_node_size(plot)
+      if (!is.null(discovered)) {
+        layer$stat_params$node_size <- discovered
+      }
+    }
+  }
+
+  ggplot2::ggplot_add(layer, plot, ...)
+}
+
+discover_node_size <- function(plot) {
+  for (existing in plot@layers) {
+    if (
+      inherits(existing$geom, "GeomDagNode") ||
+        inherits(existing$geom, "GeomDagPoint")
+    ) {
+      size <- existing$aes_params$size
+      if (!is.null(size)) {
+        return(size)
+      }
+      return(existing$geom$default_aes$size %||% 16)
+    }
+  }
+  NULL
+}
+
 GeomDagPoint <- ggplot2::ggproto(
   "GeomDagPoint",
   ggplot2::GeomPoint,

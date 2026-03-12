@@ -107,6 +107,105 @@ test_that("StatNodesRepel does not overwrite mapped point.size", {
   expect_equal(result[["point.size"]], c(5, 10))
 })
 
+test_that("dag_layer() creates correct S3 class", {
+  # Create a minimal layer
+  layer <- ggplot2::layer(
+    data = NULL,
+    mapping = ggplot2::aes(),
+    stat = "identity",
+    geom = ggrepel::GeomTextRepel,
+    position = "identity",
+    params = list(na.rm = FALSE)
+  )
+
+  result <- dag_layer(layer, discover = "node_size")
+  expect_s3_class(result, "dag_layer")
+  expect_identical(result$layer, layer)
+  expect_equal(result$discover, "node_size")
+})
+
+test_that("ggplot_add.dag_layer discovers node_size from GeomDagNode", {
+  p <- ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
+    geom_dag_node(size = 25)
+
+  layer <- ggplot2::layer(
+    data = NULL,
+    mapping = ggplot2::aes(),
+    stat = StatNodesRepel,
+    geom = ggrepel::GeomTextRepel,
+    position = "identity",
+    params = list(na.rm = FALSE, node_size = NULL)
+  )
+
+  wrapped <- dag_layer(layer, discover = "node_size")
+  result <- ggplot_add.dag_layer(wrapped, p)
+
+  # The repel layer should now have node_size = 25
+  repel_layer <- result@layers[[2]]
+  expect_equal(repel_layer$stat_params$node_size, 25)
+})
+
+test_that("ggplot_add.dag_layer discovers node_size from GeomDagPoint", {
+  p <- ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
+    geom_dag_point(size = 30)
+
+  layer <- ggplot2::layer(
+    data = NULL,
+    mapping = ggplot2::aes(),
+    stat = StatNodesRepel,
+    geom = ggrepel::GeomTextRepel,
+    position = "identity",
+    params = list(na.rm = FALSE, node_size = NULL)
+  )
+
+  wrapped <- dag_layer(layer, discover = "node_size")
+  result <- ggplot_add.dag_layer(wrapped, p)
+
+  repel_layer <- result@layers[[2]]
+  expect_equal(repel_layer$stat_params$node_size, 30)
+})
+
+test_that("ggplot_add.dag_layer respects explicit node_size", {
+  p <- ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
+    geom_dag_node(size = 25)
+
+  layer <- ggplot2::layer(
+    data = NULL,
+    mapping = ggplot2::aes(),
+    stat = StatNodesRepel,
+    geom = ggrepel::GeomTextRepel,
+    position = "identity",
+    params = list(na.rm = FALSE, node_size = 50)
+  )
+
+  wrapped <- dag_layer(layer, discover = "node_size")
+  result <- ggplot_add.dag_layer(wrapped, p)
+
+  # Explicit node_size = 50 should NOT be overwritten by discovered 25
+  repel_layer <- result@layers[[2]]
+  expect_equal(repel_layer$stat_params$node_size, 50)
+})
+
+test_that("ggplot_add.dag_layer falls back when no node layer exists", {
+  p <- ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y))
+
+  layer <- ggplot2::layer(
+    data = NULL,
+    mapping = ggplot2::aes(),
+    stat = StatNodesRepel,
+    geom = ggrepel::GeomTextRepel,
+    position = "identity",
+    params = list(na.rm = FALSE, node_size = NULL)
+  )
+
+  wrapped <- dag_layer(layer, discover = "node_size")
+  result <- ggplot_add.dag_layer(wrapped, p)
+
+  # node_size should remain NULL; StatNodesRepel falls back to 16
+  repel_layer <- result@layers[[1]]
+  expect_null(repel_layer$stat_params$node_size)
+})
+
 test_that("We do not need to update `silent_add()`.", {
   # This is a sentinel test to see if upstream ggplot2 has made changes to
   # the ggplot2:::Scales$add() method.

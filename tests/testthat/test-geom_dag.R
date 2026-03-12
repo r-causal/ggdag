@@ -424,6 +424,59 @@ test_that("geom_dag() threads node_size to repel labels", {
   expect_s3_class(built, "ggplot_built")
 })
 
+test_that("repel geoms auto-discover node_size via ggplot_add", {
+  g <- dagify(
+    y ~ x + m,
+    m ~ x
+  )
+
+  # geom_dag_node(size = 25) + geom_dag_text_repel() should auto-discover 25
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_node(size = 25) +
+    geom_dag_text_repel(aes(label = name))
+
+  expect_s3_class(p, "gg")
+  built <- ggplot2::ggplot_build(p)
+  expect_s3_class(built, "ggplot_built")
+})
+
+test_that("repel geoms auto-discover node_size from geom_dag_point", {
+  g <- dagify(
+    y ~ x + m,
+    m ~ x
+  )
+
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_point(size = 20) +
+    geom_dag_label_repel(aes(label = name))
+
+  expect_s3_class(p, "gg")
+  built <- ggplot2::ggplot_build(p)
+  expect_s3_class(built, "ggplot_built")
+})
+
+test_that("explicit node_size overrides auto-discovery in repel geoms", {
+  g <- dagify(
+    y ~ x + m,
+    m ~ x
+  )
+
+  # Explicit node_size = 30 should override the discovered 25
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_node(size = 25) +
+    geom_dag_text_repel(aes(label = name), node_size = 30)
+
+  expect_s3_class(p, "gg")
+  built <- ggplot2::ggplot_build(p)
+  expect_s3_class(built, "ggplot_built")
+})
+
 test_that("repel2 functions with custom defaults work visually", {
   withr::local_seed(1234)
   g <- dagify(
