@@ -310,10 +310,11 @@ StatNodes <- ggplot2::ggproto(
 StatNodesRepel <- ggplot2::ggproto(
   "StatNodesRepel",
   ggplot2::Stat,
-  extra_params = c("na.rm", "node_size", "n_edge_points"),
+  extra_params = c("na.rm", "node_size", "n_edge_points", "n_node_points"),
   compute_layer = function(data, params, layout) {
     node_size <- params$node_size %||% 16
     n_edge_points <- params$n_edge_points %||% 50
+    n_node_points <- params$n_node_points %||% 12
     has_edges <- all(c("xend", "yend") %in% names(data))
 
     # Generate fake points along edges before removing xend/yend
@@ -361,6 +362,31 @@ StatNodesRepel <- ggplot2::ggproto(
 
     if (!"point.size" %in% names(data)) {
       data[["point.size"]] <- node_size * .pt / 14.4
+    }
+
+    # Generate skeleton points around node perimeters
+    if (n_node_points > 0 && nrow(data) > 1) {
+      dists <- as.matrix(stats::dist(data[, c("x", "y")]))
+      diag(dists) <- Inf
+      min_dists <- apply(dists, 1, min)
+      median_gap <- stats::median(min_dists)
+      node_radius <- median_gap * (node_size / 16) * 0.15
+
+      angles <- seq(0, 2 * pi, length.out = n_node_points + 1)[-1]
+      node_skeleton <- do.call(
+        rbind,
+        lapply(seq_len(nrow(data)), function(i) {
+          data.frame(
+            x = data$x[i] + node_radius * cos(angles),
+            y = data$y[i] + node_radius * sin(angles),
+            label = "",
+            point.size = 0,
+            PANEL = data$PANEL[i],
+            stringsAsFactors = FALSE
+          )
+        })
+      )
+      fake_points <- rbind(fake_points, node_skeleton)
     }
 
     if (!is.null(fake_points)) {

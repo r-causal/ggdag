@@ -17,6 +17,7 @@ geom_dag_text_repel(
   ...,
   node_size = NULL,
   n_edge_points = NULL,
+  n_node_points = NULL,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -29,7 +30,7 @@ geom_dag_text_repel(
   force_pull = 1,
   max.time = 0.5,
   max.iter = 2000,
-  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
+  max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
   xlim = c(NA, NA),
@@ -51,6 +52,7 @@ geom_dag_label_repel(
   ...,
   node_size = NULL,
   n_edge_points = NULL,
+  n_node_points = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -65,7 +67,7 @@ geom_dag_label_repel(
   force_pull = 1,
   max.time = 0.5,
   max.iter = 2000,
-  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
+  max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
   xlim = c(NA, NA),
@@ -137,6 +139,11 @@ edge. These "fake" points participate in ggrepel's repulsion calculation
 so that labels avoid overlapping edges. Defaults to \code{NULL}, which uses
 the \code{StatNodesRepel} default of 50. Set to 0 to disable edge-aware
 repulsion.}
+
+\item{n_node_points}{Number of invisible points to place around each node's
+perimeter. These skeleton points help ggrepel push labels away from node
+boundaries. Defaults to \code{NULL}, which uses the \code{StatNodesRepel} default
+of 12. Set to 0 to disable node skeleton repulsion.}
 
 \item{box.padding}{Amount of padding around bounding box, as unit or number.
 Defaults to 0.25. (Default unit is lines, but other units can be specified

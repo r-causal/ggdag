@@ -298,6 +298,10 @@ geom_dag_label <- function(
 #'   so that labels avoid overlapping edges. Defaults to `NULL`, which uses
 #'   the `StatNodesRepel` default of 50. Set to 0 to disable edge-aware
 #'   repulsion.
+#' @param n_node_points Number of invisible points to place around each node's
+#'   perimeter. These skeleton points help ggrepel push labels away from node
+#'   boundaries. Defaults to `NULL`, which uses the `StatNodesRepel` default
+#'   of 12. Set to 0 to disable node skeleton repulsion.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -425,6 +429,7 @@ geom_dag_text_repel <- function(
   ...,
   node_size = NULL,
   n_edge_points = NULL,
+  n_node_points = NULL,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -469,6 +474,7 @@ geom_dag_text_repel <- function(
     na.rm = na.rm,
     node_size = node_size,
     n_edge_points = n_edge_points,
+    n_node_points = n_node_points,
     box.padding = box.padding,
     point.padding = point.padding,
     min.segment.length = min.segment.length,
@@ -525,6 +531,7 @@ geom_dag_label_repel <- function(
   ...,
   node_size = NULL,
   n_edge_points = NULL,
+  n_node_points = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -570,6 +577,7 @@ geom_dag_label_repel <- function(
     parse = parse,
     node_size = node_size,
     n_edge_points = n_edge_points,
+    n_node_points = n_node_points,
     box.padding = box.padding,
     label.padding = label.padding,
     point.padding = point.padding,
@@ -1298,6 +1306,10 @@ aes_dag <- function(...) {
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge for label repulsion. Passed to repel label geoms. Defaults to `NULL`
 #'   (uses `StatNodesRepel` default of 50). Set to 0 to disable.
+#' @param n_node_points Number of invisible skeleton points to place around each
+#'   node's perimeter for label repulsion. Passed to repel label geoms.
+#'   Defaults to `NULL` (uses `StatNodesRepel` default of 12). Set to 0 to
+#'   disable.
 #' @param unified_legend A logical value. When `TRUE` and both `use_edges` and
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
@@ -1366,6 +1378,7 @@ geom_dag <- function(
   use_labels = FALSE,
   label_geom = geom_dag_label_repel,
   n_edge_points = NULL,
+  n_node_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   label = NULL,
@@ -1537,6 +1550,7 @@ geom_dag <- function(
     ) {
       common_params$node_size <- sizes[["node"]]
       common_params$n_edge_points <- n_edge_points
+      common_params$n_node_points <- n_node_points
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
       common_params$label.padding <- 0.1
@@ -1546,6 +1560,7 @@ geom_dag <- function(
     ) {
       common_params$node_size <- sizes[["node"]]
       common_params$n_edge_points <- n_edge_points
+      common_params$n_node_points <- n_node_points
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
     }

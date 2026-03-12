@@ -26,7 +26,11 @@ test_that("StatNodesRepel handles duplicate labels at different positions correc
   )
 
   # Test the compute_layer function
-  result <- StatNodesRepel$compute_layer(test_data, list(), NULL)
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_node_points = 0),
+    NULL
+  )
 
   # Should keep all 4 rows since they have different positions
   # even though "unmeasured" appears twice
@@ -47,7 +51,11 @@ test_that("StatNodesRepel removes true duplicates (same position and label)", {
   )
 
   # Test the compute_layer function
-  result <- StatNodesRepel$compute_layer(test_data, list(), NULL)
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_node_points = 0),
+    NULL
+  )
 
   # Should remove the true duplicate but keep others
   expect_equal(nrow(result), 3)
@@ -72,7 +80,7 @@ test_that("StatNodesRepel adds point.size from node_size param", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(node_size = 20, n_edge_points = 0),
+    list(node_size = 20, n_edge_points = 0, n_node_points = 0),
     NULL
   )
   expect_true("point.size" %in% names(result))
@@ -82,7 +90,7 @@ test_that("StatNodesRepel adds point.size from node_size param", {
 
   result_default <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 0),
+    list(n_edge_points = 0, n_node_points = 0),
     NULL
   )
   expect_true("point.size" %in% names(result_default))
@@ -103,7 +111,7 @@ test_that("StatNodesRepel does not overwrite mapped point.size", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(node_size = 16, n_edge_points = 0),
+    list(node_size = 16, n_edge_points = 0, n_node_points = 0),
     NULL
   )
   # Should preserve user-mapped values
@@ -124,7 +132,7 @@ test_that("StatNodesRepel generates fake points along edges", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 5),
+    list(n_edge_points = 5, n_node_points = 0),
     NULL
   )
 
@@ -153,7 +161,7 @@ test_that("StatNodesRepel n_edge_points controls fake point count", {
 
   result_3 <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 3),
+    list(n_edge_points = 3, n_node_points = 0),
     NULL
   )
   # 2 nodes + 2 edges * 3 points = 8
@@ -161,7 +169,7 @@ test_that("StatNodesRepel n_edge_points controls fake point count", {
 
   result_10 <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 10),
+    list(n_edge_points = 10, n_node_points = 0),
     NULL
   )
   # 2 nodes + 2 edges * 10 points = 22
@@ -181,7 +189,7 @@ test_that("StatNodesRepel n_edge_points = 0 disables fake points", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 0),
+    list(n_edge_points = 0, n_node_points = 0),
     NULL
   )
 
@@ -201,7 +209,7 @@ test_that("StatNodesRepel generates no fake points without xend/yend", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 10),
+    list(n_edge_points = 10, n_node_points = 0),
     NULL
   )
 
@@ -223,7 +231,7 @@ test_that("StatNodesRepel fake points don't affect node point.size", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(node_size = 20, n_edge_points = 5),
+    list(node_size = 20, n_edge_points = 5, n_node_points = 0),
     NULL
   )
 
@@ -249,7 +257,7 @@ test_that("StatNodesRepel fake points preserve PANEL", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(n_edge_points = 3),
+    list(n_edge_points = 3, n_node_points = 0),
     NULL
   )
 
@@ -272,13 +280,191 @@ test_that("StatNodesRepel default n_edge_points is 50", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(),
+    list(n_node_points = 0),
     NULL
   )
 
   fake_rows <- result[result$label == "", ]
   # 2 edges * 50 points = 100
   expect_equal(nrow(fake_rows), 100)
+})
+
+test_that("StatNodesRepel generates node skeleton points", {
+  test_data <- data.frame(
+    x = c(1, 3, 5),
+    y = c(1, 3, 1),
+    label = c("a", "b", "c"),
+    PANEL = c(1, 1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 8),
+    NULL
+  )
+
+  # 3 nodes + 3 nodes * 8 skeleton points = 27
+  expect_equal(nrow(result), 27)
+
+  skeleton_rows <- result[result$label == "", ]
+  expect_equal(nrow(skeleton_rows), 24)
+})
+
+test_that("StatNodesRepel skeleton points have label='' and point.size=0", {
+  test_data <- data.frame(
+    x = c(1, 3),
+    y = c(1, 3),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 6),
+    NULL
+  )
+
+  skeleton_rows <- result[result$label == "", ]
+  expect_equal(nrow(skeleton_rows), 12)
+  expect_true(all(skeleton_rows$label == ""))
+  expect_true(all(skeleton_rows[["point.size"]] == 0))
+})
+
+test_that("StatNodesRepel n_node_points = 0 disables skeleton", {
+  test_data <- data.frame(
+    x = c(1, 3),
+    y = c(1, 3),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 0),
+    NULL
+  )
+
+  # Only 2 node rows, no skeleton
+  expect_equal(nrow(result), 2)
+  expect_true(all(result$label != ""))
+})
+
+test_that("StatNodesRepel skeleton preserves PANEL", {
+  test_data <- data.frame(
+    x = c(1, 3, 5, 7),
+    y = c(1, 3, 1, 3),
+    label = c("a", "b", "c", "d"),
+    PANEL = c(1, 1, 2, 2),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 4),
+    NULL
+  )
+
+  skeleton_rows <- result[result$label == "", ]
+  # Each panel: 2 nodes * 4 points = 8 skeleton points
+  expect_equal(sum(skeleton_rows$PANEL == 1), 8)
+  expect_equal(sum(skeleton_rows$PANEL == 2), 8)
+})
+
+test_that("StatNodesRepel skeleton radius scales with node_size", {
+  test_data <- data.frame(
+    x = c(0, 2),
+    y = c(0, 2),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result_small <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 4, node_size = 8),
+    NULL
+  )
+  result_large <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 4, node_size = 32),
+    NULL
+  )
+
+  # Extract skeleton x values for first node (at x=0)
+  skel_small <- result_small[result_small$label == "", ]
+  skel_large <- result_large[result_large$label == "", ]
+
+  # Larger node_size should produce skeleton at greater distance from center
+  max_dist_small <- max(sqrt(skel_small$x^2 + skel_small$y^2))
+  max_dist_large <- max(sqrt(skel_large$x^2 + skel_large$y^2))
+  expect_gt(max_dist_large, max_dist_small)
+})
+
+test_that("StatNodesRepel skeleton + edge fake points coexist", {
+  test_data <- data.frame(
+    x = c(1, 3),
+    y = c(1, 3),
+    xend = c(3, 1),
+    yend = c(3, 1),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 5, n_node_points = 4),
+    NULL
+  )
+
+  fake_rows <- result[result$label == "", ]
+  # 2 edges * 5 edge points + 2 nodes * 4 skeleton points = 18
+  expect_equal(nrow(fake_rows), 18)
+
+  # Total: 2 real nodes + 18 fake = 20
+  expect_equal(nrow(result), 20)
+})
+
+test_that("StatNodesRepel skeleton skipped for single node", {
+  test_data <- data.frame(
+    x = 1,
+    y = 1,
+    label = "a",
+    PANEL = 1,
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0, n_node_points = 12),
+    NULL
+  )
+
+  # Only 1 node, no skeleton (can't estimate radius with single node)
+  expect_equal(nrow(result), 1)
+})
+
+test_that("StatNodesRepel default n_node_points is 12", {
+  test_data <- data.frame(
+    x = c(1, 3),
+    y = c(1, 3),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0),
+    NULL
+  )
+
+  skeleton_rows <- result[result$label == "", ]
+  # 2 nodes * 12 points = 24
+  expect_equal(nrow(skeleton_rows), 24)
 })
 
 test_that("dag_layer() creates correct S3 class", {
