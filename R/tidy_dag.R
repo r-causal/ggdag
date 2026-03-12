@@ -76,13 +76,17 @@ tidy_dagitty <- function(
   .labels <- label(.dagitty)
 
   if (is.function(layout)) {
-    coords <- dag_edges |>
-      edges2df() |>
+    edge_df <- edges2df(dag_edges)
+    coords <- if ("..." %in% names(formals(layout))) {
       layout(
+        edge_df,
         exposure = dagitty::exposures(.dagitty),
         outcome = dagitty::outcomes(.dagitty)
-      ) |>
-      coords2list()
+      )
+    } else {
+      layout(edge_df)
+    }
+    coords <- coords2list(coords)
     dagitty::coordinates(.dagitty) <- coords
     layout <- "nicely"
   } else if (is.data.frame(layout)) {

@@ -805,6 +805,36 @@ compute_time_ordered_layout <- function(
     directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   }
 
+  # Validate fixed_time
+  if (!is.null(fixed_time) && length(fixed_time) > 0) {
+    if (
+      is.null(names(fixed_time)) ||
+        anyNA(names(fixed_time)) ||
+        any(names(fixed_time) == "")
+    ) {
+      abort(
+        "{.arg fixed_time} must be a named vector (e.g. {.code c(x = 2, z = 3)}).",
+        error_class = "ggdag_error"
+      )
+    }
+    if (
+      !is.numeric(fixed_time) ||
+        anyNA(fixed_time) ||
+        !all(is.finite(fixed_time))
+    ) {
+      abort(
+        "{.arg fixed_time} values must be finite numbers.",
+        error_class = "ggdag_error"
+      )
+    }
+    if (any(fixed_time < 1)) {
+      abort(
+        "{.arg fixed_time} values must be >= 1 (time points are 1-based).",
+        error_class = "ggdag_error"
+      )
+    }
+  }
+
   # Convert user-facing 1-based fixed_time to internal 0-based layers
   internal_fixed_time <- fixed_time
   if (!is.null(internal_fixed_time) && length(internal_fixed_time) > 0) {

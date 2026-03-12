@@ -120,14 +120,19 @@ dagify <- function(
     } else if (is.list(coords)) {
       dagitty::coordinates(dgty) <- coords
     } else if (is.function(coords)) {
-      dagitty::coordinates(dgty) <- dgty |>
+      edge_df <- dgty |>
         get_dagitty_edges() |>
-        edges2df() |>
+        edges2df()
+      coord_result <- if ("..." %in% names(formals(coords))) {
         coords(
+          edge_df,
           exposure = dagitty::exposures(dgty),
           outcome = dagitty::outcomes(dgty)
-        ) |>
-        coords2list()
+        )
+      } else {
+        coords(edge_df)
+      }
+      dagitty::coordinates(dgty) <- coords2list(coord_result)
     } else {
       abort(
         c(
