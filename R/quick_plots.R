@@ -79,7 +79,7 @@ m_bias <- function(
     1     ,
     "m"   ,
     1     ,
-     0.5
+    0.5
   )
 
   if (x_y_associated) {
@@ -137,7 +137,7 @@ butterfly_bias <- function(
     1     ,
     "m"   ,
     1     ,
-     0.5
+    0.5
   )
 
   if (x_y_associated) {

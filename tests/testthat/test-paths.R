@@ -42,7 +42,7 @@ test_that("DAG paths are identified and drawn correctly", {
     1     ,
     "m"   ,
     1     ,
-     0.5
+    0.5
   )
 
   butterfly_bias_dag <- dagify(
