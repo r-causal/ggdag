@@ -2495,7 +2495,9 @@ test_that("visual: left deep chain DAG", {
 test_that("visual: fixed_time separates same-layer siblings", {
   # Without fixed_time, x and y share a layer (both children of z).
   # Pin y=3 to separate them: z at 1, x at 2, y at 3.
-  p <- dagify(x ~ z, y ~ z,
+  p <- dagify(
+    x ~ z,
+    y ~ z,
     coords = time_ordered_coords(fixed_time = c(y = 3))
   ) |>
     ggdag()
@@ -2529,8 +2531,11 @@ test_that("visual: fixed_time with multiple pins", {
 # exposure/outcome shift snapshot tests ----------------------------------------
 
 test_that("visual: exposure/outcome shift confounding", {
-  p <- dagify(x ~ z, y ~ z,
-    exposure = "x", outcome = "y",
+  p <- dagify(
+    x ~ z,
+    y ~ z,
+    exposure = "x",
+    outcome = "y",
     coords = time_ordered_coords()
   ) |>
     ggdag()
@@ -2538,8 +2543,12 @@ test_that("visual: exposure/outcome shift confounding", {
 })
 
 test_that("visual: exposure/outcome shift with descendants", {
-  p <- dagify(x ~ z, y ~ z, d ~ y,
-    exposure = "x", outcome = "y",
+  p <- dagify(
+    x ~ z,
+    y ~ z,
+    d ~ y,
+    exposure = "x",
+    outcome = "y",
     coords = time_ordered_coords()
   ) |>
     ggdag()
@@ -2547,8 +2556,11 @@ test_that("visual: exposure/outcome shift with descendants", {
 })
 
 test_that("visual: exposure/outcome no shift when separated", {
-  p <- dagify(y ~ x + m, m ~ x,
-    exposure = "x", outcome = "y",
+  p <- dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y",
     coords = time_ordered_coords()
   ) |>
     ggdag()
@@ -2556,8 +2568,11 @@ test_that("visual: exposure/outcome no shift when separated", {
 })
 
 test_that("visual: exposure/outcome shift disabled", {
-  p <- dagify(x ~ z, y ~ z,
-    exposure = "x", outcome = "y",
+  p <- dagify(
+    x ~ z,
+    y ~ z,
+    exposure = "x",
+    outcome = "y",
     coords = time_ordered_coords(adjust_exposure_outcome = FALSE)
   ) |>
     ggdag()
