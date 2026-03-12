@@ -19,7 +19,7 @@ jobs:
       - name: Install
         uses: etiennebacher/setup-jarl@v0.1.0
         with:
-          args: ""
+          args: "--version"
 
       - name: Check R/
         run: jarl check R/ --output-format github
