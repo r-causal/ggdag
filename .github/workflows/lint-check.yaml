@@ -18,9 +18,11 @@ jobs:
 
       - name: Install
         uses: etiennebacher/setup-jarl@v0.1.0
+        with:
+          args: ""
 
       - name: Check R/
-        run: jarl check R/
+        run: jarl check R/ --output-format github
 
       - name: Check tests/
-        run: jarl check tests/ --ignore implicit_assignment
+        run: jarl check tests/ --ignore implicit_assignment --output-format github
