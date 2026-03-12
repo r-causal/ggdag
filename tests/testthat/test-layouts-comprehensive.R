@@ -133,7 +133,7 @@ test_that("auto_time_order handles disconnected nodes", {
   result <- auto_time_order(edges_df)
 
   # All nodes should have order assigned
-  expect_false(any(is.na(result$order)))
+  expect_false(anyNA(result$order))
 
   # Isolated node should get an order value
   isolated_order <- result$order[result$name == "isolated"]

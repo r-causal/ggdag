@@ -162,8 +162,8 @@ test_that("DAGs with no edges are handled correctly (issue #159)", {
   expect_true(all(is.na(dag_data$to)))
 
   # Check that coordinates were generated
-  expect_true(all(!is.na(dag_data$x)))
-  expect_true(all(!is.na(dag_data$y)))
+  expect_true(!anyNA(dag_data$x))
+  expect_true(!anyNA(dag_data$y))
 })
 
 test_that("as_tidy_dagitty preserves edge direction from data frame (issue #177)", {

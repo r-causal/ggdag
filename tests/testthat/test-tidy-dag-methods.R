@@ -187,8 +187,8 @@ test_that("generate_layout with existing coordinates", {
   )
 
   result_na <- generate_layout(edges_df, layout = "nicely", coords = coords_na)
-  expect_false(any(is.na(result_na$x)))
-  expect_false(any(is.na(result_na$y)))
+  expect_false(anyNA(result_na$x))
+  expect_false(anyNA(result_na$y))
 })
 
 test_that("as_tidy_dagitty.data.frame with adjusted column", {

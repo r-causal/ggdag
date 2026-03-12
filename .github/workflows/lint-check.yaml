@@ -1,0 +1,26 @@
+# Workflow derived from https://github.com/etiennebacher/setup-jarl/tree/main/examples
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+name: jarl
+
+permissions: read-all
+
+jobs:
+  lint-check:
+    name: lint-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        uses: etiennebacher/setup-jarl@v0.1.0
+
+      - name: Check R/
+        run: jarl check R/
+
+      - name: Check tests/
+        run: jarl check tests/ --ignore implicit_assignment
