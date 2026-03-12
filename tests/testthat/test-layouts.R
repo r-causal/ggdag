@@ -30,7 +30,7 @@ test_that("time ordered layout works", {
 
   # auto time ordering produces valid coordinates
   auto_coords <- dagitty::coordinates(auto_coords_coords)
-  expect_true(all(!is.na(unlist(auto_coords))))
+  expect_true(!anyNA(unlist(auto_coords)))
 
   auto_coords_layout <- dagify(
     d ~ c1 + c2 + c3,

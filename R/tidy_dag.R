@@ -279,7 +279,11 @@ as_tidy_dagitty.list <- function(
 saturate_edges <- function(.x, time_points) {
   current_elements <- time_points[[.x]]
   future_elements <- unlist(time_points[(.x + 1):length(time_points)])
-  expand.grid(name = current_elements, to = future_elements, stringsAsFactors = FALSE)
+  expand.grid(
+    name = current_elements,
+    to = future_elements,
+    stringsAsFactors = FALSE
+  )
 }
 
 new_tidy_dagitty <- function(tidy_dag, .dagitty) {

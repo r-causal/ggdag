@@ -130,4 +130,3 @@ calculate_spread <- function(n) {
 
   spread
 }
-

@@ -51,7 +51,9 @@ enforce_spacing <- function(positions, layers, min_spacing) {
   unique_layers <- unique(layers)
   for (layer in unique_layers) {
     nodes_in_layer <- names(layers[layers == layer])
-    if (length(nodes_in_layer) < 2) next
+    if (length(nodes_in_layer) < 2) {
+      next
+    }
 
     layer_order <- order(positions[nodes_in_layer])
     sorted_nodes <- nodes_in_layer[layer_order]
@@ -59,7 +61,8 @@ enforce_spacing <- function(positions, layers, min_spacing) {
     for (i in seq(2, length(sorted_nodes))) {
       gap <- positions[[sorted_nodes[i]]] - positions[[sorted_nodes[i - 1]]]
       if (gap < min_spacing) {
-        positions[[sorted_nodes[i]]] <- positions[[sorted_nodes[i - 1]]] + min_spacing
+        positions[[sorted_nodes[i]]] <- positions[[sorted_nodes[i - 1]]] +
+          min_spacing
       }
     }
   }
@@ -93,7 +96,8 @@ longest_path_layers <- function(edges_df, sort_direction = "right") {
   # Separate bidirected edges — these constrain same-layer, not parent→child
   has_direction <- "direction" %in% names(edges_df)
   if (has_direction) {
-    is_bidirected <- !is.na(edges_df$to) & !is.na(edges_df$direction) &
+    is_bidirected <- !is.na(edges_df$to) &
+      !is.na(edges_df$direction) &
       edges_df$direction == "<->"
     bidirected <- edges_df[is_bidirected, , drop = FALSE]
     directed <- edges_df[!is.na(edges_df$to) & !is_bidirected, , drop = FALSE]
@@ -179,7 +183,9 @@ longest_path_layers <- function(edges_df, sort_direction = "right") {
     for (grp in bidir_groups) {
       grp_nodes <- unique(grp)
       grp_nodes <- grp_nodes[grp_nodes %in% names(dist)]
-      if (length(grp_nodes) < 2) next
+      if (length(grp_nodes) < 2) {
+        next
+      }
       max_layer <- max(dist[grp_nodes])
       for (node in grp_nodes) {
         dist[[node]] <- max_layer
@@ -203,7 +209,9 @@ longest_path_layers <- function(edges_df, sort_direction = "right") {
 #' @noRd
 count_crossings <- function(layer_nodes, edges_df, layer_assign) {
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
-  if (nrow(directed) == 0) return(0L)
+  if (nrow(directed) == 0) {
+    return(0L)
+  }
 
   # Build position lookup: node -> 1-based index within its layer
   pos <- integer(0)
@@ -225,7 +233,9 @@ count_crossings <- function(layer_nodes, edges_df, layer_assign) {
       ,
       drop = FALSE
     ]
-    if (nrow(between) < 2) next
+    if (nrow(between) < 2) {
+      next
+    }
 
     for (a in seq_len(nrow(between) - 1)) {
       for (b in seq(a + 1, nrow(between))) {
@@ -253,10 +263,11 @@ count_crossings <- function(layer_nodes, edges_df, layer_assign) {
 #' @param sweeps Number of forward+backward sweep iterations.
 #' @return Reordered `layer_nodes` list.
 #' @noRd
-barycenter_sort <- function(layer_nodes, edges_df, layer_assign,
-                            sweeps = 40L) {
+barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
-  if (nrow(directed) == 0 || length(layer_nodes) < 2) return(layer_nodes)
+  if (nrow(directed) == 0 || length(layer_nodes) < 2) {
+    return(layer_nodes)
+  }
 
   for (s in seq_len(sweeps)) {
     # Forward pass: left to right
@@ -329,11 +340,17 @@ barycenter_sort <- function(layer_nodes, edges_df, layer_assign,
 #' @param iterations Number of force simulation iterations.
 #' @return A list with `$x` and `$y`, both named numeric vectors.
 #' @noRd
-force_directed_y <- function(layer_nodes, layer_assign, edges_df,
-                             node_radius = 26, layer_gap = 180,
-                             node_gap = 85, min_spacing = 72,
-                             clearance = node_radius * 2.5 + 12,
-                             iterations = 350L) {
+force_directed_y <- function(
+  layer_nodes,
+  layer_assign,
+  edges_df,
+  node_radius = 26,
+  layer_gap = 180,
+  node_gap = 85,
+  min_spacing = 72,
+  clearance = node_radius * 2.5 + 12,
+  iterations = 350L
+) {
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   all_nodes <- unlist(layer_nodes)
 
@@ -341,7 +358,7 @@ force_directed_y <- function(layer_nodes, layer_assign, edges_df,
   x_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
   y_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
 
-  max_layer_size <- max(vapply(layer_nodes, length, integer(1)))
+  max_layer_size <- max(lengths(layer_nodes))
 
   for (i in seq_along(layer_nodes)) {
     nodes <- layer_nodes[[i]]
@@ -375,8 +392,10 @@ force_directed_y <- function(layer_nodes, layer_assign, edges_df,
     }
 
     intermediates[[ei]] <- all_nodes[
-      all_nodes != u & all_nodes != v &
-        layer_assign[all_nodes] > lo & layer_assign[all_nodes] < hi
+      all_nodes != u &
+        all_nodes != v &
+        layer_assign[all_nodes] > lo &
+        layer_assign[all_nodes] < hi
     ]
   }
 
@@ -417,16 +436,21 @@ force_directed_y <- function(layer_nodes, layer_assign, edges_df,
     # FORCE B: Edge-avoidance (bidirectional)
     for (ei in seq_len(nrow(directed))) {
       inters <- intermediates[[ei]]
-      if (length(inters) == 0) next
+      if (length(inters) == 0) {
+        next
+      }
 
       u <- directed$name[ei]
       v <- directed$to[ei]
 
       for (w in inters) {
         result <- y_dist_to_edge(
-          x_pos[[w]], y_pos[[w]],
-          x_pos[[u]], y_pos[[u]],
-          x_pos[[v]], y_pos[[v]]
+          x_pos[[w]],
+          y_pos[[w]],
+          x_pos[[u]],
+          y_pos[[u]],
+          x_pos[[v]],
+          y_pos[[v]]
         )
 
         if (result$dist < clearance) {
@@ -435,7 +459,8 @@ force_directed_y <- function(layer_nodes, layer_assign, edges_df,
           strength <- overlap * avoid_weight * (1 + overlap / clearance)
 
           forces[[w]] <- forces[[w]] + direction * strength
-          forces[[u]] <- forces[[u]] - direction * strength * 0.45 * (1 - result$t)
+          forces[[u]] <- forces[[u]] -
+            direction * strength * 0.45 * (1 - result$t)
           forces[[v]] <- forces[[v]] - direction * strength * 0.45 * result$t
         }
       }
@@ -444,7 +469,9 @@ force_directed_y <- function(layer_nodes, layer_assign, edges_df,
     # FORCE C: Same-layer repulsion
     for (i in seq_along(layer_nodes)) {
       nodes <- layer_nodes[[i]]
-      if (length(nodes) < 2) next
+      if (length(nodes) < 2) {
+        next
+      }
 
       sorted_idx <- order(y_pos[nodes])
       sorted <- nodes[sorted_idx]
@@ -479,8 +506,7 @@ force_directed_y <- function(layer_nodes, layer_assign, edges_df,
 #' @param node_radius Radius of each node circle.
 #' @return Data frame with columns: `edge_from`, `edge_to`, `node`, `dist`.
 #' @noRd
-find_overlaps <- function(positions, edges_df, layer_assign,
-                          node_radius = 26) {
+find_overlaps <- function(positions, edges_df, layer_assign, node_radius = 26) {
   clearance <- node_radius + 8
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   all_nodes <- names(positions$x)
@@ -500,22 +526,35 @@ find_overlaps <- function(positions, edges_df, layer_assign,
     v_layer <- layer_assign[[v]]
     lo <- min(u_layer, v_layer)
     hi <- max(u_layer, v_layer)
-    if (hi - lo <= 1) next
+    if (hi - lo <= 1) {
+      next
+    }
 
     for (w in all_nodes) {
-      if (w == u || w == v) next
+      if (w == u || w == v) {
+        next
+      }
       w_layer <- layer_assign[[w]]
       if (w_layer > lo && w_layer < hi) {
         result <- y_dist_to_edge(
-          positions$x[[w]], positions$y[[w]],
-          positions$x[[u]], positions$y[[u]],
-          positions$x[[v]], positions$y[[v]]
+          positions$x[[w]],
+          positions$y[[w]],
+          positions$x[[u]],
+          positions$y[[u]],
+          positions$x[[v]],
+          positions$y[[v]]
         )
         if (result$dist < clearance) {
-          overlaps <- rbind(overlaps, data.frame(
-            edge_from = u, edge_to = v, node = w, dist = result$dist,
-            stringsAsFactors = FALSE
-          ))
+          overlaps <- rbind(
+            overlaps,
+            data.frame(
+              edge_from = u,
+              edge_to = v,
+              node = w,
+              dist = result$dist,
+              stringsAsFactors = FALSE
+            )
+          )
         }
       }
     }
@@ -534,9 +573,14 @@ find_overlaps <- function(positions, edges_df, layer_assign,
 #' @param max_passes Maximum correction iterations.
 #' @return Updated positions list.
 #' @noRd
-greedy_post_correction <- function(positions, edges_df, layer_assign,
-                                   node_radius = 26, min_spacing = 72,
-                                   max_passes = 50L) {
+greedy_post_correction <- function(
+  positions,
+  edges_df,
+  layer_assign,
+  node_radius = 26,
+  min_spacing = 72,
+  max_passes = 50L
+) {
   target_clearance <- node_radius + 12
 
   # Enforce spacing first
@@ -544,7 +588,9 @@ greedy_post_correction <- function(positions, edges_df, layer_assign,
 
   for (pass in seq_len(max_passes)) {
     overlaps <- find_overlaps(positions, edges_df, layer_assign, node_radius)
-    if (nrow(overlaps) == 0) break
+    if (nrow(overlaps) == 0) {
+      break
+    }
 
     # Sort by distance ascending (hardest first)
     overlaps <- overlaps[order(overlaps$dist), ]
@@ -556,11 +602,16 @@ greedy_post_correction <- function(positions, edges_df, layer_assign,
 
       # Recompute — earlier fixes may have changed positions
       result <- y_dist_to_edge(
-        positions$x[[w]], positions$y[[w]],
-        positions$x[[u]], positions$y[[u]],
-        positions$x[[v]], positions$y[[v]]
+        positions$x[[w]],
+        positions$y[[w]],
+        positions$x[[u]],
+        positions$y[[u]],
+        positions$x[[v]],
+        positions$y[[v]]
       )
-      if (result$dist >= target_clearance) next
+      if (result$dist >= target_clearance) {
+        next
+      }
 
       needed <- target_clearance - result$dist + 2
       direction <- if (positions$y[[w]] >= result$proj_y) 1 else -1
@@ -568,7 +619,8 @@ greedy_post_correction <- function(positions, edges_df, layer_assign,
 
       # Distribute: 55% to intermediate node, 45% to endpoints
       positions$y[[w]] <- positions$y[[w]] + direction * needed * 0.55
-      positions$y[[u]] <- positions$y[[u]] - direction * needed * 0.45 * (1 - t_safe)
+      positions$y[[u]] <- positions$y[[u]] -
+        direction * needed * 0.45 * (1 - t_safe)
       positions$y[[v]] <- positions$y[[v]] - direction * needed * 0.45 * t_safe
     }
 
@@ -598,19 +650,26 @@ greedy_post_correction <- function(positions, edges_df, layer_assign,
 #' @param max_correction_passes Maximum greedy correction iterations.
 #' @return A tibble with columns `name`, `x`, `y`.
 #' @noRd
-compute_time_ordered_layout <- function(edges_df, direction = "x",
-                                        sort_direction = "right",
-                                        node_radius = 26, layer_gap = 180,
-                                        node_gap = 85, min_spacing = 72,
-                                        iterations = 350L, sweeps = 40L,
-                                        max_correction_passes = 50L) {
+compute_time_ordered_layout <- function(
+  edges_df,
+  direction = "x",
+  sort_direction = "right",
+  node_radius = 26,
+  layer_gap = 180,
+  node_gap = 85,
+  min_spacing = 72,
+  iterations = 350L,
+  sweeps = 40L,
+  max_correction_passes = 50L
+) {
   edges_df$name <- as.character(edges_df$name)
   edges_df$to <- as.character(edges_df$to)
 
   # Filter out bidirected edges — only directed edges drive stages 2-4
   has_direction <- "direction" %in% names(edges_df)
   if (has_direction) {
-    is_bidir <- !is.na(edges_df$to) & !is.na(edges_df$direction) &
+    is_bidir <- !is.na(edges_df$to) &
+      !is.na(edges_df$direction) &
       edges_df$direction == "<->"
     directed <- edges_df[!is.na(edges_df$to) & !is_bidir, , drop = FALSE]
   } else {
@@ -631,16 +690,24 @@ compute_time_ordered_layout <- function(edges_df, direction = "x",
 
     # Stage 3: Force-directed Y optimization
     positions <- force_directed_y(
-      layer_nodes, layer_assign, directed,
-      node_radius = node_radius, layer_gap = layer_gap,
-      node_gap = node_gap, min_spacing = min_spacing,
-      clearance = node_radius * 2.5 + 12, iterations = iterations
+      layer_nodes,
+      layer_assign,
+      directed,
+      node_radius = node_radius,
+      layer_gap = layer_gap,
+      node_gap = node_gap,
+      min_spacing = min_spacing,
+      clearance = node_radius * 2.5 + 12,
+      iterations = iterations
     )
 
     # Stage 4: Greedy post-correction
     positions <- greedy_post_correction(
-      positions, directed, layer_assign,
-      node_radius = node_radius, min_spacing = min_spacing,
+      positions,
+      directed,
+      layer_assign,
+      node_radius = node_radius,
+      min_spacing = min_spacing,
       max_passes = max_correction_passes
     )
   } else {
@@ -674,10 +741,17 @@ normalize_positions <- function(positions, layer_assign, direction = "x") {
 
   # x: map layer indices to 1, 2, 3, ...
   unique_layers <- sort(unique(layer_assign))
-  layer_map <- stats::setNames(seq_along(unique_layers), as.character(unique_layers))
-  norm_x <- vapply(node_names, function(n) {
-    layer_map[[as.character(layer_assign[[n]])]]
-  }, numeric(1))
+  layer_map <- stats::setNames(
+    seq_along(unique_layers),
+    as.character(unique_layers)
+  )
+  norm_x <- vapply(
+    node_names,
+    function(n) {
+      layer_map[[as.character(layer_assign[[n]])]]
+    },
+    numeric(1)
+  )
 
   # y: center globally, then scale
   norm_y <- positions$y

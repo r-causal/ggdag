@@ -3,7 +3,7 @@
 test_that("y_dist_to_edge: horizontal edge returns correct distance", {
   # point (5, 3) to segment (0,0)-(10,0)
 
-result <- y_dist_to_edge(5, 3, 0, 0, 10, 0)
+  result <- y_dist_to_edge(5, 3, 0, 0, 10, 0)
   expect_equal(result$dist, 3)
   expect_equal(result$t, 0.5)
   expect_equal(result$proj_y, 0)
@@ -252,7 +252,9 @@ test_that("barycenter_sort: already optimal stays unchanged", {
 test_that("count_crossings: single layer returns 0", {
   layer_nodes <- list(c("A", "B", "C"))
   edges_df <- data.frame(
-    name = character(0), to = character(0), stringsAsFactors = FALSE
+    name = character(0),
+    to = character(0),
+    stringsAsFactors = FALSE
   )
   layer_assign <- c(A = 0L, B = 0L, C = 0L)
   expect_equal(count_crossings(layer_nodes, edges_df, layer_assign), 0L)
@@ -278,8 +280,12 @@ test_that("barycenter_sort: three-layer DAG reduces crossings", {
 # Phase 4: Force-directed Y optimization --------------------------------------
 
 # Helper: count overlaps using y_dist_to_edge inline
-count_test_overlaps <- function(positions, edges_df, layer_assign,
-                                node_radius = 26) {
+count_test_overlaps <- function(
+  positions,
+  edges_df,
+  layer_assign,
+  node_radius = 26
+) {
   clearance <- node_radius + 8
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   all_nodes <- names(positions$x)
@@ -292,16 +298,23 @@ count_test_overlaps <- function(positions, edges_df, layer_assign,
     v_layer <- layer_assign[[v]]
     lo <- min(u_layer, v_layer)
     hi <- max(u_layer, v_layer)
-    if (hi - lo <= 1) next
+    if (hi - lo <= 1) {
+      next
+    }
 
     for (w in all_nodes) {
-      if (w == u || w == v) next
+      if (w == u || w == v) {
+        next
+      }
       w_layer <- layer_assign[[w]]
       if (w_layer > lo && w_layer < hi) {
         result <- y_dist_to_edge(
-          positions$x[[w]], positions$y[[w]],
-          positions$x[[u]], positions$y[[u]],
-          positions$x[[v]], positions$y[[v]]
+          positions$x[[w]],
+          positions$y[[w]],
+          positions$x[[u]],
+          positions$y[[u]],
+          positions$x[[v]],
+          positions$y[[v]]
         )
         if (result$dist < clearance) {
           count <- count + 1L
@@ -353,7 +366,10 @@ test_that("force_directed_y: same-layer nodes maintain min_spacing", {
     stringsAsFactors = FALSE
   )
 
-  result <- force_directed_y(layer_nodes, layer_assign, edges_df,
+  result <- force_directed_y(
+    layer_nodes,
+    layer_assign,
+    edges_df,
     min_spacing = 72
   )
   gap <- abs(result$y[["B"]] - result$y[["A"]])
@@ -369,7 +385,10 @@ test_that("force_directed_y: x positions match layer assignment", {
     stringsAsFactors = FALSE
   )
 
-  result <- force_directed_y(layer_nodes, layer_assign, edges_df,
+  result <- force_directed_y(
+    layer_nodes,
+    layer_assign,
+    edges_df,
     layer_gap = 180
   )
   expect_equal(result$x[["A"]], 0)
@@ -499,7 +518,10 @@ test_that("greedy_post_correction: maintains spacing after correction", {
   )
   layer_assign <- c(A = 0L, B = 1L, C = 1L, D = 2L)
 
-  result <- greedy_post_correction(positions, edges_df, layer_assign,
+  result <- greedy_post_correction(
+    positions,
+    edges_df,
+    layer_assign,
     min_spacing = 72
   )
   gap <- abs(result$y[["C"]] - result$y[["B"]])
@@ -513,7 +535,9 @@ test_that("find_overlaps: adjacent layers have no intermediates", {
     y = c(A = 0, B = 0)
   )
   edges_df <- data.frame(
-    name = c("A"), to = c("B"), stringsAsFactors = FALSE
+    name = c("A"),
+    to = c("B"),
+    stringsAsFactors = FALSE
   )
   layer_assign <- c(A = 0L, B = 1L)
 
@@ -534,10 +558,14 @@ make_edges_df <- function(...) {
   # Add terminal nodes with to=NA
   terminals <- unique(edges_df$to[!(edges_df$to %in% edges_df$name)])
   if (length(terminals) > 0) {
-    edges_df <- rbind(edges_df, data.frame(
-      name = terminals, to = NA_character_,
-      stringsAsFactors = FALSE
-    ))
+    edges_df <- rbind(
+      edges_df,
+      data.frame(
+        name = terminals,
+        to = NA_character_,
+        stringsAsFactors = FALSE
+      )
+    )
   }
   edges_df
 }
@@ -566,7 +594,9 @@ test_that("compute_time_ordered_layout: direction y swaps axes", {
 
 test_that("compute_time_ordered_layout: single node DAG", {
   edges_df <- data.frame(
-    name = "A", to = NA_character_, stringsAsFactors = FALSE
+    name = "A",
+    to = NA_character_,
+    stringsAsFactors = FALSE
   )
   result <- compute_time_ordered_layout(edges_df)
   expect_equal(nrow(result), 1)
@@ -602,66 +632,196 @@ test_zero_overlaps <- function(label, edge_pairs) {
 test_zero_overlaps("confounding", list(c("Z", "X"), c("Z", "Y"), c("X", "Y")))
 test_zero_overlaps("mediation", list(c("X", "M"), c("M", "Y"), c("X", "Y")))
 test_zero_overlaps("collider", list(c("X", "C"), c("Y", "C")))
-test_zero_overlaps("IV", list(c("Z", "X"), c("X", "Y"), c("U", "X"), c("U", "Y")))
-test_zero_overlaps("front-door", list(c("U", "X"), c("U", "Y"), c("X", "M"), c("M", "Y")))
-test_zero_overlaps("M-bias", list(c("U1", "A"), c("U1", "M"), c("U2", "M"), c("U2", "Y"), c("A", "Y")))
-test_zero_overlaps("smoking", list(
-  c("Genetics", "Smoking"), c("Genetics", "Cancer"),
-  c("Smoking", "Tar"), c("Tar", "Cancer"), c("Smoking", "Cancer")
-))
-test_zero_overlaps("napkin", list(
-  c("U1", "Z"), c("U1", "A"), c("U2", "A"), c("U2", "Y"),
-  c("Z", "A"), c("A", "M"), c("M", "Y"), c("A", "Y")
-))
-test_zero_overlaps("complex chain", list(
-  c("A", "B"), c("B", "C"), c("C", "D"), c("D", "E"),
-  c("A", "C"), c("B", "D"), c("C", "E"), c("A", "E")
-))
-test_zero_overlaps("butterfly", list(
-  c("X1", "M"), c("X2", "M"), c("M", "Y1"), c("M", "Y2"),
-  c("X1", "Y1"), c("X2", "Y2")
-))
-test_zero_overlaps("wide DAG", list(
-  c("X1", "M1"), c("X2", "M1"), c("X3", "M2"), c("X1", "M2"),
-  c("M1", "Y"), c("M2", "Y"), c("X2", "Y"), c("X3", "Y")
-))
-test_zero_overlaps("deep confound", list(
-  c("U", "A"), c("U", "B"), c("U", "C"),
-  c("A", "B"), c("B", "C"), c("A", "D"), c("C", "D"), c("B", "D")
-))
-test_zero_overlaps("selection bias", list(
-  c("A", "Y"), c("A", "S"), c("U", "S"), c("U", "Y"), c("L", "A"), c("L", "U")
-))
-test_zero_overlaps("overcontrol", list(
-  c("X", "Z"), c("Z", "Y"), c("X", "Y"), c("W", "X"), c("W", "Z")
-))
-test_zero_overlaps("treatment", list(
-  c("C1", "X"), c("C2", "X"), c("C1", "Y"), c("C2", "Y"),
-  c("X", "M1"), c("X", "M2"), c("M1", "Y"), c("M2", "Y"),
-  c("U", "M1"), c("U", "Y")
-))
-test_zero_overlaps("double IV", list(
-  c("Z1", "X"), c("Z2", "X"), c("X", "M"), c("M", "Y"),
-  c("U1", "X"), c("U1", "M"), c("U2", "M"), c("U2", "Y")
-))
-test_zero_overlaps("cascade", list(
-  c("A", "B"), c("A", "D"), c("B", "C"), c("C", "D"),
-  c("B", "E"), c("D", "E"), c("C", "F"), c("E", "F"), c("A", "F")
-))
-test_zero_overlaps("triple confound", list(
-  c("U", "X"), c("U", "Y"), c("V", "X"), c("V", "M"),
-  c("W", "M"), c("W", "Y"), c("X", "M"), c("M", "Y"), c("X", "Y")
-))
-test_zero_overlaps("regression disc", list(
-  c("Z", "X"), c("X", "Y"), c("X", "W"), c("W", "Y"),
-  c("Z", "W"), c("U", "W"), c("U", "Y")
-))
-test_zero_overlaps("multi-mediator", list(
-  c("X", "M1"), c("X", "M2"), c("X", "M3"),
-  c("M1", "M2"), c("M2", "M3"),
-  c("M1", "Y"), c("M2", "Y"), c("M3", "Y"),
-  c("X", "Y"), c("U", "M2"), c("U", "Y")
-))
+test_zero_overlaps(
+  "IV",
+  list(c("Z", "X"), c("X", "Y"), c("U", "X"), c("U", "Y"))
+)
+test_zero_overlaps(
+  "front-door",
+  list(c("U", "X"), c("U", "Y"), c("X", "M"), c("M", "Y"))
+)
+test_zero_overlaps(
+  "M-bias",
+  list(c("U1", "A"), c("U1", "M"), c("U2", "M"), c("U2", "Y"), c("A", "Y"))
+)
+test_zero_overlaps(
+  "smoking",
+  list(
+    c("Genetics", "Smoking"),
+    c("Genetics", "Cancer"),
+    c("Smoking", "Tar"),
+    c("Tar", "Cancer"),
+    c("Smoking", "Cancer")
+  )
+)
+test_zero_overlaps(
+  "napkin",
+  list(
+    c("U1", "Z"),
+    c("U1", "A"),
+    c("U2", "A"),
+    c("U2", "Y"),
+    c("Z", "A"),
+    c("A", "M"),
+    c("M", "Y"),
+    c("A", "Y")
+  )
+)
+test_zero_overlaps(
+  "complex chain",
+  list(
+    c("A", "B"),
+    c("B", "C"),
+    c("C", "D"),
+    c("D", "E"),
+    c("A", "C"),
+    c("B", "D"),
+    c("C", "E"),
+    c("A", "E")
+  )
+)
+test_zero_overlaps(
+  "butterfly",
+  list(
+    c("X1", "M"),
+    c("X2", "M"),
+    c("M", "Y1"),
+    c("M", "Y2"),
+    c("X1", "Y1"),
+    c("X2", "Y2")
+  )
+)
+test_zero_overlaps(
+  "wide DAG",
+  list(
+    c("X1", "M1"),
+    c("X2", "M1"),
+    c("X3", "M2"),
+    c("X1", "M2"),
+    c("M1", "Y"),
+    c("M2", "Y"),
+    c("X2", "Y"),
+    c("X3", "Y")
+  )
+)
+test_zero_overlaps(
+  "deep confound",
+  list(
+    c("U", "A"),
+    c("U", "B"),
+    c("U", "C"),
+    c("A", "B"),
+    c("B", "C"),
+    c("A", "D"),
+    c("C", "D"),
+    c("B", "D")
+  )
+)
+test_zero_overlaps(
+  "selection bias",
+  list(
+    c("A", "Y"),
+    c("A", "S"),
+    c("U", "S"),
+    c("U", "Y"),
+    c("L", "A"),
+    c("L", "U")
+  )
+)
+test_zero_overlaps(
+  "overcontrol",
+  list(
+    c("X", "Z"),
+    c("Z", "Y"),
+    c("X", "Y"),
+    c("W", "X"),
+    c("W", "Z")
+  )
+)
+test_zero_overlaps(
+  "treatment",
+  list(
+    c("C1", "X"),
+    c("C2", "X"),
+    c("C1", "Y"),
+    c("C2", "Y"),
+    c("X", "M1"),
+    c("X", "M2"),
+    c("M1", "Y"),
+    c("M2", "Y"),
+    c("U", "M1"),
+    c("U", "Y")
+  )
+)
+test_zero_overlaps(
+  "double IV",
+  list(
+    c("Z1", "X"),
+    c("Z2", "X"),
+    c("X", "M"),
+    c("M", "Y"),
+    c("U1", "X"),
+    c("U1", "M"),
+    c("U2", "M"),
+    c("U2", "Y")
+  )
+)
+test_zero_overlaps(
+  "cascade",
+  list(
+    c("A", "B"),
+    c("A", "D"),
+    c("B", "C"),
+    c("C", "D"),
+    c("B", "E"),
+    c("D", "E"),
+    c("C", "F"),
+    c("E", "F"),
+    c("A", "F")
+  )
+)
+test_zero_overlaps(
+  "triple confound",
+  list(
+    c("U", "X"),
+    c("U", "Y"),
+    c("V", "X"),
+    c("V", "M"),
+    c("W", "M"),
+    c("W", "Y"),
+    c("X", "M"),
+    c("M", "Y"),
+    c("X", "Y")
+  )
+)
+test_zero_overlaps(
+  "regression disc",
+  list(
+    c("Z", "X"),
+    c("X", "Y"),
+    c("X", "W"),
+    c("W", "Y"),
+    c("Z", "W"),
+    c("U", "W"),
+    c("U", "Y")
+  )
+)
+test_zero_overlaps(
+  "multi-mediator",
+  list(
+    c("X", "M1"),
+    c("X", "M2"),
+    c("X", "M3"),
+    c("M1", "M2"),
+    c("M2", "M3"),
+    c("M1", "Y"),
+    c("M2", "Y"),
+    c("M3", "Y"),
+    c("X", "Y"),
+    c("U", "M2"),
+    c("U", "Y")
+  )
+)
 
 # API integration tests
 
@@ -702,8 +862,8 @@ test_that("tidy_dagitty with layout = 'time_ordered' works", {
   expect_s3_class(td, "tidy_dagitty")
   # Should have valid coordinates
   data <- pull_dag_data(td)
-  expect_true(all(!is.na(data$x)))
-  expect_true(all(!is.na(data$y)))
+  expect_true(!anyNA(data$x))
+  expect_true(!anyNA(data$y))
 })
 
 test_that("tidy_dagitty with layout = time_ordered_coords() works", {
@@ -725,8 +885,8 @@ get_node_coords <- function(td) {
 expect_valid_time_ordered <- function(td, expected_nodes) {
   expect_s3_class(td, "tidy_dagitty")
   coords <- get_node_coords(td)
-  expect_true(all(!is.na(coords$x)))
-  expect_true(all(!is.na(coords$y)))
+  expect_true(!anyNA(coords$x))
+  expect_true(!anyNA(coords$y))
   expect_setequal(coords$name, expected_nodes)
 }
 
@@ -870,7 +1030,8 @@ test_that("exposure and outcome are preserved with time_ordered layout", {
 
 test_that("labels are preserved with time_ordered layout", {
   td <- dagify(
-    y ~ x + z, x ~ z,
+    y ~ x + z,
+    x ~ z,
     labels = c("x" = "Treatment", "y" = "Outcome", "z" = "Confounder")
   ) |>
     tidy_dagitty(layout = "time_ordered")
@@ -962,7 +1123,7 @@ test_that("two-node minimal DAG works through dagify", {
     tidy_dagitty(layout = "time_ordered")
   expect_s3_class(td, "tidy_dagitty")
   data <- pull_dag_data(td)
-  expect_true(all(!is.na(data$x)))
+  expect_true(!anyNA(data$x))
 })
 
 test_that("two-node DAG works", {
@@ -1014,8 +1175,8 @@ test_that("as_tidy_dagitty.data.frame with saturate = TRUE works", {
   td <- as_tidy_dagitty(edges_df, saturate = TRUE)
   expect_s3_class(td, "tidy_dagitty")
   coords <- get_node_coords(td)
-  expect_true(all(!is.na(coords$x)))
-  expect_true(all(!is.na(coords$y)))
+  expect_true(!anyNA(coords$x))
+  expect_true(!anyNA(coords$y))
 })
 
 test_that("as_tidy_dagitty.data.frame without coords works with time_ordered", {
@@ -1027,7 +1188,7 @@ test_that("as_tidy_dagitty.data.frame without coords works with time_ordered", {
   td <- as_tidy_dagitty(edges_df, layout = "time_ordered")
   expect_s3_class(td, "tidy_dagitty")
   coords <- get_node_coords(td)
-  expect_true(all(!is.na(coords$x)))
+  expect_true(!anyNA(coords$x))
 })
 
 # Integration tests: dag_saturate ---------------------------------------------
@@ -1038,8 +1199,8 @@ test_that("dag_saturate produces valid time_ordered layout", {
     dag_saturate()
   expect_s3_class(td, "tidy_dagitty")
   coords <- get_node_coords(td)
-  expect_true(all(!is.na(coords$x)))
-  expect_true(all(!is.na(coords$y)))
+  expect_true(!anyNA(coords$x))
+  expect_true(!anyNA(coords$y))
 })
 
 test_that("dag_saturate with use_existing_coords = TRUE preserves structure", {
@@ -1048,7 +1209,7 @@ test_that("dag_saturate with use_existing_coords = TRUE preserves structure", {
     dag_saturate(use_existing_coords = TRUE)
   expect_s3_class(td, "tidy_dagitty")
   coords <- get_node_coords(td)
-  expect_true(all(!is.na(coords$x)))
+  expect_true(!anyNA(coords$x))
 })
 
 test_that("dag_saturate adds missing edges", {
@@ -1130,7 +1291,7 @@ test_that("compute_time_ordered_layout handles factor columns", {
   result <- compute_time_ordered_layout(edges_df)
   expect_equal(nrow(result), 3)
   expect_setequal(result$name, c("A", "B", "C"))
-  expect_true(all(!is.na(result$x)))
+  expect_true(!anyNA(result$x))
 })
 
 # Normalization properties -----------------------------------------------------
@@ -1155,7 +1316,9 @@ test_that("graph is globally centered around y = 0", {
 
 test_that("multi-node layers have distinct y values", {
   edges_df <- make_edges_df(
-    c("X1", "Y"), c("X2", "Y"), c("X3", "Y")
+    c("X1", "Y"),
+    c("X2", "Y"),
+    c("X3", "Y")
   )
   result <- compute_time_ordered_layout(edges_df)
   root_ys <- result$y[result$name %in% c("X1", "X2", "X3")]
@@ -1190,8 +1353,8 @@ expect_zero_overlaps_dagify <- function(dag) {
   coords <- get_node_coords(td)
 
   # Basic validity
-  expect_true(all(!is.na(coords$x)))
-  expect_true(all(!is.na(coords$y)))
+  expect_true(!anyNA(coords$x))
+  expect_true(!anyNA(coords$y))
 
   # Reconstruct edge list from tidy data
   edge_data <- pull_dag_data(td) |>
@@ -1204,10 +1367,14 @@ expect_zero_overlaps_dagify <- function(dag) {
     v <- edge_data$to[i]
     ux <- unname(coords$x[coords$name == u])
     vx <- unname(coords$x[coords$name == v])
-    if (length(ux) == 0 || length(vx) == 0) next
+    if (length(ux) == 0 || length(vx) == 0) {
+      next
+    }
     lo <- min(ux, vx)
     hi <- max(ux, vx)
-    if (hi - lo <= 1) next
+    if (hi - lo <= 1) {
+      next
+    }
 
     # Check intermediate nodes
     intermediates <- coords$name[coords$x > lo & coords$x < hi]
@@ -1215,13 +1382,16 @@ expect_zero_overlaps_dagify <- function(dag) {
       result <- y_dist_to_edge(
         unname(coords$x[coords$name == w]),
         unname(coords$y[coords$name == w]),
-        ux, unname(coords$y[coords$name == u]),
-        vx, unname(coords$y[coords$name == v])
+        ux,
+        unname(coords$y[coords$name == u]),
+        vx,
+        unname(coords$y[coords$name == v])
       )
       # In normalized space, nodes should not be *on* the edge line
       if (is.finite(result$dist)) {
         expect_gt(
-          result$dist, 0.01,
+          result$dist,
+          0.01,
           label = paste0("node ", w, " too close to edge ", u, "->", v)
         )
       }
@@ -1296,10 +1466,15 @@ make_edges_df_with_direction <- function(..., bidirected = character(0)) {
   # Add terminal nodes with to=NA
   terminals <- unique(edges_df$to[!(edges_df$to %in% edges_df$name)])
   if (length(terminals) > 0) {
-    edges_df <- rbind(edges_df, data.frame(
-      name = terminals, to = NA_character_, direction = NA_character_,
-      stringsAsFactors = FALSE
-    ))
+    edges_df <- rbind(
+      edges_df,
+      data.frame(
+        name = terminals,
+        to = NA_character_,
+        direction = NA_character_,
+        stringsAsFactors = FALSE
+      )
+    )
   }
   # Add bidirected edges (pairs of node names)
   if (length(bidirected) > 0) {
@@ -1319,7 +1494,8 @@ make_edges_df_with_direction <- function(..., bidirected = character(0)) {
 test_that("longest_path_layers places bidirected nodes at same layer", {
   # w1 <-> w2, both are roots with no directed edges
   edges_df <- make_edges_df_with_direction(
-    c("w1", "x"), c("w2", "x"),
+    c("w1", "x"),
+    c("w2", "x"),
     bidirected = c("w1", "w2")
   )
   layers <- longest_path_layers(edges_df)
@@ -1327,13 +1503,13 @@ test_that("longest_path_layers places bidirected nodes at same layer", {
 })
 
 test_that("longest_path_layers: bidirected nodes pushed to max of their layers", {
-
   # z → w1, w1 <-> w2, w2 → y
   # Without bidirected constraint: w1 at layer 1, w2 at layer 0
 
   # With bidirected: w1 and w2 should both be at layer 1 (max of 0, 1)
   edges_df <- make_edges_df_with_direction(
-    c("z", "w1"), c("w2", "y"),
+    c("z", "w1"),
+    c("w2", "y"),
     bidirected = c("w1", "w2")
   )
   layers <- longest_path_layers(edges_df)
@@ -1356,7 +1532,8 @@ test_that("longest_path_layers: bidirected doesn't create directed dependency", 
 
 test_that("compute_time_ordered_layout places bidirected nodes at same x", {
   edges_df <- make_edges_df_with_direction(
-    c("w1", "x"), c("w2", "x"),
+    c("w1", "x"),
+    c("w2", "x"),
     bidirected = c("w1", "w2")
   )
   result <- compute_time_ordered_layout(edges_df)
@@ -1366,7 +1543,7 @@ test_that("compute_time_ordered_layout places bidirected nodes at same x", {
 })
 
 test_that("dagify with ~~ places bidirected nodes at same layer", {
-  td <- dagify(y ~ x + w1 + w2, x ~ w1 + w2, w1 ~~ w2) |>
+  td <- dagify(y ~ x + w1 + w2, x ~ w1 + w2, w1 ~ ~w2) |>
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
 
@@ -1381,7 +1558,7 @@ test_that("README example DAG places w1 and w2 at same layer", {
     x ~ z1 + w1 + w2,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     exposure = "x",
     outcome = "y"
   ) |>
@@ -1399,7 +1576,7 @@ test_that("dagify with ~~ produces valid layout (no NA coords)", {
     x ~ z1 + w1 + w2,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     exposure = "x",
     outcome = "y"
   ) |>
@@ -1416,7 +1593,7 @@ test_that("dagify with ~~ and time_ordered has no overlaps", {
     x ~ z1 + w1 + w2,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     exposure = "x",
     outcome = "y"
   )
@@ -1426,8 +1603,8 @@ test_that("dagify with ~~ and time_ordered has no overlaps", {
 test_that("multiple bidirected pairs handled correctly", {
   td <- dagify(
     y ~ a + b + c + d,
-    a ~~ b,
-    c ~~ d
+    a ~ ~b,
+    c ~ ~d
   ) |>
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
@@ -1449,7 +1626,7 @@ test_that("bidirected edge with coords = time_ordered_coords() works", {
   dag <- dagify(
     y ~ x + w1 + w2,
     x ~ w1 + w2,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     coords = time_ordered_coords()
   )
   td <- tidy_dagitty(dag)
@@ -1593,7 +1770,7 @@ test_that("visual: README DAG with bidirected edges", {
     x ~ z1 + w1 + w2,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     exposure = "x",
     outcome = "y"
   ) |>
@@ -1604,8 +1781,8 @@ test_that("visual: README DAG with bidirected edges", {
 test_that("visual: multiple bidirected pairs", {
   p <- dagify(
     y ~ a + b + c + d,
-    a ~~ b,
-    c ~~ d
+    a ~ ~b,
+    c ~ ~d
   ) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-multi-bidirected", p)
@@ -1625,7 +1802,8 @@ test_that("visual: time_ordered with arc edges", {
 
 test_that("visual: time_ordered with labels", {
   p <- dagify(
-    y ~ x + z, x ~ z,
+    y ~ x + z,
+    x ~ z,
     labels = c("x" = "Treatment", "y" = "Outcome", "z" = "Confounder")
   ) |>
     tidy_dagitty(layout = "time_ordered") |>
@@ -1638,8 +1816,10 @@ test_that("visual: time_ordered with labels", {
 
 test_that("visual: time_ordered ggplot manual build", {
   p <- dagify(
-    y ~ x + m, m ~ x,
-    exposure = "x", outcome = "y"
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y"
   ) |>
     tidy_dagitty(layout = "time_ordered") |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -1737,8 +1917,10 @@ test_that("auto_sort_direction='left' still respects edge direction", {
 
 test_that("auto_sort_direction='left' produces valid layout (no NA)", {
   td <- dagify(
-    y ~ x + m, m ~ x,
-    exposure = "x", outcome = "y"
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y"
   ) |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_valid_time_ordered(td, c("x", "y", "m"))
@@ -1746,7 +1928,8 @@ test_that("auto_sort_direction='left' produces valid layout (no NA)", {
 
 test_that("auto_sort_direction works with coords= in dagify", {
   dag <- dagify(
-    c ~ a + b, b ~ a,
+    c ~ a + b,
+    b ~ a,
     coords = time_ordered_coords(auto_sort_direction = "left")
   )
   td <- tidy_dagitty(dag)
@@ -1946,7 +2129,7 @@ test_that("visual: right README bidirected DAG", {
     x ~ z1 + w1 + w2,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     exposure = "x",
     outcome = "y"
   ) |>
@@ -1960,7 +2143,7 @@ test_that("visual: left README bidirected DAG", {
     x ~ z1 + w1 + w2,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    w1 ~~ w2,
+    w1 ~ ~w2,
     exposure = "x",
     outcome = "y"
   ) |>
