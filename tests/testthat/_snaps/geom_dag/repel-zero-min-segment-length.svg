@@ -37,14 +37,14 @@
 <circle cx='377.33' cy='66.31' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='377.33' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='658.32' cy='501.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='121.82' y1='487.07' x2='118.03' y2='489.22' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='402.54' y1='52.04' x2='399.06' y2='54.01' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='352.18' y1='515.80' x2='355.59' y2='513.87' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='683.54' y1='487.24' x2='680.03' y2='489.24' style='stroke-width: 1.07; stroke: #666666;' />
-<text x='122.40' y='485.27' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>a</text>
-<text x='403.06' y='50.24' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
-<text x='351.66' y='525.20' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='684.06' y='485.44' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+<line x1='70.88' y1='516.21' x2='74.68' y2='514.03' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='402.53' y1='50.65' x2='398.54' y2='53.13' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='352.09' y1='517.06' x2='356.04' y2='514.64' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='683.49' y1='515.89' x2='680.03' y2='513.92' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='70.30' y='525.61' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>a</text>
+<text x='403.01' y='48.85' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='351.60' y='526.46' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='684.01' y='525.29' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <rect x='40.13' y='22.78' width='674.39' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

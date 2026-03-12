@@ -16,6 +16,7 @@ geom_dag_text_repel(
   parse = FALSE,
   ...,
   node_size = NULL,
+  n_edge_points = NULL,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -49,6 +50,7 @@ geom_dag_label_repel(
   parse = FALSE,
   ...,
   node_size = NULL,
+  n_edge_points = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -129,6 +131,12 @@ displayed as described in ?plotmath}
 rather than the node center. Defaults to \code{NULL}, which auto-discovers the
 size from a node layer (\code{geom_dag_node()} or \code{geom_dag_point()}) already
 added to the plot. Falls back to 16 if no node layer is found.}
+
+\item{n_edge_points}{Number of invisible points to interpolate along each
+edge. These "fake" points participate in ggrepel's repulsion calculation
+so that labels avoid overlapping edges. Defaults to \code{NULL}, which uses
+the \code{StatNodesRepel} default of 50. Set to 0 to disable edge-aware
+repulsion.}
 
 \item{box.padding}{Amount of padding around bounding box, as unit or number.
 Defaults to 0.25. (Default unit is lines, but other units can be specified

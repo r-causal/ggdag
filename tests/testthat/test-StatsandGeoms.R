@@ -72,7 +72,7 @@ test_that("StatNodesRepel adds point.size from node_size param", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(node_size = 20),
+    list(node_size = 20, n_edge_points = 0),
     NULL
   )
   expect_true("point.size" %in% names(result))
@@ -80,7 +80,11 @@ test_that("StatNodesRepel adds point.size from node_size param", {
 
   # With default (NULL) params — should use node_size = 16
 
-  result_default <- StatNodesRepel$compute_layer(test_data, list(), NULL)
+  result_default <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0),
+    NULL
+  )
   expect_true("point.size" %in% names(result_default))
   expect_equal(result_default[["point.size"]], rep(16 * ggplot2::.pt / 14.4, 3))
 })
@@ -99,12 +103,182 @@ test_that("StatNodesRepel does not overwrite mapped point.size", {
 
   result <- StatNodesRepel$compute_layer(
     test_data,
-    list(node_size = 16),
+    list(node_size = 16, n_edge_points = 0),
     NULL
   )
   # Should preserve user-mapped values
 
   expect_equal(result[["point.size"]], c(5, 10))
+})
+
+test_that("StatNodesRepel generates fake points along edges", {
+  test_data <- data.frame(
+    x = c(1, 2, 3),
+    y = c(1, 1, 2),
+    xend = c(2, 3, 1),
+    yend = c(1, 2, 1),
+    label = c("a", "b", "c"),
+    PANEL = c(1, 1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 5),
+    NULL
+  )
+
+  # 3 nodes + 3 edges * 5 points = 18 rows
+  expect_equal(nrow(result), 18)
+
+  # Fake points have label = ""
+  fake_rows <- result[result$label == "", ]
+  expect_equal(nrow(fake_rows), 15)
+
+  # Fake points have point.size = 0
+
+  expect_true(all(fake_rows[["point.size"]] == 0))
+})
+
+test_that("StatNodesRepel n_edge_points controls fake point count", {
+  test_data <- data.frame(
+    x = c(1, 2),
+    y = c(1, 2),
+    xend = c(2, 1),
+    yend = c(2, 1),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result_3 <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 3),
+    NULL
+  )
+  # 2 nodes + 2 edges * 3 points = 8
+  expect_equal(nrow(result_3), 8)
+
+  result_10 <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 10),
+    NULL
+  )
+  # 2 nodes + 2 edges * 10 points = 22
+  expect_equal(nrow(result_10), 22)
+})
+
+test_that("StatNodesRepel n_edge_points = 0 disables fake points", {
+  test_data <- data.frame(
+    x = c(1, 2),
+    y = c(1, 2),
+    xend = c(2, 1),
+    yend = c(2, 1),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 0),
+    NULL
+  )
+
+  # Only 2 node rows, no fake points
+  expect_equal(nrow(result), 2)
+  expect_true(all(result$label != ""))
+})
+
+test_that("StatNodesRepel generates no fake points without xend/yend", {
+  test_data <- data.frame(
+    x = c(1, 2, 3),
+    y = c(1, 1, 2),
+    label = c("a", "b", "c"),
+    PANEL = c(1, 1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 10),
+    NULL
+  )
+
+  # Only 3 node rows
+  expect_equal(nrow(result), 3)
+  expect_true(all(result$label != ""))
+})
+
+test_that("StatNodesRepel fake points don't affect node point.size", {
+  test_data <- data.frame(
+    x = c(1, 2),
+    y = c(1, 2),
+    xend = c(2, 1),
+    yend = c(2, 1),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(node_size = 20, n_edge_points = 5),
+    NULL
+  )
+
+  node_rows <- result[result$label != "", ]
+  fake_rows <- result[result$label == "", ]
+
+  # Nodes get node_size-based point.size
+  expect_equal(node_rows[["point.size"]], rep(20 * ggplot2::.pt / 14.4, 2))
+  # Fake points get point.size = 0
+  expect_true(all(fake_rows[["point.size"]] == 0))
+})
+
+test_that("StatNodesRepel fake points preserve PANEL", {
+  test_data <- data.frame(
+    x = c(1, 2, 3, 4),
+    y = c(1, 2, 1, 2),
+    xend = c(2, 1, 4, 3),
+    yend = c(2, 1, 2, 1),
+    label = c("a", "b", "c", "d"),
+    PANEL = c(1, 1, 2, 2),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_edge_points = 3),
+    NULL
+  )
+
+  fake_rows <- result[result$label == "", ]
+  # Each panel has 2 edges * 3 points = 6 fake points
+  expect_equal(sum(fake_rows$PANEL == 1), 6)
+  expect_equal(sum(fake_rows$PANEL == 2), 6)
+})
+
+test_that("StatNodesRepel default n_edge_points is 50", {
+  test_data <- data.frame(
+    x = c(1, 2),
+    y = c(1, 2),
+    xend = c(2, 1),
+    yend = c(2, 1),
+    label = c("a", "b"),
+    PANEL = c(1, 1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(),
+    NULL
+  )
+
+  fake_rows <- result[result$label == "", ]
+  # 2 edges * 50 points = 100
+  expect_equal(nrow(fake_rows), 100)
 })
 
 test_that("dag_layer() creates correct S3 class", {

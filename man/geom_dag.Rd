@@ -22,6 +22,7 @@ geom_dag(
   use_text = TRUE,
   use_labels = FALSE,
   label_geom = geom_dag_label_repel,
+  n_edge_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   label = NULL,
@@ -85,6 +86,10 @@ used is controlled by \code{label_geom}.}
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
+
+\item{n_edge_points}{Number of invisible points to interpolate along each
+edge for label repulsion. Passed to repel label geoms. Defaults to \code{NULL}
+(uses \code{StatNodesRepel} default of 50). Set to 0 to disable.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

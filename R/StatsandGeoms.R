@@ -310,10 +310,40 @@ StatNodes <- ggplot2::ggproto(
 StatNodesRepel <- ggplot2::ggproto(
   "StatNodesRepel",
   ggplot2::Stat,
-  extra_params = c("na.rm", "node_size"),
+  extra_params = c("na.rm", "node_size", "n_edge_points"),
   compute_layer = function(data, params, layout) {
     node_size <- params$node_size %||% 16
-    if (all(c("xend", "yend") %in% names(data))) {
+    n_edge_points <- params$n_edge_points %||% 50
+    has_edges <- all(c("xend", "yend") %in% names(data))
+
+    # Generate fake points along edges before removing xend/yend
+    fake_points <- NULL
+    if (has_edges && n_edge_points > 0) {
+      edges <- unique(data[
+        !is.na(data$xend),
+        c("x", "y", "xend", "yend", "PANEL")
+      ])
+      if (nrow(edges) > 0) {
+        t_vals <- seq(0, 1, length.out = n_edge_points + 2)[
+          -c(1, n_edge_points + 2)
+        ]
+        fake_points <- do.call(
+          rbind,
+          lapply(seq_len(nrow(edges)), function(i) {
+            data.frame(
+              x = edges$x[i] + t_vals * (edges$xend[i] - edges$x[i]),
+              y = edges$y[i] + t_vals * (edges$yend[i] - edges$y[i]),
+              label = "",
+              point.size = 0,
+              PANEL = edges$PANEL[i],
+              stringsAsFactors = FALSE
+            )
+          })
+        )
+      }
+    }
+
+    if (has_edges) {
       data <- unique(dplyr::select(data, -"xend", -"yend"))
       if ("alpha" %in% names(data)) {
         data <- data |>
@@ -331,6 +361,10 @@ StatNodesRepel <- ggplot2::ggproto(
 
     if (!"point.size" %in% names(data)) {
       data[["point.size"]] <- node_size * .pt / 14.4
+    }
+
+    if (!is.null(fake_points)) {
+      data <- dplyr::bind_rows(data, fake_points)
     }
 
     data

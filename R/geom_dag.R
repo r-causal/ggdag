@@ -293,6 +293,11 @@ geom_dag_label <- function(
 #'   rather than the node center. Defaults to `NULL`, which auto-discovers the
 #'   size from a node layer (`geom_dag_node()` or `geom_dag_point()`) already
 #'   added to the plot. Falls back to 16 if no node layer is found.
+#' @param n_edge_points Number of invisible points to interpolate along each
+#'   edge. These "fake" points participate in ggrepel's repulsion calculation
+#'   so that labels avoid overlapping edges. Defaults to `NULL`, which uses
+#'   the `StatNodesRepel` default of 50. Set to 0 to disable edge-aware
+#'   repulsion.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -419,6 +424,7 @@ geom_dag_text_repel <- function(
   parse = FALSE,
   ...,
   node_size = NULL,
+  n_edge_points = NULL,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -431,7 +437,7 @@ geom_dag_text_repel <- function(
   force_pull = 1,
   max.time = 0.5,
   max.iter = 2000,
-  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
+  max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
   xlim = c(NA, NA),
@@ -462,6 +468,7 @@ geom_dag_text_repel <- function(
     parse = parse,
     na.rm = na.rm,
     node_size = node_size,
+    n_edge_points = n_edge_points,
     box.padding = box.padding,
     point.padding = point.padding,
     min.segment.length = min.segment.length,
@@ -517,6 +524,7 @@ geom_dag_label_repel <- function(
   parse = FALSE,
   ...,
   node_size = NULL,
+  n_edge_points = NULL,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -531,7 +539,7 @@ geom_dag_label_repel <- function(
   force_pull = 1,
   max.time = 0.5,
   max.iter = 2000,
-  max.overlaps = getOption("ggrepel.max.overlaps", default = 10),
+  max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
   xlim = c(NA, NA),
@@ -561,6 +569,7 @@ geom_dag_label_repel <- function(
   params <- list(
     parse = parse,
     node_size = node_size,
+    n_edge_points = n_edge_points,
     box.padding = box.padding,
     label.padding = label.padding,
     point.padding = point.padding,
@@ -1286,6 +1295,9 @@ aes_dag <- function(...) {
 #'   `use_labels = TRUE`. Default is `geom_dag_label_repel`. Other options
 #'   include `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
 #'   and `geom_dag_text_repel2`.
+#' @param n_edge_points Number of invisible points to interpolate along each
+#'   edge for label repulsion. Passed to repel label geoms. Defaults to `NULL`
+#'   (uses `StatNodesRepel` default of 50). Set to 0 to disable.
 #' @param unified_legend A logical value. When `TRUE` and both `use_edges` and
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
@@ -1353,6 +1365,7 @@ geom_dag <- function(
   use_text = TRUE,
   use_labels = FALSE,
   label_geom = geom_dag_label_repel,
+  n_edge_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   label = NULL,
@@ -1523,6 +1536,7 @@ geom_dag <- function(
         identical(label_geom, geom_dag_label_repel2)
     ) {
       common_params$node_size <- sizes[["node"]]
+      common_params$n_edge_points <- n_edge_points
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
       common_params$label.padding <- 0.1
@@ -1531,6 +1545,7 @@ geom_dag <- function(
         identical(label_geom, geom_dag_text_repel2)
     ) {
       common_params$node_size <- sizes[["node"]]
+      common_params$n_edge_points <- n_edge_points
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
     }
