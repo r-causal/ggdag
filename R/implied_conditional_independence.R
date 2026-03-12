@@ -134,6 +134,7 @@ ggdag_conditional_independence <- function(
       "ggdag_conditional_independence(pointrange_fatten)",
       "ggdag_conditional_independence(point_size)"
     )
+    point_size <- point_size %||% pointrange_fatten
   }
 
   if (!is.data.frame(.test_result)) {
