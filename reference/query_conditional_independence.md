@@ -36,7 +36,8 @@ ggdag_conditional_independence(
   sort = TRUE,
   vline_linewidth = 0.8,
   vline_color = "grey70",
-  pointrange_fatten = 3
+  point_size = NULL,
+  pointrange_fatten = deprecated()
 )
 ```
 
@@ -144,9 +145,14 @@ ggdag_conditional_independence(
 
   Color of the vertical line.
 
+- point_size:
+
+  Size of the point in the point range. Default is `NULL`, which uses
+  the ggplot2 theme default.
+
 - pointrange_fatten:
 
-  Factor to fatten the point range.
+  **\[deprecated\]** Use `point_size` instead.
 
 ## Value
 

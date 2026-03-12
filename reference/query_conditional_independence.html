@@ -84,7 +84,8 @@ results as a forest plot.</p>
 <span>  sort <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  vline_linewidth <span class="op">=</span> <span class="fl">0.8</span>,</span>
 <span>  vline_color <span class="op">=</span> <span class="st">"grey70"</span>,</span>
-<span>  pointrange_fatten <span class="op">=</span> <span class="fl">3</span></span>
+<span>  point_size <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pointrange_fatten <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -190,8 +191,14 @@ Default is <code>TRUE</code>.</p></dd>
 <dd><p>Color of the vertical line.</p></dd>
 
 
+<dt id="arg-point-size">point_size<a class="anchor" aria-label="anchor" href="#arg-point-size"></a></dt>
+<dd><p>Size of the point in the point range. Default is <code>NULL</code>,
+which uses the ggplot2 theme default.</p></dd>
+
+
 <dt id="arg-pointrange-fatten">pointrange_fatten<a class="anchor" aria-label="anchor" href="#arg-pointrange-fatten"></a></dt>
-<dd><p>Factor to fatten the point range.</p></dd>
+<dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> Use
+<code>point_size</code> instead.</p></dd>
 
 </dl></div>
     <div class="section level2">
