@@ -15,7 +15,10 @@
 #'   Default is `TRUE`.
 #' @param vline_linewidth Line width for the vertical line indicating no effect.
 #' @param vline_color Color of the vertical line.
-#' @param pointrange_fatten Factor to fatten the point range.
+#' @param point_size Size of the point in the point range. Default is `NULL`,
+#'   which uses the ggplot2 theme default.
+#' @param pointrange_fatten `r lifecycle::badge("deprecated")` Use
+#'   `point_size` instead.
 #'
 #' @return Either a tibble summarizing the conditional independencies in the DAG
 #'   or test results, or a ggplot of the results.
@@ -122,8 +125,17 @@ ggdag_conditional_independence <- function(
   sort = TRUE,
   vline_linewidth = .8,
   vline_color = "grey70",
-  pointrange_fatten = 3
+  point_size = NULL,
+  pointrange_fatten = deprecated()
 ) {
+  if (is_present(pointrange_fatten)) {
+    deprecate_soft(
+      "0.3.0",
+      "ggdag_conditional_independence(pointrange_fatten)",
+      "ggdag_conditional_independence(point_size)"
+    )
+  }
+
   if (!is.data.frame(.test_result)) {
     abort(
       c(
@@ -155,7 +167,7 @@ ggdag_conditional_independence <- function(
       dplyr::mutate(independence = forcats::fct_inorder(.data$independence))
   }
 
-  ggplot2::ggplot(
+  p <- ggplot2::ggplot(
     .test_result,
     ggplot2::aes(
       x = .data[[estimate]],
@@ -166,12 +178,17 @@ ggdag_conditional_independence <- function(
       xintercept = 0,
       linewidth = vline_linewidth,
       color = vline_color
-    ) +
-    ggplot2::geom_pointrange(
-      ggplot2::aes(
-        xmax = .data[[upper_ci]],
-        xmin = .data[[lower_ci]]
-      ),
-      fatten = pointrange_fatten
     )
+
+  pointrange_args <- list(
+    ggplot2::aes(
+      xmax = .data[[upper_ci]],
+      xmin = .data[[lower_ci]]
+    )
+  )
+  if (!is.null(point_size)) {
+    pointrange_args$size <- point_size
+  }
+
+  p + do.call(ggplot2::geom_pointrange, pointrange_args)
 }

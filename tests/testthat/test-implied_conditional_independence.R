@@ -66,7 +66,7 @@ test_that("`ggdag_conditional_independence()` works", {
     test_result,
     vline_linewidth = 1,
     vline_color = "purple",
-    pointrange_fatten = 4
+    point_size = 3
   )
 
   expect_doppelganger("real tests plot", p2)
