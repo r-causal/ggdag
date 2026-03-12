@@ -353,7 +353,7 @@ ggdag_paths_fan <- function(
   directed = FALSE,
   ...,
   shadow = TRUE,
-  spread = .7,
+  spread = 0.7,
   size = 1,
   node_size = 16,
   text_size = 3.88,

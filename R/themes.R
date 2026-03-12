@@ -10,8 +10,8 @@
 #'   generate the values for the expand argument.
 #' @export
 expand_plot <- function(
-  expand_x = expansion(c(.10, .10)),
-  expand_y = expansion(c(.10, .10))
+  expand_x = expansion(c(0.10, 0.10)),
+  expand_y = expansion(c(0.10, 0.10))
 ) {
   list(
     ggplot2::scale_x_continuous(expand = expand_x),

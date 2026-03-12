@@ -123,7 +123,7 @@ test_conditional_independence <- function(
 ggdag_conditional_independence <- function(
   .test_result,
   sort = TRUE,
-  vline_linewidth = .8,
+  vline_linewidth = 0.8,
   vline_color = "grey70",
   point_size = NULL,
   pointrange_fatten = deprecated()
