@@ -99,7 +99,7 @@ dag_paths <- function(
   }
 
   # Filter for open paths
-  if (nrow(all_paths_info) == 0 || all(!all_paths_info$open)) {
+  if (nrow(all_paths_info) == 0 || !any(all_paths_info$open)) {
     all_open_paths <- character(0)
   } else {
     all_open_paths <- all_paths_info |>
@@ -107,7 +107,7 @@ dag_paths <- function(
       dplyr::pull(.data$paths)
   }
 
-  if (nrow(causal_paths_info) == 0 || all(!causal_paths_info$open)) {
+  if (nrow(causal_paths_info) == 0 || !any(causal_paths_info$open)) {
     causal_open_paths <- character(0)
   } else {
     causal_open_paths <- causal_paths_info |>
@@ -395,14 +395,14 @@ ggdag_paths_fan <- function(
       ggplot2::scale_alpha_manual(
         drop = FALSE,
         values = c("open path" = 1),
-        na.value = .35,
+        na.value = 0.35,
         breaks = "open path",
         limits = "open path"
       ) +
       ggraph::scale_edge_alpha_manual(
         drop = FALSE,
         values = c("open path" = 1),
-        na.value = .15,
+        na.value = 0.15,
         breaks = "open path",
         guide = "none",
         limits = "open path"

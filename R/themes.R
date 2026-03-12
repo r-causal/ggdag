@@ -170,12 +170,12 @@ scale_adjusted <- function(
     ),
     ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
     ggplot2::scale_alpha_manual(
-      values = c("adjusted" = .30, "unadjusted" = 1),
+      values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted")
     ),
     ggraph::scale_edge_alpha_manual(
       name = NULL,
-      values = c("adjusted" = .30, "unadjusted" = 1),
+      values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted")
     )
   )

@@ -1624,8 +1624,8 @@ ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
 
   p +
     expand_plot(
-      expand_x = expansion(c(.10, .10)),
-      expand_y = expansion(c(.10, .10))
+      expand_x = expansion(c(0.10, 0.10)),
+      expand_y = expansion(c(0.10, 0.10))
     )
 }
 
