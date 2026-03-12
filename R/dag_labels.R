@@ -51,7 +51,7 @@
 #' @export
 dag_label <- function(.tdy_dag, labels = NULL) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
-  if (!is.null(labels) & !is.null(pull_dag_data(.tdy_dag)[["label"]])) {
+  if (!is.null(labels) && !is.null(pull_dag_data(.tdy_dag)[["label"]])) {
     .tdy_dag <- dplyr::select(.tdy_dag, -label)
   }
   if (is.null(labels)) {

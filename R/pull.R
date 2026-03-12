@@ -149,7 +149,7 @@ prep_dag_data <- function(
   }
 
   # Remove circular column if all values are FALSE (issue #119)
-  if ("circular" %in% names(value) && all(!value$circular)) {
+  if ("circular" %in% names(value) && !any(value$circular)) {
     value$circular <- NULL
   }
 

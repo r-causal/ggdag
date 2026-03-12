@@ -355,7 +355,7 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
     dplyr::as_tibble()
 
   # Remove circular column if all values are FALSE (issue #119)
-  if (all(!layout_df$circular)) {
+  if (!any(layout_df$circular)) {
     layout_df$circular <- NULL
   }
 

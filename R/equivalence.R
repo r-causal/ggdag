@@ -240,7 +240,7 @@ ggdag_equivalent_class <- function(
       ggraph::scale_edge_alpha_manual(
         name = "Reversable",
         drop = FALSE,
-        values = c(.30, 1)
+        values = c(0.30, 1)
       )
   }
 

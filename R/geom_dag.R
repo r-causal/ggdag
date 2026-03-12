@@ -939,7 +939,7 @@ geom_dag_edges_link <- function(
 geom_dag_edges_arc <- function(
   mapping = NULL,
   data = NULL,
-  curvature = .5,
+  curvature = 0.5,
   arrow = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
   position = "identity",
   na.rm = TRUE,
@@ -1074,7 +1074,7 @@ geom_dag_edges_fan <- function(
   na.rm = TRUE,
   show.legend = NA,
   inherit.aes = TRUE,
-  spread = .7,
+  spread = 0.7,
   n = 100,
   lineend = "butt",
   linejoin = "round",
@@ -1159,7 +1159,7 @@ geom_dag_collider_edges <- function(
   stat = "identity",
   position = "identity",
   ...,
-  linewidth = .6,
+  linewidth = 0.6,
   size = NULL,
   curvature = 0.5,
   angle = 90,
@@ -1624,8 +1624,8 @@ ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
 
   p +
     expand_plot(
-      expand_x = expansion(c(.10, .10)),
-      expand_y = expansion(c(.10, .10))
+      expand_x = expansion(c(0.10, 0.10)),
+      expand_y = expansion(c(0.10, 0.10))
     )
 }
 

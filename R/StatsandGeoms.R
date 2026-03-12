@@ -256,7 +256,7 @@ draw_key_dag_edge <- function(data, params, size) {
         data$edge_colour %||% data$colour %||% "black",
         data$edge_alpha %||% data$alpha %||% 1
       ),
-      lwd = (data$edge_width %||% 0.6) * .stroke * .7,
+      lwd = (data$edge_width %||% 0.6) * .stroke * 0.7,
       lty = data$edge_linetype %||% data$linetype %||% 1
     ),
     arrow = arrow

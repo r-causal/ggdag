@@ -10,8 +10,8 @@
 #'   generate the values for the expand argument.
 #' @export
 expand_plot <- function(
-  expand_x = expansion(c(.10, .10)),
-  expand_y = expansion(c(.10, .10))
+  expand_x = expansion(c(0.10, 0.10)),
+  expand_y = expansion(c(0.10, 0.10))
 ) {
   list(
     ggplot2::scale_x_continuous(expand = expand_x),
@@ -170,12 +170,12 @@ scale_adjusted <- function(
     ),
     ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
     ggplot2::scale_alpha_manual(
-      values = c("adjusted" = .30, "unadjusted" = 1),
+      values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted")
     ),
     ggraph::scale_edge_alpha_manual(
       name = NULL,
-      values = c("adjusted" = .30, "unadjusted" = 1),
+      values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted")
     )
   )
