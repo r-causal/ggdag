@@ -310,22 +310,30 @@ StatNodes <- ggplot2::ggproto(
 StatNodesRepel <- ggplot2::ggproto(
   "StatNodesRepel",
   ggplot2::Stat,
-  compute_layer = function(data, scales, params) {
+  extra_params = c("na.rm", "node_size"),
+  compute_layer = function(data, params, layout) {
+    node_size <- params$node_size %||% 16
     if (all(c("xend", "yend") %in% names(data))) {
       data <- unique(dplyr::select(data, -"xend", -"yend"))
       if ("alpha" %in% names(data)) {
-        data |>
+        data <- data |>
           dplyr::filter(!is.na(alpha), !is.na(label))
       } else {
-        data |>
+        data <- data |>
           dplyr::filter(!is.na(label)) |>
           group_by(PANEL) |>
           dplyr::distinct(x, y, label, .keep_all = TRUE) |>
           ungroup()
       }
     } else {
-      unique(data)
+      data <- unique(data)
     }
+
+    if (!"point.size" %in% names(data)) {
+      data[["point.size"]] <- node_size * .pt / 14.4
+    }
+
+    data
   }
 )
 

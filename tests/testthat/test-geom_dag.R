@@ -362,6 +362,68 @@ test_that("repel point.size parameter works", {
   expect_doppelganger("repel large point padding", p_large_padding)
 })
 
+test_that("repel node_size parameter sets point.size for node-aware repelling", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x,
+    z ~ x
+  )
+
+  # node_size flows through geom_dag_text_repel
+  p_text <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point(size = 20) +
+    geom_dag_text_repel(
+      aes(label = name),
+      node_size = 20
+    )
+
+  expect_doppelganger("repel text with node_size 20", p_text)
+
+  # node_size flows through geom_dag_label_repel
+  p_label <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point(size = 20) +
+    geom_dag_label_repel(
+      aes(label = name),
+      node_size = 20
+    )
+
+  expect_doppelganger("repel label with node_size 20", p_label)
+})
+
+test_that("geom_dag() threads node_size to repel labels", {
+  g <- dagify(
+    y ~ x + m,
+    m ~ x,
+    labels = c(
+      "x" = "Exposure",
+      "y" = "Outcome",
+      "m" = "Mediator"
+    )
+  )
+
+  # geom_dag() with use_labels should pass node_size to repel layer
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag(
+      use_labels = TRUE,
+      node_size = 20,
+      size = 1
+    )
+
+  expect_s3_class(p, "gg")
+
+  # Build the plot to verify no errors during rendering
+  built <- ggplot2::ggplot_build(p)
+  expect_s3_class(built, "ggplot_built")
+})
+
 test_that("repel2 functions with custom defaults work visually", {
   withr::local_seed(1234)
   g <- dagify(

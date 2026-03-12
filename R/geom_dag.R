@@ -288,6 +288,9 @@ geom_dag_label <- function(
 #' @param fontface A character vector. Default is "bold"
 #' @param linewidth Width of the label border in `geom_dag_label_repel2()`.
 #'   Default is 0 (no border). Set to a positive value to show borders.
+#' @param node_size The size of the DAG nodes, used to compute the
+#'   `point.size` aesthetic so that labels repel from the node boundary
+#'   rather than the node center. Defaults to 16 (matching `geom_dag_node()`).
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -413,6 +416,7 @@ geom_dag_text_repel <- function(
   position = "identity",
   parse = FALSE,
   ...,
+  node_size = 16,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -455,6 +459,7 @@ geom_dag_text_repel <- function(
   params <- list(
     parse = parse,
     na.rm = na.rm,
+    node_size = node_size,
     box.padding = box.padding,
     point.padding = point.padding,
     min.segment.length = min.segment.length,
@@ -507,6 +512,7 @@ geom_dag_label_repel <- function(
   position = "identity",
   parse = FALSE,
   ...,
+  node_size = 16,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -550,6 +556,7 @@ geom_dag_label_repel <- function(
   # Build params list
   params <- list(
     parse = parse,
+    node_size = node_size,
     box.padding = box.padding,
     label.padding = label.padding,
     point.padding = point.padding,
@@ -1509,6 +1516,7 @@ geom_dag <- function(
       identical(label_geom, geom_dag_label_repel) ||
         identical(label_geom, geom_dag_label_repel2)
     ) {
+      common_params$node_size <- sizes[["node"]]
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
       common_params$label.padding <- 0.1
@@ -1516,6 +1524,7 @@ geom_dag <- function(
       identical(label_geom, geom_dag_text_repel) ||
         identical(label_geom, geom_dag_text_repel2)
     ) {
+      common_params$node_size <- sizes[["node"]]
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
     }

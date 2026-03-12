@@ -15,6 +15,7 @@ geom_dag_text_repel(
   position = "identity",
   parse = FALSE,
   ...,
+  node_size = 16,
   box.padding = 1.25,
   point.padding = 1.5,
   min.segment.length = 0.5,
@@ -47,6 +48,7 @@ geom_dag_label_repel(
   position = "identity",
   parse = FALSE,
   ...,
+  node_size = 16,
   box.padding = grid::unit(1.25, "lines"),
   label.padding = grid::unit(0.25, "lines"),
   point.padding = grid::unit(1.5, "lines"),
@@ -121,6 +123,10 @@ displayed as described in ?plotmath}
       default \code{stat} associated with the layer.
     \item Other arguments passed on to the stat.
   }}
+
+\item{node_size}{The size of the DAG nodes, used to compute the
+\code{point.size} aesthetic so that labels repel from the node boundary
+rather than the node center. Defaults to 16 (matching \code{geom_dag_node()}).}
 
 \item{box.padding}{Amount of padding around bounding box, as unit or number.
 Defaults to 0.25. (Default unit is lines, but other units can be specified
