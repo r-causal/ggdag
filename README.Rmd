@@ -72,7 +72,8 @@ tidy_ggdag <- dagify(
   z2 ~ w2 + v,
   w1 ~ ~w2, # bidirected path
   exposure = "x",
-  outcome = "y"
+  outcome = "y",
+  coords = time_ordered_coords()
 ) |>
   tidy_dagitty()
 

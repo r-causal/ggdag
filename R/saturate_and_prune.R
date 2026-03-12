@@ -37,10 +37,14 @@ dag_saturate <- function(
   ...
 ) {
   .dag <- pull_dag(.tdy_dag)
-  df_time_order <- .tdy_dag |>
-    pull_dag_data() |>
-    dplyr::select("name", "to") |>
-    auto_time_order() |>
+  edges_df <- .dag |>
+    get_dagitty_edges() |>
+    edges2df()
+  layer_assign <- longest_path_layers(edges_df)
+  df_time_order <- tibble::tibble(
+    name = names(layer_assign),
+    order = unname(layer_assign)
+  ) |>
     dplyr::arrange(order)
 
   if (isTRUE(use_existing_coords)) {

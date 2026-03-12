@@ -73,11 +73,15 @@ time_ordered_coords <- function(
   auto_sort_direction = c("right", "left")
 ) {
   direction <- match.arg(direction)
+  auto_sort_direction <- match.arg(auto_sort_direction)
 
   if (is.null(.vars)) {
     auto_time_ordered_coords <- function(.df) {
-      .df <- auto_time_order(.df, sort_direction = auto_sort_direction)
-      time_ordered_coords(.df, direction = direction)
+      compute_time_ordered_layout(
+        .df,
+        direction = direction,
+        sort_direction = auto_sort_direction
+      )
     }
 
     return(auto_time_ordered_coords)
@@ -127,54 +131,3 @@ calculate_spread <- function(n) {
   spread
 }
 
-auto_time_order <- function(graph, sort_direction = c("right", "left")) {
-  sort_direction <- match.arg(sort_direction)
-  names(graph)[1:2] <- c("name", "to")
-  graph2 <- graph
-  orders <- dplyr::tibble(name = character(), order = integer())
-
-  order_value <- 1
-
-  while (nrow(graph) > 0) {
-    no_incoming <- graph |>
-      dplyr::filter(!(.data$name %in% .data$to)) |>
-      dplyr::pull(.data$name)
-
-    # Add the names and order values to the orders data frame
-    orders <- dplyr::add_row(orders, name = no_incoming, order = order_value)
-
-    # Remove the rows with no incoming edges
-    graph <- graph |>
-      dplyr::filter(!.data$name %in% no_incoming)
-
-    order_value <- order_value + 1
-  }
-
-  # Merge orders with the original tibble
-  final_result <- dplyr::left_join(orders, graph, by = "name") |>
-    dplyr::select("name", "order") |>
-    dplyr::distinct()
-
-  if (sort_direction == "left") {
-    return(final_result)
-  }
-
-  final_result |>
-    ggdag_left_join(graph2, by = "name") |>
-    dplyr::group_by(.data$name) |>
-    dplyr::group_modify(\(.x, .y) right_sort_coords(.x, final_result)) |>
-    dplyr::ungroup() |>
-    dplyr::distinct()
-}
-
-right_sort_coords <- function(.x, .orders) {
-  coords <- .orders |>
-    dplyr::filter(.data$name %in% .x$to) |>
-    dplyr::pull("order")
-
-  if (length(coords) == 0) {
-    dplyr::tibble(order = .x$order)
-  } else {
-    dplyr::tibble(order = min(coords) - 1)
-  }
-}

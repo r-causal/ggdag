@@ -67,21 +67,21 @@ tidy_dag
 #> #
 #> # Data:
 #> # A tibble: 13 × 7
-#>    name       x     y direction to      xend   yend
-#>    <chr>  <dbl> <dbl> <fct>     <chr>  <dbl>  <dbl>
-#>  1 v     -0.180 0.946 ->        z1     1.20   0.608
-#>  2 v     -0.180 0.946 ->        z2     0.177  2.32 
-#>  3 w1     1.64  1.49  ->        x      2.23   1.70 
-#>  4 w1     1.64  1.49  ->        y      1.63   2.71 
-#>  5 w1     1.64  1.49  ->        z1     1.20   0.608
-#>  6 w1     1.64  1.49  <->       w2     1.16   2.30 
-#>  7 w2     1.16  2.30  ->        x      2.23   1.70 
-#>  8 w2     1.16  2.30  ->        y      1.63   2.71 
-#>  9 w2     1.16  2.30  ->        z2     0.177  2.32 
-#> 10 x      2.23  1.70  ->        y      1.63   2.71 
-#> 11 y      1.63  2.71  <NA>      <NA>  NA     NA    
-#> 12 z1     1.20  0.608 ->        x      2.23   1.70 
-#> 13 z2     0.177 2.32  ->        y      1.63   2.71 
+#>    name       x       y direction to      xend   yend
+#>    <chr>  <dbl>   <dbl> <fct>     <chr>  <dbl>  <dbl>
+#>  1 v     -1.51   0.0323 ->        z1    -0.473  1.00 
+#>  2 v     -1.51   0.0323 ->        z2    -0.553 -0.995
+#>  3 w1     0.986  0.515  ->        x      0.368  0.518
+#>  4 w1     0.986  0.515  ->        y      0.289 -0.432
+#>  5 w1     0.986  0.515  ->        z1    -0.473  1.00 
+#>  6 w1     0.986  0.515  <->       w2     0.891 -0.641
+#>  7 w2     0.891 -0.641  ->        x      0.368  0.518
+#>  8 w2     0.891 -0.641  ->        y      0.289 -0.432
+#>  9 w2     0.891 -0.641  ->        z2    -0.553 -0.995
+#> 10 x      0.368  0.518  ->        y      0.289 -0.432
+#> 11 y      0.289 -0.432  <NA>      <NA>  NA     NA    
+#> 12 z1    -0.473  1.00   ->        x      0.368  0.518
+#> 13 z2    -0.553 -0.995  ->        y      0.289 -0.432
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
@@ -93,7 +93,8 @@ tidy_ggdag <- dagify(
   z2 ~ w2 + v,
   w1 ~ ~w2, # bidirected path
   exposure = "x",
-  outcome = "y"
+  outcome = "y",
+  coords = time_ordered_coords()
 ) |>
   tidy_dagitty()
 
@@ -105,21 +106,21 @@ tidy_ggdag
 #> #
 #> # Data:
 #> # A tibble: 13 × 7
-#>    name          x     y direction to         xend  yend
-#>    <chr>     <dbl> <dbl> <fct>     <chr>     <dbl> <dbl>
-#>  1 v      0.696     4.02 ->        z1     1.07      2.66
-#>  2 v      0.696     4.02 ->        z2    -0.669     3.67
-#>  3 w1     0.175     2.21 ->        x     -0.000636  1.61
-#>  4 w1     0.175     2.21 ->        y     -1.05      2.22
-#>  5 w1     0.175     2.21 ->        z1     1.07      2.66
-#>  6 w1     0.175     2.21 <->       w2    -0.613     2.67
-#>  7 w2    -0.613     2.67 ->        x     -0.000636  1.61
-#>  8 w2    -0.613     2.67 ->        y     -1.05      2.22
-#>  9 w2    -0.613     2.67 ->        z2    -0.669     3.67
-#> 10 x     -0.000636  1.61 ->        y     -1.05      2.22
-#> 11 y     -1.05      2.22 <NA>      <NA>  NA        NA   
-#> 12 z1     1.07      2.66 ->        x     -0.000636  1.61
-#> 13 z2    -0.669     3.67 ->        y     -1.05      2.22
+#>    name      x      y direction to     xend   yend
+#>    <chr> <int>  <dbl> <fct>     <chr> <int>  <dbl>
+#>  1 v         1 -0.738 ->        z1        2  0.988
+#>  2 v         1 -0.738 ->        z2        3  0.407
+#>  3 w1        1  0.031 ->        x         3 -1.06 
+#>  4 w1        1  0.031 ->        y         4 -0.431
+#>  5 w1        1  0.031 ->        z1        2  0.988
+#>  6 w1        1  0.031 <->       w2        1  0.799
+#>  7 w2        1  0.799 ->        x         3 -1.06 
+#>  8 w2        1  0.799 ->        y         4 -0.431
+#>  9 w2        1  0.799 ->        z2        3  0.407
+#> 10 x         3 -1.06  ->        y         4 -0.431
+#> 11 y         4 -0.431 <NA>      <NA>     NA NA    
+#> 12 z1        2  0.988 ->        x         3 -1.06 
+#> 13 z2        3  0.407 ->        y         4 -0.431
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```
@@ -132,14 +133,14 @@ ggdag(tidy_ggdag) +
   theme_dag()
 ```
 
-<img src="man/figures/ggdag-1.png" width="100%" />
+<img src="man/figures/ggdag-1.png" alt="" width="100%" />
 
 ``` r
 ggdag_adjustment_set(tidy_ggdag, node_size = 14) +
   theme(legend.position = "bottom")
 ```
 
-<img src="man/figures/ggdag-2.png" width="100%" />
+<img src="man/figures/ggdag-2.png" alt="" width="100%" />
 
 As well as geoms and other functions for plotting them directly in
 `ggplot2`:
@@ -170,7 +171,7 @@ dagify(m ~ x + y) |>
   )
 ```
 
-<img src="man/figures/ggdag_geoms-1.png" width="100%" />
+<img src="man/figures/ggdag_geoms-1.png" alt="" width="100%" />
 
 And common structures of bias:
 
@@ -178,11 +179,11 @@ And common structures of bias:
 ggdag_equivalent_dags(confounder_triangle())
 ```
 
-<img src="man/figures/ggdag_common-1.png" width="100%" />
+<img src="man/figures/ggdag_common-1.png" alt="" width="100%" />
 
 ``` r
 
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
-<img src="man/figures/ggdag_common-2.png" width="100%" />
+<img src="man/figures/ggdag_common-2.png" alt="" width="100%" />
