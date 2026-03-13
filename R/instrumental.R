@@ -76,26 +76,29 @@ ggdag_instrumental <- function(
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
-  node_size = 16,
-  text_size = 3.88,
-  label_size = text_size,
-  text_col = "white",
-  label_col = "black",
-  edge_width = 0.6,
-  edge_cap = 10,
-  arrow_length = 5,
-  use_edges = TRUE,
-  use_nodes = TRUE,
-  use_stylized = FALSE,
-  use_text = TRUE,
-  use_labels = FALSE,
-  label_geom = geom_dag_label_repel,
+  node_size = ggdag_option("node_size", 16),
+  text_size = ggdag_option("text_size", 3.88),
+  label_size = ggdag_option("label_size", text_size),
+  text_col = ggdag_option("text_col", "white"),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  arrow_length = ggdag_option("arrow_length", 5),
+  use_edges = ggdag_option("use_edges", TRUE),
+  use_nodes = ggdag_option("use_nodes", TRUE),
+  use_stylized = ggdag_option("use_stylized", FALSE),
+  use_text = ggdag_option("use_text", TRUE),
+  use_labels = ggdag_option("use_labels", FALSE),
+  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
   node = deprecated(),
   stylized = deprecated()
 ) {
+  if (missing(edge_type)) {
+    edge_type <- ggdag_option("edge_type", "link_arc")
+  }
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_instrumental(exposure = exposure, outcome = outcome, ...)
   has_instrumental <- !all(is.na((pull_dag_data(.tdy_dag)$instrumental)))

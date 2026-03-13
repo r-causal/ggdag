@@ -1371,20 +1371,20 @@ geom_dag <- function(
   data = NULL,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
-  node_size = 16,
-  text_size = 3.88,
-  label_size = text_size,
-  text_col = "white",
-  label_col = "black",
-  edge_width = 0.6,
-  edge_cap = 8,
-  arrow_length = 5,
-  use_edges = TRUE,
-  use_nodes = TRUE,
-  use_stylized = FALSE,
-  use_text = TRUE,
-  use_labels = FALSE,
-  label_geom = geom_dag_label_repel,
+  node_size = ggdag_option("node_size", 16),
+  text_size = ggdag_option("text_size", 3.88),
+  label_size = ggdag_option("label_size", text_size),
+  text_col = ggdag_option("text_col", "white"),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option("edge_cap", 8),
+  arrow_length = ggdag_option("arrow_length", 5),
+  use_edges = ggdag_option("use_edges", TRUE),
+  use_nodes = ggdag_option("use_nodes", TRUE),
+  use_stylized = ggdag_option("use_stylized", FALSE),
+  use_text = ggdag_option("use_text", TRUE),
+  use_labels = ggdag_option("use_labels", FALSE),
+  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   n_edge_points = NULL,
   n_node_points = NULL,
   unified_legend = TRUE,
@@ -1412,6 +1412,9 @@ geom_dag <- function(
     # Hide edge legend when using unified legend with both edges and nodes
     edge_show_legend <- !(isTRUE(unified_legend) && isTRUE(use_nodes))
 
+    if (missing(edge_type)) {
+      edge_type <- ggdag_option("edge_type", "link_arc")
+    }
     edge_type <- match.arg(edge_type)
     if (edge_type == "link_arc") {
       edge_geom <- geom_dag_edges(
