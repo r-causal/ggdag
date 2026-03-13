@@ -8,7 +8,12 @@
 \alias{ggdag_equivalent_class}
 \title{Generating Equivalent Models}
 \usage{
-node_equivalent_dags(.dag, n = 100, layout = "auto", ...)
+node_equivalent_dags(
+  .dag,
+  n = 100,
+  layout = ggdag_option("layout", "auto"),
+  ...
+)
 
 ggdag_equivalent_dags(
   .tdy_dag,
@@ -37,7 +42,7 @@ ggdag_equivalent_dags(
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = "auto")
+node_equivalent_class(.dag, layout = ggdag_option("layout", "auto"))
 
 ggdag_equivalent_class(
   .tdy_dag,

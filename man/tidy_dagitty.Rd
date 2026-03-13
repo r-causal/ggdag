@@ -7,7 +7,7 @@
 tidy_dagitty(
   .dagitty,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   ...,
   use_existing_coords = TRUE
 )

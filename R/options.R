@@ -60,7 +60,8 @@ ggdag_defaults <- list(
   use_text = TRUE,
   use_labels = FALSE,
   label_geom = geom_dag_label_repel,
-  edge_type = "link_arc"
+  edge_type = "link_arc",
+  layout = "nicely"
 )
 
 #' @export
@@ -213,6 +214,27 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       abort(
         c(
           "{.arg label_geom} must be a function.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "layout") {
+    if (!is.character(value) && !is.function(value)) {
+      abort(
+        c(
+          "{.arg layout} must be a single character string or a function.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+    if (is.character(value) && length(value) != 1) {
+      abort(
+        c(
+          "{.arg layout} must be a single character string or a function.",
           "x" = "You provided {.obj_type_friendly {value}}."
         ),
         error_class = "ggdag_type_error",

@@ -42,7 +42,7 @@
 tidy_dagitty <- function(
   .dagitty,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   ...,
   use_existing_coords = TRUE
 ) {
@@ -175,7 +175,12 @@ as_tidy_dagitty <- function(x, ...) {
 
 #' @export
 #' @rdname as_tidy_dagitty
-as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
+as_tidy_dagitty.dagitty <- function(
+  x,
+  seed = NULL,
+  layout = ggdag_option("layout", "nicely"),
+  ...
+) {
   tidy_dagitty(x, seed = seed, layout = layout, ...)
 }
 
@@ -189,7 +194,7 @@ as_tidy_dagitty.data.frame <- function(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   saturate = FALSE,
   ...
 ) {

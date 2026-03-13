@@ -1,11 +1,21 @@
 test_that("ggdag_defaults contains all expected options", {
   expected_names <- c(
-    "node_size", "text_size", "label_size",
-    "text_col", "label_col",
-    "edge_width", "edge_cap", "arrow_length",
-    "use_edges", "use_nodes", "use_stylized",
-    "use_text", "use_labels",
-    "label_geom", "edge_type"
+    "node_size",
+    "text_size",
+    "label_size",
+    "text_col",
+    "label_col",
+    "edge_width",
+    "edge_cap",
+    "arrow_length",
+    "use_edges",
+    "use_nodes",
+    "use_stylized",
+    "use_text",
+    "use_labels",
+    "label_geom",
+    "edge_type",
+    "layout"
   )
   expect_named(ggdag_defaults, expected_names, ignore.order = TRUE)
 })
@@ -410,4 +420,255 @@ test_that("explicit args override global options in quick plots", {
   withr::local_options(ggdag.node_size = 24, ggdag.use_stylized = TRUE)
   p <- ggdag_m_bias(node_size = 10, use_stylized = FALSE)
   expect_doppelganger("opts-m-bias-explicit-override", p)
+})
+
+# Layout option ---------------------------------------------------------
+
+test_that("layout option validation accepts strings", {
+  withr::local_options(ggdag.layout = "fr")
+  expect_equal(ggdag_options_get("layout"), "fr")
+})
+
+test_that("layout option validation accepts functions", {
+  withr::local_options(ggdag.layout = time_ordered_coords())
+  expect_true(is.function(ggdag_options_get("layout")))
+})
+
+test_that("layout option validation rejects invalid types", {
+  expect_ggdag_error(
+    ggdag_options_set(layout = 42)
+  )
+  expect_ggdag_error(
+    ggdag_options_set(layout = TRUE)
+  )
+})
+
+test_that("ggdag_option returns layout default when unset", {
+  withr::local_options(ggdag.layout = NULL)
+  expect_equal(ggdag_option("layout", "nicely"), "nicely")
+})
+
+test_that("ggdag_option returns layout value when set", {
+  withr::local_options(ggdag.layout = "fr")
+  expect_equal(ggdag_option("layout", "nicely"), "fr")
+})
+
+test_that("tidy_dagitty() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  coords <- pull_dag_data(td) |>
+    dplyr::select(name, x, y) |>
+    dplyr::distinct()
+  # Circle layout places nodes on a unit circle
+  # Verify that not all nodes are on the same x or y (would indicate default)
+  expect_true(length(unique(round(coords$x, 2))) > 1)
+  expect_true(length(unique(round(coords$y, 2))) > 1)
+})
+
+test_that("explicit layout arg overrides global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  td_circle <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  td_star <- tidy_dagitty(dag, layout = "star", use_existing_coords = FALSE)
+  coords_circle <- pull_dag_data(td_circle) |>
+    dplyr::select(name, x, y) |>
+    dplyr::distinct()
+  coords_star <- pull_dag_data(td_star) |>
+    dplyr::select(name, x, y) |>
+    dplyr::distinct()
+  # Different layouts should produce different coordinates
+  expect_false(all(coords_circle$x == coords_star$x))
+})
+
+test_that("existing dagitty coords take precedence over global layout option", {
+  # DAGs with explicit coordinates should use those coords,
+  # not the global layout option
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 1, y = 3, z = 2), y = c(x = 1, y = 1, z = 2))
+  )
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag)
+  coords <- pull_dag_data(td) |>
+    dplyr::select(name, x, y) |>
+    dplyr::distinct() |>
+    dplyr::arrange(name)
+  # Explicit coords should be preserved despite global layout option
+  expect_equal(unname(coords$x[coords$name == "x"]), 1)
+  expect_equal(unname(coords$x[coords$name == "y"]), 3)
+  expect_equal(unname(coords$x[coords$name == "z"]), 2)
+})
+
+# Layout option visual snapshot tests -----------------------------------------
+
+# Core: ggdag() with circle layout
+test_that("ggdag() respects global layout option (circle)", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-ggdag-circle-layout", p)
+})
+
+test_that("ggdag() respects global layout option (linear)", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "linear")
+  p <- ggdag(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-ggdag-linear-layout", p)
+})
+
+test_that("ggdag() respects global layout option (star)", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "star")
+  p <- ggdag(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-ggdag-star-layout", p)
+})
+
+# Layout combined with other options
+test_that("ggdag() respects layout + visual options together", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(
+    ggdag.layout = "circle",
+    ggdag.node_size = 24,
+    ggdag.text_size = 6,
+    ggdag.use_stylized = TRUE
+  )
+  p <- ggdag(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-ggdag-circle-layout-stylized", p)
+})
+
+# Relations with layout
+test_that("ggdag_children() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_children(dag, "x", use_existing_coords = FALSE)
+  expect_doppelganger("opts-children-circle-layout", p)
+})
+
+test_that("ggdag_parents() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_parents(dag, "y", use_existing_coords = FALSE)
+  expect_doppelganger("opts-parents-circle-layout", p)
+})
+
+test_that("ggdag_ancestors() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_ancestors(dag, "y", use_existing_coords = FALSE)
+  expect_doppelganger("opts-ancestors-circle-layout", p)
+})
+
+# Status with layout
+test_that("ggdag_status() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_status(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-status-circle-layout", p)
+})
+
+# Exogenous with layout
+test_that("ggdag_exogenous() respects global layout option", {
+  dag <- dagify(y ~ x1 + x2 + x3, b ~ x1 + x2)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_exogenous(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-exogenous-circle-layout", p)
+})
+
+# Adjustment sets with layout (pre-tidy since ... doesn't reach tidy_dagitty)
+test_that("ggdag_adjustment_set() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  p <- ggdag_adjustment_set(td)
+  expect_doppelganger("opts-adjustment-set-circle-layout", p)
+})
+
+test_that("ggdag_adjust() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  p <- ggdag_adjust(td, var = "z")
+  expect_doppelganger("opts-adjust-circle-layout", p)
+})
+
+# D-relationship with layout (pre-tidy since ... doesn't reach tidy_dagitty)
+test_that("ggdag_drelationship() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  p <- ggdag_drelationship(td, "x", "y")
+  expect_doppelganger("opts-drelationship-circle-layout", p)
+})
+
+test_that("ggdag_dseparated() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  p <- ggdag_dseparated(td, "x", "y")
+  expect_doppelganger("opts-dseparated-circle-layout", p)
+})
+
+# Instrumental with layout (pre-tidy since ... doesn't reach tidy_dagitty)
+test_that("ggdag_instrumental() respects global layout option", {
+  dag <- dagify(y ~ x + u, x ~ u + z, exposure = "x", outcome = "y")
+  withr::local_options(ggdag.layout = "circle")
+  td <- tidy_dagitty(dag, use_existing_coords = FALSE)
+  p <- ggdag_instrumental(td)
+  expect_doppelganger("opts-instrumental-circle-layout", p)
+})
+
+# Paths with layout
+test_that("ggdag_paths() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_paths(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-paths-circle-layout", p)
+})
+
+test_that("ggdag_paths_fan() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_paths_fan(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-paths-fan-circle-layout", p)
+})
+
+# Colliders with layout
+test_that("ggdag_collider() respects global layout option", {
+  dag <- dagify(m ~ x + y, y ~ x)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_collider(dag, use_existing_coords = FALSE)
+  expect_doppelganger("opts-collider-circle-layout", p)
+})
+
+# Equivalence with layout
+test_that("ggdag_equivalent_dags() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_equivalent_dags(dag)
+  expect_doppelganger("opts-equivalent-dags-circle-layout", p)
+})
+
+test_that("ggdag_equivalent_class() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_equivalent_class(dag)
+  expect_doppelganger("opts-equivalent-class-circle-layout", p)
+})
+
+# Canonical with layout
+test_that("ggdag_canonical() respects global layout option", {
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag_canonical(dag)
+  expect_doppelganger("opts-canonical-circle-layout", p)
+})
+
+# Explicit layout arg overrides global layout option
+test_that("explicit layout arg overrides global layout option in ggdag()", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.layout = "circle")
+  p <- ggdag(dag, layout = "star", use_existing_coords = FALSE)
+  expect_doppelganger("opts-ggdag-layout-explicit-override", p)
 })

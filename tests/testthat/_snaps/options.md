@@ -61,3 +61,21 @@
       ! `label_geom` must be a function.
       x You provided a string.
 
+# layout option validation rejects invalid types
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `layout` must be a single character string or a function.
+      x You provided a number.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `layout` must be a single character string or a function.
+      x You provided `TRUE`.
+

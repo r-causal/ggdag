@@ -30,7 +30,12 @@
 #' @rdname equivalent
 #' @name Equivalent DAGs and Classes
 #' @export
-node_equivalent_dags <- function(.dag, n = 100, layout = "auto", ...) {
+node_equivalent_dags <- function(
+  .dag,
+  n = 100,
+  layout = ggdag_option("layout", "auto"),
+  ...
+) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
   extra_columns <- has_extra_columns(.dag)
 
@@ -169,7 +174,10 @@ hash <- function(x, y) {
 
 #' @rdname equivalent
 #' @export
-node_equivalent_class <- function(.dag, layout = "auto") {
+node_equivalent_class <- function(
+  .dag,
+  layout = ggdag_option("layout", "auto")
+) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
   ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) |>
     dagitty::edges() |>
