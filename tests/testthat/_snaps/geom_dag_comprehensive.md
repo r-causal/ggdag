@@ -21,16 +21,24 @@
       
       [[2]]
       [[2]][[1]]
+      $layer
       mapping: start_cap = ~ggraph::circle(sizes[["cap"]], "mm"), end_cap = ~ggraph::circle(sizes[["cap"]], "mm") 
       geom_dag_edge_path: arrow = list(angle = 30, length = 5, ends = 2, type = 2), interpolate = FALSE, na.rm = TRUE
       stat_edge_link: na.rm = TRUE
       position_identity 
       
+      attr(,"class")
+      [1] "dag_edge_layer"
+      
       [[2]][[2]]
+      $layer
       mapping: start_cap = ~ggraph::circle(sizes[["cap"]], "mm"), end_cap = ~ggraph::circle(sizes[["cap"]], "mm") 
       geom_dag_edge_path: arrow = list(angle = 30, length = 5, ends = 3, type = 2), interpolate = FALSE, na.rm = TRUE, lineend = butt, linejoin = round, linemitre = 1, label_colour = black, label_alpha = 1, label_parse = FALSE, check_overlap = FALSE, angle_calc = rot, force_flip = TRUE, label_dodge = NULL, label_push = NULL
       stat_edge_arc: strength = 0.3, fold = FALSE, na.rm = TRUE, n = 100
       position_identity 
+      
+      attr(,"class")
+      [1] "dag_edge_layer"
       
       
       [[3]]
@@ -59,16 +67,24 @@
       
       [[2]]
       [[2]][[1]]
+      $layer
       mapping: start_cap = ~ggraph::circle(sizes[["cap"]], "mm"), end_cap = ~ggraph::circle(sizes[["cap"]], "mm") 
       geom_dag_edge_path: arrow = list(angle = 30, length = 5, ends = 2, type = 2), interpolate = FALSE, na.rm = TRUE
       stat_edge_link: na.rm = TRUE
       position_identity 
       
+      attr(,"class")
+      [1] "dag_edge_layer"
+      
       [[2]][[2]]
+      $layer
       mapping: start_cap = ~ggraph::circle(sizes[["cap"]], "mm"), end_cap = ~ggraph::circle(sizes[["cap"]], "mm") 
       geom_dag_edge_path: arrow = list(angle = 30, length = 5, ends = 3, type = 2), interpolate = FALSE, na.rm = TRUE, lineend = butt, linejoin = round, linemitre = 1, label_colour = black, label_alpha = 1, label_parse = FALSE, check_overlap = FALSE, angle_calc = rot, force_flip = TRUE, label_dodge = NULL, label_push = NULL
       stat_edge_arc: strength = 0.3, fold = FALSE, na.rm = TRUE, n = 100
       position_identity 
+      
+      attr(,"class")
+      [1] "dag_edge_layer"
       
       
       [[3]]

@@ -104,8 +104,8 @@ test_that("geom_dag_edges creates correct layers", {
   layers <- geom_dag_edges()
   expect_type(layers, "list")
   expect_length(layers, 2)
-  expect_s3_class(layers[[1]], "LayerInstance")
-  expect_s3_class(layers[[2]], "LayerInstance")
+  expect_s3_class(layers[[1]], "dag_edge_layer")
+  expect_s3_class(layers[[2]], "dag_edge_layer")
 })
 
 test_that("geom_dag_edges_arc creates correct layer", {
@@ -113,7 +113,7 @@ test_that("geom_dag_edges_arc creates correct layer", {
     curvature = 0.5,
     arrow = grid::arrow(length = grid::unit(10, "pt"))
   )
-  expect_s3_class(layer, "LayerInstance")
+  expect_s3_class(layer, "dag_edge_layer")
   expect_equal(class(layer$geom)[1], "GeomDAGEdgePath")
   expect_equal(class(layer$stat)[1], "StatEdgeArc")
   # Check that parameters are set in the correct place
@@ -124,7 +124,7 @@ test_that("geom_dag_edges_arc creates correct layer", {
 
 test_that("geom_dag_edges_diagonal creates correct layer", {
   layer <- geom_dag_edges_diagonal()
-  expect_s3_class(layer, "LayerInstance")
+  expect_s3_class(layer, "dag_edge_layer")
   expect_equal(class(layer$geom)[1], "GeomDAGEdgePath")
   expect_equal(class(layer$stat)[1], "StatEdgeDiagonal")
 
@@ -141,7 +141,7 @@ test_that("geom_dag_edges_diagonal creates correct layer", {
 
 test_that("geom_dag_edges_fan creates correct layer", {
   layer <- geom_dag_edges_fan()
-  expect_s3_class(layer, "LayerInstance")
+  expect_s3_class(layer, "dag_edge_layer")
   expect_equal(class(layer$geom)[1], "GeomDAGEdgePath")
   expect_equal(class(layer$stat)[1], "StatEdgeFan")
 
@@ -239,10 +239,10 @@ test_that("geom_dag main function works with different options", {
 
   # With different edge types
   geoms_arc <- geom_dag(edge_type = "arc")
-  expect_s3_class(geoms_arc[[2]], "LayerInstance")
+  expect_s3_class(geoms_arc[[2]], "dag_edge_layer")
 
   geoms_diagonal <- geom_dag(edge_type = "diagonal")
-  expect_s3_class(geoms_diagonal[[2]], "LayerInstance")
+  expect_s3_class(geoms_diagonal[[2]], "dag_edge_layer")
 
   # Test size parameter scaling
   geoms_sizes <- geom_dag(
@@ -292,8 +292,8 @@ test_that("bidirected edge handling works", {
   edges <- geom_dag_edges()
   expect_length(edges, 2)
   # First layer is for directed edges, second for bidirected
-  expect_s3_class(edges[[1]], "LayerInstance")
-  expect_s3_class(edges[[2]], "LayerInstance")
+  expect_s3_class(edges[[1]], "dag_edge_layer")
+  expect_s3_class(edges[[2]], "dag_edge_layer")
 })
 
 test_that("text and label enquo handling works", {

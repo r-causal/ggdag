@@ -552,6 +552,54 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
   plot
 }
 
+node_size_to_cap <- function(node_size) {
+  node_size / 2
+}
+
+dag_edge_layer <- function(layer) {
+  structure(
+    list(layer = layer),
+    class = "dag_edge_layer"
+  )
+}
+
+#' @export
+`$.dag_edge_layer` <- function(x, name) {
+  if (name == "layer") {
+    .subset2(x, "layer")
+  } else {
+    .subset2(x, "layer")[[name]]
+  }
+}
+
+#' @exportS3Method ggplot2::ggplot_add
+ggplot_add.dag_edge_layer <- function(object, plot, ...) {
+  layer <- object$layer
+  # Only inject caps if the user hasn't set them explicitly in mapping
+  has_start_cap <- !is.null(layer$mapping$start_cap)
+  has_end_cap <- !is.null(layer$mapping$end_cap)
+
+  if (!has_start_cap || !has_end_cap) {
+    discovered <- discover_node_size(plot)
+    if (!is.null(discovered)) {
+      cap_mm <- node_size_to_cap(discovered)
+      cap_expr <- rlang::expr(ggraph::circle(!!cap_mm, "mm"))
+      cap_quo <- rlang::new_quosure(cap_expr, env = rlang::base_env())
+      if (is.null(layer$mapping)) {
+        layer$mapping <- ggplot2::aes()
+      }
+      if (!has_start_cap) {
+        layer$mapping$start_cap <- cap_quo
+      }
+      if (!has_end_cap) {
+        layer$mapping$end_cap <- cap_quo
+      }
+    }
+  }
+
+  ggplot2::ggplot_add(layer, plot, ...)
+}
+
 discover_node_size <- function(plot) {
   for (existing in plot@layers) {
     if (

@@ -37,3 +37,48 @@ test_that("quick plots render correctly", {
     ggdag_quartet_time_collider()
   )
 })
+
+test_that("quick plots forward edge_cap correctly", {
+  # Custom edge_cap should visually change where edges stop
+  expect_doppelganger(
+    "ggdag_m_bias-large-edge-cap",
+    ggdag_m_bias(edge_cap = 20)
+  )
+  expect_doppelganger(
+    "ggdag_confounder_triangle-large-edge-cap",
+    ggdag_confounder_triangle(edge_cap = 20)
+  )
+  expect_doppelganger(
+    "ggdag_quartet_collider-large-edge-cap",
+    ggdag_quartet_collider(edge_cap = 20)
+  )
+})
+
+test_that("quick plots forward size parameters correctly", {
+  # Large nodes with matching edge caps
+  expect_doppelganger(
+    "ggdag_m_bias-large-nodes",
+    ggdag_m_bias(node_size = 24, edge_cap = 12)
+  )
+  # Scaled via size multiplier
+  expect_doppelganger(
+    "ggdag_m_bias-size-2x",
+    ggdag_m_bias(size = 2)
+  )
+  # Custom edge_width and arrow_length
+  expect_doppelganger(
+    "ggdag_butterfly_bias-thick-edges",
+    ggdag_butterfly_bias(edge_width = 1.5, arrow_length = 10)
+  )
+})
+
+test_that("quick plots forward edge_type correctly", {
+  expect_doppelganger(
+    "ggdag_collider_triangle-arc-edges",
+    ggdag_collider_triangle(edge_type = "arc")
+  )
+  expect_doppelganger(
+    "ggdag_quartet_mediator-diagonal-edges",
+    ggdag_quartet_mediator(edge_type = "diagonal")
+  )
+})
