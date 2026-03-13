@@ -124,8 +124,7 @@ prep_dag_data <- function(
     } else if (identical(layout, "time_ordered")) {
       coords <- value |>
         edges2df() |>
-        auto_time_order() |>
-        time_ordered_coords() |>
+        compute_time_ordered_layout() |>
         coords2list()
     }
   }

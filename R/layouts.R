@@ -19,6 +19,14 @@
 #'   `"left"` or `"right"` of in the graph as is reasonable. Default is right,
 #'   meaning the nodes will be as close as possible in time to their
 #'   descendants.
+#' @param fixed_time A named numeric vector pinning specific nodes to time
+#'   points (e.g., `c(x = 3, z = 1)`). Only used in auto mode (`.vars =
+#'   NULL`). Other nodes are placed automatically while respecting these
+#'   constraints. Pinned times are 1-based and preserved in the output.
+#' @param adjust_exposure_outcome If `TRUE` (default), automatically shift the
+#'   outcome forward by one time point when it shares a layer with the
+#'   exposure. All descendants of the outcome are also shifted. Only applies in
+#'   auto mode and when the DAG has exposure and outcome set.
 #'
 #' @return A tibble with three columns: `name`, `x`, and `y`.
 #'
@@ -70,14 +78,23 @@ time_ordered_coords <- function(
   .vars = NULL,
   time_points = NULL,
   direction = c("x", "y"),
-  auto_sort_direction = c("right", "left")
+  auto_sort_direction = c("right", "left"),
+  fixed_time = NULL,
+  adjust_exposure_outcome = TRUE
 ) {
   direction <- match.arg(direction)
+  auto_sort_direction <- match.arg(auto_sort_direction)
 
   if (is.null(.vars)) {
-    auto_time_ordered_coords <- function(.df) {
-      .df <- auto_time_order(.df, sort_direction = auto_sort_direction)
-      time_ordered_coords(.df, direction = direction)
+    auto_time_ordered_coords <- function(.df, ...) {
+      compute_time_ordered_layout(
+        .df,
+        direction = direction,
+        sort_direction = auto_sort_direction,
+        fixed_time = fixed_time,
+        adjust_exposure_outcome = adjust_exposure_outcome,
+        ...
+      )
     }
 
     return(auto_time_ordered_coords)
@@ -125,56 +142,4 @@ calculate_spread <- function(n) {
   }
 
   spread
-}
-
-auto_time_order <- function(graph, sort_direction = c("right", "left")) {
-  sort_direction <- match.arg(sort_direction)
-  names(graph)[1:2] <- c("name", "to")
-  graph2 <- graph
-  orders <- dplyr::tibble(name = character(), order = integer())
-
-  order_value <- 1
-
-  while (nrow(graph) > 0) {
-    no_incoming <- graph |>
-      dplyr::filter(!(.data$name %in% .data$to)) |>
-      dplyr::pull(.data$name)
-
-    # Add the names and order values to the orders data frame
-    orders <- dplyr::add_row(orders, name = no_incoming, order = order_value)
-
-    # Remove the rows with no incoming edges
-    graph <- graph |>
-      dplyr::filter(!.data$name %in% no_incoming)
-
-    order_value <- order_value + 1
-  }
-
-  # Merge orders with the original tibble
-  final_result <- dplyr::left_join(orders, graph, by = "name") |>
-    dplyr::select("name", "order") |>
-    dplyr::distinct()
-
-  if (sort_direction == "left") {
-    return(final_result)
-  }
-
-  final_result |>
-    ggdag_left_join(graph2, by = "name") |>
-    dplyr::group_by(.data$name) |>
-    dplyr::group_modify(\(.x, .y) right_sort_coords(.x, final_result)) |>
-    dplyr::ungroup() |>
-    dplyr::distinct()
-}
-
-right_sort_coords <- function(.x, .orders) {
-  coords <- .orders |>
-    dplyr::filter(.data$name %in% .x$to) |>
-    dplyr::pull("order")
-
-  if (length(coords) == 0) {
-    dplyr::tibble(order = .x$order)
-  } else {
-    dplyr::tibble(order = min(coords) - 1)
-  }
 }

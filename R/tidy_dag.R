@@ -73,12 +73,20 @@ tidy_dagitty <- function(
   check_acyclic(.dagitty)
 
   dag_edges <- get_dagitty_edges(.dagitty)
+  .labels <- label(.dagitty)
 
   if (is.function(layout)) {
-    coords <- dag_edges |>
-      edges2df() |>
-      layout() |>
-      coords2list()
+    edge_df <- edges2df(dag_edges)
+    coords <- if ("..." %in% names(formals(layout))) {
+      layout(
+        edge_df,
+        exposure = dagitty::exposures(.dagitty),
+        outcome = dagitty::outcomes(.dagitty)
+      )
+    } else {
+      layout(edge_df)
+    }
+    coords <- coords2list(coords)
     dagitty::coordinates(.dagitty) <- coords
     layout <- "nicely"
   } else if (is.data.frame(layout)) {
@@ -87,8 +95,10 @@ tidy_dagitty <- function(
   } else if (identical(layout, "time_ordered")) {
     coords <- dag_edges |>
       edges2df() |>
-      auto_time_order() |>
-      time_ordered_coords() |>
+      compute_time_ordered_layout(
+        exposure = dagitty::exposures(.dagitty),
+        outcome = dagitty::outcomes(.dagitty)
+      ) |>
       coords2list()
     dagitty::coordinates(.dagitty) <- coords
   } else {
@@ -111,7 +121,6 @@ tidy_dagitty <- function(
     dplyr::distinct(.data$name, .data$x, .data$y) |>
     coords2list()
 
-  .labels <- label(.dagitty)
   dagitty::coordinates(.dagitty) <- coords
   label(.dagitty) <- .labels
 
@@ -221,9 +230,15 @@ as_tidy_dagitty.data.frame <- function(
     dagitty::adjustedNodes(.dagitty) <- .adjusted
   }
 
-  dagitty::coordinates(.dagitty) <- tidy_dag |>
-    select("name", "x", "y") |>
-    coords2list()
+  all_node_coords <- dplyr::bind_rows(
+    tidy_dag |> dplyr::select("name", "x", "y"),
+    tidy_dag |>
+      dplyr::filter(!is.na(.data$to)) |>
+      dplyr::transmute(name = .data$to, x = .data$xend, y = .data$yend)
+  ) |>
+    dplyr::distinct(.data$name, .keep_all = TRUE)
+
+  dagitty::coordinates(.dagitty) <- coords2list(all_node_coords)
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
 
@@ -274,7 +289,11 @@ as_tidy_dagitty.list <- function(
 saturate_edges <- function(.x, time_points) {
   current_elements <- time_points[[.x]]
   future_elements <- unlist(time_points[(.x + 1):length(time_points)])
-  expand.grid(name = current_elements, to = future_elements)
+  expand.grid(
+    name = current_elements,
+    to = future_elements,
+    stringsAsFactors = FALSE
+  )
 }
 
 new_tidy_dagitty <- function(tidy_dag, .dagitty) {

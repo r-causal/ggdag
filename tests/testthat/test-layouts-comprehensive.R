@@ -46,40 +46,6 @@ test_that("calculate_spread handles even number of nodes", {
   expect_equal(mean(spread_6), 0, tolerance = 1e-10)
 })
 
-test_that("auto_time_order with different sort_directions", {
-  # DAG where right sort actually changes order values
-  # a -> b -> c
-  # a -> d
-  # f -> c
-  # d and c point to nodes not in the name column
-  edges_df <- data.frame(
-    name = c("a", "a", "b", "d", "f", "c"),
-    to = c("b", "d", "c", "e", "c", "e"),
-    stringsAsFactors = FALSE
-  )
-
-  result_left <- auto_time_order(edges_df, sort_direction = "left")
-  result_right <- auto_time_order(edges_df, sort_direction = "right")
-
-  # Extract orders for each node
-  get_order <- function(df, node) df$order[df$name == node]
-
-  # LEFT sort: standard topological order
-  expect_equal(get_order(result_left, "a"), 1)
-  expect_equal(get_order(result_left, "f"), 1)
-  expect_equal(get_order(result_left, "b"), 2)
-  expect_equal(get_order(result_left, "d"), 2)
-  expect_equal(get_order(result_left, "c"), 3)
-
-  # RIGHT sort: f gets pulled forward because it points to c
-  # f initially has order 1, c has order 3
-  # f's new order = min(3) - 1 = 2
-  expect_equal(get_order(result_right, "a"), 1)
-  expect_equal(get_order(result_right, "f"), 2) # Changed!
-  expect_equal(get_order(result_right, "b"), 2)
-  expect_equal(get_order(result_right, "d"), 2)
-  expect_equal(get_order(result_right, "c"), 3)
-})
 
 test_that("time_ordered_coords with different time points", {
   time_df <- data.frame(
@@ -122,55 +88,6 @@ test_that("time_ordered_coords only returns name, x, y columns", {
   expect_equal(nrow(coords), 3)
 })
 
-test_that("auto_time_order handles disconnected nodes", {
-  # Create edges with a disconnected node
-  edges_df <- data.frame(
-    name = c("a", "b", "isolated"),
-    to = c("b", "c", NA),
-    stringsAsFactors = FALSE
-  )
-
-  result <- auto_time_order(edges_df)
-
-  # All nodes should have order assigned
-  expect_false(anyNA(result$order))
-
-  # Isolated node should get an order value
-  isolated_order <- result$order[result$name == "isolated"]
-  expect_true(is.numeric(isolated_order))
-})
-
-test_that("auto_time_order handles complex DAG structures", {
-  # Create a more complex DAG
-  edges_df <- data.frame(
-    name = c("w", "w", "x", "x", "y", "y", "z", "m"),
-    to = c("x", "y", "m", "z", "m", "z", "outcome", "outcome"),
-    stringsAsFactors = FALSE
-  )
-
-  result <- auto_time_order(edges_df)
-
-  # Check that only nodes in "name" column are included
-  unique_names <- unique(edges_df$name)
-  expect_equal(sort(unique(result$name)), sort(unique_names))
-
-  # Check order values make sense
-  # w should have lower order than x and y (comes first)
-  w_order <- result$order[result$name == "w"]
-  x_order <- result$order[result$name == "x"]
-  y_order <- result$order[result$name == "y"]
-
-  if (length(w_order) > 0 && length(x_order) > 0 && length(y_order) > 0) {
-    expect_true(w_order[1] < x_order[1])
-    expect_true(w_order[1] < y_order[1])
-  }
-
-  # outcome should have highest order
-  outcome_order <- result$order[result$name == "outcome"]
-  if (length(outcome_order) > 0) {
-    expect_equal(outcome_order[1], max(result$order))
-  }
-})
 
 test_that("calculate_spread handles edge cases", {
   # Single node
