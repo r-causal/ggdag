@@ -103,21 +103,21 @@
 <span><span class="co">#&gt; #</span></span>
 <span><span class="co">#&gt; # Data:</span></span>
 <span><span class="co">#&gt; # A tibble: 13 × 7</span></span>
-<span><span class="co">#&gt;    name       x     y direction to      xend   yend</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt;  1 v     -0.180 0.946 -&gt;        z1     1.20   0.608</span></span>
-<span><span class="co">#&gt;  2 v     -0.180 0.946 -&gt;        z2     0.177  2.32 </span></span>
-<span><span class="co">#&gt;  3 w1     1.64  1.49  -&gt;        x      2.23   1.70 </span></span>
-<span><span class="co">#&gt;  4 w1     1.64  1.49  -&gt;        y      1.63   2.71 </span></span>
-<span><span class="co">#&gt;  5 w1     1.64  1.49  -&gt;        z1     1.20   0.608</span></span>
-<span><span class="co">#&gt;  6 w1     1.64  1.49  &lt;-&gt;       w2     1.16   2.30 </span></span>
-<span><span class="co">#&gt;  7 w2     1.16  2.30  -&gt;        x      2.23   1.70 </span></span>
-<span><span class="co">#&gt;  8 w2     1.16  2.30  -&gt;        y      1.63   2.71 </span></span>
-<span><span class="co">#&gt;  9 w2     1.16  2.30  -&gt;        z2     0.177  2.32 </span></span>
-<span><span class="co">#&gt; 10 x      2.23  1.70  -&gt;        y      1.63   2.71 </span></span>
-<span><span class="co">#&gt; 11 y      1.63  2.71  &lt;NA&gt;      &lt;NA&gt;  NA     NA    </span></span>
-<span><span class="co">#&gt; 12 z1     1.20  0.608 -&gt;        x      2.23   1.70 </span></span>
-<span><span class="co">#&gt; 13 z2     0.177 2.32  -&gt;        y      1.63   2.71 </span></span>
+<span><span class="co">#&gt;    name       x       y direction to      xend   yend</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt;  1 v     -1.51   0.0323 -&gt;        z1    -0.473  1.00 </span></span>
+<span><span class="co">#&gt;  2 v     -1.51   0.0323 -&gt;        z2    -0.553 -0.995</span></span>
+<span><span class="co">#&gt;  3 w1     0.986  0.515  -&gt;        x      0.368  0.518</span></span>
+<span><span class="co">#&gt;  4 w1     0.986  0.515  -&gt;        y      0.289 -0.432</span></span>
+<span><span class="co">#&gt;  5 w1     0.986  0.515  -&gt;        z1    -0.473  1.00 </span></span>
+<span><span class="co">#&gt;  6 w1     0.986  0.515  &lt;-&gt;       w2     0.891 -0.641</span></span>
+<span><span class="co">#&gt;  7 w2     0.891 -0.641  -&gt;        x      0.368  0.518</span></span>
+<span><span class="co">#&gt;  8 w2     0.891 -0.641  -&gt;        y      0.289 -0.432</span></span>
+<span><span class="co">#&gt;  9 w2     0.891 -0.641  -&gt;        z2    -0.553 -0.995</span></span>
+<span><span class="co">#&gt; 10 x      0.368  0.518  -&gt;        y      0.289 -0.432</span></span>
+<span><span class="co">#&gt; 11 y      0.289 -0.432  &lt;NA&gt;      &lt;NA&gt;  NA     NA    </span></span>
+<span><span class="co">#&gt; 12 z1    -0.473  1.00   -&gt;        x      0.368  0.518</span></span>
+<span><span class="co">#&gt; 13 z2    -0.553 -0.995  -&gt;        y      0.289 -0.432</span></span>
 <span><span class="co">#&gt; #</span></span>
 <span><span class="co">#&gt; # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span>
 <span></span>
@@ -129,7 +129,8 @@
 <span>  <span class="va">z2</span> <span class="op">~</span> <span class="va">w2</span> <span class="op">+</span> <span class="va">v</span>,</span>
 <span>  <span class="va">w1</span> <span class="op">~</span> <span class="op">~</span><span class="va">w2</span>, <span class="co"># bidirected path</span></span>
 <span>  exposure <span class="op">=</span> <span class="st">"x"</span>,</span>
-<span>  outcome <span class="op">=</span> <span class="st">"y"</span></span>
+<span>  outcome <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>  coords <span class="op">=</span> <span class="fu"><a href="reference/time_ordered_coords.html">time_ordered_coords</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="reference/tidy_dagitty.html">tidy_dagitty</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -141,32 +142,32 @@
 <span><span class="co">#&gt; #</span></span>
 <span><span class="co">#&gt; # Data:</span></span>
 <span><span class="co">#&gt; # A tibble: 13 × 7</span></span>
-<span><span class="co">#&gt;    name          x     y direction to         xend  yend</span></span>
-<span><span class="co">#&gt;    &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;     &lt;dbl&gt; &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt;  1 v      0.696     4.02 -&gt;        z1     1.07      2.66</span></span>
-<span><span class="co">#&gt;  2 v      0.696     4.02 -&gt;        z2    -0.669     3.67</span></span>
-<span><span class="co">#&gt;  3 w1     0.175     2.21 -&gt;        x     -0.000636  1.61</span></span>
-<span><span class="co">#&gt;  4 w1     0.175     2.21 -&gt;        y     -1.05      2.22</span></span>
-<span><span class="co">#&gt;  5 w1     0.175     2.21 -&gt;        z1     1.07      2.66</span></span>
-<span><span class="co">#&gt;  6 w1     0.175     2.21 &lt;-&gt;       w2    -0.613     2.67</span></span>
-<span><span class="co">#&gt;  7 w2    -0.613     2.67 -&gt;        x     -0.000636  1.61</span></span>
-<span><span class="co">#&gt;  8 w2    -0.613     2.67 -&gt;        y     -1.05      2.22</span></span>
-<span><span class="co">#&gt;  9 w2    -0.613     2.67 -&gt;        z2    -0.669     3.67</span></span>
-<span><span class="co">#&gt; 10 x     -0.000636  1.61 -&gt;        y     -1.05      2.22</span></span>
-<span><span class="co">#&gt; 11 y     -1.05      2.22 &lt;NA&gt;      &lt;NA&gt;  NA        NA   </span></span>
-<span><span class="co">#&gt; 12 z1     1.07      2.66 -&gt;        x     -0.000636  1.61</span></span>
-<span><span class="co">#&gt; 13 z2    -0.669     3.67 -&gt;        y     -1.05      2.22</span></span>
+<span><span class="co">#&gt;    name      x      y direction to     xend   yend</span></span>
+<span><span class="co">#&gt;    &lt;chr&gt; &lt;int&gt;  &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;int&gt;  &lt;dbl&gt;</span></span>
+<span><span class="co">#&gt;  1 v         1 -0.738 -&gt;        z1        2  0.988</span></span>
+<span><span class="co">#&gt;  2 v         1 -0.738 -&gt;        z2        3  0.407</span></span>
+<span><span class="co">#&gt;  3 w1        1  0.031 -&gt;        x         3 -1.06 </span></span>
+<span><span class="co">#&gt;  4 w1        1  0.031 -&gt;        y         4 -0.431</span></span>
+<span><span class="co">#&gt;  5 w1        1  0.031 -&gt;        z1        2  0.988</span></span>
+<span><span class="co">#&gt;  6 w1        1  0.031 &lt;-&gt;       w2        1  0.799</span></span>
+<span><span class="co">#&gt;  7 w2        1  0.799 -&gt;        x         3 -1.06 </span></span>
+<span><span class="co">#&gt;  8 w2        1  0.799 -&gt;        y         4 -0.431</span></span>
+<span><span class="co">#&gt;  9 w2        1  0.799 -&gt;        z2        3  0.407</span></span>
+<span><span class="co">#&gt; 10 x         3 -1.06  -&gt;        y         4 -0.431</span></span>
+<span><span class="co">#&gt; 11 y         4 -0.431 &lt;NA&gt;      &lt;NA&gt;     NA NA    </span></span>
+<span><span class="co">#&gt; 12 z1        2  0.988 -&gt;        x         3 -1.06 </span></span>
+<span><span class="co">#&gt; 13 z2        3  0.407 -&gt;        y         4 -0.431</span></span>
 <span><span class="co">#&gt; #</span></span>
 <span><span class="co">#&gt; # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame</span></span></code></pre></div>
 <p><code>ggdag</code> also provides functionality for analyzing DAGs and plotting them in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/ggdag.html">ggdag</a></span><span class="op">(</span><span class="va">tidy_ggdag</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="reference/theme_dag_blank.html">theme_dag</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/ggdag-1.png" width="100%"></p>
+<p><img src="reference/figures/ggdag-1.png" alt="" width="100%"></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/adjustment_sets.html">ggdag_adjustment_set</a></span><span class="op">(</span><span class="va">tidy_ggdag</span>, node_size <span class="op">=</span> <span class="fl">14</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/ggdag-2.png" width="100%"></p>
+<p><img src="reference/figures/ggdag-2.png" alt="" width="100%"></p>
 <p>As well as geoms and other functions for plotting them directly in <code>ggplot2</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/dagify.html">dagify</a></span><span class="op">(</span><span class="va">m</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">y</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -192,15 +193,15 @@
 <span>    na.value <span class="op">=</span> <span class="st">"grey85"</span>,</span>
 <span>    begin <span class="op">=</span> <span class="fl">.35</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/ggdag_geoms-1.png" width="100%"></p>
+<p><img src="reference/figures/ggdag_geoms-1.png" alt="" width="100%"></p>
 <p>And common structures of bias:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/equivalent.html">ggdag_equivalent_dags</a></span><span class="op">(</span><span class="fu"><a href="reference/quick_plot.html">confounder_triangle</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/ggdag_common-1.png" width="100%"></p>
+<p><img src="reference/figures/ggdag_common-1.png" alt="" width="100%"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="fu"><a href="reference/quick_plot.html">ggdag_butterfly_bias</a></span><span class="op">(</span>edge_type <span class="op">=</span> <span class="st">"diagonal"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="reference/figures/ggdag_common-2.png" width="100%"></p>
+<p><img src="reference/figures/ggdag_common-2.png" alt="" width="100%"></p>
 </div>
 </div>
 

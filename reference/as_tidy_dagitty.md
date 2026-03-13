@@ -153,18 +153,18 @@ time_points |>
 #> #
 #> # Data:
 #> # A tibble: 22 × 7
-#>    name      x     y direction to     xend  yend
-#>    <chr> <dbl> <int> <fct>     <chr> <dbl> <int>
-#>  1 a         1    -1 ->        d         2     0
-#>  2 a         1    -1 ->        e         3    -1
-#>  3 a         1    -1 ->        f         3     0
-#>  4 a         1    -1 ->        g         3     1
-#>  5 a         1    -1 ->        z         4     0
-#>  6 b         1     0 ->        d         2     0
-#>  7 b         1     0 ->        e         3    -1
-#>  8 b         1     0 ->        f         3     0
-#>  9 b         1     0 ->        g         3     1
-#> 10 b         1     0 ->        z         4     0
+#>    name      x      y direction to     xend    yend
+#>    <chr> <dbl>  <dbl> <fct>     <chr> <dbl>   <dbl>
+#>  1 a         1 -0.986 ->        d         2  1.97  
+#>  2 a         1 -0.986 ->        e         3 -1.41  
+#>  3 a         1 -0.986 ->        f         3  1.11  
+#>  4 a         1 -0.986 ->        g         3 -0.0510
+#>  5 a         1 -0.986 ->        z         4 -0.870 
+#>  6 b         1 -0.249 ->        d         2  1.97  
+#>  7 b         1 -0.249 ->        e         3 -1.41  
+#>  8 b         1 -0.249 ->        f         3  1.11  
+#>  9 b         1 -0.249 ->        g         3 -0.0510
+#> 10 b         1 -0.249 ->        z         4 -0.870 
 #> # ℹ 12 more rows
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame

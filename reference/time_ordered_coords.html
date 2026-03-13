@@ -67,7 +67,9 @@ work along the y-axis by setting <code>direction = "y"</code>.</p>
 <span>  .vars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  time_points <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span>,</span>
-<span>  auto_sort_direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"right"</span>, <span class="st">"left"</span><span class="op">)</span></span>
+<span>  auto_sort_direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"right"</span>, <span class="st">"left"</span><span class="op">)</span>,</span>
+<span>  fixed_time <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  adjust_exposure_outcome <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -96,6 +98,19 @@ variables should be time-ordered. Either "x" or "y". Default is "x".</p></dd>
 <code>"left"</code> or <code>"right"</code> of in the graph as is reasonable. Default is right,
 meaning the nodes will be as close as possible in time to their
 descendants.</p></dd>
+
+
+<dt id="arg-fixed-time">fixed_time<a class="anchor" aria-label="anchor" href="#arg-fixed-time"></a></dt>
+<dd><p>A named numeric vector pinning specific nodes to time
+points (e.g., <code>c(x = 3, z = 1)</code>). Only used in auto mode (<code>.vars = NULL</code>). Other nodes are placed automatically while respecting these
+constraints. Pinned times are 1-based and preserved in the output.</p></dd>
+
+
+<dt id="arg-adjust-exposure-outcome">adjust_exposure_outcome<a class="anchor" aria-label="anchor" href="#arg-adjust-exposure-outcome"></a></dt>
+<dd><p>If <code>TRUE</code> (default), automatically shift the
+outcome forward by one time point when it shares a layer with the
+exposure. All descendants of the outcome are also shifted. Only applies in
+auto mode and when the DAG has exposure and outcome set.</p></dd>
 
 </dl></div>
     <div class="section level2">
