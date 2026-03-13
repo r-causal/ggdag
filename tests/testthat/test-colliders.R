@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("colliders correctly identified", {
   test_dag <- dagify(m ~ x + y, y ~ x)
   p <- ggdag_collider(test_dag)

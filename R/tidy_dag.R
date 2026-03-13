@@ -93,14 +93,20 @@ tidy_dagitty <- function(
     dagitty::coordinates(.dagitty) <- coords2list(layout)
     layout <- "nicely"
   } else if (identical(layout, "time_ordered")) {
-    coords <- dag_edges |>
-      edges2df() |>
-      compute_time_ordered_layout(
-        exposure = dagitty::exposures(.dagitty),
-        outcome = dagitty::outcomes(.dagitty)
-      ) |>
-      coords2list()
-    dagitty::coordinates(.dagitty) <- coords
+    existing <- dagitty::coordinates(.dagitty)
+    has_coords <- !is.null(existing) &&
+      !all(is.na(unlist(existing)))
+    if (!isTRUE(use_existing_coords) || !has_coords) {
+      coords <- dag_edges |>
+        edges2df() |>
+        compute_time_ordered_layout(
+          exposure = dagitty::exposures(.dagitty),
+          outcome = dagitty::outcomes(.dagitty)
+        ) |>
+        coords2list()
+      dagitty::coordinates(.dagitty) <- coords
+    }
+    layout <- "nicely"
   } else {
     check_verboten_layout(layout)
   }

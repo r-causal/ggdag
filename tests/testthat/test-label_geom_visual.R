@@ -1,6 +1,3 @@
-# Set seed for reproducibility
-set.seed(1234)
-
 test_that("ggdag() visual output with different label geoms", {
   # Create a simple DAG with labels
   dag <- dagify(

@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("d relationships correctly identified", {
   test_dag <- dagify(m ~ x + y) |>
     tidy_dagitty()

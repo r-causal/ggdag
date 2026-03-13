@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("themes look good", {
   p <- ggdag(test_dag)
   expect_identical(theme_dag, theme_dag_blank)

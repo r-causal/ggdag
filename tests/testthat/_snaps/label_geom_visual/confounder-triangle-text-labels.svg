@@ -39,10 +39,10 @@
 <text x='374.88' y='93.43' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <line x1='85.05' y1='513.36' x2='96.77' y2='493.56' style='stroke-width: 1.07; stroke: #666666;' />
 <line x1='665.41' y1='513.36' x2='653.21' y2='493.43' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='348.39' y1='49.25' x2='365.13' y2='74.77' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='348.64' y1='49.37' x2='365.17' y2='74.74' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='82.50' y='523.51' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
 <text x='668.28' y='523.51' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
-<text x='314.85' y='52.74' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
+<text x='315.10' y='52.86' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
 <rect x='35.24' y='22.78' width='679.28' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

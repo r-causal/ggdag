@@ -899,6 +899,9 @@ compute_time_ordered_layout <- function(
   }
 
   # Stage 2: Build layer_nodes and barycenter sort
+  if (length(layer_assign) == 0L) {
+    return(tibble::tibble(name = character(), x = numeric(), y = numeric()))
+  }
   max_layer <- max(layer_assign)
   layer_nodes <- lapply(seq(0, max_layer), function(l) {
     names(layer_assign[layer_assign == l])

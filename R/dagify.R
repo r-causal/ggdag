@@ -285,7 +285,7 @@ edges2df <- function(.edges) {
     .edges,
     tibble::tibble(
       name = no_outgoing_edges,
-      to = rep(NA, length(no_outgoing_edges))
+      to = rep(NA_character_, length(no_outgoing_edges))
     )
   )
 }
