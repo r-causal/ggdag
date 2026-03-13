@@ -622,18 +622,24 @@ ggdag_m_bias <- function(
 ) {
   ggdag(
     m_bias(x, y, a, b, m, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    node = node,
+    stylized = stylized
   )
 }
 
@@ -669,18 +675,24 @@ ggdag_butterfly_bias <- function(
 ) {
   ggdag(
     butterfly_bias(x, y, a, b, m, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    node = node,
+    stylized = stylized
   )
 }
 
@@ -714,18 +726,24 @@ ggdag_confounder_triangle <- function(
 ) {
   ggdag(
     confounder_triangle(x, y, z, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    node = node,
+    stylized = stylized
   )
 }
 
@@ -759,18 +777,24 @@ ggdag_collider_triangle <- function(
 ) {
   ggdag(
     collider_triangle(x, y, m, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    node = node,
+    stylized = stylized
   )
 }
 
@@ -804,18 +828,24 @@ ggdag_mediation_triangle <- function(
 ) {
   ggdag(
     mediation_triangle(x, y, m, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    node = node,
+    stylized = stylized
   )
 }
 
@@ -847,18 +877,22 @@ ggdag_quartet_collider <- function(
 ) {
   ggdag(
     quartet_collider(x, y, z, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
   )
 }
 
@@ -890,18 +924,22 @@ ggdag_quartet_confounder <- function(
 ) {
   ggdag(
     quartet_confounder(x, y, z, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
   )
 }
 
@@ -933,18 +971,22 @@ ggdag_quartet_mediator <- function(
 ) {
   ggdag(
     quartet_mediator(x, y, z, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
   )
 }
 
@@ -978,18 +1020,22 @@ ggdag_quartet_m_bias <- function(
 ) {
   ggdag(
     quartet_m_bias(x, y, z, u1, u2, x_y_associated),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
   )
 }
 
@@ -1027,17 +1073,21 @@ ggdag_quartet_time_collider <- function(
 ) {
   ggdag(
     quartet_time_collider(x0, x1, x2, x3, y1, y2, y3, z1, z2, z3),
+    size = size,
     node_size = node_size,
     text_size = text_size,
     label_size = label_size,
     edge_type = edge_type,
     text_col = text_col,
     label_col = label_col,
+    edge_width = edge_width,
+    edge_cap = edge_cap,
+    arrow_length = arrow_length,
     use_edges = use_edges,
     use_nodes = use_nodes,
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
   )
 }

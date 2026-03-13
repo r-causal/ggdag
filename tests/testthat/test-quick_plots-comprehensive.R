@@ -363,6 +363,78 @@ test_that("all ggdag quick plots accept standard parameters", {
   })
 })
 
+test_that("quick plot functions forward edge_cap to edge layers", {
+  # Helper to extract edge_cap value (radius in mm) from first edge layer.
+  # ggraph::circle(r, "mm") stores width = 2*r (diameter).
+  get_edge_cap_radius <- function(plot) {
+    for (layer in plot$layers) {
+      if (
+        inherits(layer$geom, "GeomDAGEdgePath") ||
+          inherits(layer$geom, "GeomEdgePath")
+      ) {
+        cap_quo <- layer$mapping$start_cap
+        if (!is.null(cap_quo)) {
+          cap <- rlang::eval_tidy(cap_quo)
+          return(unclass(cap)$width / 2)
+        }
+      }
+    }
+    NULL
+  }
+
+  funcs <- list(
+    ggdag_m_bias,
+    ggdag_butterfly_bias,
+    ggdag_confounder_triangle,
+    ggdag_collider_triangle,
+    ggdag_mediation_triangle
+  )
+
+  purrr::walk(funcs, \(func) {
+    p_default <- func()
+    p_custom <- func(edge_cap = 20)
+    default_radius <- get_edge_cap_radius(p_default)
+    custom_radius <- get_edge_cap_radius(p_custom)
+    expect_equal(default_radius, 8)
+    expect_equal(custom_radius, 20)
+  })
+})
+
+test_that("quartet quick plot functions forward edge_cap to edge layers", {
+  get_edge_cap_radius <- function(plot) {
+    for (layer in plot$layers) {
+      if (
+        inherits(layer$geom, "GeomDAGEdgePath") ||
+          inherits(layer$geom, "GeomEdgePath")
+      ) {
+        cap_quo <- layer$mapping$start_cap
+        if (!is.null(cap_quo)) {
+          cap <- rlang::eval_tidy(cap_quo)
+          return(unclass(cap)$width / 2)
+        }
+      }
+    }
+    NULL
+  }
+
+  funcs <- list(
+    ggdag_quartet_collider,
+    ggdag_quartet_confounder,
+    ggdag_quartet_mediator,
+    ggdag_quartet_m_bias,
+    ggdag_quartet_time_collider
+  )
+
+  purrr::walk(funcs, \(func) {
+    p_default <- func()
+    p_custom <- func(edge_cap = 20)
+    default_radius <- get_edge_cap_radius(p_default)
+    custom_radius <- get_edge_cap_radius(p_custom)
+    expect_equal(default_radius, 8)
+    expect_equal(custom_radius, 20)
+  })
+})
+
 test_that("quick plot edge cases work correctly", {
   # Empty label vectors
   dag1 <- m_bias(x = character(0), y = character(0))

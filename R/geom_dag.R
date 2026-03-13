@@ -921,7 +921,7 @@ geom_dag_edges_link <- function(
 ) {
   mapping <- expand_edge_aes(mapping)
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     mapping = mapping,
     geom = GeomDAGEdgePath,
     data = data,
@@ -932,6 +932,8 @@ geom_dag_edges_link <- function(
     check.aes = FALSE,
     params = list(arrow = arrow, interpolate = FALSE, na.rm = na.rm, ...)
   )
+
+  dag_edge_layer(layer)
 }
 
 #' @rdname geom_dag_edge_functions
@@ -966,7 +968,7 @@ geom_dag_edges_arc <- function(
 
   mapping <- expand_edge_aes(mapping)
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     mapping = mapping,
     geom = GeomDAGEdgePath,
     data = data,
@@ -996,6 +998,8 @@ geom_dag_edges_arc <- function(
       ...
     )
   )
+
+  dag_edge_layer(layer)
 }
 
 #' @inheritParams ggraph::geom_edge_diagonal
@@ -1031,7 +1035,7 @@ geom_dag_edges_diagonal <- function(
 
   mapping <- expand_edge_aes(mapping)
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = StatEdgeDiagonal,
@@ -1060,6 +1064,8 @@ geom_dag_edges_diagonal <- function(
       ...
     )
   )
+
+  dag_edge_layer(layer)
 }
 
 #' @inheritParams ggraph::geom_edge_fan
@@ -1098,7 +1104,7 @@ geom_dag_edges_fan <- function(
 
   mapping <- expand_edge_aes(mapping)
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = StatEdgeFan,
@@ -1126,6 +1132,8 @@ geom_dag_edges_fan <- function(
       ...
     )
   )
+
+  dag_edge_layer(layer)
 }
 
 

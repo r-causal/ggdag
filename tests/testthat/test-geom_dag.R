@@ -763,6 +763,136 @@ test_that("nudge parameters work with vectors", {
   expect_doppelganger("repel-vector-nudges", p_vector)
 })
 
+test_that("node_size_to_cap converts node size in pt to edge cap radius in mm", {
+  # Default node_size of 16 should give 8mm cap (the current default)
+  expect_equal(node_size_to_cap(16), 8)
+  # Larger nodes need larger caps
+  expect_equal(node_size_to_cap(32), 16)
+  # Zero should give zero
+  expect_equal(node_size_to_cap(0), 0)
+})
+
+test_that("edge layers auto-discover node_size and sync edge caps", {
+  g <- dagify(y ~ x, z ~ x)
+
+  # When node layer has size=24, edge caps should auto-sync to 12mm
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_point(size = 24) +
+    geom_dag_edges_link()
+
+  # Find the edge layer and check its start_cap
+  edge_layer <- NULL
+  for (layer in p$layers) {
+    if (
+      inherits(layer$geom, "GeomDAGEdgePath") ||
+        inherits(layer$geom, "GeomEdgePath")
+    ) {
+      edge_layer <- layer
+      break
+    }
+  }
+
+  expect_false(is.null(edge_layer))
+  cap_quo <- edge_layer$mapping$start_cap
+  expect_false(is.null(cap_quo))
+  cap <- rlang::eval_tidy(cap_quo)
+  # circle(12, "mm") stores width = 24 (diameter)
+  expect_equal(unclass(cap)$width / 2, 12)
+})
+
+test_that("edge layer auto-sync uses default when no node layer present", {
+  g <- dagify(y ~ x, z ~ x)
+
+  # No node layer → edge caps should stay at default 8mm
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges_link()
+
+  edge_layer <- NULL
+  for (layer in p$layers) {
+    if (
+      inherits(layer$geom, "GeomDAGEdgePath") ||
+        inherits(layer$geom, "GeomEdgePath")
+    ) {
+      edge_layer <- layer
+      break
+    }
+  }
+
+  # With no node layer, the edge layer should keep default caps (8mm from
+  # GeomDAGEdgePath default_aes)
+  expect_false(is.null(edge_layer))
+  # No start_cap in mapping means it uses default_aes
+  cap_quo <- edge_layer$mapping$start_cap
+  expect_true(is.null(cap_quo))
+})
+
+test_that("explicit cap mapping overrides auto-sync", {
+  g <- dagify(y ~ x, z ~ x)
+
+  # Explicit cap should NOT be overridden by auto-discovery
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_point(size = 24) +
+    geom_dag_edges_link(
+      aes(
+        start_cap = ggraph::circle(5, "mm"),
+        end_cap = ggraph::circle(5, "mm")
+      )
+    )
+
+  edge_layer <- NULL
+  for (layer in p$layers) {
+    if (
+      inherits(layer$geom, "GeomDAGEdgePath") ||
+        inherits(layer$geom, "GeomEdgePath")
+    ) {
+      edge_layer <- layer
+      break
+    }
+  }
+
+  cap <- rlang::eval_tidy(edge_layer$mapping$start_cap)
+  # Should be 5mm (explicitly set), not 12mm (auto-synced from node_size=24)
+  expect_equal(unclass(cap)$width / 2, 5)
+})
+
+test_that("geom_dag_edges auto-syncs caps for both link and arc layers", {
+  g <- dagify(
+    y ~ x,
+    x ~ ~z
+  )
+
+  p <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_point(size = 24) +
+    geom_dag_edges()
+
+  # geom_dag_edges returns a list of layers (link + arc)
+  # Both should have auto-synced caps
+  edge_layers <- Filter(
+    \(layer) {
+      inherits(layer$geom, "GeomDAGEdgePath") ||
+        inherits(layer$geom, "GeomEdgePath")
+    },
+    p$layers
+  )
+
+  expect_true(length(edge_layers) >= 1)
+  for (layer in edge_layers) {
+    cap_quo <- layer$mapping$start_cap
+    if (!is.null(cap_quo)) {
+      cap <- rlang::eval_tidy(cap_quo)
+      expect_equal(unclass(cap)$width / 2, 12)
+    }
+  }
+})
+
 test_that("geom_dag() label_geom parameter produces correct visuals", {
   withr::local_seed(1234)
   dag_labeled <- dagify(
@@ -801,4 +931,117 @@ test_that("geom_dag() label_geom parameter produces correct visuals", {
   expect_doppelganger("geom_dag-text-repel", p_text_repel)
   expect_doppelganger("geom_dag-label-repel2", p_label_repel2)
   expect_doppelganger("geom_dag-text-repel2", p_text_repel2)
+})
+
+test_that("edge_cap auto-sync adjusts caps based on node_size", {
+  withr::local_seed(1234)
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  # Default node_size (16) → auto cap = 8mm
+  p_default <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_point() +
+    geom_dag_edges_link() +
+    geom_dag_text()
+
+  expect_doppelganger("auto-sync-default-node-size", p_default)
+
+  # Large node_size (32) → auto cap = 16mm (edges stop further from center)
+  p_large <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_point(size = 32) +
+    geom_dag_edges_link() +
+    geom_dag_text()
+
+  expect_doppelganger("auto-sync-large-node-size", p_large)
+
+  # Small node_size (8) → auto cap = 4mm (edges closer to center)
+  p_small <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_point(size = 8) +
+    geom_dag_edges_link() +
+    geom_dag_text()
+
+  expect_doppelganger("auto-sync-small-node-size", p_small)
+})
+
+test_that("edge_cap auto-sync works with all edge types", {
+  withr::local_seed(1234)
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  p_base <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_point(size = 24)
+
+  expect_doppelganger(
+    "auto-sync-arc-edges",
+    p_base + geom_dag_edges_arc() + geom_dag_text()
+  )
+
+  expect_doppelganger(
+    "auto-sync-diagonal-edges",
+    p_base + geom_dag_edges_diagonal() + geom_dag_text()
+  )
+
+  expect_doppelganger(
+    "auto-sync-fan-edges",
+    p_base + geom_dag_edges_fan() + geom_dag_text()
+  )
+
+  expect_doppelganger(
+    "auto-sync-link-arc-edges",
+    p_base + geom_dag_edges() + geom_dag_text()
+  )
+})
+
+test_that("explicit edge_cap overrides auto-sync", {
+  withr::local_seed(1234)
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  # User sets explicit cap via mapping — should NOT be overridden
+  p_explicit <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_point(size = 32) +
+    geom_dag_edges_link(
+      aes(
+        start_cap = ggraph::circle(5, "mm"),
+        end_cap = ggraph::circle(5, "mm")
+      )
+    ) +
+    geom_dag_text()
+
+  expect_doppelganger("explicit-cap-overrides-auto-sync", p_explicit)
+})
+
+test_that("edges without node layer render without auto-sync", {
+  withr::local_seed(1234)
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  # No node layer → no auto-sync, edges use ggraph default behavior
+  p_no_nodes <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_link() +
+    geom_dag_text()
+
+  expect_doppelganger("edges-without-node-layer", p_no_nodes)
+})
+
+test_that("geom_dag_node (stylized) also triggers auto-sync", {
+  withr::local_seed(1234)
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  p_stylized <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_node(size = 24) +
+    geom_dag_edges_link() +
+    geom_dag_text()
+
+  expect_doppelganger("auto-sync-with-stylized-node", p_stylized)
 })
