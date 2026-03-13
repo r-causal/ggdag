@@ -25,7 +25,7 @@ column. Any other columns in the data set will also be joined to the
 as_tidy_dagitty(x, ...)
 
 # S3 method for class 'dagitty'
-as_tidy_dagitty(x, seed = NULL, layout = "nicely", ...)
+as_tidy_dagitty(x, seed = NULL, layout = ggdag_option("layout", "nicely"), ...)
 
 # S3 method for class 'data.frame'
 as_tidy_dagitty(
@@ -36,7 +36,7 @@ as_tidy_dagitty(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   saturate = FALSE,
   ...
 )

@@ -108,6 +108,13 @@
   Quickly plot a DAG in ggplot2
 - [`ggdag_classic()`](https://r-causal.github.io/ggdag/reference/ggdag_classic.md)
   : Quickly plot a DAG in ggplot2
+- [`ggdag_defaults`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)
+  [`ggdag_options_get()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)
+  [`ggdag_options_reset()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)
+  [`ggdag_option()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)
+  [`ggdag_option_proportional()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)
+  : Global DAG Options
 - [`query_conditional_independence()`](https://r-causal.github.io/ggdag/reference/query_conditional_independence.md)
   [`test_conditional_independence()`](https://r-causal.github.io/ggdag/reference/query_conditional_independence.md)
   [`ggdag_conditional_independence()`](https://r-causal.github.io/ggdag/reference/query_conditional_independence.md)

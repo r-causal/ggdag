@@ -84,10 +84,10 @@ tidy_dagitty_obj |>
 #> # A tibble: 4 × 7
 #>   name          x      y direction to      xend   yend
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl>
-#> 1 X     -5.02e- 1 -0.290 ->        y      0.502 -0.290
-#> 2 Y      5.02e- 1 -0.290 NA        NA    NA     NA    
-#> 3 Z      9.92e-10  0.580 ->        x     -0.502 -0.290
-#> 4 Z      9.92e-10  0.580 ->        y      0.502 -0.290
+#> 1 X      4.99e- 1 -0.288 ->        y     -0.499 -0.288
+#> 2 Y     -4.99e- 1 -0.288 NA        NA    NA     NA    
+#> 3 Z     -9.67e-11  0.576 ->        x      0.499 -0.288
+#> 4 Z     -9.67e-11  0.576 ->        y     -0.499 -0.288
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
