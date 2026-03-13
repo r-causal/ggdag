@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("dags cannonicalize correctly", {
   # Get edge count for all tests
   n_edges <- count_dag_edges(test_dag)

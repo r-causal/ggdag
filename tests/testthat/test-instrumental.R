@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("dags identify IVs correctly", {
   dag <- dagitty::dagitty("dag{ i->x->y; i2->x->y; x<->y }")
   p <- ggdag_instrumental(dag, "x", "y")

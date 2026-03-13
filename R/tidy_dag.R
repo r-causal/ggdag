@@ -42,7 +42,7 @@
 tidy_dagitty <- function(
   .dagitty,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   ...,
   use_existing_coords = TRUE
 ) {
@@ -93,14 +93,20 @@ tidy_dagitty <- function(
     dagitty::coordinates(.dagitty) <- coords2list(layout)
     layout <- "nicely"
   } else if (identical(layout, "time_ordered")) {
-    coords <- dag_edges |>
-      edges2df() |>
-      compute_time_ordered_layout(
-        exposure = dagitty::exposures(.dagitty),
-        outcome = dagitty::outcomes(.dagitty)
-      ) |>
-      coords2list()
-    dagitty::coordinates(.dagitty) <- coords
+    existing <- dagitty::coordinates(.dagitty)
+    has_coords <- !is.null(existing) &&
+      !all(is.na(unlist(existing)))
+    if (!isTRUE(use_existing_coords) || !has_coords) {
+      coords <- dag_edges |>
+        edges2df() |>
+        compute_time_ordered_layout(
+          exposure = dagitty::exposures(.dagitty),
+          outcome = dagitty::outcomes(.dagitty)
+        ) |>
+        coords2list()
+      dagitty::coordinates(.dagitty) <- coords
+    }
+    layout <- "nicely"
   } else {
     check_verboten_layout(layout)
   }
@@ -175,7 +181,12 @@ as_tidy_dagitty <- function(x, ...) {
 
 #' @export
 #' @rdname as_tidy_dagitty
-as_tidy_dagitty.dagitty <- function(x, seed = NULL, layout = "nicely", ...) {
+as_tidy_dagitty.dagitty <- function(
+  x,
+  seed = NULL,
+  layout = ggdag_option("layout", "nicely"),
+  ...
+) {
   tidy_dagitty(x, seed = seed, layout = layout, ...)
 }
 
@@ -189,7 +200,7 @@ as_tidy_dagitty.data.frame <- function(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   saturate = FALSE,
   ...
 ) {

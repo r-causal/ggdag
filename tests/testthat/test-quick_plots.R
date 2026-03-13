@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("quick plots render correctly", {
   expect_doppelganger("ggdag_m_bias() is an M", ggdag_m_bias())
   expect_doppelganger(

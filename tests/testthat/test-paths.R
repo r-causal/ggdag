@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("DAG paths are identified and drawn correctly", {
   coords_confounder <- tibble::tribble(
     ~name ,

@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("basic ggdag quick functions works", {
   p1 <- ggdag(test_dag)
   p2 <- ggdag_classic(test_dag)

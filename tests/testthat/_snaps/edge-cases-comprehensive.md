@@ -12,9 +12,9 @@
       # Data:
       # A tibble: 2 x 7
         name      x     y direction to     xend  yend
-        <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl>
-      1 x         0     1 ->        y         0     0
-      2 y         0     0 <NA>      <NA>     NA    NA
+        <chr> <int> <int> <fct>     <chr> <int> <int>
+      1 x         1     0 ->        y         2     0
+      2 y         2     0 <NA>      <NA>     NA    NA
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

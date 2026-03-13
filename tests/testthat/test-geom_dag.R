@@ -1,5 +1,3 @@
-set.seed(1234)
-
 test_that("repelled labels work", {
   g <- dagify(
     m ~ x + y,

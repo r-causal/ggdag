@@ -104,7 +104,7 @@ pull_dag_data.dagitty <- function(x, ...) {
 
 prep_dag_data <- function(
   value,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   coords = NULL,
   ...,
   call = rlang::caller_env()

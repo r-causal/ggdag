@@ -1,5 +1,3 @@
-set.seed(1234)
-
 expect_names <- function(object, expectation) {
   obj_names <- names(object)
   expect_true(all(expectation %in% obj_names))

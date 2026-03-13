@@ -8,27 +8,32 @@
 \alias{ggdag_equivalent_class}
 \title{Generating Equivalent Models}
 \usage{
-node_equivalent_dags(.dag, n = 100, layout = "auto", ...)
+node_equivalent_dags(
+  .dag,
+  n = 100,
+  layout = ggdag_option("layout", "auto"),
+  ...
+)
 
 ggdag_equivalent_dags(
   .tdy_dag,
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
-  node_size = 16,
-  text_size = 3.88,
-  label_size = text_size,
-  text_col = "white",
-  label_col = "black",
-  edge_width = 0.6,
-  edge_cap = 8,
-  arrow_length = 5,
-  use_edges = TRUE,
-  use_nodes = TRUE,
-  use_stylized = FALSE,
-  use_text = TRUE,
-  use_labels = FALSE,
-  label_geom = geom_dag_label_repel,
+  node_size = ggdag_option("node_size", 16),
+  text_size = ggdag_option("text_size", 3.88),
+  label_size = ggdag_option("label_size", text_size),
+  text_col = ggdag_option("text_col", "white"),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option("edge_cap", 8),
+  arrow_length = ggdag_option("arrow_length", 5),
+  use_edges = ggdag_option("use_edges", TRUE),
+  use_nodes = ggdag_option("use_nodes", TRUE),
+  use_stylized = ggdag_option("use_stylized", FALSE),
+  use_text = ggdag_option("use_text", TRUE),
+  use_labels = ggdag_option("use_labels", FALSE),
+  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
   text = NULL,
@@ -37,26 +42,26 @@ ggdag_equivalent_dags(
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = "auto")
+node_equivalent_class(.dag, layout = ggdag_option("layout", "auto"))
 
 ggdag_equivalent_class(
   .tdy_dag,
   ...,
   size = 1,
-  node_size = 16,
-  text_size = 3.88,
-  label_size = text_size,
-  text_col = "white",
-  label_col = "black",
-  edge_width = 0.6,
-  edge_cap = 8,
-  arrow_length = 5,
-  use_edges = TRUE,
-  use_nodes = TRUE,
-  use_stylized = FALSE,
-  use_text = TRUE,
-  use_labels = FALSE,
-  label_geom = geom_dag_label_repel,
+  node_size = ggdag_option("node_size", 16),
+  text_size = ggdag_option("text_size", 3.88),
+  label_size = ggdag_option("label_size", text_size),
+  text_col = ggdag_option("text_col", "white"),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option("edge_cap", 8),
+  arrow_length = ggdag_option("arrow_length", 5),
+  use_edges = ggdag_option("use_edges", TRUE),
+  use_nodes = ggdag_option("use_nodes", TRUE),
+  use_stylized = ggdag_option("use_stylized", FALSE),
+  use_text = ggdag_option("use_text", TRUE),
+  use_labels = ggdag_option("use_labels", FALSE),
+  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
   text = NULL,

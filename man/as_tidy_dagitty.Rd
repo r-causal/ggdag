@@ -9,7 +9,7 @@
 \usage{
 as_tidy_dagitty(x, ...)
 
-\method{as_tidy_dagitty}{dagitty}(x, seed = NULL, layout = "nicely", ...)
+\method{as_tidy_dagitty}{dagitty}(x, seed = NULL, layout = ggdag_option("layout", "nicely"), ...)
 
 \method{as_tidy_dagitty}{data.frame}(
   x,
@@ -19,7 +19,7 @@ as_tidy_dagitty(x, ...)
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "nicely",
+  layout = ggdag_option("layout", "nicely"),
   saturate = FALSE,
   ...
 )
