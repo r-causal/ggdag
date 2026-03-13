@@ -892,7 +892,7 @@ ggdag_quartet_collider <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom,
+    label_geom = label_geom
   )
 }
 
@@ -939,7 +939,7 @@ ggdag_quartet_confounder <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom,
+    label_geom = label_geom
   )
 }
 
@@ -986,7 +986,7 @@ ggdag_quartet_mediator <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom,
+    label_geom = label_geom
   )
 }
 
@@ -1035,7 +1035,7 @@ ggdag_quartet_m_bias <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom,
+    label_geom = label_geom
   )
 }
 
@@ -1088,6 +1088,6 @@ ggdag_quartet_time_collider <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom,
+    label_geom = label_geom
   )
 }
