@@ -1274,6 +1274,92 @@ aes_dag <- function(...) {
   default_aes
 }
 
+# Build ggarrow edge layers for geom_dag()
+geom_dag_ggarrow_edges <- function(
+  edge_type,
+  sizes,
+  show.legend = NA
+) {
+  rlang::check_installed(
+    "ggarrow",
+    reason = "to use edge_engine = \"ggarrow\"."
+  )
+
+  arrow_head <- ggdag_option("arrow_head", NULL) %||%
+    ggarrow::arrow_head_wings()
+  arrow_fins <- ggdag_option("arrow_fins", NULL)
+  arrow_mid <- ggdag_option("arrow_mid", NULL)
+  curvature <- ggdag_option("curvature", 0.3)
+  resect <- sizes[["cap"]]
+
+  dag_mapping <- aes_dag()
+
+  switch(
+    edge_type,
+    "link_arc" = geom_dag_arrows(
+      mapping = dag_mapping,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = arrow_mid,
+      curvature = curvature,
+      resect = resect,
+      show.legend = show.legend
+    ),
+    "link" = geom_dag_arrow(
+      mapping = dag_mapping,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = arrow_mid,
+      resect = resect,
+      show.legend = show.legend
+    ),
+    "arc" = list(
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      ),
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("<->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      )
+    ),
+    "diagonal" = list(
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      ),
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("<->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      )
+    )
+  )
+}
+
 #' Add common DAG layers to a ggplot
 #'
 #' `geom_dag()` is a helper function that adds common DAG layers to a ggplot.
@@ -1291,6 +1377,11 @@ aes_dag <- function(...) {
 #'   allows you to change the scale of the DAG without changing the proportions.
 #' @param edge_type The type of edge, one of "link_arc", "link", "arc",
 #'   "diagonal".
+#' @param edge_engine The engine used to draw edges. Either `"ggraph"`
+#'   (default) or `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+#'   [ggarrow][ggarrow::ggarrow-package] geoms, which support additional
+#'   customization via the `arrow_head`, `arrow_fins`, `arrow_mid`, and
+#'   `curvature` global options (see [ggdag_options_set()]).
 #' @param node_size The size of the nodes.
 #' @param text_size The size of the text.
 #' @param label_size The size of the labels.
@@ -1371,6 +1462,7 @@ geom_dag <- function(
   data = NULL,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -1416,39 +1508,50 @@ geom_dag <- function(
       edge_type <- ggdag_option("edge_type", "link_arc")
     }
     edge_type <- match.arg(edge_type)
-    if (edge_type == "link_arc") {
-      edge_geom <- geom_dag_edges(
-        ggplot2::aes(
-          start_cap = ggraph::circle(sizes[["cap"]], "mm"),
-          end_cap = ggraph::circle(sizes[["cap"]], "mm")
-        ),
-        edge_width = sizes[["edge"]],
-        arrow_directed = grid::arrow(
-          length = grid::unit(sizes[["arrow"]], "pt"),
-          type = "closed"
-        ),
-        arrow_bidirected = grid::arrow(
-          length = grid::unit(sizes[["arrow"]], "pt"),
-          ends = "both",
-          type = "closed"
-        ),
+
+    edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+
+    if (identical(edge_engine, "ggarrow")) {
+      edge_geom <- geom_dag_ggarrow_edges(
+        edge_type = edge_type,
+        sizes = sizes,
         show.legend = edge_show_legend
       )
     } else {
-      edge_function <- edge_type_switch(edge_type)
-      edge_geom <- edge_function(
-        ggplot2::aes(
-          start_cap = ggraph::circle(sizes[["cap"]], "mm"),
-          end_cap = ggraph::circle(sizes[["cap"]], "mm")
-        ),
-        data = data,
-        edge_width = sizes[["edge"]],
-        arrow = grid::arrow(
-          length = grid::unit(sizes[["arrow"]], "pt"),
-          type = "closed"
-        ),
-        show.legend = edge_show_legend
-      )
+      if (edge_type == "link_arc") {
+        edge_geom <- geom_dag_edges(
+          ggplot2::aes(
+            start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+            end_cap = ggraph::circle(sizes[["cap"]], "mm")
+          ),
+          edge_width = sizes[["edge"]],
+          arrow_directed = grid::arrow(
+            length = grid::unit(sizes[["arrow"]], "pt"),
+            type = "closed"
+          ),
+          arrow_bidirected = grid::arrow(
+            length = grid::unit(sizes[["arrow"]], "pt"),
+            ends = "both",
+            type = "closed"
+          ),
+          show.legend = edge_show_legend
+        )
+      } else {
+        edge_function <- edge_type_switch(edge_type)
+        edge_geom <- edge_function(
+          ggplot2::aes(
+            start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+            end_cap = ggraph::circle(sizes[["cap"]], "mm")
+          ),
+          data = data,
+          edge_width = sizes[["edge"]],
+          arrow = grid::arrow(
+            length = grid::unit(sizes[["arrow"]], "pt"),
+            type = "closed"
+          ),
+          show.legend = edge_show_legend
+        )
+      }
     }
   } else {
     edge_geom <- NULL

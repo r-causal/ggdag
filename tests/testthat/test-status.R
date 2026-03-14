@@ -1,11 +1,11 @@
 test_that("dags have correct status", {
-  withr::local_seed(1234)
   test_dag <- dagify(
     l ~ x + y,
     y ~ x,
     exposure = "x",
     outcome = "y",
-    latent = "l"
+    latent = "l",
+    coords = time_ordered_coords()
   )
 
   p <- ggdag_status(test_dag)

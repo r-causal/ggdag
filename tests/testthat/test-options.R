@@ -15,7 +15,12 @@ test_that("ggdag_defaults contains all expected options", {
     "use_labels",
     "label_geom",
     "edge_type",
-    "layout"
+    "layout",
+    "edge_engine",
+    "arrow_head",
+    "arrow_fins",
+    "arrow_mid",
+    "curvature"
   )
   expect_named(ggdag_defaults, expected_names, ignore.order = TRUE)
 })
@@ -671,4 +676,95 @@ test_that("explicit layout arg overrides global layout option in ggdag()", {
   withr::local_options(ggdag.layout = "circle")
   p <- ggdag(dag, layout = "star", use_existing_coords = FALSE)
   expect_doppelganger("opts-ggdag-layout-explicit-override", p)
+})
+
+# Edge engine option -------------------------------------------------------
+
+test_that("edge_engine option stores and retrieves correctly", {
+  withr::local_options(ggdag.edge_engine = NULL)
+  ggdag_options_set(edge_engine = "ggarrow")
+  expect_equal(ggdag_options_get("edge_engine"), "ggarrow")
+})
+
+test_that("edge_engine option accepts 'ggraph'", {
+  withr::local_options(ggdag.edge_engine = NULL)
+  ggdag_options_set(edge_engine = "ggraph")
+  expect_equal(ggdag_options_get("edge_engine"), "ggraph")
+})
+
+test_that("edge_engine option rejects invalid values", {
+  expect_ggdag_error(ggdag_options_set(edge_engine = "invalid"))
+  expect_ggdag_error(ggdag_options_set(edge_engine = 42))
+  expect_ggdag_error(ggdag_options_set(edge_engine = TRUE))
+})
+
+test_that("ggdag_option returns 'ggraph' default for edge_engine when unset", {
+  withr::local_options(ggdag.edge_engine = NULL)
+  expect_equal(ggdag_option("edge_engine", "ggraph"), "ggraph")
+})
+
+test_that("ggdag_options_reset clears edge_engine option", {
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  ggdag_options_reset()
+  expect_null(getOption("ggdag.edge_engine"))
+})
+
+# ggarrow parameter options ------------------------------------------------
+
+test_that("arrow_head option accepts NULL", {
+  withr::local_options(ggdag.arrow_head = NULL)
+  expect_null(ggdag_options_get("arrow_head"))
+})
+
+test_that("arrow_head option accepts functions", {
+  withr::local_options(ggdag.arrow_head = NULL)
+  mock_ornament <- function(...) NULL
+  ggdag_options_set(arrow_head = mock_ornament)
+  expect_true(is.function(ggdag_options_get("arrow_head")))
+})
+
+test_that("arrow_head option accepts matrices", {
+  withr::local_options(ggdag.arrow_head = NULL)
+  mock_matrix <- matrix(c(0, 1, 1, 0, 0.5, 0.5), ncol = 2)
+  ggdag_options_set(arrow_head = mock_matrix)
+  expect_true(is.matrix(ggdag_options_get("arrow_head")))
+})
+
+test_that("arrow_head option rejects invalid types", {
+  expect_ggdag_error(ggdag_options_set(arrow_head = "not_valid"))
+  expect_ggdag_error(ggdag_options_set(arrow_head = 42))
+  expect_ggdag_error(ggdag_options_set(arrow_head = TRUE))
+})
+
+test_that("arrow_fins option accepts functions and matrices", {
+  withr::local_options(ggdag.arrow_fins = NULL)
+  mock_ornament <- function(...) NULL
+  ggdag_options_set(arrow_fins = mock_ornament)
+  expect_true(is.function(ggdag_options_get("arrow_fins")))
+})
+
+test_that("arrow_fins option rejects invalid types", {
+  expect_ggdag_error(ggdag_options_set(arrow_fins = "not_valid"))
+})
+
+test_that("arrow_mid option accepts functions and matrices", {
+  withr::local_options(ggdag.arrow_mid = NULL)
+  mock_ornament <- function(...) NULL
+  ggdag_options_set(arrow_mid = mock_ornament)
+  expect_true(is.function(ggdag_options_get("arrow_mid")))
+})
+
+test_that("arrow_mid option rejects invalid types", {
+  expect_ggdag_error(ggdag_options_set(arrow_mid = "not_valid"))
+})
+
+test_that("curvature option stores and retrieves correctly", {
+  withr::local_options(ggdag.curvature = NULL)
+  ggdag_options_set(curvature = 0.5)
+  expect_equal(ggdag_options_get("curvature"), 0.5)
+})
+
+test_that("curvature option rejects non-numeric", {
+  expect_ggdag_error(ggdag_options_set(curvature = "bad"))
+  expect_ggdag_error(ggdag_options_set(curvature = TRUE))
 })

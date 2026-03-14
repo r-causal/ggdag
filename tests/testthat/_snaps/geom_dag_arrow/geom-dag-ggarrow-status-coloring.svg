@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw2MDguMzV8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='602.37' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw2MDguMzV8MjQuODV8NTcwLjAy)'>
+<circle cx='307.16' cy='70.29' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
+<circle cx='558.15' cy='524.59' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
+<circle cx='56.18' cy='524.59' r='17.43' style='stroke-width: 0.71; stroke: #7F7F7F; fill: #7F7F7F;' />
+<path d='M 545.16 491.82 L 543.56 495.96 L 319.06 89.62 L 318.13 90.13 L 317.20 90.65 L 541.68 497.00 L 537.33 496.15 L 547.19 504.74 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 292.57 98.92 L 294.17 103.05 L 296.20 90.13 L 286.34 98.73 L 290.69 97.88 L 66.21 504.23 L 67.14 504.74 L 68.08 505.26 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 535.47 524.59 L 523.19 520.12 L 526.04 523.52 L 78.85 523.52 L 78.85 525.66 L 526.04 525.67 L 523.19 529.06 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<text x='307.16' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='558.15' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='56.18' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='626.28' y='271.37' style='font-size: 12.00px; font-family: sans;' textLength='32.03px' lengthAdjust='spacingAndGlyphs'>status</text>
+<circle cx='633.54' cy='287.66' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<line x1='638.98' y1='287.66' x2='649.87' y2='287.66' style='stroke-width: 1.07; stroke: #F8766D;' />
+<polygon points='644.96,290.50 649.87,287.66 644.96,284.83 ' style='stroke-width: 1.07; stroke: #F8766D; fill: #F8766D;' />
+<circle cx='655.31' cy='287.66' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<circle cx='633.54' cy='305.80' r='3.20' style='stroke-width: 0.75; stroke: #00BFC4; fill: #00BFC4;' />
+<line x1='638.98' y1='305.80' x2='649.87' y2='305.80' style='stroke-width: 1.07; stroke: #00BFC4;' />
+<polygon points='644.96,308.64 649.87,305.80 644.96,302.97 ' style='stroke-width: 1.07; stroke: #00BFC4; fill: #00BFC4;' />
+<circle cx='655.31' cy='305.80' r='3.20' style='stroke-width: 0.75; stroke: #00BFC4; fill: #00BFC4;' />
+<circle cx='633.54' cy='323.94' r='3.20' style='stroke-width: 0.75; stroke: #7F7F7F; fill: #7F7F7F;' />
+<line x1='638.98' y1='323.94' x2='649.87' y2='323.94' style='stroke-width: 1.07; stroke: #7F7F7F;' />
+<polygon points='644.96,326.78 649.87,323.94 644.96,321.11 ' style='stroke-width: 1.07; stroke: #7F7F7F; fill: #7F7F7F;' />
+<circle cx='655.31' cy='323.94' r='3.20' style='stroke-width: 0.75; stroke: #7F7F7F; fill: #7F7F7F;' />
+<text x='668.54' y='290.96' style='font-size: 9.60px; font-family: sans;' textLength='39.50px' lengthAdjust='spacingAndGlyphs'>exposure</text>
+<text x='668.54' y='309.11' style='font-size: 9.60px; font-family: sans;' textLength='36.83px' lengthAdjust='spacingAndGlyphs'>outcome</text>
+<text x='668.54' y='327.25' style='font-size: 9.60px; font-family: sans;' textLength='13.34px' lengthAdjust='spacingAndGlyphs'>NA</text>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='220.96px' lengthAdjust='spacingAndGlyphs'>geom_dag ggarrow status coloring</text>
+</g>
+</svg>

@@ -8,6 +8,7 @@ geom_dag(
   data = NULL,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -53,6 +54,12 @@ allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
 "diagonal".}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 
 \item{node_size}{The size of the nodes.}
 

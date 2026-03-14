@@ -10,7 +10,7 @@
 \alias{ggdag_option_proportional}
 \title{Global DAG Options}
 \format{
-An object of class \code{list} of length 16.
+An object of class \code{list} of length 21.
 }
 \usage{
 ggdag_defaults

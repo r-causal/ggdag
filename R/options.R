@@ -61,7 +61,12 @@ ggdag_defaults <- list(
   use_labels = FALSE,
   label_geom = geom_dag_label_repel,
   edge_type = "link_arc",
-  layout = "nicely"
+  layout = "nicely",
+  edge_engine = "ggraph",
+  arrow_head = NULL,
+  arrow_fins = NULL,
+  arrow_mid = NULL,
+  curvature = 0.3
 )
 
 #' @export
@@ -235,6 +240,42 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       abort(
         c(
           "{.arg layout} must be a single character string or a function.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "edge_engine") {
+    valid_engines <- c("ggraph", "ggarrow")
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% valid_engines
+    ) {
+      abort(
+        c(
+          "{.arg edge_engine} must be one of {.val {valid_engines}}.",
+          "x" = "You provided {.val {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name %in% c("arrow_head", "arrow_fins", "arrow_mid")) {
+    if (!is.null(value) && !is.function(value) && !is.matrix(value)) {
+      abort(
+        c(
+          "{.arg {name}} must be a function, a matrix, or {.code NULL}.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "curvature") {
+    if (!is.numeric(value) || length(value) != 1) {
+      abort(
+        c(
+          "{.arg curvature} must be a single number.",
           "x" = "You provided {.obj_type_friendly {value}}."
         ),
         error_class = "ggdag_type_error",

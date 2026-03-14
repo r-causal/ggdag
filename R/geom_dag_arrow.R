@@ -454,6 +454,8 @@ geom_dag_arrows <- function(
   data_bidirected = filter_direction("<->"),
   curvature = 0.3,
   arrow_head = ggarrow::arrow_head_wings(),
+  arrow_fins = NULL,
+  arrow_mid = NULL,
   resect = 0,
   resect_head = NULL,
   resect_fins = NULL,
@@ -465,11 +467,16 @@ geom_dag_arrows <- function(
 ) {
   rlang::check_installed("ggarrow", reason = "to use `geom_dag_arrows()`.")
 
+  # Bidirected edges default to wings on both ends
+  bidirected_fins <- arrow_fins %||% ggarrow::arrow_head_wings()
+
   list(
     geom_dag_arrow(
       mapping = mapping,
       data = data_directed,
       arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = arrow_mid,
       resect = resect,
       resect_head = resect_head,
       resect_fins = resect_fins,
@@ -484,6 +491,8 @@ geom_dag_arrows <- function(
       data = data_bidirected,
       curvature = curvature,
       arrow_head = arrow_head,
+      arrow_fins = bidirected_fins,
+      arrow_mid = arrow_mid,
       resect = resect,
       resect_head = resect_head,
       resect_fins = resect_fins,
