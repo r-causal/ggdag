@@ -69,7 +69,8 @@ work along the y-axis by setting <code>direction = "y"</code>.</p>
 <span>  direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span>,</span>
 <span>  auto_sort_direction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"right"</span>, <span class="st">"left"</span><span class="op">)</span>,</span>
 <span>  fixed_time <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  adjust_exposure_outcome <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  adjust_exposure_outcome <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  force_y <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -111,6 +112,14 @@ constraints. Pinned times are 1-based and preserved in the output.</p></dd>
 outcome forward by one time point when it shares a layer with the
 exposure. All descendants of the outcome are also shifted. Only applies in
 auto mode and when the DAG has exposure and outcome set.</p></dd>
+
+
+<dt id="arg-force-y">force_y<a class="anchor" aria-label="anchor" href="#arg-force-y"></a></dt>
+<dd><p>If <code>TRUE</code> (default), run force-directed Y optimization to
+minimize node-edge overlaps. If <code>FALSE</code>, nodes are evenly spaced within
+each layer using barycenter ordering only. Setting to <code>FALSE</code> is useful
+when edges will be curved or auto-routed, where tight Y positioning is
+less important. Only used in auto mode (<code>.vars = NULL</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">

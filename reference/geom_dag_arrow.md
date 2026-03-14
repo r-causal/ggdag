@@ -71,6 +71,8 @@ geom_dag_arrows(
   data_bidirected = filter_direction("<->"),
   curvature = 0.3,
   arrow_head = ggarrow::arrow_head_wings(),
+  arrow_fins = NULL,
+  arrow_mid = NULL,
   resect = 0,
   resect_head = NULL,
   resect_fins = NULL,

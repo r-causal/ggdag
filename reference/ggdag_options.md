@@ -23,7 +23,7 @@ ggdag_option_proportional(name, base_default, override_default)
 
 ## Format
 
-An object of class `list` of length 16.
+An object of class `list` of length 21.
 
 ## Arguments
 
