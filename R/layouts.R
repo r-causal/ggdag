@@ -27,6 +27,11 @@
 #'   outcome forward by one time point when it shares a layer with the
 #'   exposure. All descendants of the outcome are also shifted. Only applies in
 #'   auto mode and when the DAG has exposure and outcome set.
+#' @param force_y If `TRUE` (default), run force-directed Y optimization to
+#'   minimize node-edge overlaps. If `FALSE`, nodes are evenly spaced within
+#'   each layer using barycenter ordering only. Setting to `FALSE` is useful
+#'   when edges will be curved or auto-routed, where tight Y positioning is
+#'   less important. Only used in auto mode (`.vars = NULL`).
 #'
 #' @return A tibble with three columns: `name`, `x`, and `y`.
 #'
@@ -80,7 +85,8 @@ time_ordered_coords <- function(
   direction = c("x", "y"),
   auto_sort_direction = c("right", "left"),
   fixed_time = NULL,
-  adjust_exposure_outcome = TRUE
+  adjust_exposure_outcome = TRUE,
+  force_y = TRUE
 ) {
   direction <- match.arg(direction)
   auto_sort_direction <- match.arg(auto_sort_direction)
@@ -93,6 +99,7 @@ time_ordered_coords <- function(
         sort_direction = auto_sort_direction,
         fixed_time = fixed_time,
         adjust_exposure_outcome = adjust_exposure_outcome,
+        force_y = force_y,
         ...
       )
     }

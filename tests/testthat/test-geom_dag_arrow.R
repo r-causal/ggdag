@@ -1208,3 +1208,453 @@ test_that("geom_dag_arrow_arc() skewed angle snapshot", {
 
   expect_doppelganger("geom_dag_arrow_arc skewed angle", p)
 })
+
+# geom_dag() ggarrow dispatch tests ----------------------------------------
+
+test_that("geom_dag() with edge_engine='ggraph' returns ggraph edge layers (default)", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag) + geom_dag(edge_engine = "ggraph")
+  layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  # Should contain ggraph edge geoms, not ggarrow
+  expect_false(any(grepl("DAGArrow", layer_classes)))
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' returns ggarrow edge layers", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow")
+  layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  # Should contain ggarrow-based geoms
+
+  expect_true(any(grepl("DAGArrow", layer_classes)))
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' and edge_type='link' uses straight arrows", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow", edge_type = "link")
+  layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_true(any(grepl("DAGArrow", layer_classes)))
+  # Should NOT have curve geom for link-only
+  expect_false(any(grepl("DAGArrowCurve", layer_classes)))
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' and edge_type='arc' uses curved arrows", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow", edge_type = "arc")
+  layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_true(any(grepl("DAGArrowCurve", layer_classes)))
+})
+
+test_that("geom_dag() picks up global edge_engine option", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  p <- ggplot(dag) + geom_dag()
+  layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_true(any(grepl("DAGArrow", layer_classes)))
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' renders without error", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow") + theme_dag()
+  expect_doppelganger("geom_dag ggarrow engine link_arc", p)
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' and edge_type='link' renders", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "link") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow engine link", p)
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' and edge_type='arc' renders", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "arc") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow engine arc", p)
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' respects arrow_head option", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.arrow_head = ggarrow::arrow_head_line())
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow") + theme_dag()
+  expect_doppelganger("geom_dag ggarrow line arrows", p)
+})
+
+test_that("geom_dag() with edge_engine='ggarrow' respects curvature option", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  withr::local_options(ggdag.curvature = 0.8)
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow") + theme_dag()
+  expect_doppelganger("geom_dag ggarrow high curvature", p)
+})
+
+# -- Comprehensive ggarrow visual tests ------------------------------------------
+
+test_that("geom_dag() ggarrow renders complex DAG with bidirected edges", {
+  skip_if_not_installed("ggarrow")
+
+  # test_dag has bidirected w1 ~~ w2 — exercises the link_arc split
+
+  p <- ggplot(test_dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow complex dag with bidirected", p)
+})
+
+test_that("geom_dag() ggarrow link_arc with only bidirected edges", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(x ~ ~y, y ~ ~z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow only bidirected", p)
+})
+
+test_that("geom_dag() ggarrow link type with bidirected edges", {
+  skip_if_not_installed("ggarrow")
+
+  # link type should still only produce straight arrows; bidirected get no
+
+  # special curved treatment (same as ggraph link)
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "link") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow link with bidirected", p)
+})
+
+test_that("geom_dag() ggarrow arc type with bidirected edges", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "arc") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow arc with bidirected", p)
+})
+
+test_that("geom_dag() ggarrow diagonal type renders", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "diagonal") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow diagonal", p)
+})
+
+test_that("geom_dag() ggarrow diagonal type with bidirected edges", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "diagonal") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow diagonal with bidirected", p)
+})
+
+test_that("geom_dag() ggarrow with use_stylized nodes", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", use_stylized = TRUE) +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow stylized nodes", p)
+})
+
+test_that("geom_dag() ggarrow with use_text=FALSE", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", use_text = FALSE) +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow no text", p)
+})
+
+test_that("geom_dag() ggarrow with labels", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
+  )
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(
+      edge_engine = "ggarrow",
+      use_labels = TRUE,
+      label = label,
+      use_text = FALSE
+    ) +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow with labels", p)
+})
+
+test_that("geom_dag() ggarrow with size scaling", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", size = 2) +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow size 2", p)
+})
+
+test_that("geom_dag() ggarrow with arrow_fins option", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  withr::local_options(ggdag.arrow_fins = ggarrow::arrow_head_wings())
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow arrow fins", p)
+})
+
+test_that("geom_dag() ggarrow with negative curvature", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  withr::local_options(ggdag.curvature = -0.5)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow negative curvature", p)
+})
+
+test_that("geom_dag() ggarrow with zero curvature (straight bidirected)", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ ~z)
+  withr::local_options(ggdag.curvature = 0)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow zero curvature", p)
+})
+
+test_that("geom_dag() ggarrow with use_edges=FALSE still renders nodes", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", use_edges = FALSE) +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow no edges", p)
+})
+
+# -- Quick-plot wrappers with ggarrow engine ------------------------------------
+
+test_that("ggdag() renders with ggarrow engine via global option", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  dag <- dagify(y ~ x + z, x ~ z, coords = time_ordered_coords())
+  p <- ggdag(dag)
+  expect_doppelganger("ggdag ggarrow engine", p)
+})
+
+test_that("ggdag() ggarrow with bidirected edges", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    x ~ ~y,
+    coords = time_ordered_coords()
+  )
+  p <- ggdag(dag)
+  expect_doppelganger("ggdag ggarrow bidirected", p)
+})
+
+test_that("ggdag_status() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = time_ordered_coords()
+  )
+  p <- ggdag_status(dag)
+  expect_doppelganger("ggdag_status ggarrow engine", p)
+})
+
+test_that("ggdag_adjustment_set() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = time_ordered_coords()
+  )
+  p <- ggdag_adjustment_set(dag)
+  expect_doppelganger("ggdag_adjustment_set ggarrow engine", p)
+})
+
+test_that("ggdag_collider() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  dag <- dagify(
+    m ~ x + y,
+    y ~ x,
+    coords = time_ordered_coords()
+  )
+  p <- ggdag_collider(dag)
+  expect_doppelganger("ggdag_collider ggarrow engine", p)
+})
+
+test_that("ggdag_paths() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = time_ordered_coords()
+  )
+  p <- ggdag_paths(dag)
+  expect_doppelganger("ggdag_paths ggarrow engine", p)
+})
+
+test_that("ggdag_m_bias() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  p <- ggdag_m_bias()
+  expect_doppelganger("ggdag_m_bias ggarrow engine", p)
+})
+
+test_that("ggdag_confounder_triangle() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  p <- ggdag_confounder_triangle()
+  expect_doppelganger("ggdag_confounder_triangle ggarrow engine", p)
+})
+
+test_that("ggdag_mediation_triangle() renders with ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  p <- ggdag_mediation_triangle()
+  expect_doppelganger("ggdag_mediation_triangle ggarrow engine", p)
+})
+
+# -- ggarrow with color aesthetics (status, adjustment) -------------------------
+
+test_that("geom_dag() ggarrow with status coloring", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = time_ordered_coords()
+  ) |>
+    tidy_dagitty() |>
+    node_status()
+
+  p <- ggplot(dag, aes_dag(color = status)) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow status coloring", p)
+})
+
+test_that("geom_dag() ggarrow with adjustment set coloring", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = time_ordered_coords()
+  ) |>
+    tidy_dagitty() |>
+    dag_adjustment_sets()
+
+  p <- ggplot(dag, aes_dag(color = adjusted)) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow adjustment coloring", p)
+})
+
+# -- Edge cases -----------------------------------------------------------------
+
+test_that("geom_dag() ggarrow with minimal two-node DAG", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow minimal two node", p)
+})
+
+test_that("geom_dag() ggarrow with many nodes and dense edges", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + z1 + z2 + z3,
+    x ~ z1 + z2,
+    z1 ~ z3,
+    z2 ~ z3,
+    z1 ~ ~z2,
+    coords = time_ordered_coords()
+  )
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow") +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow dense dag", p)
+})
+
+test_that("geom_dag() ggarrow with global option + custom arrow ornaments", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(
+    ggdag.edge_engine = "ggarrow",
+    ggdag.arrow_head = ggarrow::arrow_head_line(),
+    ggdag.arrow_fins = ggarrow::arrow_head_line(),
+    ggdag.curvature = 0.5
+  )
+
+  dag <- dagify(y ~ x + z, x ~ ~z, coords = time_ordered_coords())
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag() +
+    theme_dag()
+  expect_doppelganger("geom_dag ggarrow all ornaments via options", p)
+})

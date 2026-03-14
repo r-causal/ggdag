@@ -10,7 +10,8 @@ time_ordered_coords(
   direction = c("x", "y"),
   auto_sort_direction = c("right", "left"),
   fixed_time = NULL,
-  adjust_exposure_outcome = TRUE
+  adjust_exposure_outcome = TRUE,
+  force_y = TRUE
 )
 }
 \arguments{
@@ -37,6 +38,12 @@ constraints. Pinned times are 1-based and preserved in the output.}
 outcome forward by one time point when it shares a layer with the
 exposure. All descendants of the outcome are also shifted. Only applies in
 auto mode and when the DAG has exposure and outcome set.}
+
+\item{force_y}{If \code{TRUE} (default), run force-directed Y optimization to
+minimize node-edge overlaps. If \code{FALSE}, nodes are evenly spaced within
+each layer using barycenter ordering only. Setting to \code{FALSE} is useful
+when edges will be curved or auto-routed, where tight Y positioning is
+less important. Only used in auto mode (\code{.vars = NULL}).}
 }
 \value{
 A tibble with three columns: \code{name}, \code{x}, and \code{y}.

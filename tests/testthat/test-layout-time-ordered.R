@@ -2636,3 +2636,103 @@ test_that("visual: exposure/outcome shift disabled", {
     ggdag()
   expect_doppelganger("time-ordered-exp-out-disabled", p)
 })
+
+# Phase: force_y parameter -------------------------------------------------
+
+test_that("compute_time_ordered_layout: force_y = TRUE is the default", {
+  edges_df <- make_edges_df(c("A", "B"), c("B", "C"), c("A", "C"))
+  result_default <- compute_time_ordered_layout(edges_df)
+  result_explicit <- compute_time_ordered_layout(edges_df, force_y = TRUE)
+  expect_equal(result_default, result_explicit)
+})
+
+test_that("compute_time_ordered_layout: force_y = FALSE skips Y optimization", {
+  # With force_y = FALSE, Y positions come from barycenter ordering only
+  # (evenly spaced), not from the force simulation
+  edges_df <- make_edges_df(c("A", "B"), c("B", "C"), c("A", "C"))
+  result_force <- compute_time_ordered_layout(edges_df, force_y = TRUE)
+  result_no_force <- compute_time_ordered_layout(edges_df, force_y = FALSE)
+
+  # X (layer assignment) should be identical
+
+  expect_equal(result_force$x, result_no_force$x)
+
+  # Both should have valid coordinates
+  expect_false(anyNA(result_no_force$x))
+  expect_false(anyNA(result_no_force$y))
+})
+
+test_that("compute_time_ordered_layout: force_y = FALSE produces evenly spaced Y", {
+  # Multi-node layers should have uniform spacing when force_y = FALSE
+  edges_df <- make_edges_df(
+    c("A", "B"),
+    c("A", "C"),
+    c("B", "D"),
+    c("C", "D")
+  )
+  result <- compute_time_ordered_layout(edges_df, force_y = FALSE)
+
+  # B and C should be in the same layer (layer 2)
+  bc <- result[result$name %in% c("B", "C"), ]
+  expect_equal(bc$x[1], bc$x[2])
+
+  # Y values should be symmetric around center for same-layer nodes
+  bc_y <- sort(bc$y)
+  expect_equal(abs(bc_y[1]), abs(bc_y[2]), tolerance = 0.01)
+})
+
+test_that("compute_time_ordered_layout: force_y = FALSE works with no edges", {
+  edges_df <- data.frame(
+    name = c("A", "B"),
+    to = NA_character_,
+    stringsAsFactors = FALSE
+  )
+  result <- compute_time_ordered_layout(edges_df, force_y = FALSE)
+  expect_s3_class(result, "tbl_df")
+  expect_equal(nrow(result), 2)
+  expect_false(anyNA(result$x))
+  expect_false(anyNA(result$y))
+})
+
+test_that("time_ordered_coords: force_y argument is passed through", {
+  # time_ordered_coords() should accept force_y and pass it to
+  # compute_time_ordered_layout()
+  withr::local_seed(1234)
+  dag <- dagify(
+    y ~ x + z,
+    z ~ x,
+    coords = time_ordered_coords(force_y = FALSE)
+  )
+  td <- tidy_dagitty(dag)
+  coords <- pull_dag_data(td) |>
+    dplyr::select(name, x, y) |>
+    dplyr::distinct()
+  expect_false(anyNA(coords$x))
+  expect_false(anyNA(coords$y))
+})
+
+test_that("visual: force_y = FALSE produces different layout than default", {
+  withr::local_seed(1234)
+  p <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a,
+    coords = time_ordered_coords(force_y = FALSE)
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-no-force-y", p)
+})
+
+test_that("visual: force_y = TRUE (default) with same DAG", {
+  withr::local_seed(1234)
+  p <- dagify(
+    d ~ c1 + c2 + c3,
+    c1 ~ b1 + b2,
+    c3 ~ a,
+    b1 ~ a,
+    coords = time_ordered_coords(force_y = TRUE)
+  ) |>
+    ggdag()
+  expect_doppelganger("time-ordered-force-y-true", p)
+})

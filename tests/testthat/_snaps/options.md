@@ -79,3 +79,93 @@
       ! `layout` must be a single character string or a function.
       x You provided `TRUE`.
 
+# edge_engine option rejects invalid values
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `edge_engine` must be one of "ggraph" and "ggarrow".
+      x You provided "invalid".
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `edge_engine` must be one of "ggraph" and "ggarrow".
+      x You provided 42.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `edge_engine` must be one of "ggraph" and "ggarrow".
+      x You provided TRUE.
+
+# arrow_head option rejects invalid types
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `arrow_head` must be a function, a matrix, or `NULL`.
+      x You provided a string.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `arrow_head` must be a function, a matrix, or `NULL`.
+      x You provided a number.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `arrow_head` must be a function, a matrix, or `NULL`.
+      x You provided `TRUE`.
+
+# arrow_fins option rejects invalid types
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `arrow_fins` must be a function, a matrix, or `NULL`.
+      x You provided a string.
+
+# arrow_mid option rejects invalid types
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `arrow_mid` must be a function, a matrix, or `NULL`.
+      x You provided a string.
+
+# curvature option rejects non-numeric
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `curvature` must be a single number.
+      x You provided a string.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `curvature` must be a single number.
+      x You provided `TRUE`.
+

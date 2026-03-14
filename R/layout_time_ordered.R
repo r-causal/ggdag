@@ -782,6 +782,7 @@ compute_time_ordered_layout <- function(
   exposure = character(0),
   outcome = character(0),
   adjust_exposure_outcome = TRUE,
+  force_y = TRUE,
   node_radius = 26,
   layer_gap = 180,
   node_gap = 85,
@@ -910,28 +911,46 @@ compute_time_ordered_layout <- function(
   if (nrow(directed) > 0) {
     layer_nodes <- barycenter_sort(layer_nodes, directed, layer_assign, sweeps)
 
-    # Stage 3: Force-directed Y optimization
-    positions <- force_directed_y(
-      layer_nodes,
-      layer_assign,
-      directed,
-      node_radius = node_radius,
-      layer_gap = layer_gap,
-      node_gap = node_gap,
-      min_spacing = min_spacing,
-      clearance = node_radius * 2.5 + 12,
-      iterations = iterations
-    )
+    if (isTRUE(force_y)) {
+      # Stage 3: Force-directed Y optimization
+      positions <- force_directed_y(
+        layer_nodes,
+        layer_assign,
+        directed,
+        node_radius = node_radius,
+        layer_gap = layer_gap,
+        node_gap = node_gap,
+        min_spacing = min_spacing,
+        clearance = node_radius * 2.5 + 12,
+        iterations = iterations
+      )
 
-    # Stage 4: Greedy post-correction
-    positions <- greedy_post_correction(
-      positions,
-      directed,
-      layer_assign,
-      node_radius = node_radius,
-      min_spacing = min_spacing,
-      max_passes = max_correction_passes
-    )
+      # Stage 4: Greedy post-correction
+      positions <- greedy_post_correction(
+        positions,
+        directed,
+        layer_assign,
+        node_radius = node_radius,
+        min_spacing = min_spacing,
+        max_passes = max_correction_passes
+      )
+    } else {
+      # Skip force simulation — evenly space nodes within each layer
+      all_nodes <- unlist(layer_nodes)
+      x_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
+      y_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
+      max_layer_size <- max(lengths(layer_nodes))
+      for (i in seq_along(layer_nodes)) {
+        nodes <- layer_nodes[[i]]
+        n <- length(nodes)
+        offset <- (max_layer_size - n) * node_gap / 2
+        for (j in seq_along(nodes)) {
+          x_pos[[nodes[j]]] <- (i - 1L) * layer_gap
+          y_pos[[nodes[j]]] <- offset + (j - 1) * node_gap
+        }
+      }
+      positions <- list(x = x_pos, y = y_pos)
+    }
   } else {
     # No edges — just assign positions by layer
     all_nodes <- unlist(layer_nodes)

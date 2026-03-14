@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='708.04' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
+<circle cx='64.98' cy='524.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='321.52' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='64.98' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<path d='M 628.12 331.92 L 626.36 333.94 L 627.98 335.34 L 633.58 328.90 L 625.20 327.27 L 624.79 329.36 L 627.41 329.87 L 86.08 516.20 L 86.77 518.22 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 634.15 312.63 L 629.02 305.81 L 627.32 307.09 L 628.92 309.23 L 86.26 78.19 L 85.85 79.17 L 85.43 80.15 L 628.07 311.22 L 625.42 311.55 L 625.68 313.66 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 92.59 502.68 L 88.16 502.35 L 92.60 497.80 L 96.90 493.36 L 101.00 489.07 L 104.89 484.91 L 108.57 480.86 L 112.04 476.90 L 115.33 472.98 L 118.47 469.07 L 121.49 465.13 L 124.41 461.13 L 124.54 460.95 L 127.37 456.88 L 130.10 452.76 L 132.72 448.63 L 135.20 444.52 L 137.54 440.47 L 139.74 436.50 L 141.81 432.64 L 143.75 428.87 L 145.61 425.19 L 147.43 421.54 L 149.26 417.84 L 151.11 414.03 L 152.97 410.05 L 154.82 405.91 L 156.65 401.61 L 158.45 397.15 L 160.18 392.58 L 161.84 387.92 L 163.38 383.26 L 164.84 378.52 L 166.19 373.76 L 167.42 369.03 L 168.54 364.36 L 169.54 359.79 L 170.43 355.34 L 171.22 351.03 L 171.92 346.86 L 172.57 342.78 L 173.20 338.75 L 173.82 334.67 L 174.42 330.48 L 174.98 326.13 L 175.49 321.62 L 175.92 316.96 L 176.28 312.17 L 176.54 307.29 L 176.70 302.35 L 176.75 297.44 L 176.70 292.47 L 176.54 287.53 L 176.27 282.65 L 175.92 277.86 L 175.48 273.20 L 174.97 268.70 L 174.41 264.35 L 173.81 260.16 L 173.19 256.08 L 172.57 252.05 L 171.92 247.97 L 171.21 243.79 L 170.42 239.48 L 169.53 235.03 L 168.53 230.46 L 167.41 225.79 L 166.17 221.06 L 164.82 216.30 L 163.38 211.61 L 161.82 206.90 L 160.16 202.24 L 158.43 197.67 L 156.63 193.22 L 154.80 188.91 L 152.94 184.77 L 151.09 180.81 L 149.24 176.99 L 147.41 173.30 L 145.58 169.65 L 143.73 165.96 L 141.78 162.20 L 139.72 158.33 L 137.52 154.36 L 135.17 150.31 L 132.69 146.20 L 130.07 142.07 L 127.34 137.95 L 124.53 133.92 L 121.62 129.92 L 118.60 125.97 L 115.47 122.06 L 112.18 118.14 L 108.72 114.18 L 105.05 110.14 L 101.17 105.98 L 97.07 101.70 L 92.78 97.27 L 88.33 92.70 L 85.88 90.17 L 88.45 90.89 L 89.03 88.84 L 80.81 86.52 L 82.92 94.79 L 84.99 94.27 L 84.33 91.68 L 86.80 94.19 L 91.25 98.76 L 95.53 103.18 L 99.62 107.45 L 103.48 111.58 L 107.12 115.60 L 110.56 119.53 L 113.82 123.41 L 116.92 127.29 L 119.91 131.19 L 122.80 135.16 L 125.57 139.15 L 128.28 143.23 L 130.87 147.33 L 133.34 151.40 L 135.66 155.41 L 137.84 159.35 L 139.89 163.19 L 141.83 166.93 L 143.68 170.60 L 145.50 174.25 L 147.32 177.93 L 149.16 181.72 L 151.00 185.66 L 152.84 189.77 L 154.66 194.04 L 156.44 198.45 L 158.16 202.98 L 159.80 207.59 L 161.35 212.26 L 162.78 216.91 L 164.11 221.62 L 165.34 226.31 L 166.45 230.94 L 167.44 235.47 L 168.32 239.88 L 169.11 244.16 L 169.81 248.32 L 170.46 252.38 L 171.08 256.40 L 171.70 260.47 L 172.30 264.64 L 172.85 268.95 L 173.36 273.42 L 173.79 278.04 L 174.14 282.79 L 174.40 287.62 L 174.56 292.52 L 174.62 297.44 L 174.56 302.30 L 174.41 307.20 L 174.15 312.03 L 173.80 316.78 L 173.36 321.40 L 172.86 325.87 L 172.30 330.19 L 171.71 334.36 L 171.09 338.43 L 170.47 342.45 L 169.82 346.51 L 169.12 350.66 L 168.33 354.94 L 167.45 359.35 L 166.46 363.89 L 165.35 368.51 L 164.13 373.20 L 162.79 377.91 L 161.35 382.61 L 159.82 387.23 L 158.18 391.84 L 156.46 396.38 L 154.68 400.79 L 152.86 405.06 L 151.02 409.17 L 149.18 413.11 L 147.35 416.90 L 145.52 420.59 L 143.70 424.23 L 141.85 427.90 L 139.92 431.64 L 137.87 435.48 L 135.69 439.42 L 133.36 443.43 L 130.90 447.50 L 128.31 451.60 L 125.60 455.68 L 122.79 459.72 L 122.68 459.88 L 119.78 463.85 L 116.79 467.75 L 113.68 471.63 L 110.42 475.51 L 106.97 479.44 L 103.32 483.46 L 99.45 487.60 L 95.36 491.88 L 91.07 496.31 L 86.63 500.86 L 86.19 496.43 L 80.81 508.36 ZM 86.77 502.24 L 86.77 502.24 L 86.77 502.24 L 86.77 502.24 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<text x='64.98' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='655.02' y='325.32' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='64.98' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='287.40px' lengthAdjust='spacingAndGlyphs'>geom_dag ggarrow all ornaments via options</text>
+</g>
+</svg>
