@@ -1212,8 +1212,6 @@ test_that("geom_dag_arrow_arc() skewed angle snapshot", {
 # geom_dag() ggarrow dispatch tests ----------------------------------------
 
 test_that("geom_dag() with edge_engine='ggraph' returns ggraph edge layers (default)", {
-  skip_if_not_installed("ggarrow")
-
   dag <- dagify(y ~ x + z, x ~ z)
   p <- ggplot(dag) + geom_dag(edge_engine = "ggraph")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))

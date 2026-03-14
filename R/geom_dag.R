@@ -1288,6 +1288,7 @@ geom_dag_ggarrow_edges <- function(
   arrow_head <- ggdag_option("arrow_head", NULL) %||%
     ggarrow::arrow_head_wings()
   arrow_fins <- ggdag_option("arrow_fins", NULL)
+  arrow_mid <- ggdag_option("arrow_mid", NULL)
   curvature <- ggdag_option("curvature", 0.3)
   resect <- sizes[["cap"]]
 
@@ -1298,6 +1299,8 @@ geom_dag_ggarrow_edges <- function(
     "link_arc" = geom_dag_arrows(
       mapping = dag_mapping,
       arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = arrow_mid,
       curvature = curvature,
       resect = resect,
       show.legend = show.legend
@@ -1305,23 +1308,54 @@ geom_dag_ggarrow_edges <- function(
     "link" = geom_dag_arrow(
       mapping = dag_mapping,
       arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = arrow_mid,
       resect = resect,
       show.legend = show.legend
     ),
-    "arc" = geom_dag_arrow_arc(
-      mapping = dag_mapping,
-      arrow_head = arrow_head,
-      arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
-      curvature = curvature,
-      resect = resect,
-      show.legend = show.legend
+    "arc" = list(
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      ),
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("<->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      )
     ),
-    "diagonal" = geom_dag_arrow_arc(
-      mapping = dag_mapping,
-      arrow_head = arrow_head,
-      curvature = curvature,
-      resect = resect,
-      show.legend = show.legend
+    "diagonal" = list(
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      ),
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("<->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      )
     )
   )
 }
@@ -1474,6 +1508,8 @@ geom_dag <- function(
       edge_type <- ggdag_option("edge_type", "link_arc")
     }
     edge_type <- match.arg(edge_type)
+
+    edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
     if (identical(edge_engine, "ggarrow")) {
       edge_geom <- geom_dag_ggarrow_edges(
