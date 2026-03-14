@@ -111,7 +111,13 @@ tidy_dagitty <- function(
             outcome = dagitty::outcomes(.dagitty)
           ) |>
           coords2list(),
-        error = function(e) NULL
+        error = function(e) {
+          inform(c(
+            "!" = "Could not compute time-ordered layout; falling back to default layout.",
+            "i" = "Reason: {conditionMessage(e)}"
+          ))
+          NULL
+        }
       )
       all_nodes <- names(.dagitty)
       covers_all <- !is.null(time_ordered_coords) &&
@@ -119,6 +125,11 @@ tidy_dagitty <- function(
       if (covers_all) {
         dagitty::coordinates(.dagitty) <- time_ordered_coords
         computed_coords <- TRUE
+      } else if (!is.null(time_ordered_coords)) {
+        inform(c(
+          "!" = "Time-ordered layout did not cover all nodes; falling back to default layout.",
+          "i" = "Nodes without layout: {paste(setdiff(all_nodes, names(time_ordered_coords$x)), collapse = ', ')}"
+        ))
       }
     } else {
       computed_coords <- TRUE
