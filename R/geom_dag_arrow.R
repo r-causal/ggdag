@@ -37,7 +37,10 @@ geom_dag_arrow_geom <- function() {
         stroke_width = 0.25
       ),
       draw_panel = function(
-        self, data, panel_params, coord,
+        self,
+        data,
+        panel_params,
+        coord,
         linejoin = "round",
         linemitre = 10,
         lineend = "butt",
@@ -99,7 +102,10 @@ geom_dag_arrow_curve_geom <- function() {
         stroke_width = 0.25
       ),
       draw_panel = function(
-        self, data, panel_params, coord,
+        self,
+        data,
+        panel_params,
+        coord,
         linejoin = "round",
         linemitre = 10,
         lineend = "butt",
