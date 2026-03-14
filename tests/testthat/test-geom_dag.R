@@ -1,4 +1,5 @@
 test_that("repelled labels work", {
+  withr::local_seed(1234)
   g <- dagify(
     m ~ x + y,
     y ~ x,
@@ -282,6 +283,7 @@ test_that("repel max.overlaps parameter works", {
 })
 
 test_that("repel seed parameter ensures reproducibility", {
+  withr::local_seed(1234)
   g <- dagify(
     y ~ x + z,
     z ~ x
@@ -556,6 +558,7 @@ test_that("labels also work", {
 })
 
 test_that("circular layouts work correctly", {
+  withr::local_seed(1234)
   # Test linear circular layout
   dag <- dagify(
     y ~ x + z,

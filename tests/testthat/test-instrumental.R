@@ -1,4 +1,5 @@
 test_that("dags identify IVs correctly", {
+  withr::local_seed(1234)
   dag <- dagitty::dagitty("dag{ i->x->y; i2->x->y; x<->y }")
   p <- ggdag_instrumental(dag, "x", "y")
   expect_doppelganger(
@@ -13,6 +14,7 @@ test_that("dags identify IVs correctly", {
 })
 
 test_that("dags without IVs are shown correctly", {
+  withr::local_seed(1234)
   no_iv <- dagify(
     y ~ t + x1 + x2 + x4,
     t ~ x1 + x3,
@@ -34,6 +36,7 @@ test_that("dags without IVs are shown correctly", {
 })
 
 test_that("dags with colliders + IVs are shown correctly", {
+  withr::local_seed(1234)
   iv_collider <- dagify(
     y ~ t + x1 + x2 + x4,
     t ~ x1 + x3,

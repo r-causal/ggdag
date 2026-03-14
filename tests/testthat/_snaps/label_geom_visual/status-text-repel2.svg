@@ -44,14 +44,14 @@
 <text x='469.45' y='394.53' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='297.06' y='451.76' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <line x1='375.46' y1='49.82' x2='378.00' y2='58.00' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='484.83' y1='352.64' x2='476.11' y2='374.25' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='322.14' y1='414.36' x2='307.69' y2='433.72' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='484.49' y1='352.96' x2='476.03' y2='374.22' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='322.12' y1='414.38' x2='307.69' y2='433.71' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='166.98' y='506.03' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='69.54px' lengthAdjust='spacingAndGlyphs'>Unmeasured</text>
 <text x='166.98' y='523.51' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
 <text x='348.00' y='52.74' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
-<text x='511.27' y='356.00' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
-<text x='329.72' y='395.07' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='54.01px' lengthAdjust='spacingAndGlyphs'>Measured</text>
-<text x='329.72' y='412.56' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
+<text x='510.93' y='356.31' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
+<text x='329.68' y='395.09' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='54.01px' lengthAdjust='spacingAndGlyphs'>Measured</text>
+<text x='329.68' y='412.58' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
 <rect x='35.72' y='22.78' width='608.87' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

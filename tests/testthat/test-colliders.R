@@ -1,4 +1,5 @@
 test_that("colliders correctly identified", {
+  withr::local_seed(1234)
   test_dag <- dagify(m ~ x + y, y ~ x)
   p <- ggdag_collider(test_dag)
   expect_doppelganger("ggdag_collider() highlights `m`", p)

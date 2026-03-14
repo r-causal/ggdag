@@ -533,6 +533,7 @@ test_that("geom_dag_arrows() with geom_dag_point snapshot", {
 
 test_that("geom_dag_arrow() simple chain snapshot", {
   skip_if_not_installed("ggarrow")
+  withr::local_seed(1234)
 
   p <- dagify(y ~ x, x ~ z) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -546,6 +547,7 @@ test_that("geom_dag_arrow() simple chain snapshot", {
 
 test_that("geom_dag_arrow() fork structure snapshot", {
   skip_if_not_installed("ggarrow")
+  withr::local_seed(1234)
 
   p <- dagify(y ~ x, z ~ x) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -559,6 +561,7 @@ test_that("geom_dag_arrow() fork structure snapshot", {
 
 test_that("geom_dag_arrow() collider structure snapshot", {
   skip_if_not_installed("ggarrow")
+  withr::local_seed(1234)
 
   p <- dagify(m ~ x + y) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -572,6 +575,7 @@ test_that("geom_dag_arrow() collider structure snapshot", {
 
 test_that("geom_dag_arrows() with multiple bidirected edges snapshot", {
   skip_if_not_installed("ggarrow")
+  withr::local_seed(1234)
 
   p <- dagify(
     y ~ x,

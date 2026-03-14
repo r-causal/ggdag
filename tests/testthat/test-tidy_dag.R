@@ -106,6 +106,7 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
 })
 
 test_that("list is correctly converted to a saturated, time-ordered DAG", {
+  withr::local_seed(1234)
   node_groups <- list(c("x1", "x2"), c("y1", "y2"), "z")
   dag <- as_tidy_dagitty(node_groups)
   expect_s3_class(dag, "tidy_dagitty")

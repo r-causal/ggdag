@@ -1,4 +1,5 @@
 test_that("dags have correct status", {
+  withr::local_seed(1234)
   test_dag <- dagify(
     l ~ x + y,
     y ~ x,

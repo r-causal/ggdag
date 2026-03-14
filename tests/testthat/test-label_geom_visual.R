@@ -1,4 +1,5 @@
 test_that("ggdag() visual output with different label geoms", {
+  withr::local_seed(1234)
   # Create a simple DAG with labels
   dag <- dagify(
     y ~ x + z,
@@ -22,6 +23,7 @@ test_that("ggdag() visual output with different label geoms", {
 })
 
 test_that("ggdag_adjustment_set() visual output with different label geoms", {
+  withr::local_seed(1234)
   dag <- dagify(
     y ~ x + z + w,
     x ~ z + w,
@@ -49,6 +51,7 @@ test_that("ggdag_adjustment_set() visual output with different label geoms", {
 })
 
 test_that("ggdag_paths() visual output with different label geoms", {
+  withr::local_seed(1234)
   dag <- dagify(
     y ~ x + m,
     m ~ x + z,
@@ -72,6 +75,7 @@ test_that("ggdag_paths() visual output with different label geoms", {
 })
 
 test_that("ggdag_collider() visual output with different label geoms", {
+  withr::local_seed(1234)
   dag <- dagify(
     m ~ x + y,
     y ~ x,
@@ -100,6 +104,7 @@ test_that("ggdag_collider() visual output with different label geoms", {
 })
 
 test_that("ggdag_status() visual output with different label geoms", {
+  withr::local_seed(1234)
   dag <- dagify(
     y ~ x + z,
     x ~ z,
@@ -129,6 +134,7 @@ test_that("ggdag_status() visual output with different label geoms", {
 })
 
 test_that("quick plot functions visual output with label geoms", {
+  withr::local_seed(1234)
   # Test m_bias with labels
   p_mbias <- ggdag_m_bias(
     x = "Treatment",
@@ -153,6 +159,7 @@ test_that("quick plot functions visual output with label geoms", {
 })
 
 test_that("label geoms work with faceted plots", {
+  withr::local_seed(1234)
   dag <- dagify(
     y ~ x + z,
     x ~ z,
@@ -169,6 +176,7 @@ test_that("label geoms work with faceted plots", {
 })
 
 test_that("label size and color parameters work correctly", {
+  withr::local_seed(1234)
   dag <- dagify(
     y ~ x + z,
     x ~ z,
