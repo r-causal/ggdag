@@ -75,6 +75,10 @@ tidy_dagitty <- function(
   dag_edges <- get_dagitty_edges(.dagitty)
   .labels <- label(.dagitty)
 
+  # Track whether we just computed coords in this call — if so, always pass
+
+  # them to generate_layout regardless of use_existing_coords.
+  computed_coords <- FALSE
   if (is.function(layout)) {
     edge_df <- edges2df(dag_edges)
     coords <- if ("..." %in% names(formals(layout))) {
@@ -88,35 +92,60 @@ tidy_dagitty <- function(
     }
     coords <- coords2list(coords)
     dagitty::coordinates(.dagitty) <- coords
+    computed_coords <- TRUE
     layout <- "nicely"
   } else if (is.data.frame(layout)) {
     dagitty::coordinates(.dagitty) <- coords2list(layout)
+    computed_coords <- TRUE
     layout <- "nicely"
   } else if (identical(layout, "time_ordered")) {
     existing <- dagitty::coordinates(.dagitty)
     has_coords <- !is.null(existing) &&
       !all(is.na(unlist(existing)))
     if (!isTRUE(use_existing_coords) || !has_coords) {
-      coords <- dag_edges |>
-        edges2df() |>
-        compute_time_ordered_layout(
-          exposure = dagitty::exposures(.dagitty),
-          outcome = dagitty::outcomes(.dagitty)
-        ) |>
-        coords2list()
-      dagitty::coordinates(.dagitty) <- coords
+      time_ordered_coords <- tryCatch(
+        dag_edges |>
+          edges2df() |>
+          compute_time_ordered_layout(
+            exposure = dagitty::exposures(.dagitty),
+            outcome = dagitty::outcomes(.dagitty)
+          ) |>
+          coords2list(),
+        error = function(e) {
+          inform(c(
+            "!" = "Could not compute time-ordered layout; falling back to default layout.",
+            "i" = "Reason: {conditionMessage(e)}"
+          ))
+          NULL
+        }
+      )
+      all_nodes <- names(.dagitty)
+      covers_all <- !is.null(time_ordered_coords) &&
+        all(all_nodes %in% names(time_ordered_coords$x))
+      if (covers_all) {
+        dagitty::coordinates(.dagitty) <- time_ordered_coords
+        computed_coords <- TRUE
+      } else if (!is.null(time_ordered_coords)) {
+        inform(c(
+          "!" = "Time-ordered layout did not cover all nodes; falling back to default layout.",
+          "i" = "Nodes without layout: {paste(setdiff(all_nodes, names(time_ordered_coords$x)), collapse = ', ')}"
+        ))
+      }
+    } else {
+      computed_coords <- TRUE
     }
     layout <- "nicely"
   } else {
     check_verboten_layout(layout)
   }
 
+  pass_coords <- computed_coords || isTRUE(use_existing_coords)
   coords_df <- dag_edges |>
     dplyr::select("name", "to") |>
     generate_layout(
       layout = layout,
       vertices = names(.dagitty),
-      coords = if (isTRUE(use_existing_coords)) dagitty::coordinates(.dagitty),
+      coords = if (pass_coords) dagitty::coordinates(.dagitty),
       ...
     )
 

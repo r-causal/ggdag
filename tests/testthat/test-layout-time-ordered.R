@@ -1815,60 +1815,70 @@ test_that("bidirected edge with coords = time_ordered_coords() works", {
 # Visual regression tests (vdiffr) ---------------------------------------------
 
 test_that("visual: confounding DAG z->x, z->y, x->y", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-confounding", p)
 })
 
 test_that("visual: mediation DAG x->m->y, x->y", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + m, m ~ x) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-mediation", p)
 })
 
 test_that("visual: collider x->m, y->m", {
+  withr::local_seed(1234)
   p <- dagify(m ~ x + y) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-collider", p)
 })
 
 test_that("visual: fork x<-z->y", {
+  withr::local_seed(1234)
   p <- dagify(x ~ z, y ~ z) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-fork", p)
 })
 
 test_that("visual: IV DAG z->x->y, u->x, u->y", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + u, x ~ z + u) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-iv", p)
 })
 
 test_that("visual: diamond a->b, a->c, b->d, c->d", {
+  withr::local_seed(1234)
   p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-diamond", p)
 })
 
 test_that("visual: wide fan-in 5 parents -> y", {
+  withr::local_seed(1234)
   p <- dagify(y ~ a + b + c + d + e) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-fan-in-5", p)
 })
 
 test_that("visual: wide fan-out x -> 5 children", {
+  withr::local_seed(1234)
   p <- dagify(a ~ x, b ~ x, c ~ x, d ~ x, e ~ x) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-fan-out-5", p)
 })
 
 test_that("visual: deep chain a->b->c->d->e->f", {
+  withr::local_seed(1234)
   p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-deep-chain", p)
 })
 
 test_that("visual: smoking DAG with skip edges", {
+  withr::local_seed(1234)
   p <- dagify(
     tar ~ smoking,
     cancer ~ smoking + tar + genetics,
@@ -1879,6 +1889,7 @@ test_that("visual: smoking DAG with skip edges", {
 })
 
 test_that("visual: napkin DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     a ~ u1 + u2 + z,
     z ~ u1,
@@ -1890,6 +1901,7 @@ test_that("visual: napkin DAG", {
 })
 
 test_that("visual: multi-mediator chain", {
+  withr::local_seed(1234)
   p <- dagify(
     m1 ~ x,
     m2 ~ x + m1,
@@ -1901,6 +1913,7 @@ test_that("visual: multi-mediator chain", {
 })
 
 test_that("visual: deep chain with shortcuts", {
+  withr::local_seed(1234)
   p <- dagify(
     b ~ a,
     c ~ b + a,
@@ -1912,6 +1925,7 @@ test_that("visual: deep chain with shortcuts", {
 })
 
 test_that("visual: complex epi DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     health ~ ses + edu + income,
     income ~ edu,
@@ -1922,24 +1936,28 @@ test_that("visual: complex epi DAG", {
 })
 
 test_that("visual: front-door DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ u + m, x ~ u, m ~ x) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-front-door", p)
 })
 
 test_that("visual: M-bias DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-m-bias", p)
 })
 
 test_that("visual: disconnected components", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x, b ~ a) |>
     ggdag(layout = "time_ordered")
   expect_doppelganger("time-ordered-disconnected", p)
 })
 
 test_that("visual: README DAG with bidirected edges", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1 + w2,
@@ -1954,6 +1972,7 @@ test_that("visual: README DAG with bidirected edges", {
 })
 
 test_that("visual: multiple bidirected pairs", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ a + b + c + d,
     a ~ ~b,
@@ -1964,18 +1983,21 @@ test_that("visual: multiple bidirected pairs", {
 })
 
 test_that("visual: direction = y", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = time_ordered_coords(direction = "y"))
   expect_doppelganger("time-ordered-direction-y", p)
 })
 
 test_that("visual: time_ordered with arc edges", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = "time_ordered", edge_type = "arc")
   expect_doppelganger("time-ordered-arc-edges", p)
 })
 
 test_that("visual: time_ordered with labels", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + z,
     x ~ z,
@@ -1990,6 +2012,7 @@ test_that("visual: time_ordered with labels", {
 })
 
 test_that("visual: time_ordered ggplot manual build", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + m,
     m ~ x,
@@ -2261,30 +2284,35 @@ test_that("auto_sort_direction works with coords= in dagify", {
 # Paired left/right snapshots for each DAG pattern
 
 test_that("visual: right mediation DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + m, m ~ x) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-mediation", p)
 })
 
 test_that("visual: left mediation DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + m, m ~ x) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-mediation", p)
 })
 
 test_that("visual: right confounding DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-confounding", p)
 })
 
 test_that("visual: left confounding DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-confounding", p)
 })
 
 test_that("visual: right smoking DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     tar ~ smoking,
     cancer ~ smoking + tar + genetics,
@@ -2295,6 +2323,7 @@ test_that("visual: right smoking DAG", {
 })
 
 test_that("visual: left smoking DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     tar ~ smoking,
     cancer ~ smoking + tar + genetics,
@@ -2305,18 +2334,21 @@ test_that("visual: left smoking DAG", {
 })
 
 test_that("visual: right diamond DAG", {
+  withr::local_seed(1234)
   p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-diamond", p)
 })
 
 test_that("visual: left diamond DAG", {
+  withr::local_seed(1234)
   p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-diamond", p)
 })
 
 test_that("visual: right deep shortcuts DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     b ~ a,
     c ~ b + a,
@@ -2328,6 +2360,7 @@ test_that("visual: right deep shortcuts DAG", {
 })
 
 test_that("visual: left deep shortcuts DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     b ~ a,
     c ~ b + a,
@@ -2339,6 +2372,7 @@ test_that("visual: left deep shortcuts DAG", {
 })
 
 test_that("visual: right multi-mediator chain", {
+  withr::local_seed(1234)
   p <- dagify(
     m1 ~ x,
     m2 ~ x + m1,
@@ -2350,6 +2384,7 @@ test_that("visual: right multi-mediator chain", {
 })
 
 test_that("visual: left multi-mediator chain", {
+  withr::local_seed(1234)
   p <- dagify(
     m1 ~ x,
     m2 ~ x + m1,
@@ -2361,6 +2396,7 @@ test_that("visual: left multi-mediator chain", {
 })
 
 test_that("visual: right napkin DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     a ~ u1 + u2 + z,
     z ~ u1,
@@ -2372,6 +2408,7 @@ test_that("visual: right napkin DAG", {
 })
 
 test_that("visual: left napkin DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     a ~ u1 + u2 + z,
     z ~ u1,
@@ -2383,42 +2420,49 @@ test_that("visual: left napkin DAG", {
 })
 
 test_that("visual: right front-door DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ u + m, x ~ u, m ~ x) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-front-door", p)
 })
 
 test_that("visual: left front-door DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ u + m, x ~ u, m ~ x) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-front-door", p)
 })
 
 test_that("visual: right IV DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + u, x ~ z + u) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-iv", p)
 })
 
 test_that("visual: left IV DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ x + u, x ~ z + u) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-iv", p)
 })
 
 test_that("visual: right M-bias DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-m-bias", p)
 })
 
 test_that("visual: left M-bias DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-m-bias", p)
 })
 
 test_that("visual: right epi DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     health ~ ses + edu + income,
     income ~ edu,
@@ -2429,6 +2473,7 @@ test_that("visual: right epi DAG", {
 })
 
 test_that("visual: left epi DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     health ~ ses + edu + income,
     income ~ edu,
@@ -2439,6 +2484,7 @@ test_that("visual: left epi DAG", {
 })
 
 test_that("visual: right README bidirected DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1 + w2,
@@ -2453,6 +2499,7 @@ test_that("visual: right README bidirected DAG", {
 })
 
 test_that("visual: left README bidirected DAG", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1 + w2,
@@ -2467,24 +2514,28 @@ test_that("visual: left README bidirected DAG", {
 })
 
 test_that("visual: right fan-in 5 DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ a + b + c + d + e) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-fan-in-5", p)
 })
 
 test_that("visual: left fan-in 5 DAG", {
+  withr::local_seed(1234)
   p <- dagify(y ~ a + b + c + d + e) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-fan-in-5", p)
 })
 
 test_that("visual: right deep chain DAG", {
+  withr::local_seed(1234)
   p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-deep-chain", p)
 })
 
 test_that("visual: left deep chain DAG", {
+  withr::local_seed(1234)
   p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
   expect_doppelganger("time-ordered-left-deep-chain", p)
@@ -2493,6 +2544,7 @@ test_that("visual: left deep chain DAG", {
 # fixed_time snapshot tests ----------------------------------------------------
 
 test_that("visual: fixed_time separates same-layer siblings", {
+  withr::local_seed(1234)
   # Without fixed_time, x and y share a layer (both children of z).
   # Pin y=3 to separate them: z at 1, x at 2, y at 3.
   p <- dagify(
@@ -2505,6 +2557,7 @@ test_that("visual: fixed_time separates same-layer siblings", {
 })
 
 test_that("visual: fixed_time creates gap for known timing", {
+  withr::local_seed(1234)
   # User knows smoking happens well before cancer in a confounding DAG.
   # Without pin: smoking and cancer are adjacent. Pin cancer=4 to show delay.
   p <- dagify(
@@ -2517,6 +2570,7 @@ test_that("visual: fixed_time creates gap for known timing", {
 })
 
 test_that("visual: fixed_time with multiple pins", {
+  withr::local_seed(1234)
   # Complex DAG where user knows the timeline: z at 1, m at 3, y at 5
   p <- dagify(
     y ~ x + m + z,
@@ -2531,6 +2585,7 @@ test_that("visual: fixed_time with multiple pins", {
 # exposure/outcome shift snapshot tests ----------------------------------------
 
 test_that("visual: exposure/outcome shift confounding", {
+  withr::local_seed(1234)
   p <- dagify(
     x ~ z,
     y ~ z,
@@ -2543,6 +2598,7 @@ test_that("visual: exposure/outcome shift confounding", {
 })
 
 test_that("visual: exposure/outcome shift with descendants", {
+  withr::local_seed(1234)
   p <- dagify(
     x ~ z,
     y ~ z,
@@ -2556,6 +2612,7 @@ test_that("visual: exposure/outcome shift with descendants", {
 })
 
 test_that("visual: exposure/outcome no shift when separated", {
+  withr::local_seed(1234)
   p <- dagify(
     y ~ x + m,
     m ~ x,
@@ -2568,6 +2625,7 @@ test_that("visual: exposure/outcome no shift when separated", {
 })
 
 test_that("visual: exposure/outcome shift disabled", {
+  withr::local_seed(1234)
   p <- dagify(
     x ~ z,
     y ~ z,

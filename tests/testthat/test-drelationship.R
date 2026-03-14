@@ -1,4 +1,5 @@
 test_that("d relationships correctly identified", {
+  withr::local_seed(1234)
   test_dag <- dagify(m ~ x + y) |>
     tidy_dagitty()
   p1 <- ggdag_drelationship(test_dag, "x", "y")

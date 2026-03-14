@@ -1,4 +1,5 @@
 test_that("time ordered layout works", {
+  withr::local_seed(1234)
   coords <- time_ordered_coords(list(
     # time point 1
     "a",

@@ -37,6 +37,8 @@ fontface
 generalizability
 geom's
 geoms
+ggarrow
+ggarrow's
 ggplot
 ggproto
 ggraph
@@ -48,14 +50,13 @@ grey
 halfcircle
 hjust
 independencies
-jointy
 lineheight
 linetype
 magrittr
+millimetres
 mismeasure
 misspecified
 mitre
-nameing
 parentless
 plotmath
 pos

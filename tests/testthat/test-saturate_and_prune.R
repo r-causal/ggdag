@@ -1,4 +1,5 @@
 test_that("dag_saturate returns a saturated DAG", {
+  withr::local_seed(1234)
   .dag <- tidy_dagitty(dagify(y ~ x, x ~ z))
   .saturated_dag <- dag_saturate(.dag)
   expect_s3_class(.saturated_dag, "tidy_dagitty")

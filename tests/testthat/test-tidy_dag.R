@@ -41,6 +41,7 @@ test_that("circular column is present only when needed", {
 })
 
 test_that("nodes without edges are captured correctly", {
+  # Use "nicely" layout; time_ordered can't handle isolated nodes
   .dagitty <- dagitty::dagitty(
     "dag {
   x -> y
@@ -48,7 +49,7 @@ test_that("nodes without edges are captured correctly", {
   }"
   )
 
-  x <- tidy_dagitty(.dagitty)
+  x <- tidy_dagitty(.dagitty, layout = "nicely")
   expect_identical(pull_dag_data(x)$name, c("x", "y", "z"))
 })
 
@@ -106,6 +107,7 @@ test_that("`as_tidy_dagitty()` works with other configurations", {
 })
 
 test_that("list is correctly converted to a saturated, time-ordered DAG", {
+  withr::local_seed(1234)
   node_groups <- list(c("x1", "x2"), c("y1", "y2"), "z")
   dag <- as_tidy_dagitty(node_groups)
   expect_s3_class(dag, "tidy_dagitty")
@@ -265,46 +267,48 @@ test_that("coordinate conversion functions work forward and backwards", {
 test_that("tidy_dagitty warns about cyclic graphs", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
+  withr::local_seed(1234)
+  # Use "nicely" layout; time_ordered can't handle cyclic graphs
   # Simple 2-node cycle
   cyclic_dag1 <- dagitty::dagitty("dag { A -> B -> A }")
   expect_ggdag_warning(
-    tidy_dagitty(cyclic_dag1)
+    tidy_dagitty(cyclic_dag1, layout = "nicely")
   )
 
   # Verify the warning message contains the cycle
   expect_warning(
-    tidy_dagitty(cyclic_dag1),
+    tidy_dagitty(cyclic_dag1, layout = "nicely"),
     regexp = "A -> B -> A"
   )
 
   # 3-node cycle
   cyclic_dag2 <- dagitty::dagitty("dag { X -> Y -> Z -> X }")
   expect_warning(
-    tidy_dagitty(cyclic_dag2),
+    tidy_dagitty(cyclic_dag2, layout = "nicely"),
     regexp = "X -> Y -> Z -> X"
   )
 
   # Self-loop
   cyclic_dag3 <- dagitty::dagitty("dag { A -> A }")
   expect_warning(
-    tidy_dagitty(cyclic_dag3),
+    tidy_dagitty(cyclic_dag3, layout = "nicely"),
     regexp = "A -> A"
   )
 
   # Complex graph with cycle
   cyclic_dag4 <- dagitty::dagitty("dag { A -> B -> C -> D -> B E -> F }")
   expect_warning(
-    tidy_dagitty(cyclic_dag4),
+    tidy_dagitty(cyclic_dag4, layout = "nicely"),
     regexp = "B -> C -> D -> B"
   )
 
   # No warning for acyclic graphs
   acyclic_dag <- dagitty::dagitty("dag { A -> B -> C }")
-  expect_no_warning(tidy_dagitty(acyclic_dag))
+  expect_no_warning(tidy_dagitty(acyclic_dag, layout = "nicely"))
 
   # The warning should occur only once, not on subsequent operations
   expect_warning(
-    tidy_cyclic <- tidy_dagitty(cyclic_dag1),
+    tidy_cyclic <- tidy_dagitty(cyclic_dag1, layout = "nicely"),
     class = "ggdag_cyclic_warning"
   )
   # Operations on already tidied dag should not re-warn

@@ -4,6 +4,7 @@ expect_names <- function(object, expectation) {
 }
 
 test_that("dags ............", {
+  withr::local_seed(1234)
   # non-reversible dag
   p1 <- ggdag_equivalent_dags(test_dag)
   p2 <- ggdag_equivalent_class(test_dag)
