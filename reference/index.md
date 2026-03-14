@@ -206,6 +206,10 @@ Direct analytical queries that return tibbles
 
 - [`geom_dag()`](https://r-causal.github.io/ggdag/reference/geom_dag.md)
   : Add common DAG layers to a ggplot
+- [`geom_dag_arrow()`](https://r-causal.github.io/ggdag/reference/geom_dag_arrow.md)
+  [`geom_dag_arrow_arc()`](https://r-causal.github.io/ggdag/reference/geom_dag_arrow.md)
+  [`geom_dag_arrows()`](https://r-causal.github.io/ggdag/reference/geom_dag_arrow.md)
+  : Directed DAG edges using ggarrow
 - [`geom_dag_collider_edges()`](https://r-causal.github.io/ggdag/reference/geom_dag_collider_edges.md)
   : Edges for paths activated by stratification on colliders
 - [`geom_dag_edges_link()`](https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.md)
