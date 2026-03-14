@@ -34,6 +34,7 @@ Imports:
     tidygraph
 Suggests:
     covr,
+    ggarrow,
     knitr,
     rmarkdown,
     spelling,
@@ -47,3 +48,4 @@ Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Config/testthat/parallel: true

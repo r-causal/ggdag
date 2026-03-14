@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='708.04' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
+<path d='M 633.58 517.21 L 623.41 508.98 L 625.00 513.12 L 86.77 327.89 L 86.08 329.91 L 624.30 515.16 L 620.50 517.44 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 625.89 83.86 L 624.60 88.10 L 634.15 79.17 L 621.10 79.87 L 625.05 81.88 L 85.43 311.65 L 85.85 312.63 L 86.26 313.61 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<circle cx='64.98' cy='321.52' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='524.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<text x='64.98' y='325.43' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='655.02' y='528.51' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='655.02' y='74.20' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>z</text>
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='140.10px' lengthAdjust='spacingAndGlyphs'>geom_dag_arrow fork</text>
+</g>
+</svg>
