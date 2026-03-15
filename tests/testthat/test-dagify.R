@@ -221,6 +221,34 @@ test_that("tidy_dagitty() picks up curved_edges without explicit coords", {
   expect_equal(x_to_y$edge_curvature, 0.5)
 })
 
+test_that("curved() rejects non-literal curvature values", {
+  expect_error(
+    dagify(y ~ curved(x, "high")),
+    "curvature"
+  )
+  expect_error(
+    dagify(y ~ curved(x, TRUE)),
+    "curvature"
+  )
+})
+
+test_that("curved_edges attr survives pull_dag() round-trip", {
+  dag <- dagify(y ~ curved(x, 0.5))
+  td <- tidy_dagitty(dag)
+  dag2 <- pull_dag(td)
+  ce <- attr(dag2, "curved_edges")
+  expect_false(is.null(ce))
+  expect_equal(ce$edge_curvature, 0.5)
+
+  # Re-tidying should still produce edge_curvature
+
+  td2 <- tidy_dagitty(dag2)
+  dat2 <- pull_dag_data(td2)
+  expect_true("edge_curvature" %in% names(dat2))
+  x_to_y <- dat2[dat2$name == "x" & dat2$to == "y" & !is.na(dat2$to), ]
+  expect_equal(x_to_y$edge_curvature, 0.5)
+})
+
 test_that("tidy_dagitty() without curved() has no edge_curvature column", {
   dag <- dagify(y ~ z + c, c ~ z)
   td <- tidy_dagitty(dag)

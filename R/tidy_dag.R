@@ -171,6 +171,11 @@ tidy_dagitty <- function(
   dagitty::coordinates(.dagitty) <- coords
   label(.dagitty) <- .labels
 
+  # Restore curved_edges attr stripped by dagitty::coordinates<-
+  if (!is.null(curved_edges)) {
+    attr(.dagitty, "curved_edges") <- curved_edges
+  }
+
   new_tidy_dagitty(tidy_dag, .dagitty)
 }
 

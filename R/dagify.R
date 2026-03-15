@@ -363,7 +363,30 @@ find_curved_calls <- function(expr) {
 
   if (fn_name == "curved") {
     var_name <- as.character(expr[[2]])
-    curvature <- if (length(expr) >= 3) eval(expr[[3]]) else 0.3
+    curvature <- if (length(expr) >= 3) {
+      raw <- expr[[3]]
+      val <- if (is.numeric(raw)) {
+        raw
+      } else if (
+        is.call(raw) &&
+          identical(raw[[1]], as.name("-")) &&
+          length(raw) == 2 &&
+          is.numeric(raw[[2]])
+      ) {
+        -raw[[2]]
+      } else {
+        cli::cli_abort(
+          c(
+            "{.arg curvature} in {.fn curved} must be a numeric literal.",
+            "i" = "Example: {.code curved(x, 0.5)} or {.code curved(x, -0.3)}"
+          ),
+          error_class = "ggdag_type_error"
+        )
+      }
+      val
+    } else {
+      0.3
+    }
     return(list(list(var = var_name, curvature = curvature)))
   }
 

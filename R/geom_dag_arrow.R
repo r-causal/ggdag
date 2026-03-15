@@ -158,6 +158,13 @@ geom_dag_arrow_curve_geom <- function() {
           return(draw_parent(data, curvature))
         }
 
+        if (!is.numeric(data$edge_curvature)) {
+          cli::cli_abort(
+            "{.field edge_curvature} must be numeric, not {.cls {class(data$edge_curvature)}}.",
+            error_class = "ggdag_type_error"
+          )
+        }
+
         # Replace NA edge_curvature with scalar fallback
         data$edge_curvature[is.na(data$edge_curvature)] <- curvature
 
