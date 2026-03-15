@@ -521,7 +521,7 @@ test_that("uniform edge_curvature matches scalar curvature", {
 test_that("geom_dag_ggarrow_edges link_arc uses geom_dag_arrow_arc for directed", {
   skip_if_not_installed("ggarrow")
 
-  layers <- ggdag:::geom_dag_ggarrow_edges(
+  layers <- geom_dag_ggarrow_edges(
     edge_type = "link_arc",
     sizes = list(cap = 8),
     show.legend = NA
