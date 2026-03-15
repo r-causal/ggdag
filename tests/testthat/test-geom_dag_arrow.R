@@ -516,6 +516,24 @@ test_that("uniform edge_curvature matches scalar curvature", {
   expect_doppelganger("geom_dag_arrow_arc uniform edge_curvature", p)
 })
 
+# -- link_arc routes directed edges through geom_dag_arrow_arc() ---------------
+
+test_that("geom_dag_ggarrow_edges link_arc uses geom_dag_arrow_arc for directed", {
+  skip_if_not_installed("ggarrow")
+
+  layers <- ggdag:::geom_dag_ggarrow_edges(
+    edge_type = "link_arc",
+    sizes = list(cap = 8),
+    show.legend = NA
+  )
+
+  expect_type(layers, "list")
+  expect_length(layers, 2)
+  # Both layers should use GeomDAGArrowCurve (arc geom), not GeomArrowSegment
+  geom_classes <- vapply(layers, function(l) class(l$geom)[1], character(1))
+  expect_true(all(geom_classes == "GeomDAGArrowCurve"))
+})
+
 test_that("geom_dag_arrow_arc() with line ornaments snapshot", {
   skip_if_not_installed("ggarrow")
 

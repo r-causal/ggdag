@@ -1296,14 +1296,27 @@ geom_dag_ggarrow_edges <- function(
 
   switch(
     edge_type,
-    "link_arc" = geom_dag_arrows(
-      mapping = dag_mapping,
-      arrow_head = arrow_head,
-      arrow_fins = arrow_fins,
-      arrow_mid = arrow_mid,
-      curvature = curvature,
-      resect = resect,
-      show.legend = show.legend
+    "link_arc" = list(
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        curvature = 0,
+        resect = resect,
+        show.legend = show.legend
+      ),
+      geom_dag_arrow_arc(
+        mapping = dag_mapping,
+        data = filter_direction("<->"),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+        arrow_mid = arrow_mid,
+        curvature = curvature,
+        resect = resect,
+        show.legend = show.legend
+      )
     ),
     "link" = geom_dag_arrow(
       mapping = dag_mapping,

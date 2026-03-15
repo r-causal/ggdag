@@ -110,3 +110,21 @@
       x Missing: "z" and "w"
       i Available variables: "y" and "x"
 
+# curved() errors when called directly
+
+    Code
+      expr
+    Condition <ggdag_error>
+      Error in `curved()`:
+      ! `curved()` can only be used inside `dagify()` formulas.
+      i Example: `dagify(y ~ x + curved(m, 0.5))`
+
+---
+
+    Code
+      expr
+    Condition <ggdag_error>
+      Error in `curved()`:
+      ! `curved()` can only be used inside `dagify()` formulas.
+      i Example: `dagify(y ~ x + curved(m, 0.5))`
+

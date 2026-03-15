@@ -75,6 +75,10 @@ tidy_dagitty <- function(
   dag_edges <- get_dagitty_edges(.dagitty)
   .labels <- label(.dagitty)
 
+  # Save curved_edges before any dagitty::coordinates<- calls, which strip
+  # custom attributes from the dagitty object.
+  curved_edges <- attr(.dagitty, "curved_edges")
+
   # Track whether we just computed coords in this call — if so, always pass
 
   # them to generate_layout regardless of use_existing_coords.
@@ -151,6 +155,14 @@ tidy_dagitty <- function(
 
   tidy_dag <- dag_edges |>
     tidy_dag_edges_and_coords(coords_df)
+
+  if (!is.null(curved_edges) && nrow(curved_edges) > 0) {
+    tidy_dag <- dplyr::left_join(
+      tidy_dag,
+      curved_edges[, c("name", "to", "edge_curvature")],
+      by = c("name", "to")
+    )
+  }
 
   coords <- tidy_dag |>
     dplyr::distinct(.data$name, .data$x, .data$y) |>
