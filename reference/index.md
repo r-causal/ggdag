@@ -15,6 +15,9 @@
 - [`dagify()`](https://r-causal.github.io/ggdag/reference/dagify.md) :
   Create a dagitty DAG using R-like syntax
 
+- [`curved()`](https://r-causal.github.io/ggdag/reference/curved.md) :
+  Mark an edge as curved in dagify formulas
+
 - [`dag()`](https://r-causal.github.io/ggdag/reference/dag.md) : Create
   a dagitty DAG
 
