@@ -356,6 +356,134 @@ test_that("geom_dag_arrow_arc() negative curvature snapshot", {
   expect_doppelganger("geom_dag_arrow_arc negative curvature", p)
 })
 
+# -- per-edge curvature --------------------------------------------------------
+
+test_that("edge_curvature absent uses scalar curvature param", {
+  skip_if_not_installed("ggarrow")
+
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(
+      data = filter_direction("<->"),
+      curvature = 0.5
+    ) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  grob <- ggplotGrob(p)
+  expect_s3_class(grob, "gtable")
+})
+
+test_that("edge_curvature column gives each edge its own curvature", {
+  skip_if_not_installed("ggarrow")
+
+  # Time-ordered DAG where edges that skip time points need curvature
+  # to route around intermediate nodes (c->m skips x, x->y skips m)
+  time_dag <- dagify(
+    y ~ x + m,
+    m ~ x + c,
+    x ~ c,
+    coords = time_ordered_coords(force_y = FALSE)
+  )
+
+  add_mixed_curvature <- function(x) {
+    x <- dplyr::filter(x, !is.na(.data$xend))
+    # Edges spanning >1 time step curve around intermediate nodes;
+    # adjacent edges stay straight
+    span <- abs(x$x - x$xend)
+    x$edge_curvature <- ifelse(span > min(span) + 0.01, 0.5, 0)
+    x
+  }
+
+  p <- time_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(
+      aes(edge_curvature = edge_curvature),
+      data = add_mixed_curvature,
+      arrow_fins = NULL
+    ) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("geom_dag_arrow_arc mixed edge_curvature", p)
+})
+
+test_that("NA edge_curvature falls back to curvature param", {
+  skip_if_not_installed("ggarrow")
+
+  add_partial_curvature <- function(x) {
+    x <- dplyr::filter(x, !is.na(.data$xend))
+    x$edge_curvature <- NA_real_
+    # Give only the bidirected edge a distinct curvature
+    x$edge_curvature[x$direction == "<->"] <- -0.8
+    x
+  }
+
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(
+      aes(edge_curvature = edge_curvature),
+      data = add_partial_curvature,
+      arrow_fins = NULL,
+      curvature = 0.3
+    ) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("geom_dag_arrow_arc NA fallback curvature", p)
+})
+
+test_that("all-NA edge_curvature is equivalent to no column", {
+  skip_if_not_installed("ggarrow")
+
+  add_all_na <- function(x) {
+    x <- dplyr::filter(x, !is.na(.data$xend))
+    x$edge_curvature <- NA_real_
+    x
+  }
+
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(
+      aes(edge_curvature = edge_curvature),
+      data = add_all_na,
+      arrow_fins = NULL,
+      curvature = 0.5
+    ) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  grob <- ggplotGrob(p)
+  expect_s3_class(grob, "gtable")
+})
+
+test_that("uniform edge_curvature matches scalar curvature", {
+  skip_if_not_installed("ggarrow")
+
+  add_uniform_curvature <- function(x) {
+    x <- dplyr::filter(x, !is.na(.data$xend))
+    x$edge_curvature <- 0.8
+    x
+  }
+
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(
+      aes(edge_curvature = edge_curvature),
+      data = add_uniform_curvature,
+      arrow_fins = NULL
+    ) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("geom_dag_arrow_arc uniform edge_curvature", p)
+})
+
 test_that("geom_dag_arrow_arc() with line ornaments snapshot", {
   skip_if_not_installed("ggarrow")
 

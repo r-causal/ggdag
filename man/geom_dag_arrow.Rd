@@ -166,6 +166,15 @@ These geoms require the ggarrow package to be installed. Unlike the
 ggraph-based edge geoms, these use ggarrow's native parameter names
 (\code{resect_head}/\code{resect_fins} instead of \code{start_cap}/\code{end_cap},
 \code{arrow_head}/\code{arrow_fins} instead of \code{arrow}).
+\subsection{Per-edge curvature}{
+
+\code{geom_dag_arrow_arc()} supports per-edge curvature via the \code{edge_curvature}
+aesthetic. Map a numeric column to \code{aes(edge_curvature = ...)} to give each
+edge its own curvature value. Edges with \code{edge_curvature = 0} are drawn as
+straight lines; positive values curve right, negative values curve left.
+Any \code{NA} values fall back to the scalar \code{curvature} parameter. This is
+useful in time-ordered DAGs where some edges need to curve around
+intermediate nodes while adjacent edges stay straight.
 
 Auto-resection: when neither \code{resect} nor \code{resect_head}/\code{resect_fins} are
 set by the user, edges are automatically shortened from both ends to avoid
@@ -173,6 +182,7 @@ overlapping with nodes. If a node layer (\code{geom_dag_point()} or
 \code{geom_dag_node()}) is already added to the plot, the resection is derived
 from the node size. Otherwise, the \code{ggdag.edge_cap} option (default: 8mm)
 is used as a fallback.
+}
 }
 \examples{
 library(ggplot2)
@@ -197,6 +207,32 @@ p + geom_dag_arrows() + geom_dag_point() + geom_dag_text() + theme_dag()
 # Custom arrow ornaments
 p +
   geom_dag_arrow(arrow_head = ggarrow::arrow_head_line()) +
+  geom_dag_point() +
+  geom_dag_text() +
+  theme_dag()
+
+# Per-edge curvature: curve long-span edges around intermediate nodes
+time_dag <- dagify(
+  y ~ x + m,
+  m ~ x + c,
+  x ~ c,
+  coords = time_ordered_coords(force_y = FALSE)
+)
+
+add_curvature <- function(x) {
+  x <- dplyr::filter(x, !is.na(.data$xend))
+  span <- abs(x$x - x$xend)
+  x$edge_curvature <- ifelse(span > min(span) + 0.01, 0.5, 0)
+  x
+}
+
+time_dag |>
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_arrow_arc(
+    aes(edge_curvature = edge_curvature),
+    data = add_curvature,
+    arrow_fins = NULL
+  ) +
   geom_dag_point() +
   geom_dag_text() +
   theme_dag()
