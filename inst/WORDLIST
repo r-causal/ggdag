@@ -1,3 +1,4 @@
+AST
 Anscombe's
 CES
 CMD
@@ -28,6 +29,7 @@ cli
 collapsibility
 colour
 confounder
+dagify
 dagitty
 de
 dendogram

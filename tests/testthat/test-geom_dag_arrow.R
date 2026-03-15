@@ -516,6 +516,24 @@ test_that("uniform edge_curvature matches scalar curvature", {
   expect_doppelganger("geom_dag_arrow_arc uniform edge_curvature", p)
 })
 
+# -- link_arc routes directed edges through geom_dag_arrow_arc() ---------------
+
+test_that("geom_dag_ggarrow_edges link_arc uses geom_dag_arrow_arc for directed", {
+  skip_if_not_installed("ggarrow")
+
+  layers <- geom_dag_ggarrow_edges(
+    edge_type = "link_arc",
+    sizes = list(cap = 8),
+    show.legend = NA
+  )
+
+  expect_type(layers, "list")
+  expect_length(layers, 2)
+  # Both layers should use GeomDAGArrowCurve (arc geom), not GeomArrowSegment
+  geom_classes <- vapply(layers, function(l) class(l$geom)[1], character(1))
+  expect_true(all(geom_classes == "GeomDAGArrowCurve"))
+})
+
 test_that("geom_dag_arrow_arc() with line ornaments snapshot", {
   skip_if_not_installed("ggarrow")
 
@@ -1822,4 +1840,21 @@ test_that("geom_dag() ggarrow with global option + custom arrow ornaments", {
     geom_dag() +
     theme_dag()
   expect_doppelganger("geom_dag ggarrow all ornaments via options", p)
+})
+
+test_that("geom_dag_arrow_arc() errors on non-numeric edge_curvature", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x,
+    coords = list(x = c(x = 1, y = 2), y = c(x = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  dat <- pull_dag_data(td)
+  dat$edge_curvature <- ifelse(is.na(dat$to), NA, "high")
+
+  p <- ggplot(dat, aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature))
+
+  expect_error(ggplotGrob(p), "edge_curvature")
 })

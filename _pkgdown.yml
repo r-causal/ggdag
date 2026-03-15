@@ -13,6 +13,7 @@ reference:
     - tidy_dagitty
     - as_tidy_dagitty
     - dagify
+    - curved
     - dag
     - starts_with("coord")
     - ends_with("coords")

@@ -101,6 +101,25 @@ dagify <- function(
     call = rlang::current_env()
   )
 
+  has_any_curved <- any(vapply(
+    fmlas,
+    function(f) {
+      is.call(f[[3]]) && length(find_curved_calls(f[[3]])) > 0
+    },
+    logical(1)
+  ))
+
+  if (has_any_curved) {
+    curved_edges <- extract_curved_edges(fmlas)
+    fmlas <- lapply(fmlas, strip_curved)
+  } else {
+    curved_edges <- tibble::tibble(
+      name = character(),
+      to = character(),
+      edge_curvature = numeric()
+    )
+  }
+
   dag_txt <- purrr::map_chr(fmlas, formula2char)
   dag_txt <- paste(dag_txt, collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))()
@@ -145,6 +164,9 @@ dagify <- function(
   }
   if (!is.null(labels)) {
     label(dgty) <- labels
+  }
+  if (nrow(curved_edges) > 0) {
+    attr(dgty, "curved_edges") <- curved_edges
   }
   dgty
 }
@@ -259,6 +281,153 @@ validate_dag_inputs <- function(
   }
 
   invisible(TRUE)
+}
+
+#' Mark an edge as curved in dagify formulas
+#'
+#' Use `curved()` inside [dagify()] formulas to specify per-edge curvature.
+#' This function should only be used inside `dagify()` formulas — calling it
+#' directly will result in an error, similar to [dplyr::n()].
+#'
+#' @param var A variable name (unquoted) representing the parent node.
+#' @param curvature A numeric curvature value. Positive values curve edges
+#'   in one direction, negative in the other. Default is `0.3`.
+#'
+#' @return This function is not intended to be called directly. It is detected
+#'   in the formula AST by [dagify()].
+#'
+#' @examples
+#' # Curve the edge from m to y
+#' dagify(
+#'   y ~ x + curved(m, 0.5),
+#'   m ~ x
+#' )
+#'
+#' @export
+curved <- function(var, curvature = 0.3) {
+  abort(
+    c(
+      "{.fun curved} can only be used inside {.fun dagify} formulas.",
+      "i" = 'Example: {.code dagify(y ~ x + curved(m, 0.5))}'
+    ),
+    error_class = "ggdag_error"
+  )
+}
+
+#' Extract curved edge specifications from formula list
+#'
+#' Walks the AST of each formula to find `curved()` calls and extracts
+#' the variable name and curvature value.
+#'
+#' @param fmlas A list of formulas from `dagify()`.
+#' @return A tibble with columns `name`, `to`, and `edge_curvature`.
+#'   Empty tibble if no `curved()` calls are found.
+#' @noRd
+extract_curved_edges <- function(fmlas) {
+  rows <- list()
+  for (fmla in fmlas) {
+    lhs <- as.character.default(fmla)[[2]]
+    rhs <- fmla[[3]]
+    curved_calls <- find_curved_calls(rhs)
+    for (cc in curved_calls) {
+      rows <- c(
+        rows,
+        list(tibble::tibble(
+          name = cc$var,
+          to = lhs,
+          edge_curvature = cc$curvature
+        ))
+      )
+    }
+  }
+
+  if (length(rows) == 0) {
+    return(tibble::tibble(
+      name = character(),
+      to = character(),
+      edge_curvature = numeric()
+    ))
+  }
+
+  dplyr::bind_rows(rows)
+}
+
+#' Recursively find curved() calls in a formula expression
+#' @noRd
+find_curved_calls <- function(expr) {
+  if (!is.call(expr)) {
+    return(list())
+  }
+
+  fn_name <- as.character(expr[[1]])
+
+  if (fn_name == "curved") {
+    var_name <- as.character(expr[[2]])
+    curvature <- if (length(expr) >= 3) {
+      raw <- expr[[3]]
+      val <- if (is.numeric(raw)) {
+        raw
+      } else if (
+        is.call(raw) &&
+          identical(raw[[1]], as.name("-")) &&
+          length(raw) == 2 &&
+          is.numeric(raw[[2]])
+      ) {
+        -raw[[2]]
+      } else {
+        cli::cli_abort(
+          c(
+            "{.arg curvature} in {.fn curved} must be a numeric literal.",
+            "i" = "Example: {.code curved(x, 0.5)} or {.code curved(x, -0.3)}"
+          ),
+          error_class = "ggdag_type_error"
+        )
+      }
+      val
+    } else {
+      0.3
+    }
+    return(list(list(var = var_name, curvature = curvature)))
+  }
+
+  # Recurse into sub-expressions (e.g., `+`, `~`)
+  results <- list()
+  for (i in seq_along(expr)[-1]) {
+    results <- c(results, find_curved_calls(expr[[i]]))
+  }
+  results
+}
+
+#' Strip curved() wrappers from a formula
+#'
+#' Recursively walks the formula AST and replaces `curved(x, ...)` with `x`,
+#' producing a clean formula for `formula2char()`.
+#'
+#' @param fmla A formula that may contain `curved()` calls.
+#' @return The formula with `curved()` wrappers removed.
+#' @noRd
+strip_curved <- function(fmla) {
+  fmla[[3]] <- strip_curved_expr(fmla[[3]])
+  fmla
+}
+
+#' Recursively strip curved() from an expression
+#' @noRd
+strip_curved_expr <- function(expr) {
+  if (!is.call(expr)) {
+    return(expr)
+  }
+
+  fn_name <- as.character(expr[[1]])
+  if (fn_name == "curved") {
+    return(expr[[2]])
+  }
+
+  # Recurse into sub-expressions
+  for (i in seq_along(expr)[-1]) {
+    expr[[i]] <- strip_curved_expr(expr[[i]])
+  }
+  expr
 }
 
 get_dagitty_edges <- function(.dag) {

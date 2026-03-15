@@ -85,25 +85,25 @@ test_that("tidy_dagitty print output snapshots", {
 
   # Simple DAG
   dag1 <- dagify(y ~ x)
-  tidy_dag1 <- tidy_dagitty(dag1, seed = 123)
+  tidy_dag1 <- tidy_dagitty(dag1, seed = 123, layout = "time_ordered")
 
   expect_snapshot(tidy_dag1)
 
   # DAG with exposure and outcome
   dag2 <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
-  tidy_dag2 <- tidy_dagitty(dag2, seed = 123)
+  tidy_dag2 <- tidy_dagitty(dag2, seed = 123, layout = "time_ordered")
 
   expect_snapshot(tidy_dag2)
 
   # DAG with latent variables
   dag3 <- dagify(y ~ x + u, x ~ u, latent = "u")
-  tidy_dag3 <- tidy_dagitty(dag3, seed = 123)
+  tidy_dag3 <- tidy_dagitty(dag3, seed = 123, layout = "time_ordered")
 
   expect_snapshot(tidy_dag3)
 
   # DAG with collider paths
   dag4 <- dagify(m ~ x + y, y ~ x)
-  tidy_dag4 <- tidy_dagitty(dag4, seed = 123)
+  tidy_dag4 <- tidy_dagitty(dag4, seed = 123, layout = "time_ordered")
   tidy_dag4 <- activate_collider_paths(
     tidy_dag4,
     from = "x",
@@ -124,7 +124,7 @@ test_that("tidy_dagitty print output snapshots", {
     latent = "u",
     labels = c(x = "X", y = "Y", z = "Z", w = "W", m = "M", u = "U")
   )
-  tidy_complex <- tidy_dagitty(complex_dag, seed = 123)
+  tidy_complex <- tidy_dagitty(complex_dag, seed = 123, layout = "time_ordered")
 
   expect_snapshot(tidy_complex)
 })
@@ -257,6 +257,7 @@ test_that("tidy_dagitty with use_existing_coords = FALSE", {
 test_that("dag_adjustment_sets print output snapshots", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
+  withr::local_options(ggdag.layout = "time_ordered")
 
   # Simple DAG with one adjustment set
   dag1 <- dagify(
@@ -293,6 +294,7 @@ test_that("dag_adjustment_sets print output snapshots", {
 test_that("dag_paths print output snapshots", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
+  withr::local_options(ggdag.layout = "time_ordered")
 
   # Simple DAG with paths
   dag1 <- dagify(
