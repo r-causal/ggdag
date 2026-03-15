@@ -43,7 +43,7 @@ geom_dag_arrow_arc(
   angle = 90,
   ncp = 5,
   arrow_head = ggarrow::arrow_head_wings(),
-  arrow_fins = ggarrow::arrow_head_wings(),
+  arrow_fins = NULL,
   arrow_mid = NULL,
   length = 4,
   length_head = NULL,
@@ -214,6 +214,17 @@ ggraph-based edge geoms, these use ggarrow's native parameter names
 (`resect_head`/`resect_fins` instead of `start_cap`/`end_cap`,
 `arrow_head`/`arrow_fins` instead of `arrow`).
 
+### Per-edge curvature
+
+`geom_dag_arrow_arc()` supports per-edge curvature via the
+`edge_curvature` aesthetic. Map a numeric column to
+`aes(edge_curvature = ...)` to give each edge its own curvature value.
+Edges with `edge_curvature = 0` are drawn as straight lines; positive
+values curve right, negative values curve left. Any `NA` values fall
+back to the scalar `curvature` parameter. This is useful in time-ordered
+DAGs where some edges need to curve around intermediate nodes while
+adjacent edges stay straight.
+
 Auto-resection: when neither `resect` nor `resect_head`/`resect_fins`
 are set by the user, edges are automatically shortened from both ends to
 avoid overlapping with nodes. If a node layer
@@ -251,6 +262,33 @@ p + geom_dag_arrows() + geom_dag_point() + geom_dag_text() + theme_dag()
 # Custom arrow ornaments
 p +
   geom_dag_arrow(arrow_head = ggarrow::arrow_head_line()) +
+  geom_dag_point() +
+  geom_dag_text() +
+  theme_dag()
+
+
+# Per-edge curvature: curve long-span edges around intermediate nodes
+time_dag <- dagify(
+  y ~ x + m,
+  m ~ x + c,
+  x ~ c,
+  coords = time_ordered_coords(force_y = FALSE)
+)
+
+add_curvature <- function(x) {
+  x <- dplyr::filter(x, !is.na(.data$xend))
+  span <- abs(x$x - x$xend)
+  x$edge_curvature <- ifelse(span > min(span) + 0.01, 0.5, 0)
+  x
+}
+
+time_dag |>
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_arrow_arc(
+    aes(edge_curvature = edge_curvature),
+    data = add_curvature,
+    arrow_fins = NULL
+  ) +
   geom_dag_point() +
   geom_dag_text() +
   theme_dag()
