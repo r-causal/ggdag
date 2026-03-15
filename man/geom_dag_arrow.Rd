@@ -39,7 +39,7 @@ geom_dag_arrow_arc(
   angle = 90,
   ncp = 5,
   arrow_head = ggarrow::arrow_head_wings(),
-  arrow_fins = ggarrow::arrow_head_wings(),
+  arrow_fins = NULL,
   arrow_mid = NULL,
   length = 4,
   length_head = NULL,

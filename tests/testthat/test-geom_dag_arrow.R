@@ -316,12 +316,42 @@ test_that("geom_dag_arrow_arc() default snapshot", {
 
   p <- test_dag |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
-    geom_dag_arrow_arc(data = filter_direction("<->")) +
+    geom_dag_arrow_arc(
+      data = filter_direction("<->"),
+      arrow_fins = ggarrow::arrow_head_wings()
+    ) +
     geom_dag_point() +
     geom_dag_text() +
     theme_dag()
 
   expect_doppelganger("geom_dag_arrow_arc bidirected edges", p)
+})
+
+test_that("geom_dag_arrow_arc() directed edges default single-headed", {
+  skip_if_not_installed("ggarrow")
+
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(data = filter_direction("->")) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("geom_dag_arrow_arc directed edges", p)
+})
+
+test_that("geom_dag_arrow_arc() all edges default single-headed", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc() +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("geom_dag_arrow_arc all directed", p)
 })
 
 test_that("geom_dag_arrow_arc() high curvature snapshot", {
@@ -331,7 +361,8 @@ test_that("geom_dag_arrow_arc() high curvature snapshot", {
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_arrow_arc(
       data = filter_direction("<->"),
-      curvature = 0.8
+      curvature = 0.8,
+      arrow_fins = ggarrow::arrow_head_wings()
     ) +
     geom_dag_point() +
     geom_dag_text() +
@@ -347,7 +378,8 @@ test_that("geom_dag_arrow_arc() negative curvature snapshot", {
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_arrow_arc(
       data = filter_direction("<->"),
-      curvature = -0.3
+      curvature = -0.3,
+      arrow_fins = ggarrow::arrow_head_wings()
     ) +
     geom_dag_point() +
     geom_dag_text() +
@@ -524,7 +556,8 @@ test_that("geom_dag_arrow_arc() thick linewidth snapshot", {
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_arrow_arc(
       data = filter_direction("<->"),
-      linewidth = 2
+      linewidth = 2,
+      arrow_fins = ggarrow::arrow_head_wings()
     ) +
     geom_dag_point() +
     geom_dag_text() +
@@ -1173,7 +1206,8 @@ test_that("geom_dag_arrow_arc() stroke styling snapshot", {
       linewidth = 2,
       stroke_width = 1,
       colour = "tomato",
-      stroke_colour = "grey30"
+      stroke_colour = "grey30",
+      arrow_fins = ggarrow::arrow_head_wings()
     ) +
     geom_dag_point() +
     geom_dag_text() +
@@ -1226,7 +1260,10 @@ test_that("dag_arrow_layer discovers node size for arc layers", {
   p <- test_dag |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_point(size = 22) +
-    geom_dag_arrow_arc(data = filter_direction("<->")) +
+    geom_dag_arrow_arc(
+      data = filter_direction("<->"),
+      arrow_fins = ggarrow::arrow_head_wings()
+    ) +
     geom_dag_text() +
     theme_dag()
 
@@ -1310,7 +1347,8 @@ test_that("geom_dag_arrow_arc() high ncp snapshot", {
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_arrow_arc(
       data = filter_direction("<->"),
-      ncp = 15
+      ncp = 15,
+      arrow_fins = ggarrow::arrow_head_wings()
     ) +
     geom_dag_point() +
     geom_dag_text() +
@@ -1328,7 +1366,8 @@ test_that("geom_dag_arrow_arc() skewed angle snapshot", {
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_arrow_arc(
       data = filter_direction("<->"),
-      angle = 45
+      angle = 45,
+      arrow_fins = ggarrow::arrow_head_wings()
     ) +
     geom_dag_point() +
     geom_dag_text() +
