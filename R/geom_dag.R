@@ -1731,7 +1731,48 @@ geom_dag <- function(
     result <- c(result, list(debug_geom))
   }
 
-  result
+  structure(result, class = "geom_dag_layers")
+}
+
+#' @exportS3Method ggplot2::ggplot_add
+ggplot_add.geom_dag_layers <- function(object, plot, ...) {
+  # Check if plot data has edge_curvature column
+  plot_data <- plot$data
+  if (inherits(plot_data, "tidy_dagitty")) {
+    plot_data <- pull_dag_data(plot_data)
+  }
+  has_curvature <- "edge_curvature" %in% names(plot_data)
+
+  for (item in object) {
+    if (is.null(item)) {
+      next
+    }
+
+    # Inject edge_curvature mapping into ggarrow edge layers
+    if (has_curvature && inherits(item, "dag_arrow_layer")) {
+      item$layer$mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
+    }
+
+    # Lists of layers (e.g., link_arc returns two geom_dag_arrow_arc layers)
+    if (
+      is.list(item) &&
+        !inherits(item, "ggproto") &&
+        !inherits(item, "dag_arrow_layer")
+    ) {
+      for (sub_item in item) {
+        if (has_curvature && inherits(sub_item, "dag_arrow_layer")) {
+          sub_item$layer$mapping$edge_curvature <- rlang::quo(
+            .data$edge_curvature
+          )
+        }
+        plot <- ggplot2::ggplot_add(sub_item, plot, ...)
+      }
+    } else {
+      plot <- ggplot2::ggplot_add(item, plot, ...)
+    }
+  }
+
+  plot
 }
 
 is_quo_logical <- function(x) {

@@ -79,7 +79,11 @@ test_that("dag_paths() handles no open paths correctly (issue #180)", {
     Censoring ~ Treatment + Age,
     Outcome ~ Age,
     exposure = "Treatment",
-    outcome = "Outcome"
+    outcome = "Outcome",
+    coords = list(
+      x = c(Treatment = 1, Age = 2, Censoring = 1.5, Outcome = 3),
+      y = c(Treatment = 0, Age = 1, Censoring = -0.5, Outcome = 0)
+    )
   )
 
   # This should not throw an error

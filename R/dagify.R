@@ -286,12 +286,26 @@ validate_dag_inputs <- function(
 #' Mark an edge as curved in dagify formulas
 #'
 #' Use `curved()` inside [dagify()] formulas to specify per-edge curvature.
-#' This function should only be used inside `dagify()` formulas — calling it
+#' This function should only be used inside `dagify()` formulas; calling it
 #' directly will result in an error, similar to [dplyr::n()].
 #'
 #' @param var A variable name (unquoted) representing the parent node.
 #' @param curvature A numeric curvature value. Positive values curve edges
 #'   in one direction, negative in the other. Default is `0.3`.
+#'
+#' @section Curvature sign convention:
+#' The curvature value is passed directly to the active edge rendering engine.
+#' The **ggraph** engine (default) and **ggarrow** engine interpret the sign
+#' differently:
+#'
+#' - **ggraph**: positive curvature curves *above* (to the left of) a
+#'   left-to-right edge.
+#' - **ggarrow** / **grid**: positive curvature curves *below* (to the right
+#'   of) a left-to-right edge, following `grid::curveGrob()` convention.
+#'
+#' This means the same `curvature` value will render as a mirror image
+#' depending on the engine. ggdag does not negate or transform the value;
+#' each engine uses its native convention.
 #'
 #' @return This function is not intended to be called directly. It is detected
 #'   in the formula AST by [dagify()].
@@ -312,6 +326,189 @@ curved <- function(var, curvature = 0.3) {
     ),
     error_class = "ggdag_error"
   )
+}
+
+#' Add or update curvature for a single edge
+#'
+#' `curve_edge()` sets the curvature for a single edge on a `dagitty` or
+#' `tidy_dagitty` object. Use [set_curve_edges()] to set multiple edges at once.
+#'
+#' @param .dag A `dagitty` or `tidy_dagitty` object.
+#' @param from Character. The name of the source node.
+#' @param to Character. The name of the target node.
+#' @param curvature Numeric. The curvature value for the edge.
+#'
+#' @inheritSection curved Curvature sign convention
+#'
+#' @return The modified `.dag` object with updated curvature.
+#'
+#' @examples
+#' dag <- dagify(y ~ x + m, m ~ x)
+#' dag <- curve_edge(dag, from = "m", to = "y", curvature = 0.5)
+#'
+#' @export
+curve_edge <- function(.dag, from, to, curvature = 0.3) {
+  UseMethod("curve_edge")
+}
+
+#' @export
+curve_edge.dagitty <- function(.dag, from, to, curvature = 0.3) {
+  node_names <- names(.dag)
+  if (!from %in% node_names) {
+    abort(
+      c(
+        "{.arg from} must be a valid node name.",
+        "x" = "{.val {from}} is not in the DAG."
+      ),
+      error_class = "ggdag_dag_error"
+    )
+  }
+  if (!to %in% node_names) {
+    abort(
+      c(
+        "{.arg to} must be a valid node name.",
+        "x" = "{.val {to}} is not in the DAG."
+      ),
+      error_class = "ggdag_dag_error"
+    )
+  }
+
+  curved_edges <- attr(.dag, "curved_edges") %||%
+    tibble::tibble(
+      name = character(),
+      to = character(),
+      edge_curvature = numeric()
+    )
+
+  existing <- curved_edges$name == from & curved_edges$to == to
+  if (any(existing)) {
+    curved_edges$edge_curvature[existing] <- curvature
+  } else {
+    curved_edges <- dplyr::bind_rows(
+      curved_edges,
+      tibble::tibble(name = from, to = to, edge_curvature = curvature)
+    )
+  }
+
+  attr(.dag, "curved_edges") <- curved_edges
+  .dag
+}
+
+#' @export
+curve_edge.tidy_dagitty <- function(.dag, from, to, curvature = 0.3) {
+  dag <- pull_dag(.dag)
+  dag <- curve_edge.dagitty(dag, from = from, to = to, curvature = curvature)
+  update_dag(.dag) <- dag
+
+  dag_data <- pull_dag_data(.dag)
+  if ("edge_curvature" %nin% names(dag_data)) {
+    dag_data$edge_curvature <- NA_real_
+  }
+  edge_match <- dag_data$name == from & dag_data$to == to & !is.na(dag_data$to)
+  dag_data$edge_curvature[edge_match] <- curvature
+  # Non-curved edges should be 0 when any curvature is set
+  edge_rows <- !is.na(dag_data$to)
+  dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
+  update_dag_data(.dag) <- dag_data
+
+  .dag
+}
+
+#' Set curvature for multiple edges at once
+#'
+#' `set_curve_edges()` replaces all edge curvatures on a `dagitty` or
+#' `tidy_dagitty` object from a data frame. Use [curve_edge()] to set a
+#' single edge.
+#'
+#' @param .dag A `dagitty` or `tidy_dagitty` object.
+#' @param edges A data frame with columns `from`, `to`, and `curvature`.
+#'
+#' @inheritSection curved Curvature sign convention
+#'
+#' @return The modified `.dag` object with updated curvatures.
+#'
+#' @examples
+#' dag <- dagify(y ~ x + m, m ~ x)
+#' edges <- data.frame(
+#'   from = c("x", "m"),
+#'   to = c("y", "y"),
+#'   curvature = c(0.3, -0.4)
+#' )
+#' dag <- set_curve_edges(dag, edges)
+#'
+#' @export
+set_curve_edges <- function(.dag, edges) {
+  UseMethod("set_curve_edges")
+}
+
+#' @export
+set_curve_edges.dagitty <- function(.dag, edges) {
+  required_cols <- c("from", "to", "curvature")
+  missing_cols <- setdiff(required_cols, names(edges))
+  if (length(missing_cols) > 0) {
+    abort(
+      c(
+        "{.arg edges} must have columns {.val {required_cols}}.",
+        "x" = "Missing: {.val {missing_cols}}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  node_names <- names(.dag)
+  invalid_from <- setdiff(edges$from, node_names)
+  if (length(invalid_from) > 0) {
+    abort(
+      c(
+        "Invalid node names in {.arg from}.",
+        "x" = "{.val {invalid_from}} not in the DAG."
+      ),
+      error_class = "ggdag_dag_error"
+    )
+  }
+  invalid_to <- setdiff(edges$to, node_names)
+  if (length(invalid_to) > 0) {
+    abort(
+      c(
+        "Invalid node names in {.arg to}.",
+        "x" = "{.val {invalid_to}} not in the DAG."
+      ),
+      error_class = "ggdag_dag_error"
+    )
+  }
+
+  curved_edges <- tibble::tibble(
+    name = edges$from,
+    to = edges$to,
+    edge_curvature = edges$curvature
+  )
+
+  attr(.dag, "curved_edges") <- curved_edges
+  .dag
+}
+
+#' @export
+set_curve_edges.tidy_dagitty <- function(.dag, edges) {
+  dag <- pull_dag(.dag)
+  dag <- set_curve_edges.dagitty(dag, edges)
+  update_dag(.dag) <- dag
+
+  curved_edges <- attr(dag, "curved_edges")
+  dag_data <- pull_dag_data(.dag)
+
+  # Remove existing edge_curvature and re-join
+  dag_data$edge_curvature <- NULL
+  dag_data <- dplyr::left_join(
+    dag_data,
+    curved_edges[, c("name", "to", "edge_curvature")],
+    by = c("name", "to")
+  )
+  # Non-curved edges should be 0
+  edge_rows <- !is.na(dag_data$to)
+  dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
+  update_dag_data(.dag) <- dag_data
+
+  .dag
 }
 
 #' Extract curved edge specifications from formula list

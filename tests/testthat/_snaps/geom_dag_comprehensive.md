@@ -50,6 +50,8 @@
       [[4]]
       NULL
       
+      attr(,"class")
+      [1] "geom_dag_layers"
 
 ---
 
@@ -96,6 +98,8 @@
       [[4]]
       NULL
       
+      attr(,"class")
+      [1] "geom_dag_layers"
 
 ---
 
