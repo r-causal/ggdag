@@ -423,7 +423,7 @@ test_that("curved() takes priority over dagitty control points", {
   expect_equal(zy$edge_curvature, 0.8)
 })
 
-test_that("edges without control points remain NA", {
+test_that("edges without control points are straight (0)", {
   dag <- dagitty::dagitty(
     'dag {
       A [pos="0,0"]
