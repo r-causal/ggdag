@@ -330,3 +330,146 @@ test_that("curved() with negative curvature snapshot", {
 
   expect_doppelganger("dagify curved negative curvature", p)
 })
+
+# -- dagitty edge control points -----------------------------------------------
+
+test_that("dagitty control points produce edge_curvature with dagitty coords", {
+  # Mediation DAG: X -> Y should curve above M to avoid overlap.
+  # Note: dagitty has a JS bug where edge control points with x=0 are dropped
+  # (if(e.layout_pos_x) is falsy for 0), so the control point x must be non-zero.
+  dag <- dagitty::dagitty(
+    'dag {
+      bb="-2.5,-0.5,2.5,2.5"
+      X [exposure,pos="-2.000,1.000"]
+      Y [outcome,pos="2.000,1.000"]
+      M [pos="0.000,1.000"]
+      Z [pos="0.000,0.000"]
+      X -> M
+      M -> Y
+      X -> Y [pos="0.500,1.800"]
+      Z -> X
+      Z -> Y
+    }'
+  )
+  td <- tidy_dagitty(dag)
+  dat <- pull_dag_data(td)
+
+  expect_true("edge_curvature" %in% names(dat))
+
+  # X -> Y has a control point, should have non-NA curvature
+  xy <- dat[dat$name == "X" & dat$to == "Y" & !is.na(dat$to), ]
+  expect_false(is.na(xy$edge_curvature))
+
+  # Edges without control points should be straight (0)
+  xm <- dat[dat$name == "X" & dat$to == "M" & !is.na(dat$to), ]
+  expect_equal(xm$edge_curvature, 0)
+
+  my <- dat[dat$name == "M" & dat$to == "Y" & !is.na(dat$to), ]
+  expect_equal(my$edge_curvature, 0)
+})
+
+test_that("control points are ignored with non-dagitty layout", {
+  dag <- dagitty::dagitty(
+    'dag {
+      bb="-2.5,-0.5,2.5,2.5"
+      X [exposure,pos="-2.000,1.000"]
+      Y [outcome,pos="2.000,1.000"]
+      M [pos="0.000,1.000"]
+      X -> M
+      M -> Y
+      X -> Y [pos="0.500,1.800"]
+    }'
+  )
+  td <- tidy_dagitty(dag, layout = "fr", use_existing_coords = FALSE)
+  dat <- pull_dag_data(td)
+
+  # No edge_curvature column should be created from control points
+  # when using a non-dagitty layout
+  expect_false("edge_curvature" %in% names(dat))
+})
+
+test_that("curved() takes priority over dagitty control points", {
+  dag <- dagify(
+    y ~ x + curved(z, 0.8),
+    z ~ x,
+    coords = list(
+      x = c(x = -2, z = -0.5, y = 1),
+      y = c(x = 1, z = 0.5, y = 1)
+    )
+  )
+
+  # Manually inject a control point on the dagitty object for z->y edge
+  # by modifying the dagitty string to include a pos attribute
+  dag_str <- 'dag {
+    x [pos="-2.000,1.000"]
+    y [pos="1.000,1.000"]
+    z [pos="-0.500,0.500"]
+    x -> y
+    x -> z
+    z -> y [pos="0.500,-1.000"]
+  }'
+  dag2 <- dagitty::dagitty(dag_str)
+  attr(dag2, "curved_edges") <- tibble::tibble(
+    name = "z",
+    to = "y",
+    edge_curvature = 0.8
+  )
+
+  td <- tidy_dagitty(dag2)
+  dat <- pull_dag_data(td)
+
+  # curved() value (0.8) should win over the control point
+  zy <- dat[dat$name == "z" & dat$to == "y" & !is.na(dat$to), ]
+  expect_equal(zy$edge_curvature, 0.8)
+})
+
+test_that("edges without control points are straight (0)", {
+  dag <- dagitty::dagitty(
+    'dag {
+      A [pos="0,0"]
+      B [pos="1,0"]
+      C [pos="2,0"]
+      A -> B
+      B -> C [pos="1.5,-0.5"]
+    }'
+  )
+  td <- tidy_dagitty(dag)
+  dat <- pull_dag_data(td)
+
+  ab <- dat[dat$name == "A" & dat$to == "B" & !is.na(dat$to), ]
+  expect_equal(ab$edge_curvature, 0)
+
+  bc <- dat[dat$name == "B" & dat$to == "C" & !is.na(dat$to), ]
+  expect_false(is.na(bc$edge_curvature))
+})
+
+test_that("dagitty control points snapshot", {
+  skip_if_not_installed("ggarrow")
+
+  # Mediation DAG: X -> Y arcs above M via control point
+  dag <- dagitty::dagitty(
+    'dag {
+      bb="-2.5,-0.5,2.5,2.5"
+      X [exposure,pos="-2.000,1.000"]
+      Y [outcome,pos="2.000,1.000"]
+      M [pos="0.000,1.000"]
+      Z [pos="0.000,0.000"]
+      X -> M
+      M -> Y
+      X -> Y [pos="0.500,1.800"]
+      Z -> X
+      Z -> Y
+    }'
+  )
+
+  p <- dag |>
+    tidy_dagitty() |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature)) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag() +
+    expand_plot(expand_y = expansion(c(0.4, 0.4)))
+
+  expect_doppelganger("dagitty control points", p)
+})
