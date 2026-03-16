@@ -107,7 +107,7 @@ find_descendants <- function(node, directed_edges) {
 
 #' Modified Kahn's algorithm (BFS topological sort) that tracks the longest
 #' incoming path to each node. With `sort_direction = "left"`, nodes are placed
-#' as far left (early) as possible — each node sits one layer after its latest
+#' as far left (early) as possible: each node sits one layer after its latest
 #' parent. With `sort_direction = "right"` (default), nodes are then pushed
 #' rightward so each node sits one layer before its earliest child, placing
 #' nodes as close as possible to their descendants.

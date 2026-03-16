@@ -198,7 +198,7 @@ test_that("tidy_dagitty() picks up curved_edges from dagitty attr", {
   expect_equal(c_to_y$edge_curvature, 0.5)
 })
 
-test_that("non-curved edges get NA edge_curvature", {
+test_that("non-curved edges get edge_curvature=0 when curved() is used", {
   dag <- dagify(
     y ~ z + curved(c, 0.5),
     c ~ z,
@@ -208,7 +208,7 @@ test_that("non-curved edges get NA edge_curvature", {
   dat <- pull_dag_data(td)
 
   z_to_y <- dat[dat$name == "z" & dat$to == "y" & !is.na(dat$to), ]
-  expect_true(is.na(z_to_y$edge_curvature))
+  expect_equal(z_to_y$edge_curvature, 0)
 })
 
 test_that("tidy_dagitty() picks up curved_edges without explicit coords", {
@@ -256,11 +256,33 @@ test_that("tidy_dagitty() without curved() has no edge_curvature column", {
   expect_false("edge_curvature" %in% names(dat))
 })
 
+test_that("non-curved edges default to edge_curvature=0 when curved() is used", {
+  dag <- dagify(
+    y ~ x + curved(m, 0.5),
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  dat <- pull_dag_data(td)
+
+  # The curved edge should have its specified value
+  curved_row <- dat[dat$name == "m" & dat$to == "y" & !is.na(dat$to), ]
+  expect_equal(curved_row$edge_curvature, 0.5)
+
+  # Non-curved edges should be 0, not NA
+  straight_rows <- dat[!is.na(dat$to) & dat$name != "m", ]
+  expect_true(all(straight_rows$edge_curvature == 0))
+
+  # Node-only rows (no outgoing edge) should be NA
+  node_rows <- dat[is.na(dat$to), ]
+  expect_true(all(is.na(node_rows$edge_curvature)))
+})
+
 test_that("curved() end-to-end with geom_dag_arrow_arc snapshot", {
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(
-    y ~ x + curved(m, 0.5),
+    y ~ curved(x, -0.5) + curved(m, 0.5),
     m ~ x,
     coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
   )
@@ -279,7 +301,7 @@ test_that("curved() with ggdag() snapshot", {
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(
-    y ~ x + curved(m, 0.5),
+    y ~ curved(x, -0.5) + curved(m, 0.5),
     m ~ x,
     coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
   )
@@ -293,8 +315,8 @@ test_that("curved() mixed with straight edges snapshot", {
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(
-    y ~ x + curved(m, 0.5),
-    m ~ x + curved(c, -0.4),
+    y ~ curved(x, -0.5) + m,
+    m ~ x + curved(c, 0.4),
     x ~ c,
     coords = list(
       x = c(c = 1, x = 2, m = 3, y = 4),
@@ -316,7 +338,7 @@ test_that("curved() with negative curvature snapshot", {
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(
-    y ~ x + curved(m, -0.5),
+    y ~ curved(x, 0.5) + curved(m, -0.5),
     m ~ x,
     coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
   )
@@ -329,6 +351,152 @@ test_that("curved() with negative curvature snapshot", {
     theme_dag()
 
   expect_doppelganger("dagify curved negative curvature", p)
+})
+
+# -- curve_edge() and set_curve_edges() ----------------------------------------
+
+test_that("curve_edge() adds curved_edges attr to dagitty", {
+  dag <- dagify(y ~ x + m, m ~ x)
+  dag2 <- curve_edge(dag, from = "m", to = "y", curvature = 0.5)
+
+  ce <- attr(dag2, "curved_edges")
+  expect_false(is.null(ce))
+  expect_equal(nrow(ce), 1)
+  expect_equal(ce$name, "m")
+  expect_equal(ce$to, "y")
+  expect_equal(ce$edge_curvature, 0.5)
+})
+
+test_that("curve_edge() updates existing curvature", {
+  dag <- dagify(y ~ curved(x, 0.3))
+  dag2 <- curve_edge(dag, from = "x", to = "y", curvature = 0.7)
+
+  ce <- attr(dag2, "curved_edges")
+  expect_equal(nrow(ce), 1)
+  expect_equal(ce$edge_curvature, 0.7)
+})
+
+test_that("curve_edge() on tidy_dagitty updates edge_curvature column", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  td2 <- curve_edge(td, from = "m", to = "y", curvature = 0.5)
+
+  dat <- pull_dag_data(td2)
+  curved_row <- dat[dat$name == "m" & dat$to == "y" & !is.na(dat$to), ]
+  expect_equal(curved_row$edge_curvature, 0.5)
+
+  # The dagitty object should also have the attr
+  ce <- attr(pull_dag(td2), "curved_edges")
+  expect_false(is.null(ce))
+})
+
+test_that("curve_edge() errors for invalid node names", {
+  dag <- dagify(y ~ x)
+  expect_error(
+    curve_edge(dag, from = "nonexistent", to = "y", curvature = 0.5),
+    class = "ggdag_dag_error"
+  )
+  expect_error(
+    curve_edge(dag, from = "x", to = "nonexistent", curvature = 0.5),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("set_curve_edges() replaces all curvatures from a data frame", {
+  dag <- dagify(y ~ x + m, m ~ x)
+  edges <- data.frame(
+    from = c("x", "m"),
+    to = c("y", "y"),
+    curvature = c(0.3, -0.4)
+  )
+  dag2 <- set_curve_edges(dag, edges)
+
+  ce <- attr(dag2, "curved_edges")
+  expect_equal(nrow(ce), 2)
+  expect_equal(ce$edge_curvature[ce$name == "x"], 0.3)
+  expect_equal(ce$edge_curvature[ce$name == "m"], -0.4)
+})
+
+test_that("set_curve_edges() on tidy_dagitty updates data", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  edges <- data.frame(
+    from = c("m"),
+    to = c("y"),
+    curvature = c(0.6)
+  )
+  td2 <- set_curve_edges(td, edges)
+
+  dat <- pull_dag_data(td2)
+  curved_row <- dat[dat$name == "m" & dat$to == "y" & !is.na(dat$to), ]
+  expect_equal(curved_row$edge_curvature, 0.6)
+
+  # Non-curved edges should be 0
+  straight_rows <- dat[!is.na(dat$to) & !(dat$name == "m" & dat$to == "y"), ]
+  expect_true(all(straight_rows$edge_curvature == 0))
+})
+
+test_that("set_curve_edges() validates required columns", {
+  dag <- dagify(y ~ x)
+  expect_error(
+    set_curve_edges(dag, data.frame(from = "x", to = "y")),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("curve_edge() snapshot with geom_dag_arrow_arc", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  td <- curve_edge(td, from = "x", to = "y", curvature = -0.5)
+
+  p <- td |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature)) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("curve_edge post-hoc curvature", p)
+})
+
+test_that("set_curve_edges() snapshot with geom_dag_arrow_arc", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  edges <- data.frame(
+    from = c("x", "m"),
+    to = c("y", "y"),
+    curvature = c(-0.5, 0.4)
+  )
+  td <- set_curve_edges(td, edges)
+
+  p <- td |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature)) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("set_curve_edges post-hoc batch curvature", p)
 })
 
 # -- dagitty edge control points -----------------------------------------------

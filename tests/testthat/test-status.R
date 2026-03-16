@@ -15,3 +15,19 @@ test_that("dags have correct status", {
     p
   )
 })
+
+test_that("ggdag_status() renders curved edges via geom_dag()", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ curved(x, -0.5) + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y",
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  p <- ggdag_status(dag)
+
+  expect_doppelganger("ggdag_status with curved edges", p)
+})

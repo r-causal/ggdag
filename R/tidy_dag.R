@@ -162,6 +162,9 @@ tidy_dagitty <- function(
       curved_edges[, c("name", "to", "edge_curvature")],
       by = c("name", "to")
     )
+    # Non-curved edges should be straight, not inherit geom scalar fallback
+    edge_rows <- !is.na(tidy_dag$to)
+    tidy_dag$edge_curvature[edge_rows & is.na(tidy_dag$edge_curvature)] <- 0
   }
 
   # Convert dagitty control points to edge_curvature (only when using
