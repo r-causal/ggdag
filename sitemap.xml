@@ -20,6 +20,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/colliders.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/control_for.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/coordinates.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/curve_edge.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/curved.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/d_relationship.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/dag.html</loc></url>
@@ -85,6 +86,7 @@
 <url><loc>https://r-causal.github.io/ggdag/reference/remove_axes.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/repel.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/scale_adjusted.html</loc></url>
+<url><loc>https://r-causal.github.io/ggdag/reference/set_curve_edges.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/simulate_data.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/status.html</loc></url>
 <url><loc>https://r-causal.github.io/ggdag/reference/tbl_df.tidy_dagitty.html</loc></url>

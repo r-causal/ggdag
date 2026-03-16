@@ -18,6 +18,12 @@
 - [`curved()`](https://r-causal.github.io/ggdag/reference/curved.md) :
   Mark an edge as curved in dagify formulas
 
+- [`curve_edge()`](https://r-causal.github.io/ggdag/reference/curve_edge.md)
+  : Add or update curvature for a single edge
+
+- [`set_curve_edges()`](https://r-causal.github.io/ggdag/reference/set_curve_edges.md)
+  : Set curvature for multiple edges at once
+
 - [`dag()`](https://r-causal.github.io/ggdag/reference/dag.md) : Create
   a dagitty DAG
 
