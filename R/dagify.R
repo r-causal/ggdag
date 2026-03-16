@@ -435,17 +435,23 @@ get_dagitty_edges <- function(.dag) {
 
   # Handle empty edges (DAG with no edges)
   if (nrow(.edges) == 0 || ncol(.edges) == 0) {
-    # Return empty tibble with expected columns
     return(tibble::tibble(
       name = character(),
       to = character(),
-      direction = character()
+      direction = character(),
+      edge_ctrl_x = numeric(),
+      edge_ctrl_y = numeric()
     ))
   }
 
   .edges |>
-    dplyr::select(-"x", -"y") |>
-    dplyr::rename(name = "v", to = "w", direction = "e")
+    dplyr::rename(
+      name = "v",
+      to = "w",
+      direction = "e",
+      edge_ctrl_x = "x",
+      edge_ctrl_y = "y"
+    )
 }
 
 edges2df <- function(.edges) {

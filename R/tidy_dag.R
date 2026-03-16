@@ -164,6 +164,26 @@ tidy_dagitty <- function(
     )
   }
 
+  # Convert dagitty control points to edge_curvature (only when using
+  # dagitty's original coordinates, since control points are absolute)
+  if (pass_coords && "edge_ctrl_x" %in% names(tidy_dag)) {
+    ctrl_curvature <- ctrl_point_to_curvature(tidy_dag)
+    if (!all(is.na(ctrl_curvature))) {
+      if ("edge_curvature" %in% names(tidy_dag)) {
+        na_idx <- is.na(tidy_dag$edge_curvature)
+        tidy_dag$edge_curvature[na_idx] <- ctrl_curvature[na_idx]
+      } else {
+        tidy_dag$edge_curvature <- ctrl_curvature
+      }
+      # Edges without control points should be straight (0), not NA,
+      # so the scalar curvature fallback doesn't curve them unexpectedly
+      tidy_dag$edge_curvature[is.na(tidy_dag$edge_curvature)] <- 0
+    }
+  }
+
+  tidy_dag$edge_ctrl_x <- NULL
+  tidy_dag$edge_ctrl_y <- NULL
+
   coords <- tidy_dag |>
     dplyr::distinct(.data$name, .data$x, .data$y) |>
     coords2list()
@@ -394,6 +414,37 @@ tidy_dag_edges_and_coords <- function(dag_edges, coords_df) {
       "yend",
       dplyr::everything()
     )
+}
+
+ctrl_point_to_curvature <- function(data) {
+  has_ctrl <- !is.na(data$edge_ctrl_x) & !is.na(data$edge_ctrl_y)
+  if (!any(has_ctrl)) {
+    return(rep(NA_real_, nrow(data)))
+  }
+
+  curvature <- rep(NA_real_, nrow(data))
+  idx <- which(has_ctrl)
+
+  dx <- data$xend[idx] - data$x[idx]
+  dy <- data$yend[idx] - data$y[idx]
+  edge_len <- sqrt(dx^2 + dy^2)
+
+  mx <- (data$x[idx] + data$xend[idx]) / 2
+  my <- (data$y[idx] + data$yend[idx]) / 2
+
+  # Signed perpendicular distance from edge midpoint to control point.
+  # The raw ratio 2*d/L maps directly to grid::curveGrob curvature, but
+
+  # curveGrob uses xsplines which produce extreme artifacts for |curvature| > 1.
+  # Compress with atan to keep values in [-1, 1] while preserving direction
+  # and approximate linearity for small curvatures.
+  d <- ((data$edge_ctrl_x[idx] - mx) * dy - (data$edge_ctrl_y[idx] - my) * dx) /
+    edge_len
+  raw <- 2 * d / edge_len
+
+  curvature[idx] <- atan(raw) * 2 / pi
+  curvature[idx][edge_len == 0] <- NA_real_
+  curvature
 }
 
 generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
