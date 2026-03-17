@@ -501,7 +501,7 @@ test_that("ggplot_add.dag_layer discovers node_size from GeomDagNode", {
   result <- ggplot_add.dag_layer(wrapped, p)
 
   # The repel layer should now have node_size = 25
-  repel_layer <- result@layers[[2]]
+  repel_layer <- result$layers[[2]]
   expect_equal(repel_layer$stat_params$node_size, 25)
 })
 
@@ -521,7 +521,7 @@ test_that("ggplot_add.dag_layer discovers node_size from GeomDagPoint", {
   wrapped <- dag_layer(layer, discover = "node_size")
   result <- ggplot_add.dag_layer(wrapped, p)
 
-  repel_layer <- result@layers[[2]]
+  repel_layer <- result$layers[[2]]
   expect_equal(repel_layer$stat_params$node_size, 30)
 })
 
@@ -542,7 +542,7 @@ test_that("ggplot_add.dag_layer respects explicit node_size", {
   result <- ggplot_add.dag_layer(wrapped, p)
 
   # Explicit node_size = 50 should NOT be overwritten by discovered 25
-  repel_layer <- result@layers[[2]]
+  repel_layer <- result$layers[[2]]
   expect_equal(repel_layer$stat_params$node_size, 50)
 })
 
@@ -562,7 +562,7 @@ test_that("ggplot_add.dag_layer falls back when no node layer exists", {
   result <- ggplot_add.dag_layer(wrapped, p)
 
   # node_size should remain NULL; StatNodesRepel falls back to 16
-  repel_layer <- result@layers[[1]]
+  repel_layer <- result$layers[[1]]
   expect_null(repel_layer$stat_params$node_size)
 })
 

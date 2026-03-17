@@ -116,11 +116,14 @@ ggdag_adjustment_set <- function(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   label = NULL,
   text = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node = deprecated(),
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
   expand_y = expansion(c(0.2, 0.2))
 ) {
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
     dplyr::mutate(
@@ -140,27 +143,68 @@ ggdag_adjustment_set <- function(
     expand_plot(expand_x = expand_x, expand_y = expand_y)
 
   if (use_edges) {
-    if (shadow) {
-      vals <- c("blocked by\nadjustment" = "grey80")
+    if (identical(edge_engine, "ggarrow")) {
+      rlang::check_installed(
+        "ggarrow",
+        reason = "to use edge_engine = \"ggarrow\"."
+      )
+      resect <- edge_cap * size
+      arrow_head <- ggdag_option("arrow_head", NULL) %||%
+        ggarrow::arrow_head_wings()
+      arrow_fins <- ggdag_option("arrow_fins", NULL)
+
+      blocked_colour <- if (shadow) "grey80" else "#FFFFFF00"
+
       p <- p +
-        geom_dag_edges(ggplot2::aes(edge_colour = .data$blocked))
-    } else {
-      vals <- c("blocked by\nadjustment" = "#FFFFFF00")
-      p <- p +
-        geom_dag_edges(
-          ggplot2::aes(edge_colour = .data$blocked),
+        geom_dag_arrows(
+          data_directed = function(x) {
+            dplyr::filter(x, is.na(.data$blocked), .data$direction == "->")
+          },
+          data_bidirected = function(x) {
+            dplyr::filter(x, is.na(.data$blocked), .data$direction == "<->")
+          },
+          arrow_head = arrow_head,
+          arrow_fins = arrow_fins,
+          resect = resect,
+          colour = "black",
+          show.legend = FALSE
+        ) +
+        geom_dag_arrows(
+          data_directed = function(x) {
+            dplyr::filter(x, !is.na(.data$blocked), .data$direction == "->")
+          },
+          data_bidirected = function(x) {
+            dplyr::filter(x, !is.na(.data$blocked), .data$direction == "<->")
+          },
+          arrow_head = arrow_head,
+          arrow_fins = arrow_fins,
+          resect = resect,
+          colour = blocked_colour,
           show.legend = FALSE
         )
-    }
+    } else {
+      if (shadow) {
+        vals <- c("blocked by\nadjustment" = "grey80")
+        p <- p +
+          geom_dag_edges(ggplot2::aes(edge_colour = .data$blocked))
+      } else {
+        vals <- c("blocked by\nadjustment" = "#FFFFFF00")
+        p <- p +
+          geom_dag_edges(
+            ggplot2::aes(edge_colour = .data$blocked),
+            show.legend = FALSE
+          )
+      }
 
-    p <- p +
-      ggraph::scale_edge_colour_manual(
-        name = "",
-        drop = TRUE,
-        values = vals,
-        limits = names(vals),
-        na.value = "black"
-      )
+      p <- p +
+        ggraph::scale_edge_colour_manual(
+          name = "",
+          drop = TRUE,
+          values = vals,
+          limits = names(vals),
+          na.value = "black"
+        )
+    }
   }
 
   p <- p +
