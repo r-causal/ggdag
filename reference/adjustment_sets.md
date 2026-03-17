@@ -32,6 +32,7 @@ ggdag_adjustment_set(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   label = NULL,
   text = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node = deprecated(),
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
@@ -144,6 +145,15 @@ ggdag_adjustment_set(
   The bare name of a column to use for
   [`geom_dag_text()`](https://r-causal.github.io/ggdag/reference/geom_dag_text.md).
   If `use_text = TRUE`, the default is to use `name`.
+
+- edge_engine:
+
+  The engine used to draw edges. Either `"ggraph"` (default) or
+  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
+  geoms, which support additional customization via the `arrow_head`,
+  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
 
 - node:
 

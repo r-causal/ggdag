@@ -44,6 +44,7 @@ ggdag_paths(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -207,6 +208,15 @@ ggdag_paths_fan(
   Default is `geom_dag_label_repel`. Other options include
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
+
+- edge_engine:
+
+  The engine used to draw edges. Either `"ggraph"` (default) or
+  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
+  geoms, which support additional customization via the `arrow_head`,
+  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
 
 - text:
 
