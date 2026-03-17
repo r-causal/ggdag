@@ -234,6 +234,7 @@ ggdag_paths <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -242,6 +243,7 @@ ggdag_paths <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
@@ -284,35 +286,60 @@ ggdag_paths <- function(
       filter_direction("->")
     }
 
-    p <- p +
-      geom_dag_edges(
-        data_directed = f_directed,
-        data_bidirected = f_bidirected,
-        ggplot2::aes(edge_colour = .data$path_type)
+    if (identical(edge_engine, "ggarrow")) {
+      rlang::check_installed(
+        "ggarrow",
+        reason = "to use edge_engine = \"ggarrow\"."
       )
+      resect <- edge_cap * size
+      arrow_head <- ggdag_option("arrow_head", NULL) %||%
+        ggarrow::arrow_head_wings()
+      arrow_fins <- ggdag_option("arrow_fins", NULL)
 
-    if (shadow) {
-      vals <- c("unadjusted" = "black", "adjusted" = "grey80")
+      p <- p +
+        geom_dag_arrows(
+          mapping = ggplot2::aes(colour = .data$path_type),
+          data_directed = f_directed,
+          data_bidirected = f_bidirected,
+          arrow_head = arrow_head,
+          arrow_fins = arrow_fins,
+          resect = resect,
+          show.legend = FALSE
+        )
+
+      p <- p +
+        ggplot2::scale_color_discrete(
+          name = "path",
+          drop = FALSE,
+          na.value = if (shadow) "grey80" else "#FFFFFF00",
+          na.translate = TRUE,
+          limits = c("direct", "backdoor")
+        )
     } else {
-      vals <- c("unadjusted" = "black", "adjusted" = "#FFFFFF00")
-    }
+      p <- p +
+        geom_dag_edges(
+          data_directed = f_directed,
+          data_bidirected = f_bidirected,
+          ggplot2::aes(edge_colour = .data$path_type)
+        )
 
-    p <- p +
-      ggraph::scale_edge_color_discrete(
-        name = "path",
-        drop = FALSE,
-        na.value = if (shadow) "grey80" else "#FFFFFF00",
-        na.translate = if (shadow) TRUE else FALSE,
-        limits = c("direct", "backdoor"),
-        guide = "none" # Hide edge legend
-      ) +
-      ggplot2::scale_color_discrete(
-        name = "path",
-        drop = FALSE,
-        na.value = if (shadow) "grey80" else "#FFFFFF00",
-        na.translate = TRUE,
-        limits = c("direct", "backdoor")
-      )
+      p <- p +
+        ggraph::scale_edge_color_discrete(
+          name = "path",
+          drop = FALSE,
+          na.value = if (shadow) "grey80" else "#FFFFFF00",
+          na.translate = if (shadow) TRUE else FALSE,
+          limits = c("direct", "backdoor"),
+          guide = "none"
+        ) +
+        ggplot2::scale_color_discrete(
+          name = "path",
+          drop = FALSE,
+          na.value = if (shadow) "grey80" else "#FFFFFF00",
+          na.translate = TRUE,
+          limits = c("direct", "backdoor")
+        )
+    }
   }
 
   p <- p +

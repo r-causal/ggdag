@@ -219,11 +219,14 @@ ggdag_equivalent_class <- function(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
   stylized = deprecated()
 ) {
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_equivalent_class(...)
 
@@ -232,28 +235,75 @@ ggdag_equivalent_class <- function(
     pull_dag_data(.tdy_dag),
     !.data$reversable
   )
-  p <- .tdy_dag |>
-    ggplot2::ggplot(aes_dag(edge_alpha = .data$reversable))
+
+  if (identical(edge_engine, "ggarrow")) {
+    p <- .tdy_dag |>
+      ggplot2::ggplot(aes_dag())
+  } else {
+    p <- .tdy_dag |>
+      ggplot2::ggplot(aes_dag(edge_alpha = .data$reversable))
+  }
 
   if (use_edges) {
-    p <- p +
-      geom_dag_edges(
-        data_directed = dplyr::filter(
-          non_reversable_lines,
-          .data$direction != "<->"
-        ),
-        data_bidirected = dplyr::filter(
-          non_reversable_lines,
-          .data$direction == "<->"
-        )
-      ) +
-      geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
-      breaks(breaks) +
-      ggraph::scale_edge_alpha_manual(
-        name = "Reversable",
-        drop = FALSE,
-        values = c(0.30, 1)
+    if (identical(edge_engine, "ggarrow")) {
+      rlang::check_installed(
+        "ggarrow",
+        reason = "to use edge_engine = \"ggarrow\"."
       )
+      resect <- edge_cap * size
+      arrow_head <- ggdag_option("arrow_head", NULL) %||%
+        ggarrow::arrow_head_wings()
+      arrow_fins <- ggdag_option("arrow_fins", NULL)
+
+      p <- p +
+        geom_dag_arrows(
+          mapping = ggplot2::aes(alpha = .data$reversable),
+          data_directed = function(x) {
+            dplyr::filter(x, !.data$reversable, .data$direction == "->")
+          },
+          data_bidirected = function(x) {
+            dplyr::filter(x, !.data$reversable, .data$direction == "<->")
+          },
+          arrow_head = arrow_head,
+          arrow_fins = arrow_fins,
+          resect = resect,
+          show.legend = TRUE
+        ) +
+        geom_dag_arrow(
+          mapping = ggplot2::aes(alpha = .data$reversable),
+          data = reversable_lines,
+          arrow_head = NULL,
+          arrow_fins = NULL,
+          resect = resect,
+          show.legend = TRUE
+        ) +
+        breaks(breaks) +
+        ggplot2::scale_alpha_manual(
+          name = "Reversable",
+          drop = FALSE,
+          values = c("FALSE" = 0.30, "TRUE" = 1),
+          limits = c("FALSE", "TRUE")
+        )
+    } else {
+      p <- p +
+        geom_dag_edges(
+          data_directed = dplyr::filter(
+            non_reversable_lines,
+            .data$direction != "<->"
+          ),
+          data_bidirected = dplyr::filter(
+            non_reversable_lines,
+            .data$direction == "<->"
+          )
+        ) +
+        geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
+        breaks(breaks) +
+        ggraph::scale_edge_alpha_manual(
+          name = "Reversable",
+          drop = FALSE,
+          values = c(0.30, 1)
+        )
+    }
   }
 
   p <- p +

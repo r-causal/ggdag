@@ -23,6 +23,59 @@ calculate_key_box_size <- function(size, linewidth = 0, scale_factor = 1) {
   ((size * scale_factor) + linewidth) / 10
 }
 
+# Build an arrow grob for legend keys, engine-aware.
+# When edge_engine is "ggarrow" and ggarrow is installed, uses ggarrow::grob_arrow()
+# to match the actual plot edge rendering. Otherwise uses grid::segmentsGrob().
+build_key_arrow_grob <- function(
+  x0,
+  y0,
+  x1,
+  y1,
+  colour,
+  alpha = 1,
+  lwd = 0.5 * .pt,
+  arrow_length = unit(2, "mm")
+) {
+  edge_engine <- ggdag_option("edge_engine", "ggraph")
+  col <- ggplot2::alpha(colour, alpha)
+
+  if (
+    identical(edge_engine, "ggarrow") &&
+      rlang::is_installed("ggarrow")
+  ) {
+    arrow_head <- ggdag_option("arrow_head", NULL) %||%
+      ggarrow::arrow_head_wings()
+    ggarrow::grob_arrow(
+      x = unit(c(x0, x1), "npc"),
+      y = unit(c(y0, y1), "npc"),
+      arrow_head = arrow_head,
+      arrow_fins = NULL,
+      length_head = arrow_length,
+      shaft_width = unit(lwd / .pt, "mm"),
+      force_arrow = TRUE,
+      gp = gpar(
+        col = NA,
+        fill = col,
+        lwd = 0.5 * .pt,
+        linejoin = "round"
+      )
+    )
+  } else {
+    segmentsGrob(
+      x0,
+      y0,
+      x1,
+      y1,
+      gp = gpar(
+        fill = col,
+        col = col,
+        lwd = lwd
+      ),
+      arrow = arrow(length = arrow_length, type = "closed")
+    )
+  }
+}
+
 #' DAG point legend key (25% size)
 #'
 #' A custom legend key function that draws points at 25% of their normal size
@@ -91,19 +144,33 @@ draw_key_dag_combined <- function(data, params, size) {
         fontsize = 3 * .pt
       )
     ),
-    # Arrow
-    segmentsGrob(
-      0.35,
-      0.5,
-      0.65,
-      0.5,
-      gp = gpar(
-        fill = alpha(data$colour %||% "black", data$alpha %||% 1),
-        col = alpha(data$colour %||% "black", data$alpha %||% 1),
-        lwd = 0.5 * .pt
-      ),
-      arrow = arrow(length = unit(2, "mm"), type = "closed")
-    ),
+    # Arrow -- engine-aware rendering
+    if (
+      identical(ggdag_option("edge_engine", "ggraph"), "ggarrow") &&
+        rlang::is_installed("ggarrow")
+    ) {
+      build_key_arrow_grob(
+        0.35,
+        0.5,
+        0.65,
+        0.5,
+        colour = data$colour %||% "black",
+        alpha = data$alpha %||% 1
+      )
+    } else {
+      segmentsGrob(
+        0.35,
+        0.5,
+        0.65,
+        0.5,
+        gp = gpar(
+          fill = alpha(data$colour %||% "black", data$alpha %||% 1),
+          col = alpha(data$colour %||% "black", data$alpha %||% 1),
+          lwd = 0.5 * .pt
+        ),
+        arrow = arrow(length = unit(2, "mm"), type = "closed")
+      )
+    },
     # Second point
     pointsGrob(
       0.8,
@@ -186,32 +253,64 @@ draw_key_dag_collider <- function(data, params, size) {
         fontsize = 3 * .pt
       )
     ),
-    # Upper arrow
-    segmentsGrob(
-      0.35,
-      0.7,
-      0.65,
-      0.55,
-      gp = gpar(
-        fill = alpha(data$colour %||% "black", data$alpha %||% 1),
-        col = alpha(data$colour %||% "black", data$alpha %||% 1),
-        lwd = 0.4 * .pt
-      ),
-      arrow = arrow(length = unit(1.5, "mm"), type = "closed")
-    ),
-    # Lower arrow
-    segmentsGrob(
-      0.35,
-      0.3,
-      0.65,
-      0.45,
-      gp = gpar(
-        fill = alpha(data$colour %||% "black", data$alpha %||% 1),
-        col = alpha(data$colour %||% "black", data$alpha %||% 1),
-        lwd = 0.4 * .pt
-      ),
-      arrow = arrow(length = unit(1.5, "mm"), type = "closed")
-    )
+    # Upper arrow -- engine-aware rendering
+    if (
+      identical(ggdag_option("edge_engine", "ggraph"), "ggarrow") &&
+        rlang::is_installed("ggarrow")
+    ) {
+      build_key_arrow_grob(
+        0.35,
+        0.7,
+        0.65,
+        0.55,
+        colour = data$colour %||% "black",
+        alpha = data$alpha %||% 1,
+        lwd = 0.4 * .pt,
+        arrow_length = unit(1.5, "mm")
+      )
+    } else {
+      segmentsGrob(
+        0.35,
+        0.7,
+        0.65,
+        0.55,
+        gp = gpar(
+          fill = alpha(data$colour %||% "black", data$alpha %||% 1),
+          col = alpha(data$colour %||% "black", data$alpha %||% 1),
+          lwd = 0.4 * .pt
+        ),
+        arrow = arrow(length = unit(1.5, "mm"), type = "closed")
+      )
+    },
+    # Lower arrow -- engine-aware rendering
+    if (
+      identical(ggdag_option("edge_engine", "ggraph"), "ggarrow") &&
+        rlang::is_installed("ggarrow")
+    ) {
+      build_key_arrow_grob(
+        0.35,
+        0.3,
+        0.65,
+        0.45,
+        colour = data$colour %||% "black",
+        alpha = data$alpha %||% 1,
+        lwd = 0.4 * .pt,
+        arrow_length = unit(1.5, "mm")
+      )
+    } else {
+      segmentsGrob(
+        0.35,
+        0.3,
+        0.65,
+        0.45,
+        gp = gpar(
+          fill = alpha(data$colour %||% "black", data$alpha %||% 1),
+          col = alpha(data$colour %||% "black", data$alpha %||% 1),
+          lwd = 0.4 * .pt
+        ),
+        arrow = arrow(length = unit(1.5, "mm"), type = "closed")
+      )
+    }
   )
 
   # Square box for collider pattern
@@ -242,25 +341,39 @@ draw_key_dag_edge <- function(data, params, size) {
   }
 
   # Draw a horizontal line with an arrow
-  grob <- segmentsGrob(
-    0.2,
-    0.5,
-    0.8,
-    0.5,
-    gp = gpar(
-      col = alpha(
-        data$edge_colour %||% data$colour %||% "black",
-        data$edge_alpha %||% data$alpha %||% 1
+  edge_col <- data$edge_colour %||% data$colour %||% "black"
+  edge_alpha <- data$edge_alpha %||% data$alpha %||% 1
+  edge_lwd <- (data$edge_width %||% 0.6) * .stroke * 0.7
+
+  edge_engine <- ggdag_option("edge_engine", "ggraph")
+  if (
+    identical(edge_engine, "ggarrow") &&
+      rlang::is_installed("ggarrow")
+  ) {
+    grob <- build_key_arrow_grob(
+      0.2,
+      0.5,
+      0.8,
+      0.5,
+      colour = edge_col,
+      alpha = edge_alpha,
+      lwd = edge_lwd
+    )
+  } else {
+    grob <- segmentsGrob(
+      0.2,
+      0.5,
+      0.8,
+      0.5,
+      gp = gpar(
+        col = alpha(edge_col, edge_alpha),
+        fill = alpha(edge_col, edge_alpha),
+        lwd = edge_lwd,
+        lty = data$edge_linetype %||% data$linetype %||% 1
       ),
-      fill = alpha(
-        data$edge_colour %||% data$colour %||% "black",
-        data$edge_alpha %||% data$alpha %||% 1
-      ),
-      lwd = (data$edge_width %||% 0.6) * .stroke * 0.7,
-      lty = data$edge_linetype %||% data$linetype %||% 1
-    ),
-    arrow = arrow
-  )
+      arrow = arrow
+    )
+  }
 
   # Use standard box size for consistency
   # Handle both NULL and NA values for linewidth

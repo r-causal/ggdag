@@ -64,6 +64,7 @@ ggdag_equivalent_class(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -146,6 +147,12 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{node}{Deprecated.}
 
 \item{stylized}{Deprecated.}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 }
 \value{
 a \code{tidy_dagitty} with at least one DAG, including a \code{dag}
