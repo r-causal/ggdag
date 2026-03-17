@@ -714,7 +714,7 @@ ggplot_add.dag_edge_layer <- function(object, plot, ...) {
 }
 
 discover_node_size <- function(plot) {
-  for (existing in plot@layers) {
+  for (existing in plot$layers) {
     if (
       inherits(existing$geom, "GeomDagNode") ||
         inherits(existing$geom, "GeomDagPoint")
