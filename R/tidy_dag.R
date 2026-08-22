@@ -84,7 +84,11 @@ tidy_dagitty <- function(
   # them to generate_layout regardless of use_existing_coords.
   computed_coords <- FALSE
   if (is.function(layout)) {
-    edge_df <- edges2df(dag_edges)
+    # isolated nodes never appear in the edge list, so add them explicitly or
+    # the user's layout function will not position them
+    edge_df <- dag_edges |>
+      edges2df() |>
+      add_isolated_nodes(names(.dagitty))
     coords <- if ("..." %in% names(formals(layout))) {
       layout(
         edge_df,
@@ -519,8 +523,11 @@ complete_coords <- function(coords, ig, nodes, layout, ...) {
     "i" = "Nodes without coordinates: {paste(nodes[missing_coords], collapse = ', ')}"
   ))
 
-  # a manual layout can't generate the missing positions, so fall back
-  auto_layout <- if (is.character(layout) && !identical(layout, "manual")) {
+  # a manual layout can't generate the missing positions, and "time_ordered" is
+  # resolved by ggdag rather than ggraph, so fall back for both
+  auto_layout <- if (
+    is.character(layout) && layout %nin% c("manual", "time_ordered")
+  ) {
     layout
   } else {
     "nicely"

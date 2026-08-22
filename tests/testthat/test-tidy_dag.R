@@ -451,3 +451,81 @@ test_that("visual: partial coordinates are completed by the layout", {
     ggdag(tidy_dag)
   )
 })
+
+test_that("as_tidy_dagitty() completes partial coordinates under time_ordered", {
+  withr::local_seed(1234)
+  edges <- data.frame(name = c("a", "b", "c"), to = c("b", "c", NA))
+  # `c` has no coordinates
+  partial_coords <- list(x = c(a = 0, b = 1), y = c(a = 0, b = 1))
+
+  expect_message(
+    tidy_dag <- as_tidy_dagitty(
+      edges,
+      coords = partial_coords,
+      layout = "time_ordered"
+    )
+  )
+
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("a", "b", "c"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+  # nodes with user coordinates keep the positions they were given
+  expect_equal(node_coords$x[node_coords$name == "a"], 0)
+  expect_equal(node_coords$y[node_coords$name == "a"], 0)
+  expect_equal(node_coords$x[node_coords$name == "b"], 1)
+  expect_equal(node_coords$y[node_coords$name == "b"], 1)
+})
+
+test_that("as_tidy_dagitty() completes partial coordinates under the layout option", {
+  withr::local_seed(1234)
+  withr::local_options(ggdag.layout = "time_ordered")
+  edges <- data.frame(name = c("a", "b", "c"), to = c("b", "c", NA))
+  partial_coords <- list(x = c(a = 0, b = 1), y = c(a = 0, b = 1))
+
+  expect_message(tidy_dag <- as_tidy_dagitty(edges, coords = partial_coords))
+
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("a", "b", "c"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+  expect_equal(node_coords$x[node_coords$name == "a"], 0)
+  expect_equal(node_coords$y[node_coords$name == "a"], 0)
+  expect_equal(node_coords$x[node_coords$name == "b"], 1)
+  expect_equal(node_coords$y[node_coords$name == "b"], 1)
+})
+
+test_that("tidy_dagitty() gives layout functions the isolated nodes", {
+  withr::local_seed(1234)
+  # deterministic layout: nodes laid out left to right in alphabetical order
+  seq_layout <- function(.edges) {
+    nodes <- sort(unique(c(.edges$name, .edges$to)))
+    nodes <- nodes[!is.na(nodes)]
+    tibble::tibble(name = nodes, x = seq_along(nodes), y = 0)
+  }
+
+  # `z` takes part in no edge
+  dag <- dagitty::dagitty("dag { x -> y \n z }")
+
+  expect_no_message(
+    tidy_dag <- tidy_dagitty(
+      dag,
+      layout = seq_layout,
+      use_existing_coords = FALSE
+    )
+  )
+
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("x", "y", "z"))
+  # every position comes from `seq_layout()`, isolated nodes included
+  expect_equal(node_coords$x[node_coords$name == "x"], 1)
+  expect_equal(node_coords$x[node_coords$name == "y"], 2)
+  expect_equal(node_coords$x[node_coords$name == "z"], 3)
+  expect_equal(node_coords$y, c(0, 0, 0))
+})
