@@ -247,3 +247,29 @@ test_that("edge counts are consistent across equivalent function calls", {
   expect_equal(analysis1$total_edges, analysis2$total_edges)
   expect_equal(analysis1$total_edges, analysis3$total_edges)
 })
+
+test_that("arc edges all reach the device for ggdag_collider()", {
+  withr::local_seed(1234)
+  withr::local_options(ggdag.node_size = 24, ggdag.edge_type = "arc")
+  dag <- dagify(m ~ x + y, y ~ x)
+
+  n_edges <- count_dag_edges(dag)
+  expect_equal(n_edges, 3)
+
+  p <- ggdag_collider(dag)
+  expect_edge_count(p, n_edges, "collider with arc edges")
+  expect_equal(count_drawn_edges(p), n_edges)
+})
+
+test_that("arc edges all reach the device for ggdag_dseparated()", {
+  withr::local_seed(1234)
+  withr::local_options(ggdag.edge_width = 1.5, ggdag.edge_type = "arc")
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  n_edges <- count_dag_edges(dag)
+  expect_equal(n_edges, 3)
+
+  p <- ggdag_dseparated(dag, "x", "y")
+  expect_edge_count(p, n_edges, "d-separation with arc edges")
+  expect_equal(count_drawn_edges(p), n_edges)
+})

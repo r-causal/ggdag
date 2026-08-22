@@ -784,6 +784,25 @@ test_that("compute_time_ordered_layout: two node DAG", {
   expect_equal(nrow(result), 2)
 })
 
+test_that("compute_time_ordered_layout: y is scaled with one node per layer", {
+  # x, y, and m each sit alone in a time point, so there are no same-layer
+  # gaps to normalize against. y must still come back on the same scale as the
+  # unit-spaced layers rather than in the layout's internal pixel space.
+  edges_df <- make_edges_df(c("x", "m"), c("x", "y"), c("y", "m"))
+  result <- compute_time_ordered_layout(edges_df)
+
+  expect_equal(sort(unique(result$x)), c(1, 2, 3))
+  expect_lt(diff(range(result$y)), 2 * diff(range(result$x)))
+})
+
+test_that("compute_time_ordered_layout: direction y scales the time-free axis", {
+  edges_df <- make_edges_df(c("x", "m"), c("x", "y"), c("y", "m"))
+  result <- compute_time_ordered_layout(edges_df, direction = "y")
+
+  expect_equal(sort(unique(result$y)), c(1, 2, 3))
+  expect_lt(diff(range(result$x)), 2 * diff(range(result$y)))
+})
+
 # Test all 22 spec DAGs produce 0 overlaps
 # Using a helper to avoid repetition
 test_zero_overlaps <- function(label, edge_pairs) {

@@ -212,3 +212,46 @@ expect_edge_count <- function(plot, expected_edges, test_name = NULL) {
 
   testthat::expect_equal(analysis$total_edges, expected_edges, info = info_msg)
 }
+
+#' Count the edges that survive edge capping and reach the device
+#'
+#' `count_total_edges()` counts edge groups in the built plot data, which is
+#' before ggraph trims each path back to the node caps. An edge whose whole
+#' path is consumed by the caps still appears in the built data but never
+#' draws, so the only way to see it is to render the plot and walk the forced
+#' grob tree.
+#'
+#' @param plot A ggplot object
+#' @param width,height Device size in inches
+#' @return Number of edges actually drawn
+count_drawn_edges <- function(plot, width = 10, height = 8) {
+  path <- tempfile(fileext = ".pdf")
+  grDevices::pdf(path, width = width, height = height)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(path)
+    },
+    add = TRUE
+  )
+
+  print(plot)
+  grid::grid.force()
+
+  grob_names <- unique(grep(
+    "cappedpathgrob",
+    grid::grid.ls(print = FALSE)$name,
+    value = TRUE
+  ))
+
+  drawn <- vapply(
+    grob_names,
+    function(nm) {
+      child <- grid::grid.get(nm)$children[[1]]
+      if (inherits(child, "zeroGrob")) 0L else length(unique(child$id))
+    },
+    integer(1)
+  )
+
+  sum(drawn)
+}

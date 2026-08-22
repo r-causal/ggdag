@@ -971,7 +971,8 @@ compute_time_ordered_layout <- function(
     positions,
     layer_assign,
     direction,
-    fixed_time = fixed_time
+    fixed_time = fixed_time,
+    min_spacing = min_spacing
   )
 }
 
@@ -980,13 +981,16 @@ compute_time_ordered_layout <- function(
 #' @param positions List with `$x` and `$y` (named numeric vectors).
 #' @param layer_assign Named integer vector (node -> 0-based layer).
 #' @param direction `"x"` or `"y"` — swap axes if `"y"`.
+#' @param min_spacing Minimum Y gap enforced between same-layer nodes, used as
+#'   the scale fallback when no layer holds more than one node.
 #' @return A tibble with `name`, `x`, `y`.
 #' @noRd
 normalize_positions <- function(
   positions,
   layer_assign,
   direction = "x",
-  fixed_time = NULL
+  fixed_time = NULL,
+  min_spacing = 72
 ) {
   node_names <- names(positions$x)
 
@@ -1033,8 +1037,19 @@ normalize_positions <- function(
     }
   }
 
-  if (length(all_gaps) > 0 && mean(all_gaps) > 0) {
-    scale_factor <- mean(all_gaps)
+  # When every layer holds a single node there are no gaps to measure. Fall
+  # back to the spacing the layout enforces between same-layer nodes, which is
+  # the same unit the measured gaps are drawn from. Without a fallback the
+  # coordinates stay in the layout's internal pixel space while x is spaced one
+  # unit per layer, and the resulting anisotropy distorts anything that reads
+  # the two axes together, such as the bow of arc edges.
+  scale_factor <- if (length(all_gaps) > 0 && mean(all_gaps) > 0) {
+    mean(all_gaps)
+  } else {
+    min_spacing
+  }
+
+  if (scale_factor > 0) {
     norm_y <- norm_y / scale_factor
   }
 
