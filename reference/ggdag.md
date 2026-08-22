@@ -164,6 +164,7 @@ a `ggplot`
 ## Examples
 
 ``` r
+
 dag <- dagify(
   y ~ x + z2 + w2 + w1,
   x ~ z1 + w1,

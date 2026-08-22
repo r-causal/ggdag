@@ -83,6 +83,7 @@ A tibble with three columns: `name`, `x`, and `y`.
 ## Examples
 
 ``` r
+
 dagify(
   d ~ c1 + c2 + c3,
   c1 ~ b1 + b2,

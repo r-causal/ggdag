@@ -10,12 +10,14 @@ and easy manner.
 You can install `ggdag` with:
 
 ``` r
+
 install.packages("ggdag")
 ```
 
 Or you can install the development version from GitHub with:
 
 ``` r
+
 # install.packages("devtools")
 devtools::install_github("r-causal/ggdag")
 ```
@@ -27,6 +29,7 @@ You can directly tidy `dagitty` objects or use convenience functions to
 create DAGs using a more R-like syntax:
 
 ``` r
+
 library(ggdag)
 library(ggplot2)
 
@@ -112,6 +115,7 @@ tidy_ggdag
 in `ggplot2`:
 
 ``` r
+
 ggdag(tidy_ggdag) +
   theme_dag()
 ```
@@ -119,6 +123,7 @@ ggdag(tidy_ggdag) +
 ![](reference/figures/ggdag-1.png)
 
 ``` r
+
 ggdag_adjustment_set(tidy_ggdag, node_size = 14) +
   theme(legend.position = "bottom")
 ```
@@ -129,6 +134,7 @@ As well as geoms and other functions for plotting them directly in
 `ggplot2`:
 
 ``` r
+
 dagify(m ~ x + y) |>
   tidy_dagitty() |>
   node_dconnected("x", "y", controlling_for = "m") |>
@@ -159,12 +165,14 @@ dagify(m ~ x + y) |>
 And common structures of bias:
 
 ``` r
+
 ggdag_equivalent_dags(confounder_triangle())
 ```
 
 ![](reference/figures/ggdag_common-1.png)
 
 ``` r
+
 
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```

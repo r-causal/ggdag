@@ -125,6 +125,7 @@ a `tidy_dagitty` object
 ## Examples
 
 ``` r
+
 data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
   as_tidy_dagitty()
 #> # DAG:

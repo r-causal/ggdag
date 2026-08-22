@@ -8,6 +8,7 @@ refers to* variable *selection bias, a related issue that refers to
 misspecified models.*
 
 ``` r
+
 #  set theme of all DAGs to `theme_dag()`
 library(ggdag)
 library(ggplot2)
@@ -24,6 +25,7 @@ arrowhead indicating their effect. Here’s a simple DAG where we assume
 that *x* affects *y*:
 
 ``` r
+
 dagify(y ~ x) |>
   ggdag()
 ```
@@ -33,6 +35,7 @@ dagify(y ~ x) |>
 You also sometimes see edges that look bi-directed, like this:
 
 ``` r
+
 dagify(y ~ ~x) |>
   ggdag()
 ```
@@ -43,6 +46,7 @@ But this is actually shorthand for an unmeasured cause of the two
 variables (in other words, unmeasured confounding):
 
 ``` r
+
 #  canonicalize the DAG: Add the latent variable in to the graph
 dagify(y ~ ~x) |>
   ggdag_canonical()
@@ -55,6 +59,7 @@ variable can’t be its own descendant. The above are all DAGs because
 they are acyclic, but this is not:
 
 ``` r
+
 dagify(
   y ~ x,
   x ~ a,
@@ -90,6 +95,7 @@ arrest. We might assume that smoking causes changes in cholesterol,
 which causes cardiac arrest:
 
 ``` r
+
 smoking_ca_dag <- dagify(
   cardiacarrest ~ cholesterol,
   cholesterol ~ smoking + weight,
@@ -171,6 +177,7 @@ back-door path through the forked path at unhealthy lifestyle and on
 from there through the chain to cardiac arrest:
 
 ``` r
+
 ggdag_paths(smoking_ca_dag, text = FALSE, use_labels = "label", shadow = TRUE)
 ```
 
@@ -204,6 +211,7 @@ between the two, which will then bias our estimate (see below for more
 on mediation).
 
 ``` r
+
 ggdag_adjustment_set(smoking_ca_dag, text = FALSE, use_labels = "label", shadow = TRUE)
 ```
 
@@ -253,6 +261,7 @@ unconfounded. However, both the flu and chicken pox cause fevers. The
 DAG looks like this:
 
 ``` r
+
 fever_dag <- collider_triangle(
   x = "Influenza",
   y = "Chicken Pox",
@@ -270,6 +279,7 @@ they are already *d-separated* (direction separated), because there is
 no effect on one by the other, nor are there any back-door paths:
 
 ``` r
+
 ggdag_dseparated(fever_dag, text = FALSE, use_labels = "label")
 ```
 
@@ -280,6 +290,7 @@ of the collider, fever. We open a biasing pathway between the two, and
 they become d-connected:
 
 ``` r
+
 ggdag_dseparated(
   fever_dag,
   controlling_for = "m",
@@ -308,6 +319,7 @@ downstream from fever, controlling for it induces downstream
 collider-stratification bias:
 
 ``` r
+
 dagify(
   fever ~ flu + pox,
   acetaminophen ~ fever,
@@ -356,6 +368,7 @@ that I’m not including the paths opened by controlling for a collider in
 this plot for clarity):
 
 ``` r
+
 ggdag_dseparated(
   smoking_ca_dag,
   controlling_for = c("weight", "cholesterol"),

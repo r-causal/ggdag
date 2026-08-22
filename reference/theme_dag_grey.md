@@ -32,6 +32,7 @@ theme_dag_gray_grid(base_size = 12, base_family = "", ...)
 ## Examples
 
 ``` r
+
 ggdag(m_bias()) + theme_dag_grey()
 
 ```

@@ -13,6 +13,7 @@ tidyverse, like `dplyr`.
 If you already use `dagitty`, `ggdag` can tidy your DAG directly.
 
 ``` r
+
 library(dagitty)
 library(ggdag)
 library(ggplot2)
@@ -50,6 +51,7 @@ declaring which variables are exposures, outcomes, or latent, as well as
 coordinates and labels for each node.
 
 ``` r
+
 dagified <- dagify(
   x ~ z,
   y ~ z,
@@ -87,6 +89,7 @@ DAG is not yet tidied,
 most other quick plotting functions in `ggdag` do so internally.
 
 ``` r
+
 ggdag(dag, layout = "circle")
 ```
 
@@ -96,6 +99,7 @@ A `tidy_dagitty` object is just a list with a `tbl_df`, called `data`,
 and the `dagitty` object, called `dag`:
 
 ``` r
+
 tidy_dag <- tidy_dagitty(dagified)
 str(tidy_dag)
 #> List of 2
@@ -122,6 +126,7 @@ which adds a column to the to the `tidy_dagitty` object about the
 parents of a given variable:
 
 ``` r
+
 node_parents(tidy_dag, "x")
 #> # DAG:
 #> # A `dagitty` DAG with: 3 nodes and 2 edges
@@ -144,6 +149,7 @@ Or working with the entire DAG to produce a `tidy_dagitty` that has all
 pathways between two variables:
 
 ``` r
+
 bigger_dag <- dagify(
   y ~ x + a + b,
   x ~ a + b,
@@ -194,6 +200,7 @@ functions and includes the pipe internally (so you don’t need to load
 anything more complex can be done directly on the `data` object).
 
 ``` r
+
 library(dplyr)
 #  find how many variables are in between x and y in each path
 bigger_dag |>
@@ -214,18 +221,21 @@ for quickly plotting the results. They call the corresponding `dag_*()`
 or `node_*()` function internally and plot the results in `ggplot2`.
 
 ``` r
+
 ggdag_paths(bigger_dag)
 ```
 
 ![](intro-to-ggdag_files/figure-html/ggdag_path-1.png)
 
 ``` r
+
 ggdag_parents(bigger_dag, "x")
 ```
 
 ![](intro-to-ggdag_files/figure-html/ggdag_parents-1.png)
 
 ``` r
+
 #  quickly get the miniminally sufficient adjustment sets to adjust for when
 #  analyzing the effect of x on y
 ggdag_adjustment_set(bigger_dag)
@@ -243,6 +253,7 @@ variables. For example,
 can be made directly in `ggplot2` like this:
 
 ``` r
+
 bigger_dag |>
   node_parents("x") |>
   ggplot(aes(x = x, y = y, xend = xend, yend = yend, color = parent)) +
@@ -304,6 +315,7 @@ and
 [`geom_dag_edges_fan()`](https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.md).
 
 ``` r
+
 dagify(
   y ~ x,
   m ~ x + y
@@ -322,6 +334,7 @@ If you have bi-directed edges but would like to plot them as directed,
 will automatically insert the latent variable for you.
 
 ``` r
+
 dagify(
   y ~ x + z,
   x ~ ~z

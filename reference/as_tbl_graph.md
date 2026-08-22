@@ -36,6 +36,7 @@ a `tbl_graph`
 ## Examples
 
 ``` r
+
 library(ggraph)
 library(tidygraph)
 #> 

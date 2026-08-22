@@ -8,6 +8,7 @@ refers to* variable *selection bias, a related issue that refers to
 misspecified models.*
 
 ``` r
+
 #  set theme of all DAGs to `theme_dag()`
 library(ggdag)
 library(ggplot2)
@@ -33,6 +34,7 @@ actually cause lung cancer, but they are d-connected through smoking, so
 they will appear to be associated:
 
 ``` r
+
 confounder_triangle(x = "Coffee", y = "Lung Cancer", z = "Smoking") |>
   ggdag_dconnected(text = FALSE, use_labels = "label")
 ```
@@ -46,6 +48,7 @@ that we had a psychometric tool that accurately measures addictive
 behavior, so we can control for it. Now our DAG looks like this:
 
 ``` r
+
 coffee_dag <- dagify(
   cancer ~ smoking,
   smoking ~ addictive,
@@ -70,6 +73,7 @@ Which one is the confounder, addictive behavior or smoking? Only one or
 the other needs to be controlled for to block the path:
 
 ``` r
+
 ggdag_adjustment_set(coffee_dag, text = FALSE, use_labels = "label", shadow = TRUE)
 ```
 
@@ -96,6 +100,7 @@ meet–induces an association between its parents, through which
 confounding can flow:
 
 ``` r
+
 collider_triangle() |>
   ggdag_dseparated(controlling_for = "m")
 ```
@@ -116,6 +121,7 @@ mother’s history of diabetes? It’s linked to education via income and to
 participant’s diabetes status via genetic risk, so it looks like this:
 
 ``` r
+
 m_bias(
   x = "Education",
   y = "Diabetes",
@@ -139,6 +145,7 @@ genetic risk and childhood income, thus opening a back-door path from
 education to diabetes status:
 
 ``` r
+
 m_bias(
   x = "Education",
   y = "Diabetes",
@@ -173,6 +180,7 @@ opened by adjusting for a collider, the default in `ggdag`, for
 clarity):
 
 ``` r
+
 coords <- dagitty::coordinates(m_bias()) |>
   coords2df()
 coords$name <- c("readiness", "pain", "surgery", "ready_tool", "pain_change")
@@ -208,6 +216,7 @@ for baseline pain. Note that, technically, surgical status is part of
 the adjustment set:
 
 ``` r
+
 ggdag_adjustment_set(surgical_dag, text = FALSE, use_labels = "label", shadow = TRUE)
 ```
 
@@ -221,6 +230,7 @@ path that is confounding the relationship between *x* and *y*. What to
 do?
 
 ``` r
+
 ggdag_butterfly_bias(edge_type = "diagonal")
 ```
 
@@ -231,6 +241,7 @@ to block the back-door path, but that opens up a relationship between
 *a* and *b*, so we need to block that path, too.
 
 ``` r
+
 ggdag_adjustment_set(butterfly_bias(), shadow = TRUE)
 ```
 
@@ -261,6 +272,7 @@ multivitamins in childhood helps protect against bladder cancer later in
 life.
 
 ``` r
+
 # set coordinates
 coords <- tibble::tribble(
   ~name,
@@ -325,6 +337,7 @@ doesn’t, adjusting for baseline CES-D score–a common practice–can induce
 bias via measurement error:
 
 ``` r
+
 # set coordinates
 coords <- tibble::tribble(
   ~name,
@@ -403,6 +416,7 @@ but in our case, we’re selecting on people who have been hospitalized,
 which opens up a back-door path:
 
 ``` r
+
 coords <- tibble::tribble(
   ~name,
   ~x,
@@ -467,6 +481,7 @@ may cause people to leave the trial. If we only have information on
 people who stay in the study, we are stratifying by follow-up status:
 
 ``` r
+
 dagify(
   follow_up ~ symptoms,
   symptoms ~ new_rx + dx_severity,

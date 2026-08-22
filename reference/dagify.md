@@ -62,6 +62,7 @@ a `dagitty` DAG
 ## Examples
 
 ``` r
+
 dagify(y ~ x + z, x ~ z)
 #> dag {
 #> x
