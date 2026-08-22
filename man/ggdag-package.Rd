@@ -22,5 +22,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Malcolm Barrett \email{malcolmbarrett@gmail.com} (\href{https://orcid.org/0000-0003-0299-5825}{ORCID})
 
+Authors:
+\itemize{
+  \item Malcolm Barrett \email{malcolmbarrett@gmail.com} (\href{https://orcid.org/0000-0003-0299-5825}{ORCID})
+}
+
 }
 \keyword{internal}

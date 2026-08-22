@@ -19,7 +19,7 @@ in the formula AST by \code{\link[=dagify]{dagify()}}.
 \description{
 Use \code{curved()} inside \code{\link[=dagify]{dagify()}} formulas to specify per-edge curvature.
 This function should only be used inside \code{dagify()} formulas; calling it
-directly will result in an error, similar to \code{\link[dplyr:context]{dplyr::n()}}.
+directly will result in an error, similar to \code{\link[dplyr:n]{dplyr::n()}}.
 }
 \section{Curvature sign convention}{
 

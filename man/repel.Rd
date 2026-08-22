@@ -235,7 +235,7 @@ data points. \code{geom_dag_label_repel2()} is a slightly stylized version of
 }
 \details{
 These geoms are wrappers around \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}} and
-\code{\link[ggrepel:geom_text_repel]{ggrepel::geom_label_repel()}} that use the custom \code{StatNodesRepel}
+\code{\link[ggrepel:geom_label_repel]{ggrepel::geom_label_repel()}} that use the custom \code{StatNodesRepel}
 for better handling of DAG data. All arguments available in ggrepel
 functions are supported.
 

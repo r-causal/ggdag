@@ -220,7 +220,7 @@ functions label variables as d-connected or d-separated. The
 \verb{ggdag_d*()} functions plot the results. The \verb{*_dconnected()},
 \verb{*_dseparated()}, and \verb{*_drelationship()} functions essentially
 produce the same output and are just different ways of thinking about the
-relationship. See \code{\link[dagitty:dconnected]{dagitty::dseparated()}} for details.
+relationship. See \code{\link[dagitty:dseparated]{dagitty::dseparated()}} for details.
 }
 \examples{
 library(ggplot2)

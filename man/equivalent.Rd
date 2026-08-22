@@ -76,7 +76,7 @@ ggdag_equivalent_class(
 
 \item{n}{maximal number of returned graphs.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
 for details. Alternatively, \code{"time_ordered"} will use
 \code{time_ordered_coords()} to algorithmically sort the graph by time. You can
 also pass the result of \code{time_ordered_coords()} directly: either the
@@ -162,7 +162,7 @@ column for equivalent classes, or a \code{ggplot}
 \description{
 Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
 input DAG. CPDAGs are Markov equivalent to the input graph. See
-\code{\link[dagitty:EquivalentModels]{dagitty::equivalentDAGs()}} for details.
+\code{\link[dagitty:equivalentDAGs]{dagitty::equivalentDAGs()}} for details.
 \code{node_equivalent_dags()} returns a set of DAGs, while
 \code{node_equivalent_class()} tags reversable edges.
 \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
