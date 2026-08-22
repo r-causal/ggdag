@@ -9,10 +9,10 @@ status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 [![Codecov test
-coverage](https://codecov.io/gh/malcolmbarrett/ggdag/branch/main/graph/badge.svg)](https://app.codecov.io/gh/malcolmbarrett/ggdag?branch=main)
+coverage](https://codecov.io/gh/r-causal/ggdag/branch/main/graph/badge.svg)](https://app.codecov.io/gh/r-causal/ggdag?branch=main)
 [![Total CRAN
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
-[![R-CMD-check](https://github.com/malcolmbarrett/ggdag/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/malcolmbarrett/ggdag/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/r-causal/ggdag/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-causal/ggdag/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs <a href="https://r-causal.github.io/ggdag/"><img src="man/figures/logo.png" align="right" height="138" /></a>
@@ -167,7 +167,7 @@ dagify(m ~ x + y) |>
   scale_color_viridis_d(
     name = "d-relationship",
     na.value = "grey85",
-    begin = .35
+    begin = 0.35
   )
 ```
 
