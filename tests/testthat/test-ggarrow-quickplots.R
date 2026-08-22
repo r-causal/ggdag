@@ -2,10 +2,18 @@
 # Covers bd-1gc.21 (engine-aware edges) and bd-nf6 (legend key glyphs)
 
 coords_confounder <- tibble::tribble(
-  ~name , ~x , ~y ,
-  "x"   ,  0 ,  0 ,
-  "y"   ,  2 ,  0 ,
-  "z"   ,  1 ,  1
+  ~name,
+  ~x,
+  ~y,
+  "x",
+  0,
+  0,
+  "y",
+  2,
+  0,
+  "z",
+  1,
+  1
 )
 
 confounder_dag <- dagify(

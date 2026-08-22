@@ -29,7 +29,7 @@
 #' ggdag_adjustment_set(dag)
 #'
 #' ggdag_adjustment_set(
-#'   dagitty::randomDAG(10, .5),
+#'   dagitty::randomDAG(10, 0.5),
 #'   exposure = "x3",
 #'   outcome = "x5"
 #' )

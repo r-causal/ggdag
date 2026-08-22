@@ -116,7 +116,7 @@ dag <- dagify(
 ggdag(dag)
 ggdag(dag) + theme_dag()
 
-ggdag(dagitty::randomDAG(5, .5))
+ggdag(dagitty::randomDAG(5, 0.5))
 
 }
 \seealso{
