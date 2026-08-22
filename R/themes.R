@@ -162,21 +162,36 @@ scale_adjusted <- function(
   include_color = TRUE,
   include_alpha = FALSE
 ) {
+  # Guides that share an `order` still merge into a single legend, so the shape
+  # and colour scales stay together, as do the two alpha scales. Without an
+  # explicit order, ggplot2 breaks ties with a content hash of the guide, which
+  # is not stable across sessions for legends that have no title, and the
+  # legends swap places between otherwise identical plots.
   scales <- list(
-    ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
+    ggplot2::scale_linetype_manual(
+      name = NULL,
+      values = "dashed",
+      guide = ggplot2::guide_legend(order = 3)
+    ),
     ggplot2::scale_shape_manual(
       values = c("adjusted" = 15, "unadjusted" = 19),
-      limits = c("adjusted", "unadjusted")
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 1)
     ),
-    ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
+    ggplot2::scale_color_discrete(
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 1)
+    ),
     ggplot2::scale_alpha_manual(
       values = c("adjusted" = 0.30, "unadjusted" = 1),
-      limits = c("adjusted", "unadjusted")
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 2)
     ),
     ggraph::scale_edge_alpha_manual(
       name = NULL,
       values = c("adjusted" = 0.30, "unadjusted" = 1),
-      limits = c("adjusted", "unadjusted")
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 2)
     )
   )
 
