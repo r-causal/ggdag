@@ -60,3 +60,26 @@ test_that("updating DAG and DAG data work", {
 
   expect_identical(pull_dag_data(tidy_dagitty_obj), dag_data)
 })
+
+test_that("update_dag() preserves isolated nodes", {
+  dag <- dagitty::dagitty("dag { a -> b ; c }")
+  tidy_dag <- tidy_dagitty(dag, seed = 42)
+  expect_true("c" %in% pull_dag_data(tidy_dag)$name)
+
+  round_tripped <- update_dag(tidy_dag)
+  expect_setequal(names(pull_dag(round_tripped)), c("a", "b", "c"))
+  expect_setequal(unique(pull_dag_data(round_tripped)$name), c("a", "b", "c"))
+})
+
+test_that("update_dag() round-trips node names with spaces", {
+  dag <- dagitty::dagitty('dag { "my var" -> y }')
+  tidy_dag <- tidy_dagitty(dag, seed = 42)
+  expect_setequal(names(pull_dag(tidy_dag)), c("my var", "y"))
+
+  round_tripped <- update_dag(tidy_dag)
+  expect_setequal(names(pull_dag(round_tripped)), c("my var", "y"))
+  expect_setequal(
+    names(dagitty::coordinates(pull_dag(round_tripped))$x),
+    c("my var", "y")
+  )
+})

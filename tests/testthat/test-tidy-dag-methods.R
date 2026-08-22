@@ -231,8 +231,9 @@ test_that("edge case: DAG with no edges", {
   result <- as_tidy_dagitty(dag_df)
   expect_s3_class(result, "tidy_dagitty")
   expect_equal(n_edges(result), 0)
-  # Isolated nodes without edges are dropped
-  expect_equal(n_nodes(result), 0)
+  # Isolated nodes are preserved in the data and the DAG
+  expect_equal(n_nodes(result), 3)
+  expect_setequal(names(pull_dag(result)), c("a", "b", "c"))
 })
 
 test_that("tidy_dagitty with use_existing_coords = FALSE", {

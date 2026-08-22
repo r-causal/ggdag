@@ -113,6 +113,10 @@ prep_dag_data <- function(
     assert_columns_exist(value, c("name", "to"), call = call)
   }
 
+  if (is.data.frame(coords)) {
+    coords <- coords2list(coords)
+  }
+
   if (is.null(coords)) {
     if (is.function(layout)) {
       coords <- value |>
@@ -130,21 +134,35 @@ prep_dag_data <- function(
   }
 
   if ("direction" %nin% names(value)) {
-    value$direction <- "->"
+    # rows with no edge are node-only rows, not directed edges
+    value$direction <- ifelse(is.na(value$to), NA_character_, "->")
   }
 
   if (any(c("x", "y", "xend", "yend") %nin% names(value))) {
+    # a partial set of coordinate columns can't be reconciled with a freshly
+    # generated layout, so drop them and regenerate all four consistently
+    value <- dplyr::select(value, -dplyr::any_of(c("x", "y", "xend", "yend")))
+
     coords_df <- value |>
       dplyr::select("name", "to") |>
       dplyr::filter(!is.na(.data$name), !is.na(.data$to)) |>
       generate_layout(
         layout = layout,
+        vertices = all_node_names(value),
         coords = coords,
         ...
       )
 
     value <- value |>
       tidy_dag_edges_and_coords(coords_df)
+  }
+
+  if (!is.factor(value$direction)) {
+    value$direction <- factor(
+      value$direction,
+      levels = c("->", "<->", "--"),
+      exclude = NA
+    )
   }
 
   # Remove circular column if all values are FALSE (issue #119)
@@ -233,21 +251,36 @@ compile_dag_from_df <- function(.df) {
     .df$direction <- "<-"
   }
 
-  .df |>
+  edge_rows <- .df |>
     dplyr::filter(!is.na(.data$to)) |>
     dplyr::mutate(
       direction = as.character(.data$direction),
       direction = ifelse(.data$direction == "<-", "->", .data$direction)
-    ) |>
+    )
+
+  edge_formulas <- edge_rows |>
     dplyr::group_by(.data$name, .data$direction) |>
     dplyr::summarise(
-      to_formula = paste("{", paste(.data$to, collapse = " "), "}"),
+      to_formula = paste(
+        "{",
+        paste(quote_dagitty_name(.data$to), collapse = " "),
+        "}"
+      ),
       .groups = "drop"
     ) |>
     dplyr::transmute(
-      dag_formula = paste(.data$name, .data$direction, .data$to_formula)
+      dag_formula = paste(
+        quote_dagitty_name(.data$name),
+        .data$direction,
+        .data$to_formula
+      )
     ) |>
-    dplyr::pull() |>
+    dplyr::pull()
+
+  # nodes with no edges are only kept if they get their own bare statement
+  isolated <- setdiff(all_node_names(.df), c(edge_rows$name, edge_rows$to))
+
+  c(edge_formulas, quote_dagitty_name(isolated)) |>
     paste(collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))() |>
     dagitty::dagitty()

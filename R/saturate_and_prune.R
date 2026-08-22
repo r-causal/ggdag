@@ -39,7 +39,8 @@ dag_saturate <- function(
   .dag <- pull_dag(.tdy_dag)
   edges_df <- .dag |>
     get_dagitty_edges() |>
-    edges2df()
+    edges2df() |>
+    add_isolated_nodes(names(.dag))
   layer_assign <- longest_path_layers(edges_df)
   df_time_order <- tibble::tibble(
     name = names(layer_assign),

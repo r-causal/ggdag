@@ -653,11 +653,34 @@ get_dagitty_edges <- function(.dag) {
 
 edges2df <- function(.edges) {
   no_outgoing_edges <- unique(.edges$to[!(.edges$to %in% .edges$name)])
+  no_outgoing_edges <- no_outgoing_edges[!is.na(no_outgoing_edges)]
   dplyr::bind_rows(
     .edges,
     tibble::tibble(
       name = no_outgoing_edges,
       to = rep(NA_character_, length(no_outgoing_edges))
     )
+  )
+}
+
+#' Add node-only rows for nodes that take part in no edge
+#'
+#' The time-ordering pipeline works from an edge list, which never mentions
+#' isolated nodes. Adding them as `to = NA` rows is how the rest of the pipeline
+#' already represents nodes without outgoing edges.
+#'
+#' @param .edges_df A data frame with `name` and `to` columns.
+#' @param .nodes A character vector of every node in the DAG.
+#' @return `.edges_df`, with a row added for each node it did not mention.
+#' @noRd
+add_isolated_nodes <- function(.edges_df, .nodes) {
+  isolated <- setdiff(.nodes, all_node_names(.edges_df))
+  if (length(isolated) == 0) {
+    return(.edges_df)
+  }
+
+  dplyr::bind_rows(
+    .edges_df,
+    tibble::tibble(name = isolated, to = rep(NA_character_, length(isolated)))
   )
 }

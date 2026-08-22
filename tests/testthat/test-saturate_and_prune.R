@@ -9,6 +9,31 @@ test_that("dag_saturate returns a saturated DAG", {
   expect_doppelganger("dag_saturate returns a saturated DAG", p1)
 })
 
+test_that("dag_saturate() keeps isolated nodes", {
+  withr::local_seed(1234)
+  .dag <- dagitty::dagitty("dag{x -> y; z}")
+  .saturated_dag <- dag_saturate(.dag)
+
+  expect_setequal(
+    unique(pull_dag_data(.saturated_dag)$name),
+    c("x", "y", "z")
+  )
+  expect_setequal(names(pull_dag(.saturated_dag)), c("x", "y", "z"))
+})
+
+test_that("visual: dag_saturate() keeps isolated nodes", {
+  withr::local_seed(1234)
+  .saturated_dag <- dag_saturate(dagitty::dagitty("dag{x -> y; z}"))
+  # never record a baseline from a saturation that lost the isolated node
+  skip_if_not(
+    setequal(unique(pull_dag_data(.saturated_dag)$name), c("x", "y", "z"))
+  )
+  expect_doppelganger(
+    "dag_saturate keeps isolated nodes",
+    ggdag(.saturated_dag)
+  )
+})
+
 test_that("use_existing_coords works as expected", {
   .tdy_dag <- dagify(y ~ x + z, x ~ z) |>
     tidy_dagitty()

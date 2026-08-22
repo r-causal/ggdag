@@ -16,7 +16,7 @@
 \item{directed}{logical. Should the constructed graph be directed? Default
 is \code{TRUE}}
 
-\item{...}{other arguments passed to \code{as_tbl_graph}}
+\item{...}{currently unused}
 }
 \value{
 a \code{tbl_graph}

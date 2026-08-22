@@ -41,7 +41,7 @@ test_that("circular column is present only when needed", {
 })
 
 test_that("nodes without edges are captured correctly", {
-  # Use "nicely" layout; time_ordered can't handle isolated nodes
+  # pin the layout so the node order does not depend on the global option
   .dagitty <- dagitty::dagitty(
     "dag {
   x -> y
@@ -322,5 +322,132 @@ test_that("tidy_dagitty warns about cyclic graphs", {
       class = "ggdag_cyclic_warning"
     ),
     class = "ggdag_failed_to_close_backdoor_warning"
+  )
+})
+
+test_that("as_tidy_dagitty() keeps isolated nodes in the data and the DAG", {
+  df <- data.frame(name = c("a", "b", "c"), to = c("b", NA, NA))
+  tidy_dag <- as_tidy_dagitty(df, seed = 42)
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_setequal(unique(dag_data$name), c("a", "b", "c"))
+  expect_setequal(names(pull_dag(tidy_dag)), c("a", "b", "c"))
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+})
+
+test_that("visual: as_tidy_dagitty() renders isolated nodes", {
+  withr::local_seed(1234)
+  tidy_dag <- as_tidy_dagitty(
+    data.frame(name = c("a", "b", "c"), to = c("b", NA, NA)),
+    seed = 42
+  )
+  # never record a baseline that is missing the isolated node
+  skip_if_not(setequal(unique(pull_dag_data(tidy_dag)$name), c("a", "b", "c")))
+  expect_doppelganger("as_tidy_dagitty renders isolated nodes", ggdag(tidy_dag))
+})
+
+test_that("as_tidy_dagitty() keeps node names with spaces intact", {
+  df <- data.frame(name = c("my var", "y"), to = c("y", NA))
+  tidy_dag <- as_tidy_dagitty(df, seed = 42)
+
+  expect_setequal(names(pull_dag(tidy_dag)), c("my var", "y"))
+  expect_setequal(unique(pull_dag_data(tidy_dag)$name), c("my var", "y"))
+})
+
+test_that("as_tidy_dagitty() regenerates coordinates when only x and y are given", {
+  df <- data.frame(
+    name = c("c", "c", "x", "y"),
+    to = c("x", "y", "y", NA),
+    x = c(0, 0, 1, 2),
+    y = c(1, 1, 0, 0)
+  )
+
+  expect_no_error(tidy_dag <- as_tidy_dagitty(df, seed = 1234))
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_true(all(c("x", "y", "xend", "yend") %in% names(dag_data)))
+  expect_false(any(c("xendend", "yendend") %in% names(dag_data)))
+
+  node_coords <- dplyr::distinct(dag_data, name, x, y)
+  edges <- dplyr::filter(dag_data, !is.na(to))
+  expect_equal(edges$xend, node_coords$x[match(edges$to, node_coords$name)])
+  expect_equal(edges$yend, node_coords$y[match(edges$to, node_coords$name)])
+})
+
+test_that("as_tidy_dagitty() accepts coords as a data frame", {
+  edges_df <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y"))
+  coords_df <- data.frame(
+    name = c("c", "x", "y"),
+    x = c(0, 1, 2),
+    y = c(0, 1, 0)
+  )
+
+  from_df <- as_tidy_dagitty(edges_df, coords = coords_df, seed = 1234)
+  from_list <- as_tidy_dagitty(
+    edges_df,
+    coords = coords2list(coords_df),
+    seed = 1234
+  )
+
+  expect_equal(pull_dag_data(from_df), pull_dag_data(from_list))
+
+  node_coords <- pull_dag_data(from_df) |>
+    dplyr::distinct(name, x, y) |>
+    dplyr::arrange(name)
+  expect_equal(node_coords$x, c(0, 1, 2))
+  expect_equal(node_coords$y, c(0, 1, 0))
+})
+
+test_that("tidy_dagitty() completes coordinates that cover only some nodes", {
+  withr::local_seed(1234)
+  # `z` has no coordinates
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+
+  expect_message(tidy_dag <- tidy_dagitty(dag))
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("x", "y", "z"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+  # nodes with user coordinates keep the positions they were given
+  expect_equal(node_coords$x[node_coords$name == "x"], 0)
+  expect_equal(node_coords$y[node_coords$name == "x"], 0)
+  expect_equal(node_coords$x[node_coords$name == "y"], 1)
+  expect_equal(node_coords$y[node_coords$name == "y"], 0)
+})
+
+test_that("tidy_dagitty() informs on misspelled coordinate names", {
+  withr::local_seed(1234)
+  # `Y` is a typo for `y`, so `y` has no coordinates
+  dag <- dagify(y ~ x, coords = list(x = c(x = 0, Y = 1), y = c(x = 0, Y = 0)))
+
+  expect_message(tidy_dag <- tidy_dagitty(dag))
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("x", "y"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+})
+
+test_that("visual: partial coordinates are completed by the layout", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+  tidy_dag <- suppressMessages(tidy_dagitty(dag))
+  # never record a baseline that still carries missing coordinates
+  skip_if_not(!anyNA(pull_dag_data(tidy_dag)$x))
+  expect_doppelganger(
+    "partial coordinates completed by layout",
+    ggdag(tidy_dag)
   )
 })

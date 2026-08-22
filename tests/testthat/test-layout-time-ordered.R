@@ -2736,3 +2736,54 @@ test_that("visual: force_y = TRUE (default) with same DAG", {
     ggdag()
   expect_doppelganger("time-ordered-force-y-true", p)
 })
+
+test_that("time-ordered layout covers isolated nodes", {
+  withr::local_seed(1234)
+  dag <- dagitty::dagitty("dag{x -> y; z}")
+
+  expect_no_message(
+    tidy_dag <- tidy_dagitty(dag, layout = "time_ordered")
+  )
+
+  dag_data <- pull_dag_data(tidy_dag)
+  expect_setequal(unique(dag_data$name), c("x", "y", "z"))
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+
+  node_x <- function(.name) unique(dag_data$x[dag_data$name == .name])
+  # isolated nodes have no parents, so they sit in the first time point
+  expect_equal(node_x("z"), node_x("x"))
+  expect_gt(node_x("y"), node_x("x"))
+})
+
+test_that("time-ordered layout covers single-node DAGs", {
+  withr::local_seed(1234)
+  dag <- dagitty::dagitty("dag{x}")
+
+  expect_no_message(
+    tidy_dag <- tidy_dagitty(dag, layout = "time_ordered")
+  )
+
+  dag_data <- pull_dag_data(tidy_dag)
+  expect_equal(dag_data$name, "x")
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+})
+
+test_that("visual: time-ordered layout with an isolated node", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(
+    dagitty::dagitty("dag{x -> y; z}"),
+    layout = "time_ordered"
+  )
+  dag_data <- pull_dag_data(tidy_dag)
+  # never record a baseline from a layout that fell back to the default
+  skip_if_not(
+    setequal(unique(dag_data$name), c("x", "y", "z")) &&
+      identical(
+        unique(dag_data$x[dag_data$name == "z"]),
+        unique(dag_data$x[dag_data$name == "x"])
+      )
+  )
+  expect_doppelganger("time-ordered layout with isolated node", ggdag(tidy_dag))
+})

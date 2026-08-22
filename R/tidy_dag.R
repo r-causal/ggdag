@@ -110,6 +110,7 @@ tidy_dagitty <- function(
       time_ordered_coords <- tryCatch(
         dag_edges |>
           edges2df() |>
+          add_isolated_nodes(names(.dagitty)) |>
           compute_time_ordered_layout(
             exposure = dagitty::exposures(.dagitty),
             outcome = dagitty::outcomes(.dagitty)
@@ -471,11 +472,14 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
     nodes <- names(igraph::V(ig))
     coords$x <- coords$x[nodes]
     coords$y <- coords$y[nodes]
+    coords <- complete_coords(coords, ig, nodes, layout, ...)
+    # node names live in the `name` column; carrying them on the coordinate
+    # vectors as well leaves the columns named, unlike every other layout
     ggraph_layout <- ggraph_create_layout(
       ig,
       layout = "manual",
-      x = coords$x,
-      y = coords$y,
+      x = unname(coords$x),
+      y = unname(coords$y),
       ...
     )
   }
@@ -490,6 +494,44 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
   }
 
   layout_df
+}
+
+#' Fill in coordinates for nodes the user did not supply
+#'
+#' Partial coordinates would otherwise reach `dagitty::coordinates<-` as `NA`,
+#' which fails in dagitty's JavaScript engine. Instead, run the requested layout
+#' for the whole graph and keep the positions the user did supply.
+#'
+#' @param coords A list with `x` and `y`, both named by node.
+#' @param ig The `igraph` object being laid out.
+#' @param nodes The node names, in `ig` order.
+#' @param layout The requested layout.
+#' @return `coords`, with no missing values.
+#' @noRd
+complete_coords <- function(coords, ig, nodes, layout, ...) {
+  missing_coords <- is.na(coords$x) | is.na(coords$y)
+  if (!any(missing_coords)) {
+    return(coords)
+  }
+
+  inform(c(
+    "!" = "Coordinates cover only some nodes; generating positions for the rest.",
+    "i" = "Nodes without coordinates: {paste(nodes[missing_coords], collapse = ', ')}"
+  ))
+
+  # a manual layout can't generate the missing positions, so fall back
+  auto_layout <- if (is.character(layout) && !identical(layout, "manual")) {
+    layout
+  } else {
+    "nicely"
+  }
+
+  generated <- ggraph_create_layout(ig, layout = auto_layout, ...)
+  idx <- match(nodes[missing_coords], generated$name)
+  coords$x[missing_coords] <- generated$x[idx]
+  coords$y[missing_coords] <- generated$y[idx]
+
+  coords
 }
 
 check_verboten_layout <- function(layout) {

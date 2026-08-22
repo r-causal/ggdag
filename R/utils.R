@@ -136,6 +136,36 @@ ggdag_left_join <- function(...) {
 
 `%nin%` <- Negate(`%in%`)
 
+#' Every node mentioned by a DAG data frame
+#'
+#' Node-only rows (edges with `to = NA`) contribute their `name` alone, so
+#' isolated nodes are included.
+#'
+#' @param .df A data frame with `name` and `to` columns.
+#' @return A character vector of unique node names.
+#' @noRd
+all_node_names <- function(.df) {
+  nodes <- c(as.character(.df$name), as.character(.df$to))
+  unique(nodes[!is.na(nodes)])
+}
+
+#' Quote a node name for use in a `dagitty` string
+#'
+#' dagitty's unquoted identifiers are limited to `[0-9a-zA-Z_.]`, so names with
+#' spaces or accents must be quoted. dagitty re-serializes the parsed DAG, so
+#' quoting ordinary names does not change the stored string.
+#'
+#' @param x A character vector of node names.
+#' @return A character vector of quoted node names.
+#' @noRd
+quote_dagitty_name <- function(x) {
+  if (length(x) == 0) {
+    return(character(0))
+  }
+
+  paste0('"', gsub('"', '\\\\"', x), '"')
+}
+
 check_arg_node <- function(node, use_nodes, what = "geom_dag") {
   if (is_present(node)) {
     deprecate_soft("0.3.0", paste0(what, "(node)"), paste0(what, "(use_nodes)"))
