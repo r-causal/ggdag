@@ -40,6 +40,7 @@ S3method(pull_dag,tidy_dagitty)
 S3method(pull_dag_data,dagitty)
 S3method(pull_dag_data,default)
 S3method(pull_dag_data,tidy_dagitty)
+S3method(rename,tidy_dagitty)
 S3method(right_join,tidy_dagitty)
 S3method(select,tidy_dagitty)
 S3method(semi_join,tidy_dagitty)
@@ -239,6 +240,7 @@ importFrom(dplyr,
   left_join,
   mutate,
   mutate_,
+  rename,
   right_join,
   select,
   select_,

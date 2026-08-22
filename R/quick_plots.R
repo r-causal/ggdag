@@ -102,9 +102,7 @@ m_bias <- function(
     )
   }
 
-  if (!is.null(c(x, y, a, b, m))) {
-    label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, a = a, b = b, m = m))
 
   .dag
 }
@@ -160,9 +158,7 @@ butterfly_bias <- function(
     )
   }
 
-  if (!is.null(c(x, y, a, b, m))) {
-    label(.dag) <- c(x = x, y = y, a = a, b = b, m = m)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, a = a, b = b, m = m))
 
   .dag
 }
@@ -208,9 +204,7 @@ confounder_triangle <- function(
     )
   }
 
-  if (!is.null(c(x, y, z))) {
-    label(.dag) <- c(x = x, y = y, z = z)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, z = z))
 
   .dag
 }
@@ -255,9 +249,7 @@ collider_triangle <- function(
     )
   }
 
-  if (!is.null(c(x, y, m))) {
-    label(.dag) <- c(x = x, y = y, m = m)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, m = m))
 
   .dag
 }
@@ -303,9 +295,7 @@ mediation_triangle <- function(
     )
   }
 
-  if (!is.null(c(x, y, m))) {
-    label(.dag) <- c(x = x, y = y, m = m)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, m = m))
 
   .dag
 }
@@ -350,9 +340,7 @@ quartet_collider <- function(
     )
   }
 
-  if (!is.null(c(x, y, z))) {
-    label(.dag) <- c(x = x, y = y, z = z)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, z = z))
 
   .dag
 }
@@ -398,9 +386,7 @@ quartet_confounder <- function(
     )
   }
 
-  if (!is.null(c(x, y, z))) {
-    label(.dag) <- c(x = x, y = y, z = z)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, z = z))
 
   .dag
 }
@@ -446,9 +432,7 @@ quartet_mediator <- function(
     )
   }
 
-  if (!is.null(c(x, y, z))) {
-    label(.dag) <- c(x = x, y = y, z = z)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, z = z))
 
   .dag
 }
@@ -504,9 +488,7 @@ quartet_m_bias <- function(
     )
   }
 
-  if (!is.null(c(x, y, z, u1, u2))) {
-    label(.dag) <- c(x = x, y = y, z = z, u1 = u1, u2 = u2)
-  }
+  .dag <- set_node_labels(.dag, c(x = x, y = y, z = z, u1 = u1, u2 = u2))
 
   .dag
 }
@@ -572,8 +554,9 @@ quartet_time_collider <- function(
     coords = coords
   )
 
-  if (!is.null(c(x0, x1, x2, x3, y1, y2, y3, z1, z2, z3))) {
-    label(.dag) <- c(
+  .dag <- set_node_labels(
+    .dag,
+    c(
       x0 = x0,
       x1 = x1,
       x2 = x2,
@@ -585,7 +568,7 @@ quartet_time_collider <- function(
       z2 = z2,
       z3 = z3
     )
-  }
+  )
 
   .dag
 }

@@ -529,3 +529,132 @@ test_that("tidy_dagitty() gives layout functions the isolated nodes", {
   expect_equal(node_coords$x[node_coords$name == "z"], 3)
   expect_equal(node_coords$y, c(0, 0, 0))
 })
+
+test_that("as_tidy_dagitty() keeps the labels it is given", {
+  labels <- c("c" = "confounder", "x" = "exposure", "y" = "outcome")
+  from_df <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
+    as_tidy_dagitty(labels = labels, seed = 1234)
+
+  expect_true(has_labels(pull_dag(from_df)))
+  expect_equal(label(pull_dag(from_df)), labels)
+
+  dag_data <- pull_dag_data(from_df)
+  expect_true("label" %in% names(dag_data))
+  expect_equal(unique(dag_data$label[dag_data$name == "c"]), "confounder")
+  expect_equal(unique(dag_data$label[dag_data$name == "x"]), "exposure")
+
+  from_list <- as_tidy_dagitty(
+    list("x", "y"),
+    labels = c("x" = "exposure", "y" = "outcome"),
+    seed = 1234
+  )
+  expect_equal(
+    label(pull_dag(from_list)),
+    c("x" = "exposure", "y" = "outcome")
+  )
+  expect_true("label" %in% names(pull_dag_data(from_list)))
+})
+
+test_that("visual: as_tidy_dagitty() renders supplied labels", {
+  withr::local_seed(1234)
+  tidy_dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
+    as_tidy_dagitty(
+      labels = c("c" = "confounder", "x" = "exposure", "y" = "outcome"),
+      seed = 1234
+    )
+  # never record a baseline from a DAG that dropped its labels
+  skip_if_not("label" %in% names(pull_dag_data(tidy_dag)))
+  expect_doppelganger(
+    "as_tidy_dagitty renders supplied labels",
+    ggdag(tidy_dag, use_labels = TRUE)
+  )
+})
+
+test_that("as_tidy_dagitty() builds a node-only DAG from a single time point", {
+  tidy_dag <- as_tidy_dagitty(list(c("a", "b", "c")), seed = 42)
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_s3_class(tidy_dag, "tidy_dagitty")
+  expect_setequal(unique(dag_data$name), c("a", "b", "c"))
+  expect_setequal(names(pull_dag(tidy_dag)), c("a", "b", "c"))
+  expect_true(all(is.na(dag_data$to)))
+  expect_equal(n_edges(tidy_dag), 0)
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+})
+
+test_that("as_tidy_dagitty() errors informatively on an empty list", {
+  expect_error(as_tidy_dagitty(list()), class = "ggdag_type_error")
+})
+
+test_that("as_tidy_dagitty() empty list error message", {
+  # never record a baseline from the pre-fix base R error
+  skip_if_not(inherits(
+    tryCatch(as_tidy_dagitty(list()), error = identity),
+    "ggdag_type_error"
+  ))
+
+  expect_ggdag_error(as_tidy_dagitty(list()))
+})
+
+test_that("as_tidy_dagitty() rejects unsupported direction values", {
+  expect_error(
+    as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = "<-"),
+      seed = 1234
+    ),
+    class = "ggdag_dag_error"
+  )
+  expect_error(
+    as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = "=>"),
+      seed = 1234
+    ),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("as_tidy_dagitty() direction error message", {
+  # never record a baseline from the pre-fix silent coercion
+  skip_if_not(inherits(
+    tryCatch(
+      as_tidy_dagitty(
+        data.frame(name = "a", to = "b", direction = "<-"),
+        seed = 1234
+      ),
+      error = identity
+    ),
+    "ggdag_dag_error"
+  ))
+
+  expect_ggdag_error(
+    as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = "<-"),
+      seed = 1234
+    )
+  )
+})
+
+test_that("as_tidy_dagitty() keeps supported direction values in sync", {
+  purrr::walk(c("->", "<->", "--"), \(.direction) {
+    tidy_dag <- as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = .direction),
+      seed = 1234
+    )
+    dag_data <- pull_dag_data(tidy_dag)
+
+    expect_equal(
+      as.character(dag_data$direction[dag_data$name == "a"]),
+      .direction
+    )
+    expect_equal(n_edges(tidy_dag), 1)
+    expect_equal(n_edges(tidy_dag), nrow(dagitty::edges(pull_dag(tidy_dag))))
+  })
+
+  # node-only rows carry no direction and must stay acceptable
+  node_only <- as_tidy_dagitty(
+    data.frame(name = c("a", "b", "c"), to = c("b", NA, NA)),
+    seed = 1234
+  )
+  expect_equal(n_edges(node_only), 1)
+})

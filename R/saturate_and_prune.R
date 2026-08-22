@@ -59,7 +59,7 @@ dag_saturate <- function(
       exposure = dagitty::exposures(.dag),
       outcome = dagitty::outcomes(.dag),
       latent = dagitty::latents(.dag),
-      labels = labels(.dag),
+      labels = label(.dag),
       coords = coords,
       seed = seed,
       layout = layout,

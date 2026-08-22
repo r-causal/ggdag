@@ -303,10 +303,6 @@ as_tidy_dagitty.data.frame <- function(
     dagitty::latents(.dagitty) <- latent
   }
 
-  if (!is.null(labels)) {
-    label(.dagitty) <- labels
-  }
-
   if ("adjusted" %in% names(tidy_dag)) {
     .adjusted <- dplyr::filter(tidy_dag, .data$adjusted == "adjusted") |>
       dplyr::pull(.data$name) |>
@@ -324,6 +320,12 @@ as_tidy_dagitty.data.frame <- function(
     dplyr::distinct(.data$name, .keep_all = TRUE)
 
   dagitty::coordinates(.dagitty) <- coords2list(all_node_coords)
+
+  # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
+  # so labels have to be set afterwards
+  if (!is.null(labels)) {
+    label(.dagitty) <- labels
+  }
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
 
@@ -351,12 +353,29 @@ as_tidy_dagitty.list <- function(
     set.seed(seed)
   }
 
-  dag_edges <- purrr::map(
-    seq_len(length(x) - 1),
-    saturate_edges,
-    time_points = x
-  ) |>
-    dplyr::bind_rows()
+  if (length(x) == 0) {
+    abort(
+      c(
+        "{.arg x} must contain at least one time point.",
+        "x" = "You supplied an empty list.",
+        "i" = "Each element of {.arg x} is a time point, and edges connect
+               consecutive time points."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  dag_edges <- if (length(x) == 1) {
+    # a single time point has no future to point at, so the nodes stand alone
+    tibble::tibble(name = as.character(x[[1]]), to = NA_character_)
+  } else {
+    purrr::map(
+      seq_len(length(x) - 1),
+      saturate_edges,
+      time_points = x
+    ) |>
+      dplyr::bind_rows()
+  }
 
   dag_edges |>
     as_tidy_dagitty(

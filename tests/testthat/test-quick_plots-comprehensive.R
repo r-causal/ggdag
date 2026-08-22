@@ -440,6 +440,11 @@ test_that("quick plot edge cases work correctly", {
   dag1 <- m_bias(x = character(0), y = character(0))
   expect_s3_class(dag1, "dagitty")
 
+  # a zero-length label carries no information, so no labels are set
+  expect_null(attr(dag1, "labels"))
+  expect_s3_class(tidy_dagitty(dag1), "tidy_dagitty")
+  expect_s3_class(ggdag_m_bias(x = character(0)), "gg")
+
   # Very long labels
   long_label <- paste(rep("long", 20), collapse = "_")
   dag2 <- confounder_triangle(x = long_label)
@@ -448,6 +453,38 @@ test_that("quick plot edge cases work correctly", {
   # Unicode labels
   dag3 <- collider_triangle(m = "αβγ")
   expect_equal(label(dag3)[["m"]], "αβγ")
+})
+
+test_that("every quick plot DAG constructor ignores zero-length labels", {
+  constructors <- list(
+    m_bias = m_bias,
+    butterfly_bias = butterfly_bias,
+    confounder_triangle = confounder_triangle,
+    collider_triangle = collider_triangle,
+    mediation_triangle = mediation_triangle,
+    quartet_collider = quartet_collider,
+    quartet_confounder = quartet_confounder,
+    quartet_mediator = quartet_mediator,
+    quartet_m_bias = quartet_m_bias,
+    quartet_time_collider = quartet_time_collider
+  )
+
+  labelled <- purrr::map_lgl(
+    constructors,
+    \(.f) !is.null(attr(.f(character(0)), "labels"))
+  )
+  expect_equal(names(constructors)[labelled], character(0))
+
+  crashed <- purrr::map_lgl(
+    constructors,
+    \(.f) {
+      inherits(
+        tryCatch(tidy_dagitty(.f(character(0))), error = identity),
+        "error"
+      )
+    }
+  )
+  expect_equal(names(constructors)[crashed], character(0))
 })
 
 test_that("quartet_collider creates correct DAG structure", {

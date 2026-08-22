@@ -34,3 +34,13 @@
       ! Input must be a <dagitty> object.
       x You provided a <numeric> object.
 
+# update_dag() positional argument message
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `update_dag()`:
+      ! `update_dag()` takes no other arguments.
+      x It rebuilds the <dagitty> component from `x`'s own data.
+      i To install a different DAG, use `update_dag(x) <- value`.
+

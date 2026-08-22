@@ -49,3 +49,23 @@
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
+# as_tidy_dagitty() empty list error message
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `as_tidy_dagitty()`:
+      ! `x` must contain at least one time point.
+      x You supplied an empty list.
+      i Each element of `x` is a time point, and edges connect consecutive time points.
+
+# as_tidy_dagitty() direction error message
+
+    Code
+      expr
+    Condition <ggdag_dag_error>
+      Error in `as_tidy_dagitty()`:
+      ! direction must be one of "->", "<->", and "--".
+      x Unsupported values: "<-".
+      i To reverse an edge, swap the name and to values.
+

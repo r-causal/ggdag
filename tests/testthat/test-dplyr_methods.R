@@ -64,6 +64,67 @@ test_that("ungroup.tidy_dagitty removes grouping", {
   expect_false(dplyr::is_grouped_df(pull_dag_data(ungrouped2)))
 })
 
+test_that("rename.tidy_dagitty renames columns and preserves the class", {
+  dag <- dagify(y ~ x + z, x ~ z) |>
+    tidy_dagitty()
+  annotated <- mutate(dag, note = 1)
+
+  renamed <- rename(annotated, annotation = note)
+  dag_data <- pull_dag_data(renamed)
+
+  expect_s3_class(renamed, "tidy_dagitty")
+  expect_true("annotation" %in% names(dag_data))
+  expect_false("note" %in% names(dag_data))
+  expect_equal(dag_data$annotation, pull_dag_data(annotated)$note)
+  expect_equal(pull_dag(renamed), pull_dag(annotated))
+
+  # renaming a required column away is caught like the `select()` equivalent
+  expect_error(
+    rename(annotated, node = name),
+    class = "ggdag_columns_error"
+  )
+})
+
+test_that("dplyr verbs preserve group_by() grouping", {
+  library(dplyr, warn.conflicts = FALSE)
+  dag <- tidy_dagitty(m_bias(), seed = 42)
+  grouped <- group_by(dag, name)
+
+  expect_equal(group_vars(pull_dag_data(grouped)), "name")
+  expect_equal(group_vars(pull_dag_data(mutate(grouped, foo = 1))), "name")
+  expect_equal(group_vars(pull_dag_data(filter(grouped, !is.na(x)))), "name")
+  expect_equal(group_vars(pull_dag_data(arrange(grouped, name))), "name")
+
+  # ungrouped data stays ungrouped
+  expect_equal(group_vars(pull_dag_data(mutate(dag, foo = 1))), character(0))
+
+  # `ungroup()` still clears the grouping
+  expect_equal(
+    group_vars(pull_dag_data(ungroup(mutate(grouped, foo = 1)))),
+    character(0)
+  )
+})
+
+test_that("grouping still drives computations later in the pipeline", {
+  library(dplyr, warn.conflicts = FALSE)
+  dag <- tidy_dagitty(m_bias(), seed = 42)
+
+  # one row per name, whether or not a verb intervenes
+  expect_equal(nrow(summarise(group_by(dag, name), n = n())), 5)
+  expect_equal(
+    nrow(summarise(mutate(group_by(dag, name), foo = 1), n = n())),
+    5
+  )
+
+  # consecutive grouped mutates count the same groups
+  counts <- dag |>
+    group_by(direction) |>
+    mutate(n_first = n()) |>
+    mutate(n_second = n()) |>
+    pull_dag_data()
+  expect_equal(counts$n_first, counts$n_second)
+})
+
 test_that("transmute.tidy_dagitty creates new columns and drops others", {
   dag <- dagify(y ~ x + z, x ~ z) |>
     tidy_dagitty()

@@ -44,6 +44,51 @@ test_that("use_existing_coords works as expected", {
   )
 })
 
+test_that("dag_saturate() carries the DAG's labels through", {
+  withr::local_seed(1234)
+  labels <- c("x" = "Exposure", "y" = "Outcome", "z" = "Confounder")
+  .dag <- dagify(y ~ x, x ~ z, labels = labels)
+  .saturated_dag <- dag_saturate(tidy_dagitty(.dag))
+
+  expect_equal(label(pull_dag(.saturated_dag)), labels)
+
+  dag_data <- pull_dag_data(.saturated_dag)
+  expect_true("label" %in% names(dag_data))
+  expect_equal(unique(dag_data$label[dag_data$name == "z"]), "Confounder")
+})
+
+test_that("visual: dag_saturate() keeps labels", {
+  withr::local_seed(1234)
+  .saturated_dag <- dagify(
+    y ~ x,
+    x ~ z,
+    labels = c("x" = "Exposure", "y" = "Outcome", "z" = "Confounder")
+  ) |>
+    tidy_dagitty() |>
+    dag_saturate()
+  # never record a baseline from a saturation that lost the labels
+  skip_if_not("label" %in% names(pull_dag_data(.saturated_dag)))
+  expect_doppelganger(
+    "dag_saturate keeps labels",
+    ggdag(.saturated_dag, use_labels = TRUE)
+  )
+})
+
+test_that("dag_saturate() works on DAGs with a single time point", {
+  withr::local_seed(1234)
+  single_node <- dag_saturate(dagitty::dagitty("dag{x}"))
+  expect_s3_class(single_node, "tidy_dagitty")
+  expect_setequal(unique(pull_dag_data(single_node)$name), "x")
+  expect_setequal(names(pull_dag(single_node)), "x")
+  expect_equal(n_edges(single_node), 0)
+
+  edge_free <- dag_saturate(dagitty::dagitty("dag{x; y}"))
+  expect_s3_class(edge_free, "tidy_dagitty")
+  expect_setequal(unique(pull_dag_data(edge_free)$name), c("x", "y"))
+  expect_setequal(names(pull_dag(edge_free)), c("x", "y"))
+  expect_equal(n_edges(edge_free), 0)
+})
+
 test_that("edges are correctly pruned from the DAG", {
   .tdy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
   expect_equal(nrow(pull_dag_data(.tdy_dag)), 4)

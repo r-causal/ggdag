@@ -113,6 +113,13 @@ prep_dag_data <- function(
     assert_columns_exist(value, c("name", "to"), call = call)
   }
 
+  validate_direction(value, call = call)
+
+  # the layout work below reorders and reshapes columns, which grouping would
+  # interfere with, so set it aside and restore it at the end
+  groups <- dplyr::group_vars(value)
+  value <- dplyr::ungroup(value)
+
   if (is.data.frame(coords)) {
     coords <- coords2list(coords)
   }
@@ -170,7 +177,50 @@ prep_dag_data <- function(
     value$circular <- NULL
   }
 
-  dplyr::as_tibble(value)
+  value <- dplyr::as_tibble(value)
+  groups <- intersect(groups, names(value))
+
+  if (length(groups) > 0) {
+    value <- dplyr::group_by(value, !!!rlang::syms(groups))
+  }
+
+  value
+}
+
+#' Check that edge directions are ones ggdag understands
+#'
+#' The tidy data and the `dagitty` component are built from the same `direction`
+#' column, so an unrecognized value would leave the two out of step: the data
+#' would record no edge while the DAG contains one.
+#'
+#' @param value A data frame that may have a `direction` column.
+#' @param call The calling environment, for the error message.
+#' @return `value`, invisibly.
+#' @noRd
+validate_direction <- function(value, call = rlang::caller_env()) {
+  if ("direction" %nin% names(value)) {
+    return(invisible(value))
+  }
+
+  directions <- as.character(value$direction)
+  unsupported <- setdiff(
+    unique(directions[!is.na(directions)]),
+    c("->", "<->", "--")
+  )
+
+  if (length(unsupported) > 0) {
+    abort(
+      c(
+        "{.field direction} must be one of {.val {c('->', '<->', '--')}}.",
+        "x" = "Unsupported values: {.val {unsupported}}.",
+        "i" = "To reverse an edge, swap the {.field name} and {.field to} values."
+      ),
+      error_class = "ggdag_dag_error",
+      call = call
+    )
+  }
+
+  invisible(value)
 }
 
 #' @export
@@ -188,6 +238,17 @@ update_dag <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag.tidy_dagitty` <- function(x, ...) {
+  if (...length() > 0) {
+    abort(
+      c(
+        "{.fun update_dag} takes no other arguments.",
+        "x" = "It rebuilds the {.cls dagitty} component from {.arg x}'s own data.",
+        "i" = "To install a different DAG, use {.code update_dag(x) <- value}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
   update_dag(x) <- recompile_dag(x)
   x
 }
@@ -246,17 +307,25 @@ recompile_dag <- function(.dag) {
   new_dag
 }
 
-compile_dag_from_df <- function(.df) {
+compile_dag_from_df <- function(.df, call = rlang::caller_env()) {
+  if (nrow(.df) == 0) {
+    abort(
+      c(
+        "Can't compile a {.cls dagitty} object from an empty data frame.",
+        "i" = "{.arg .df} needs at least one row naming a node."
+      ),
+      error_class = "ggdag_dag_error",
+      call = call
+    )
+  }
+
   if ("direction" %nin% names(.df)) {
-    .df$direction <- "<-"
+    .df$direction <- "->"
   }
 
   edge_rows <- .df |>
     dplyr::filter(!is.na(.data$to)) |>
-    dplyr::mutate(
-      direction = as.character(.data$direction),
-      direction = ifelse(.data$direction == "<-", "->", .data$direction)
-    )
+    dplyr::mutate(direction = as.character(.data$direction))
 
   edge_formulas <- edge_rows |>
     dplyr::group_by(.data$name, .data$direction) |>

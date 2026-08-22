@@ -123,8 +123,8 @@ test_that("compile_dag_from_df creates valid dagitty objects", {
     stringsAsFactors = FALSE
   )
 
-  # Empty data frame causes error
-  expect_error(compile_dag_from_df(df_empty))
+  # Empty data frame causes an informative ggdag error
+  expect_error(compile_dag_from_df(df_empty), class = "ggdag_error")
 })
 
 test_that("compile_dag_from_df quotes node names", {

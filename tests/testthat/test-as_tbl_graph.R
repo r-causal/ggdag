@@ -29,6 +29,26 @@ test_that("as_tbl_graph keeps isolated nodes", {
   expect_equal(igraph::gsize(from_tidy), 1)
 })
 
+test_that("as_tbl_graph resolves endpoints by name, not column position", {
+  library(tidygraph, warn.conflicts = FALSE)
+  tidy_dag <- dagify(y ~ x + z, x ~ z) |> tidy_dagitty(seed = 1234)
+  # `select()` may leave `name` anywhere in the data
+  reordered <- dplyr::select(tidy_dag, direction, name, to, x, y, xend, yend)
+
+  from_default <- as_tbl_graph(tidy_dag)
+  from_reordered <- as_tbl_graph(reordered)
+
+  expect_setequal(
+    as.data.frame(tidygraph::activate(from_default, nodes))$name,
+    c("x", "y", "z")
+  )
+  expect_setequal(
+    as.data.frame(tidygraph::activate(from_reordered, nodes))$name,
+    c("x", "y", "z")
+  )
+  expect_equal(igraph::gsize(from_reordered), 3)
+})
+
 test_that("as_tbl_graph handles DAGs with no edges", {
   library(tidygraph, warn.conflicts = FALSE)
   dag <- dagitty::dagitty("dag { x; y }")
