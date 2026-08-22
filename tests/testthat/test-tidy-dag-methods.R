@@ -236,6 +236,21 @@ test_that("edge case: DAG with no edges", {
   expect_setequal(names(pull_dag(result)), c("a", "b", "c"))
 })
 
+test_that("edge case: node-only DAG with a logical `to` column", {
+  # `to = NA` recycles to a logical column, which the time-ordered layout used
+  # to carry into the node-only rows it builds
+  withr::local_options(ggdag.layout = "time_ordered")
+  dag_df <- data.frame(name = c("a", "b", "c"), to = NA)
+  expect_type(dag_df$to, "logical")
+
+  result <- as_tidy_dagitty(dag_df)
+  expect_s3_class(result, "tidy_dagitty")
+  expect_equal(n_edges(result), 0)
+  expect_equal(n_nodes(result), 3)
+  expect_setequal(names(pull_dag(result)), c("a", "b", "c"))
+  expect_type(pull_dag_data(result)$to, "character")
+})
+
 test_that("tidy_dagitty with use_existing_coords = FALSE", {
   dag <- dagify(
     y ~ x + z,
@@ -258,7 +273,6 @@ test_that("tidy_dagitty with use_existing_coords = FALSE", {
 test_that("dag_adjustment_sets print output snapshots", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
-  withr::local_options(ggdag.layout = "time_ordered")
 
   # Simple DAG with one adjustment set
   dag1 <- dagify(
@@ -295,7 +309,6 @@ test_that("dag_adjustment_sets print output snapshots", {
 test_that("dag_paths print output snapshots", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
-  withr::local_options(ggdag.layout = "time_ordered")
 
   # Simple DAG with paths
   dag1 <- dagify(

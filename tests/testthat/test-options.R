@@ -56,6 +56,7 @@ test_that("ggdag_options_get() with no argument returns all set options", {
 })
 
 test_that("ggdag_options_reset() clears all ggdag options to NULL", {
+  local_ggdag_option_state()
   withr::local_options(ggdag.node_size = 20, ggdag.text_size = 5)
   ggdag_options_reset()
   expect_null(getOption("ggdag.node_size"))
@@ -704,6 +705,7 @@ test_that("ggdag_option returns 'ggraph' default for edge_engine when unset", {
 })
 
 test_that("ggdag_options_reset clears edge_engine option", {
+  local_ggdag_option_state()
   withr::local_options(ggdag.edge_engine = "ggarrow")
   ggdag_options_reset()
   expect_null(getOption("ggdag.edge_engine"))
@@ -767,4 +769,12 @@ test_that("curvature option stores and retrieves correctly", {
 test_that("curvature option rejects non-numeric", {
   expect_ggdag_error(ggdag_options_set(curvature = "bad"))
   expect_ggdag_error(ggdag_options_set(curvature = TRUE))
+})
+
+# Keep this test last: it guards the suite-wide layout option that
+# helper-load_dag.R sets, which the tests above are free to change but must
+# restore. A failure here means a test in this file leaked an option change into
+# every file that runs after it in the same worker.
+test_that("this file leaves the suite-wide layout option intact", {
+  expect_equal(getOption("ggdag.layout"), "time_ordered")
 })

@@ -1,3 +1,13 @@
+# duplicated label names produce an informative message
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `label<-`:
+      ! `labels` must name each node at most once.
+      x Duplicated node name: "x".
+      i Labels are joined to the DAG data by name, so a repeated name would give a node more than one row.
+
 # unnamed labels produce an informative message
 
     Code

@@ -4,7 +4,7 @@
 #' `tidy_dagitty` or `dagitty`
 #'
 #' @param x an object of either class `tidy_dagitty` or `dagitty`
-#' @param value a character vector
+#' @param value a named character vector, where the names are node names
 #' @inheritParams dag_params
 #'
 #' @return `label` returns the label attribute of x
@@ -54,7 +54,8 @@
 #' Check that labels are usable
 #'
 #' Labels are joined to the DAG data by node name, so every label must carry the
-#' name of the node it belongs to. `NULL` is allowed and clears any labels.
+#' name of the node it belongs to, and no node may be named twice. `NULL` is
+#' allowed and clears any labels.
 #'
 #' @param value The labels being assigned.
 #' @param arg The argument name to report.
@@ -89,10 +90,24 @@ validate_labels <- function(
     )
   }
 
+  duplicate_names <- unique(node_names[duplicated(node_names)])
+  if (length(duplicate_names) > 0) {
+    abort(
+      c(
+        "{.arg {arg}} must name each node at most once.",
+        "x" = "Duplicated node name{?s}: {.val {duplicate_names}}.",
+        "i" = "Labels are joined to the DAG data by name, so a repeated name
+               would give a node more than one row."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
   invisible(value)
 }
 
-#' @param labels a character vector
+#' @param labels a named character vector, where the names are node names
 #'
 #' @rdname label
 #' @export

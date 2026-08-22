@@ -95,6 +95,48 @@ test_that("zero-length labels are rejected like other unnamed labels", {
   )
 })
 
+test_that("labels naming the same node twice are rejected", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x))
+  .dag <- dagify(y ~ x)
+  duplicated_labels <- c("x" = "The Exposure", "x" = "Also The Exposure")
+
+  expect_error(
+    dagify(y ~ x, labels = duplicated_labels),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    dag_label(tidy_dag, labels = duplicated_labels),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    {
+      label(.dag) <- duplicated_labels
+    },
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    {
+      label(tidy_dag) <- duplicated_labels
+    },
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("duplicated label names produce an informative message", {
+  # never record a baseline from the pre-fix duplicated join rows
+  skip_if_not(inherits(
+    tryCatch(
+      dagify(y ~ x, labels = c("x" = "The Exposure", "x" = "Also x")),
+      error = identity
+    ),
+    "ggdag_type_error"
+  ))
+
+  expect_ggdag_error(
+    dagify(y ~ x, labels = c("x" = "The Exposure", "x" = "Also x"))
+  )
+})
+
 test_that("unnamed labels produce an informative message", {
   # never record a baseline from the pre-fix dplyr join error
   skip_if_not(inherits(

@@ -59,6 +59,26 @@
       x You supplied an empty list.
       i Each element of `x` is a time point, and edges connect consecutive time points.
 
+# as_tidy_dagitty() empty time point error message
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `as_tidy_dagitty()`:
+      ! Every time point in `x` must name at least one node.
+      x Time point 1 is empty.
+      i Each element of `x` is a time point, and edges connect consecutive time points.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `as_tidy_dagitty()`:
+      ! Every time point in `x` must name at least one node.
+      x Time point 2 is empty.
+      i Each element of `x` is a time point, and edges connect consecutive time points.
+
 # as_tidy_dagitty() direction error message
 
     Code

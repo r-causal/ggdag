@@ -43,6 +43,18 @@
 * Improved DAG data structure by removing unnecessary `circular` column when not needed. The column is now only included when using circular layouts. This simplifies the tidy DAG structure for most use cases (#119)
 * Edge geoms now support mapping `color`/`colour` aesthetics to `edge_color`/`edge_colour` for more intuitive usage, matching ggplot2 conventions (#166)
 * Fixed `theme_dag()` facet labels being clipped by adding margin to strip text (#173)
+* `scale_adjusted()` now sets an explicit legend `order` on each of its scales, so the adjustment legends appear in the same order in every session. The shape and color scales still merge into a single legend, but overriding one of them now requires passing `guide = guide_legend(order = 1)` as well; without it, the overridden scale gets a legend of its own and the pair splits.
+* Nodes with no edges are now preserved throughout the tidying pipeline, including `tidy_dagitty()`, `as_tidy_dagitty()`, layout generation, `dag_saturate()`, and `as_tbl_graph()`.
+* DAGs given coordinates for only some of their nodes now generate positions for the remaining nodes, reporting which nodes were missing, instead of producing a DAG with missing coordinates.
+* Labels are now validated. They must be a named character vector, and no node may be named more than once. Labels also survive `dag_saturate()`, and the quick plot DAG constructors (such as `m_bias()` and `confounder_triangle()`) ignore zero-length labels instead of failing on them.
+* The `direction` column of a data frame passed to `as_tidy_dagitty()` is now validated; only `"->"`, `"<->"`, and `"--"` are supported.
+* Added a `rename()` method for `tidy_dagitty` objects.
+* Grouping added with `group_by()` is now preserved when the tidy DAG data is rebuilt, rather than being dropped.
+* `update_dag()` now errors when given arguments other than the DAG, which it previously ignored. Use `update_dag(x) <- value` to install a different `dagitty` object.
+* Node names containing spaces or accented characters are now quoted when the underlying `dagitty` object is compiled, so they round-trip correctly.
+* Fixed an error when building a node-only DAG from a data frame whose `to` column is logical, as in `data.frame(name = c("a", "b"), to = NA)`.
+* `as_tidy_dagitty()` now errors informatively when a list of time points contains a time point with no nodes.
+* dplyr (>= 1.1.0) is now required.
 * Added quick plot functions for the causal quartet: `quartet_collider()`, `quartet_confounder()`, `quartet_mediator()`, `quartet_m_bias()`, and `quartet_time_collider()`, along with their `ggdag_*` counterparts. These functions create DAGs representing the causal quartet from D'Agostino McGowan, Gerke, and Barrett (2023), demonstrating that statistical properties alone cannot determine causal relationships (#171)
 
 # ggdag 0.2.11

@@ -365,6 +365,21 @@ as_tidy_dagitty.list <- function(
     )
   }
 
+  # character positions so cli pluralizes on how many are empty, not on the
+  # position of the single empty one
+  empty_time_points <- as.character(which(lengths(x) == 0))
+  if (length(empty_time_points) > 0) {
+    abort(
+      c(
+        "Every time point in {.arg x} must name at least one node.",
+        "x" = "Time point{?s} {empty_time_points} {?is/are} empty.",
+        "i" = "Each element of {.arg x} is a time point, and edges connect
+               consecutive time points."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
   dag_edges <- if (length(x) == 1) {
     # a single time point has no future to point at, so the nodes stand alone
     tibble::tibble(name = as.character(x[[1]]), to = NA_character_)

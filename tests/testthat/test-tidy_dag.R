@@ -597,6 +597,28 @@ test_that("as_tidy_dagitty() empty list error message", {
   expect_ggdag_error(as_tidy_dagitty(list()))
 })
 
+test_that("as_tidy_dagitty() errors informatively on empty time points", {
+  expect_error(
+    as_tidy_dagitty(list(character(0))),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    as_tidy_dagitty(list("a", character(0))),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("as_tidy_dagitty() empty time point error message", {
+  # never record a baseline from the pre-fix compile_dag_from_df() error
+  skip_if_not(inherits(
+    tryCatch(as_tidy_dagitty(list(character(0))), error = identity),
+    "ggdag_type_error"
+  ))
+
+  expect_ggdag_error(as_tidy_dagitty(list(character(0))))
+  expect_ggdag_error(as_tidy_dagitty(list("a", character(0))))
+})
+
 test_that("as_tidy_dagitty() rejects unsupported direction values", {
   expect_error(
     as_tidy_dagitty(

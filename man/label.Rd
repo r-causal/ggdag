@@ -25,11 +25,11 @@ has_labels(.tdy_dag)
 \arguments{
 \item{x}{an object of either class \code{tidy_dagitty} or \code{dagitty}}
 
-\item{value}{a character vector}
+\item{value}{a named character vector, where the names are node names}
 
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{labels}{a character vector}
+\item{labels}{a named character vector, where the names are node names}
 }
 \value{
 \code{label} returns the label attribute of x

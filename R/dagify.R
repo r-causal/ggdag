@@ -652,7 +652,10 @@ get_dagitty_edges <- function(.dag) {
 }
 
 edges2df <- function(.edges) {
-  no_outgoing_edges <- unique(.edges$to[!(.edges$to %in% .edges$name)])
+  # a DAG with no edges at all can arrive with an all-`NA` logical `to` column,
+  # which would otherwise make the node-only rows below logical as well
+  .to <- as.character(.edges$to)
+  no_outgoing_edges <- unique(.to[!(.to %in% .edges$name)])
   no_outgoing_edges <- no_outgoing_edges[!is.na(no_outgoing_edges)]
   dplyr::bind_rows(
     .edges,
