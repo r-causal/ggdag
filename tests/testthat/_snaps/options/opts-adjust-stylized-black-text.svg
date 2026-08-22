@@ -115,26 +115,26 @@
 <text x='665.11' y='222.01' style='font-size: 8.80px; font-family: sans;' textLength='49.42px' lengthAdjust='spacingAndGlyphs'>activated by </text>
 <text x='665.11' y='231.51' style='font-size: 8.80px; font-family: sans;' textLength='45.50px' lengthAdjust='spacingAndGlyphs'>adjustment </text>
 <text x='665.11' y='241.02' style='font-size: 8.80px; font-family: sans;' textLength='40.59px' lengthAdjust='spacingAndGlyphs'>for collider</text>
-<rect x='642.35' y='252.89' width='68.10' height='39.12' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<rect x='642.35' y='252.89' width='19.56' height='19.56' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<line x1='646.26' y1='262.67' x2='657.99' y2='262.67' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30;' />
-<polygon points='653.68,265.16 657.99,262.67 653.68,260.18 ' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30; fill: #000000; fill-opacity: 0.30;' />
-<rect x='642.35' y='272.45' width='19.56' height='19.56' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<line x1='646.26' y1='282.23' x2='657.99' y2='282.23' style='stroke-width: 1.19;' />
-<polygon points='653.68,284.72 657.99,282.23 653.68,279.74 ' style='stroke-width: 1.19; fill: #000000;' />
-<line x1='646.26' y1='282.23' x2='657.99' y2='282.23' style='stroke-width: 1.19;' />
-<polygon points='653.68,284.72 657.99,282.23 653.68,279.74 ' style='stroke-width: 1.19; fill: #000000;' />
-<text x='667.38' y='265.70' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<text x='667.38' y='285.25' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
-<rect x='642.35' y='302.96' width='65.82' height='49.89' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='642.35' y='311.68' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<rect x='642.35' y='318.30' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<polygon points='644.58,333.34 657.39,333.34 657.39,320.54 644.58,320.54 ' style='stroke-width: 0.47; stroke: none; fill: #F8766D;' />
-<rect x='642.35' y='335.58' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<line x1='644.07' y1='344.22' x2='657.90' y2='344.22' style='stroke-width: 1.28; stroke: #00BFC4; stroke-linecap: butt;' />
-<circle cx='650.99' cy='344.22' r='6.40' style='stroke-width: 0.47; stroke: #00BFC4; fill: #00BFC4;' />
-<text x='665.11' y='329.97' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<text x='665.11' y='347.25' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
+<rect x='642.35' y='252.89' width='65.82' height='49.89' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='642.35' y='261.60' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<rect x='642.35' y='268.22' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<polygon points='644.58,283.26 657.39,283.26 657.39,270.46 644.58,270.46 ' style='stroke-width: 0.47; stroke: none; fill: #F8766D;' />
+<rect x='642.35' y='285.50' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<line x1='644.07' y1='294.14' x2='657.90' y2='294.14' style='stroke-width: 1.28; stroke: #00BFC4; stroke-linecap: butt;' />
+<circle cx='650.99' cy='294.14' r='6.40' style='stroke-width: 0.47; stroke: #00BFC4; fill: #00BFC4;' />
+<text x='665.11' y='279.89' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<text x='665.11' y='297.17' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
+<rect x='642.35' y='313.74' width='68.10' height='39.12' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<rect x='642.35' y='313.74' width='19.56' height='19.56' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<line x1='646.26' y1='323.52' x2='657.99' y2='323.52' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30;' />
+<polygon points='653.68,326.01 657.99,323.52 653.68,321.03 ' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30; fill: #000000; fill-opacity: 0.30;' />
+<rect x='642.35' y='333.30' width='19.56' height='19.56' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<line x1='646.26' y1='343.08' x2='657.99' y2='343.08' style='stroke-width: 1.19;' />
+<polygon points='653.68,345.57 657.99,343.08 653.68,340.59 ' style='stroke-width: 1.19; fill: #000000;' />
+<line x1='646.26' y1='343.08' x2='657.99' y2='343.08' style='stroke-width: 1.19;' />
+<polygon points='653.68,345.57 657.99,343.08 653.68,340.59 ' style='stroke-width: 1.19; fill: #000000;' />
+<text x='667.38' y='326.55' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<text x='667.38' y='346.11' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
 <text x='38.17' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='173.90px' lengthAdjust='spacingAndGlyphs'>opts-adjust-stylized-black-text</text>
 </g>
 </svg>

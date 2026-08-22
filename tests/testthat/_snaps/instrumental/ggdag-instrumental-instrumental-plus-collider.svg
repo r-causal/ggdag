@@ -87,19 +87,19 @@
 <polyline points='28.09,147.42 30.83,147.42 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <text x='331.85' y='568.24' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text transform='translate(13.05,292.27) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>y</text>
-<rect x='643.82' y='245.54' width='70.70' height='32.61' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='643.82' y='254.25' style='font-size: 11.00px; font-family: sans;' textLength='59.92px' lengthAdjust='spacingAndGlyphs'>instrumental</text>
+<rect x='643.82' y='245.54' width='65.82' height='49.89' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='643.82' y='254.25' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
 <rect x='643.82' y='260.87' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='652.46' cy='269.51' r='4.27' style='stroke-width: 0.47; stroke: #F8766D; fill: #F8766D;' />
-<text x='666.58' y='272.54' style='font-size: 8.80px; font-family: sans;' textLength='47.94px' lengthAdjust='spacingAndGlyphs'>instrumental</text>
-<rect x='643.82' y='289.11' width='65.82' height='49.89' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='643.82' y='297.82' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<rect x='643.82' y='304.45' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<polygon points='648.20,317.35 656.73,317.35 656.73,308.82 648.20,308.82 ' style='stroke-width: 0.47; stroke: none; fill: #000000;' />
+<polygon points='648.20,273.78 656.73,273.78 656.73,265.25 648.20,265.25 ' style='stroke-width: 0.47; stroke: none; fill: #000000;' />
+<rect x='643.82' y='278.15' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='652.46' cy='286.79' r='4.27' style='stroke-width: 0.47; fill: #000000;' />
+<text x='666.58' y='272.54' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
+<text x='666.58' y='289.82' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
+<rect x='643.82' y='306.39' width='70.70' height='32.61' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='643.82' y='315.10' style='font-size: 11.00px; font-family: sans;' textLength='59.92px' lengthAdjust='spacingAndGlyphs'>instrumental</text>
 <rect x='643.82' y='321.73' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='652.46' cy='330.37' r='4.27' style='stroke-width: 0.47; fill: #000000;' />
-<text x='666.58' y='316.11' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
-<text x='666.58' y='333.39' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>
+<circle cx='652.46' cy='330.37' r='4.27' style='stroke-width: 0.47; stroke: #F8766D; fill: #F8766D;' />
+<text x='666.58' y='333.39' style='font-size: 8.80px; font-family: sans;' textLength='47.94px' lengthAdjust='spacingAndGlyphs'>instrumental</text>
 <text x='30.83' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='273.69px' lengthAdjust='spacingAndGlyphs'>ggdag_instrumental() instrumental plus collider</text>
 </g>
 </svg>
