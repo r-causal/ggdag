@@ -1858,3 +1858,23 @@ test_that("geom_dag_arrow_arc() errors on non-numeric edge_curvature", {
 
   expect_error(ggplotGrob(p), "edge_curvature")
 })
+
+test_that("geom_dag_arrow_arc() non-numeric error carries the ggdag classes", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x,
+    coords = list(x = c(x = 1, y = 2), y = c(x = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  dat <- pull_dag_data(td)
+  dat$edge_curvature <- ifelse(is.na(dat$to), NA, "high")
+
+  p <- ggplot(dat, aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature))
+
+  # ggplot2 wraps draw-time errors, so the ggdag condition is the parent
+  err <- tryCatch(ggplotGrob(p), error = function(e) e)
+  expect_s3_class(err$parent, "ggdag_type_error")
+  expect_s3_class(err$parent, "ggdag_error")
+})

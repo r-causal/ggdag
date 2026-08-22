@@ -113,6 +113,8 @@ prep_dag_data <- function(
     assert_columns_exist(value, c("name", "to"), call = call)
   }
 
+  check_verboten_layout(layout)
+
   validate_direction(value, call = call)
 
   # the layout work below reorders and reshapes columns, which grouping would

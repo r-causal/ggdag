@@ -54,6 +54,15 @@
 * Node names containing spaces or accented characters are now quoted when the underlying `dagitty` object is compiled, so they round-trip correctly.
 * Fixed an error when building a node-only DAG from a data frame whose `to` column is logical, as in `data.frame(name = c("a", "b"), to = NA)`.
 * `as_tidy_dagitty()` now errors informatively when a list of time points contains a time point with no nodes.
+* `dag()` now accepts a character vector of `dagitty` statements, as its documentation says it does, instead of failing on anything longer than one element.
+* A `dagify()` formula that mixes arrow types now keeps each term's arrow. `y ~ x + ~z` gives `x -> y` and `y <-> z`; previously every term on such a formula became bidirected, which silently changed d-separation and adjustment sets. R's parser lets a unary `~` take in the rest of the right-hand side, so every term after the tilde is bidirected.
+* `dagify()` now accepts node names that `dagitty` cannot parse unquoted, such as names with accents or spaces, quoting them for `dagitty` rather than failing with a parser error.
+* `dagify()` now errors informatively when given anything other than a two-sided formula, such as `~x` or `"y ~ x"`.
+* `dagify()` now recognizes `ggdag::curved()` as `curved()`, and a namespace-qualified call anywhere in a formula no longer errors.
+* `curve_edge()` and `set_curve_edges()` now error when asked to curve an edge the DAG does not have, rather than silently doing nothing. Either orientation names the same bidirected edge.
+* `coords2df()` now reads the names of the coordinate list instead of assuming `x` comes before `y`, and errors when the list is not named `x` and `y`.
+* The `"dendrogram"` layout is now rejected alongside the `"dendogram"` misspelling. It positions a node once per branch, which duplicated every node reachable by more than one path.
+* Errors from `curved()` and from a non-numeric `edge_curvature` column now carry the `ggdag_error` classes, like the rest of the package's errors.
 * dplyr (>= 1.1.0) is now required.
 * Added quick plot functions for the causal quartet: `quartet_collider()`, `quartet_confounder()`, `quartet_mediator()`, `quartet_m_bias()`, and `quartet_time_collider()`, along with their `ggdag_*` counterparts. These functions create DAGs representing the causal quartet from D'Agostino McGowan, Gerke, and Barrett (2023), demonstrating that statistical properties alone cannot determine causal relationships (#171)
 

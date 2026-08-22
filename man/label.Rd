@@ -25,11 +25,13 @@ has_labels(.tdy_dag)
 \arguments{
 \item{x}{an object of either class \code{tidy_dagitty} or \code{dagitty}}
 
-\item{value}{a named character vector, where the names are node names}
+\item{value}{a named character vector, where the names are node names, or
+\code{NULL} to remove labels}
 
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{labels}{a named character vector, where the names are node names}
+\item{labels}{a named character vector, where the names are node names, or
+\code{NULL} to reuse the labels already attached to the DAG}
 }
 \value{
 \code{label} returns the label attribute of x

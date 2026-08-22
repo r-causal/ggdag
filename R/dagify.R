@@ -12,7 +12,9 @@
 #' dag("{x m} -> y")
 #'
 dag <- function(...) {
-  dag_string <- paste(..., sep = "; ")
+  #  `c()` flattens both call styles, so a single character vector collapses the
+  #  same way several separate arguments do
+  dag_string <- paste(c(...), collapse = "; ")
   dagitty::dagitty(paste0("dag{", dag_string, "}"))
 }
 
@@ -26,6 +28,16 @@ dag2 <- dag
 #' translated to `y <- {x z}`, as well as using a double tilde (`~~`) to
 #' graph bidirected variables, e.g. `x1 ~~ x2` is translated to `x1
 #' <-> x2`.
+#'
+#' A single formula can mix the two: `y ~ x + ~z` gives `x -> y` and `y <-> z`.
+#' R's parser lets a unary `~` take in the rest of the right-hand side, so
+#' every term after the tilde is bidirected: `y ~ x + ~z + w` gives `x -> y`,
+#' `y <-> z`, and `y <-> w`, and `y ~ ~x + z` leaves both `x` and `z`
+#' bidirected. Parentheses limit how far the tilde reaches, so
+#' `y ~ x + (~z) + w` gives `x -> y`, `y <-> z`, and `w -> y`.
+#'
+#' A term that is a call contributes one edge for each variable it mentions, so
+#' both `y ~ f(x, z)` and `y ~ x:z` give `x -> y` and `z -> y`.
 #'
 #' @param ... formulas, which are converted to `dagitty` syntax
 #' @param exposure a character vector for the exposure (must be a variable name
@@ -171,6 +183,28 @@ dagify <- function(
   dgty
 }
 
+validate_dag_formula_type <- function(fmla, call = rlang::caller_env()) {
+  if (rlang::is_formula(fmla, lhs = TRUE)) {
+    return(invisible(TRUE))
+  }
+
+  detail <- if (rlang::is_formula(fmla)) {
+    "{.code {deparse(fmla)}} has no left-hand side."
+  } else {
+    "You provided {.obj_type_friendly {fmla}}."
+  }
+
+  abort(
+    c(
+      "Each argument to {.fun dagify} must be a two-sided formula.",
+      "x" = detail,
+      "i" = "For example: {.code dagify(y ~ x + z, x ~ z)}."
+    ),
+    error_class = "ggdag_type_error",
+    call = call
+  )
+}
+
 validate_dag_formula <- function(fmla, call = rlang::caller_env()) {
   vars <- all.vars(fmla, unique = FALSE)
 
@@ -202,6 +236,13 @@ validate_dag_inputs <- function(
   latent = NULL,
   call = rlang::caller_env()
 ) {
+  # Every argument must be a two-sided formula before anything indexes into it.
+  # A plain loop keeps the condition itself at the top of the chain, rather than
+  # under a purrr indexing wrapper.
+  for (fmla in fmlas) {
+    validate_dag_formula_type(fmla, call = call)
+  }
+
   # Validate each formula
   purrr::walk(fmlas, \(f) validate_dag_formula(f, call = call))
 
@@ -372,6 +413,7 @@ curve_edge.dagitty <- function(.dag, from, to, curvature = 0.3) {
       error_class = "ggdag_dag_error"
     )
   }
+  validate_edges_exist(.dag, from, to)
 
   curved_edges <- attr(.dag, "curved_edges") %||%
     tibble::tibble(
@@ -476,6 +518,7 @@ set_curve_edges.dagitty <- function(.dag, edges) {
       error_class = "ggdag_dag_error"
     )
   }
+  validate_edges_exist(.dag, edges$from, edges$to)
 
   curved_edges <- tibble::tibble(
     name = edges$from,
@@ -509,6 +552,52 @@ set_curve_edges.tidy_dagitty <- function(.dag, edges) {
   update_dag_data(.dag) <- dag_data
 
   .dag
+}
+
+#' Check that every requested edge is actually in the DAG
+#'
+#' Curvature is stored per edge, so a pair of node names that names no edge
+#' would set the curvature of nothing while still flattening every other edge to
+#' zero curvature. Bidirected and undirected edges have no direction, so either
+#' orientation of one names the same edge.
+#'
+#' @param .dag A `dagitty` object.
+#' @param from,to Character vectors of node names, paired element by element.
+#' @param call The calling environment, for the error message.
+#' @return `TRUE`, invisibly.
+#' @noRd
+validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
+  .edges <- dagitty::edges(.dag)
+
+  edge_exists <- function(i) {
+    if (nrow(.edges) == 0) {
+      return(FALSE)
+    }
+
+    directed <- .edges$e == "->" & .edges$v == from[i] & .edges$w == to[i]
+    undirected <- .edges$e %in%
+      c("<->", "--") &
+      ((.edges$v == from[i] & .edges$w == to[i]) |
+        (.edges$v == to[i] & .edges$w == from[i]))
+
+    any(directed | undirected)
+  }
+
+  found <- vapply(seq_along(from), edge_exists, logical(1))
+  if (all(found)) {
+    return(invisible(TRUE))
+  }
+
+  missing_edges <- paste(from[!found], "->", to[!found])
+  abort(
+    c(
+      "{length(missing_edges)} edge{?s} not found in the DAG.",
+      "x" = "Missing: {.val {missing_edges}}",
+      "i" = "Did you swap {.arg from} and {.arg to}?"
+    ),
+    error_class = "ggdag_dag_error",
+    call = call
+  )
 }
 
 #' Extract curved edge specifications from formula list
@@ -549,6 +638,37 @@ extract_curved_edges <- function(fmlas) {
   dplyr::bind_rows(rows)
 }
 
+#' Name the function a call invokes
+#'
+#' A call head is not always a symbol: `ggdag::curved(m, 0.5)` has a `::` call
+#' as its head, and `as.character()` on that returns three elements, which is a
+#' hard error in `if ()`. Namespace-qualified `curved()` names the same
+#' function, so it resolves to `"curved"`; any other non-symbol head resolves to
+#' the empty string, which matches nothing.
+#'
+#' @param expr A call.
+#' @return A length-one character vector.
+#' @noRd
+call_fn_name <- function(expr) {
+  fn <- expr[[1]]
+
+  if (is.name(fn)) {
+    return(as.character(fn))
+  }
+
+  is_ggdag_qualified <- is.call(fn) &&
+    length(fn) == 3 &&
+    identical(fn[[1]], quote(`::`)) &&
+    identical(fn[[2]], quote(ggdag)) &&
+    is.name(fn[[3]])
+
+  if (is_ggdag_qualified) {
+    return(as.character(fn[[3]]))
+  }
+
+  ""
+}
+
 #' Recursively find curved() calls in a formula expression
 #' @noRd
 find_curved_calls <- function(expr) {
@@ -556,7 +676,7 @@ find_curved_calls <- function(expr) {
     return(list())
   }
 
-  fn_name <- as.character(expr[[1]])
+  fn_name <- call_fn_name(expr)
 
   if (fn_name == "curved") {
     var_name <- as.character(expr[[2]])
@@ -572,7 +692,7 @@ find_curved_calls <- function(expr) {
       ) {
         -raw[[2]]
       } else {
-        cli::cli_abort(
+        abort(
           c(
             "{.arg curvature} in {.fn curved} must be a numeric literal.",
             "i" = "Example: {.code curved(x, 0.5)} or {.code curved(x, -0.3)}"
@@ -615,7 +735,7 @@ strip_curved_expr <- function(expr) {
     return(expr)
   }
 
-  fn_name <- as.character(expr[[1]])
+  fn_name <- call_fn_name(expr)
   if (fn_name == "curved") {
     return(expr[[2]])
   }

@@ -24,16 +24,107 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
 }
 
 formula2char <- function(fmla) {
-  #  using default to avoid `formula.tools::as.character.formula()`
-  char_fmla <- as.character.default(fmla)
-  rhs_vars <- char_fmla[[3]] |>
-    stringr::str_split(" \\+ ") |>
-    purrr::pluck(1)
-  bidirectional <- any(stringr::str_detect(rhs_vars, "~"))
-  rhs_vars <- stringr::str_replace_all(rhs_vars, "~", "")
-  arrows <- ifelse(bidirectional, "<->", "<-")
-  rhs_vars_coll <- paste0("{", paste(rhs_vars, collapse = " "), "}")
-  paste(char_fmla[[2]], arrows, rhs_vars_coll)
+  lhs_vars <- dag_term_names(fmla[[2]])
+  lhs <- paste(maybe_quote_dagitty_name(lhs_vars), collapse = " ")
+  if (length(lhs_vars) > 1) {
+    lhs <- paste0("{", lhs, "}")
+  }
+
+  terms <- split_dag_terms(fmla[[3]])
+  is_bidirected <- vapply(terms, \(term) term$bidirected, logical(1))
+  directed <- unlist(lapply(terms[!is_bidirected], \(term) term$vars))
+  bidirected <- unlist(lapply(terms[is_bidirected], \(term) term$vars))
+
+  statements <- c(
+    dag_statement(lhs, "<-", directed),
+    dag_statement(lhs, "<->", bidirected)
+  )
+
+  #  a formula with nothing usable on the right still declares its own node
+  if (length(statements) == 0) {
+    return(lhs)
+  }
+
+  paste(statements, collapse = " ; ")
+}
+
+#' Assemble one `dagitty` statement, or nothing when there are no variables
+#' @noRd
+dag_statement <- function(lhs, arrow, vars) {
+  if (length(vars) == 0) {
+    return(character(0))
+  }
+
+  vars <- paste(maybe_quote_dagitty_name(vars), collapse = " ")
+  paste0(lhs, " ", arrow, " {", vars, "}")
+}
+
+#' Split a formula's right-hand side into terms, marking bidirected ones
+#'
+#' R's parser records the intent of a mixed formula unambiguously: `y ~ x + ~z`
+#' parses as `x + (~z)`, so only `z` is bidirected, while `y ~ ~x + z` parses as
+#' `~(x + z)`, so both terms are. Splitting the AST rather than the deparsed
+#' text keeps each term's arrow type. Parentheses are part of that record:
+#' `y ~ x + (~z) + w` is the only single-formula spelling of "`z` bidirected but
+#' `w` directed", so the recursion looks through `(` rather than treating a
+#' parenthesized term as a leaf.
+#'
+#' @param expr The right-hand side of a formula.
+#' @param bidirected Whether `expr` sits under a unary `~`.
+#' @return A list of terms, each a list of `vars` and `bidirected`.
+#' @noRd
+split_dag_terms <- function(expr, bidirected = FALSE) {
+  if (is.call(expr) && length(expr) == 3 && identical(expr[[1]], quote(`+`))) {
+    return(c(
+      split_dag_terms(expr[[2]], bidirected),
+      split_dag_terms(expr[[3]], bidirected)
+    ))
+  }
+
+  if (is.call(expr) && length(expr) == 2 && identical(expr[[1]], quote(`~`))) {
+    return(split_dag_terms(expr[[2]], bidirected = TRUE))
+  }
+
+  if (is.call(expr) && length(expr) == 2 && identical(expr[[1]], quote(`(`))) {
+    return(split_dag_terms(expr[[2]], bidirected))
+  }
+
+  list(list(vars = dag_term_names(expr), bidirected = bidirected))
+}
+
+#' The node names a formula term contributes
+#'
+#' `all.vars()` reaches variables inside calls, so a term such as
+#' `curved(x, 0.5)` or a namespace-qualified call still yields its node, and
+#' backticks are already stripped. Terms holding no variable at all, such as a
+#' literal, fall back to their deparsed form.
+#'
+#' @param expr A formula term.
+#' @return A character vector of node names.
+#' @noRd
+dag_term_names <- function(expr) {
+  vars <- all.vars(expr)
+  if (length(vars) > 0) {
+    return(vars)
+  }
+
+  paste(deparse(expr), collapse = "")
+}
+
+#' Quote a node name only when `dagitty` cannot parse it bare
+#'
+#' Quoting every name would work too, but the unquoted spelling is what the
+#' package has always produced and what its tests assert, so only names outside
+#' dagitty's bareword class are quoted.
+#'
+#' @param x A character vector of node names.
+#' @return A character vector of node names, quoted where necessary.
+#' @noRd
+maybe_quote_dagitty_name <- function(x) {
+  #  perl = TRUE so the ranges are code points rather than a locale's collation
+  needs_quoting <- !grepl("^[0-9a-zA-Z_.]+$", x, perl = TRUE)
+  x[needs_quoting] <- quote_dagitty_name(x[needs_quoting])
+  x
 }
 
 edge_type_switch <- function(edge_type) {
@@ -154,6 +245,10 @@ all_node_names <- function(.df) {
 #' dagitty's unquoted identifiers are limited to `[0-9a-zA-Z_.]`, so names with
 #' spaces or accents must be quoted. dagitty re-serializes the parsed DAG, so
 #' quoting ordinary names does not change the stored string.
+#'
+#' Only the double quote is escaped. dagitty's string rule passes a backslash
+#' escape through as its two literal characters rather than unescaping it, so
+#' doubling backslashes here would corrupt every name that contains one.
 #'
 #' @param x A character vector of node names.
 #' @return A character vector of quoted node names.

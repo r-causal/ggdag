@@ -579,7 +579,10 @@ check_verboten_layout <- function(layout) {
   if (!is.character(layout)) {
     return(invisible())
   }
-  if (layout %in% c("dendogram")) {
+  #  the misspelling stays blocked alongside the real ggraph layout name, which
+  #  positions a node once per branch and so duplicates any node with more than
+  #  one path into it
+  if (layout %in% c("dendogram", "dendrogram")) {
     abort(
       c(
         "Layout type {.val {layout}} is not supported in ggdag.",
@@ -927,7 +930,26 @@ print.tidy_dagitty <- function(x, ...) {
 #' @rdname coordinates
 #' @name coordinates
 coords2df <- function(coord_list) {
-  coord_df <- purrr::map(coord_list, tibble::enframe) |>
+  coord_names <- names(coord_list)
+  if (!all(c("x", "y") %in% coord_names)) {
+    detail <- if (is.null(coord_names)) {
+      "The list you provided has no names."
+    } else {
+      "The list you provided is named {.val {coord_names}}."
+    }
+
+    abort(
+      c(
+        "{.arg coord_list} must be a list with elements named {.val x} and
+         {.val y}.",
+        "x" = detail
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  #  select by name: the elements of a named list can come in either order
+  coord_df <- purrr::map(coord_list[c("x", "y")], tibble::enframe) |>
     purrr::reduce(ggdag_left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df

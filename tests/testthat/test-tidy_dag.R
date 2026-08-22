@@ -133,6 +133,24 @@ test_that("Forbidden layouts error", {
   )
 })
 
+test_that("the real dendrogram layout is forbidden too", {
+  expect_error(
+    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendrogram"),
+    class = "ggdag_error"
+  )
+  expect_ggdag_error(
+    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendrogram")
+  )
+})
+
+test_that("as_tidy_dagitty() forbids the dendrogram layout", {
+  edges_df <- data.frame(name = c("x", "z", "z"), to = c("y", "x", "y"))
+  expect_error(
+    as_tidy_dagitty(edges_df, layout = "dendrogram"),
+    class = "ggdag_error"
+  )
+})
+
 test_that("igraph attribute does not hitchhike onto tidy dag", {
   td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
   expect_null(attr(pull_dag_data(td), "graph"))
@@ -262,6 +280,23 @@ test_that("coordinate conversion functions work forward and backwards", {
   expect_length(coord_df, 3)
   expect_equal(nrow(coord_df), length(coords$x))
   expect_equal(coords, coords2list(coord_df))
+})
+
+test_that("coords2df() reads the list names rather than the element order", {
+  coords <- list(y = c(A = 10, B = 20), x = c(A = 1, B = 2))
+  coord_df <- coords2df(coords)
+
+  expect_equal(coord_df$x[coord_df$name == "A"], 1)
+  expect_equal(coord_df$y[coord_df$name == "A"], 10)
+  expect_equal(coord_df$x[coord_df$name == "B"], 2)
+  expect_equal(coord_df$y[coord_df$name == "B"], 20)
+})
+
+test_that("coords2df() errors when the list is not named x and y", {
+  unnamed <- list(c(A = 1, B = 2), c(A = 10, B = 20))
+
+  expect_error(coords2df(unnamed), class = "ggdag_type_error")
+  expect_ggdag_error(coords2df(unnamed))
 })
 
 test_that("tidy_dagitty warns about cyclic graphs", {

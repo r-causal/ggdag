@@ -26,6 +26,24 @@
       ! Layout type "dendogram" is not supported in ggdag.
       i See `?ggraph::create_layout()` for available layouts.
 
+# the real dendrogram layout is forbidden too
+
+    Code
+      expr
+    Condition <ggdag_error>
+      Error in `check_verboten_layout()`:
+      ! Layout type "dendrogram" is not supported in ggdag.
+      i See `?ggraph::create_layout()` for available layouts.
+
+# coords2df() errors when the list is not named x and y
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `coords2df()`:
+      ! `coord_list` must be a list with elements named "x" and "y".
+      x The list you provided has no names.
+
 # tidy_dagitty warns about cyclic graphs
 
     Code

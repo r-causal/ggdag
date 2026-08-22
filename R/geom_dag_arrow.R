@@ -159,7 +159,7 @@ geom_dag_arrow_curve_geom <- function() {
         }
 
         if (!is.numeric(data$edge_curvature)) {
-          cli::cli_abort(
+          abort(
             "{.field edge_curvature} must be numeric, not {.cls {class(data$edge_curvature)}}.",
             error_class = "ggdag_type_error"
           )

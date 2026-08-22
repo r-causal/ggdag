@@ -4,6 +4,19 @@ test_that("dagify creates correct dagitty", {
   expect_s3_class(test_dag, "dagitty")
 })
 
+test_that("dag() accepts a character vector of dagitty statements", {
+  from_vector <- dag(c("x -> y", "y -> z"))
+  from_args <- dag("x -> y", "y -> z")
+
+  expect_s3_class(from_vector, "dagitty")
+  expect_equal(dagitty::edges(from_vector), dagitty::edges(from_args))
+  expect_equal(from_vector[[1]], from_args[[1]])
+})
+
+test_that("dag() still handles a single statement containing several nodes", {
+  expect_setequal(names(dag("{x m} -> y")), c("x", "m", "y"))
+})
+
 test_that("dagify rejects self-loops with helpful error", {
   expect_ggdag_error(
     dagify(x ~ x)
@@ -79,6 +92,105 @@ test_that("dagify accepts valid DAG specifications", {
   expect_s3_class(dag3, "dagitty")
 })
 
+# -- input validation ----------------------------------------------------------
+
+test_that("dagify() rejects one-sided formulas", {
+  expect_error(dagify(~x), class = "ggdag_type_error")
+  expect_ggdag_error(dagify(~x))
+})
+
+test_that("dagify() rejects character input", {
+  expect_error(dagify("y ~ x"), class = "ggdag_type_error")
+  expect_ggdag_error(dagify("y ~ x"))
+})
+
+# -- mixed directed and bidirected terms ---------------------------------------
+
+# edges as "v e w" strings, sorted so row order does not matter
+dag_edge_strings <- function(.dag) {
+  .edges <- dagitty::edges(.dag)
+  sort(paste(.edges$v, .edges$e, .edges$w))
+}
+
+test_that("dagify() keeps directed terms directed when a formula mixes arrows", {
+  # `y ~ x + ~z` parses as x + (~z), so only z is bidirected
+  mixed <- dagify(y ~ x + ~z)
+  separate <- dagify(y ~ x, y ~ ~z)
+
+  expect_equal(dag_edge_strings(mixed), dag_edge_strings(separate))
+  expect_equal(dag_edge_strings(mixed), c("x -> y", "y <-> z"))
+})
+
+test_that("dagify() mixed-arrow formulas agree on adjustment sets", {
+  mixed <- dagify(y ~ x + ~z, m ~ x + z, exposure = "x", outcome = "y")
+  separate <- dagify(y ~ x, y ~ ~z, m ~ x + z, exposure = "x", outcome = "y")
+
+  expect_equal(
+    dagitty::adjustmentSets(mixed),
+    dagitty::adjustmentSets(separate)
+  )
+})
+
+test_that("dagify() still bidirects the whole RHS after a leading tilde", {
+  # `y ~ ~x + z` parses as ~(x + z), so both terms are bidirected
+  whole <- dagify(y ~ ~ x + z)
+
+  expect_equal(
+    dag_edge_strings(whole),
+    dag_edge_strings(dagify(y ~ ~x, y ~ ~z))
+  )
+  expect_true(all(dagitty::edges(whole)$e == "<->"))
+})
+
+test_that("dagify() lets parentheses limit how far a tilde reaches", {
+  # `(~z)` bidirects only z, so w stays directed
+  parenthesized <- dagify(y ~ x + (~z) + w)
+
+  expect_equal(
+    dag_edge_strings(parenthesized),
+    c("w -> y", "x -> y", "y <-> z")
+  )
+  expect_equal(
+    dag_edge_strings(parenthesized),
+    dag_edge_strings(dagify(y ~ x + w, y ~ ~z))
+  )
+})
+
+test_that("dagify() bidirects a lone parenthesized tilde", {
+  expect_equal(dag_edge_strings(dagify(y ~ (~z))), "y <-> z")
+})
+
+test_that("dagify() looks through parentheses around a group of terms", {
+  expect_equal(
+    dag_edge_strings(dagify(y ~ (x + z))),
+    dag_edge_strings(dagify(y ~ x + z))
+  )
+})
+
+test_that("curved() in a mixed-arrow formula keeps the directed edge directed", {
+  curved_mixed <- dagify(y ~ x + ~ curved(z, 0.5))
+
+  expect_equal(
+    dag_edge_strings(curved_mixed),
+    dag_edge_strings(dagify(y ~ x, y ~ ~z))
+  )
+})
+
+# -- node names outside dagitty's bareword class -------------------------------
+
+test_that("dagify() accepts node names dagitty has to quote", {
+  expect_setequal(names(dagify(hjärta ~ coração)), c("hjärta", "coração"))
+  expect_setequal(names(dagify(y ~ `my var`)), c("y", "my var"))
+})
+
+test_that("dagify() produces unchanged dag strings for ordinary names", {
+  expect_equal(
+    dagify(y ~ x + z, x ~ z)[[1]],
+    "dag {\nx\ny\nz\nx -> y\nz -> x\nz -> y\n}\n"
+  )
+  expect_equal(dagify(y ~ ~x)[[1]], "dag {\nx\ny\nx <-> y\n}\n")
+})
+
 # -- curved() formula syntax ---------------------------------------------------
 
 test_that("curved() errors when called directly", {
@@ -148,6 +260,17 @@ test_that("strip_curved() is no-op when no curved() present", {
   fmla <- y ~ z + x
   stripped <- strip_curved(fmla)
   expect_equal(formula2char(stripped), formula2char(fmla))
+})
+
+test_that("dagify() treats ggdag::curved() the same as curved()", {
+  expect_equal(
+    attr(dagify(y ~ x + ggdag::curved(m, 0.5), m ~ x), "curved_edges"),
+    attr(dagify(y ~ x + curved(m, 0.5), m ~ x), "curved_edges")
+  )
+})
+
+test_that("dagify() survives other namespace-qualified calls on a formula RHS", {
+  expect_no_error(dagify(y ~ x + base::identity(m), m ~ x))
 })
 
 test_that("dagify() with curved() stores curved_edges attr", {
@@ -230,6 +353,12 @@ test_that("curved() rejects non-literal curvature values", {
     dagify(y ~ curved(x, TRUE)),
     "curvature"
   )
+})
+
+test_that("curved() non-literal curvature error carries the ggdag classes", {
+  expect_error(dagify(y ~ curved(x, a)), class = "ggdag_type_error")
+  expect_error(dagify(y ~ curved(x, a)), class = "ggdag_error")
+  expect_ggdag_error(dagify(y ~ curved(x, a)))
 })
 
 test_that("curved_edges attr survives pull_dag() round-trip", {
@@ -404,6 +533,74 @@ test_that("curve_edge() errors for invalid node names", {
     curve_edge(dag, from = "x", to = "nonexistent", curvature = 0.5),
     class = "ggdag_dag_error"
   )
+})
+
+test_that("curve_edge() errors when the edge does not exist", {
+  dag <- dagify(y ~ x + m, m ~ x)
+  # the edge runs m -> y, so these endpoints are swapped
+  expect_error(
+    curve_edge(dag, from = "y", to = "m", curvature = 0.7),
+    class = "ggdag_dag_error"
+  )
+  expect_ggdag_error(curve_edge(dag, from = "y", to = "m", curvature = 0.7))
+})
+
+test_that("curve_edge() on a tidy_dagitty errors when the edge does not exist", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+
+  expect_error(
+    curve_edge(td, from = "y", to = "m", curvature = 0.7),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("curve_edge() accepts either orientation of a bidirected edge", {
+  dag <- dagify(y ~ ~x)
+
+  forward <- attr(
+    curve_edge(dag, from = "x", to = "y", curvature = 0.4),
+    "curved_edges"
+  )
+  backward <- attr(
+    curve_edge(dag, from = "y", to = "x", curvature = 0.4),
+    "curved_edges"
+  )
+
+  expect_equal(forward$edge_curvature, 0.4)
+  expect_equal(backward$edge_curvature, 0.4)
+})
+
+test_that("curve_edge() accepts either orientation of an undirected edge", {
+  dag <- dag("x -- y")
+
+  forward <- attr(
+    curve_edge(dag, from = "x", to = "y", curvature = 0.5),
+    "curved_edges"
+  )
+  backward <- attr(
+    curve_edge(dag, from = "y", to = "x", curvature = 0.5),
+    "curved_edges"
+  )
+
+  expect_equal(forward$edge_curvature, 0.5)
+  expect_equal(backward$edge_curvature, 0.5)
+})
+
+test_that("set_curve_edges() errors when an edge does not exist", {
+  dag <- dagify(y ~ x + m, m ~ x)
+  swapped <- data.frame(
+    from = c("y", "y"),
+    to = c("m", "x"),
+    curvature = c(0.7, 0.2)
+  )
+
+  expect_error(set_curve_edges(dag, swapped), class = "ggdag_dag_error")
+  expect_ggdag_error(set_curve_edges(dag, swapped))
 })
 
 test_that("set_curve_edges() replaces all curvatures from a data frame", {

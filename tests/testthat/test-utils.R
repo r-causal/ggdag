@@ -49,11 +49,26 @@ test_that("formula2char converts formulas to character correctly", {
   # Multiple predictors
   expect_equal(formula2char(y ~ x + z), "y <- {x z}")
 
-  # Bidirectional relationship
-  expect_equal(formula2char(y ~ x + ~z), "y <-> {x z}")
-
   # Only bidirectional
   expect_equal(formula2char(y ~ ~x), "y <-> {x}")
+})
+
+test_that("formula2char keeps directed and bidirected terms apart", {
+  # `y ~ x + ~z` parses as x + (~z): x -> y stays directed, only z is
+  # bidirected. Assert on the parsed DAG so the test does not depend on how
+  # the dagitty string is spelled.
+  parsed <- dagitty::dagitty(paste0("dag {", formula2char(y ~ x + ~z), "}"))
+  parsed_edges <- dagitty::edges(parsed)
+
+  expect_setequal(
+    paste(parsed_edges$v, parsed_edges$e, parsed_edges$w),
+    c("x -> y", "y <-> z")
+  )
+})
+
+test_that("formula2char quotes names dagitty cannot parse bare", {
+  parsed <- dagitty::dagitty(paste0("dag {", formula2char(y ~ `my var`), "}"))
+  expect_setequal(names(parsed), c("y", "my var"))
 })
 
 test_that("edge_type_switch returns correct geom functions", {

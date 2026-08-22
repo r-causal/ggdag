@@ -247,7 +247,12 @@ count_drawn_edges <- function(plot, width = 10, height = 8) {
   drawn <- vapply(
     grob_names,
     function(nm) {
-      child <- grid::grid.get(nm)$children[[1]]
+      children <- grid::grid.get(nm)$children
+      if (length(children) == 0) {
+        return(0L)
+      }
+
+      child <- children[[1]]
       if (inherits(child, "zeroGrob")) 0L else length(unique(child$id))
     },
     integer(1)

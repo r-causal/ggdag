@@ -4,7 +4,8 @@
 #' `tidy_dagitty` or `dagitty`
 #'
 #' @param x an object of either class `tidy_dagitty` or `dagitty`
-#' @param value a named character vector, where the names are node names
+#' @param value a named character vector, where the names are node names, or
+#'   `NULL` to remove labels
 #' @inheritParams dag_params
 #'
 #' @return `label` returns the label attribute of x
@@ -107,7 +108,8 @@ validate_labels <- function(
   invisible(value)
 }
 
-#' @param labels a named character vector, where the names are node names
+#' @param labels a named character vector, where the names are node names, or
+#'   `NULL` to reuse the labels already attached to the DAG
 #'
 #' @rdname label
 #' @export
