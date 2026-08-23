@@ -99,13 +99,13 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 }
 \value{
-a \code{tidy_dagitty} with a \code{collider} column for
+a \code{tidy_dagitty} with a \code{colliders} column for
 colliders or a \code{ggplot}
 }
 \description{
 Detects any colliders given a DAG.
 \code{node_collider} tags colliders and \code{ggdag_collider} plots all
-exogenous variables.
+colliders.
 }
 \examples{
 dag <- dagify(m ~ x + y, y ~ x)

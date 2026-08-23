@@ -21,7 +21,9 @@ is_downstream_collider(.dag, .var)
 Logical. Is the variable a collider or downstream collider?
 }
 \description{
-Detecting colliders in DAGs
+A collider is a variable that two edges point into. Bidirected edges count,
+so a variable with one directed parent and one bidirected partner is a
+collider, as is a variable with two bidirected partners and no parents.
 }
 \examples{
 dag <- dagify(m ~ x + y, m_jr ~ m)

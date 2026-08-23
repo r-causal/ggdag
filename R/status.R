@@ -3,7 +3,7 @@
 #' Detects variable status given a DAG (exposure, outcome, latent). See
 #' [dagitty::VariableStatus()] for details.
 #'
-#' `node_collider` tags variable status and `ggdag_collider` plots all
+#' `node_status` tags variable status and `ggdag_status` plots all
 #' variable statuses.
 #'
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or

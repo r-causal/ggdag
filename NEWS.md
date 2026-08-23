@@ -1,5 +1,15 @@
 # ggdag (development version)
 
+* `is_collider()`, `is_downstream_collider()`, `node_collider()`, `ggdag_collider()`, and `query_colliders()` now count the arrowheads that bidirected edges contribute. A variable with one directed parent and one bidirected partner, or with two bidirected partners, has two arrowheads pointing into it and is a collider; dagitty counts only directed edges as parents, so such a variable was previously reported as a non-collider. `activate_collider_paths()`, and with it `control_for()` and `ggdag_adjust()`, now draws the biasing pathway that conditioning on such a collider opens.
+
+* `activate_collider_paths()` now connects a pair of variables only when adjusting for the collider opens a path between them that is closed without the adjustment. It previously drew a biasing pathway between every pair of an adjusted collider's ancestors, including pairs that conditioning on the collider cannot connect, such as a cause and its own descendant.
+
+* `activate_collider_paths()` now adds one row per activated pair. Its coordinate joins did not drop duplicate matches, so a variable with several edges multiplied the pair's row, which overdrew the dashed bias edge and inflated the path counts reported by printing a `tidy_dagitty` and by `n_edges()`.
+
+* `node_collider()` is now idempotent: applying it to its own output, which happens when a precomputed result is piped into `ggdag_collider()`, returns the single-application result instead of failing with a size error from the suffixed `colliders.x` and `colliders.y` columns.
+
+* Corrected documentation: the Colliders help page said `ggdag_collider()` plots exogenous variables and promised a `collider` column rather than `colliders`, `node_exogenous()` said that exogenous variables are defined given an exposure and outcome, and the Variable Status page named `node_collider()` and `ggdag_collider()` instead of `node_status()` and `ggdag_status()`.
+
 * `node_dconnected()`, `node_dseparated()`, and `node_drelationship()` now label each node of `from` and `to` with its own d-relationship to the opposite set. Previously they computed the set-level answer from `dagitty::dconnected()` and wrote it onto every endpoint, so a node d-separated from the other set was labeled d-connected whenever any of its companions was. Multi-element endpoints arise without passing vectors, since `from` and `to` fall back to the exposures and outcomes set on the DAG.
 
 * `node_dseparated()` no longer adds `collider_line` and `adjusted` columns when `controlling_for` is `NULL`. These columns now appear only when adjustment actually occurs, as they do in `node_dconnected()`, `node_drelationship()`, and `control_for()`. Code that maps `shape = adjusted` on unadjusted `node_dseparated()` output needs to set `controlling_for` or drop the mapping.

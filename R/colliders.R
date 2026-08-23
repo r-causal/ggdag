@@ -2,13 +2,13 @@
 #'
 #' Detects any colliders given a DAG.
 #' `node_collider` tags colliders and `ggdag_collider` plots all
-#' exogenous variables.
+#' colliders.
 #'
 #' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #'
-#' @return a `tidy_dagitty` with a `collider` column for
+#' @return a `tidy_dagitty` with a `colliders` column for
 #'   colliders or a `ggplot`
 #' @export
 #'
@@ -22,6 +22,8 @@
 #' @name Colliders
 node_collider <- function(.dag, as_factor = TRUE, ...) {
   .tdy_dag <- if_not_tidy_daggity(.dag, ...)
+  # drop the results of an earlier application so the join does not suffix
+  .tdy_dag <- dplyr::select(.tdy_dag, -dplyr::any_of("colliders"))
   vars <- unique(pull_dag_data(.tdy_dag)$name)
   colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
   names(colliders) <- vars
@@ -30,7 +32,6 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
     tibble::enframe(colliders, value = "colliders"),
     by = "name"
   )
-  purrr::map(vars[colliders], \(.x) dagitty::parents(pull_dag(.tdy_dag), .x))
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
@@ -115,6 +116,10 @@ ggdag_collider <- function(
 #' Stratifying on colliders can open biasing pathways between variables.
 #' `activate_collider_paths` activates any such pathways given a variable
 #' or set of variables to adjust for and adds them to the `tidy_dagitty`.
+#' A pathway is added for a pair of variables upstream of an adjusted collider
+#' only when the adjustment opens a path between them that is closed without
+#' it, so variables joined only by a path that the adjustment leaves as it
+#' found it are not connected.
 #'
 #' @inheritParams dag_params
 #' @param adjust_for a character vector, the variable(s) to adjust for.
@@ -146,18 +151,28 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
     return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
   }
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
-  collider_paths <- purrr::map(
-    adjusted_colliders,
-    \(.x) dagitty::ancestors(pull_dag(.tdy_dag), .x)[-1]
+  .dag <- pull_dag(.tdy_dag)
+
+  candidate_pairs <- adjusted_colliders |>
+    purrr::map(\(.x) collider_flanks(.dag, .x, adjusted_colliders)) |>
+    purrr::map(unique_pairs) |>
+    purrr::list_rbind() |>
+    sort_pairs()
+
+  activated_pairs <- dplyr::filter(
+    candidate_pairs,
+    purrr::map2_lgl(
+      .data$Var1,
+      .data$Var2,
+      \(.u, .v) adjustment_opens_path(.dag, .u, .v, adjusted_colliders)
+    )
   )
 
-  activated_pairs <- purrr::map(collider_paths, unique_pairs)
+  if (nrow(activated_pairs) == 0) {
+    return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
+  }
 
-  collider_lines <- purrr::map_df(
-    activated_pairs,
-    dagify_colliders,
-    .tdy_dag = .tdy_dag
-  )
+  collider_lines <- dagify_colliders(activated_pairs, .tdy_dag)
 
   collider_lines$collider_line <- TRUE
   .tdy_dag <- dplyr::mutate(.tdy_dag, collider_line = FALSE)
@@ -181,7 +196,9 @@ dagify_colliders <- function(.pairs_df, .tdy_dag) {
 join_lhs_coords <- function(.x, .y) {
   ggdag_left_join(
     .x,
-    pull_dag_data(.y) |> dplyr::select("name", "x", "y"),
+    pull_dag_data(.y) |>
+      dplyr::select("name", "x", "y") |>
+      dplyr::distinct(),
     by = c("Var1" = "name")
   )
 }
@@ -190,12 +207,105 @@ join_rhs_coords <- function(.x, .y) {
   ggdag_left_join(
     .x,
     pull_dag_data(.y) |>
-      dplyr::select("name", xend = "x", yend = "y"),
+      dplyr::select("name", xend = "x", yend = "y") |>
+      dplyr::distinct(),
     by = c("Var2" = "name")
   )
 }
 
+#' The variables flanking a collider
+#'
+#' Conditioning on a collider can only open a path that runs into it, so the
+#' variables an adjusted collider can join are the ones upstream of it: its
+#' proper ancestors together with its bidirected partners, which have an
+#' arrowhead into it without being ancestors. Variables that are themselves
+#' adjusted are dropped, since conditioning on them blocks the path at that
+#' point.
+#'
+#' @param .dag A `dagitty` object.
+#' @param .var A character vector of length 1, the adjusted collider.
+#' @param .adjusted A character vector, every adjusted collider.
+#' @return A character vector.
+#' @noRd
+collider_flanks <- function(.dag, .var, .adjusted) {
+  flanks <- union(
+    dagitty::ancestors(.dag, .var, proper = TRUE),
+    dagitty::spouses(.dag, .var)
+  )
+
+  setdiff(flanks, .adjusted)
+}
+
+#' Order each pair alphabetically and drop repeats
+#'
+#' Two adjusted colliders can flag the same pair of variables, in either order.
+#' Sorting within the pair makes those rows identical so that the pair is drawn
+#' once.
+#'
+#' @param .pairs_df A data frame with `Var1` and `Var2` columns.
+#' @return A data frame of the same shape.
+#' @noRd
+sort_pairs <- function(.pairs_df) {
+  sorted <- tibble::tibble(
+    Var1 = pmin(.pairs_df$Var1, .pairs_df$Var2),
+    Var2 = pmax(.pairs_df$Var1, .pairs_df$Var2)
+  )
+
+  dplyr::distinct(sorted)
+}
+
+#' The number of paths to enumerate when testing for an activated path
+#'
+#' `dagitty::paths()` truncates at 100 paths by default, which is low enough
+#' for a moderately dense DAG to hide the path an adjustment opens.
+#' @noRd
+collider_path_limit <- 1000
+
+#' Does adjusting for a set of colliders open a path between two variables?
+#'
+#' A pair is joined by an activated line only when conditioning on the adjusted
+#' colliders opens a path between the two variables that is closed without the
+#' adjustment. A path that is open either way carries no collider bias, and a
+#' path that stays closed carries nothing at all. The two enumerations are
+#' matched on the path itself rather than on position, since dagitty need not
+#' return them in the same order.
+#'
+#' @param .dag A `dagitty` object.
+#' @param .from,.to A character vector of length 1.
+#' @param .adjusted A character vector, the adjusted colliders.
+#' @return Logical.
+#' @noRd
+adjustment_opens_path <- function(.dag, .from, .to, .adjusted) {
+  adjusted_paths <- dagitty::paths(
+    .dag,
+    .from,
+    .to,
+    Z = .adjusted,
+    limit = collider_path_limit
+  )
+  unadjusted_paths <- dagitty::paths(
+    .dag,
+    .from,
+    .to,
+    limit = collider_path_limit
+  )
+
+  open_without_adjustment <- unadjusted_paths$open[
+    match(adjusted_paths$paths, unadjusted_paths$paths)
+  ]
+
+  any(
+    adjusted_paths$open &
+      !is.na(open_without_adjustment) &
+      !open_without_adjustment
+  )
+}
+
 #' Detecting colliders in DAGs
+#'
+#' A collider is a variable that two edges point into. Bidirected edges count,
+#' so a variable with one directed parent and one bidirected partner is a
+#' collider, as is a variable with two bidirected partners and no parents.
 #'
 #' @param .dag an input graph, an object of class `tidy_dagitty` or `dagitty`
 #' @param .var a character vector of length 1, the potential collider to check
@@ -222,7 +332,7 @@ is_collider <- function(.dag, .var, downstream = TRUE) {
     .dag <- pull_dag(.dag)
   }
   validate_nodes_exist(.dag, .var, arg = ".var")
-  collider <- has_multiple_parents(.dag, .var)
+  collider <- has_multiple_arrowheads(.dag, .var)
   if (!downstream || collider) {
     return(collider)
   }
@@ -244,9 +354,10 @@ is_downstream_collider <- function(.dag, .var) {
 #' Is any proper ancestor of a variable a collider?
 #'
 #' Ancestry is transitive, so a variable is downstream of a collider exactly
-#' when one of its proper ancestors has more than one parent. Recursing into
-#' the downstream status of each ancestor would revisit the same ancestors
-#' repeatedly, which costs exponentially many dagitty calls on deep DAGs.
+#' when one of its proper ancestors has more than one arrowhead pointing into
+#' it. Recursing into the downstream status of each ancestor would revisit the
+#' same ancestors repeatedly, which costs exponentially many dagitty calls on
+#' deep DAGs.
 #'
 #' @param .dag A `dagitty` object.
 #' @param .var A character vector of length 1.
@@ -254,11 +365,22 @@ is_downstream_collider <- function(.dag, .var) {
 #' @noRd
 any_ancestor_is_collider <- function(.dag, .var) {
   var_ancestors <- dagitty::ancestors(.dag, .var, proper = TRUE)
-  any(purrr::map_lgl(var_ancestors, \(.x) has_multiple_parents(.dag, .x)))
+  any(purrr::map_lgl(var_ancestors, \(.x) has_multiple_arrowheads(.dag, .x)))
 }
 
-#' Does a variable have more than one parent?
+#' Does more than one arrowhead point into a variable?
+#'
+#' A collider is a variable that two edges point into, whether those edges are
+#' directed or bidirected. dagitty counts only directed edges as parents and
+#' reports bidirected partners as spouses, so both sets contribute.
+#'
+#' @param .dag A `dagitty` object.
+#' @param .var A character vector of length 1.
+#' @return Logical.
 #' @noRd
-has_multiple_parents <- function(.dag, .var) {
-  length(dagitty::parents(.dag, .var)) > 1
+has_multiple_arrowheads <- function(.dag, .var) {
+  n_arrowheads <- length(dagitty::parents(.dag, .var)) +
+    length(dagitty::spouses(.dag, .var))
+
+  n_arrowheads > 1
 }

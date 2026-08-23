@@ -106,7 +106,7 @@ Detects variable status given a DAG (exposure, outcome, latent). See
 \code{\link[dagitty:VariableStatus]{dagitty::VariableStatus()}} for details.
 }
 \details{
-\code{node_collider} tags variable status and \code{ggdag_collider} plots all
+\code{node_status} tags variable status and \code{ggdag_status} plots all
 variable statuses.
 }
 \examples{

@@ -100,9 +100,9 @@ a \code{tidy_dagitty} with an \code{exogenous} column for
 exogenous variables or a \code{ggplot}
 }
 \description{
-\code{node_exogenous} tags exogenous variables given an exposure and
-outcome. \code{ggdag_exogenous} plots all exogenous variables. See
-\code{\link[dagitty:exogenousVariables]{dagitty::exogenousVariables()}} for details.
+\code{node_exogenous} tags exogenous variables, the variables with no directed
+arrows pointing at them. \code{ggdag_exogenous} plots all exogenous variables.
+See \code{\link[dagitty:exogenousVariables]{dagitty::exogenousVariables()}} for details.
 }
 \examples{
 dag <- dagify(y ~ x1 + x2 + x3, b ~ x1 + x2)

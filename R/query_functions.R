@@ -512,15 +512,18 @@ query_dconnected <- function(
 
 #' Query Collider Nodes
 #'
-#' Identify all collider nodes in a DAG. A collider is a node with two or more
-#' parents.
+#' Identify all collider nodes in a DAG. A collider is a node that two or more
+#' edges point into. Bidirected edges count toward that total, so a node with
+#' one directed parent and one bidirected partner is a collider.
 #'
 #' @inheritParams dag_params
 #'
 #' @return A tibble with columns:
 #'   - `node`: The collider node
-#'   - `parent_set`: String representation of parent nodes
-#'   - `parents`: List column containing the parent nodes
+#'   - `parent_set`: String representation of the directed parents
+#'   - `parents`: List column containing the directed parents. A bidirected
+#'     partner contributes an arrowhead but is not a parent, so a collider
+#'     formed by bidirected edges can have fewer than two parents here.
 #'   - `is_activated`: Logical indicating if the collider is conditioned on
 #'
 #' @export
@@ -540,10 +543,11 @@ query_colliders <- function(.tdy_dag) {
   # Get all nodes
   all_nodes <- names(.dag)
 
-  # Find colliders by checking parents
+  # Find colliders by counting the arrowheads pointing into each node
   collider_info <- purrr::map(all_nodes, \(node) {
     parents <- dagitty::parents(.dag, node)
-    if (length(parents) >= 2) {
+    spouses <- dagitty::spouses(.dag, node)
+    if (length(parents) + length(spouses) >= 2) {
       tibble::tibble(
         node = node,
         parent_set = create_set_string(parents),

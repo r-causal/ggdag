@@ -285,6 +285,19 @@ test_that("query_colliders works correctly", {
   expect_setequal(result3$node, c("z", "w"))
 })
 
+test_that("query_colliders counts arrowheads from bidirected edges", {
+  # a -> m <-> b: two arrowheads point into m
+  parent_spouse <- dagify(m ~ a, m ~ ~b)
+  expect_equal(query_colliders(parent_spouse)$node, "m")
+
+  # a <-> m <-> b: two arrowheads, no directed parents at all
+  two_spouses <- dagify(m ~ ~a, m ~ ~b)
+  expect_equal(query_colliders(two_spouses)$node, "m")
+
+  # a single bidirected edge is one arrowhead, so not a collider
+  expect_equal(nrow(query_colliders(dagify(m ~ ~a))), 0)
+})
+
 test_that("query_exogenous works correctly", {
   dag <- dagify(
     y ~ x + z,

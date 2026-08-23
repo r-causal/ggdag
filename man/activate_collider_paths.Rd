@@ -21,6 +21,10 @@ pathways
 Stratifying on colliders can open biasing pathways between variables.
 \code{activate_collider_paths} activates any such pathways given a variable
 or set of variables to adjust for and adds them to the \code{tidy_dagitty}.
+A pathway is added for a pair of variables upstream of an adjusted collider
+only when the adjustment opens a path between them that is closed without
+it, so variables joined only by a path that the adjustment leaves as it
+found it are not connected.
 }
 \examples{
 dag <- dagify(m ~ x + y, x ~ y)
