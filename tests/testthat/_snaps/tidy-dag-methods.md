@@ -63,10 +63,10 @@
     Output
       # DAG:
       # A `dagitty` DAG with: 3 nodes and 3 edges
-      # Paths opened by conditioning on a collider: x <-> y, x <-> y
+      # Paths opened by conditioning on a collider: x <-> y
       #
       # Data:
-      # A tibble: 6 x 8
+      # A tibble: 5 x 8
         name      x      y direction to     xend   yend collider_line
         <chr> <int>  <dbl> <fct>     <chr> <int>  <dbl> <lgl>        
       1 m         3 -0.303 <NA>      <NA>     NA NA     FALSE        
@@ -74,7 +74,6 @@
       3 x         1 -0.303 ->        y         2  0.605 FALSE        
       4 y         2  0.605 ->        m         3 -0.303 FALSE        
       5 x         1 -0.303 <->       y         2  0.605 TRUE         
-      6 x         1 -0.303 <->       y         2  0.605 TRUE         
       #
       # i Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
