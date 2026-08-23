@@ -48,12 +48,12 @@
 <g clip-path='url(#cpMzM1LjYwfDYyNS41OXwzOS40M3w1NDUuMTE=)'>
 <rect x='335.60' y='39.43' width='289.99' height='505.68' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <path d='M 554.58 502.97 L 542.29 498.50 L 545.14 501.90 L 406.61 501.91 L 406.61 504.04 L 545.14 504.05 L 542.29 507.45 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 396.11 469.89 L 392.16 471.91 L 476.56 103.92 L 474.48 103.44 L 390.06 471.43 L 387.39 467.89 L 389.00 480.87 Z' style='fill-rule: evenodd; fill: #00BFC4; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 573.80 467.89 L 571.13 471.43 L 486.70 103.44 L 484.62 103.92 L 569.03 471.91 L 565.08 469.89 L 572.19 480.87 Z' style='fill-rule: evenodd; fill: #00BFC4; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 396.11 469.89 L 392.16 471.91 L 476.56 103.92 L 474.48 103.44 L 390.06 471.43 L 387.39 467.89 L 389.00 480.87 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 573.80 467.89 L 571.13 471.43 L 486.70 103.44 L 484.62 103.92 L 569.03 471.91 L 565.08 469.89 L 572.19 480.87 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <circle cx='383.93' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #CCCCCC; fill: #CCCCCC;' />
-<circle cx='577.26' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
-<circle cx='480.59' cy='81.57' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
-<circle cx='383.93' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
+<circle cx='577.26' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
+<circle cx='480.59' cy='81.57' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
+<circle cx='383.93' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
 <text x='383.93' y='506.77' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='577.26' y='506.77' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='480.59' y='85.37' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
@@ -122,18 +122,20 @@
 <polyline points='37.39,81.57 40.13,81.57 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <text x='332.86' y='568.24' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text transform='translate(13.05,292.27) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>y</text>
-<rect x='636.55' y='266.46' width='77.97' height='51.62' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='636.55' y='275.18' style='font-size: 11.00px; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>path</text>
-<rect x='636.55' y='281.80' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.80' cy='290.87' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
-<path d='M 660.13 290.87 L 651.97 287.90 L 653.86 290.15 L 649.25 290.16 L 649.25 291.58 L 653.86 291.58 L 651.97 293.84 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 1.07; stroke: none;' />
-<circle cx='665.57' cy='290.87' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
-<rect x='636.55' y='299.94' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.80' cy='309.01' r='3.20' style='stroke-width: 0.75; stroke: #00BFC4; fill: #00BFC4;' />
-<path d='M 660.13 309.01 L 651.97 306.04 L 653.86 308.30 L 649.25 308.30 L 649.25 309.72 L 653.86 309.73 L 651.97 311.98 Z' style='fill-rule: evenodd; fill: #00BFC4; stroke-width: 1.07; stroke: none;' />
-<circle cx='665.57' cy='309.01' r='3.20' style='stroke-width: 0.75; stroke: #00BFC4; fill: #00BFC4;' />
-<text x='678.31' y='293.90' style='font-size: 8.80px; font-family: sans;' textLength='21.52px' lengthAdjust='spacingAndGlyphs'>direct</text>
-<text x='678.31' y='312.04' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>backdoor</text>
+<rect x='636.55' y='257.82' width='77.97' height='68.90' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='636.55' y='266.54' style='font-size: 11.00px; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>path</text>
+<rect x='636.55' y='273.16' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.80' cy='282.23' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<path d='M 660.13 282.23 L 651.97 279.26 L 653.86 281.51 L 649.25 281.52 L 649.25 282.94 L 653.86 282.94 L 651.97 285.20 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 1.07; stroke: none;' />
+<circle cx='665.57' cy='282.23' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<rect x='636.55' y='291.30' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.80' cy='300.37' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
+<path d='M 660.13 300.37 L 651.97 297.40 L 653.86 299.66 L 649.25 299.66 L 649.25 301.08 L 653.86 301.09 L 651.97 303.34 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 1.07; stroke: none;' />
+<circle cx='665.57' cy='300.37' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
+<rect x='636.55' y='309.44' width='36.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='678.31' y='285.26' style='font-size: 8.80px; font-family: sans;' textLength='21.52px' lengthAdjust='spacingAndGlyphs'>direct</text>
+<text x='678.31' y='303.40' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>backdoor</text>
+<text x='678.31' y='321.11' style='font-size: 8.80px; font-family: sans;' textLength='20.06px' lengthAdjust='spacingAndGlyphs'>other</text>
 <text x='40.13' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='171.02px' lengthAdjust='spacingAndGlyphs'>ggdag_paths ggarrow engine</text>
 </g>
 </svg>
