@@ -131,9 +131,16 @@ query_adjustment_sets <- function(
 #'   - `from`: Starting node
 #'   - `to`: Ending node
 #'   - `path`: Character string representation of the path
-#'   - `path_type`: Character classification as "backdoor" or "direct"
+#'   - `path_type`: Character classification as "direct" (a directed causal
+#'     path), "backdoor" (a path whose first edge points into `from`), or
+#'     "other" (any other path, such as one through a collider)
 #'   - `variables`: List column containing all variables in the path
 #'   - `open`: Logical indicating if the path is open
+#'
+#' @details
+#' When `from` or `to` has more than one element, paths are enumerated once for
+#' each ordered pair of endpoints and the results are stacked, so every row
+#' names the pair its path runs between.
 #'
 #' @export
 #' @examples
@@ -175,7 +182,48 @@ query_paths <- function(
     }
   }
 
-  # Get paths
+  # `dagitty` prints paths only for a single source, so enumerate one ordered
+  # pair of endpoints at a time and stack the results
+  endpoint_pairs <- expand.grid(
+    from = from,
+    to = to,
+    stringsAsFactors = FALSE
+  )
+
+  path_df <- purrr::pmap(
+    endpoint_pairs,
+    \(from, to) {
+      query_paths_pair(
+        .dag,
+        from = from,
+        to = to,
+        directed = directed,
+        limit = limit,
+        conditioned_on = conditioned_on
+      )
+    }
+  ) |>
+    purrr::list_rbind()
+
+  path_df$path_id <- seq_len(nrow(path_df))
+
+  path_df
+}
+
+#' Find the paths between one pair of endpoints
+#'
+#' @inheritParams query_paths
+#' @param from,to single node names.
+#' @return A tibble of paths, in the shape `query_paths()` returns.
+#' @noRd
+query_paths_pair <- function(
+  .dag,
+  from,
+  to,
+  directed,
+  limit,
+  conditioned_on
+) {
   paths_obj <- dagitty::paths(
     .dag,
     from = from,
@@ -185,16 +233,27 @@ query_paths <- function(
     Z = conditioned_on
   )
 
+  empty_paths <- tibble::tibble(
+    path_id = integer(),
+    from = character(),
+    to = character(),
+    path = character(),
+    path_type = character(),
+    variables = list(),
+    open = logical()
+  )
+
   if (length(paths_obj$paths) == 0) {
-    return(tibble::tibble(
-      path_id = integer(),
-      from = character(),
-      to = character(),
-      path = character(),
-      path_type = character(),
-      variables = list(),
-      open = logical()
-    ))
+    return(empty_paths)
+  }
+
+  # `dagitty` returns an empty description for a path it cannot print
+  keep <- nzchar(paths_obj$paths)
+  paths <- paths_obj$paths[keep]
+  open <- paths_obj$open[keep]
+
+  if (length(paths) == 0) {
+    return(empty_paths)
   }
 
   # Get directed paths to classify path types (if not already directed)
@@ -210,38 +269,25 @@ query_paths <- function(
     directed_paths <- directed_paths_obj$paths
   } else {
     # If already directed, all paths are direct
-    directed_paths <- paths_obj$paths
+    directed_paths <- paths
   }
 
   # Extract variables from each path
-  variables_list <- purrr::map(paths_obj$paths, \(path_str) {
+  variables_list <- purrr::map(paths, \(path_str) {
     # Remove all arrow types and split on remaining spaces
     clean_path <- stringr::str_replace_all(path_str, " <->| ->| <-", " ")
     unique(stringr::str_trim(stringr::str_split(clean_path, "\\s+")[[1]]))
   })
 
-  # Classify paths as backdoor or direct
-  path_types <- ifelse(
-    paths_obj$paths %in% directed_paths,
-    "direct",
-    "backdoor"
+  tibble::tibble(
+    path_id = seq_along(paths),
+    from = from,
+    to = to,
+    path = paths,
+    path_type = classify_path_types(paths, directed_paths),
+    variables = variables_list,
+    open = open
   )
-
-  # Convert paths to tibble
-  path_df <- purrr::imap(paths_obj$paths, \(path, idx) {
-    tibble::tibble(
-      path_id = idx,
-      from = from,
-      to = to,
-      path = path,
-      path_type = path_types[idx],
-      variables = list(variables_list[[idx]]),
-      open = paths_obj$open[idx]
-    )
-  }) |>
-    purrr::list_rbind()
-
-  path_df
 }
 
 #' Query Instrumental Variables

@@ -33,7 +33,9 @@ A tibble with columns:
 \item \code{from}: Starting node
 \item \code{to}: Ending node
 \item \code{path}: Character string representation of the path
-\item \code{path_type}: Character classification as "backdoor" or "direct"
+\item \code{path_type}: Character classification as "direct" (a directed causal
+path), "backdoor" (a path whose first edge points into \code{from}), or
+"other" (any other path, such as one through a collider)
 \item \code{variables}: List column containing all variables in the path
 \item \code{open}: Logical indicating if the path is open
 }
@@ -41,6 +43,11 @@ A tibble with columns:
 \description{
 Find all paths between specified nodes in a DAG and determine if they are
 open or closed given a conditioning set.
+}
+\details{
+When \code{from} or \code{to} has more than one element, paths are enumerated once for
+each ordered pair of endpoints and the results are stacked, so every row
+names the pair its path runs between.
 }
 \examples{
 library(ggdag)

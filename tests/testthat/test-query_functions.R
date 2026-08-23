@@ -515,3 +515,111 @@ test_that("query_status works correctly", {
   expect_equal(sum(!is.na(result4$status)), 1)
   expect_equal(result4$status[result4$name == "x"], "exposure")
 })
+
+test_that("query_paths() labels collider paths as neither direct nor backdoor", {
+  # x -> z <- y starts with an arrow out of the exposure, so it is not a
+  # backdoor path, whether or not the collider is conditioned on
+  dag <- dagify(
+    y ~ x,
+    z ~ x + y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+  collider_path <- result[result$path == "x -> z <- y", ]
+  expect_equal(nrow(collider_path), 1)
+  expect_equal(collider_path$path_type, "other")
+  expect_false(collider_path$open)
+
+  conditioned <- query_paths(dag, conditioned_on = "z")
+  open_collider_path <- conditioned[conditioned$path == "x -> z <- y", ]
+  expect_equal(open_collider_path$path_type, "other")
+  expect_true(open_collider_path$open)
+
+  # a path that is neither causal nor backdoor but is not a pure collider path
+  mixed_dag <- dagify(
+    y ~ w,
+    m ~ x + w,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  mixed <- query_paths(mixed_dag, conditioned_on = "m")
+  expect_equal(
+    mixed$path_type[mixed$path == "x -> m <- w -> y"],
+    "other"
+  )
+
+  # true backdoor paths keep their classification
+  confounder_dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  confounded <- query_paths(confounder_dag)
+  expect_equal(
+    confounded$path_type[confounded$path == "x <- z -> y"],
+    "backdoor"
+  )
+  expect_equal(
+    confounded$path_type[confounded$path == "x -> y"],
+    "direct"
+  )
+})
+
+test_that("query_paths() returns one row per path with several exposures", {
+  dag <- dagify(
+    y ~ x1 + x2,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+
+  expect_equal(nrow(result), 2)
+  expect_setequal(result$path, c("x1 -> y", "x2 -> y"))
+  expect_true(all(nzchar(result$path)))
+  expect_equal(result$from[result$path == "x1 -> y"], "x1")
+  expect_equal(result$from[result$path == "x2 -> y"], "x2")
+  expect_equal(unique(result$to), "y")
+  expect_equal(result$path_id, 1:2)
+  expect_equal(lengths(result$variables), c(2L, 2L))
+})
+
+test_that("query_paths() returns one row per path with several outcomes", {
+  dag <- dagify(
+    y1 ~ x,
+    y2 ~ x,
+    exposure = "x",
+    outcome = c("y1", "y2")
+  )
+
+  result <- query_paths(dag)
+
+  expect_equal(nrow(result), 2)
+  expect_setequal(result$path, c("x -> y1", "x -> y2"))
+  expect_equal(result$to[result$path == "x -> y1"], "y1")
+  expect_equal(result$to[result$path == "x -> y2"], "y2")
+  expect_equal(unique(result$from), "x")
+  expect_equal(result$path_id, 1:2)
+})
+
+test_that("query_paths() is unchanged for a single exposure and outcome", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+
+  expect_equal(nrow(result), 2)
+  expect_equal(result$path_id, 1:2)
+  expect_equal(unique(result$from), "x")
+  expect_equal(unique(result$to), "y")
+  expect_setequal(result$path, c("x -> y", "x <- z -> y"))
+})

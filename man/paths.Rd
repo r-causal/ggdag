@@ -175,8 +175,10 @@ cleaner, more compact legends. Default is \code{TRUE}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{path} column for path variables, a \code{set}
-grouping column, and a \code{path_type} column classifying paths as "backdoor"
-or "direct", or a \code{ggplot}.
+grouping column, and a \code{path_type} column classifying paths as "direct" (a
+directed causal path), "backdoor" (a path whose first edge points into the
+exposure), or "other" (any other path, such as one through a collider), or
+a \code{ggplot}.
 }
 \description{
 \code{dag_paths} finds open paths between a given exposure and outcome.

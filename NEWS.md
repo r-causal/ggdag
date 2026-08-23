@@ -1,5 +1,21 @@
 # ggdag (development version)
 
+* `dag_paths()`, `query_paths()`, and `edge_backdoor()` now classify a path that is neither causal nor backdoor, such as a path opened by conditioning on a collider, as `"other"`. Previously every non-causal path was labeled `"backdoor"`, even though a backdoor path is one whose first edge points into the exposure. `ggdag_paths()` gains an `"other"` key in its path legend.
+
+* `dag_paths()`, `ggdag_paths()`, and `ggdag_paths_fan()` now pass `directed` to `dagitty::paths()`, so `directed = TRUE` returns and plots only directed causal paths. The argument was previously ignored.
+
+* `dag_paths()` and `edge_backdoor()` now match path edges by edge type as well as by node pair, so a directed and a bidirected edge between the same two nodes are treated as the distinct edges they are, each classified by the path it actually lies on.
+
+* `dag_paths()` no longer emits a duplicate row for the exposure or the outcome when the node is already the source of an edge on the open path. This removes duplicate nodes and labels drawn on top of each other by `ggdag_paths()`.
+
+* `dag_paths()` is now idempotent: applying it to its own output, which happens when a precomputed result is piped into `ggdag_paths()` or `ggdag_paths_fan()`, reproduces the single-application result instead of corrupting the path columns.
+
+* `dag_paths()` now raises its documented `ggdag_missing_error` when neither `from`/`to` nor an exposure and outcome are available, instead of passing empty endpoints to `dagitty::paths()`.
+
+* `dag_paths()` and `edge_backdoor()` now raise a classed error when the exposure or the outcome has more than one element, which `dagitty::paths()` cannot enumerate. `query_paths()` instead enumerates paths for each ordered pair of endpoints, one row per path, rather than recycling endpoints across every path.
+
+* Printing a `dag_paths()` result no longer errors when the DAG has no exposure and outcome set and the endpoints were given as `from` and `to`.
+
 * Updated compatibility with ggrepel >= 0.9.7. `geom_dag_label_repel2()` now uses `linewidth = 0` (instead of `label.size = NA`) to hide label borders, matching ggrepel's new `linewidth` aesthetic. The `verbose` parameter in repel functions now defaults to `getOption("verbose", default = FALSE)`.
 
 * `geom_dag()` gains a `label_geom` parameter that allows users to specify which geom function to use for labels when `use_labels = TRUE` (#133). The default remains `geom_dag_label_repel` for backward compatibility, but users can now choose any label/text geom function such as `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, or `geom_dag_text_repel2`.

@@ -339,3 +339,10 @@ test_that("dag_paths print output snapshots", {
 
   expect_snapshot(paths3)
 })
+
+test_that("dag_paths() results print without exposure or outcome set", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  paths <- dag_paths(dag, from = "x", to = "y")
+
+  expect_no_error(capture.output(print(paths)))
+})

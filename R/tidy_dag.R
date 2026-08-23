@@ -785,10 +785,13 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
     }
   }
 
-  # Paths
-  if (all(c("path", "set") %in% names(data))) {
-    dag <- pull_dag(x)
-    paths_obj <- dagitty::paths(dag)
+  # Paths. `dagitty::paths()` needs both endpoints, which the DAG does not carry
+  # when they were given to `dag_paths()` directly, and a summary line is never
+  # worth failing a print method over
+  if (
+    all(c("path", "set") %in% names(data)) && has_exposure(x) && has_outcome(x)
+  ) {
+    paths_obj <- tryCatch(dagitty::paths(dag), error = function(e) NULL)
 
     if (!is.null(paths_obj) && length(paths_obj$paths) > 0) {
       open_paths <- paths_obj$paths[paths_obj$open]
