@@ -11,7 +11,8 @@ activate_collider_paths(.tdy_dag, adjust_for, ...)
 
 \item{adjust_for}{a character vector, the variable(s) to adjust for.}
 
-\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+\item{...}{additional arguments passed to \code{tidy_dagitty()}. These are only
+used when \code{.tdy_dag} is not already a \code{tidy_dagitty}.}
 }
 \value{
 a \code{tidy_dagitty} with additional rows for collider-activated
@@ -24,7 +25,9 @@ or set of variables to adjust for and adds them to the \code{tidy_dagitty}.
 A pathway is added for a pair of variables upstream of an adjusted collider
 only when the adjustment opens a path between them that is closed without
 it, so variables joined only by a path that the adjustment leaves as it
-found it are not connected.
+found it are not connected. Openness is judged under the whole of
+\code{adjust_for}, so adjusting for a collider and for a variable that blocks the
+path it opens leaves the pair unconnected.
 }
 \examples{
 dag <- dagify(m ~ x + y, x ~ y)

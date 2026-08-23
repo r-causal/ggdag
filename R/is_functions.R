@@ -41,7 +41,13 @@ is_acyclic <- function(.dag) {
 #' @export
 is_adjustment_set <- function(.dag, Z, exposure = NULL, outcome = NULL) {
   .dag <- pull_dag(.dag)
-  dagitty::isAdjustmentSet(.dag, Z, exposure = exposure, outcome = outcome)
+  endpoints <- resolve_endpoints(.dag, exposure, outcome)
+  dagitty::isAdjustmentSet(
+    .dag,
+    Z,
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome
+  )
 }
 
 # Helper function to handle from/to/controlling_for arguments
@@ -165,18 +171,21 @@ is_instrumental <- function(.dag, .var, exposure = NULL, outcome = NULL) {
   .dag <- pull_dag(.dag)
   validate_nodes_exist(.dag, .var, arg = ".var")
 
+  endpoints <- resolve_single_endpoints(.dag, exposure, outcome)
+
   ivs <- dagitty::instrumentalVariables(
     .dag,
-    exposure = exposure,
-    outcome = outcome
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome
   )
   if (length(ivs) == 0) {
     return(FALSE)
   }
 
-  # instrumentalVariables returns a list with potentially complex structure
-  # Check if .var appears anywhere in the results
-  purrr::some(ivs, \(iv) .var %in% unlist(iv))
+  # each result names the instrument in `I` and, for an instrument that holds
+  # only conditionally, its conditioning set in `Z`. A conditioning variable
+  # is required for the instrument to work, not an instrument itself
+  purrr::some(ivs, \(iv) .var %in% iv$I)
 }
 
 #' @rdname is_node_properties

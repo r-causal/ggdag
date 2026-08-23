@@ -83,6 +83,101 @@ test_that("is_instrumental() correctly identifies instrumental variables", {
   expect_false(is_instrumental(dag, "y"))
 })
 
+test_that("is_instrumental() excludes conditioning-set variables", {
+  # dagitty reports `z` as an instrument conditional on `w`, so `w` belongs to
+  # the conditioning set rather than being an instrument itself
+  dag <- dagify(
+    y ~ x + u + w,
+    x ~ z + u + w,
+    z ~ w,
+    exposure = "x",
+    outcome = "y",
+    latent = "u"
+  )
+
+  expect_true(is_instrumental(dag, "z"))
+  expect_false(is_instrumental(dag, "w"))
+
+  # an unconditional instrument is unaffected
+  unconditional <- dagitty::dagitty("dag { i -> x -> y ; x <-> y }")
+  dagitty::exposures(unconditional) <- "x"
+  dagitty::outcomes(unconditional) <- "y"
+  expect_true(is_instrumental(unconditional, "i"))
+})
+
+test_that("is_instrumental() raises a classed error without one exposure and one outcome", {
+  no_endpoints <- dagify(y ~ x + i, x ~ i)
+  expect_error(
+    is_instrumental(no_endpoints, "i"),
+    class = "ggdag_missing_error"
+  )
+
+  two_exposures <- dagify(
+    y ~ x1 + x2,
+    x1 ~ i,
+    x2 ~ i,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+  expect_error(
+    is_instrumental(two_exposures, "i"),
+    class = "ggdag_missing_error"
+  )
+
+  # endpoints supplied as arguments still work
+  iv_dag <- dagitty::dagitty("dag { i -> x -> y ; x <-> y }")
+  expect_true(is_instrumental(iv_dag, "i", exposure = "x", outcome = "y"))
+})
+
+test_that("is_adjustment_set() raises a classed error when exposure/outcome are unset", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    is_adjustment_set(dag, "z"),
+    class = "ggdag_missing_error"
+  )
+
+  # endpoints supplied as arguments, or set in the DAG, still work
+  expect_true(is_adjustment_set(dag, "z", exposure = "x", outcome = "y"))
+  expect_true(is_adjustment_set(
+    dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y"),
+    "z"
+  ))
+})
+
+test_that("an NA endpoint is treated as unset", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    is_adjustment_set(dag, "z", exposure = NA, outcome = "y"),
+    class = "ggdag_missing_error"
+  )
+  expect_error(
+    is_adjustment_set(dag, "z", exposure = c("x", NA), outcome = "y"),
+    class = "ggdag_missing_error"
+  )
+  expect_error(
+    is_instrumental(dag, "z", exposure = "x", outcome = NA),
+    class = "ggdag_missing_error"
+  )
+  expect_ggdag_error(is_adjustment_set(dag, "z", exposure = NA, outcome = "y"))
+})
+
+test_that("endpoint guards in the is_*() family are informative", {
+  no_endpoints <- dagify(y ~ x + i, x ~ i)
+  two_exposures <- dagify(
+    y ~ x1 + x2,
+    x1 ~ i,
+    x2 ~ i,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+
+  expect_ggdag_error(is_instrumental(no_endpoints, "i"))
+  expect_ggdag_error(is_instrumental(two_exposures, "i"))
+  expect_ggdag_error(is_adjustment_set(dagify(y ~ x + z, x ~ z), "z"))
+})
+
 test_that("variable status functions work correctly", {
   dag <- dagify(
     y ~ x + z,

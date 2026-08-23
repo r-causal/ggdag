@@ -10,6 +10,44 @@
       * Backdoor paths are not closeable with given set of variables
       * Necessary variables are unmeasured (latent)
 
+# adjustment set guards are informative
+
+    Code
+      expr
+    Condition <ggdag_missing_error>
+      Error in `dag_adjustment_sets()`:
+      ! Both `exposure` and `outcome` must be set.
+      i Set them in `dagify()` or `dagitty::dagitty()`.
+      i Or pass `exposure` and `outcome` directly.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_missing_error>
+      Error in `dag_adjustment_sets()`:
+      ! Both `exposure` and `outcome` must be set.
+      i Set them in `dagify()` or `dagitty::dagitty()`.
+      i Or pass `exposure` and `outcome` directly.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_missing_error>
+      Error in `ggdag_adjust()`:
+      ! An adjusting variable needs to be set.
+      i Use `var` or `control_for()` to specify adjusting variables.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_missing_error>
+      Error in `ggdag_adjust()`:
+      ! An adjusting variable needs to be set.
+      i Use `var` or `control_for()` to specify adjusting variables.
+
 # control_for handles var with no matches
 
     Code

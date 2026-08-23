@@ -43,10 +43,11 @@ dag_adjustment_sets <- function(
   ...
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  endpoints <- resolve_endpoints(pull_dag(.tdy_dag), exposure, outcome)
   sets <- dagitty::adjustmentSets(
     pull_dag(.tdy_dag),
-    exposure = exposure,
-    outcome = outcome,
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome,
     ...
   )
   is_empty_set <- purrr::is_empty(sets)
@@ -242,6 +243,14 @@ ggdag_adjustment_set <- function(
 #' @param direct logical. Only consider direct confounding? Default is
 #'   `FALSE`
 #'
+#' @details
+#' A confounder is a common cause of `x` and `y`. `z` therefore has to reach
+#' `x` by a directed path that does not run through `y`, and reach `y` by a
+#' directed path that does not run through `x`. Being a descendant of `z` is
+#' not enough: descent is transitive through `x`, so every upstream cause of the
+#' exposure, such as an instrument, would qualify even though it opens no
+#' backdoor path.
+#'
 #' @return Logical. Is the variable a confounder?
 #' @export
 #'
@@ -256,11 +265,43 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
   dag <- pull_dag(.tdy_dag)
 
   if (direct) {
-    z_descendants <- dagitty::children(dag, z)
-  } else {
-    z_descendants <- dagitty::descendants(dag, z)[-1]
+    return(all(c(x, y) %in% dagitty::children(dag, z)))
   }
-  all(c(x, y) %in% z_descendants)
+
+  reaches_avoiding(dag, z, x, .avoid = y) &&
+    reaches_avoiding(dag, z, y, .avoid = x)
+}
+
+#' Does a directed path run from one set of variables to another?
+#'
+#' Only directed edges are followed: a bidirected edge marks an unmeasured
+#' common cause rather than causation out of `.from`. Nodes in `.avoid` are
+#' removed from the graph, so a path that only reaches its target through one
+#' of them does not count. `.from` is excluded from the reachable set, so a
+#' variable never reaches itself.
+#'
+#' @param .dag A `dagitty` object.
+#' @param .from,.targets,.avoid Character vectors of node names.
+#' @return Logical.
+#' @noRd
+reaches_avoiding <- function(.dag, .from, .targets, .avoid) {
+  .edges <- dagitty::edges(.dag)
+  from_node <- as.character(.edges$v)
+  to_node <- as.character(.edges$w)
+  keep <- as.character(.edges$e) == "->" &
+    !(from_node %in% .avoid) &
+    !(to_node %in% .avoid)
+  from_node <- from_node[keep]
+  to_node <- to_node[keep]
+
+  visited <- character(0)
+  frontier <- setdiff(.from, .avoid)
+  while (length(frontier) > 0) {
+    visited <- union(visited, frontier)
+    frontier <- setdiff(to_node[from_node %in% frontier], visited)
+  }
+
+  all(.targets %in% setdiff(visited, .from))
 }
 
 #' Adjust for variables and activate any biasing paths that result
@@ -353,11 +394,13 @@ ggdag_adjust <- function(
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
-  if (!is.null(var)) {
+  if (!is_empty_or_null(var)) {
     .tdy_dag <- .tdy_dag |> control_for(var)
   } else {
+    # `dagitty::adjustedNodes()` reports an unadjusted DAG as an empty list
+    # rather than as `NULL`
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
-    if (is.null(var)) {
+    if (is_empty_or_null(var)) {
       abort(
         c(
           "An adjusting variable needs to be set.",

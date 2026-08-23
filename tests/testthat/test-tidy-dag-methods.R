@@ -68,12 +68,7 @@ test_that("print method works correctly", {
   # DAG with collider paths
   dag4 <- dagify(m ~ x + y, y ~ x)
   tidy_dag4 <- tidy_dagitty(dag4)
-  tidy_dag4 <- activate_collider_paths(
-    tidy_dag4,
-    from = "x",
-    to = "y",
-    adjust_for = "m"
-  )
+  tidy_dag4 <- activate_collider_paths(tidy_dag4, adjust_for = "m")
 
   output4 <- capture.output(print(tidy_dag4))
   expect_true(any(grepl("Paths opened by conditioning", output4)))
@@ -104,12 +99,7 @@ test_that("tidy_dagitty print output snapshots", {
   # DAG with collider paths
   dag4 <- dagify(m ~ x + y, y ~ x)
   tidy_dag4 <- tidy_dagitty(dag4, seed = 123, layout = "time_ordered")
-  tidy_dag4 <- activate_collider_paths(
-    tidy_dag4,
-    from = "x",
-    to = "y",
-    adjust_for = "m"
-  )
+  tidy_dag4 <- activate_collider_paths(tidy_dag4, adjust_for = "m")
 
   expect_snapshot(tidy_dag4)
 

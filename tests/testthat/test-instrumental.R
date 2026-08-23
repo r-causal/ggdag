@@ -53,3 +53,97 @@ test_that("dags with colliders + IVs are shown correctly", {
   n_edges <- count_dag_edges(iv_collider)
   expect_edge_count(p, n_edges, "ggdag_instrumental with collider")
 })
+
+# A DAG with one unconditional instrument (`iu`) and one instrument conditional
+# on `w` (`z`), so the two kinds are present in the same result.
+mixed_iv_dag <- function() {
+  dagify(
+    y ~ x + u + w,
+    x ~ z + iu + u + w,
+    z ~ w,
+    exposure = "x",
+    outcome = "y",
+    latent = "u"
+  )
+}
+
+test_that("node_instrumental() labels unconditional instruments as unadjusted", {
+  dag <- mixed_iv_dag()
+  .df <- pull_dag_data(node_instrumental(dag))
+
+  expect_setequal(unique(.df$instrumental_name), c("iu", "z | w"))
+  expect_true("adjusted" %in% names(.df))
+  expect_false(anyNA(.df$adjusted))
+  expect_setequal(
+    as.character(unique(.df$adjusted)),
+    c("adjusted", "unadjusted")
+  )
+
+  # the unconditional facet has no adjusted variables
+  unconditional <- .df[.df$instrumental_name == "iu", ]
+  expect_true(all(unconditional$adjusted == "unadjusted"))
+
+  # the conditional facet still marks its conditioning variable
+  conditional <- .df[.df$instrumental_name == "z | w", ]
+  expect_true(all(conditional$adjusted[conditional$name == "w"] == "adjusted"))
+})
+
+test_that("ggdag_instrumental() draws every node when instrument kinds are mixed", {
+  withr::local_seed(1234)
+  dag <- mixed_iv_dag()
+  p <- ggdag_instrumental(dag)
+
+  built <- ggplot2::ggplot_build(p)
+  point_data <- built$data[[1]]
+  expect_gt(nrow(point_data), 0)
+  expect_false(anyNA(point_data$shape))
+
+  expect_doppelganger("ggdag_instrumental() mixed conditional instruments", p)
+})
+
+test_that("instrumental functions error without one exposure and one outcome", {
+  no_endpoints <- dagify(y ~ x + i, x ~ i)
+
+  expect_error(
+    node_instrumental(no_endpoints),
+    class = "ggdag_missing_error"
+  )
+  expect_error(
+    ggdag_instrumental(no_endpoints),
+    class = "ggdag_missing_error"
+  )
+
+  two_exposures <- dagify(
+    y ~ x1 + x2,
+    x1 ~ i,
+    x2 ~ i,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+  expect_error(
+    node_instrumental(two_exposures),
+    class = "ggdag_missing_error"
+  )
+
+  # endpoints supplied as arguments still work
+  expect_no_error(node_instrumental(
+    no_endpoints,
+    exposure = "x",
+    outcome = "y"
+  ))
+})
+
+test_that("instrumental endpoint guards are informative", {
+  no_endpoints <- dagify(y ~ x + i, x ~ i)
+  two_exposures <- dagify(
+    y ~ x1 + x2,
+    x1 ~ i,
+    x2 ~ i,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+
+  expect_ggdag_error(node_instrumental(no_endpoints))
+  expect_ggdag_error(node_instrumental(two_exposures))
+  expect_ggdag_error(ggdag_instrumental(no_endpoints))
+})

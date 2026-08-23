@@ -119,11 +119,14 @@ ggdag_collider <- function(
 #' A pathway is added for a pair of variables upstream of an adjusted collider
 #' only when the adjustment opens a path between them that is closed without
 #' it, so variables joined only by a path that the adjustment leaves as it
-#' found it are not connected.
+#' found it are not connected. Openness is judged under the whole of
+#' `adjust_for`, so adjusting for a collider and for a variable that blocks the
+#' path it opens leaves the pair unconnected.
 #'
 #' @inheritParams dag_params
 #' @param adjust_for a character vector, the variable(s) to adjust for.
-#' @param ... additional arguments passed to `tidy_dagitty()`
+#' @param ... additional arguments passed to `tidy_dagitty()`. These are only
+#'   used when `.tdy_dag` is not already a `tidy_dagitty`.
 #'
 #' @return a `tidy_dagitty` with additional rows for collider-activated
 #'   pathways
@@ -138,6 +141,9 @@ ggdag_collider <- function(
 #' @seealso [control_for()], [ggdag_adjust()],
 #'   [geom_dag_collider_edges()]
 activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
+  if (is.tidy_dagitty(.tdy_dag)) {
+    check_tidy_dots_empty(...)
+  }
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
   colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
@@ -154,19 +160,23 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   .dag <- pull_dag(.tdy_dag)
 
   candidate_pairs <- adjusted_colliders |>
-    purrr::map(\(.x) collider_flanks(.dag, .x, adjusted_colliders)) |>
+    purrr::map(\(.x) collider_flanks(.dag, .x, adjust_for)) |>
     purrr::map(unique_pairs) |>
     purrr::list_rbind() |>
     sort_pairs()
 
-  activated_pairs <- dplyr::filter(
-    candidate_pairs,
-    purrr::map2_lgl(
-      .data$Var1,
-      .data$Var2,
-      \(.u, .v) adjustment_opens_path(.dag, .u, .v, adjusted_colliders)
-    )
+  # the openness test is run outside {dplyr}, whose data mask catches a
+  # warning raised inside it and re-signals a summary of its own, which drops
+  # both the condition's class and the pairs it names
+  openness <- purrr::map2(
+    candidate_pairs$Var1,
+    candidate_pairs$Var2,
+    \(.u, .v) path_openness(.dag, .u, .v, adjust_for)
   )
+
+  warn_truncated_pairs(candidate_pairs, purrr::map_lgl(openness, "truncated"))
+
+  activated_pairs <- candidate_pairs[purrr::map_lgl(openness, "opened"), ]
 
   if (nrow(activated_pairs) == 0) {
     return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
@@ -220,11 +230,11 @@ join_rhs_coords <- function(.x, .y) {
 #' proper ancestors together with its bidirected partners, which have an
 #' arrowhead into it without being ancestors. Variables that are themselves
 #' adjusted are dropped, since conditioning on them blocks the path at that
-#' point.
+#' point, whether or not they are colliders.
 #'
 #' @param .dag A `dagitty` object.
 #' @param .var A character vector of length 1, the adjusted collider.
-#' @param .adjusted A character vector, every adjusted collider.
+#' @param .adjusted A character vector, every adjusted variable.
 #' @return A character vector.
 #' @noRd
 collider_flanks <- function(.dag, .var, .adjusted) {
@@ -261,10 +271,10 @@ sort_pairs <- function(.pairs_df) {
 #' @noRd
 collider_path_limit <- 1000
 
-#' Does adjusting for a set of colliders open a path between two variables?
+#' Does adjusting for a set of variables open a path between two variables?
 #'
 #' A pair is joined by an activated line only when conditioning on the adjusted
-#' colliders opens a path between the two variables that is closed without the
+#' variables opens a path between the two that is closed without the
 #' adjustment. A path that is open either way carries no collider bias, and a
 #' path that stays closed carries nothing at all. The two enumerations are
 #' matched on the path itself rather than on position, since dagitty need not
@@ -272,10 +282,11 @@ collider_path_limit <- 1000
 #'
 #' @param .dag A `dagitty` object.
 #' @param .from,.to A character vector of length 1.
-#' @param .adjusted A character vector, the adjusted colliders.
-#' @return Logical.
+#' @param .adjusted A character vector, the variables adjusted for.
+#' @return A list of `opened`, whether the adjustment opens a path, and
+#'   `truncated`, whether either enumeration reached its limit.
 #' @noRd
-adjustment_opens_path <- function(.dag, .from, .to, .adjusted) {
+path_openness <- function(.dag, .from, .to, .adjusted) {
   adjusted_paths <- dagitty::paths(
     .dag,
     .from,
@@ -290,15 +301,95 @@ adjustment_opens_path <- function(.dag, .from, .to, .adjusted) {
     limit = collider_path_limit
   )
 
-  open_without_adjustment <- unadjusted_paths$open[
+  n_paths <- max(
+    length(adjusted_paths$paths),
+    length(unadjusted_paths$paths)
+  )
+  truncated <- n_paths >= collider_path_limit
+
+  # `dagitty` returns empty lists, not empty vectors, when no path joins the
+  # two variables, and a list is not something `&` can work on
+  if (rlang::is_empty(adjusted_paths$paths)) {
+    return(list(opened = FALSE, truncated = truncated))
+  }
+
+  open_without_adjustment <- as.logical(unlist(unadjusted_paths$open))[
     match(adjusted_paths$paths, unadjusted_paths$paths)
   ]
 
-  any(
-    adjusted_paths$open &
+  opened <- any(
+    as.logical(unlist(adjusted_paths$open)) &
       !is.na(open_without_adjustment) &
       !open_without_adjustment
   )
+
+  list(opened = opened, truncated = truncated)
+}
+
+#' @rdname path_openness
+#' @noRd
+adjustment_opens_path <- function(.dag, .from, .to, .adjusted) {
+  openness <- path_openness(.dag, .from, .to, .adjusted)
+  if (openness$truncated) {
+    warn_truncated(.from, .to)
+  }
+
+  openness$opened
+}
+
+#' Warn once for the pairs whose path enumeration reached its limit
+#'
+#' `dagitty::paths()` stops at `limit` paths and says nothing about it, so a
+#' pair of variables in a dense DAG can silently miss the path the adjustment
+#' opens. One warning covers every pair of a single call, since a dense DAG
+#' truncates for many pairs at once.
+#'
+#' @param .pairs_df A data frame with `Var1` and `Var2` columns.
+#' @param truncated A logical vector along the rows of `.pairs_df`.
+#' @return `NULL`, invisibly.
+#' @noRd
+warn_truncated_pairs <- function(
+  .pairs_df,
+  truncated,
+  call = rlang::caller_env()
+) {
+  if (!any(truncated)) {
+    return(invisible(NULL))
+  }
+
+  warn_truncated(
+    .pairs_df$Var1[truncated],
+    .pairs_df$Var2[truncated],
+    call = call
+  )
+}
+
+#' @param from,to Character vectors of the same length, the truncated pairs.
+#' @rdname warn_truncated_pairs
+#' @noRd
+warn_truncated <- function(from, to, call = rlang::caller_env()) {
+  #  naming both variables is more use than a list holding one pair
+  header <- if (length(from) == 1) {
+    "Only the first {collider_path_limit} paths between {.val {from}} and {.val {to}} were checked."
+  } else {
+    pairs <- paste(from, "and", to)
+    c(
+      "Only the first {collider_path_limit} paths were checked for {length(pairs)} pairs of variables.",
+      "!" = "Truncated: {.val {pairs}}"
+    )
+  }
+
+  warn(
+    c(
+      header,
+      "!" = "A pathway opened by the adjustment may be missing from the plot.",
+      "i" = "Consider a smaller DAG or a sparser set of variables to adjust for."
+    ),
+    warning_class = "ggdag_path_limit_warning",
+    call = call
+  )
+
+  invisible(NULL)
 }
 
 #' Detecting colliders in DAGs

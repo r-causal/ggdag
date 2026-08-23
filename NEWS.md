@@ -1,5 +1,37 @@
 # ggdag (development version)
 
+* `is_confounder()` now requires `z` to be a common cause of `x` and `y`: `z` must reach each of them by a directed path that does not run through the other. It previously tested only whether `x` and `y` were descendants of `z`. Being a descendant is transitive through `x`, so every upstream cause of the exposure was reported as a confounder, including instruments, mediators, and variables that open no backdoor path at all.
+
+* `is_instrumental()` no longer reports a conditioning variable as an instrument. dagitty returns a conditional instrument as the instrument together with the set that has to be conditioned on for it to work; both were matched against the variable being tested, so a variable that has to be adjusted for came back as an instrument.
+
+* `node_instrumental()` now marks the variables of an unconditional instrument as unadjusted. A DAG with both an unconditional and a conditional instrument left that column missing for the unconditional one, and `ggdag_instrumental()` maps it to shape, so its facet was drawn with edges and labels but no nodes.
+
+* `activate_collider_paths()`, and with it `control_for()` and `ggdag_adjust()`, now judges whether a path is open under the whole of `adjust_for` rather than under the adjusted colliders alone, and drops every adjusted variable from the pairs a biasing pathway can join. Adjusting for a collider and for a variable that blocks the path it opens no longer draws a bias line for an association that the adjustment blocks.
+
+* `activate_collider_paths()` now warns when `dagitty::paths()` reaches its enumeration limit, which happens on dense DAGs and can hide a pathway the adjustment opens. One warning names every pair affected by a call. It also no longer fails with a type error when the two variables sit in disconnected parts of the DAG.
+
+* `activate_collider_paths()` now rejects arguments passed through `...` when its input is already a `tidy_dagitty`. `...` is forwarded to `tidy_dagitty()`, which is not called in that case, so those arguments were silently discarded.
+
+* `query_parents()`, `query_children()`, `query_ancestors()`, `query_descendants()`, and `query_markov_blanket()` now represent an empty set as `"{}"` with a zero-length list element, the convention `query_adjustment_sets()` and `query_instrumental()` already use. They previously substituted `NA`, so the list column reported a length of 1 for a node whose `n_*` column said 0.
+
+* `query_parents()`, `query_children()`, `query_ancestors()`, `query_descendants()`, `query_markov_blanket()`, and `query_status()` now raise `ggdag_missing_nodes_error` when `.var` names a variable that is not in the DAG. The first five surfaced an internal dagitty error instead, and `query_status()` returned a plausible-looking row of `NA` status, indistinguishable from a real unlabeled node.
+
+* `query_conditional_independence()` now returns a zero-row tibble with its documented columns when a DAG implies no conditional independencies, rather than a tibble with no columns at all. Its `set` column is now the integer position of each conditional independence for every query type. dagitty names the independencies of the default `"missing.edge"` query, so `set` came back as a character vector of those names, and a result could not be row-bound with an empty one.
+
+* `query_conditional_independence()` now renders an empty conditioning set as `"{}"` with a zero-length list element, matching the rest of the query API. It previously reported `NA`.
+
+* `query_parents()`, `query_children()`, `query_ancestors()`, `query_descendants()`, `query_markov_blanket()`, and `query_status()` now return a zero-row tibble with their documented columns when `.var` names no nodes, and ask about a repeated node once rather than giving it a row per mention.
+
+* `query_instrumental()` now raises an error when `conditioned_on` is supplied. The argument never had an effect: `dagitty::instrumentalVariables()` works out the conditioning set an instrument requires itself and reports it in the `conditioning_set` and `conditioned_on` columns.
+
+* `dag_adjustment_sets()`, `ggdag_adjustment_set()`, `is_adjustment_set()`, `is_instrumental()`, `node_instrumental()`, and `ggdag_instrumental()` now raise `ggdag_missing_error` when the exposure and outcome they need are not set, in place of the error dagitty raises, which carries no ggdag class. The instrumental variable functions also report when either endpoint names more than one variable, which the algorithm in dagitty does not allow. An endpoint of `NA` is treated as unset rather than as a variable missing from the DAG.
+
+* `ggdag_adjust()` now raises the `ggdag_missing_error` it always intended to when no adjusting variable is set. `dagitty::adjustedNodes()` reports an unadjusted DAG as an empty list rather than as `NULL`, so the guard never fired and a plot of no adjustment was drawn instead. Passing `var = character(0)` errors for the same reason.
+
+* `ggdag_conditional_independence()` now reports the missing `independence` column when given the raw output of `dagitty::localTests()`, which keeps the independence statements in its row names. It previously failed with a low-level replacement error.
+
+* The `query_*()` functions now raise the package's own error classes when an exposure, outcome, `from`, or `to` is missing, or when `from` or `to` is not a character vector. These conditions carried no ggdag class, so `tryCatch()` handlers written for the rest of the package missed them.
+
 * `is_collider()`, `is_downstream_collider()`, `node_collider()`, `ggdag_collider()`, and `query_colliders()` now count the arrowheads that bidirected edges contribute. A variable with one directed parent and one bidirected partner, or with two bidirected partners, has two arrowheads pointing into it and is a collider; dagitty counts only directed edges as parents, so such a variable was previously reported as a non-collider. `activate_collider_paths()`, and with it `control_for()` and `ggdag_adjust()`, now draws the biasing pathway that conditioning on such a collider opens.
 
 * `activate_collider_paths()` now connects a pair of variables only when adjusting for the collider opens a path between them that is closed without the adjustment. It previously drew a biasing pathway between every pair of an adjusted collider's ancestors, including pairs that conditioning on the collider cannot connect, such as a cause and its own descendant.

@@ -141,6 +141,18 @@ is_empty_or_null <- function(x) {
   is.null(x) || purrr::is_empty(x)
 }
 
+#' Does a value name no variable at all?
+#'
+#' An `NA` names nothing, so an argument holding one is as unset as an empty
+#' one, whatever else it holds.
+#'
+#' @param x A character vector, or `NULL`.
+#' @return Logical.
+#' @noRd
+is_unset <- function(x) {
+  is_empty_or_null(x) || anyNA(x)
+}
+
 is_false <- function(x) is.logical(x) && length(x) == 1L && !is.na(x) && !x
 
 has_exposure <- function(x) {
@@ -428,6 +440,116 @@ validate_nodes_exist <- function(
   }
 
   invisible(TRUE)
+}
+
+#' Reject dots that have nowhere to go
+#'
+#' Functions that forward `...` to `tidy_dagitty()` have nothing to forward it
+#' to when the input is already a `tidy_dagitty`, so an argument passed there
+#' would be discarded without a word.
+#'
+#' @param ... The dots to check.
+#' @return `NULL`, invisibly.
+#' @noRd
+check_tidy_dots_empty <- function(..., call = rlang::caller_env()) {
+  dots <- rlang::list2(...)
+  if (rlang::is_empty(dots)) {
+    return(invisible(NULL))
+  }
+
+  dot_names <- rlang::names2(dots)
+  dot_names[!nzchar(dot_names)] <- "<unnamed>"
+
+  abort(
+    c(
+      "{.arg ...} must be empty.",
+      "x" = "Unused argument{?s}: {.field {dot_names}}",
+      "i" = "{.arg ...} is passed to {.fun tidy_dagitty}, which is not called
+             for an input that is already a {.cls tidy_dagitty}."
+    ),
+    error_class = "ggdag_dots_error",
+    call = call
+  )
+}
+
+#' Resolve the exposure and outcome a dagitty algorithm needs
+#'
+#' dagitty stops with a bare error when an algorithm that needs endpoints is
+#' given none, which carries no ggdag class and names an internal call.
+#' Resolving the endpoints first lets the caller raise the package's own error.
+#'
+#' @param .dag A `dagitty` object.
+#' @param exposure,outcome A character vector, or `NULL` to take the value set
+#'   on the DAG.
+#' @return A list of `exposure` and `outcome`.
+#' @noRd
+resolve_endpoints <- function(
+  .dag,
+  exposure,
+  outcome,
+  call = rlang::caller_env()
+) {
+  if (is_empty_or_null(exposure)) {
+    exposure <- dagitty::exposures(.dag)
+  }
+  if (is_empty_or_null(outcome)) {
+    outcome <- dagitty::outcomes(.dag)
+  }
+
+  # `NA` names no variable, and dagitty reports it as one that is missing from
+  # the DAG rather than as an endpoint that was never set
+  if (is_unset(exposure) || is_unset(outcome)) {
+    na_bullet <- if (anyNA(exposure) || anyNA(outcome)) {
+      c("x" = "{.code NA} does not name a variable.")
+    }
+
+    abort(
+      c(
+        "Both {.arg exposure} and {.arg outcome} must be set.",
+        na_bullet,
+        "i" = "Set them in {.fun dagify} or {.fun dagitty::dagitty}.",
+        "i" = "Or pass {.arg exposure} and {.arg outcome} directly."
+      ),
+      error_class = "ggdag_missing_error",
+      call = call
+    )
+  }
+
+  list(exposure = exposure, outcome = outcome)
+}
+
+#' Resolve endpoints for an algorithm defined on a single pair
+#'
+#' `dagitty::instrumentalVariables()` requires exactly one exposure and one
+#' outcome, so a DAG carrying several of either reaches it as an error about
+#' unset endpoints.
+#'
+#' @inheritParams resolve_endpoints
+#' @return A list of `exposure` and `outcome`, each of length 1.
+#' @noRd
+resolve_single_endpoints <- function(
+  .dag,
+  exposure,
+  outcome,
+  call = rlang::caller_env()
+) {
+  endpoints <- resolve_endpoints(.dag, exposure, outcome, call = call)
+  n_exposure <- length(endpoints$exposure)
+  n_outcome <- length(endpoints$outcome)
+
+  if (n_exposure != 1 || n_outcome != 1) {
+    abort(
+      c(
+        "{.arg exposure} and {.arg outcome} must each be a single variable.",
+        "x" = "{.arg exposure} names {n_exposure} variable{?s}; {.arg outcome} names {n_outcome}.",
+        "i" = "Instrumental variables are defined for one exposure and one outcome."
+      ),
+      error_class = "ggdag_missing_error",
+      call = call
+    )
+  }
+
+  endpoints
 }
 
 #' Check if DAG is acyclic and warn if not

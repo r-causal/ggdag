@@ -86,12 +86,7 @@ test_that("collider edge cases", {
 
   # Test activate_collider_paths
   tidy_dag <- tidy_dagitty(dag)
-  result <- activate_collider_paths(
-    tidy_dag,
-    from = "x",
-    to = "y",
-    adjust_for = "m"
-  )
+  result <- activate_collider_paths(tidy_dag, adjust_for = "m")
   expect_s3_class(result, "tidy_dagitty")
 })
 

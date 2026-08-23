@@ -20,7 +20,10 @@ uses the exposure defined in the DAG.}
 \item{outcome}{Character vector of outcome variable names. If NULL,
 uses the outcome defined in the DAG.}
 
-\item{conditioned_on}{Character vector of variables that must be conditioned on.}
+\item{conditioned_on}{Defunct. \code{dagitty::instrumentalVariables()} works out
+the conditioning set an instrument requires on its own and reports it in
+the \code{conditioning_set} and \code{conditioned_on} columns, so there is nothing
+for this argument to do. Supplying it is an error.}
 }
 \value{
 A tibble with columns:

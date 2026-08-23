@@ -255,6 +255,116 @@ test_that("activate_collider_paths() only pairs ancestors the adjustment opens",
   )
 })
 
+test_that("activate_collider_paths() conditions on the whole adjustment set", {
+  # x -> w -> m <- y: adjusting for the collider `m` opens the path between
+  # `x` and `y`, but adjusting for `w` at the same time blocks it again
+  dag <- dagify(m ~ w + y, w ~ x)
+  activated <- activate_collider_paths(dag, adjust_for = c("m", "w"))
+
+  expect_equal(collider_line_pairs(activated), character(0))
+  expect_equal(n_collider_paths(activated), 0)
+
+  # adjusting for the collider alone still opens the path
+  collider_only <- activate_collider_paths(dag, adjust_for = "m")
+  expect_true("x-y" %in% collider_line_pairs(collider_only))
+
+  # an adjusted variable that blocks nothing leaves the line in place
+  unrelated <- dagify(m ~ x + y, q ~ z)
+  with_unrelated <- activate_collider_paths(unrelated, adjust_for = c("m", "z"))
+  expect_equal(collider_line_pairs(with_unrelated), "x-y")
+})
+
+test_that("activate_collider_paths() rejects unused dots on tidy input", {
+  tidy_dag <- tidy_dagitty(dagify(m ~ x + y, y ~ x))
+
+  expect_error(
+    activate_collider_paths(tidy_dag, adjust_for = "m", from = "x", to = "y"),
+    class = "ggdag_error"
+  )
+
+  # dots still reach `tidy_dagitty()` when the input is not already tidy
+  expect_no_error(
+    activate_collider_paths(
+      dagify(m ~ x + y, y ~ x),
+      adjust_for = "m",
+      layout = "circle"
+    )
+  )
+})
+
+# A complete DAG on `n` nodes, dense enough that the number of paths between
+# its first and last node passes the limit `adjustment_opens_path()` uses.
+complete_dag <- function(n) {
+  nodes <- paste0("x", seq_len(n))
+  edges <- purrr::map(seq_len(n - 1), \(i) {
+    paste0(nodes[i], " -> ", nodes[seq(i + 1, n)])
+  })
+
+  dagitty::dagitty(paste0("dag{", paste(unlist(edges), collapse = "; "), "}"))
+}
+
+test_that("adjustment_opens_path() warns when the path limit truncates", {
+  dense <- complete_dag(8)
+
+  cnd <- rlang::catch_cnd(
+    adjustment_opens_path(dense, "x1", "x8", "x4"),
+    classes = "ggdag_path_limit_warning"
+  )
+  expect_s3_class(cnd, "ggdag_path_limit_warning")
+
+  # a DAG under the limit is silent
+  sparse <- complete_dag(4)
+  expect_no_warning(adjustment_opens_path(sparse, "x1", "x4", "x2"))
+})
+
+test_that("the path limit warning survives the public entry points", {
+  dense <- complete_dag(8)
+
+  # the openness test used to run inside a {dplyr} data mask, which caught the
+  # warning and re-signalled a summary of its own without the class
+  through_activate <- rlang::catch_cnd(
+    activate_collider_paths(dense, adjust_for = "x8"),
+    classes = "ggdag_path_limit_warning"
+  )
+  expect_s3_class(through_activate, "ggdag_path_limit_warning")
+
+  through_control_for <- rlang::catch_cnd(
+    control_for(dense, "x8"),
+    classes = "ggdag_path_limit_warning"
+  )
+  expect_s3_class(through_control_for, "ggdag_path_limit_warning")
+
+  # one warning covers every truncated pair of the call, not one per pair
+  warnings <- character(0)
+  withCallingHandlers(
+    control_for(dense, "x8"),
+    ggdag_path_limit_warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      rlang::cnd_muffle(w)
+    }
+  )
+  expect_length(warnings, 1)
+
+  # a DAG under the limit is silent through the same entry point
+  expect_no_warning(control_for(complete_dag(4), "x4"))
+})
+
+test_that("adjustment_opens_path() returns FALSE when there is no path", {
+  # `x` and `a` sit in disconnected components, so no path joins them
+  disconnected <- pull_dag(tidy_dagitty(dagify(m ~ x + y, b ~ a)))
+
+  expect_false(adjustment_opens_path(disconnected, "x", "a", "m"))
+})
+
+test_that("activate_collider_paths() conditions are informative", {
+  tidy_dag <- tidy_dagitty(dagify(m ~ x + y, y ~ x))
+
+  expect_ggdag_error(
+    activate_collider_paths(tidy_dag, adjust_for = "m", from = "x", to = "y")
+  )
+  expect_ggdag_warning(adjustment_opens_path(complete_dag(8), "x1", "x8", "x4"))
+})
+
 test_that("node_collider() is idempotent", {
   dag <- dagify(m ~ x + y, y ~ x)
 

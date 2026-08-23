@@ -29,6 +29,94 @@ test_that("`query_conditional_independence()` handles empty results correctly", 
   result <- query_conditional_independence(g)
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 0)
+
+  # the empty result keeps the documented schema
+  expected_types <- c(
+    set = "integer",
+    a = "character",
+    b = "character",
+    conditioning_set = "character",
+    conditioned_on = "list"
+  )
+  expect_named(result, names(expected_types))
+  expect_equal(purrr::map_chr(result, typeof), expected_types)
+
+  # a saturated DAG implies no conditional independencies either
+  saturated <- query_conditional_independence(tidy_dagitty(dagify(y ~ x)))
+  expect_equal(nrow(saturated), 0)
+  expect_named(saturated, names(expected_types))
+  expect_equal(purrr::map_chr(saturated, typeof), expected_types)
+
+  # a non-empty result has the same types, for either query type. `dagitty`
+  # names the independencies of a "missing.edge" query, which would otherwise
+  # make `set` a character vector of those names
+  populated <- query_conditional_independence(tidy_dagitty(dagify(
+    y ~ x,
+    x ~ z
+  )))
+  expect_gt(nrow(populated), 0)
+  expect_equal(purrr::map_chr(populated, typeof), expected_types)
+  expect_equal(populated$set, seq_len(nrow(populated)))
+
+  all_pairs <- query_conditional_independence(test_dag, type = "all.pairs")
+  expect_equal(purrr::map_chr(all_pairs, typeof), expected_types)
+  expect_equal(all_pairs$set, seq_len(nrow(all_pairs)))
+
+  # so an empty and a non-empty result row-bind
+  expect_equal(
+    nrow(dplyr::bind_rows(saturated, populated)),
+    nrow(populated)
+  )
+})
+
+test_that("`query_conditional_independence()` renders an empty conditioning set", {
+  # `x _||_ y` holds unconditionally, so its conditioning set is empty
+  result <- query_conditional_independence(tidy_dagitty(dagify(y ~ z, x ~ w)))
+  unconditional <- result[result$conditioning_set == "{}", ]
+
+  expect_gt(nrow(unconditional), 0)
+  expect_false(anyNA(result$conditioning_set))
+  expect_equal(unconditional$conditioned_on[[1]], character())
+  # the list column and the set string agree in every row
+  expect_equal(
+    lengths(result$conditioned_on) == 0,
+    result$conditioning_set == "{}"
+  )
+})
+
+test_that("`ggdag_conditional_independence()` requires an independence column", {
+  # the shape of raw `dagitty::localTests()` output: the independence
+  # statements live in the row names, not in a column
+  local_tests_output <- data.frame(
+    estimate = c(0.05, -0.12),
+    p.value = c(0.6, 0.3),
+    `2.5%` = c(-0.15, -0.30),
+    `97.5%` = c(0.25, 0.06),
+    row.names = c("w _||_ y | x", "x _||_ w | z"),
+    check.names = FALSE
+  )
+
+  expect_error(
+    ggdag_conditional_independence(local_tests_output),
+    class = "ggdag_columns_error"
+  )
+
+  # the wrapped workflow still plots
+  wrapped <- tibble::as_tibble(local_tests_output, rownames = "independence")
+  expect_s3_class(ggdag_conditional_independence(wrapped), "gg")
+})
+
+test_that("the missing independence column is reported clearly", {
+  local_tests_output <- data.frame(
+    estimate = c(0.05, -0.12),
+    p.value = c(0.6, 0.3),
+    `2.5%` = c(-0.15, -0.30),
+    `97.5%` = c(0.25, 0.06),
+    row.names = c("w _||_ y | x", "x _||_ w | z"),
+    check.names = FALSE
+  )
+
+  expect_ggdag_error(ggdag_conditional_independence(local_tests_output))
 })
 
 test_that("`test_conditional_independence()` works", {
