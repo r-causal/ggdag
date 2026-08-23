@@ -11,7 +11,7 @@
 node_equivalent_dags(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "auto"),
+  layout = ggdag_option("layout", "nicely"),
   ...
 )
 
@@ -42,7 +42,7 @@ ggdag_equivalent_dags(
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = ggdag_option("layout", "auto"))
+node_equivalent_class(.dag, layout = ggdag_option("layout", "nicely"))
 
 ggdag_equivalent_class(
   .tdy_dag,
@@ -160,13 +160,21 @@ column to identify graph set for equivalent DAGs or a \code{reversable}
 column for equivalent classes, or a \code{ggplot}
 }
 \description{
-Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
-input DAG. CPDAGs are Markov equivalent to the input graph. See
-\code{\link[dagitty:equivalentDAGs]{dagitty::equivalentDAGs()}} for details.
+Analyze the Markov equivalence class of an input DAG: the DAGs that encode
+the same conditional independencies as the input graph. See
+\code{\link[dagitty:equivalentDAGs]{dagitty::equivalentDAGs()}} and \code{\link[dagitty:equivalenceClass]{dagitty::equivalenceClass()}} for details.
 \code{node_equivalent_dags()} returns a set of DAGs, while
 \code{node_equivalent_class()} tags reversable edges.
 \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
 \code{ggdag_equivalent_class()} plots all reversable edges as undirected.
+}
+\details{
+\code{node_equivalent_dags()} restores columns that the input \code{tidy_dagitty}
+carries beyond the standard ones, such as \code{label} or \code{status}, by joining
+them back on node name. Only node-level columns survive: a column whose
+value varies across the edges of a node cannot be matched to the edges of
+the equivalent DAGs, so the value of its first edge is used for every row of
+that node.
 }
 \examples{
 g_ex <- dagify(y ~ x + z, x ~ z)

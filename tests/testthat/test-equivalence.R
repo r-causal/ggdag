@@ -140,3 +140,126 @@ test_that("ggdag_equivalent_class handles complex DAG with bidirected edges", {
     info = "Should have 0 edges when use_edges = FALSE"
   )
 })
+
+test_that("ggdag_equivalent_class() leaves mapped colour and fill legends intact", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_equivalent_class(dag) +
+    ggplot2::aes(color = name, fill = name)
+  built <- ggplot2::ggplot_build(p)
+
+  expect_equal(
+    as.character(built$plot$scales$get_scales("colour")$get_breaks()),
+    c("x", "y", "z")
+  )
+  expect_equal(
+    as.character(built$plot$scales$get_scales("fill")$get_breaks()),
+    c("x", "y", "z")
+  )
+
+  p_arrow <- ggdag_equivalent_class(dag, edge_engine = "ggarrow") +
+    ggplot2::aes(color = name)
+  built_arrow <- ggplot2::ggplot_build(p_arrow)
+
+  expect_equal(
+    as.character(built_arrow$plot$scales$get_scales("colour")$get_breaks()),
+    c("x", "y", "z")
+  )
+
+  expect_doppelganger(
+    "ggdag_equivalent_class() with a colour aesthetic",
+    p
+  )
+})
+
+test_that("node_equivalent_dags() does not duplicate rows when extra columns exist", {
+  plain <- dagify(y ~ x, y ~ z, x ~ z) |>
+    tidy_dagitty() |>
+    node_equivalent_dags()
+  plain_data <- pull_dag_data(plain)
+
+  labelled <- dagify(
+    y ~ x,
+    y ~ z,
+    x ~ z,
+    labels = c(
+      "y" = "Outcome",
+      "x" = "Exposure",
+      "z" = "Confounder"
+    ),
+    exposure = "x",
+    outcome = "y"
+  ) |>
+    tidy_dagitty() |>
+    node_status() |>
+    node_equivalent_dags()
+  labelled_data <- pull_dag_data(labelled)
+
+  expect_equal(nrow(labelled_data), nrow(plain_data))
+  expect_equal(sum(duplicated(labelled_data)), 0)
+  expect_equal(
+    dplyr::count(labelled_data, dag = .data$dag)$n,
+    dplyr::count(plain_data, dag = .data$dag)$n
+  )
+})
+
+test_that("equivalence functions handle DAGs with no edges", {
+  edgeless <- dagitty::dagitty("dag { x y }")
+
+  ec <- node_equivalent_class(edgeless)
+  expect_s3_class(ec, "tidy_dagitty")
+  expect_false(any(pull_dag_data(ec)$reversable))
+
+  expect_s3_class(ggdag_equivalent_class(edgeless), "ggplot")
+})
+
+test_that("equivalent DAG facets are ordered numerically", {
+  # a complete 4-node DAG has 24 equivalent DAGs, enough to expose
+  # lexicographic ordering of the `dag` identifier
+  complete_dag <- dagify(d ~ a + b + c, c ~ a + b, b ~ a)
+
+  dag_ids <- pull_dag_data(node_equivalent_dags(complete_dag))$dag
+  expect_type(dag_ids, "integer")
+
+  p <- ggdag_equivalent_dags(complete_dag)
+  panels <- ggplot2::ggplot_build(p)$layout$layout
+  expect_equal(
+    panels$dag[order(panels$PANEL)],
+    seq_len(nrow(panels))
+  )
+})
+
+test_that("node_equivalent_class() does not confuse node names containing underscores", {
+  # hash("a_b", "c") and hash("a", "b_c") collide when edge keys are
+  # built by pasting sorted names with "_"
+  dag <- dagify(b_c ~ a, c ~ a_b + d)
+
+  edges <- pull_dag_data(node_equivalent_class(dag)) |>
+    dplyr::filter(!is.na(.data$to))
+
+  # a_b -> c and d -> c form the v-structure a_b -> c <- d, so both are compelled
+  expect_false(edges$reversable[edges$name == "a_b" & edges$to == "c"])
+  expect_false(edges$reversable[edges$name == "d" & edges$to == "c"])
+  # only a -- b_c is reversible in the equivalence class
+  expect_true(edges$reversable[edges$name == "a" & edges$to == "b_c"])
+})
+
+test_that("node_equivalent_class() is idempotent", {
+  g_ex <- dagify(y ~ x + z, x ~ z)
+
+  once <- node_equivalent_class(g_ex)
+  twice <- node_equivalent_class(once)
+
+  expect_equal(pull_dag_data(twice), pull_dag_data(once))
+})
+
+test_that("equivalence functions use the package-wide default layout", {
+  expect_equal(
+    formals(node_equivalent_dags)$layout,
+    formals(tidy_dagitty)$layout
+  )
+  expect_equal(
+    formals(node_equivalent_class)$layout,
+    formals(tidy_dagitty)$layout
+  )
+})

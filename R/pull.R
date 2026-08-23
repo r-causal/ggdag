@@ -25,7 +25,9 @@
 #' dag_data <- pull_dag_data(tidy_dagitty_obj)
 #'
 #' tidy_dagitty_obj |>
-#'   dplyr::mutate(name = toupper(name)) |>
+#'   # rename both endpoints of every edge, or the recompiled DAG will hold a
+#'   # mix of the old and new names
+#'   dplyr::mutate(name = toupper(name), to = toupper(to)) |>
 #'   # recreate the DAG component
 #'   update_dag()
 #'

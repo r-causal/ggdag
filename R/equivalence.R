@@ -1,12 +1,20 @@
 #' Generating Equivalent Models
 #'
-#' Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
-#' input DAG. CPDAGs are Markov equivalent to the input graph. See
-#' [dagitty::equivalentDAGs()] for details.
+#' Analyze the Markov equivalence class of an input DAG: the DAGs that encode
+#' the same conditional independencies as the input graph. See
+#' [dagitty::equivalentDAGs()] and [dagitty::equivalenceClass()] for details.
 #' `node_equivalent_dags()` returns a set of DAGs, while
 #' `node_equivalent_class()` tags reversable edges.
 #' `ggdag_equivalent_dags()` plots all equivalent DAGs, while
 #' `ggdag_equivalent_class()` plots all reversable edges as undirected.
+#'
+#' @details
+#' `node_equivalent_dags()` restores columns that the input `tidy_dagitty`
+#' carries beyond the standard ones, such as `label` or `status`, by joining
+#' them back on node name. Only node-level columns survive: a column whose
+#' value varies across the edges of a node cannot be matched to the edges of
+#' the equivalent DAGs, so the value of its first edge is used for every row of
+#' that node.
 #'
 #' @param .dag input graph, an object of class `tidy_dagitty` or `dagitty`
 #' @param n maximal number of returned graphs.
@@ -33,7 +41,7 @@
 node_equivalent_dags <- function(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "auto"),
+  layout = ggdag_option("layout", "nicely"),
   ...
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
@@ -50,12 +58,17 @@ node_equivalent_dags <- function(
   update_dag(.dag) <- updated_dag
 
   if (extra_columns) {
-    extra_column_df <- select_extra_columns(.dag)
+    # extra columns come from edge-level rows, so keep one row per node to
+    # join by name without multiplying the rows of the equivalent DAGs
+    extra_column_df <- .dag |>
+      select_extra_columns() |>
+      dplyr::distinct(.data$name, .keep_all = TRUE)
   }
 
   update_dag_data(.dag) <- dagitty::equivalentDAGs(pull_dag(.dag), n = n) |>
     purrr::map_df(map_equivalence, .id = "dag") |>
-    dplyr::as_tibble()
+    dplyr::as_tibble() |>
+    dplyr::mutate(dag = as.integer(.data$dag))
 
   if (extra_columns) {
     .dag <- dplyr::left_join(.dag, extra_column_df, by = "name")
@@ -168,32 +181,42 @@ ggdag_equivalent_dags <- function(
   p
 }
 
-hash <- function(x, y) {
-  purrr::pmap_chr(list(x, y), \(.x, .y) paste0(sort(c(.x, .y)), collapse = "_"))
-}
-
 #' @rdname equivalent
 #' @export
 node_equivalent_class <- function(
   .dag,
-  layout = ggdag_option("layout", "auto")
+  layout = ggdag_option("layout", "nicely")
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout)
-  ec_data <- dagitty::equivalenceClass(pull_dag(.dag)) |>
-    dagitty::edges() |>
+  # drop the results of an earlier application so the join does not suffix
+  .dag <- dplyr::select(.dag, -dplyr::any_of("reversable"))
+
+  class_edges <- dagitty::equivalenceClass(pull_dag(.dag)) |>
+    dagitty::edges()
+
+  # dagitty returns a zero-column data frame for a DAG with no edges
+  if (nrow(class_edges) == 0 || ncol(class_edges) == 0) {
+    return(dplyr::mutate(.dag, reversable = FALSE))
+  }
+
+  # match on the endpoints themselves rather than on a pasted key, which
+  # collides for node names that contain the separator
+  ec_data <- class_edges |>
     dplyr::filter(.data$e == "--") |>
-    dplyr::select(name = "v", reversable = "e", to = "w") |>
-    dplyr::mutate_at(c("name", "to"), as.character) |>
-    dplyr::mutate(hash = hash(.data$name, .data$to)) |>
-    dplyr::select("hash", "reversable")
+    dplyr::transmute(
+      edge_start = pmin(as.character(.data$v), as.character(.data$w)),
+      edge_end = pmax(as.character(.data$v), as.character(.data$w)),
+      reversable = TRUE
+    )
 
-  .dag <- .dag |>
-    dplyr::mutate(hash = hash(.data$name, .data$to)) |>
-    dplyr::left_join(ec_data, by = "hash") |>
+  .dag |>
+    dplyr::mutate(
+      edge_start = pmin(.data$name, .data$to),
+      edge_end = pmax(.data$name, .data$to)
+    ) |>
+    dplyr::left_join(ec_data, by = c("edge_start", "edge_end")) |>
     dplyr::mutate(reversable = !is.na(.data$reversable)) |>
-    dplyr::select(-hash)
-
-  .dag
+    dplyr::select(-"edge_start", -"edge_end")
 }
 
 #' @rdname equivalent
@@ -277,7 +300,7 @@ ggdag_equivalent_class <- function(
           resect = resect,
           show.legend = TRUE
         ) +
-        breaks(breaks) +
+        breaks() +
         ggplot2::scale_alpha_manual(
           name = "Reversable",
           drop = FALSE,
@@ -297,7 +320,7 @@ ggdag_equivalent_class <- function(
           )
         ) +
         geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
-        breaks(breaks) +
+        breaks() +
         ggraph::scale_edge_alpha_manual(
           name = "Reversable",
           drop = FALSE,

@@ -1,5 +1,25 @@
 # ggdag (development version)
 
+* `ggdag_equivalent_class()` no longer empties a mapped colour or fill legend. It passed an undefined `breaks` argument to its colour and fill scales, which R resolved to the package's internal `breaks()` function, so the trained scale reported no breaks at all and any colour or fill aesthetic added to the plot lost its legend.
+
+* `node_equivalent_dags()` no longer multiplies rows when its input carries columns beyond the standard ones, such as `label` or `status`. Those columns were joined back on node name from edge-level rows, so a node with several edges gained a row per edge in every equivalent DAG, which drew each of its edges more than once, doubled the reported edge counts, and mixed values across the edges of a node.
+
+* `node_equivalent_class()` and `ggdag_equivalent_class()` now work on DAGs with no edges. dagitty describes such a graph with a data frame that has no columns, which the filter for undirected edges could not read.
+
+* `node_equivalent_dags()` now identifies each equivalent DAG with an integer, so `ggdag_equivalent_dags()` orders its facets 1, 2, 3, and so on. They were sorted as text, so a DAG with ten or more equivalent DAGs drew its panels in the order 1, 10, 11, ..., 2.
+
+* `node_equivalent_class()` now matches the edges of the equivalence class on their endpoints rather than on a key built by pasting the two node names together with an underscore. An underscore is legal in a node name, so two different edges could produce the same key, which tagged a compelled edge as reversible and drew it undirected. `node_equivalent_class()` is also idempotent now: applying it to its own output returns the single-application result.
+
+* `node_equivalent_dags()` and `node_equivalent_class()` now default to `"nicely"`, the layout the rest of the package defaults to, rather than `"auto"`, so an equivalence plot arranges a DAG the way every other function does.
+
+* `ggdag_canonical()` now defaults `label_col` to `"black"`, as every other plotting function in the package does. It defaulted to `text_col`, so labels were drawn in white.
+
+* `ggdag_canonical()` gains the standard `size`, `edge_width`, `edge_cap`, `arrow_length`, `unified_legend`, and `key_glyph` arguments, and now forwards `text`, `label`, `node`, and `stylized` to `ggdag()`. Passing `size` previously reached the layout algorithm through `...` and raised an error from it, and the four forwarding arguments had no effect.
+
+* `node_canonical()` now carries the labels of the input DAG over to the canonical graph, so `ggdag_canonical(dag, use_labels = TRUE)` labels the nodes that survive. The latent variables that replace bidirected edges have no label of their own.
+
+* Corrected documentation: the Equivalent DAGs and Classes help page said that the functions return a set of complete partially directed acyclic graphs. `node_equivalent_dags()` returns the DAGs of the Markov equivalence class, and `node_equivalent_class()` works from the single such graph that represents that class. The `pull_dag()` example renamed only the `name` column, which rebuilds a DAG holding a mix of the old and the new names.
+
 * `is_confounder()` now requires `z` to be a common cause of `x` and `y`: `z` must reach each of them by a directed path that does not run through the other. It previously tested only whether `x` and `y` were descendants of `z`. Being a descendant is transitive through `x`, so every upstream cause of the exposure was reported as a confounder, including instruments, mediators, and variables that open no backdoor path at all.
 
 * `is_instrumental()` no longer reports a conditioning variable as an instrument. dagitty returns a conditional instrument as the instrument together with the set that has to be conditioned on for it to work; both were matched against the variable being tested, so a variable that has to be adjusted for came back as an instrument.
