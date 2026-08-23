@@ -222,14 +222,12 @@ is_collider <- function(.dag, .var, downstream = TRUE) {
     .dag <- pull_dag(.dag)
   }
   validate_nodes_exist(.dag, .var, arg = ".var")
-  n_parents <- dagitty::parents(.dag, .var)
-  collider <- length(n_parents) > 1
-  downstream_collider <- is_downstream_collider(.dag, .var)
-  if (downstream) {
-    any(c(collider, downstream_collider))
-  } else {
-    collider
+  collider <- has_multiple_parents(.dag, .var)
+  if (!downstream || collider) {
+    return(collider)
   }
+
+  any_ancestor_is_collider(.dag, .var)
 }
 
 #' @rdname is_collider
@@ -239,6 +237,28 @@ is_downstream_collider <- function(.dag, .var) {
     .dag <- pull_dag(.dag)
   }
   validate_nodes_exist(.dag, .var, arg = ".var")
-  var_ancestors <- dagitty::ancestors(.dag, .var)[-1]
-  any(purrr::map_lgl(var_ancestors, \(.x) is_collider(.dag, .x)))
+
+  any_ancestor_is_collider(.dag, .var)
+}
+
+#' Is any proper ancestor of a variable a collider?
+#'
+#' Ancestry is transitive, so a variable is downstream of a collider exactly
+#' when one of its proper ancestors has more than one parent. Recursing into
+#' the downstream status of each ancestor would revisit the same ancestors
+#' repeatedly, which costs exponentially many dagitty calls on deep DAGs.
+#'
+#' @param .dag A `dagitty` object.
+#' @param .var A character vector of length 1.
+#' @return Logical.
+#' @noRd
+any_ancestor_is_collider <- function(.dag, .var) {
+  var_ancestors <- dagitty::ancestors(.dag, .var, proper = TRUE)
+  any(purrr::map_lgl(var_ancestors, \(.x) has_multiple_parents(.dag, .x)))
+}
+
+#' Does a variable have more than one parent?
+#' @noRd
+has_multiple_parents <- function(.dag, .var) {
+  length(dagitty::parents(.dag, .var)) > 1
 }

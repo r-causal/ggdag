@@ -266,7 +266,8 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' Adjust for variables and activate any biasing paths that result
 #'
 #' @inheritParams dag_params
-#' @param var a character vector, the variable(s) to adjust for.
+#' @param var the variable(s) to adjust for. This can be a character vector of
+#'   variable names or a list of the form `list(c(...))`.
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #' @param collider_lines logical. Should the plot show paths activated by
@@ -294,6 +295,7 @@ control_for <- function(
   ...
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+  var <- flatten_node_names(var)
   validate_nodes_exist(.tdy_dag, var, arg = "var")
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var

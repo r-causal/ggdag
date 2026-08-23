@@ -193,7 +193,15 @@ ggdag_adjacent(
 \arguments{
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{.var}{a character vector, the variable to be assessed (must by in DAG)}
+\item{.var}{a character vector, the variable(s) to be assessed (must be in
+the DAG). When more than one variable is given, the relation is assessed
+against the set as a whole. \code{node_parents()}, \code{node_children()}, and
+\code{node_adjacent()} label a queried variable that is also a relative of
+another queried variable with the relation rather than as a queried
+variable. \code{node_ancestors()}, \code{node_descendants()}, and
+\code{node_markov_blanket()} instead drop every queried variable from the
+relation set, so a queried variable always carries the queried-set label
+and only variables outside the queried set carry the relation label.}
 
 \item{as_factor}{Logical. Should the column be a factor?}
 

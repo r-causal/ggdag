@@ -176,3 +176,70 @@ test_that("controlling_for accepts different formats", {
   expect_true(is_d_separated(dag, controlling_for = NULL))
   expect_true(is_d_separated(dag, controlling_for = character(0)))
 })
+
+test_that("is_d_*() accept the documented `list(c(...))` format", {
+  dag <- dagify(m ~ x + y, m2 ~ x + y)
+
+  # conditioning on both colliders opens the path between x and y
+  expect_false(is_d_separated(
+    dag,
+    "x",
+    "y",
+    controlling_for = list(c("m", "m2"))
+  ))
+  expect_true(is_d_connected(
+    dag,
+    "x",
+    "y",
+    controlling_for = list(c("m", "m2"))
+  ))
+
+  expect_equal(
+    is_d_separated(dag, "x", "y", controlling_for = list(c("m", "m2"))),
+    is_d_separated(dag, "x", "y", controlling_for = c("m", "m2"))
+  )
+  expect_equal(
+    is_d_connected(dag, "x", "y", controlling_for = list(c("m", "m2"))),
+    is_d_connected(dag, "x", "y", controlling_for = c("m", "m2"))
+  )
+
+  # repeated names in the list collapse to one conditioning set
+  expect_false(
+    is_d_separated(dag, "x", "y", controlling_for = list(c("m", "m"), "m2"))
+  )
+})
+
+test_that("is_d_*() raise a classed error for nodes not in the DAG", {
+  dag <- dagify(m ~ x + y)
+
+  expect_error(
+    is_d_separated(dag, "x", "nope"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    is_d_connected(dag, "x", "nope"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    is_d_separated(dag, "nope", "y"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    is_d_separated(dag, "x", "y", controlling_for = "nope"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    is_d_separated(dag, "x", "y", controlling_for = list(c("m", "nope"))),
+    class = "ggdag_missing_nodes_error"
+  )
+})
+
+test_that("is_d_*() name the offending argument when a node is missing", {
+  dag <- dagify(m ~ x + y)
+
+  expect_ggdag_error(is_d_separated(dag, "x", "nope"))
+  expect_ggdag_error(is_d_connected(dag, "nope", "y"))
+  expect_ggdag_error(
+    is_d_separated(dag, "x", "y", controlling_for = list(c("m", "nope")))
+  )
+})

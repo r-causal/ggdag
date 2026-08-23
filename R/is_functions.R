@@ -45,7 +45,13 @@ is_adjustment_set <- function(.dag, Z, exposure = NULL, outcome = NULL) {
 }
 
 # Helper function to handle from/to/controlling_for arguments
-.prepare_d_separation_args <- function(.dag, from, to, controlling_for) {
+.prepare_d_separation_args <- function(
+  .dag,
+  from,
+  to,
+  controlling_for,
+  call = rlang::caller_env()
+) {
   # Handle NULL values for from/to using exposure/outcome
   if (is.null(from)) {
     from <- dagitty::exposures(.dag)
@@ -61,15 +67,27 @@ is_adjustment_set <- function(.dag, Z, exposure = NULL, outcome = NULL) {
         "i" = "Set {.arg from} to specify the starting variable.",
         "i" = "Set {.arg to} to specify the ending variable."
       ),
-      error_class = "ggdag_missing_error"
+      error_class = "ggdag_missing_error",
+      call = call
     )
   }
 
-  # Convert controlling_for to appropriate format for dagitty
+  validate_nodes_exist(.dag, c(from, to), arg = c("from", "to"), call = call)
+
+  # dagitty checks each element of `Z` on its own, so a list element holding
+  # more than one name must be flattened first
+  controlling_for <- flatten_node_names(controlling_for)
+  if (!is.null(controlling_for)) {
+    validate_nodes_exist(
+      .dag,
+      controlling_for,
+      arg = "controlling_for",
+      call = call
+    )
+  }
+
   Z <- if (is.null(controlling_for)) {
     list()
-  } else if (is.list(controlling_for)) {
-    controlling_for
   } else {
     as.list(controlling_for)
   }

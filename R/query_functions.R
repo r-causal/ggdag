@@ -183,12 +183,22 @@ query_paths <- function(
   }
 
   # `dagitty` prints paths only for a single source, so enumerate one ordered
-  # pair of endpoints at a time and stack the results
+  # pair of endpoints at a time and stack the results. A node has no path to
+  # itself, and a repeated endpoint would enumerate the same pair twice
   endpoint_pairs <- expand.grid(
-    from = from,
-    to = to,
+    from = unique(from),
+    to = unique(to),
     stringsAsFactors = FALSE
   )
+  endpoint_pairs <- endpoint_pairs[
+    endpoint_pairs$from != endpoint_pairs$to,
+    ,
+    drop = FALSE
+  ]
+
+  if (nrow(endpoint_pairs) == 0) {
+    return(empty_paths())
+  }
 
   path_df <- purrr::pmap(
     endpoint_pairs,
@@ -208,6 +218,22 @@ query_paths <- function(
   path_df$path_id <- seq_len(nrow(path_df))
 
   path_df
+}
+
+#' The empty result of a path query
+#'
+#' @return A zero-row tibble in the shape `query_paths()` returns.
+#' @noRd
+empty_paths <- function() {
+  tibble::tibble(
+    path_id = integer(),
+    from = character(),
+    to = character(),
+    path = character(),
+    path_type = character(),
+    variables = list(),
+    open = logical()
+  )
 }
 
 #' Find the paths between one pair of endpoints
@@ -233,18 +259,8 @@ query_paths_pair <- function(
     Z = conditioned_on
   )
 
-  empty_paths <- tibble::tibble(
-    path_id = integer(),
-    from = character(),
-    to = character(),
-    path = character(),
-    path_type = character(),
-    variables = list(),
-    open = logical()
-  )
-
   if (length(paths_obj$paths) == 0) {
-    return(empty_paths)
+    return(empty_paths())
   }
 
   # `dagitty` returns an empty description for a path it cannot print
@@ -253,7 +269,7 @@ query_paths_pair <- function(
   open <- paths_obj$open[keep]
 
   if (length(paths) == 0) {
-    return(empty_paths)
+    return(empty_paths())
   }
 
   # Get directed paths to classify path types (if not already directed)
@@ -387,8 +403,8 @@ query_instrumental <- function(
 #' Test whether sets of variables are d-separated in a DAG given a conditioning set.
 #'
 #' @inheritParams dag_params
-#' @param from Character vector of nodes or a list of node sets.
-#' @param to Character vector of nodes or a list of node sets.
+#' @param from Character vector of node names.
+#' @param to Character vector of node names.
 #' @param conditioned_on Character vector of conditioning variables.
 #'
 #' @return A tibble with columns:

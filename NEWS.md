@@ -1,5 +1,23 @@
 # ggdag (development version)
 
+* `node_dconnected()`, `node_dseparated()`, and `node_drelationship()` now label each node of `from` and `to` with its own d-relationship to the opposite set. Previously they computed the set-level answer from `dagitty::dconnected()` and wrote it onto every endpoint, so a node d-separated from the other set was labeled d-connected whenever any of its companions was. Multi-element endpoints arise without passing vectors, since `from` and `to` fall back to the exposures and outcomes set on the DAG.
+
+* `node_dseparated()` no longer adds `collider_line` and `adjusted` columns when `controlling_for` is `NULL`. These columns now appear only when adjustment actually occurs, as they do in `node_dconnected()`, `node_drelationship()`, and `control_for()`. Code that maps `shape = adjusted` on unadjusted `node_dseparated()` output needs to set `controlling_for` or drop the mapping.
+
+* The documented `list(c(...))` format for `controlling_for` now works in `node_dconnected()`, `node_dseparated()`, `node_drelationship()`, `is_d_separated()`, and `is_d_connected()`, and the same format is now accepted by `control_for()`'s `var`. The node functions previously reported the listed variables as missing from the DAG, and the `is_*()` functions failed with "the condition has length > 1".
+
+* `node_dconnected()`, `node_dseparated()`, `node_drelationship()`, `is_d_separated()`, and `is_d_connected()` now raise `ggdag_missing_nodes_error` when `from`, `to`, or `controlling_for` names a variable that is not in the DAG, matching the rest of the package. Previously an internal error from dagitty, which carries no ggdag class, surfaced instead.
+
+* `node_dseparated()` and `node_drelationship()` gain the documented `...`, and `node_dconnected()` now forwards it, so arguments such as `layout` and `coords` reach `tidy_dagitty()`. `ggdag_drelationship()`, `ggdag_dseparated()`, and `ggdag_dconnected()` pass their `...` on to the same place.
+
+* `node_parents()`, `node_children()`, `node_ancestors()`, `node_descendants()`, `node_markov_blanket()`, and `node_adjacent()` now handle a `.var` with more than one variable, which the documentation has always allowed. They previously emitted a recycling warning and mislabeled nodes, and the ancestor and descendant sets dropped only the first queried variable.
+
+* `is_collider()` and `is_downstream_collider()` no longer call each other recursively. The recursion was redundant, since ancestry is transitive, but it cost exponentially many dagitty calls, which made `node_collider()`, `ggdag_collider()`, and `control_for()` effectively hang on chain-like DAGs of realistic size.
+
+* `query_paths()` now skips pairs of identical endpoints and collapses repeated ones, rather than asking dagitty for the paths from a node to itself.
+
+* Printing a `dag_paths()` result no longer counts paths that dagitty cannot describe in the header, which previously produced an empty `{}` entry and a count larger than the list of paths shown.
+
 * `dag_paths()`, `query_paths()`, and `edge_backdoor()` now classify a path that is neither causal nor backdoor, such as a path opened by conditioning on a collider, as `"other"`. Previously every non-causal path was labeled `"backdoor"`, even though a backdoor path is one whose first edge points into the exposure. `ggdag_paths()` gains an `"other"` key in its path legend.
 
 * `dag_paths()`, `ggdag_paths()`, and `ggdag_paths_fan()` now pass `directed` to `dagitty::paths()`, so `directed = TRUE` returns and plots only directed causal paths. The argument was previously ignored.

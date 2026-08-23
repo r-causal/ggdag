@@ -89,13 +89,17 @@ test_that("node_dseparated identifies d-separated nodes correctly", {
   expect_equal(as.character(x_row_controlled$d_relationship[1]), "d-connected")
   expect_equal(as.character(y_row_controlled$d_relationship[1]), "d-connected")
 
-  # Test with no controlling_for - should add collider_line and adjusted columns
-  result_no_control <- node_dseparated(dag, from = "x", to = "y")
-  result_no_control_df <- pull_dag_data(result_no_control)
-  expect_true("collider_line" %in% names(result_no_control_df))
-  expect_true("adjusted" %in% names(result_no_control_df))
-  expect_true(!any(result_no_control_df$collider_line))
-  expect_true(all(result_no_control_df$adjusted == "unadjusted"))
+  # Adjustment columns appear only when adjustment actually happens, matching
+  # the documented equivalents node_dconnected() and node_drelationship()
+  result_no_control_df <- pull_dag_data(node_dseparated(
+    dag,
+    from = "x",
+    to = "y"
+  ))
+  expect_false("collider_line" %in% names(result_no_control_df))
+  expect_false("adjusted" %in% names(result_no_control_df))
+  expect_true("collider_line" %in% names(result_controlled_df))
+  expect_true("adjusted" %in% names(result_controlled_df))
 
   # Test with exposure/outcome
   dag_exp <- dagify(y ~ x + z, z ~ x, exposure = "x", outcome = "y")

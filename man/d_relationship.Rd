@@ -24,7 +24,8 @@ node_dseparated(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 )
 
 node_drelationship(
@@ -32,7 +33,8 @@ node_drelationship(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 )
 
 ggdag_drelationship(
@@ -230,14 +232,12 @@ dag |> ggdag_drelationship("x", "y", controlling_for = "m")
 
 dag |>
   node_dseparated("x", "y") |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend,
              col = d_relationship)) +
   geom_dag_edges() +
-  geom_dag_collider_edges() +
   geom_dag_node() +
   geom_dag_text(col = "white") +
-  theme_dag() +
-  scale_adjusted(include_color = FALSE)
+  theme_dag()
 
 dag |>
   node_dconnected("x", "y", controlling_for = "m") |>

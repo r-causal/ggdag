@@ -623,3 +623,53 @@ test_that("query_paths() is unchanged for a single exposure and outcome", {
   expect_equal(unique(result$to), "y")
   expect_setequal(result$path, c("x -> y", "x <- z -> y"))
 })
+
+test_that("query_paths() skips self-pairs when from and to overlap", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  result <- query_paths(dag, from = c("x", "y"), to = c("y", "x"))
+
+  expect_equal(nrow(result), 2)
+  expect_false(any(result$from == result$to))
+  expect_setequal(paste(result$from, result$to), c("x y", "y x"))
+  expect_setequal(result$path, c("x -> y", "y <- x"))
+  expect_equal(result$path_id, 1:2)
+})
+
+test_that("query_paths() returns no rows when every pair is a self-pair", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  result <- query_paths(dag, from = "x", to = "x")
+
+  expect_equal(nrow(result), 0)
+  expect_named(
+    result,
+    c("path_id", "from", "to", "path", "path_type", "variables", "open")
+  )
+})
+
+test_that("query_paths() deduplicates repeated endpoints", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  single <- query_paths(dag, from = "x", to = "y")
+
+  expect_equal(query_paths(dag, from = c("x", "x"), to = "y"), single)
+  expect_equal(query_paths(dag, from = "x", to = c("y", "y")), single)
+  expect_equal(query_paths(dag, from = c("x", "x"), to = c("y", "y")), single)
+})
+
+test_that("query_dseparated() and query_dconnected() reject list input", {
+  dag <- dagify(y ~ x + z, x ~ w, z ~ w)
+
+  expect_error(
+    query_dseparated(dag, from = list("x"), to = "z"),
+    "must be a character vector"
+  )
+  expect_error(
+    query_dseparated(dag, from = "x", to = list("z")),
+    "must be a character vector"
+  )
+  expect_error(
+    query_dconnected(dag, from = list("x"), to = "z"),
+    "must be a character vector"
+  )
+})

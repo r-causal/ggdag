@@ -346,3 +346,29 @@ test_that("dag_paths() results print without exposure or outcome set", {
 
   expect_no_error(capture.output(print(paths)))
 })
+
+test_that("dag_paths() print omits paths dagitty cannot describe", {
+  dag <- dagify(
+    y ~ x1 + x2,
+    x1 ~ z,
+    x2 ~ z,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+  paths <- dag_paths(dag, from = "x1", to = "y")
+
+  output <- capture.output(print(paths))
+  paths_line <- grep("Paths:", output, value = TRUE)
+
+  expect_length(paths_line, 1)
+  expect_false(grepl("{}", paths_line, fixed = TRUE))
+
+  # the count must match the paths actually listed
+  claimed <- as.integer(sub(
+    "^.*Paths: ([0-9]+) open path.*$",
+    "\\1",
+    paths_line
+  ))
+  listed <- regmatches(paths_line, gregexpr("\\{[^}]*\\}", paths_line))[[1]]
+  expect_equal(claimed, length(listed))
+})

@@ -372,6 +372,30 @@ assert_columns_exist <- function(data, columns, call = rlang::caller_env()) {
   }
 }
 
+#' Flatten a set of node names to a character vector
+#'
+#' Arguments such as `controlling_for` are documented as accepting a character
+#' vector, a list of the form `list(c(...))`, or `NULL`. Both dagitty and
+#' `validate_nodes_exist()` need a plain character vector: a list element
+#' holding more than one name reaches them as a deparsed string, or makes an
+#' `if` condition longer than one.
+#'
+#' An input naming no nodes at all, such as `list()` or `character(0)`, becomes
+#' `NULL` so that callers can test for it with one condition and treat it the
+#' same as an absent argument.
+#'
+#' @param nodes A character vector, a list of character vectors, or `NULL`.
+#' @return A character vector of unique node names, or `NULL` if it names none.
+#' @noRd
+flatten_node_names <- function(nodes) {
+  nodes <- unique(as.character(unlist(nodes, use.names = FALSE)))
+  if (length(nodes) == 0) {
+    return(NULL)
+  }
+
+  nodes
+}
+
 #' Validate that nodes exist in DAG
 #' @noRd
 validate_nodes_exist <- function(

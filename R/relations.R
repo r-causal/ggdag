@@ -12,7 +12,15 @@
 #'   "link_arc", which accounts for directed and bidirected edges, "link",
 #'   "arc", or "diagonal"
 #' @param ... additional arguments passed to `tidy_dagitty()`
-#' @param .var a character vector, the variable to be assessed (must by in DAG)
+#' @param .var a character vector, the variable(s) to be assessed (must be in
+#'   the DAG). When more than one variable is given, the relation is assessed
+#'   against the set as a whole. `node_parents()`, `node_children()`, and
+#'   `node_adjacent()` label a queried variable that is also a relative of
+#'   another queried variable with the relation rather than as a queried
+#'   variable. `node_ancestors()`, `node_descendants()`, and
+#'   `node_markov_blanket()` instead drop every queried variable from the
+#'   relation set, so a queried variable always carries the queried-set label
+#'   and only variables outside the queried set carry the relation label.
 #' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` with an column related to the given
@@ -72,7 +80,7 @@ node_children <- function(.tdy_dag, .var, as_factor = TRUE) {
     .tdy_dag,
     children = dplyr::case_when(
       .data$name %in% .children ~ "child",
-      .data$name == .var ~ "parent",
+      .data$name %in% .var ~ "parent",
       TRUE ~ NA_character_
     )
   )
@@ -97,7 +105,7 @@ node_parents <- function(.tdy_dag, .var, as_factor = TRUE) {
     .tdy_dag,
     parent = dplyr::case_when(
       .data$name %in% .parent ~ "parent",
-      .data$name == .var ~ "child",
+      .data$name %in% .var ~ "child",
       TRUE ~ NA
     )
   )
@@ -116,12 +124,12 @@ node_ancestors <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
   validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
-  .ancestors <- dagitty::ancestors(pull_dag(.tdy_dag), .var)[-1]
+  .ancestors <- dagitty::ancestors(pull_dag(.tdy_dag), .var, proper = TRUE)
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     ancestor = dplyr::case_when(
       .data$name %in% .ancestors ~ "ancestor",
-      .data$name == .var ~ "descendant",
+      .data$name %in% .var ~ "descendant",
       TRUE ~ NA_character_
     )
   )
@@ -140,12 +148,16 @@ node_descendants <- function(.tdy_dag, .var, as_factor = TRUE) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
   validate_nodes_exist(.tdy_dag, .var, arg = ".var")
 
-  .descendants <- dagitty::descendants(pull_dag(.tdy_dag), .var)[-1]
+  .descendants <- dagitty::descendants(
+    pull_dag(.tdy_dag),
+    .var,
+    proper = TRUE
+  )
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
     descendant = dplyr::case_when(
       .data$name %in% .descendants ~ "descendant",
-      .data$name == .var ~ "ancestor",
+      .data$name %in% .var ~ "ancestor",
       TRUE ~ NA_character_
     )
   )
@@ -170,7 +182,7 @@ node_markov_blanket <- function(.tdy_dag, .var, as_factor = TRUE) {
     .tdy_dag,
     blanket = dplyr::case_when(
       .data$name %in% .blanket ~ "Markov blanket",
-      .data$name == .var ~ "center variable",
+      .data$name %in% .var ~ "center variable",
       TRUE ~ NA_character_
     )
   )
@@ -196,7 +208,7 @@ node_adjacent <- function(.tdy_dag, .var, as_factor = TRUE) {
     .tdy_dag,
     adjacent = dplyr::case_when(
       .data$name %in% .adjacent ~ "adjacent",
-      .data$name == .var ~ "center variable",
+      .data$name %in% .var ~ "center variable",
       TRUE ~ NA_character_
     )
   )

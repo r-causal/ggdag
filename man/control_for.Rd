@@ -42,7 +42,8 @@ ggdag_adjust(
 \arguments{
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{var}{a character vector, the variable(s) to adjust for.}
+\item{var}{the variable(s) to adjust for. This can be a character vector of
+variable names or a list of the form \code{list(c(...))}.}
 
 \item{as_factor}{Logical. Should the column be a factor?}
 

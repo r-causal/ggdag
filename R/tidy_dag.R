@@ -794,7 +794,8 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
     paths_obj <- tryCatch(dagitty::paths(dag), error = function(e) NULL)
 
     if (!is.null(paths_obj) && length(paths_obj$paths) > 0) {
-      open_paths <- paths_obj$paths[paths_obj$open]
+      # `dagitty` returns an empty description for a path it cannot print
+      open_paths <- paths_obj$paths[paths_obj$open & nzchar(paths_obj$paths)]
 
       if (length(open_paths) > 0) {
         # Format paths with curly braces
