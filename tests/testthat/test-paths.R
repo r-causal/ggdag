@@ -1,17 +1,17 @@
 test_that("DAG paths are identified and drawn correctly", {
   coords_confounder <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    0,
-    "y",
-    2,
-    0,
-    "z",
-    1,
-    1
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+        0 ,
+        0 ,
+    "y"   ,
+        2 ,
+        0 ,
+    "z"   ,
+        1 ,
+        1
   )
 
   confounder_triangle_dag <- dagify(
@@ -23,23 +23,23 @@ test_that("DAG paths are identified and drawn correctly", {
   )
 
   coords_butterfly <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    0,
-    "y",
-    2,
-    0,
-    "a",
-    0,
-    1,
-    "b",
-    2,
-    1,
-    "m",
-    1,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+    0     ,
+    0     ,
+    "y"   ,
+    2     ,
+    0     ,
+    "a"   ,
+    0     ,
+    1     ,
+    "b"   ,
+    2     ,
+    1     ,
+    "m"   ,
+    1     ,
     0.5
   )
 

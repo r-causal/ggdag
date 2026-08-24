@@ -1,18 +1,18 @@
 # Tests for ggarrow engine support in ggdag_* quick-plot functions
 
 coords_confounder <- tibble::tribble(
-  ~name,
-  ~x,
-  ~y,
-  "x",
-  0,
-  0,
-  "y",
-  2,
-  0,
-  "z",
-  1,
-  1
+  ~name ,
+  ~x    ,
+  ~y    ,
+  "x"   ,
+      0 ,
+      0 ,
+  "y"   ,
+      2 ,
+      0 ,
+  "z"   ,
+      1 ,
+      1
 )
 
 confounder_dag <- dagify(

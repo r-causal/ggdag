@@ -71,23 +71,23 @@ m_bias <- function(
   x_y_associated = FALSE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    0,
-    "y",
-    2,
-    0,
-    "a",
-    0,
-    1,
-    "b",
-    2,
-    1,
-    "m",
-    1,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+    0     ,
+    0     ,
+    "y"   ,
+    2     ,
+    0     ,
+    "a"   ,
+    0     ,
+    1     ,
+    "b"   ,
+    2     ,
+    1     ,
+    "m"   ,
+    1     ,
     0.5
   )
 
@@ -127,23 +127,23 @@ butterfly_bias <- function(
   x_y_associated = FALSE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    0,
-    "y",
-    2,
-    0,
-    "a",
-    0,
-    1,
-    "b",
-    2,
-    1,
-    "m",
-    1,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+    0     ,
+    0     ,
+    "y"   ,
+    2     ,
+    0     ,
+    "a"   ,
+    0     ,
+    1     ,
+    "b"   ,
+    2     ,
+    1     ,
+    "m"   ,
+    1     ,
     0.5
   )
 
@@ -181,18 +181,18 @@ confounder_triangle <- function(
   x_y_associated = FALSE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    0,
-    "y",
-    2,
-    0,
-    "z",
-    1,
-    1
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+        0 ,
+        0 ,
+    "y"   ,
+        2 ,
+        0 ,
+    "z"   ,
+        1 ,
+        1
   )
 
   if (x_y_associated) {
@@ -227,18 +227,18 @@ collider_triangle <- function(
   x_y_associated = FALSE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    1,
-    "y",
-    2,
-    1,
-    "m",
-    1,
-    0
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+        0 ,
+        1 ,
+    "y"   ,
+        2 ,
+        1 ,
+    "m"   ,
+        1 ,
+        0
   )
 
   if (x_y_associated) {
@@ -272,18 +272,18 @@ mediation_triangle <- function(
   x_y_associated = FALSE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    0,
-    0,
-    "y",
-    2,
-    0,
-    "m",
-    1,
-    1
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+        0 ,
+        0 ,
+    "y"   ,
+        2 ,
+        0 ,
+    "m"   ,
+        1 ,
+        1
   )
 
   if (x_y_associated) {
@@ -318,17 +318,17 @@ quartet_collider <- function(
   x_y_associated = TRUE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    1,
-    1,
-    "y",
-    2,
-    1,
-    "z",
-    3,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+    1     ,
+    1     ,
+    "y"   ,
+    2     ,
+    1     ,
+    "z"   ,
+    3     ,
     1.1
   )
 
@@ -363,17 +363,17 @@ quartet_confounder <- function(
   x_y_associated = TRUE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    2,
-    1,
-    "y",
-    3,
-    1,
-    "z",
-    1,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+    2     ,
+    1     ,
+    "y"   ,
+    3     ,
+    1     ,
+    "z"   ,
+    1     ,
     1.1
   )
 
@@ -409,17 +409,17 @@ quartet_mediator <- function(
   x_y_associated = FALSE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    1,
-    1,
-    "y",
-    3,
-    1,
-    "z",
-    2,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+    1     ,
+    1     ,
+    "y"   ,
+    3     ,
+    1     ,
+    "z"   ,
+    2     ,
     1.1
   )
 
@@ -457,24 +457,24 @@ quartet_m_bias <- function(
   x_y_associated = TRUE
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x",
-    3,
-    1,
-    "y",
-    5,
-    2,
-    "z",
-    3,
-    2,
-    "u1",
-    1,
-    2,
-    "u2",
-    2,
-    4
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x"   ,
+        3 ,
+        1 ,
+    "y"   ,
+        5 ,
+        2 ,
+    "z"   ,
+        3 ,
+        2 ,
+    "u1"  ,
+        1 ,
+        2 ,
+    "u2"  ,
+        2 ,
+        4
   )
 
   .dag <- dagify(
@@ -517,26 +517,26 @@ quartet_time_collider <- function(
   z3 = NULL
 ) {
   coords <- tibble::tribble(
-    ~name,
-    ~x,
-    ~y,
-    "x1",
-    2,
-    1,
-    "x2",
-    3,
-    1,
-    "y2",
-    2.9,
-    1.05,
-    "z2",
-    3,
-    1.1,
-    "y3",
-    3.9,
-    1.05,
-    "z3",
-    4,
+    ~name ,
+    ~x    ,
+    ~y    ,
+    "x1"  ,
+    2     ,
+    1     ,
+    "x2"  ,
+    3     ,
+    1     ,
+    "y2"  ,
+    2.9   ,
+    1.05  ,
+    "z2"  ,
+    3     ,
+    1.1   ,
+    "y3"  ,
+    3.9   ,
+    1.05  ,
+    "z3"  ,
+    4     ,
     1.1
   )
 
