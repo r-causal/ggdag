@@ -177,3 +177,13 @@
       x Missing: "y -> m" and "y -> x"
       i Did you swap `from` and `to`?
 
+# set_curve_edges() rejects one bidirected edge named both ways round
+
+    Code
+      expr
+    Condition <ggdag_dag_error>
+      Error in `set_curve_edges()`:
+      ! 1 edge named more than once in `edges`.
+      x Repeated: "x <-> y"
+      i An edge takes one curvature, and a bidirected edge is the same edge whichever way round it is named.
+

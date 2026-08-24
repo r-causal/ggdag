@@ -72,7 +72,7 @@
     Condition <lifecycle_warning_deprecated>
       Warning:
       The `stylized` argument of `geom_dag()` is deprecated as of ggdag 0.3.0.
-      i Please use the `stylized` argument instead.
+      i Please use the `use_stylized` argument instead.
     Output
       [[1]]
       geom_dag_point: na.rm = FALSE

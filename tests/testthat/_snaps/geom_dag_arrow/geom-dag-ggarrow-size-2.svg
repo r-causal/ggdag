@@ -32,9 +32,9 @@
 <path d='M 626.88 471.68 L 625.38 476.59 L 385.77 107.63 L 384.70 108.32 L 383.63 109.02 L 623.22 477.99 L 618.13 477.37 L 630.32 486.55 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <path d='M 330.37 118.29 L 331.87 123.20 L 335.30 108.32 L 323.11 117.51 L 328.20 116.88 L 88.61 485.86 L 89.68 486.55 L 90.76 487.25 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <path d='M 609.66 524.59 L 595.32 519.37 L 598.62 523.30 L 110.34 523.31 L 110.34 525.87 L 598.62 525.88 L 595.32 529.81 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<text x='360.00' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
-<text x='655.02' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='64.98' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+<text x='360.00' y='77.88' text-anchor='middle' style='font-size: 22.08px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='11.05px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='655.02' y='532.19' text-anchor='middle' style='font-size: 22.08px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='11.05px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='64.98' y='532.19' text-anchor='middle' style='font-size: 22.08px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='11.05px' lengthAdjust='spacingAndGlyphs'>z</text>
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='165.72px' lengthAdjust='spacingAndGlyphs'>geom_dag ggarrow size 2</text>

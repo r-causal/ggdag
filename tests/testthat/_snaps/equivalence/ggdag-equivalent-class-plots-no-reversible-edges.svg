@@ -94,7 +94,6 @@
 <polygon points='670.20,294.11 674.52,291.61 670.20,289.12 ' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30; fill: #000000; fill-opacity: 0.30;' />
 <line x1='662.78' y1='291.61' x2='674.52' y2='291.61' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30;' />
 <polygon points='670.20,294.11 674.52,291.61 670.20,289.12 ' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30; fill: #000000; fill-opacity: 0.30;' />
-<line x1='662.78' y1='291.61' x2='674.52' y2='291.61' style='stroke-width: 1.19; stroke: #000000; stroke-opacity: 0.30;' />
 <text x='683.91' y='294.64' style='font-size: 8.80px; font-family: sans;' textLength='27.88px' lengthAdjust='spacingAndGlyphs'>FALSE</text>
 <text x='38.17' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='300.90px' lengthAdjust='spacingAndGlyphs'>ggdag_equivalent_class() plots no reversible edges</text>
 </g>

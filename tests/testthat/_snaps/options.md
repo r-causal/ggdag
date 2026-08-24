@@ -169,3 +169,12 @@
       ! `curvature` must be a single number.
       x You provided `TRUE`.
 
+# ggdag_options_set() reports NA values through cli
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! `use_edges` must be a single logical value (TRUE or FALSE).
+      x You provided `NA`.
+
