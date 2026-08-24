@@ -34,12 +34,12 @@
 <circle cx='116.99' cy='304.92' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='635.70' cy='481.80' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='635.70' cy='86.10' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='77.81' y1='309.68' x2='98.51' y2='307.17' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='669.49' y1='508.24' x2='650.36' y2='493.27' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='668.64' y1='59.81' x2='650.25' y2='74.48' style='stroke-width: 1.07; stroke: #666666;' />
-<text x='73.25' y='313.54' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
-<text x='669.79' y='517.64' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='668.94' y='58.01' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+<line x1='74.34' y1='310.27' x2='81.61' y2='309.35' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='676.59' y1='510.94' x2='664.74' y2='502.49' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='677.34' y1='57.65' x2='665.14' y2='65.98' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='69.78' y='314.14' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='676.86' y='520.34' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='677.61' y='55.85' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <rect x='38.17' y='22.78' width='676.35' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

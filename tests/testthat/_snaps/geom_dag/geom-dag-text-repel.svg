@@ -38,12 +38,12 @@
 <text x='79.13' y='502.60' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='640.87' y='502.60' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='360.00' y='99.88' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<line x1='56.02' y1='538.27' x2='70.15' y2='514.13' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='664.75' y1='538.27' x2='650.07' y2='514.00' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='339.60' y1='53.71' x2='352.29' y2='80.07' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='56.02' y1='538.27' x2='63.26' y2='525.90' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='664.75' y1='538.27' x2='657.13' y2='525.67' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='339.10' y1='53.21' x2='346.24' y2='67.85' style='stroke-width: 1.07; stroke: #666666;' />
 <text x='53.24' y='548.42' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
 <text x='667.78' y='548.42' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
-<text x='314.17' y='57.17' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='47.25px' lengthAdjust='spacingAndGlyphs'>Mediator</text>
+<text x='313.67' y='56.67' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='47.25px' lengthAdjust='spacingAndGlyphs'>Mediator</text>
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='132.89px' lengthAdjust='spacingAndGlyphs'>geom_dag-text-repel</text>

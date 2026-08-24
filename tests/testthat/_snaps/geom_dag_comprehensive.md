@@ -42,10 +42,22 @@
       
       
       [[3]]
-      mapping: label = ~.data$name 
+      $layer
       geom_dag_text: parse = FALSE, check_overlap = FALSE, na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 
+      
+      $discover
+      character(0)
+      
+      $default_label
+      [1] TRUE
+      
+      $debug
+      [1] FALSE
+      
+      attr(,"class")
+      [1] "dag_layer"
       
       [[4]]
       NULL
@@ -90,10 +102,22 @@
       
       
       [[3]]
-      mapping: label = ~.data$name 
+      $layer
       geom_dag_text: parse = FALSE, check_overlap = FALSE, na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 
+      
+      $discover
+      character(0)
+      
+      $default_label
+      [1] TRUE
+      
+      $debug
+      [1] FALSE
+      
+      attr(,"class")
+      [1] "dag_layer"
       
       [[4]]
       NULL

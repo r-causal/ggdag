@@ -39,10 +39,10 @@
 <text x='378.79' y='94.82' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='645.15' y='480.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='112.43' y='480.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<line x1='399.02' y1='49.54' x2='386.58' y2='75.05' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='665.89' y1='513.36' x2='653.93' y2='492.32' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='97.26' y1='513.36' x2='105.61' y2='493.28' style='stroke-width: 1.07; stroke: #666666;' />
-<text x='426.47' y='52.99' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
+<line x1='403.98' y1='49.71' x2='395.14' y2='64.21' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='665.89' y1='513.36' x2='660.67' y2='504.17' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='97.26' y1='513.36' x2='100.37' y2='505.87' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='431.44' y='53.20' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
 <text x='668.28' y='523.51' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
 <text x='96.40' y='523.51' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='63.47px' lengthAdjust='spacingAndGlyphs'>Confounder</text>
 <rect x='43.06' y='22.78' width='671.46' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
