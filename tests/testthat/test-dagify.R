@@ -333,6 +333,47 @@ test_that("curve_edge() reaches a bidirected edge given either way round", {
   )
 })
 
+test_that("curve_edge() replaces a bidirected curvature named the other way", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ ~z), seed = 1234)
+
+  recurved <- tidy_dag |>
+    curve_edge("y", "z", 0.5) |>
+    curve_edge("z", "y", 0.2)
+
+  # the second call names the same edge, so it replaces the first curvature
+  # rather than being recorded behind it
+  expect_equal(nrow(attr(pull_dag(recurved), "curved_edges")), 1)
+
+  dag_data <- pull_dag_data(recurved)
+  expect_equal(abs(dag_data$edge_curvature[!is.na(dag_data$to)]), 0.2)
+})
+
+test_that("curve_edge() matches a directed edge in its own orientation only", {
+  tidy_dag <- tidy_dagitty(
+    dagify(
+      y ~ x + m,
+      m ~ x,
+      coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+    ),
+    seed = 1234
+  )
+
+  recurved <- tidy_dag |>
+    curve_edge("m", "y", 0.5) |>
+    curve_edge("m", "y", 0.2)
+
+  curved_edges <- attr(pull_dag(recurved), "curved_edges")
+  expect_equal(nrow(curved_edges), 1)
+  expect_equal(curved_edges$edge_curvature, 0.2)
+
+  # a directed edge has a direction of its own, so the reversed pair names no
+  # edge at all
+  expect_error(
+    curve_edge(tidy_dag, "y", "m", 0.2),
+    class = "ggdag_dag_error"
+  )
+})
+
 test_that("set_curve_edges() reaches a bidirected edge given either way round", {
   tidy_dag <- tidy_dagitty(dagify(y ~ ~z), seed = 1234)
 

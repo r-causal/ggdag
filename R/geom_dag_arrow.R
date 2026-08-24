@@ -224,20 +224,38 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
   resect <- layer$geom_params$resect
 
-  needs_head <- is.null(resect$head)
-  needs_fins <- is.null(resect$fins)
+  needs_resect <- c("head", "fins")[
+    c(is.null(resect$head), is.null(resect$fins))
+  ]
 
-  if (needs_head || needs_fins) {
+  if (length(needs_resect) > 0) {
     discovered <- discover_node_size(plot)
     if (!is.null(discovered)) {
       cap_mm <- node_size_to_cap(discovered)
-      if (needs_head) {
-        layer$geom_params$resect$head <- cap_mm
+      for (end in needs_resect) {
+        layer$geom_params$resect[[end]] <- cap_mm
       }
-      if (needs_fins) {
-        layer$geom_params$resect$fins <- cap_mm
-      }
+      needs_resect <- character()
     }
+  }
+
+  if (length(needs_resect) > 0) {
+    # No node layer is on the plot yet, which is the order the layer-by-layer
+    # examples use. A node layer added after this one is in view once the plot
+    # is built, so the resection is settled there instead.
+    layer <- plot_aware_layer(layer, function(self, plot) {
+      discovered <- discover_node_size(plot)
+      cap_mm <- if (is.null(discovered)) {
+        NULL
+      } else {
+        node_size_to_cap(discovered)
+      }
+      resect <- self$geom_params$resect
+      for (end in needs_resect) {
+        resect[[end]] <- cap_mm
+      }
+      self$geom_params$resect <- resect
+    })
   }
 
   ggplot2::ggplot_add(layer, plot, ...)
@@ -278,9 +296,10 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
 #' `resect_head`, for instance, leaves the fins end to the automatic value.
 #' Pass `0` to an end to draw the edge all the way to the node.
 #'
-#' The automatic value comes from the node size when a node layer
-#' (`geom_dag_point()` or `geom_dag_node()`) is already on the plot, and from
-#' the `ggdag.edge_cap` option (default: 8mm) otherwise.
+#' The automatic value comes from the node size when the plot has a node layer
+#' (`geom_dag_point()` or `geom_dag_node()`), whichever order the two layers
+#' were added in, and from the `ggdag.edge_cap` option (default: 8mm) when the
+#' plot has none.
 #'
 #' @param mapping Set of aesthetic mappings created by [ggplot2::aes()]. If
 #'   specified and `inherit.aes = TRUE` (the default), it is combined with the

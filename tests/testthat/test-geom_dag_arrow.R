@@ -127,6 +127,43 @@ test_that("auto-resection fills only the ends the user left unset", {
   expect_equal(p$layers[[1]]$geom_params$resect, list(head = 4, fins = NULL))
 })
 
+test_that("arrows resect to the node layer whichever order they arrive in", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_cap = 8)
+
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+
+  built_resect <- function(plot) {
+    built <- ggplot2::ggplot_build(plot)
+    for (layer in built$plot$layers) {
+      if (grepl("^GeomDAGArrow", class(layer$geom)[1])) {
+        return(layer$computed_geom_params$resect)
+      }
+    }
+    NULL
+  }
+
+  nodes_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    geom_dag_arrow()
+  # the order the layer-by-layer examples use; the resection must still follow
+  # the node size rather than the 8mm option
+  arrows_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_arrow() +
+    geom_dag_point(size = 32)
+
+  expect_equal(built_resect(nodes_first)$head, 16)
+  expect_equal(built_resect(arrows_first)$head, 16)
+
+  # a plot with no node layer at all still falls back to the option
+  no_nodes <- ggplot(tidy_dag, aes_dag()) + geom_dag_arrow()
+  expect_null(built_resect(no_nodes)$head)
+  expect_equal(
+    inject_dag_resect(built_resect(no_nodes), data.frame()),
+    list(head = 8, fins = 8)
+  )
+})
+
 test_that("geom_dag_arrow() explicit zero resection snapshot", {
   skip_if_not_installed("ggarrow")
 

@@ -406,6 +406,8 @@ ggdag_paths <- function(
           limits = c("direct", "backdoor", "other")
         )
     } else {
+      warn_if_curvature_ignored(p$data)
+
       p <- p +
         geom_dag_edges(
           data_directed = f_directed,

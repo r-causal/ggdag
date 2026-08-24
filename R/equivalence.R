@@ -330,6 +330,8 @@ ggdag_equivalent_class <- function(
           limits = c("FALSE", "TRUE")
         )
     } else {
+      warn_if_curvature_ignored(p$data)
+
       p <- p +
         geom_dag_edges(
           data_directed = dplyr::filter(

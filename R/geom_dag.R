@@ -1882,8 +1882,7 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
     plot_data <- pull_dag_data(plot_data)
   }
   has_curvature <- "edge_curvature" %in% names(plot_data)
-  wants_curve <- has_curvature &&
-    any(plot_data$edge_curvature != 0, na.rm = TRUE)
+  wants_curve <- wants_edge_curvature(plot_data)
   curvature_ignored <- FALSE
 
   for (item in flatten_dag_layers(object)) {
@@ -1934,6 +1933,26 @@ inject_edge_curvature <- function(item) {
   layer <- clone_layer(.subset2(item, "layer"))
   layer$mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
   dag_arrow_layer(layer)
+}
+
+# Whether the data behind a plot asks for a curvature on some individual edge.
+# A column of zeros is the shape `tidy_dagitty()` leaves behind once any edge
+# has been curved and then uncurved, and asks for nothing.
+wants_edge_curvature <- function(dag_data) {
+  "edge_curvature" %in%
+    names(dag_data) &&
+    any(dag_data$edge_curvature != 0, na.rm = TRUE)
+}
+
+# Report a per-edge curvature that the ggraph edge layers about to be added
+# cannot draw. Called by each function that builds ggraph edge layers of its
+# own, so that the plotters which pass `use_edges = FALSE` to `geom_dag()` are
+# as loud about it as `geom_dag()` itself.
+warn_if_curvature_ignored <- function(dag_data) {
+  if (wants_edge_curvature(dag_data)) {
+    warn_ignored_edge_curvature()
+  }
+  invisible(NULL)
 }
 
 # The ggraph edge geoms draw each edge with the curvature of their own edge

@@ -191,6 +191,8 @@ ggdag_adjustment_set <- function(
           show.legend = FALSE
         )
     } else {
+      warn_if_curvature_ignored(p$data)
+
       if (shadow) {
         vals <- c("blocked by\nadjustment" = "grey80")
         p <- p +
@@ -453,6 +455,8 @@ ggdag_adjust <- function(
           show.legend = FALSE
         )
     } else {
+      warn_if_curvature_ignored(p$data)
+
       p <- p +
         geom_dag_edges(
           ggplot2::aes(edge_alpha = .data$adjusted),

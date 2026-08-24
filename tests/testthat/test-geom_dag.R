@@ -1399,6 +1399,56 @@ test_that("the ggarrow engine draws per-edge curvature without complaint", {
   expect_no_warning(ggdag(curved_chain_dag()))
 })
 
+# The quick plotters below build their own edge layers so that they can colour
+# or fade edges by an analysis column, and pass `use_edges = FALSE` on to
+# `geom_dag()`. They have to report an ignored curvature themselves.
+
+curved_analysis_dag <- function() {
+  dag <- dagify(
+    x ~ z,
+    y ~ x + z,
+    exposure = "x",
+    outcome = "y",
+    coords = list(x = c(x = 0, y = 2, z = 1), y = c(x = 0, y = 0, z = 1))
+  )
+  curve_edge(dag, from = "x", to = "y", curvature = 0.6)
+}
+
+curved_plotters <- list(
+  ggdag_paths = function(dag) ggdag_paths(dag, from = "x", to = "y"),
+  ggdag_adjustment_set = function(dag) ggdag_adjustment_set(dag),
+  ggdag_adjust = function(dag) ggdag_adjust(dag, "z"),
+  ggdag_equivalent_class = function(dag) ggdag_equivalent_class(dag)
+)
+
+for (plotter_name in names(curved_plotters)) {
+  local({
+    plotter <- curved_plotters[[plotter_name]]
+
+    test_that(
+      paste0(plotter_name, "() reports a curvature the ggraph engine drops"),
+      {
+        withr::local_options(ggdag.edge_engine = "ggraph")
+
+        expect_warning(
+          plotter(curved_analysis_dag()),
+          class = "ggdag_edge_curvature_warning"
+        )
+      }
+    )
+
+    test_that(
+      paste0(plotter_name, "() draws that curvature quietly under ggarrow"),
+      {
+        skip_if_not_installed("ggarrow")
+        withr::local_options(ggdag.edge_engine = "ggarrow")
+
+        expect_no_warning(plotter(curved_analysis_dag()))
+      }
+    )
+  })
+}
+
 # -- edge caps sync to the node layer in either layer order -------------------
 
 built_edge_cap <- function(plot) {

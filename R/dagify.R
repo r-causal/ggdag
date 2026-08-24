@@ -430,8 +430,18 @@ curve_edge.dagitty <- function(.dag, from, to, curvature = 0.3) {
       edge_curvature = numeric()
     )
 
+  # An edge keeps one record, so that curving it a second time replaces the
+  # first curvature rather than sitting behind it. A bidirected edge has no
+  # direction, so its record may have been written with the endpoints the other
+  # way round, and the record is rewritten in the orientation named here.
   existing <- curved_edges$name == from & curved_edges$to == to
+  if (!any(existing) && is_undirected_pair(.dag, from, to)) {
+    existing <- curved_edges$name == to & curved_edges$to == from
+  }
+
   if (any(existing)) {
+    curved_edges$name[existing] <- from
+    curved_edges$to[existing] <- to
     curved_edges$edge_curvature[existing] <- curvature
   } else {
     curved_edges <- dplyr::bind_rows(
@@ -599,6 +609,30 @@ is_bidirected_edge <- function(dag_data) {
   !is.na(dag_data$to) &
     !is.na(dag_data$direction) &
     dag_data$direction == "<->"
+}
+
+#' Does a pair of node names name a bidirected or undirected edge?
+#'
+#' Such an edge has no direction of its own, so either orientation of its
+#' endpoints names it, and a curvature recorded for one orientation is a
+#' curvature for the other.
+#'
+#' @param .dag A `dagitty` object.
+#' @param from,to Length-one character vectors of node names.
+#' @return A length-one logical vector.
+#' @noRd
+is_undirected_pair <- function(.dag, from, to) {
+  .edges <- dagitty::edges(.dag)
+  if (nrow(.edges) == 0) {
+    return(FALSE)
+  }
+
+  any(
+    .edges$e %in%
+      c("<->", "--") &
+      ((.edges$v == from & .edges$w == to) |
+        (.edges$v == to & .edges$w == from))
+  )
 }
 
 #' Check that every requested edge is actually in the DAG
