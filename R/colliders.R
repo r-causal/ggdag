@@ -25,7 +25,7 @@ node_collider <- function(.dag, as_factor = TRUE, ...) {
   # drop the results of an earlier application so the join does not suffix
   .tdy_dag <- dplyr::select(.tdy_dag, -dplyr::any_of("colliders"))
   vars <- unique(pull_dag_data(.tdy_dag)$name)
-  colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
+  colliders <- which_are_colliders(pull_dag(.tdy_dag), vars)
   names(colliders) <- vars
   .tdy_dag <- dplyr::left_join(
     .tdy_dag,
@@ -146,10 +146,13 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
   }
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   vars <- unique(pull_dag_data(.tdy_dag)$name)
-  colliders <- purrr::map_lgl(vars, \(.x) is_collider(.tdy_dag, .x))
-  downstream_colliders <- purrr::map_lgl(
+  .dag <- pull_dag(.tdy_dag)
+  counts <- arrowhead_counts(.dag)
+  colliders <- which_are_colliders(.dag, vars, counts = counts)
+  downstream_colliders <- which_are_downstream_colliders(
+    .dag,
     vars,
-    \(.x) is_downstream_collider(.tdy_dag, .x)
+    counts = counts
   )
   collider_names <- unique(c(vars[colliders], vars[downstream_colliders]))
 
@@ -157,7 +160,6 @@ activate_collider_paths <- function(.tdy_dag, adjust_for, ...) {
     return(dplyr::mutate(.tdy_dag, collider_line = FALSE))
   }
   adjusted_colliders <- collider_names[collider_names %in% adjust_for]
-  .dag <- pull_dag(.tdy_dag)
 
   candidate_pairs <- adjusted_colliders |>
     purrr::map(\(.x) collider_flanks(.dag, .x, adjust_for)) |>
@@ -423,12 +425,13 @@ is_collider <- function(.dag, .var, downstream = TRUE) {
     .dag <- pull_dag(.dag)
   }
   validate_nodes_exist(.dag, .var, arg = ".var")
-  collider <- has_multiple_arrowheads(.dag, .var)
+  counts <- arrowhead_counts(.dag)
+  collider <- has_multiple_arrowheads(counts, .var)
   if (!downstream || collider) {
     return(collider)
   }
 
-  any_ancestor_is_collider(.dag, .var)
+  any_ancestor_is_collider(.dag, .var, counts)
 }
 
 #' @rdname is_collider
@@ -452,26 +455,106 @@ is_downstream_collider <- function(.dag, .var) {
 #'
 #' @param .dag A `dagitty` object.
 #' @param .var A character vector of length 1.
+#' @param counts The arrowhead counts of `.dag`, from `arrowhead_counts()`.
 #' @return Logical.
 #' @noRd
-any_ancestor_is_collider <- function(.dag, .var) {
-  var_ancestors <- dagitty::ancestors(.dag, .var, proper = TRUE)
-  any(purrr::map_lgl(var_ancestors, \(.x) has_multiple_arrowheads(.dag, .x)))
+any_ancestor_is_collider <- function(
+  .dag,
+  .var,
+  counts = arrowhead_counts(.dag)
+) {
+  var_ancestors <- as.character(dagitty::ancestors(.dag, .var, proper = TRUE))
+  any(has_multiple_arrowheads(counts, var_ancestors))
+}
+
+#' How many arrowheads point into each variable of a DAG?
+#'
+#' A collider is a variable that two edges point into, whether those edges are
+#' directed or bidirected. Asking dagitty for the parents and the spouses of one
+#' variable at a time costs two calls into its JavaScript engine per variable,
+#' which a sweep over a DAG pays for every variable it looks at. Reading the
+#' DAG's edges once and tallying arrowheads answers the question for every
+#' variable at once: a directed edge puts an arrowhead on its head, a bidirected
+#' edge puts one on each of its endpoints, and an undirected edge puts none
+#' anywhere.
+#'
+#' @param .dag A `dagitty` object.
+#' @return A named integer vector, one element per variable of `.dag`.
+#' @noRd
+arrowhead_counts <- function(.dag) {
+  node_names <- names(.dag)
+  counts <- rlang::set_names(rep(0L, length(node_names)), node_names)
+
+  .edges <- dagitty::edges(.dag)
+  # dagitty returns a zero-column data frame for a DAG with no edges
+  if (nrow(.edges) == 0 || ncol(.edges) == 0) {
+    return(counts)
+  }
+
+  # parents and spouses are sets of variables, so an edge written twice
+  # contributes one arrowhead, not two
+  .edges <- .edges[!duplicated(.edges[c("v", "w", "e")]), , drop = FALSE]
+  v <- as.character(.edges$v)
+  w <- as.character(.edges$w)
+  bidirected <- .edges$e == "<->"
+  heads <- c(w[.edges$e == "->"], v[bidirected], w[bidirected])
+
+  counts[] <- as.integer(table(factor(heads, levels = node_names)))
+  counts
 }
 
 #' Does more than one arrowhead point into a variable?
 #'
-#' A collider is a variable that two edges point into, whether those edges are
-#' directed or bidirected. dagitty counts only directed edges as parents and
-#' reports bidirected partners as spouses, so both sets contribute.
+#' @param counts The arrowhead counts of a DAG, from `arrowhead_counts()`.
+#' @param .var A character vector of variable names.
+#' @return A logical vector along `.var`.
+#' @noRd
+has_multiple_arrowheads <- function(counts, .var) {
+  unname(counts[.var] > 1)
+}
+
+#' Which of a set of variables are colliders?
+#'
+#' The public predicates answer for one variable, and a sweep over a DAG asks
+#' about every variable of it. Tallying the DAG's arrowheads once and reusing
+#' the tally keeps a sweep to a single read of the DAG's edges.
 #'
 #' @param .dag A `dagitty` object.
-#' @param .var A character vector of length 1.
-#' @return Logical.
+#' @param vars A character vector of variable names.
+#' @param downstream Logical, whether a variable downstream of a collider
+#'   counts as one.
+#' @param counts The arrowhead counts of `.dag`, from `arrowhead_counts()`.
+#' @return A logical vector along `vars`.
 #' @noRd
-has_multiple_arrowheads <- function(.dag, .var) {
-  n_arrowheads <- length(dagitty::parents(.dag, .var)) +
-    length(dagitty::spouses(.dag, .var))
+which_are_colliders <- function(
+  .dag,
+  vars,
+  downstream = TRUE,
+  counts = arrowhead_counts(.dag)
+) {
+  validate_nodes_exist(.dag, vars, arg = ".var")
+  colliders <- has_multiple_arrowheads(counts, vars)
+  if (!downstream) {
+    return(colliders)
+  }
 
-  n_arrowheads > 1
+  # a variable that is already a collider needs no ancestry walked
+  undecided <- !colliders
+  colliders[undecided] <- purrr::map_lgl(
+    vars[undecided],
+    \(.x) any_ancestor_is_collider(.dag, .x, counts)
+  )
+
+  colliders
+}
+
+#' @rdname which_are_colliders
+#' @noRd
+which_are_downstream_colliders <- function(
+  .dag,
+  vars,
+  counts = arrowhead_counts(.dag)
+) {
+  validate_nodes_exist(.dag, vars, arg = ".var")
+  purrr::map_lgl(vars, \(.x) any_ancestor_is_collider(.dag, .x, counts))
 }

@@ -4,6 +4,10 @@
 
 * `dag_prune()` takes a data frame of edges, with `name` and `to` columns and an optional `direction` column, as well as the named character vector it has always taken. A pair of nodes can hold a directed edge and a bidirected edge at once, and endpoints alone name both; `dag_prune()` now errors on such a pair rather than pruning both, and the `direction` column names the one to remove. An `edges` argument that names no edge at all is an error too, in either form, rather than returning the DAG unchanged.
 
+* `is_collider()`, `is_downstream_collider()`, `node_collider()`, `ggdag_collider()`, `activate_collider_paths()`, and `query_colliders()` count the arrowheads pointing into every variable from a single reading of the edges of the DAG. They asked dagitty for the parents and the spouses of one variable at a time, which cost two calls into its JavaScript engine per variable inspected and dominated the time a whole-DAG sweep took. The sweep behind `node_collider()` is around six times faster on a thirty-node DAG, and `query_colliders()` around three times.
+
+* `set_curve_edges()` reads the edges of the DAG once rather than three times while validating the edges it was given, which about halves what it costs on a large set of edges.
+
 * A dplyr verb on a `tidy_dagitty` that already has coordinates no longer computes a layout. Under the `time_ordered` default, every verb laid the DAG out again and threw the result away, which cost the work and could report on it.
 
 * `dagify()` raises its own condition classes for a formula it rejects. Each formula was validated through `purrr::walk()`, so a self-loop arrived wrapped in `purrr_error_indexed` and `tryCatch(ggdag_dag_error = )` did not see it.

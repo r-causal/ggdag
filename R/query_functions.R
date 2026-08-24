@@ -609,8 +609,9 @@ query_colliders <- function(.tdy_dag) {
   all_nodes <- names(.dag)
 
   # Find colliders by counting the arrowheads pointing into each node
+  counts <- arrowhead_counts(.dag)
   collider_info <- purrr::map(all_nodes, \(node) {
-    if (!has_multiple_arrowheads(.dag, node)) {
+    if (!has_multiple_arrowheads(counts, node)) {
       return(NULL)
     }
 

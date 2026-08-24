@@ -546,8 +546,9 @@ set_curve_edges.dagitty <- function(.dag, edges) {
       error_class = "ggdag_dag_error"
     )
   }
-  validate_edges_exist(.dag, edges$from, edges$to)
-  validate_edges_distinct(.dag, edges$from, edges$to)
+  keys <- edge_keys(.dag)
+  validate_edges_exist(.dag, edges$from, edges$to, keys = keys)
+  validate_edges_distinct(.dag, edges$from, edges$to, keys = keys)
 
   curved_edges <- tibble::tibble(
     name = edges$from,
@@ -655,17 +656,24 @@ is_undirected_pair <- function(.dag, from, to) {
 #' @param .dag A `dagitty` object.
 #' @param from,to Character vectors of node names, paired element by element.
 #' @param call The calling environment, for the error message.
+#' @param keys The edge keys of `.dag`, from `edge_keys()`.
 #' @return `TRUE`, invisibly.
 #' @noRd
-validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
+validate_edges_exist <- function(
+  .dag,
+  from,
+  to,
+  call = rlang::caller_env(),
+  keys = edge_keys(.dag)
+) {
   from <- as.character(from)
   to <- as.character(to)
 
   # the DAG's edges are read once here rather than once per pair, so that a
   # large `edges` data frame does not turn into a scan per row
-  directed <- edge_pair_key(from, to) %in% directed_edge_keys(.dag)
+  directed <- edge_pair_key(from, to) %in% keys$directed
   symmetric <- edge_pair_key(pmin(from, to), pmax(from, to)) %in%
-    undirected_edge_keys(.dag)
+    keys$undirected
 
   found <- directed | symmetric
   if (all(found)) {
@@ -684,56 +692,50 @@ validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
   )
 }
 
-#' The endpoints of the edges of a DAG that are of the given kinds
+#' One key per edge of a DAG
+#'
+#' Both kinds of key come from a single read of the DAG's edges, since asking
+#' dagitty for them costs a call into its JavaScript engine and the two
+#' validators that consult them run back to back.
+#'
+#' A directed edge is named in its own direction only, so its endpoints go into
+#' its key in the order the DAG holds them. A bidirected or undirected edge has
+#' no direction of its own, so its endpoints go into its key in a fixed order
+#' and a pair named either way round is looked up under the same key.
 #'
 #' @param .dag A `dagitty` object.
-#' @param types The edge symbols to keep, e.g. `"->"`.
-#' @return A list of the `v` and `w` endpoints, both character.
+#' @return A list of the `directed` and `undirected` keys, both character and
+#'   empty when the DAG has no edge of that kind.
 #' @noRd
-edge_endpoints <- function(.dag, types) {
+edge_keys <- function(.dag) {
   .edges <- dagitty::edges(.dag)
   # dagitty returns a zero-column data frame for a DAG with no edges
   if (nrow(.edges) == 0 || ncol(.edges) == 0) {
-    return(list(v = character(), w = character()))
+    return(list(directed = character(), undirected = character()))
   }
 
-  .edges <- .edges[.edges$e %in% types, , drop = FALSE]
+  v <- as.character(.edges$v)
+  w <- as.character(.edges$w)
+  directed <- .edges$e == "->"
+  symmetric <- .edges$e %in% c("<->", "--")
 
-  list(v = as.character(.edges$v), w = as.character(.edges$w))
+  list(
+    directed = keys_or_empty(v[directed], w[directed]),
+    undirected = keys_or_empty(
+      pmin(v[symmetric], w[symmetric]),
+      pmax(v[symmetric], w[symmetric])
+    )
+  )
 }
 
-#' One key per directed edge of a DAG
-#'
-#' A directed edge is named in its own direction only, so its endpoints go into
-#' the key in the order the DAG holds them.
-#'
-#' @param .dag A `dagitty` object.
-#' @return A character vector, empty when the DAG has no directed edge.
+#' @rdname edge_keys
 #' @noRd
-directed_edge_keys <- function(.dag) {
-  ends <- edge_endpoints(.dag, "->")
-  if (length(ends$v) == 0) {
+keys_or_empty <- function(from, to) {
+  if (length(from) == 0) {
     return(character())
   }
 
-  edge_pair_key(ends$v, ends$w)
-}
-
-#' One key per bidirected or undirected edge of a DAG
-#'
-#' The endpoints go into the key in a fixed order, so that a pair named either
-#' way round is looked up under the same key.
-#'
-#' @param .dag A `dagitty` object.
-#' @return A character vector, empty when the DAG has no such edge.
-#' @noRd
-undirected_edge_keys <- function(.dag) {
-  ends <- edge_endpoints(.dag, c("<->", "--"))
-  if (length(ends$v) == 0) {
-    return(character())
-  }
-
-  edge_pair_key(pmin(ends$v, ends$w), pmax(ends$v, ends$w))
+  edge_pair_key(from, to)
 }
 
 #' Check that no edge is named twice
@@ -745,25 +747,26 @@ undirected_edge_keys <- function(.dag) {
 #' @param .dag A `dagitty` object.
 #' @param from,to Character vectors of node names, paired element by element.
 #' @param call The calling environment, for the error message.
+#' @param keys The edge keys of `.dag`, from `edge_keys()`.
 #' @return `TRUE`, invisibly.
 #' @noRd
 validate_edges_distinct <- function(
   .dag,
   from,
   to,
-  call = rlang::caller_env()
+  call = rlang::caller_env(),
+  keys = edge_keys(.dag)
 ) {
   from <- as.character(from)
   to <- as.character(to)
 
   # the DAG's edges are read once here rather than once per pair, so that a
   # large `edges` data frame does not turn into a scan per row
-  undirected_keys <- undirected_edge_keys(.dag)
   either_way <- edge_pair_key(pmin(from, to), pmax(from, to))
-  is_undirected <- either_way %in% undirected_keys
+  is_undirected <- either_way %in% keys$undirected
 
-  keys <- ifelse(is_undirected, either_way, edge_pair_key(from, to))
-  repeated_rows <- duplicated(keys)
+  row_keys <- ifelse(is_undirected, either_way, edge_pair_key(from, to))
+  repeated_rows <- duplicated(row_keys)
   if (!any(repeated_rows)) {
     return(invisible(TRUE))
   }
