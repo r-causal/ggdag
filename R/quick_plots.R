@@ -24,8 +24,17 @@
 #'
 #' @param x,y,a,b,m,z Character vector. Optional label. Default is `NULL`
 #' @param u1,u2 Character vector. Optional label for unmeasured nodes, used in `quartet_m_bias()`. Default is `NULL`
-#' @param x0,x1,x2,x3,y1,y2,y3,z1,z2,z3 Character vector. Optional labels for time-indexed nodes, used in `quartet_time_collider()`. Default is `NULL`
-#' @param x_y_associated Logical. Are x and y associated? Default is `FALSE`.
+#' @param x0,x1,x2,x3,y1,y2,y3,z1,z2,z3 Character vector. Optional labels for
+#'   time-indexed nodes, used in `quartet_time_collider()`. Default is `NULL`.
+#'   The DAG holds six nodes, `x1`, `x2`, `y2`, `y3`, `z2`, and `z3`; `x0`,
+#'   `x3`, `y1`, and `z1` name none of them and are accepted only so that code
+#'   written against the older signature still runs. Labels given for them are
+#'   ignored.
+#' @param x_y_associated Logical. Are x and y associated? Default is `FALSE`
+#'   for the bias-structure DAGs and for `quartet_mediator()`, and `TRUE` for
+#'   `quartet_collider()`, `quartet_confounder()`, and `quartet_m_bias()`,
+#'   whose datasets have x and y associated by construction.
+#'   `quartet_time_collider()` has no such argument.
 #' @inheritParams geom_dag
 #'
 #' @return a DAG of class `dagitty` or a `ggplot`
@@ -511,18 +520,9 @@ quartet_time_collider <- function(
     ~name,
     ~x,
     ~y,
-    "x0",
-    1,
-    1,
     "x1",
     2,
     1,
-    "z1",
-    2,
-    1.1,
-    "y1",
-    1.9,
-    1.05,
     "x2",
     3,
     1,
@@ -532,9 +532,6 @@ quartet_time_collider <- function(
     "z2",
     3,
     1.1,
-    "x3",
-    4,
-    1,
     "y3",
     3.9,
     1.05,
@@ -554,17 +551,15 @@ quartet_time_collider <- function(
     coords = coords
   )
 
+  # the DAG holds six nodes; `x0`, `x3`, `y1`, and `z1` name none of them and
+  # are kept only so that code written against the older signature still runs
   .dag <- set_node_labels(
     .dag,
     c(
-      x0 = x0,
       x1 = x1,
       x2 = x2,
-      x3 = x3,
-      y1 = y1,
       y2 = y2,
       y3 = y3,
-      z1 = z1,
       z2 = z2,
       z3 = z3
     )
@@ -598,6 +593,9 @@ ggdag_m_bias <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -621,6 +619,11 @@ ggdag_m_bias <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
     node = node,
     stylized = stylized
   )
@@ -651,6 +654,9 @@ ggdag_butterfly_bias <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -674,6 +680,11 @@ ggdag_butterfly_bias <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
     node = node,
     stylized = stylized
   )
@@ -702,6 +713,9 @@ ggdag_confounder_triangle <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -725,6 +739,11 @@ ggdag_confounder_triangle <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
     node = node,
     stylized = stylized
   )
@@ -753,6 +772,9 @@ ggdag_collider_triangle <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -776,6 +798,11 @@ ggdag_collider_triangle <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
     node = node,
     stylized = stylized
   )
@@ -804,6 +831,9 @@ ggdag_mediation_triangle <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -827,6 +857,11 @@ ggdag_mediation_triangle <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label),
     node = node,
     stylized = stylized
   )
@@ -855,6 +890,9 @@ ggdag_quartet_collider <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 ) {
@@ -875,7 +913,12 @@ ggdag_quartet_collider <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label)
   )
 }
 
@@ -902,6 +945,9 @@ ggdag_quartet_confounder <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 ) {
@@ -922,7 +968,12 @@ ggdag_quartet_confounder <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label)
   )
 }
 
@@ -949,6 +1000,9 @@ ggdag_quartet_mediator <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 ) {
@@ -969,7 +1023,12 @@ ggdag_quartet_mediator <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label)
   )
 }
 
@@ -998,6 +1057,9 @@ ggdag_quartet_m_bias <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 ) {
@@ -1018,7 +1080,12 @@ ggdag_quartet_m_bias <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label)
   )
 }
 
@@ -1051,6 +1118,9 @@ ggdag_quartet_time_collider <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 ) {
@@ -1071,6 +1141,11 @@ ggdag_quartet_time_collider <- function(
     use_stylized = use_stylized,
     use_text = use_text,
     use_labels = use_labels,
-    label_geom = label_geom
+    label_geom = label_geom,
+    edge_engine = edge_engine,
+    unified_legend = unified_legend,
+    key_glyph = key_glyph,
+    text = !!rlang::enquo(text),
+    label = !!rlang::enquo(label)
   )
 }

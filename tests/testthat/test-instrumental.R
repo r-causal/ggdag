@@ -147,3 +147,14 @@ test_that("instrumental endpoint guards are informative", {
   expect_ggdag_error(node_instrumental(two_exposures))
   expect_ggdag_error(ggdag_instrumental(no_endpoints))
 })
+
+test_that("ggdag_instrumental() passes ... to tidy_dagitty()", {
+  dag <- dagitty::dagitty("dag{ i->x->y; x<->y }")
+
+  expected <- tidy_node_coords(tidy_dagitty(dag, layout = "circle"))
+  actual <- node_coords(ggdag_instrumental(dag, "x", "y", layout = "circle"))
+
+  expect_equal(actual$name, expected$name)
+  expect_equal(actual$x, expected$x)
+  expect_equal(actual$y, expected$y)
+})

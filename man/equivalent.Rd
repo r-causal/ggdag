@@ -43,7 +43,7 @@ ggdag_equivalent_dags(
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = ggdag_option("layout", "nicely"))
+node_equivalent_class(.dag, layout = ggdag_option("layout", "nicely"), ...)
 
 ggdag_equivalent_class(
   .tdy_dag,

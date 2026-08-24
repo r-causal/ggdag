@@ -628,7 +628,9 @@ test_that("quartet_time_collider creates correct DAG structure", {
     z3 = "Z3"
   )
   labels <- label(dag2)
-  expect_equal(length(labels), 10)
+  # the DAG has six nodes; the four remaining formals are kept for backward
+  # compatibility and name nothing to label
+  expect_equal(length(labels), 6)
   expect_equal(labels[["x2"]], "X2")
 
   # Check exposure and outcome

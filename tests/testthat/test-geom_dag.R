@@ -1607,3 +1607,34 @@ test_that("repel obstacles follow arcs through a transformed position scale", {
   expect_gt(nrow(obstacles), 0)
   expect_gt(max(abs(obstacles$y)), 0.1)
 })
+
+test_that("geom_dag(size) scales node text along with everything else", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(size = 2, node_size = 16, text_size = 4)
+
+  node_layer <- layers_by_geom(p, "GeomDagPoint")[[1]]
+  text_layer <- layers_by_geom(p, "GeomDagText")[[1]]
+
+  expect_equal(node_layer$aes_params$size, 32)
+  expect_equal(text_layer$aes_params$size, 8)
+})
+
+test_that("geom_dag(size) leaves text unscaled at size 1", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  p <- ggplot(dag, aes_dag()) + geom_dag(text_size = 4)
+  text_layer <- layers_by_geom(p, "GeomDagText")[[1]]
+
+  expect_equal(text_layer$aes_params$size, 4)
+})
+
+test_that("geom_dag(size) scales text in the rendered plot", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_doppelganger(
+    "geom_dag() at size 2 scales its text",
+    ggplot(dag, aes_dag()) + geom_dag(size = 2)
+  )
+})

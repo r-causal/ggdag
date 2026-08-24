@@ -169,7 +169,7 @@ test_that("is_collider and is_downstream_collider work correctly", {
   )
 })
 
-test_that("control_for works with tidyselect helpers", {
+test_that("control_for records every adjusted node in the dagitty object", {
   dag <- dagify(
     y ~ x + z1 + z2 + w,
     x ~ z1 + z2,
@@ -178,7 +178,7 @@ test_that("control_for works with tidyselect helpers", {
   )
   tidy_dag <- tidy_dagitty(dag)
 
-  # Control for variables starting with 'z'
+  # `control_for()` takes node names, not a tidyselect selection
   z_vars <- c("z1", "z2")
   result <- control_for(tidy_dag, z_vars)
   dag_controlled <- pull_dag(result)

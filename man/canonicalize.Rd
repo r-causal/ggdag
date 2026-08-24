@@ -12,7 +12,7 @@ ggdag_canonical(
   .tdy_dag,
   ...,
   size = 1,
-  edge_type = ggdag_option("edge_type", "link_arc"),
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -25,7 +25,7 @@ ggdag_canonical(
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
-  use_labels = ggdag_option("use_labels", NULL),
+  use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -39,7 +39,9 @@ ggdag_canonical(
 \item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
 
-\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+\item{...}{additional arguments passed to \code{tidy_dagitty()}, which lays out
+the canonical DAG. \code{use_existing_coords} is not among them: the latent
+variables that the canonical form introduces have no coordinates to reuse.}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}

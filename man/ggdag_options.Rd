@@ -56,7 +56,11 @@ are used as defaults by all \code{geom_dag()}, \verb{ggdag_*()}, and related fun
 Options are stored in R's global \code{\link[=options]{options()}} as \verb{ggdag.<name>}. When an
 option is \code{NULL} (the default), each function uses its own built-in
 default. Setting a global option overrides the built-in default for all
-functions that use it.
+functions that use it. Passing \code{NULL} to \code{ggdag_options_set()} leaves that
+one option unset, which returns it to the built-in default and leaves every
+other option alone. That also makes the previous values
+\code{ggdag_options_set()} returns safe to restore with
+\code{do.call(ggdag_options_set, old)}.
 
 Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}},
 \code{\link[=ggdag_drelationship]{ggdag_drelationship()}}) maintain a proportional offset. If you set

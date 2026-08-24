@@ -409,10 +409,21 @@ ggdag_paths <- function(
       warn_if_curvature_ignored(p$data)
 
       p <- p +
-        geom_dag_edges(
-          data_directed = f_directed,
-          data_bidirected = f_bidirected,
-          ggplot2::aes(edge_colour = .data$path_type)
+        drop_empty_edge_layers(
+          quick_plot_dag_edges(
+            ggplot2::aes(edge_colour = .data$path_type),
+            edge_type = edge_type,
+            edge_cap = edge_cap,
+            edge_width = edge_width,
+            arrow_length = arrow_length,
+            size = size,
+            data = if (!shadow) {
+              function(x) dplyr::filter(x, .data$path == "open path")
+            },
+            data_directed = f_directed,
+            data_bidirected = f_bidirected
+          ),
+          p$data
         )
 
       p <- p +
@@ -494,11 +505,15 @@ ggdag_paths_fan <- function(
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
+  key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
   stylized = deprecated()
 ) {
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
@@ -511,28 +526,69 @@ ggdag_paths_fan <- function(
     ggplot2::ggplot(aes_dag())
 
   if (use_edges) {
-    p <- p +
-      geom_dag_edges_fan(
-        ggplot2::aes(edge_colour = .data$set, edge_alpha = .data$path),
-        spread = spread
-      ) +
-      ggplot2::scale_alpha_manual(
-        drop = FALSE,
-        values = c("open path" = 1),
-        na.value = 0.35,
-        breaks = "open path",
-        limits = "open path"
-      ) +
-      ggraph::scale_edge_alpha_manual(
-        drop = FALSE,
-        values = c("open path" = 1),
-        na.value = 0.15,
-        breaks = "open path",
-        guide = "none",
-        limits = "open path"
-      ) +
-      ggraph::scale_edge_colour_discrete(name = "open path", drop = FALSE) +
-      ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path")
+    if (identical(edge_engine, "ggarrow")) {
+      rlang::check_installed(
+        "ggarrow",
+        reason = "to use edge_engine = \"ggarrow\"."
+      )
+
+      p <- p +
+        quick_plot_arrow_edges(
+          mapping = ggplot2::aes(
+            colour = .data$set,
+            alpha = .data$path,
+            edge_curvature = .data$edge_curvature
+          ),
+          data_directed = fan_edges(spread, "->"),
+          data_bidirected = fan_edges(spread, "<->"),
+          arrow_head = ggdag_option("arrow_head", NULL) %||%
+            ggarrow::arrow_head_wings(),
+          arrow_fins = ggdag_option("arrow_fins", NULL),
+          resect = edge_cap * size,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
+          show.legend = TRUE
+        ) +
+        ggplot2::scale_alpha_manual(
+          drop = FALSE,
+          values = c("open path" = 1),
+          na.value = 0.15,
+          breaks = "open path",
+          limits = "open path"
+        ) +
+        ggplot2::scale_color_discrete(name = "open path", drop = FALSE)
+    } else {
+      p <- p +
+        geom_dag_edges_fan(
+          with_edge_caps(
+            ggplot2::aes(edge_colour = .data$set, edge_alpha = .data$path),
+            edge_cap * size
+          ),
+          spread = spread,
+          edge_width = edge_width * size,
+          arrow = grid::arrow(
+            length = grid::unit(arrow_length * size, "pt"),
+            type = "closed"
+          )
+        ) +
+        ggplot2::scale_alpha_manual(
+          drop = FALSE,
+          values = c("open path" = 1),
+          na.value = 0.35,
+          breaks = "open path",
+          limits = "open path"
+        ) +
+        ggraph::scale_edge_alpha_manual(
+          drop = FALSE,
+          values = c("open path" = 1),
+          na.value = 0.15,
+          breaks = "open path",
+          guide = "none",
+          limits = "open path"
+        ) +
+        ggraph::scale_edge_colour_discrete(name = "open path", drop = FALSE) +
+        ggplot2::scale_color_discrete(drop = FALSE, breaks = "open path")
+    }
   }
 
   p <- p +
@@ -558,7 +614,9 @@ ggdag_paths_fan <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      edge_engine = edge_engine,
       unified_legend = unified_legend,
+      key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
@@ -566,6 +624,34 @@ ggdag_paths_fan <- function(
     )
 
   p
+}
+
+# `ggdag_paths_fan()` draws one copy of every edge per open path, and the fan
+# stat of ggraph spreads the copies apart. The ggarrow engine has no fan of its
+# own, so the copies are spread with a curvature each, evenly either side of the
+# straight line a single copy keeps.
+fan_edges <- function(spread, .direction) {
+  function(x) {
+    x <- filter_direction(.direction)(x)
+    if (nrow(x) == 0) {
+      # the layer still reads the column, whether or not it has a row to read
+      x$edge_curvature <- numeric()
+      return(x)
+    }
+
+    x |>
+      dplyr::group_by(.data$name, .data$to) |>
+      dplyr::mutate(edge_curvature = fan_offsets(dplyr::n()) * spread) |>
+      dplyr::ungroup()
+  }
+}
+
+fan_offsets <- function(n) {
+  if (n == 1) {
+    return(0)
+  }
+
+  seq(-1, 1, length.out = n)
 }
 
 # Helper function to extract edges from paths

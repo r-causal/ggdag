@@ -321,6 +321,64 @@ test_that("ggdag_markov_blanket creates correct plots", {
   expect_s3_class(p2, "gg")
 })
 
+test_that("ggdag_markov_blanket() draws node text only through geom_dag()", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w
+  )
+
+  expect_equal(
+    count_geom_layers(ggdag_markov_blanket(dag, "x"), "GeomDagText"),
+    1
+  )
+  expect_equal(
+    count_geom_layers(
+      ggdag_markov_blanket(dag, "x", use_text = FALSE),
+      "GeomDagText"
+    ),
+    0
+  )
+})
+
+test_that("ggdag_markov_blanket() colors and sizes node text like its siblings", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w
+  )
+
+  text_layers <- layers_by_geom(
+    ggdag_markov_blanket(dag, "x", text_col = "red", text_size = 6),
+    "GeomDagText"
+  )
+
+  expect_length(text_layers, 1)
+  expect_equal(text_layers[[1]]$aes_params$colour, "red")
+  expect_equal(text_layers[[1]]$aes_params$size, 6)
+})
+
+test_that("ggdag_markov_blanket() respects the global text options", {
+  withr::local_options(ggdag.use_text = FALSE)
+  dag <- dagify(
+    y ~ x + z,
+    x ~ w,
+    z ~ w
+  )
+
+  expect_equal(
+    count_geom_layers(ggdag_markov_blanket(dag, "x"), "GeomDagText"),
+    0
+  )
+})
+
+test_that("ggdag_markov_blanket() renders a single text layer", {
+  expect_doppelganger(
+    "ggdag_markov_blanket() one text layer",
+    ggdag_markov_blanket(test_dag, "z1")
+  )
+})
+
 test_that("ggdag_adjacent creates correct plots", {
   dag <- dagify(
     y ~ x + z,

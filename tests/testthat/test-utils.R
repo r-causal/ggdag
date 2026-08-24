@@ -316,6 +316,28 @@ test_that("check_arg_stylized handles deprecated stylized argument", {
   expect_true(result)
 })
 
+test_that("the deprecation warnings name the argument that replaces the old one", {
+  skip_if_not_installed("lifecycle")
+  withr::local_options(lifecycle_verbosity = "warning")
+
+  expect_warning(
+    check_arg_stylized(
+      stylized = TRUE,
+      use_stylized = FALSE,
+      what = "geom_dag"
+    ),
+    "use_stylized"
+  )
+  expect_warning(
+    check_arg_node(
+      node = "x",
+      use_nodes = "y",
+      what = "geom_dag"
+    ),
+    "use_nodes"
+  )
+})
+
 test_that("ggraph_create_layout creates layout without graph attribute", {
   # Create a simple DAG
   dag <- dagify(y ~ x, x ~ z)

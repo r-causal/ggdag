@@ -315,3 +315,66 @@ test_that("equivalence functions use the package-wide default layout", {
     formals(tidy_dagitty)$layout
   )
 })
+
+test_that("ggdag_equivalent_dags() passes ... to tidy_dagitty()", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expected <- tidy_node_coords(tidy_dagitty(dag, layout = "circle"))
+  actual <- node_coords(ggdag_equivalent_dags(dag, layout = "circle"))
+
+  expect_setequal(actual$name, expected$name)
+  # the equivalent DAGs carry their coordinates through dagitty, which stores
+  # them to three decimal places
+  expect_equal(
+    dplyr::arrange(actual, name)$x,
+    dplyr::arrange(expected, name)$x,
+    tolerance = 1e-3
+  )
+  expect_equal(
+    dplyr::arrange(actual, name)$y,
+    dplyr::arrange(expected, name)$y,
+    tolerance = 1e-3
+  )
+})
+
+test_that("ggdag_equivalent_class() passes ... to tidy_dagitty()", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expected <- tidy_node_coords(tidy_dagitty(dag, layout = "circle"))
+  actual <- node_coords(ggdag_equivalent_class(dag, layout = "circle"))
+
+  expect_equal(actual$name, expected$name)
+  expect_equal(actual$x, expected$x)
+  expect_equal(actual$y, expected$y)
+})
+
+test_that("node_equivalent_class() forwards ... to tidy_dagitty()", {
+  expect_true("..." %in% names(formals(node_equivalent_class)))
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  coords <- tidy_node_coords(node_equivalent_class(dag, layout = "circle"))
+  expected <- tidy_node_coords(tidy_dagitty(dag, layout = "circle"))
+
+  expect_equal(coords$x, expected$x)
+  expect_equal(coords$y, expected$y)
+})
+
+test_that("ggdag_equivalent_class() sizes the edge layers it builds itself", {
+  # the equivalence class of this DAG leaves the two directed edges reversable
+  # and the bidirected one fixed, so the plot draws a layer of each kind
+  dag <- dagify(y ~ x + z, x ~ ~z)
+
+  p <- ggdag_equivalent_class(
+    dag,
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  # the reversable edges are drawn without an arrowhead, so only the layers
+  # that draw one report a length
+  expect_equal(edge_arrow_lengths(p), 40)
+})

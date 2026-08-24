@@ -581,3 +581,78 @@ test_that("extract_sets processes adjustment sets correctly", {
   expect_equal(extracted[[2]], "c")
   expect_equal(extracted[[3]], "(Backdoor Paths Unconditionally Closed)")
 })
+
+test_that("ggdag_adjustment_set() sizes the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_adjustment_set(
+    dag,
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_adjustment_set() honors the proportional edge_cap option", {
+  withr::local_options(ggdag.edge_cap = 4)
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  # the adjustment set functions scale the option by 10/8
+  expect_equal(edge_cap_radii(ggdag_adjustment_set(dag)), 5)
+})
+
+test_that("ggdag_adjust() sizes the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  p <- ggdag_adjust(
+    dag,
+    var = "z",
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_adjust() honors edge_type in the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  stats <- layer_stat_classes(ggdag_adjust(dag, var = "z", edge_type = "arc"))
+
+  expect_true("StatEdgeArc" %in% stats)
+  expect_false("StatEdgeLink" %in% stats)
+})
+
+test_that("ggdag_adjustment_set() and ggdag_adjust() accept unified_legend", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_s3_class(ggdag_adjustment_set(dag, unified_legend = FALSE), "gg")
+  expect_s3_class(ggdag_adjust(dag, var = "z", unified_legend = FALSE), "gg")
+})
+
+test_that("ggdag_adjustment_set() accepts key_glyph", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_s3_class(
+    ggdag_adjustment_set(dag, key_glyph = draw_key_dag_point),
+    "gg"
+  )
+})
+
+test_that("ggdag_adjustment_set() draws the edge sizes it is given", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_doppelganger(
+    "ggdag_adjustment_set() with wide capped edges",
+    ggdag_adjustment_set(dag, edge_cap = 16, edge_width = 2)
+  )
+})

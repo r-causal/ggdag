@@ -209,7 +209,9 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 
 \item{collider_lines}{Logical. Should paths opened by conditioning on
-colliders be shown?}
+colliders be shown? These paths are drawn as dashed ggraph curves whatever
+\code{edge_engine} is in use: they mark an association rather than an edge of
+the DAG, so they stay visibly apart from the arrows the engine draws.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{d_relationship} column for

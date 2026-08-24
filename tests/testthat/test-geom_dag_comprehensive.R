@@ -256,8 +256,8 @@ test_that("geom_dag main function works with different options", {
   )
   # size = 2 should scale node_size to 40 (20 * 2)
   expect_equal(geoms_sizes[[1]]$aes_params$size, 40)
-  # text_size is passed directly without size multiplier
-  expect_equal(geoms_sizes[[3]]$aes_params$size, 5)
+  # and text_size to 10 (5 * 2), along with everything else
+  expect_equal(geoms_sizes[[3]]$aes_params$size, 10)
 
   # Test deprecated parameters
   expect_ggdag_warning(

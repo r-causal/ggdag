@@ -113,8 +113,15 @@ ggdag_instrumental <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
-    node_instrumental(exposure = exposure, outcome = outcome, ...)
+  # `node_instrumental()` does the tidying so that `...` reaches
+  # `tidy_dagitty()`; tidying here first would leave the dots with nothing to
+  # act on
+  .tdy_dag <- node_instrumental(
+    .tdy_dag,
+    exposure = exposure,
+    outcome = outcome,
+    ...
+  )
   has_instrumental <- !all(is.na((pull_dag_data(.tdy_dag)$instrumental)))
   has_adjusted <- "adjusted" %in% names(pull_dag_data(.tdy_dag))
   mapping <- aes_dag()

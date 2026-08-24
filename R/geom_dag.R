@@ -735,6 +735,99 @@ filter_direction <- function(.direction) {
   }
 }
 
+# The cap an edge layer leaves at each of its ends, as an aesthetic on the
+# mapping the layer is built with, so that the automatic cap discovery in
+# `ggplot_add.dag_edge_layer()` leaves the size the caller asked for alone.
+with_edge_caps <- function(mapping, cap) {
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes()
+  }
+
+  cap_quo <- rlang::new_quosure(
+    rlang::expr(ggraph::circle(!!cap, "mm")),
+    env = rlang::base_env()
+  )
+  mapping$start_cap <- cap_quo
+  mapping$end_cap <- cap_quo
+
+  mapping
+}
+
+# The ggraph edge layers a quick plotter builds for itself, sized the way
+# `geom_dag()` sizes the ones it builds: every measure scales with `size`, and
+# the arrowhead length arrives in points.
+quick_plot_dag_edges <- function(
+  mapping = NULL,
+  edge_type = "link_arc",
+  edge_cap,
+  edge_width,
+  arrow_length,
+  size,
+  data = NULL,
+  data_directed = filter_direction("->"),
+  data_bidirected = filter_direction("<->"),
+  show.legend = NA,
+  ...
+) {
+  mapping <- with_edge_caps(mapping, edge_cap * size)
+  arrow_size <- grid::unit(arrow_length * size, "pt")
+
+  if (identical(edge_type, "link_arc")) {
+    return(geom_dag_edges(
+      mapping,
+      data_directed = data_directed,
+      data_bidirected = data_bidirected,
+      edge_width = edge_width * size,
+      arrow_directed = grid::arrow(length = arrow_size, type = "closed"),
+      arrow_bidirected = grid::arrow(
+        length = arrow_size,
+        ends = "both",
+        type = "closed"
+      ),
+      show.legend = show.legend,
+      ...
+    ))
+  }
+
+  edge_type_switch(edge_type)(
+    mapping,
+    data = data,
+    edge_width = edge_width * size,
+    arrow = grid::arrow(length = arrow_size, type = "closed"),
+    show.legend = show.legend,
+    ...
+  )
+}
+
+# `geom_dag_edges()` builds a layer for directed edges and one for bidirected
+# edges, and most DAGs have edges of only one kind. A ggraph edge layer with no
+# rows builds to a data frame with no columns at all, which loses the caps,
+# widths, and arrowheads the layer was handed, so keep only the layers that
+# have an edge to draw.
+drop_empty_edge_layers <- function(layers, dag_data) {
+  if (inherits(layers, "dag_edge_layer")) {
+    layers <- list(layers)
+  }
+
+  purrr::keep(layers, \(layer) nrow(edge_layer_data(layer, dag_data)) > 0)
+}
+
+# The rows a layer draws, whether it was handed them outright, handed a
+# function to pick them with, or left to inherit them from the plot.
+edge_layer_data <- function(layer, dag_data) {
+  layer_data <- layer$data
+
+  if (is.function(layer_data)) {
+    return(layer_data(dag_data))
+  }
+
+  if (is.null(layer_data) || inherits(layer_data, "waiver")) {
+    return(dag_data)
+  }
+
+  layer_data
+}
+
 # Helper function to expand edge aesthetics
 # Maps colour/color to edge_colour/edge_color if not already set
 expand_edge_aes <- function(mapping) {
@@ -1792,7 +1885,7 @@ geom_dag <- function(
       mapping = mapping,
       data = data,
       col = text_col,
-      size = text_size
+      size = sizes[["text"]]
     )
   } else {
     text_geom <- NULL

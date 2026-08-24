@@ -136,3 +136,27 @@ test_that("ggdag_canonical() forwards text, label, node, and stylized", {
   p_node <- ggdag_canonical(dag, node = FALSE)
   expect_null(find_layer(p_node, "GeomDagPoint"))
 })
+
+test_that("ggdag_canonical() passes ... to the tidy_dagitty() that lays out the canonical DAG", {
+  dag <- dagify(y ~ x + z, x ~ ~z)
+
+  expected <- tidy_node_coords(node_canonical(dag, layout = "circle"))
+  actual <- node_coords(ggdag_canonical(dag, layout = "circle"))
+
+  expect_equal(actual$name, expected$name)
+  expect_equal(actual$x, expected$x)
+  expect_equal(actual$y, expected$y)
+})
+
+test_that("ggdag_canonical() carries the standard quick-plotter defaults", {
+  # the sibling quick plotters fall back to `FALSE` when no label option is
+  # set, and validate `edge_type` against the full set of choices
+  expect_equal(
+    formals(ggdag_canonical)$use_labels,
+    formals(ggdag_status)$use_labels
+  )
+  expect_equal(
+    formals(ggdag_canonical)$edge_type,
+    formals(ggdag_status)$edge_type
+  )
+})

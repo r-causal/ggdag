@@ -919,3 +919,44 @@ test_that("dagitty control points snapshot", {
 
   expect_doppelganger("dagitty control points", p)
 })
+
+test_that("set_curve_edges() rejects one bidirected edge named both ways round", {
+  dag <- dagify(y ~ z, x ~ ~y)
+  both_ways <- data.frame(
+    from = c("x", "y"),
+    to = c("y", "x"),
+    curvature = c(0.5, -0.5)
+  )
+
+  # a bidirected edge has no direction of its own, so both rows name the same
+  # edge and the data frame contradicts itself
+  expect_error(set_curve_edges(dag, both_ways), class = "ggdag_dag_error")
+  expect_ggdag_error(set_curve_edges(dag, both_ways))
+})
+
+test_that("set_curve_edges() rejects one directed edge named twice", {
+  dag <- dagify(y ~ x + m, m ~ x)
+  twice <- data.frame(
+    from = c("x", "x"),
+    to = c("y", "y"),
+    curvature = c(0.5, -0.5)
+  )
+
+  expect_error(set_curve_edges(dag, twice), class = "ggdag_dag_error")
+})
+
+test_that("set_curve_edges() accepts an edge named once in either orientation", {
+  dag <- dagify(y ~ z, x ~ ~y)
+
+  forward <- set_curve_edges(
+    dag,
+    data.frame(from = "x", to = "y", curvature = 0.5)
+  )
+  backward <- set_curve_edges(
+    dag,
+    data.frame(from = "y", to = "x", curvature = 0.5)
+  )
+
+  expect_equal(nrow(attr(forward, "curved_edges")), 1)
+  expect_equal(nrow(attr(backward, "curved_edges")), 1)
+})

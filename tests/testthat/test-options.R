@@ -474,10 +474,10 @@ test_that("tidy_dagitty() respects global layout option", {
   coords <- pull_dag_data(td) |>
     dplyr::select(name, x, y) |>
     dplyr::distinct()
-  # Circle layout places nodes on a unit circle
-  # Verify that not all nodes are on the same x or y (would indicate default)
-  expect_true(length(unique(round(coords$x, 2))) > 1)
-  expect_true(length(unique(round(coords$y, 2))) > 1)
+  # The circle layout places every node on the unit circle. Any spread of
+  # coordinates passes for the default layout too, so the radius is what tells
+  # the option through from the option ignored.
+  expect_equal(sqrt(coords$x^2 + coords$y^2), rep(1, nrow(coords)))
 })
 
 test_that("explicit layout arg overrides global layout option", {
@@ -807,6 +807,86 @@ test_that("debug_repel_points rejects non-logical values", {
     ggdag_options_set(debug_repel_points = "yes"),
     class = "ggdag_type_error"
   )
+})
+
+test_that("ggdag_options_set() unsets an option given NULL", {
+  local_ggdag_option_state()
+
+  ggdag_options_set(node_size = 20)
+  expect_equal(ggdag_options_get("node_size"), 20)
+
+  expect_no_error(ggdag_options_set(node_size = NULL))
+  expect_null(ggdag_options_get("node_size"))
+})
+
+test_that("ggdag_options_set() accepts NULL for label_size, its documented default", {
+  local_ggdag_option_state()
+
+  ggdag_options_set(label_size = 12)
+  expect_no_error(ggdag_options_set(label_size = NULL))
+  expect_null(ggdag_options_get("label_size"))
+  expect_equal(ggdag_defaults$label_size, ggdag_options_get("label_size"))
+})
+
+test_that("ggdag_options_set() round trips through its previous values", {
+  local_ggdag_option_state()
+
+  ggdag_options_set(node_size = NULL, text_size = 5)
+  old <- ggdag_options_set(node_size = 20, text_size = 8)
+
+  expect_null(old$node_size)
+  expect_equal(old$text_size, 5)
+
+  expect_no_error(do.call(ggdag_options_set, old))
+  expect_null(ggdag_options_get("node_size"))
+  expect_equal(ggdag_options_get("text_size"), 5)
+})
+
+test_that("ggdag_options_set() rejects NA for numeric options", {
+  local_ggdag_option_state()
+
+  # `NA_real_` reaches the numeric comparison in the validator, where it makes
+  # the `if` condition missing rather than false
+  expect_error(
+    ggdag_options_set(node_size = NA_real_),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_options_set(edge_cap = NA_integer_),
+    class = "ggdag_type_error"
+  )
+  expect_null(ggdag_options_get("node_size"))
+})
+
+test_that("ggdag_options_set() rejects NA for logical, character, and layout options", {
+  local_ggdag_option_state()
+
+  expect_error(ggdag_options_set(use_edges = NA), class = "ggdag_type_error")
+  expect_error(
+    ggdag_options_set(text_col = NA_character_),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_options_set(curvature = NA_real_),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_options_set(layout = NA_character_),
+    class = "ggdag_type_error"
+  )
+
+  expect_null(ggdag_options_get("use_edges"))
+  expect_null(ggdag_options_get("text_col"))
+  expect_null(ggdag_options_get("curvature"))
+  # helper-load_dag.R sets a layout for the whole suite, so what the rejected
+  # value must not have done is replace it
+  expect_equal(ggdag_options_get("layout"), "time_ordered")
+})
+
+test_that("ggdag_options_set() reports NA values through cli", {
+  local_ggdag_option_state()
+
+  expect_ggdag_error(ggdag_options_set(use_edges = NA))
 })
 
 # Keep this test last: it guards the suite-wide layout option that

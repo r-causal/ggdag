@@ -538,6 +538,7 @@ set_curve_edges.dagitty <- function(.dag, edges) {
     )
   }
   validate_edges_exist(.dag, edges$from, edges$to)
+  validate_edges_distinct(.dag, edges$from, edges$to)
 
   curved_edges <- tibble::tibble(
     name = edges$from,
@@ -675,6 +676,52 @@ validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
       "{length(missing_edges)} edge{?s} not found in the DAG.",
       "x" = "Missing: {.val {missing_edges}}",
       "i" = "Did you swap {.arg from} and {.arg to}?"
+    ),
+    error_class = "ggdag_dag_error",
+    call = call
+  )
+}
+
+#' Check that no edge is named twice
+#'
+#' An edge keeps one curvature, so a data frame that names the same edge twice
+#' asks for two. A bidirected or undirected edge has no direction of its own, so
+#' the two orientations of one name the same edge.
+#'
+#' @param .dag A `dagitty` object.
+#' @param from,to Character vectors of node names, paired element by element.
+#' @param call The calling environment, for the error message.
+#' @return `TRUE`, invisibly.
+#' @noRd
+validate_edges_distinct <- function(
+  .dag,
+  from,
+  to,
+  call = rlang::caller_env()
+) {
+  keys <- vapply(
+    seq_along(from),
+    function(i) {
+      if (is_undirected_pair(.dag, from[i], to[i])) {
+        paste(sort(c(from[i], to[i])), collapse = " <-> ")
+      } else {
+        paste(from[i], "->", to[i])
+      }
+    },
+    character(1)
+  )
+
+  repeated <- unique(keys[duplicated(keys)])
+  if (length(repeated) == 0) {
+    return(invisible(TRUE))
+  }
+
+  abort(
+    c(
+      "{length(repeated)} edge{?s} named more than once in {.arg edges}.",
+      "x" = "Repeated: {.val {repeated}}",
+      "i" = "An edge takes one curvature, and a bidirected edge is the same \\
+             edge whichever way round it is named."
     ),
     error_class = "ggdag_dag_error",
     call = call

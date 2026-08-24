@@ -142,8 +142,10 @@ ggdag_equivalent_dags <- function(
   }
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
-    node_equivalent_dags(...)
+  # `node_equivalent_dags()` does the tidying so that `...` reaches
+  # `tidy_dagitty()`; tidying here first would leave the dots with nothing to
+  # act on
+  .tdy_dag <- node_equivalent_dags(.tdy_dag, ...)
 
   p <- ggplot2::ggplot(.tdy_dag, aes_dag())
 
@@ -190,9 +192,10 @@ ggdag_equivalent_dags <- function(
 #' @export
 node_equivalent_class <- function(
   .dag,
-  layout = ggdag_option("layout", "nicely")
+  layout = ggdag_option("layout", "nicely"),
+  ...
 ) {
-  .dag <- if_not_tidy_daggity(.dag, layout = layout)
+  .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
   # drop the results of an earlier application so the join does not suffix
   .dag <- dplyr::select(.dag, -dplyr::any_of("reversable"))
 
@@ -262,8 +265,10 @@ ggdag_equivalent_class <- function(
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
-    node_equivalent_class(...)
+  # `node_equivalent_class()` does the tidying so that `...` reaches
+  # `tidy_dagitty()`; tidying here first would leave the dots with nothing to
+  # act on
+  .tdy_dag <- node_equivalent_class(.tdy_dag, ...)
 
   reversable_lines <- dplyr::filter(pull_dag_data(.tdy_dag), .data$reversable)
   non_reversable_lines <- dplyr::filter(
@@ -332,8 +337,12 @@ ggdag_equivalent_class <- function(
     } else {
       warn_if_curvature_ignored(p$data)
 
-      p <- p +
-        geom_dag_edges(
+      edge_layers <- c(
+        quick_plot_dag_edges(
+          edge_cap = edge_cap,
+          edge_width = edge_width,
+          arrow_length = arrow_length,
+          size = size,
           data_directed = dplyr::filter(
             non_reversable_lines,
             .data$direction != "<->"
@@ -342,8 +351,19 @@ ggdag_equivalent_class <- function(
             non_reversable_lines,
             .data$direction == "<->"
           )
-        ) +
-        geom_dag_edges_link(data = reversable_lines, arrow = NULL) +
+        ),
+        list(
+          geom_dag_edges_link(
+            with_edge_caps(NULL, edge_cap * size),
+            data = reversable_lines,
+            edge_width = edge_width * size,
+            arrow = NULL
+          )
+        )
+      )
+
+      p <- p +
+        drop_empty_edge_layers(edge_layers, pull_dag_data(.tdy_dag)) +
         breaks() +
         ggraph::scale_edge_alpha_manual(
           name = "Reversable",

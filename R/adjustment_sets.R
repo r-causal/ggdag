@@ -115,6 +115,8 @@ ggdag_adjustment_set <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -193,18 +195,24 @@ ggdag_adjustment_set <- function(
     } else {
       warn_if_curvature_ignored(p$data)
 
-      if (shadow) {
-        vals <- c("blocked by\nadjustment" = "grey80")
-        p <- p +
-          geom_dag_edges(ggplot2::aes(edge_colour = .data$blocked))
+      vals <- if (shadow) {
+        c("blocked by\nadjustment" = "grey80")
       } else {
-        vals <- c("blocked by\nadjustment" = "#FFFFFF00")
-        p <- p +
-          geom_dag_edges(
-            ggplot2::aes(edge_colour = .data$blocked),
-            show.legend = FALSE
-          )
+        c("blocked by\nadjustment" = "#FFFFFF00")
       }
+
+      p <- p +
+        drop_empty_edge_layers(
+          quick_plot_dag_edges(
+            ggplot2::aes(edge_colour = .data$blocked),
+            edge_cap = edge_cap,
+            edge_width = edge_width,
+            arrow_length = arrow_length,
+            size = size,
+            show.legend = if (shadow) NA else FALSE
+          ),
+          pull_dag_data(.tdy_dag)
+        )
 
       p <- p +
         ggraph::scale_edge_colour_manual(
@@ -235,7 +243,8 @@ ggdag_adjustment_set <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
-      key_glyph = draw_key_dag_point,
+      unified_legend = unified_legend,
+      key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
@@ -322,7 +331,10 @@ reaches_avoiding <- function(.dag, .from, .targets, .avoid) {
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #' @param collider_lines logical. Should the plot show paths activated by
-#'   adjusting for a collider?
+#'   adjusting for a collider? These paths are drawn as dashed ggraph curves
+#'   whatever `edge_engine` is in use: they mark an association rather than an
+#'   edge of the DAG, so they stay visibly apart from the arrows the engine
+#'   draws.
 #' @inheritParams dag_params
 #' @param activate_colliders logical. Include colliders activated by adjustment?
 #'
@@ -393,6 +405,7 @@ ggdag_adjust <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
@@ -458,10 +471,16 @@ ggdag_adjust <- function(
       warn_if_curvature_ignored(p$data)
 
       p <- p +
-        geom_dag_edges(
-          ggplot2::aes(edge_alpha = .data$adjusted),
-          start_cap = ggraph::circle(edge_cap, "mm"),
-          end_cap = ggraph::circle(edge_cap, "mm")
+        drop_empty_edge_layers(
+          quick_plot_dag_edges(
+            ggplot2::aes(edge_alpha = .data$adjusted),
+            edge_type = edge_type,
+            edge_cap = edge_cap,
+            edge_width = edge_width,
+            arrow_length = arrow_length,
+            size = size
+          ),
+          pull_dag_data(.tdy_dag)
         )
     }
 
@@ -489,6 +508,7 @@ ggdag_adjust <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),

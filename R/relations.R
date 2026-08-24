@@ -524,7 +524,6 @@ ggdag_markov_blanket <- function(
   p <- if_not_tidy_daggity(.tdy_dag, ...) |>
     node_markov_blanket(.var) |>
     ggplot2::ggplot(aes_dag(color = .data$blanket)) +
-    geom_dag_text(col = "white") +
     scale_adjusted(include_color = FALSE) +
     breaks(c("Markov blanket", "center variable"))
 

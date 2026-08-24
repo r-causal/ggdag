@@ -287,7 +287,7 @@ check_arg_stylized <- function(stylized, use_stylized, what = "geom_dag") {
     deprecate_soft(
       "0.3.0",
       paste0(what, "(stylized)"),
-      paste0(what, "(stylized)")
+      paste0(what, "(use_stylized)")
     )
     use_stylized <- stylized
   }

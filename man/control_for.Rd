@@ -31,6 +31,7 @@ ggdag_adjust(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
@@ -92,6 +93,11 @@ used is controlled by \code{label_geom}.}
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
 
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+a single, more compact legend. Default is \code{TRUE}.}
+
 \item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
 If \code{NULL} (the default), the glyph is chosen automatically based on the
 \code{unified_legend} setting. When provided, this overrides the automatic
@@ -115,7 +121,10 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 
 \item{collider_lines}{logical. Should the plot show paths activated by
-adjusting for a collider?}
+adjusting for a collider? These paths are drawn as dashed ggraph curves
+whatever \code{edge_engine} is in use: they mark an association rather than an
+edge of the DAG, so they stay visibly apart from the arrows the engine
+draws.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{adjusted} column for adjusted

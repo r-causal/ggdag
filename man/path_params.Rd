@@ -15,7 +15,9 @@ character vector of variable names, a list of the form \code{list(c(...))}, or
 \code{NULL}. When \code{NULL}, no control is applied. Default is \code{NULL}.}
 
 \item{collider_lines}{Logical. Should paths opened by conditioning on
-colliders be shown?}
+colliders be shown? These paths are drawn as dashed ggraph curves whatever
+\code{edge_engine} is in use: they mark an association rather than an edge of
+the DAG, so they stay visibly apart from the arrows the engine draws.}
 }
 \description{
 Path-related parameters

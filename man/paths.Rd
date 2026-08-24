@@ -76,6 +76,8 @@ ggdag_paths_fan(
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
+  key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -172,6 +174,12 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
 a single, more compact legend. Default is \code{TRUE}.}
+
+\item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
+If \code{NULL} (the default), the glyph is chosen automatically based on the
+\code{unified_legend} setting. When provided, this overrides the automatic
+selection. Common options include \code{draw_key_dag_point},
+\code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{path} column for path variables, a \code{set}

@@ -1,5 +1,33 @@
 # ggdag (development version)
 
+* `ggdag_markov_blanket()` now draws node text only through `geom_dag()`, like every other quick plotter. It added a text layer of its own before that call, so the text was drawn twice with the defaults, `use_text = FALSE` still showed it, and `text_col`, `text_size`, and the matching options had no say over the extra layer.
+
+* `ggdag_status()`, `ggdag_instrumental()`, `ggdag_equivalent_dags()`, `ggdag_equivalent_class()`, and `ggdag_canonical()` now pass `...` on to `tidy_dagitty()` as documented. Each tidied its input before the dots could reach it, so `layout`, `seed`, and the rest were dropped without a word. `node_equivalent_class()` gains a `...` of its own for the same reason, and `node_canonical()` rejects `use_existing_coords`, which contradicts the layout it does from scratch.
+
+* `ggdag_canonical()` takes the same `use_labels` and `edge_type` defaults as its sibling quick plotters. Its `use_labels` fell back to `NULL` rather than `FALSE`, and its `edge_type` was a bare string rather than the set of choices, so a misspelled type went unchecked.
+
+* `geom_dag(size = )` now scales node text along with the nodes, edges, and labels. The scaled text size was computed and then passed over in favor of the unscaled one, so text stayed put while everything around it grew.
+
+* `ggdag_options_set()` accepts `NULL` for an option, which leaves it unset and returns it to the built-in default. Every value went through validation, which rejected `NULL`, so a single option could not be unset, `label_size`'s documented `NULL` default was unreachable, and restoring the previous values with `do.call(ggdag_options_set, old)` failed whenever one of them was unset.
+
+* `ggdag_options_set()` rejects `NA` for every kind of option, with the package's own error. A missing numeric value reached a comparison and raised a bare "missing value where TRUE/FALSE needed" instead; missing logical, character, and layout values passed validation and were stored, where an `NA` for `use_edges` or `use_text` silently dropped the layer it named.
+
+* The ten quick plotters in `quick_plots.R`, such as `ggdag_m_bias()` and `ggdag_quartet_collider()`, now forward the documented `text` and `label` arguments, including the deprecated logical `text = FALSE`. Both were accepted and discarded.
+
+* `ggdag_adjustment_set()`, `ggdag_paths()`, `ggdag_paths_fan()`, `ggdag_adjust()`, and `ggdag_equivalent_class()` now size the edge layers they build for themselves. These functions draw their own edges so that they can color or fade them by an analysis column, and `edge_cap`, `edge_width`, `arrow_length`, and, for `ggdag_paths()` and `ggdag_adjust()`, `edge_type` reached only the `geom_dag()` call that draws no edges. `ggdag_adjust()` also scales its edge cap by `size`, as the ggarrow engine already did.
+
+* `ggdag()` gains `edge_engine`, `n_edge_points`, and `n_node_points`, which `geom_dag()` has always taken. Passing any of them went to `tidy_dagitty()` through `...` and on to the layout machinery, which either ignored the argument or failed with an unrelated error.
+
+* The ten quick plotters in `quick_plots.R` gain `edge_engine`, `unified_legend`, and `key_glyph`; `ggdag_adjustment_set()` gains `unified_legend` and `key_glyph`, `ggdag_adjust()` gains `unified_legend`, and `ggdag_paths_fan()` gains `edge_engine` and `key_glyph`. These arguments were an error on the wrappers and, in the adjustment set functions, fell through `...` into dagitty.
+
+* `set_curve_edges()` now raises `ggdag_dag_error` for a data frame that names one edge twice, in either orientation for a bidirected edge. An edge takes one curvature, and the second row silently replaced the first.
+
+* The deprecation warning for `stylized` now names `use_stylized` as its replacement rather than `stylized` again.
+
+* `quartet_time_collider()` no longer stores labels for `x0`, `x3`, `y1`, and `z1`, which name none of its six nodes, and no longer positions them. The arguments remain, so existing code still runs, and the help page now says that they are ignored.
+
+* Corrected documentation: `x_y_associated` defaults to `TRUE` in `quartet_collider()`, `quartet_confounder()`, and `quartet_m_bias()`, whose datasets have x and y associated by construction, and to `FALSE` elsewhere. The shared help text claimed `FALSE` throughout. The help pages also now say that paths opened by conditioning on a collider are drawn as dashed ggraph curves whatever `edge_engine` is in use, since they mark an association rather than an edge of the DAG.
+
 * `geom_dag_arrow()`, `geom_dag_arrow_arc()`, and `geom_dag_arrows()` now treat `resect = 0` as a resection of zero rather than as a request for the automatic one. The value `0` was the marker for "nothing was set", so an explicit `resect = 0` was replaced by the 8mm `ggdag.edge_cap` fallback, while `resect = 0L` escaped the test and drew an arrow that was not shortened at all, giving two spellings of the same number two different plots. The unset marker is now `NULL`, which no user value collides with.
 
 * Documented that auto-resection is decided one end at a time. The help page said that resection applies only when neither `resect` nor `resect_head`/`resect_fins` is set, while `geom_dag_arrow(resect_head = 4)` shortened the fins end by the automatic amount all the same. The implementation was already per end and is what the page now describes.

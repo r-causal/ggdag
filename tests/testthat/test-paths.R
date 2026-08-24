@@ -898,3 +898,73 @@ test_that("ggdag_paths() draws one node per variable on causal paths", {
 
   expect_doppelganger("ggdag_paths() with a mediator", ggdag_paths(dag))
 })
+
+test_that("ggdag_paths() sizes the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_paths(
+    dag,
+    from = "x",
+    to = "y",
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_paths() honors edge_type in the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  stats <- layer_stat_classes(
+    ggdag_paths(dag, from = "x", to = "y", edge_type = "arc")
+  )
+
+  expect_true("StatEdgeArc" %in% stats)
+  expect_false("StatEdgeLink" %in% stats)
+})
+
+test_that("ggdag_paths_fan() sizes the edge layer it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_paths_fan(
+    dag,
+    from = "x",
+    to = "y",
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_paths_fan() accepts edge_engine and key_glyph", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_s3_class(
+    ggdag_paths_fan(dag, from = "x", to = "y", key_glyph = draw_key_dag_point),
+    "gg"
+  )
+
+  skip_if_not_installed("ggarrow")
+  p <- ggdag_paths_fan(dag, from = "x", to = "y", edge_engine = "ggarrow")
+  expect_s3_class(p, "gg")
+  expect_true(uses_ggarrow_edges(p))
+})
+
+test_that("ggdag_paths() draws the edge sizes it is given", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_doppelganger(
+    "ggdag_paths() with wide capped edges",
+    ggdag_paths(dag, from = "x", to = "y", edge_cap = 16, edge_width = 2)
+  )
+})

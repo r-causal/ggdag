@@ -9,6 +9,7 @@ ggdag(
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -23,6 +24,8 @@ ggdag(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  n_edge_points = NULL,
+  n_node_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   text = NULL,
@@ -41,6 +44,12 @@ allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
 "diagonal".}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 
 \item{node_size}{The size of the nodes.}
 
@@ -75,6 +84,18 @@ used is controlled by \code{label_geom}.}
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
+
+\item{n_edge_points}{Number of invisible points to interpolate along each
+edge for label repulsion. Passed to repel label geoms. Defaults to \code{NULL}
+(uses \code{StatNodesRepel} default of 50). Set to 0 to disable.}
+
+\item{n_node_points}{Target number of invisible skeleton points filling the
+disc that covers each node for label repulsion: a center point plus four
+concentric rings, each holding at least six points, so every value from 1
+to 16 gives the same 25 points per node. Passed to repel label geoms.
+Defaults to \code{NULL} (uses \code{StatNodesRepel} default of 12). Set to 0 to
+disable. The disc is measured in data units, so it matches the drawn node
+only on a panel about 180 mm wide; see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

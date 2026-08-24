@@ -7,7 +7,11 @@
 #' Options are stored in R's global [options()] as `ggdag.<name>`. When an
 #' option is `NULL` (the default), each function uses its own built-in
 #' default. Setting a global option overrides the built-in default for all
-#' functions that use it.
+#' functions that use it. Passing `NULL` to `ggdag_options_set()` leaves that
+#' one option unset, which returns it to the built-in default and leaves every
+#' other option alone. That also makes the previous values
+#' `ggdag_options_set()` returns safe to restore with
+#' `do.call(ggdag_options_set, old)`.
 #'
 #' Functions that normally use `edge_cap = 10` (e.g., [ggdag_adjustment_set()],
 #' [ggdag_drelationship()]) maintain a proportional offset. If you set
@@ -95,8 +99,13 @@ ggdag_options_set <- function(...) {
     )
   }
 
+  # `options()` unsets an option handed `NULL`, which is how an option goes back
+  # to the built-in default a function carries, so `NULL` is a value to pass
+  # through rather than one to validate
   for (nm in names(dots)) {
-    validate_ggdag_option(nm, dots[[nm]])
+    if (!is.null(dots[[nm]])) {
+      validate_ggdag_option(nm, dots[[nm]])
+    }
   }
 
   opt_names <- paste0("ggdag.", names(dots))
@@ -176,8 +185,13 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
   character_opts <- c("text_col", "label_col")
   valid_edge_types <- c("link_arc", "link", "arc", "diagonal")
 
+  # every branch rejects `NA` before it reaches a comparison: an `NA` names no
+  # value the option can take, and left alone it either makes an `if` condition
+  # missing or passes a type check and misbehaves wherever the option is read
   if (name %in% numeric_opts) {
-    if (!is.numeric(value) || length(value) != 1 || value <= 0) {
+    if (
+      !is.numeric(value) || length(value) != 1 || is.na(value) || value <= 0
+    ) {
       abort(
         c(
           "{.arg {name}} must be a single positive number.",
@@ -188,7 +202,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       )
     }
   } else if (name %in% logical_opts) {
-    if (!is.logical(value) || length(value) != 1) {
+    if (!is.logical(value) || length(value) != 1 || is.na(value)) {
       abort(
         c(
           "{.arg {name}} must be a single logical value ({.val {TRUE}} or {.val {FALSE}}).",
@@ -199,7 +213,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       )
     }
   } else if (name %in% character_opts) {
-    if (!is.character(value) || length(value) != 1) {
+    if (!is.character(value) || length(value) != 1 || is.na(value)) {
       abort(
         c(
           "{.arg {name}} must be a single character string.",
@@ -244,7 +258,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
         call = call
       )
     }
-    if (is.character(value) && length(value) != 1) {
+    if (is.character(value) && (length(value) != 1 || is.na(value))) {
       abort(
         c(
           "{.arg layout} must be a single character string or a function.",
@@ -280,7 +294,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       )
     }
   } else if (name == "curvature") {
-    if (!is.numeric(value) || length(value) != 1) {
+    if (!is.numeric(value) || length(value) != 1 || is.na(value)) {
       abort(
         c(
           "{.arg curvature} must be a single number.",
