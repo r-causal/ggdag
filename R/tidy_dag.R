@@ -121,6 +121,12 @@ tidy_dagitty <- function(
           ) |>
           coords2list(),
         error = function(e) {
+          # The package's own errors describe a DAG or an argument the user
+          # can fix, such as a time pin no ordering can satisfy. Falling back
+          # would hide the problem and draw a layout the user did not ask for.
+          if (inherits(e, "ggdag_error")) {
+            rlang::cnd_signal(e)
+          }
           inform(c(
             "!" = "Could not compute time-ordered layout; falling back to default layout.",
             "i" = "Reason: {conditionMessage(e)}"
@@ -173,7 +179,18 @@ tidy_dagitty <- function(
   }
 
   # Convert dagitty control points to edge_curvature (only when using
-  # dagitty's original coordinates, since control points are absolute)
+  # dagitty's original coordinates, since control points are absolute).
+  #
+  # An edge whose control point sits at exactly x = 0 arrives here without a
+  # control point at all: dagitty's DOT writer guards the edge position with
+  # `if (e.layout_pos_x)`, which is false for 0, so it omits the `pos`
+  # attribute and the control point is lost on the next round trip through the
+  # DAG string. Its vertex writer tests `void 0 !== e.layout_pos_x` and keeps
+  # a node at x = 0, so only edges are affected, and only in that one column.
+  # A DAG built in ggdag is unaffected: curvature set here travels in the
+  # `curved_edges` attribute, not in dagitty control points. The gap shows up
+  # for a DAG imported from DAGitty whose curve happens to be centered on
+  # x = 0, where the edge comes back straight.
   if (pass_coords && "edge_ctrl_x" %in% names(tidy_dag)) {
     ctrl_curvature <- ctrl_point_to_curvature(tidy_dag)
     if (!all(is.na(ctrl_curvature))) {

@@ -19,8 +19,10 @@ time_ordered_coords(
 single time period. Alternatively, a data frame where the first column is
 the variable name and the second column is the time period.}
 
-\item{time_points}{A vector of time points. Default is \code{NULL}, which creates
-a sequence from 1 to the number of variables.}
+\item{time_points}{A vector of time points, one element per time period in
+\code{.vars}. Default is \code{NULL}, which creates a sequence from 1 to the number
+of time periods (the length of \code{.vars}). A data frame carries its own time
+points in its second column, so supplying both is an error.}
 
 \item{direction}{A character string indicating the axis along which the
 variables should be time-ordered. Either "x" or "y". Default is "x".}
@@ -32,7 +34,10 @@ descendants.}
 
 \item{fixed_time}{A named numeric vector pinning specific nodes to time
 points (e.g., \code{c(x = 3, z = 1)}). Only used in auto mode (\code{.vars = NULL}). Other nodes are placed automatically while respecting these
-constraints. Pinned times are 1-based and preserved in the output.}
+constraints. Pinned times are 1-based and preserved in the output, so
+they must be whole numbers of at least 1. A pin that no ordering can
+satisfy, such as a time earlier than the node's own ancestors allow, is
+an error.}
 
 \item{adjust_exposure_outcome}{If \code{TRUE} (default), automatically shift the
 outcome forward by one time point when it shares a layer with the

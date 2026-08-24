@@ -1,5 +1,25 @@
 # ggdag (development version)
 
+* The time-ordered layout no longer draws a directed edge backwards in time when its two nodes are also joined by a bidirected edge. Every group of nodes joined by bidirected edges is now condensed into a single node before the layers are assigned, so the shared layer a bidirected edge asks for comes out of the layering itself rather than from moving nodes onto one layer afterwards. Raising a group to the layer of its latest member used to leave a child of that group on its own parent's layer, and a pair joined by both a directed and a bidirected edge, such as `dagify(y ~ x + m, m ~ x, x ~~ y)`, placed the exposure after its own mediator. Where the directed edges order two members of a group no shared layer exists, and the directed order now decides.
+
+* The time-ordered layout honors a `fixed_time` pin on a node that bidirected edges join to others. The group was moved to the layer of its latest member, which overrode the pin with nothing said, even when the whole group could have sat at the pinned layer.
+
+* `sort_direction = "right"`, the default for the automatic time-ordered layout, now places every node one layer before its earliest child, as documented. The backward pass read the layer each node started at rather than the layer its children ended at, so a node whose child moved later was left behind, sometimes several time points before its only child.
+
+* `time_ordered_coords(fixed_time = )` now raises `ggdag_dag_error` for a pin no ordering can satisfy, such as a time earlier than the node's own ancestors allow. Such a pin gave those ancestors negative internal layers, which dropped them from the layout with nothing said; `dagify()` then stored no coordinates for them and plotting failed inside dagitty with `ReferenceError: NA is not defined`. `tidy_dagitty()` now passes these errors on rather than falling back to another layout.
+
+* `time_ordered_coords(fixed_time = )` now raises an error for a time that is not a whole number. A value such as `3.7` was truncated to 3, contradicting the documented promise that a pinned time comes back unchanged.
+
+* The time-ordered layout no longer shifts an outcome that shares a layer with the exposure onto the layer of a pinned descendant, which drew a cause and its effect at the same time point. That shift is now skipped with the message already used when the outcome itself is pinned. The shift also carries along any node a bidirected edge ties to the outcome, so such a pair stays on one layer.
+
+* `time_ordered_coords()` now raises `ggdag_missing_error` when the time column of a data frame holds a missing value, naming the variables it affects. Those rows were dropped, so the nodes left the coordinates with nothing said.
+
+* `time_ordered_coords()` now raises `ggdag_type_error` for a data frame whose time column is not numeric. Text or factor time labels were used as coordinates directly, which gave the result a non-numeric `x` column and ordered the variables alphabetically rather than by time.
+
+* `time_ordered_coords()` now raises an error when `time_points` is supplied alongside a data frame, whose second column already carries the time points. The argument was discarded with nothing said.
+
+* Corrected documentation: the `time_points` argument of `time_ordered_coords()` defaults to a sequence from 1 to the number of time periods, not to the number of variables.
+
 * `dag_prune()` now keeps a node whose every edge is pruned, as an isolated node. It protected such a node only when the node had exactly one edge to begin with and a row of its own to be converted, so pruning both edges of a node at once removed the node itself, batch pruning disagreed with pruning the same edges one at a time, and a node that only ever ends an edge was removed along with the edge.
 
 * `dag_prune()` no longer sets every edge direction to `NA` when the `direction` column holds text rather than a factor, which is the shape `as_tidy_dagitty()` produces for a data frame that supplies its own coordinates. It rebuilt the column from factor codes, so the corrupted directions were then compiled into the DAG. Reordering the levels of a factor `direction` column had the same effect.

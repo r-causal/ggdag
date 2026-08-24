@@ -415,6 +415,11 @@ curve_edge.dagitty <- function(.dag, from, to, curvature = 0.3) {
   }
   validate_edges_exist(.dag, from, to)
 
+  # Curvature is kept in an attribute of its own rather than written to the
+  # DAG as a dagitty edge control point. Besides being a relative measure
+  # rather than an absolute coordinate, a control point at x = 0 does not
+  # survive dagitty's DOT writer (see `ctrl_point_to_curvature()` in
+  # R/tidy_dag.R), so a curve set here would silently straighten.
   curved_edges <- attr(.dag, "curved_edges") %||%
     tibble::tibble(
       name = character(),
@@ -748,6 +753,9 @@ strip_curved_expr <- function(expr) {
 }
 
 get_dagitty_edges <- function(.dag) {
+  # `edge_ctrl_x` is never exactly 0: dagitty drops an edge control point at
+  # that coordinate when it writes the DAG out (see `ctrl_point_to_curvature()`
+  # in R/tidy_dag.R).
   .edges <- dagitty::edges(.dag)
 
   # Handle empty edges (DAG with no edges)
