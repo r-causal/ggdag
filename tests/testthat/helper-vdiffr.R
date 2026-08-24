@@ -1,9 +1,14 @@
 expect_doppelganger <- function(title, fig, ...) {
   testthat::skip_if_not_installed("vdiffr")
-  # TODO: remove skip when devel ubuntu not failing
-  # EDIT: Done. leaving comment for record temporarily.
-  # see https://github.com/r-causal/ggdag/actions/runs/7699530598/job/20981341511
-  # also https://github.com/r-causal/ggdag/actions/runs/7701021564/job/20986141655?pr=132
+
+  # The baselines are generated on macOS and only reproduce there: platform
+  # math libraries differ in the last ulp, which tips collinear-vertex
+  # elision in arrow outlines, drifts force-directed layouts and repel
+  # positions, and changes the floating-point dust some layouts print as
+  # axis labels. Text metrics are not the problem (vdiffr bundles fonts).
+  # The macOS CI runner reproduces the baselines exactly, so visual
+  # regressions are still caught there.
+  testthat::skip_on_os(c("windows", "linux", "solaris"))
 
   # Repel-based layers consume the RNG stream while the figure is drawn, so the
   # SVG depends on the RNG state at write time. Tests run in parallel and each

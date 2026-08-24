@@ -126,6 +126,10 @@ test_that("`test_conditional_independence()` works", {
   expect_equal(nrow(result), nrow(query_conditional_independence(test_dag)))
   expect_length(result, 5)
 
+  # live output plots, but its values are not cross-platform reproducible
+  # (`MASS::mvrnorm()`), so the visual check uses a fixed fixture instead
+  expect_s3_class(ggdag_conditional_independence(result), "gg")
+
   expect_ggdag_error(test_conditional_independence(test_dag))
 
   expect_ggdag_error(
@@ -137,7 +141,6 @@ test_that("`test_conditional_independence()` works", {
 
 
 test_that("`ggdag_conditional_independence()` works", {
-  set.seed(1)
   test_result <- data.frame(
     independence = c("x _||_ y", "y _||_ z"),
     estimate = c(0.1, 0.2),
@@ -148,8 +151,98 @@ test_that("`ggdag_conditional_independence()` works", {
   p1 <- ggdag_conditional_independence(test_result)
   expect_doppelganger("fake tests flexibly plot", p1)
 
-  data <- simulate_data(test_dag)
-  test_result <- test_conditional_independence(test_dag, data)
+  # a fixed copy of `test_conditional_independence(test_dag, ...)` output:
+  # the real pipeline draws through `MASS::mvrnorm()`, whose values depend
+  # on the BLAS/LAPACK build, so live estimates are not reproducible across
+  # platforms or R versions. The shape matters here — `independence` plus
+  # positional estimate/CI columns as `dagitty::localTests()` names them.
+  test_result <- tibble::tibble(
+    independence = c(
+      "v _||_ w1",
+      "v _||_ w2",
+      "v _||_ x | w1, z1",
+      "v _||_ y | w1, w2, x, z2",
+      "v _||_ y | w1, w2, z1, z2",
+      "w1 _||_ z2 | w2",
+      "w2 _||_ x | w1",
+      "w2 _||_ z1 | w1",
+      "x _||_ z2 | v, w2",
+      "x _||_ z2 | v, w1",
+      "x _||_ z2 | w1, z1",
+      "y _||_ z1 | v, w1, x",
+      "y _||_ z1 | w1, w2, x, z2",
+      "z1 _||_ z2 | v, w2",
+      "z1 _||_ z2 | v, w1"
+    ),
+    estimate = c(
+      -0.02,
+      0.05,
+      -0.11,
+      0.08,
+      0.13,
+      -0.07,
+      0.02,
+      0.16,
+      -0.14,
+      0.04,
+      0.09,
+      -0.05,
+      0.11,
+      -0.09,
+      0.06
+    ),
+    p.value = c(
+      0.81,
+      0.55,
+      0.21,
+      0.34,
+      0.12,
+      0.42,
+      0.79,
+      0.06,
+      0.09,
+      0.62,
+      0.28,
+      0.56,
+      0.19,
+      0.29,
+      0.48
+    ),
+    `2.5%` = c(
+      -0.18,
+      -0.11,
+      -0.27,
+      -0.08,
+      -0.03,
+      -0.23,
+      -0.14,
+      0.00,
+      -0.30,
+      -0.12,
+      -0.07,
+      -0.21,
+      -0.05,
+      -0.25,
+      -0.10
+    ),
+    `97.5%` = c(
+      0.14,
+      0.21,
+      0.05,
+      0.24,
+      0.29,
+      0.09,
+      0.18,
+      0.32,
+      0.02,
+      0.20,
+      0.25,
+      0.11,
+      0.27,
+      0.07,
+      0.22
+    )
+  )
   p2 <- ggdag_conditional_independence(
     test_result,
     vline_linewidth = 1,
