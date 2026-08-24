@@ -132,7 +132,14 @@ dagify <- function(
     )
   }
 
-  dag_txt <- purrr::map_chr(fmlas, formula2char)
+  # `vapply()` rather than `purrr::map_chr()` so that a formula ggdag cannot
+  # write out raises its own condition rather than an indexing wrapper's
+  dag_txt <- vapply(
+    fmlas,
+    formula2char,
+    character(1),
+    call = rlang::current_env()
+  )
   dag_txt <- paste(dag_txt, collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))()
   dgty <- dagitty::dagitty(dag_txt)
@@ -243,8 +250,10 @@ validate_dag_inputs <- function(
     validate_dag_formula_type(fmla, call = call)
   }
 
-  # Validate each formula
-  purrr::walk(fmlas, \(f) validate_dag_formula(f, call = call))
+  # Validate each formula, in a plain loop for the same reason
+  for (fmla in fmlas) {
+    validate_dag_formula(fmla, call = call)
+  }
 
   # Check that exposure and outcome are different
   if (!is.null(exposure) && !is.null(outcome)) {
@@ -649,23 +658,16 @@ is_undirected_pair <- function(.dag, from, to) {
 #' @return `TRUE`, invisibly.
 #' @noRd
 validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
-  .edges <- dagitty::edges(.dag)
+  from <- as.character(from)
+  to <- as.character(to)
 
-  edge_exists <- function(i) {
-    if (nrow(.edges) == 0) {
-      return(FALSE)
-    }
+  # the DAG's edges are read once here rather than once per pair, so that a
+  # large `edges` data frame does not turn into a scan per row
+  directed <- edge_pair_key(from, to) %in% directed_edge_keys(.dag)
+  symmetric <- edge_pair_key(pmin(from, to), pmax(from, to)) %in%
+    undirected_edge_keys(.dag)
 
-    directed <- .edges$e == "->" & .edges$v == from[i] & .edges$w == to[i]
-    undirected <- .edges$e %in%
-      c("<->", "--") &
-      ((.edges$v == from[i] & .edges$w == to[i]) |
-        (.edges$v == to[i] & .edges$w == from[i]))
-
-    any(directed | undirected)
-  }
-
-  found <- vapply(seq_along(from), edge_exists, logical(1))
+  found <- directed | symmetric
   if (all(found)) {
     return(invisible(TRUE))
   }
@@ -682,6 +684,41 @@ validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
   )
 }
 
+#' The endpoints of the edges of a DAG that are of the given kinds
+#'
+#' @param .dag A `dagitty` object.
+#' @param types The edge symbols to keep, e.g. `"->"`.
+#' @return A list of the `v` and `w` endpoints, both character.
+#' @noRd
+edge_endpoints <- function(.dag, types) {
+  .edges <- dagitty::edges(.dag)
+  # dagitty returns a zero-column data frame for a DAG with no edges
+  if (nrow(.edges) == 0 || ncol(.edges) == 0) {
+    return(list(v = character(), w = character()))
+  }
+
+  .edges <- .edges[.edges$e %in% types, , drop = FALSE]
+
+  list(v = as.character(.edges$v), w = as.character(.edges$w))
+}
+
+#' One key per directed edge of a DAG
+#'
+#' A directed edge is named in its own direction only, so its endpoints go into
+#' the key in the order the DAG holds them.
+#'
+#' @param .dag A `dagitty` object.
+#' @return A character vector, empty when the DAG has no directed edge.
+#' @noRd
+directed_edge_keys <- function(.dag) {
+  ends <- edge_endpoints(.dag, "->")
+  if (length(ends$v) == 0) {
+    return(character())
+  }
+
+  edge_pair_key(ends$v, ends$w)
+}
+
 #' One key per bidirected or undirected edge of a DAG
 #'
 #' The endpoints go into the key in a fixed order, so that a pair named either
@@ -691,17 +728,12 @@ validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
 #' @return A character vector, empty when the DAG has no such edge.
 #' @noRd
 undirected_edge_keys <- function(.dag) {
-  .edges <- dagitty::edges(.dag)
-  # dagitty returns a zero-column data frame for a DAG with no edges
-  if (nrow(.edges) == 0 || ncol(.edges) == 0) {
+  ends <- edge_endpoints(.dag, c("<->", "--"))
+  if (length(ends$v) == 0) {
     return(character())
   }
 
-  .edges <- .edges[.edges$e %in% c("<->", "--"), , drop = FALSE]
-  v <- as.character(.edges$v)
-  w <- as.character(.edges$w)
-
-  edge_pair_key(pmin(v, w), pmax(v, w))
+  edge_pair_key(pmin(ends$v, ends$w), pmax(ends$v, ends$w))
 }
 
 #' Check that no edge is named twice
@@ -767,7 +799,9 @@ validate_edges_distinct <- function(
 extract_curved_edges <- function(fmlas) {
   rows <- list()
   for (fmla in fmlas) {
-    lhs <- as.character.default(fmla)[[2]]
+    # the node names, not the deparsed left-hand side: a backticked name
+    # deparses with its backticks, and the DAG holds the bare name
+    lhs <- dag_term_names(fmla[[2]])
     rhs <- fmla[[3]]
     curved_calls <- find_curved_calls(rhs)
     for (cc in curved_calls) {

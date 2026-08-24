@@ -511,3 +511,95 @@ test_that("dag_prune() carries the DAG's labels through", {
   dag_data <- pull_dag_data(pruned_dag)
   expect_equal(unique(dag_data$label[dag_data$name == "z"]), "Confounder")
 })
+
+test_that("dag_prune() rejects a bare spec that names two parallel edges", {
+  withr::local_seed(1234)
+  .tdy_dag <- tidy_dagitty(dagify(y ~ x, x ~ ~y))
+  expect_equal(n_edges(.tdy_dag), 2)
+
+  expect_error(
+    dag_prune(.tdy_dag, c("x" = "y")),
+    class = "ggdag_ambiguous_edge_error"
+  )
+
+  # the reverse orientation names the bidirected edge alone, since the directed
+  # edge is named in its own direction only
+  reverse_pruned <- dag_prune(.tdy_dag, c("y" = "x"))
+  kept <- dplyr::filter(pull_dag_data(reverse_pruned), !is.na(to))
+  expect_equal(nrow(kept), 1)
+  expect_equal(as.character(kept$direction), "->")
+})
+
+test_that("dag_prune() reports what a bare spec matched", {
+  withr::local_seed(1234)
+  .tdy_dag <- tidy_dagitty(dagify(y ~ x, x ~ ~y))
+
+  expect_ggdag_error(dag_prune(.tdy_dag, c("x" = "y")))
+})
+
+test_that("dag_prune() prunes the one edge a direction names", {
+  withr::local_seed(1234)
+  .tdy_dag <- tidy_dagitty(dagify(y ~ x, x ~ ~y))
+
+  directed_pruned <- dag_prune(
+    .tdy_dag,
+    data.frame(name = "x", to = "y", direction = "->")
+  )
+  kept <- dplyr::filter(pull_dag_data(directed_pruned), !is.na(to))
+  expect_equal(nrow(kept), 1)
+  expect_equal(as.character(kept$direction), "<->")
+
+  bidirected_pruned <- dag_prune(
+    .tdy_dag,
+    data.frame(name = "x", to = "y", direction = "<->")
+  )
+  kept <- dplyr::filter(pull_dag_data(bidirected_pruned), !is.na(to))
+  expect_equal(nrow(kept), 1)
+  expect_equal(as.character(kept$direction), "->")
+
+  # a bidirected edge has no direction of its own, so either orientation names it
+  reversed_pruned <- dag_prune(
+    .tdy_dag,
+    data.frame(name = "y", to = "x", direction = "<->")
+  )
+  expect_equal(
+    edge_signature(reversed_pruned),
+    edge_signature(bidirected_pruned)
+  )
+})
+
+test_that("dag_prune() takes a data frame of edges without a direction", {
+  withr::local_seed(1234)
+  .tdy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  from_df <- dag_prune(.tdy_dag, data.frame(name = "z", to = "x"))
+  from_vector <- dag_prune(.tdy_dag, c("z" = "x"))
+
+  expect_equal(edge_signature(from_df), edge_signature(from_vector))
+})
+
+test_that("dag_prune() rejects an edges data frame it cannot read", {
+  withr::local_seed(1234)
+  .tdy_dag <- tidy_dagitty(dagify(y ~ x, x ~ ~y))
+
+  expect_error(
+    dag_prune(.tdy_dag, data.frame(from = "x", to = "y")),
+    class = "ggdag_columns_error"
+  )
+  expect_error(
+    dag_prune(.tdy_dag, data.frame(name = "x", to = "y", direction = "<-")),
+    class = "ggdag_dag_error"
+  )
+  expect_error(
+    dag_prune(.tdy_dag, data.frame(name = "x", to = NA_character_)),
+    class = "ggdag_type_error"
+  )
+  # a direction the pair does not have names no edge
+  expect_error(
+    dag_prune(
+      .tdy_dag,
+      data.frame(name = "y", to = "x", direction = "->")
+    ),
+    class = "ggdag_missing_edges_error"
+  )
+})

@@ -122,3 +122,13 @@ tidy_node_coords <- function(tidy_dag) {
     dplyr::distinct(name, x, y) |>
     dplyr::arrange(name)
 }
+
+# The node rows `plot` actually draws, across every node layer it has.
+built_node_data <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  indices <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$geom, "GeomDagPoint") || inherits(layer$geom, "GeomDagNode")
+  }))
+
+  dplyr::bind_rows(purrr::map(indices, \(i) built$data[[i]]))
+}

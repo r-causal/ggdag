@@ -32,9 +32,12 @@ returned when called with arguments.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 
-\item{edges}{A named character vector where the name is the starting node and
-the value is the end node, e.g. \code{c("x" = "y")} will remove the edge going
-from \code{x} to \code{y}.}
+\item{edges}{The edges to remove, in either of two forms. A named character
+vector where the name is the starting node and the value is the end node,
+e.g. \code{c("x" = "y")} removes the edge going from \code{x} to \code{y}. Or a data frame
+with a \code{name} and a \code{to} column, which says the same thing, and an optional
+\code{direction} column of \code{"->"}, \code{"<->"}, or \code{"--"}, which names one of the
+edges a pair of nodes holds.}
 }
 \value{
 A \code{tidy_dagitty} object
@@ -55,6 +58,11 @@ therefore never implies an independence that the input denies.
 \code{dag_prune()} errors if \code{edges} names an edge the DAG does not contain,
 including an edge written in the reverse direction. A node whose every edge
 is pruned is kept as an isolated node.
+
+A pair of nodes can hold a directed edge and a bidirected edge at the same
+time, and endpoints alone name both of them. \code{dag_prune()} errors on such a
+pair rather than pruning both; name the direction as well, with the data
+frame form of \code{edges}, to prune one of them.
 }
 \examples{
 # Example usage:

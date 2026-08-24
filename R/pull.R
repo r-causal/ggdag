@@ -128,22 +128,6 @@ prep_dag_data <- function(
     coords <- coords2list(coords)
   }
 
-  if (is.null(coords)) {
-    if (is.function(layout)) {
-      coords <- value |>
-        edges2df() |>
-        layout() |>
-        coords2list()
-    } else if (is.data.frame(layout)) {
-      coords <- coords2list(layout)
-    } else if (identical(layout, "time_ordered")) {
-      coords <- value |>
-        edges2df() |>
-        compute_time_ordered_layout() |>
-        coords2list()
-    }
-  }
-
   if ("direction" %nin% names(value)) {
     # rows with no edge are node-only rows, not directed edges
     value$direction <- ifelse(is.na(value$to), NA_character_, "->")
@@ -153,6 +137,10 @@ prep_dag_data <- function(
     # a partial set of coordinate columns can't be reconciled with a freshly
     # generated layout, so drop them and regenerate all four consistently
     value <- dplyr::select(value, -dplyr::any_of(c("x", "y", "xend", "yend")))
+
+    if (is.null(coords)) {
+      coords <- layout_coordinates(value, layout)
+    }
 
     coords_df <- value |>
       dplyr::select("name", "to") |>
@@ -189,6 +177,34 @@ prep_dag_data <- function(
   }
 
   value
+}
+
+#' Work out the coordinates a layout specification asks for
+#'
+#' Only the layouts ggdag resolves itself are computed here; the rest are left
+#' to `generate_layout()`, which passes them to ggraph. The result is thrown
+#' away unless a coordinate column is missing, so it is computed at the point
+#' of use rather than for every call: a layout is expensive, and the
+#' time-ordered one reports on its own work.
+#'
+#' @param value A data frame of edges.
+#' @param layout A layout name, data frame, or function.
+#' @return A list of `x` and `y`, or `NULL` if ggraph is to lay the DAG out.
+#' @noRd
+layout_coordinates <- function(value, layout) {
+  if (is.function(layout)) {
+    return(coords2list(layout(edges2df(value))))
+  }
+
+  if (is.data.frame(layout)) {
+    return(coords2list(layout))
+  }
+
+  if (identical(layout, "time_ordered")) {
+    return(coords2list(compute_time_ordered_layout(edges2df(value))))
+  }
+
+  NULL
 }
 
 #' Check that edge directions are ones ggdag understands
@@ -324,6 +340,8 @@ compile_dag_from_df <- function(.df, call = rlang::caller_env()) {
       call = call
     )
   }
+
+  check_representable_names(all_node_names(.df), call = call)
 
   if ("direction" %nin% names(.df)) {
     .df$direction <- "->"

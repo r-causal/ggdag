@@ -666,3 +666,21 @@ test_that("ggdag_adjust() rejects an edge type it cannot draw", {
   )
   expect_s3_class(ggdag_adjust(dag, var = "z", edge_type = "diagonal"), "gg")
 })
+
+test_that("ggdag_adjust() rejects an edge type it cannot draw on either engine", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    ggdag_adjust(dag, var = "z", edge_type = "bogus", edge_engine = "ggarrow"),
+    "should be one of"
+  )
+  expect_s3_class(
+    ggdag_adjust(
+      dag,
+      var = "z",
+      edge_type = "diagonal",
+      edge_engine = "ggarrow"
+    ),
+    "gg"
+  )
+})

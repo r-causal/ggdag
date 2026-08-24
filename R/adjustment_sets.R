@@ -421,6 +421,7 @@ ggdag_adjust <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
+  edge_type <- check_edge_type(edge_type)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is_empty_or_null(var)) {

@@ -983,3 +983,52 @@ test_that("ggdag_paths() rejects an edge type it cannot draw", {
     "gg"
   )
 })
+
+test_that("ggdag_paths() draws each variable once per panel", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, m = 1, y = 2),
+      y = c(x = 0, m = 1, y = 0)
+    )
+  )
+
+  node_data <- built_node_data(ggdag_paths(dag))
+
+  expect_gt(nrow(node_data), 0)
+  expect_false(anyDuplicated(node_data[, c("x", "y", "PANEL")]) > 0)
+
+  # the exposure lies on every open path, so it is never drawn in the shadow
+  # color, whichever order its rows arrive in
+  exposure_nodes <- node_data[node_data$x == 0 & node_data$y == 0, ]
+  expect_equal(nrow(exposure_nodes), dplyr::n_distinct(node_data$PANEL))
+  expect_false(any(exposure_nodes$colour == "grey80"))
+})
+
+test_that("ggdag_paths() rejects an edge type it cannot draw on either engine", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_error(
+    ggdag_paths(
+      dag,
+      from = "x",
+      to = "y",
+      edge_type = "bogus",
+      edge_engine = "ggarrow"
+    ),
+    "should be one of"
+  )
+  expect_s3_class(
+    ggdag_paths(
+      dag,
+      from = "x",
+      to = "y",
+      edge_type = "diagonal",
+      edge_engine = "ggarrow"
+    ),
+    "gg"
+  )
+})

@@ -960,3 +960,40 @@ test_that("We do not need to update `silent_add()`.", {
   body <- body(environment(ggplot()$scales$add)$f)
   expect_snapshot(body)
 })
+
+test_that("StatNodes keeps one row per node, preferring the marked one", {
+  node_data <- data.frame(
+    x = c(0, 0, 1, 1),
+    y = c(0, 0, 1, 1),
+    xend = c(1, NA, NA, NA),
+    yend = c(1, NA, NA, NA),
+    PANEL = factor(1),
+    group = c(1L, 2L, 1L, 2L),
+    colour = c("direct", NA, NA, "direct"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodes$compute_layer(node_data, NULL, list())
+
+  expect_equal(nrow(result), 2)
+  # the row carrying the analysis value is the one drawn
+  expect_equal(result$colour, c("direct", "direct"))
+  expect_equal(result$x, c(0, 1))
+})
+
+test_that("StatNodes keeps a node in each panel it appears in", {
+  node_data <- data.frame(
+    x = c(0, 0, 0),
+    y = c(0, 0, 0),
+    PANEL = factor(c(1, 1, 2)),
+    group = 1L,
+    colour = c("direct", NA, NA),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodes$compute_layer(node_data, NULL, list())
+
+  expect_equal(nrow(result), 2)
+  expect_equal(as.character(result$PANEL), c("1", "2"))
+  expect_equal(result$colour, c("direct", NA))
+})

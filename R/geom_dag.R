@@ -753,6 +753,14 @@ with_edge_caps <- function(mapping, cap) {
   mapping
 }
 
+# The edge types a plotter can draw. A composite plotter that builds its own
+# edge layers checks the type it is given here, before it settles which engine
+# to draw with: `quick_plot_dag_edges()` checks the type on the ggraph branch,
+# but the ggarrow branch never reaches it.
+check_edge_type <- function(edge_type) {
+  match.arg(edge_type, c("link_arc", "link", "arc", "diagonal"))
+}
+
 # The ggraph edge layers a quick plotter builds for itself, sized the way
 # `geom_dag()` sizes the ones it builds: every measure scales with `size`, and
 # the arrowhead length arrives in points. The edge type is checked here, the one
@@ -877,8 +885,10 @@ expand_edge_aes <- function(mapping) {
 #'   created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
 #'   call to a position adjustment function.
-#' @param na.rm If FALSE (the default), removes missing values with a warning.
-#'   If TRUE silently removes missing values
+#' @param na.rm If `TRUE`, the default, missing values are removed silently. A
+#'   node with no outgoing edge has a missing edge end, so the edge layers drop
+#'   those rows rather than warning about them. If `FALSE`, missing values are
+#'   removed with a warning.
 #' @param show.legend logical. Should this layer be included in the legends? NA,
 #'   the default, includes if any aesthetics are mapped. FALSE never includes,
 #'   and TRUE always includes. It can also be a named logical vector to finely
@@ -1000,8 +1010,10 @@ geom_dag_edges <- function(
 #' @param arrow specification for arrow heads, as created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
 #'   call to a position adjustment function.
-#' @param na.rm If FALSE (the default), removes missing values with a warning.
-#'   If TRUE silently removes missing values
+#' @param na.rm If `TRUE`, the default, missing values are removed silently. A
+#'   node with no outgoing edge has a missing edge end, so the edge layers drop
+#'   those rows rather than warning about them. If `FALSE`, missing values are
+#'   removed with a warning.
 #' @param show.legend logical. Should this layer be included in the legends? NA,
 #'   the default, includes if any aesthetics are mapped. FALSE never includes,
 #'   and TRUE always includes. It can also be a named logical vector to finely

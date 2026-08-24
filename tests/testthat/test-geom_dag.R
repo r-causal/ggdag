@@ -1638,3 +1638,21 @@ test_that("geom_dag(size) scales text in the rendered plot", {
     ggplot(dag, aes_dag()) + geom_dag(size = 2)
   )
 })
+
+test_that("the edge geoms silently drop missing values by default", {
+  edge_geoms <- list(
+    geom_dag_edges = geom_dag_edges,
+    geom_dag_edges_link = geom_dag_edges_link,
+    geom_dag_edges_arc = geom_dag_edges_arc,
+    geom_dag_edges_diagonal = geom_dag_edges_diagonal,
+    geom_dag_edges_fan = geom_dag_edges_fan
+  )
+
+  # a terminal node's row carries a missing `xend`, so the edge layers drop
+  # missing values without a warning; the documentation says so
+  for (edge_geom in edge_geoms) {
+    expect_true(formals(edge_geom)$na.rm)
+  }
+
+  expect_false(formals(geom_dag_collider_edges)$na.rm)
+})

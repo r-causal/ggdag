@@ -16,12 +16,20 @@
 #' including an edge written in the reverse direction. A node whose every edge
 #' is pruned is kept as an isolated node.
 #'
+#' A pair of nodes can hold a directed edge and a bidirected edge at the same
+#' time, and endpoints alone name both of them. `dag_prune()` errors on such a
+#' pair rather than pruning both; name the direction as well, with the data
+#' frame form of `edges`, to prune one of them.
+#'
 #' @inheritParams dag_params
 #' @param use_existing_coords Logical, indicating whether to use existing node
 #'   coordinates.
-#' @param edges A named character vector where the name is the starting node and
-#'   the value is the end node, e.g. `c("x" = "y")` will remove the edge going
-#'   from `x` to `y`.
+#' @param edges The edges to remove, in either of two forms. A named character
+#'   vector where the name is the starting node and the value is the end node,
+#'   e.g. `c("x" = "y")` removes the edge going from `x` to `y`. Or a data frame
+#'   with a `name` and a `to` column, which says the same thing, and an optional
+#'   `direction` column of `"->"`, `"<->"`, or `"--"`, which names one of the
+#'   edges a pair of nodes holds.
 #' @inheritParams tidy_dagitty
 #'
 #' @return A `tidy_dagitty` object
@@ -218,8 +226,7 @@ add_adjusted_nodes <- function(.tdy_dag, .adjusted) {
 #' @export
 #' @rdname dag_saturate
 dag_prune <- function(.tdy_dag, edges) {
-  validate_edge_specs(edges)
-  edges <- tibble::enframe(edges, name = "name", value = "to")
+  edges <- as_edge_specs(edges)
 
   dag_data <- pull_dag_data(.tdy_dag)
   # rows are matched and dropped by position, which grouping would make
@@ -229,6 +236,7 @@ dag_prune <- function(.tdy_dag, edges) {
 
   matches <- match_edge_rows(dag_data, edges)
   validate_pruned_edges_exist(edges, matches)
+  validate_pruned_edges_unambiguous(matches)
 
   pruned_data <- dplyr::filter(dag_data, dplyr::row_number() %nin% matches$row)
 
@@ -294,15 +302,17 @@ edge_free_rows <- function(dag_data, lost_nodes) {
 
 #' Find the rows of a DAG's data that a set of edge specifications names
 #'
-#' An element of `edges` names an edge by its endpoints, and the name of the
-#' element is the starting node, so a directed edge is named in its own
+#' A specification names an edge by its endpoints, and the `name` of the
+#' specification is the starting node, so a directed edge is named in its own
 #' direction only. A bidirected or undirected edge has no direction of its own,
-#' so either orientation of its endpoints names it.
+#' so either orientation of its endpoints names it. A specification that names a
+#' direction as well matches only edges of that direction.
 #'
 #' @param dag_data The data of the `tidy_dagitty` being pruned.
-#' @param edges A data frame of `name`/`to` pairs.
-#' @return A data frame pairing the position of each matched element of `edges`
-#'   with the position of the row it matched.
+#' @param edges A data frame of `name`/`to`/`direction` specifications, where
+#'   `direction` is missing where the specification named none.
+#' @return A data frame pairing the position of each matched specification with
+#'   the position and description of the row it matched.
 #' @noRd
 match_edge_rows <- function(dag_data, edges) {
   # number the rows before dropping any, so a position still identifies a row
@@ -311,26 +321,38 @@ match_edge_rows <- function(dag_data, edges) {
   rows <- dag_data |>
     dplyr::mutate(row = dplyr::row_number()) |>
     dplyr::select("name", "to", "direction", "row") |>
-    dplyr::filter(!is.na(.data$to))
+    dplyr::filter(!is.na(.data$to)) |>
+    dplyr::mutate(direction = as.character(.data$direction))
 
   symmetric_rows <- dplyr::filter(
     rows,
-    !is.na(.data$direction),
-    as.character(.data$direction) %in% c("<->", "--")
+    .data$direction %in% c("<->", "--")
   )
 
-  specs <- dplyr::mutate(edges, edge = dplyr::row_number())
+  specs <- edges |>
+    dplyr::mutate(edge = dplyr::row_number()) |>
+    dplyr::rename(asked_for = "direction")
 
   dplyr::bind_rows(
     dplyr::inner_join(specs, rows, by = c("name", "to"), na_matches = "never"),
     dplyr::inner_join(
-      dplyr::select(specs, "edge", name = "to", to = "name"),
+      dplyr::select(specs, "edge", "asked_for", name = "to", to = "name"),
       symmetric_rows,
       by = c("name", "to"),
       na_matches = "never"
     )
   ) |>
-    dplyr::distinct(.data$edge, .data$row)
+    dplyr::filter(
+      is.na(.data$asked_for) | .data$asked_for == .data$direction
+    ) |>
+    dplyr::distinct(
+      .data$edge,
+      .data$row,
+      .data$asked_for,
+      .data$name,
+      .data$to,
+      .data$direction
+    )
 }
 
 #' Missing values of a vector's own type
@@ -343,6 +365,57 @@ match_edge_rows <- function(dag_data, edges) {
 #' @noRd
 na_like <- function(x) {
   replace(x, seq_along(x), NA)
+}
+
+#' Read the `edges` argument of `dag_prune()` as one specification per row
+#'
+#' Both accepted forms describe the same thing, an edge named by its endpoints
+#' and, optionally, its direction, so they are read into one shape here and the
+#' pruning itself works from that.
+#'
+#' @param edges A named character vector, or a data frame with `name` and `to`
+#'   columns and an optional `direction` column.
+#' @param call The calling environment, for the error messages.
+#' @return A tibble of `name`, `to`, and `direction`, the last missing wherever
+#'   the specification named no direction.
+#' @noRd
+as_edge_specs <- function(edges, call = rlang::caller_env()) {
+  if (!is.data.frame(edges)) {
+    validate_edge_specs(edges, call = call)
+
+    return(tibble::tibble(
+      name = names(edges),
+      to = unname(edges),
+      direction = NA_character_
+    ))
+  }
+
+  assert_columns_exist(edges, c("name", "to"), call = call)
+
+  specs <- tibble::tibble(
+    name = as.character(edges$name),
+    to = as.character(edges$to),
+    direction = if ("direction" %in% names(edges)) {
+      as.character(edges$direction)
+    } else {
+      NA_character_
+    }
+  )
+
+  if (anyNA(specs$name) || anyNA(specs$to)) {
+    abort(
+      c(
+        "Every edge in {.arg edges} must name two nodes.",
+        "x" = "{.field name} and {.field to} must have no missing values."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  validate_direction(specs, call = call)
+
+  specs
 }
 
 #' Check that every edge to prune names two nodes
@@ -402,7 +475,11 @@ validate_pruned_edges_exist <- function(
 
   if (nrow(missing_edges) > 0) {
     # one entry per missing edge, however many times it was asked for
-    missing_edges <- unique(paste(missing_edges$name, "->", missing_edges$to))
+    missing_edges <- unique(paste(
+      missing_edges$name,
+      ifelse(is.na(missing_edges$direction), "->", missing_edges$direction),
+      missing_edges$to
+    ))
     abort(
       c(
         "{.arg edges} must name edges that are in the DAG.",
@@ -416,4 +493,45 @@ validate_pruned_edges_exist <- function(
   }
 
   invisible(edges)
+}
+
+#' Check that every edge to prune is one edge
+#'
+#' A pair of nodes can hold a directed edge and a bidirected one at once, and a
+#' specification that names the pair alone names both. Pruning both would remove
+#' an edge the caller said nothing about, so the direction has to be named.
+#'
+#' @param matches The output of `match_edge_rows()`.
+#' @param call The calling environment, for the error message.
+#' @return `matches`, invisibly.
+#' @noRd
+validate_pruned_edges_unambiguous <- function(
+  matches,
+  call = rlang::caller_env()
+) {
+  ambiguous <- matches |>
+    dplyr::filter(is.na(.data$asked_for)) |>
+    dplyr::group_by(.data$edge) |>
+    dplyr::filter(dplyr::n_distinct(.data$direction) > 1) |>
+    dplyr::ungroup()
+
+  if (nrow(ambiguous) > 0) {
+    matched_edges <- unique(paste(
+      ambiguous$name,
+      ambiguous$direction,
+      ambiguous$to
+    ))
+    abort(
+      c(
+        "Every edge in {.arg edges} must name one edge.",
+        "x" = "More than one edge matches: {.val {matched_edges}}.",
+        "i" = "Name the direction as well, with a data frame such as
+               {.code data.frame(name = \"x\", to = \"y\", direction = \"->\")}."
+      ),
+      error_class = "ggdag_ambiguous_edge_error",
+      call = call
+    )
+  }
+
+  invisible(matches)
 }

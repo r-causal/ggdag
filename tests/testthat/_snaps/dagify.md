@@ -187,3 +187,13 @@
       x Repeated: "x <-> y"
       i An edge takes one curvature, and a bidirected edge is the same edge whichever way round it is named.
 
+# dagify() reports a node name ending in a backslash
+
+    Code
+      expr
+    Condition <ggdag_dag_error>
+      Error in `dagify()`:
+      ! A node name can't end in a backslash.
+      x "x\\" does.
+      i dagitty reads the last backslash of a name as escaping the closing quote, so such a name can't be written down.
+

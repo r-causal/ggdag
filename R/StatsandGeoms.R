@@ -424,12 +424,48 @@ StatNodes <- ggplot2::ggproto(
   ggplot2::Stat,
   compute_layer = function(data, scales, params) {
     if (all(c("xend", "yend") %in% names(data))) {
-      unique(dplyr::select(data, -"xend", -"yend"))
-    } else {
-      unique(data)
+      data <- dplyr::select(data, -"xend", -"yend")
     }
+
+    one_row_per_node(data)
   }
 )
+
+#' Keep one row per node per panel
+#'
+#' The tidy data holds a row per edge, so a node with several edges arrives
+#' several times over and would be drawn once per row. The copies are drawn on
+#' top of one another, and when an analysis column such as `path` is mapped to
+#' an aesthetic they are not the same point: an unmarked copy drawn last hides
+#' the marked one underneath it. The row carrying the most values is the one
+#' that describes the node, so it is the one kept.
+#'
+#' @param data A layer's data, with no edge columns.
+#' @return `data`, with one row per node per panel.
+#' @noRd
+one_row_per_node <- function(data) {
+  data <- unique(data)
+
+  if (nrow(data) == 0 || any(c("x", "y") %nin% names(data))) {
+    return(data)
+  }
+
+  panel <- if ("PANEL" %in% names(data)) data$PANEL else 1L
+  node <- paste(data$x, data$y, panel, sep = "\r")
+
+  # `group` follows the aesthetics rather than describing the node, and the
+  # position columns are the key itself
+  described <- setdiff(names(data), c("x", "y", "PANEL", "group"))
+  described <- described[!vapply(data[described], is.list, logical(1))]
+  n_missing <- rowSums(is.na(data[described]))
+
+  # `order()` is stable, so among rows describing the node equally well the
+  # first one still wins
+  marked_first <- order(n_missing)
+  keep <- marked_first[!duplicated(node[marked_first])]
+
+  data[sort(keep), , drop = FALSE]
+}
 
 generate_disc_points <- function(node_radius, n_node_points) {
   # Dense filled disc: center + 4 concentric rings with staggered angles.

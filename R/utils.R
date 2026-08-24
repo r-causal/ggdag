@@ -23,9 +23,9 @@ unique_pairs <- function(x, exclude_identical = TRUE) {
   pairs[!duplicated(sorted_pairs), ]
 }
 
-formula2char <- function(fmla) {
+formula2char <- function(fmla, call = rlang::caller_env()) {
   lhs_vars <- dag_term_names(fmla[[2]])
-  lhs <- paste(maybe_quote_dagitty_name(lhs_vars), collapse = " ")
+  lhs <- paste(maybe_quote_dagitty_name(lhs_vars, call = call), collapse = " ")
   if (length(lhs_vars) > 1) {
     lhs <- paste0("{", lhs, "}")
   }
@@ -36,8 +36,8 @@ formula2char <- function(fmla) {
   bidirected <- unlist(lapply(terms[is_bidirected], \(term) term$vars))
 
   statements <- c(
-    dag_statement(lhs, "<-", directed),
-    dag_statement(lhs, "<->", bidirected)
+    dag_statement(lhs, "<-", directed, call = call),
+    dag_statement(lhs, "<->", bidirected, call = call)
   )
 
   #  a formula with nothing usable on the right still declares its own node
@@ -50,12 +50,12 @@ formula2char <- function(fmla) {
 
 #' Assemble one `dagitty` statement, or nothing when there are no variables
 #' @noRd
-dag_statement <- function(lhs, arrow, vars) {
+dag_statement <- function(lhs, arrow, vars, call = rlang::caller_env()) {
   if (length(vars) == 0) {
     return(character(0))
   }
 
-  vars <- paste(maybe_quote_dagitty_name(vars), collapse = " ")
+  vars <- paste(maybe_quote_dagitty_name(vars, call = call), collapse = " ")
   paste0(lhs, " ", arrow, " {", vars, "}")
 }
 
@@ -118,12 +118,13 @@ dag_term_names <- function(expr) {
 #' dagitty's bareword class are quoted.
 #'
 #' @param x A character vector of node names.
+#' @param call The calling environment, for the error message.
 #' @return A character vector of node names, quoted where necessary.
 #' @noRd
-maybe_quote_dagitty_name <- function(x) {
+maybe_quote_dagitty_name <- function(x, call = rlang::caller_env()) {
   #  perl = TRUE so the ranges are code points rather than a locale's collation
   needs_quoting <- !grepl("^[0-9a-zA-Z_.]+$", x, perl = TRUE)
-  x[needs_quoting] <- quote_dagitty_name(x[needs_quoting])
+  x[needs_quoting] <- quote_dagitty_name(x[needs_quoting], call = call)
   x
 }
 
@@ -263,14 +264,47 @@ all_node_names <- function(.df) {
 #' doubling backslashes here would corrupt every name that contains one.
 #'
 #' @param x A character vector of node names.
+#' @param call The calling environment, for the error message.
 #' @return A character vector of quoted node names.
 #' @noRd
-quote_dagitty_name <- function(x) {
+quote_dagitty_name <- function(x, call = rlang::caller_env()) {
   if (length(x) == 0) {
     return(character(0))
   }
 
+  check_representable_names(x, call = call)
+
   paste0('"', gsub('"', '\\\\"', x), '"')
+}
+
+#' Reject node names dagitty's grammar cannot hold
+#'
+#' dagitty's lexer reads the backslash that ends a name as escaping the closing
+#' quote, so a name ending in one runs off the end of the string whether it is
+#' written raw or escaped. Escaping it is not an option either: dagitty keeps a
+#' backslash escape as its two literal characters, so doubling the backslash
+#' would rename the node.
+#'
+#' @param x A character vector of node names.
+#' @param call The calling environment, for the error message.
+#' @return `x`, invisibly.
+#' @noRd
+check_representable_names <- function(x, call = rlang::caller_env()) {
+  ends_in_backslash <- grepl("\\\\$", x)
+  if (!any(ends_in_backslash)) {
+    return(invisible(x))
+  }
+
+  abort(
+    c(
+      "A node name can't end in a backslash.",
+      "x" = "{.val {unique(x[ends_in_backslash])}} does.",
+      "i" = "{.pkg dagitty} reads the last backslash of a name as escaping the
+             closing quote, so such a name can't be written down."
+    ),
+    error_class = "ggdag_dag_error",
+    call = call
+  )
 }
 
 check_arg_node <- function(node, use_nodes, what = "geom_dag") {

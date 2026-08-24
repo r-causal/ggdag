@@ -960,3 +960,40 @@ test_that("set_curve_edges() accepts an edge named once in either orientation", 
   expect_equal(nrow(attr(forward, "curved_edges")), 1)
   expect_equal(nrow(attr(backward, "curved_edges")), 1)
 })
+
+test_that("dagify() raises its own condition class for a self-loop", {
+  expect_error(dagify(x ~ x), class = "ggdag_dag_error")
+  expect_error(dagify(y ~ x + y), class = "ggdag_dag_error")
+  expect_error(dagify(y ~ x, x ~ z, z ~ z), class = "ggdag_dag_error")
+
+  # the condition itself is at the top of the chain, not a purrr indexing wrapper
+  cnd <- tryCatch(dagify(x ~ x), error = identity)
+  expect_false(inherits(cnd, "purrr_error_indexed"))
+})
+
+test_that("dagify() curves an edge from a backticked node name", {
+  dag <- dagify(y ~ curved(`my var`, 0.5), `my var` ~ z)
+  dag_data <- pull_dag_data(tidy_dagitty(dag, seed = 42))
+
+  curved_row <- dplyr::filter(dag_data, name == "my var", to == "y")
+  expect_equal(nrow(curved_row), 1)
+  expect_equal(curved_row$edge_curvature, 0.5)
+})
+
+test_that("dagify() rejects a node name ending in a backslash", {
+  # dagitty's lexer pairs the final backslash with the closing quote, so no
+  # quoting makes such a name representable
+  expect_error(dagify(y ~ `x\\`), class = "ggdag_dag_error")
+  expect_error(dagify(`y\\` ~ x), class = "ggdag_dag_error")
+})
+
+test_that("a node name ending in a backslash is rejected when a DAG is rebuilt", {
+  expect_error(
+    as_tidy_dagitty(data.frame(name = "x\\", to = "y")),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("dagify() reports a node name ending in a backslash", {
+  expect_ggdag_error(dagify(y ~ `x\\`))
+})

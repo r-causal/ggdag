@@ -1,5 +1,23 @@
 # ggdag (development version)
 
+* Node layers now draw each variable once per panel. The tidy data holds a row per edge, so a node with several edges was drawn once per row, and where an analysis column such as `path` was mapped to a color, an unmarked copy drawn last hid the marked one underneath it. In `ggdag_paths()`, a variable on an open path could be drawn in the shadow color as a result.
+
+* `dag_prune()` takes a data frame of edges, with `name` and `to` columns and an optional `direction` column, as well as the named character vector it has always taken. A pair of nodes can hold a directed edge and a bidirected edge at once, and endpoints alone name both; `dag_prune()` now errors on such a pair rather than pruning both, and the `direction` column names the one to remove.
+
+* A dplyr verb on a `tidy_dagitty` that already has coordinates no longer computes a layout. Under the `time_ordered` default, every verb laid the DAG out again and threw the result away, which cost the work and could report on it.
+
+* `dagify()` raises its own condition classes for a formula it rejects. Each formula was validated through `purrr::walk()`, so a self-loop arrived wrapped in `purrr_error_indexed` and `tryCatch(ggdag_dag_error = )` did not see it.
+
+* `dagify()` keeps the curvature of an edge whose parent is a name written in backticks, such as `y ~ curved(\`my var\`, 0.5)`. The name was read in its deparsed form, backticks and all, so it matched no node and the curvature was dropped without a word.
+
+* A node name ending in a backslash is rejected with an error from ggdag rather than a parse error from dagitty. dagitty reads the last backslash of a name as escaping the closing quote, so such a name cannot be written down at all.
+
+* `ggdag_paths()` and `ggdag_adjust()` check `edge_type` under the ggarrow edge engine as well. Both build their own edge layers, and only the ggraph branch checked the type it was given.
+
+* The `na.rm` documentation for the edge geoms describes what they do. Every one of them defaults to `na.rm = TRUE`, since a node with no outgoing edge has a missing edge end, while the documentation said that `FALSE` was the default.
+
+* ggdag now requires ggplot2 3.5.0 or later, which is what it has used for some time: `linewidth` arrived in 3.4.0, the key sizes its legend glyphs report are read from 3.5.0 onward, and ggraph asks for 3.5.0 itself.
+
 * `ggdag_markov_blanket()` now draws node text only through `geom_dag()`, like every other quick plotter. It added a text layer of its own before that call, so the text was drawn twice with the defaults, `use_text = FALSE` still showed it, and `text_col`, `text_size`, and the matching options had no say over the extra layer.
 
 * `ggdag_status()`, `ggdag_instrumental()`, `ggdag_equivalent_dags()`, `ggdag_equivalent_class()`, and `ggdag_canonical()` now pass `...` on to `tidy_dagitty()` as documented. Each tidied its input before the dots could reach it, so `layout`, `seed`, and the rest were dropped without a word. `node_equivalent_class()` gains a `...` of its own for the same reason, and `node_canonical()` rejects `use_existing_coords`, which contradicts the layout it does from scratch.
