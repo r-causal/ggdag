@@ -30,9 +30,9 @@
 <circle cx='341.38' cy='66.31' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <circle cx='594.06' cy='501.59' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
 <circle cx='88.70' cy='501.59' r='17.43' style='stroke-width: 0.71; stroke: #7F7F7F; fill: #7F7F7F;' />
-<path d='M 580.37 469.10 L 578.86 473.27 L 353.69 85.39 L 351.84 86.46 L 577.00 474.35 L 572.63 473.59 L 582.67 481.97 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 326.19 94.63 L 327.69 98.80 L 330.00 85.92 L 319.96 94.31 L 324.33 93.55 L 99.17 481.44 L 101.01 482.51 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 571.38 501.59 L 559.09 497.11 L 561.94 500.51 L 111.38 500.52 L 111.38 502.65 L 561.94 502.66 L 559.09 506.06 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 581.33 474.46 L 580.46 476.87 L 353.32 85.60 L 352.77 85.92 L 352.21 86.24 L 579.34 477.52 L 576.81 477.08 L 582.67 481.97 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 327.78 91.02 L 328.65 93.44 L 330.00 85.92 L 324.14 90.81 L 326.66 90.38 L 99.54 481.65 L 100.09 481.97 L 100.64 482.29 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 571.38 501.59 L 564.21 498.97 L 565.86 500.94 L 111.38 500.94 L 111.38 502.23 L 565.86 502.23 L 564.21 504.20 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <text x='341.38' y='70.11' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='594.06' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='88.70' y='505.38' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>

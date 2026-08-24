@@ -29,9 +29,9 @@
 <circle cx='360.00' cy='96.08' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='640.87' cy='498.80' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='79.13' cy='498.80' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<path d='M 624.54 467.56 L 623.38 471.84 L 373.85 114.07 L 372.10 115.29 L 621.62 473.07 L 617.20 472.68 L 627.90 480.20 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 342.51 123.04 L 343.67 127.32 L 347.03 114.68 L 336.33 122.20 L 340.75 121.81 L 91.23 479.59 L 92.10 480.20 L 92.98 480.81 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 618.19 498.80 L 605.91 494.32 L 608.76 497.72 L 101.81 497.73 L 101.81 499.86 L 608.76 499.87 L 605.91 503.27 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 625.94 472.82 L 625.27 475.30 L 373.50 114.31 L 372.97 114.68 L 372.45 115.05 L 624.21 476.04 L 621.66 475.81 L 627.90 480.20 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 344.40 119.58 L 345.07 122.06 L 347.03 114.68 L 340.78 119.07 L 343.34 118.84 L 91.58 479.83 L 92.10 480.20 L 92.63 480.56 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 618.19 498.80 L 611.02 496.19 L 612.67 498.15 L 101.81 498.16 L 101.81 499.44 L 612.67 499.44 L 611.02 501.41 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <line x1='387.95' y1='53.00' x2='377.10' y2='69.73' style='stroke-width: 1.07; stroke: #7F7F7F;' />
 <line x1='663.55' y1='537.19' x2='656.85' y2='525.84' style='stroke-width: 1.07; stroke: #7F7F7F;' />
 <line x1='61.89' y1='537.19' x2='66.26' y2='527.45' style='stroke-width: 1.07; stroke: #7F7F7F;' />

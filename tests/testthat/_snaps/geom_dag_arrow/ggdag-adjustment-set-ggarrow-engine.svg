@@ -27,9 +27,9 @@
 </defs>
 <g clip-path='url(#cpNDMuMDZ8NjM3Ljc0fDM5LjQzfDU0NS4xMQ==)'>
 <rect x='43.06' y='39.43' width='594.68' height='505.68' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<path d='M 523.00 435.10 L 521.39 439.23 L 354.97 136.01 L 354.04 136.52 L 353.10 137.04 L 519.50 440.27 L 515.15 439.40 L 524.99 448.02 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 323.17 145.32 L 324.77 149.45 L 326.76 136.52 L 316.93 145.15 L 321.28 144.28 L 154.88 447.51 L 155.81 448.02 L 156.75 448.54 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 510.28 472.87 L 497.99 468.40 L 500.84 471.80 L 170.52 471.81 L 170.52 473.94 L 500.84 473.95 L 497.99 477.35 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 523.83 440.48 L 522.90 442.87 L 354.60 136.22 L 353.48 136.83 L 521.77 443.49 L 519.25 442.99 L 524.99 448.02 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 324.67 141.68 L 325.60 144.07 L 326.76 136.52 L 321.02 141.55 L 323.54 141.05 L 155.25 447.71 L 156.37 448.33 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 510.28 472.87 L 503.11 470.26 L 504.76 472.23 L 170.52 472.23 L 170.52 473.51 L 504.76 473.52 L 503.11 475.48 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <circle cx='340.40' cy='111.67' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
 <circle cx='538.63' cy='472.87' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
 <polygon points='124.75,490.30 159.60,490.30 159.60,455.45 124.75,455.45 ' style='stroke-width: 0.71; stroke: none; fill: #F8766D;' />

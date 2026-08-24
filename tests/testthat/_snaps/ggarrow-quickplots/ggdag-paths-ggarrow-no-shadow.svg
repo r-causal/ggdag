@@ -27,7 +27,7 @@
 </defs>
 <g clip-path='url(#cpNDAuMTN8MzMwLjEyfDM5LjQzfDU0NS4xMQ==)'>
 <rect x='40.13' y='39.43' width='289.99' height='505.68' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<path d='M 259.11 502.97 L 246.82 498.50 L 249.67 501.90 L 111.14 501.91 L 111.14 504.04 L 249.67 504.05 L 246.82 507.45 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 259.11 502.97 L 251.94 500.36 L 253.59 502.33 L 111.14 502.33 L 111.14 503.61 L 253.59 503.62 L 251.94 505.58 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <circle cx='88.46' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <circle cx='281.79' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <text x='88.46' y='506.77' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
@@ -43,8 +43,8 @@
 </defs>
 <g clip-path='url(#cpMzM1LjYwfDYyNS41OXwzOS40M3w1NDUuMTE=)'>
 <rect x='335.60' y='39.43' width='289.99' height='505.68' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<path d='M 396.11 469.89 L 392.16 471.91 L 476.56 103.92 L 474.48 103.44 L 390.06 471.43 L 387.39 467.89 L 389.00 480.87 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 573.80 467.89 L 571.13 471.43 L 486.70 103.44 L 484.62 103.92 L 569.03 471.91 L 565.08 469.89 L 572.19 480.87 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 393.15 474.46 L 390.87 475.63 L 476.15 103.82 L 474.90 103.53 L 389.61 475.34 L 388.06 473.30 L 389.00 480.87 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 573.13 473.30 L 571.58 475.34 L 486.29 103.53 L 485.04 103.82 L 570.32 475.63 L 568.04 474.46 L 572.19 480.87 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <circle cx='577.26' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
 <circle cx='480.59' cy='81.57' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
 <circle cx='383.93' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #00BA38; fill: #00BA38;' />
