@@ -35,7 +35,6 @@
 <polygon points='254.80,505.46 259.11,502.97 254.80,500.48 ' style='stroke-width: 1.28; stroke: #CCCCCC; stroke-linecap: butt; fill: #CCCCCC;' />
 <circle cx='185.13' cy='81.57' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <circle cx='88.46' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
-<circle cx='88.46' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #CCCCCC; fill: #CCCCCC;' />
 <circle cx='281.79' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <text x='185.13' y='85.37' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
 <text x='88.46' y='506.77' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
@@ -58,7 +57,6 @@
 <polyline points='406.61,502.97 407.37,502.97 409.32,502.97 411.27,502.97 413.22,502.97 415.18,502.97 417.13,502.97 419.08,502.97 421.03,502.97 422.99,502.97 424.94,502.97 426.89,502.97 428.85,502.97 430.80,502.97 432.75,502.97 434.70,502.97 436.66,502.97 438.61,502.97 440.56,502.97 442.52,502.97 444.47,502.97 446.42,502.97 448.37,502.97 450.33,502.97 452.28,502.97 454.23,502.97 456.18,502.97 458.14,502.97 460.09,502.97 462.04,502.97 464.00,502.97 465.95,502.97 467.90,502.97 469.85,502.97 471.81,502.97 473.76,502.97 475.71,502.97 477.67,502.97 479.62,502.97 481.57,502.97 483.52,502.97 485.48,502.97 487.43,502.97 489.38,502.97 491.33,502.97 493.29,502.97 495.24,502.97 497.19,502.97 499.15,502.97 501.10,502.97 503.05,502.97 505.00,502.97 506.96,502.97 508.91,502.97 510.86,502.97 512.82,502.97 514.77,502.97 516.72,502.97 518.67,502.97 520.63,502.97 522.58,502.97 524.53,502.97 526.48,502.97 528.44,502.97 530.39,502.97 532.34,502.97 534.30,502.97 536.25,502.97 538.20,502.97 540.15,502.97 542.11,502.97 544.06,502.97 546.01,502.97 547.97,502.97 549.92,502.97 551.87,502.97 553.82,502.97 554.58,502.97 ' style='stroke-width: 1.28; stroke: #F8766D; stroke-linecap: butt;' />
 <polygon points='550.27,505.46 554.58,502.97 550.27,500.48 ' style='stroke-width: 1.28; stroke: #F8766D; stroke-linecap: butt; fill: #F8766D;' />
 <circle cx='480.59' cy='81.57' r='17.43' style='stroke-width: 0.71; stroke: #CCCCCC; fill: #CCCCCC;' />
-<circle cx='383.93' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #CCCCCC; fill: #CCCCCC;' />
 <circle cx='383.93' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <circle cx='577.26' cy='502.97' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <text x='480.59' y='85.37' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
