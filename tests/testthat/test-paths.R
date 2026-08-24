@@ -968,3 +968,18 @@ test_that("ggdag_paths() draws the edge sizes it is given", {
     ggdag_paths(dag, from = "x", to = "y", edge_cap = 16, edge_width = 2)
   )
 })
+
+test_that("ggdag_paths() rejects an edge type it cannot draw", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  # `edge_type_switch()` answers an unknown type with `NULL`, which would
+  # otherwise surface as "attempt to apply non-function"
+  expect_error(
+    ggdag_paths(dag, from = "x", to = "y", edge_type = "bogus"),
+    "should be one of"
+  )
+  expect_s3_class(
+    ggdag_paths(dag, from = "x", to = "y", edge_type = "diagonal"),
+    "gg"
+  )
+})

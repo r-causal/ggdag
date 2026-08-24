@@ -889,6 +889,37 @@ test_that("ggdag_options_set() reports NA values through cli", {
   expect_ggdag_error(ggdag_options_set(use_edges = NA))
 })
 
+test_that("ggdag_options_set() rejects an unnamed value", {
+  local_ggdag_option_state()
+
+  # an unnamed value names no option, and was stored under the bare `ggdag.`
+  # prefix, where nothing reads it again
+  expect_error(ggdag_options_set(20), class = "ggdag_type_error")
+  expect_error(
+    ggdag_options_set(20, text_size = 5),
+    class = "ggdag_type_error"
+  )
+  expect_null(getOption("ggdag."))
+  expect_null(ggdag_options_get("text_size"))
+})
+
+test_that("ggdag_options_set() still takes named values, including NULL", {
+  local_ggdag_option_state()
+
+  expect_no_error(ggdag_options_set(node_size = 20, text_size = 5))
+  expect_equal(ggdag_options_get("node_size"), 20)
+
+  expect_no_error(ggdag_options_set(node_size = NULL))
+  expect_null(ggdag_options_get("node_size"))
+  expect_equal(ggdag_options_get("text_size"), 5)
+})
+
+test_that("ggdag_options_set() reports an unnamed value through cli", {
+  local_ggdag_option_state()
+
+  expect_ggdag_error(ggdag_options_set(20))
+})
+
 # Keep this test last: it guards the suite-wide layout option that
 # helper-load_dag.R sets, which the tests above are free to change but must
 # restore. A failure here means a test in this file leaked an option change into

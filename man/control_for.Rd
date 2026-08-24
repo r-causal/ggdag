@@ -133,6 +133,16 @@ variables, as well as any biasing paths that arise, or a \code{ggplot}
 \description{
 Adjust for variables and activate any biasing paths that result
 }
+\section{Edge layers of the composite plotters}{
+
+The plotters that color or fade edges by an analysis column build their edge
+layers themselves, and which layers they build is settled from the DAG they
+are called with: a DAG with no bidirected edge is given no bidirected edge
+layer. Replacing the data of the returned plot afterwards, with ggplot2's
+\verb{\%+\%}, does not bring a layer back, so a plot built for one DAG is not a
+template for another.
+}
+
 \examples{
 dag <- dagify(m ~ a + b, x ~ a, y ~ b)
 

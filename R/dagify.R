@@ -682,6 +682,28 @@ validate_edges_exist <- function(.dag, from, to, call = rlang::caller_env()) {
   )
 }
 
+#' One key per bidirected or undirected edge of a DAG
+#'
+#' The endpoints go into the key in a fixed order, so that a pair named either
+#' way round is looked up under the same key.
+#'
+#' @param .dag A `dagitty` object.
+#' @return A character vector, empty when the DAG has no such edge.
+#' @noRd
+undirected_edge_keys <- function(.dag) {
+  .edges <- dagitty::edges(.dag)
+  # dagitty returns a zero-column data frame for a DAG with no edges
+  if (nrow(.edges) == 0 || ncol(.edges) == 0) {
+    return(character())
+  }
+
+  .edges <- .edges[.edges$e %in% c("<->", "--"), , drop = FALSE]
+  v <- as.character(.edges$v)
+  w <- as.character(.edges$w)
+
+  edge_pair_key(pmin(v, w), pmax(v, w))
+}
+
 #' Check that no edge is named twice
 #'
 #' An edge keeps one curvature, so a data frame that names the same edge twice
@@ -699,22 +721,27 @@ validate_edges_distinct <- function(
   to,
   call = rlang::caller_env()
 ) {
-  keys <- vapply(
-    seq_along(from),
-    function(i) {
-      if (is_undirected_pair(.dag, from[i], to[i])) {
-        paste(sort(c(from[i], to[i])), collapse = " <-> ")
-      } else {
-        paste(from[i], "->", to[i])
-      }
-    },
-    character(1)
-  )
+  from <- as.character(from)
+  to <- as.character(to)
 
-  repeated <- unique(keys[duplicated(keys)])
-  if (length(repeated) == 0) {
+  # the DAG's edges are read once here rather than once per pair, so that a
+  # large `edges` data frame does not turn into a scan per row
+  undirected_keys <- undirected_edge_keys(.dag)
+  either_way <- edge_pair_key(pmin(from, to), pmax(from, to))
+  is_undirected <- either_way %in% undirected_keys
+
+  keys <- ifelse(is_undirected, either_way, edge_pair_key(from, to))
+  repeated_rows <- duplicated(keys)
+  if (!any(repeated_rows)) {
     return(invisible(TRUE))
   }
+
+  named <- ifelse(
+    is_undirected,
+    paste(pmin(from, to), "<->", pmax(from, to)),
+    paste(from, "->", to)
+  )
+  repeated <- unique(named[repeated_rows])
 
   abort(
     c(

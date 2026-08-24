@@ -35,6 +35,8 @@
 #'
 #' g_ex |> ggdag_equivalent_dags()
 #'
+#' @inheritSection composite_edge_layers Edge layers of the composite plotters
+#'
 #' @rdname equivalent
 #' @name Equivalent DAGs and Classes
 #' @export

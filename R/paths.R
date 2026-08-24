@@ -130,6 +130,8 @@ strip_path_results <- function(.tdy_dag) {
 #' butterfly_bias(x_y_associated = TRUE) |>
 #'   ggdag_paths_fan(shadow = TRUE)
 #'
+#' @inheritSection composite_edge_layers Edge layers of the composite plotters
+#'
 #' @rdname paths
 #' @name Pathways
 #' @importFrom magrittr %$%

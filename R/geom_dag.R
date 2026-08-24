@@ -755,7 +755,9 @@ with_edge_caps <- function(mapping, cap) {
 
 # The ggraph edge layers a quick plotter builds for itself, sized the way
 # `geom_dag()` sizes the ones it builds: every measure scales with `size`, and
-# the arrowhead length arrives in points.
+# the arrowhead length arrives in points. The edge type is checked here, the one
+# place every composite plotter passes it through, because `edge_type_switch()`
+# answers an unknown type with `NULL`.
 quick_plot_dag_edges <- function(
   mapping = NULL,
   edge_type = "link_arc",
@@ -769,6 +771,10 @@ quick_plot_dag_edges <- function(
   show.legend = NA,
   ...
 ) {
+  edge_type <- match.arg(
+    edge_type,
+    c("link_arc", "link", "arc", "diagonal")
+  )
   mapping <- with_edge_caps(mapping, edge_cap * size)
   arrow_size <- grid::unit(arrow_length * size, "pt")
 

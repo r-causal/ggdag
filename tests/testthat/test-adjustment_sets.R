@@ -656,3 +656,13 @@ test_that("ggdag_adjustment_set() draws the edge sizes it is given", {
     ggdag_adjustment_set(dag, edge_cap = 16, edge_width = 2)
   )
 })
+
+test_that("ggdag_adjust() rejects an edge type it cannot draw", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    ggdag_adjust(dag, var = "z", edge_type = "bogus"),
+    "should be one of"
+  )
+  expect_s3_class(ggdag_adjust(dag, var = "z", edge_type = "diagonal"), "gg")
+})

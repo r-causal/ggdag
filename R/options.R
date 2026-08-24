@@ -88,6 +88,20 @@ ggdag_options_set <- function(...) {
     return(invisible(list()))
   }
 
+  # an unnamed value names no option, and left alone it would be stored under
+  # the bare `ggdag.` prefix, where nothing ever reads it again
+  unnamed <- !nzchar(names(dots) %||% rep("", length(dots)))
+  if (any(unnamed)) {
+    abort(
+      c(
+        "Every option passed to {.fun ggdag_options_set} must be named.",
+        "x" = "{sum(unnamed)} value{?s} {?has/have} no name.",
+        "i" = "Valid options: {.val {names(ggdag_defaults)}}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
   unknown <- setdiff(names(dots), names(ggdag_defaults))
   if (length(unknown) > 0) {
     abort(

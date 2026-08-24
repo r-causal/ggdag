@@ -8,13 +8,15 @@
 
 * `geom_dag(size = )` now scales node text along with the nodes, edges, and labels. The scaled text size was computed and then passed over in favor of the unscaled one, so text stayed put while everything around it grew.
 
+* `ggdag_options_set()` rejects an unnamed value rather than storing it under the bare `ggdag.` prefix, where nothing reads it again. `ggdag_options_set(20)` set that option and reported success.
+
 * `ggdag_options_set()` accepts `NULL` for an option, which leaves it unset and returns it to the built-in default. Every value went through validation, which rejected `NULL`, so a single option could not be unset, `label_size`'s documented `NULL` default was unreachable, and restoring the previous values with `do.call(ggdag_options_set, old)` failed whenever one of them was unset.
 
 * `ggdag_options_set()` rejects `NA` for every kind of option, with the package's own error. A missing numeric value reached a comparison and raised a bare "missing value where TRUE/FALSE needed" instead; missing logical, character, and layout values passed validation and were stored, where an `NA` for `use_edges` or `use_text` silently dropped the layer it named.
 
 * The ten quick plotters in `quick_plots.R`, such as `ggdag_m_bias()` and `ggdag_quartet_collider()`, now forward the documented `text` and `label` arguments, including the deprecated logical `text = FALSE`. Both were accepted and discarded.
 
-* `ggdag_adjustment_set()`, `ggdag_paths()`, `ggdag_paths_fan()`, `ggdag_adjust()`, and `ggdag_equivalent_class()` now size the edge layers they build for themselves. These functions draw their own edges so that they can color or fade them by an analysis column, and `edge_cap`, `edge_width`, `arrow_length`, and, for `ggdag_paths()` and `ggdag_adjust()`, `edge_type` reached only the `geom_dag()` call that draws no edges. `ggdag_adjust()` also scales its edge cap by `size`, as the ggarrow engine already did.
+* `ggdag_adjustment_set()`, `ggdag_paths()`, `ggdag_paths_fan()`, `ggdag_adjust()`, and `ggdag_equivalent_class()` now size the edge layers they build for themselves. These functions draw their own edges so that they can color or fade them by an analysis column, and `edge_cap`, `edge_width`, `arrow_length`, and, for `ggdag_paths()` and `ggdag_adjust()`, `edge_type` reached only the `geom_dag()` call that draws no edges. `ggdag_adjust()` also scales its edge cap by `size`, as the ggarrow engine already did. An `edge_type` these functions cannot draw now raises the same error `geom_dag()` raises rather than being passed to a layer builder that does not exist.
 
 * `ggdag()` gains `edge_engine`, `n_edge_points`, and `n_node_points`, which `geom_dag()` has always taken. Passing any of them went to `tidy_dagitty()` through `...` and on to the layout machinery, which either ignored the argument or failed with an unrelated error.
 

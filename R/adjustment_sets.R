@@ -34,6 +34,8 @@
 #'   outcome = "x5"
 #' )
 #'
+#' @inheritSection composite_edge_layers Edge layers of the composite plotters
+#'
 #' @rdname adjustment_sets
 #' @name Covariate Adjustment Sets
 dag_adjustment_sets <- function(
@@ -347,6 +349,8 @@ reaches_avoiding <- function(.dag, .from, .targets, .avoid) {
 #'
 #' control_for(dag, var = "m")
 #' ggdag_adjust(dag, var = "m")
+#'
+#' @inheritSection composite_edge_layers Edge layers of the composite plotters
 #'
 #' @rdname control_for
 #' @name Adjust for variables

@@ -193,6 +193,16 @@ a \code{ggplot}.
 \code{ggdag_paths} and \code{ggdag_paths_fan} plot all open paths. See
 \code{\link[dagitty:paths]{dagitty::paths()}} for details.
 }
+\section{Edge layers of the composite plotters}{
+
+The plotters that color or fade edges by an analysis column build their edge
+layers themselves, and which layers they build is settled from the DAG they
+are called with: a DAG with no bidirected edge is given no bidirected edge
+layer. Replacing the data of the returned plot afterwards, with ggplot2's
+\verb{\%+\%}, does not bring a layer back, so a plot built for one DAG is not a
+template for another.
+}
+
 \examples{
 confounder_triangle(x_y_associated = TRUE) |>
   dag_paths(from = "x", to = "y")
