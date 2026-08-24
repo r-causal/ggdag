@@ -13,7 +13,6 @@ geom_dag_label(
   parse = FALSE,
   nudge_x = 0,
   nudge_y = 0,
-  check_overlap = FALSE,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -98,12 +97,6 @@ lists which parameters it can accept.
 displayed as described in \code{?plotmath}.}
 
 \item{nudge_x, nudge_y}{Horizontal and vertical adjustment to nudge labels by.}
-
-\item{check_overlap}{If \code{TRUE}, text that overlaps previous text in the
-same layer will not be plotted. \code{check_overlap} happens at draw time and in
-the order of the data. Therefore data should be arranged by the label
-column before calling \code{geom_text()}. Note that this argument is not
-supported by \code{geom_label()}.}
 
 \item{na.rm}{If \code{FALSE}, the default, missing values are removed with
 a warning. If \code{TRUE}, missing values are silently removed.}

@@ -45,7 +45,7 @@ test_that("geom_dag_point creates correct layer", {
 test_that("geom_dag_text creates correct layer", {
   # Basic usage
   layer <- geom_dag_text()
-  expect_s3_class(layer, "LayerInstance")
+  expect_s3_class(layer$layer, "LayerInstance")
   expect_s3_class(layer$stat, "StatNodes")
 
   # With custom parameters
@@ -60,7 +60,7 @@ test_that("geom_dag_text creates correct layer", {
 test_that("geom_dag_label creates correct layer", {
   # Basic usage
   layer <- geom_dag_label()
-  expect_s3_class(layer, "LayerInstance")
+  expect_s3_class(layer$layer, "LayerInstance")
   expect_s3_class(layer$stat, "StatNodes")
 
   # With custom parameters
@@ -214,7 +214,7 @@ test_that("geom_dag main function works with different options", {
   expect_length(geoms, 4) # nodes, edges, text, labels
   expect_s3_class(geoms[[1]], "LayerInstance") # nodes
   expect_type(geoms[[2]], "list") # edges returns a list
-  expect_s3_class(geoms[[3]], "LayerInstance") # text
+  expect_s3_class(geoms[[3]]$layer, "LayerInstance") # text
   expect_null(geoms[[4]]) # labels off by default
 
   # Without nodes
@@ -231,7 +231,7 @@ test_that("geom_dag main function works with different options", {
 
   # With labels
   geoms_labels <- geom_dag(use_labels = TRUE)
-  expect_s3_class(geoms_labels[[4]], "LayerInstance")
+  expect_s3_class(geoms_labels[[4]]$layer, "LayerInstance")
 
   # With stylized nodes
   geoms_stylized <- geom_dag(use_stylized = TRUE)
@@ -278,7 +278,7 @@ test_that("geom_dag main function works with different options", {
   expect_ggdag_warning(
     geoms_labels_char <- geom_dag(use_labels = "label")
   )
-  expect_s3_class(geoms_labels_char[[4]], "LayerInstance")
+  expect_s3_class(geoms_labels_char[[4]]$layer, "LayerInstance")
 })
 
 test_that("bidirected edge handling works", {
@@ -311,12 +311,12 @@ test_that("text and label enquo handling works", {
 test_that("label_geom parameter works correctly", {
   # Default behavior - should use geom_dag_label_repel
   geoms_default <- geom_dag(use_labels = TRUE)
-  expect_s3_class(geoms_default[[4]], "LayerInstance")
+  expect_s3_class(geoms_default[[4]]$layer, "LayerInstance")
   expect_s3_class(geoms_default[[4]]$geom, "GeomLabelRepel")
 
   # Using geom_dag_label (static labels)
   geoms_static <- geom_dag(use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(geoms_static[[4]], "LayerInstance")
+  expect_s3_class(geoms_static[[4]]$layer, "LayerInstance")
   expect_s3_class(geoms_static[[4]]$geom, "GeomLabel")
 
   # Using geom_dag_text_repel
@@ -324,7 +324,7 @@ test_that("label_geom parameter works correctly", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(geoms_text_repel[[4]], "LayerInstance")
+  expect_s3_class(geoms_text_repel[[4]]$layer, "LayerInstance")
   expect_s3_class(geoms_text_repel[[4]]$geom, "GeomTextRepel")
 
   # Using geom_dag_label_repel2
@@ -332,7 +332,7 @@ test_that("label_geom parameter works correctly", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(geoms_label_repel2[[4]], "LayerInstance")
+  expect_s3_class(geoms_label_repel2[[4]]$layer, "LayerInstance")
   expect_s3_class(geoms_label_repel2[[4]]$geom, "GeomLabelRepel")
 
   # Using geom_dag_text_repel2
@@ -340,7 +340,7 @@ test_that("label_geom parameter works correctly", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(geoms_text_repel2[[4]], "LayerInstance")
+  expect_s3_class(geoms_text_repel2[[4]]$layer, "LayerInstance")
   expect_s3_class(geoms_text_repel2[[4]]$geom, "GeomTextRepel")
 
   # Parameters are passed correctly

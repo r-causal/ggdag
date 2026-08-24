@@ -393,9 +393,9 @@ draw_key_dag_edge <- function(data, params, size) {
 # Helper function to handle missing circular column (issue #119)
 handle_missing_circular_column <- function(data) {
   if (!"circular" %in% names(data)) {
-    data$circular <- FALSE
+    data$circular <- rep(FALSE, nrow(data))
   }
-  data[is.na(data$circular), "circular"] <- FALSE
+  data$circular[is.na(data$circular)] <- FALSE
   data
 }
 
@@ -440,40 +440,220 @@ generate_disc_points <- function(node_radius, n_node_points) {
   disc_points
 }
 
+# The radius ggrepel gives a node when it places a label's segment endpoint.
+# ggrepel converts `point.size` to centimetres as `point.size * .pt / .stroke /
+# 20`, while a pch-19 node of size `s` is drawn with a radius of `0.375 * s`
+# millimetres, so this is the `point.size` whose segment radius matches the
+# circle actually on the page.
+node_point_size <- function(node_size) {
+  node_size * 0.75 * .stroke / .pt
+}
+
+# Positions along a straight edge, endpoints excluded.
+straight_edge_points <- function(edges, n_edge_points) {
+  t_vals <- seq(0, 1, length.out = n_edge_points + 2)[
+    -c(1, n_edge_points + 2)
+  ]
+  do.call(
+    rbind,
+    lapply(seq_len(nrow(edges)), function(i) {
+      data.frame(
+        x = edges$x[i] + t_vals * (edges$xend[i] - edges$x[i]),
+        y = edges$y[i] + t_vals * (edges$yend[i] - edges$y[i]),
+        PANEL = edges$PANEL[i],
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+}
+
+# Positions along the arc `ggraph::StatEdgeArc` draws for these edges. The arc
+# stat itself produces them, so the points sit on the curve the reader sees
+# rather than on the chord between the two nodes.
+arc_edge_points <- function(edges, n_edge_points, strength, fold) {
+  control_points <- ggraph::StatEdgeArc$setup_data(
+    data.frame(
+      x = edges$x,
+      y = edges$y,
+      xend = edges$xend,
+      yend = edges$yend,
+      PANEL = edges$PANEL,
+      group = seq_len(nrow(edges)),
+      circular = FALSE,
+      filter = TRUE
+    ),
+    list(strength = strength, fold = fold)
+  )
+
+  if (nrow(control_points) == 0) {
+    return(NULL)
+  }
+
+  path <- ggraph::StatEdgeArc$compute_panel(
+    control_points,
+    NULL,
+    n = n_edge_points + 2
+  )
+  path <- path[path$index > 0 & path$index < 1, , drop = FALSE]
+
+  data.frame(
+    x = path$x,
+    y = path$y,
+    PANEL = path$PANEL,
+    stringsAsFactors = FALSE
+  )
+}
+
+edge_key <- function(x, y, xend, yend) {
+  paste(x, y, xend, yend, sep = "\r")
+}
+
+node_key <- function(x, y, panel) {
+  paste(x, y, panel, sep = "\r")
+}
+
+# Pair each edge with the curvature it is drawn at. `edge_geometry` comes from
+# the DAG edge layers already on the plot; edges no curved layer claims are
+# drawn straight.
+edge_curvature <- function(edges, edge_geometry) {
+  curvature <- data.frame(
+    strength = rep(0, nrow(edges)),
+    fold = rep(FALSE, nrow(edges))
+  )
+
+  if (is.null(edge_geometry) || nrow(edge_geometry) == 0) {
+    return(curvature)
+  }
+
+  matched <- match(
+    edge_key(edges$x, edges$y, edges$xend, edges$yend),
+    edge_key(
+      edge_geometry$x,
+      edge_geometry$y,
+      edge_geometry$xend,
+      edge_geometry$yend
+    )
+  )
+
+  found <- !is.na(matched)
+  curvature$strength[found] <- edge_geometry$strength[matched[found]]
+  curvature$fold[found] <- edge_geometry$fold[matched[found]]
+  curvature
+}
+
+# Invisible points tracing each edge, used as obstacles in ggrepel's repulsion.
+repel_edge_points <- function(edges, n_edge_points, edge_geometry = NULL) {
+  if (n_edge_points <= 0 || nrow(edges) == 0) {
+    return(NULL)
+  }
+
+  curvature <- edge_curvature(edges, edge_geometry)
+  is_straight <- curvature$strength == 0
+
+  points <- list()
+  if (any(is_straight)) {
+    points[[1]] <- straight_edge_points(
+      edges[is_straight, , drop = FALSE],
+      n_edge_points
+    )
+  }
+
+  curved <- unique(curvature[!is_straight, , drop = FALSE])
+  for (i in seq_len(nrow(curved))) {
+    in_group <- curvature$strength == curved$strength[i] &
+      curvature$fold == curved$fold[i]
+    points[[length(points) + 1]] <- arc_edge_points(
+      edges[in_group, , drop = FALSE],
+      n_edge_points,
+      strength = curved$strength[i],
+      fold = curved$fold[i]
+    )
+  }
+
+  points <- points[!vapply(points, is.null, logical(1))]
+  if (length(points) == 0) {
+    return(NULL)
+  }
+
+  do.call(rbind, points)
+}
+
+# Invisible points filling the disc each node covers.
+repel_node_points <- function(nodes, node_size, n_node_points) {
+  if (n_node_points <= 0 || nrow(nodes) == 0) {
+    return(NULL)
+  }
+
+  # The disc lives in data units, so its radius is scaled from the spread of
+  # the nodes. A single node, or nodes stacked at one position, leaves nothing
+  # to scale from.
+  avg_range <- mean(c(diff(range(nodes$x)), diff(range(nodes$y))))
+  if (!is.finite(avg_range) || avg_range == 0) {
+    return(NULL)
+  }
+
+  disc_points <- generate_disc_points(
+    node_size * avg_range / 400,
+    n_node_points
+  )
+
+  do.call(
+    rbind,
+    lapply(seq_len(nrow(nodes)), function(i) {
+      data.frame(
+        x = nodes$x[i] + disc_points$dx,
+        y = nodes$y[i] + disc_points$dy,
+        PANEL = nodes$PANEL[i],
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+}
+
 StatNodesRepel <- ggplot2::ggproto(
   "StatNodesRepel",
   ggplot2::Stat,
-  extra_params = c("na.rm", "node_size", "n_edge_points", "n_node_points"),
+  optional_aes = c("xend", "yend"),
+  extra_params = c(
+    "na.rm",
+    "node_size",
+    "n_edge_points",
+    "n_node_points",
+    "edge_geometry"
+  ),
   compute_layer = function(data, params, layout) {
     node_size <- params$node_size %||% 16
     n_edge_points <- params$n_edge_points %||% 50
     n_node_points <- params$n_node_points %||% 12
     has_edges <- all(c("xend", "yend") %in% names(data))
 
+    # Every node in the layer is drawn, whether or not it carries a label, so
+    # the repulsion geometry is taken from all of them before the rows ggrepel
+    # will draw are filtered down to the labelled ones.
+    all_nodes <- unique(data[, c("x", "y", "PANEL")])
+
     # Generate fake points along edges before removing xend/yend
     fake_points <- NULL
-    if (has_edges && n_edge_points > 0) {
+    if (has_edges) {
       edges <- unique(data[
         !is.na(data$xend),
         c("x", "y", "xend", "yend", "PANEL")
       ])
-      if (nrow(edges) > 0) {
-        t_vals <- seq(0, 1, length.out = n_edge_points + 2)[
-          -c(1, n_edge_points + 2)
-        ]
-        fake_points <- do.call(
-          rbind,
-          lapply(seq_len(nrow(edges)), function(i) {
-            data.frame(
-              x = edges$x[i] + t_vals * (edges$xend[i] - edges$x[i]),
-              y = edges$y[i] + t_vals * (edges$yend[i] - edges$y[i]),
-              label = "",
-              point.size = 0,
-              PANEL = edges$PANEL[i],
-              stringsAsFactors = FALSE
-            )
-          })
-        )
+      edge_points <- repel_edge_points(
+        edges,
+        n_edge_points,
+        params$edge_geometry
+      )
+      if (!is.null(edge_points)) {
+        edge_points$label <- ""
+        edge_points[["point.size"]] <- 0
+        fake_points <- edge_points[, c(
+          "x",
+          "y",
+          "label",
+          "point.size",
+          "PANEL"
+        )]
       }
     }
 
@@ -494,32 +674,39 @@ StatNodesRepel <- ggplot2::ggproto(
     }
 
     if (!"point.size" %in% names(data)) {
-      data[["point.size"]] <- node_size * .pt / 14.4
+      data[["point.size"]] <- node_point_size(node_size)
     }
 
-    # Generate filled disc of points covering each node
-    if (n_node_points > 0 && nrow(data) > 1) {
-      x_range <- diff(range(data$x))
-      y_range <- diff(range(data$y))
-      avg_range <- mean(c(x_range, y_range))
-      node_radius <- node_size * avg_range / 400
-
-      disc_points <- generate_disc_points(node_radius, n_node_points)
-
-      node_skeleton <- do.call(
-        rbind,
-        lapply(seq_len(nrow(data)), function(i) {
-          data.frame(
-            x = data$x[i] + disc_points$dx,
-            y = data$y[i] + disc_points$dy,
-            label = "",
-            point.size = 0,
-            PANEL = data$PANEL[i],
-            stringsAsFactors = FALSE
-          )
-        })
+    # A node whose label is missing is still drawn, so it keeps a row carrying
+    # its point size; only the visible label is absent.
+    unlabelled <- all_nodes[
+      !node_key(all_nodes$x, all_nodes$y, all_nodes$PANEL) %in%
+        node_key(data$x, data$y, data$PANEL),
+      ,
+      drop = FALSE
+    ]
+    if (nrow(unlabelled) > 0) {
+      fake_points <- rbind(
+        fake_points,
+        data.frame(
+          x = unlabelled$x,
+          y = unlabelled$y,
+          label = "",
+          point.size = node_point_size(node_size),
+          PANEL = unlabelled$PANEL,
+          stringsAsFactors = FALSE
+        )
       )
-      fake_points <- rbind(fake_points, node_skeleton)
+    }
+
+    node_skeleton <- repel_node_points(all_nodes, node_size, n_node_points)
+    if (!is.null(node_skeleton)) {
+      node_skeleton$label <- ""
+      node_skeleton[["point.size"]] <- 0
+      fake_points <- rbind(
+        fake_points,
+        node_skeleton[, c("x", "y", "label", "point.size", "PANEL")]
+      )
     }
 
     if (!is.null(fake_points)) {
@@ -534,7 +721,13 @@ StatDebugRepelPoints <- ggplot2::ggproto(
   "StatDebugRepelPoints",
   ggplot2::Stat,
   optional_aes = c("xend", "yend"),
-  extra_params = c("na.rm", "node_size", "n_edge_points", "n_node_points"),
+  extra_params = c(
+    "na.rm",
+    "node_size",
+    "n_edge_points",
+    "n_node_points",
+    "edge_geometry"
+  ),
   compute_layer = function(data, params, layout) {
     node_size <- params$node_size %||% 16
     n_edge_points <- params$n_edge_points %||% 50
@@ -543,53 +736,23 @@ StatDebugRepelPoints <- ggplot2::ggproto(
 
     fake_points <- NULL
 
-    # Edge fake points
-    if (has_edges && n_edge_points > 0) {
+    if (has_edges) {
       edges <- unique(data[
         !is.na(data$xend),
         c("x", "y", "xend", "yend", "PANEL")
       ])
-      if (nrow(edges) > 0) {
-        t_vals <- seq(0, 1, length.out = n_edge_points + 2)[
-          -c(1, n_edge_points + 2)
-        ]
-        fake_points <- do.call(
-          rbind,
-          lapply(seq_len(nrow(edges)), function(i) {
-            data.frame(
-              x = edges$x[i] + t_vals * (edges$xend[i] - edges$x[i]),
-              y = edges$y[i] + t_vals * (edges$yend[i] - edges$y[i]),
-              PANEL = edges$PANEL[i],
-              stringsAsFactors = FALSE
-            )
-          })
-        )
-      }
-    }
-
-    # Node disc points (filled, not just perimeter)
-    nodes <- unique(data[, c("x", "y", "PANEL")])
-    if (n_node_points > 0 && nrow(nodes) > 1) {
-      x_range <- diff(range(nodes$x))
-      y_range <- diff(range(nodes$y))
-      avg_range <- mean(c(x_range, y_range))
-      node_radius <- node_size * avg_range / 400
-
-      disc_points <- generate_disc_points(node_radius, n_node_points)
-
-      node_skeleton <- do.call(
-        rbind,
-        lapply(seq_len(nrow(nodes)), function(i) {
-          data.frame(
-            x = nodes$x[i] + disc_points$dx,
-            y = nodes$y[i] + disc_points$dy,
-            PANEL = nodes$PANEL[i],
-            stringsAsFactors = FALSE
-          )
-        })
+      fake_points <- repel_edge_points(
+        edges,
+        n_edge_points,
+        params$edge_geometry
       )
-      fake_points <- rbind(fake_points, node_skeleton)
     }
+
+    nodes <- unique(data[, c("x", "y", "PANEL")])
+    fake_points <- rbind(
+      fake_points,
+      repel_node_points(nodes, node_size, n_node_points)
+    )
 
     if (is.null(fake_points) || nrow(fake_points) == 0) {
       return(data.frame(x = numeric(), y = numeric(), PANEL = integer()))
@@ -602,7 +765,8 @@ StatDebugRepelPoints <- ggplot2::ggproto(
 make_debug_repel_layer <- function(
   node_size = NULL,
   n_edge_points = NULL,
-  n_node_points = NULL
+  n_node_points = NULL,
+  edge_geometry = NULL
 ) {
   # inherit.aes = FALSE avoids inheriting color/fill mappings that don't exist
   # in the debug stat's output. Map x, y, xend, yend explicitly so edge fake
@@ -626,23 +790,43 @@ make_debug_repel_layer <- function(
       na.rm = TRUE,
       node_size = node_size,
       n_edge_points = n_edge_points,
-      n_node_points = n_node_points
+      n_node_points = n_node_points,
+      edge_geometry = edge_geometry
     )
   )
 }
 
-dag_layer <- function(layer, discover = character()) {
+dag_layer <- function(
+  layer,
+  discover = character(),
+  default_label = FALSE,
+  debug = FALSE
+) {
   structure(
-    list(layer = layer, discover = discover),
+    list(
+      layer = layer,
+      discover = discover,
+      default_label = default_label,
+      debug = debug
+    ),
     class = "dag_layer"
   )
 }
 
+#' @export
+`$.dag_layer` <- function(x, name) {
+  if (name %in% c("layer", "discover", "default_label", "debug")) {
+    .subset2(x, name)
+  } else {
+    .subset2(x, "layer")[[name]]
+  }
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_layer <- function(object, plot, ...) {
-  layer <- object$layer
+  layer <- .subset2(object, "layer")
 
-  if ("node_size" %in% object$discover) {
+  if ("node_size" %in% .subset2(object, "discover")) {
     if (is.null(layer$stat_params$node_size)) {
       discovered <- discover_node_size(plot)
       if (!is.null(discovered)) {
@@ -651,18 +835,121 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
     }
   }
 
+  if ("edge_geometry" %in% .subset2(object, "discover")) {
+    if (is.null(layer$stat_params$edge_geometry)) {
+      layer$stat_params$edge_geometry <- discover_edge_geometry(plot)
+    }
+  }
+
+  if (isTRUE(.subset2(object, "default_label"))) {
+    layer <- add_default_label_mapping(layer, plot)
+  }
+
   plot <- ggplot2::ggplot_add(layer, plot, ...)
 
-  if (isTRUE(getOption("ggdag.debug_repel_points"))) {
+  if (
+    isTRUE(.subset2(object, "debug")) &&
+      isTRUE(ggdag_option("debug_repel_points", FALSE))
+  ) {
     debug_layer <- make_debug_repel_layer(
       node_size = layer$stat_params$node_size,
       n_edge_points = layer$stat_params$n_edge_points,
-      n_node_points = layer$stat_params$n_node_points
+      n_node_points = layer$stat_params$n_node_points,
+      edge_geometry = layer$stat_params$edge_geometry
     )
     plot <- ggplot2::ggplot_add(debug_layer, plot, ...)
   }
 
   plot
+}
+
+# Node names are drawn only when nothing else maps `label`. A plot-level
+# mapping is inherited like any other aesthetic, so the default cannot be
+# injected in the constructor, where the plot is not yet visible.
+add_default_label_mapping <- function(layer, plot) {
+  if (!is.null(layer$mapping$label)) {
+    return(layer)
+  }
+
+  inherits_plot_aes <- !identical(layer$inherit.aes, FALSE)
+  if (inherits_plot_aes && !is.null(plot$mapping$label)) {
+    return(layer)
+  }
+
+  if (is.null(layer$mapping)) {
+    layer$mapping <- ggplot2::aes()
+  }
+  layer$mapping$label <- ggplot2::aes(label = .data$name)$label
+
+  layer
+}
+
+# The curvature the plot's DAG edge layers draw each edge with. Repulsion
+# obstacles follow those curves, so a label cannot be placed on top of a drawn
+# arc, and edges no curved layer claims stay straight.
+discover_edge_geometry <- function(plot) {
+  plot_data <- plot$data
+  if (inherits(plot_data, "tidy_dagitty")) {
+    plot_data <- pull_dag_data(plot_data)
+  }
+  if (!is.data.frame(plot_data)) {
+    return(NULL)
+  }
+
+  specs <- list()
+  for (existing in plot$layers) {
+    if (!inherits(existing$stat, "StatEdgeArc")) {
+      next
+    }
+
+    strength <- existing$stat_params$strength
+    if (!is.numeric(strength) || length(strength) != 1 || strength == 0) {
+      next
+    }
+
+    layer_data <- resolve_layer_data(existing, plot_data)
+    if (is.null(layer_data)) {
+      next
+    }
+
+    layer_data <- layer_data[!is.na(layer_data$xend), , drop = FALSE]
+    if (nrow(layer_data) == 0) {
+      next
+    }
+
+    specs[[length(specs) + 1]] <- data.frame(
+      x = layer_data$x,
+      y = layer_data$y,
+      xend = layer_data$xend,
+      yend = layer_data$yend,
+      strength = strength,
+      fold = isTRUE(existing$stat_params$fold)
+    )
+  }
+
+  if (length(specs) == 0) {
+    return(NULL)
+  }
+
+  unique(do.call(rbind, specs))
+}
+
+resolve_layer_data <- function(layer, plot_data) {
+  layer_data <- layer$data
+  if (is.null(layer_data) || inherits(layer_data, "waiver")) {
+    layer_data <- plot_data
+  } else if (is.function(layer_data)) {
+    layer_data <- tryCatch(layer_data(plot_data), error = function(e) NULL)
+  }
+
+  if (!is.data.frame(layer_data)) {
+    return(NULL)
+  }
+  if (!all(c("x", "y", "xend", "yend") %in% names(layer_data))) {
+    return(NULL)
+  }
+
+  layer_data
 }
 
 node_size_to_cap <- function(node_size) {
@@ -829,13 +1116,15 @@ StatEdgeLink <- ggplot2::ggproto(
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
 
-    if (nrow(data) > 0) {
-      data <- ggraph::StatEdgeLink$setup_data(data, params)
-      data <- convert_group_to_integer(data)
-    } else {
-      data <- NULL
+    # A DAG with no edges keeps its aesthetic columns and draws nothing;
+    # returning NULL here would leave `check_required_aesthetics()` reporting
+    # every aesthetic as missing.
+    if (nrow(data) == 0) {
+      return(data)
     }
-    data
+
+    data <- ggraph::StatEdgeLink$setup_data(data, params)
+    convert_group_to_integer(data)
   },
   compute_panel = function(data, scales, ...) {
     # Call parent method
@@ -852,13 +1141,12 @@ StatEdgeArc <- ggplot2::ggproto(
     data <- data[!is.na(data$xend), ]
     data <- handle_missing_circular_column(data)
 
-    if (nrow(data) > 0) {
-      data <- ggraph::StatEdgeArc$setup_data(data, params)
-      data <- convert_group_to_integer(data)
-    } else {
-      data <- NULL
+    if (nrow(data) == 0) {
+      return(data)
     }
-    data
+
+    data <- ggraph::StatEdgeArc$setup_data(data, params)
+    convert_group_to_integer(data)
   },
   compute_panel = function(data, scales, ...) {
     data <- ggraph::StatEdgeArc$compute_panel(data, scales, ...)
@@ -874,13 +1162,12 @@ StatEdgeDiagonal <- ggplot2::ggproto(
     data <- data[!is.na(data$xend), ]
     data <- handle_missing_circular_column(data)
 
-    if (nrow(data) > 0) {
-      data <- ggraph::StatEdgeDiagonal$setup_data(data, params)
-      data <- convert_group_to_integer(data)
-    } else {
-      data <- NULL
+    if (nrow(data) == 0) {
+      return(data)
     }
-    data
+
+    data <- ggraph::StatEdgeDiagonal$setup_data(data, params)
+    convert_group_to_integer(data)
   },
   compute_panel = function(data, scales, ...) {
     data <- ggraph::StatEdgeDiagonal$compute_panel(data, scales, ...)
@@ -895,17 +1182,20 @@ StatEdgeFan <- ggplot2::ggproto(
   setup_data = function(data, params) {
     data <- data[!is.na(data$xend), ]
 
-    if (nrow(data) > 0) {
-      # turn `from` and `to` into integers for `ggraph::StatEdgeFan`
-      data$from <- rank(data$from)
-      data$to <- rank(data$to)
-
-      data <- ggraph::StatEdgeFan$setup_data(data, params)
-      data <- convert_group_to_integer(data)
-    } else {
-      data <- NULL
+    if (nrow(data) == 0) {
+      return(data)
     }
-    data
+
+    # `ggraph::StatEdgeFan` identifies parallel edges by the pair of node ids
+    # in `from` and `to`, so both columns have to be numbered from one shared
+    # set of node names. Numbering each column on its own gives the same node
+    # a different id in each, which lets unrelated edges collide into a fan.
+    node_names <- sort(unique(c(data$from, data$to)))
+    data$from <- match(data$from, node_names)
+    data$to <- match(data$to, node_names)
+
+    data <- ggraph::StatEdgeFan$setup_data(data, params)
+    convert_group_to_integer(data)
   },
   compute_panel = function(data, scales, ...) {
     data <- ggraph::StatEdgeFan$compute_panel(data, scales, ...)

@@ -25,7 +25,6 @@
 #'   - shape
 #'   - size
 #'   - stroke
-#'   - filter
 #'
 #'   `geom_dag_node` also accepts:
 #'
@@ -161,17 +160,12 @@ geom_dag_text <- function(
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) {
-    mapping <- ggplot2::aes(label = .data$name)
-  }
-  if (is.null(mapping$label)) {
-    mapping$label <- rlang::expr(.data$name)
-  }
+  stat_to_use <- if (identical(stat, "identity")) StatNodes else stat
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodes,
+    stat = stat_to_use,
     geom = GeomDagText,
     position = position,
     show.legend = show.legend,
@@ -183,6 +177,8 @@ geom_dag_text <- function(
       ...
     )
   )
+
+  dag_layer(layer, default_label = TRUE)
 }
 
 #' Node text labels
@@ -234,7 +230,6 @@ geom_dag_label <- function(
   parse = FALSE,
   nudge_x = 0,
   nudge_y = 0,
-  check_overlap = FALSE,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -249,17 +244,12 @@ geom_dag_label <- function(
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) {
-    mapping <- ggplot2::aes(label = .data$name)
-  }
-  if (is.null(mapping$label)) {
-    mapping$label <- rlang::expr(.data$name)
-  }
+  stat_to_use <- if (identical(stat, "identity")) StatNodes else stat
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodes,
+    stat = stat_to_use,
     geom = ggplot2::GeomLabel,
     position = position,
     show.legend = show.legend,
@@ -270,6 +260,8 @@ geom_dag_label <- function(
       ...
     )
   )
+
+  dag_layer(layer, default_label = TRUE)
 }
 
 #' Repulsive textual annotations
@@ -290,18 +282,21 @@ geom_dag_label <- function(
 #'   Default is 0 (no border). Set to a positive value to show borders.
 #' @param node_size The size of the DAG nodes, used to compute the
 #'   `point.size` aesthetic so that labels repel from the node boundary
-#'   rather than the node center. Defaults to `NULL`, which auto-discovers the
-#'   size from a node layer (`geom_dag_node()` or `geom_dag_point()`) already
-#'   added to the plot. Falls back to 16 if no node layer is found.
+#'   rather than the node center, and to size the skeleton discs described
+#'   under Details. Defaults to `NULL`, which auto-discovers the size from a
+#'   node layer (`geom_dag_node()` or `geom_dag_point()`) already added to the
+#'   plot. Falls back to 16 if no node layer is found.
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge. These "fake" points participate in ggrepel's repulsion calculation
 #'   so that labels avoid overlapping edges. Defaults to `NULL`, which uses
 #'   the `StatNodesRepel` default of 50. Set to 0 to disable edge-aware
 #'   repulsion.
-#' @param n_node_points Number of invisible points to place around each node's
-#'   perimeter. These skeleton points help ggrepel push labels away from node
-#'   boundaries. Defaults to `NULL`, which uses the `StatNodesRepel` default
-#'   of 12. Set to 0 to disable node skeleton repulsion.
+#' @param n_node_points Target number of invisible points filling the disc
+#'   that covers each node: a center point plus four concentric rings. Each
+#'   ring holds at least six points, so every value from 1 to 16 gives the
+#'   same 25 points per node and the parameter only starts to take effect
+#'   above 16. Defaults to `NULL`, which uses the `StatNodesRepel` default of
+#'   12. Set to 0 to disable node skeleton repulsion.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -311,6 +306,24 @@ geom_dag_label <- function(
 #' [ggrepel::geom_label_repel()] that use the custom `StatNodesRepel`
 #' for better handling of DAG data. All arguments available in ggrepel
 #' functions are supported.
+#'
+#' Labels are kept off nodes and edges by two mechanisms. The `point.size`
+#' aesthetic, computed from `node_size`, is converted by ggrepel at draw time
+#' and so describes the same circle at every device size. The invisible points
+#' along edges and the disc filling each node, on the other hand, are placed in
+#' data units: the disc radius is `node_size` times the average spread of the
+#' nodes divided by 400 (the same divisor sizes the debug overlay described in
+#' [ggdag_options_set()]). Because the panel converts data units to
+#' millimetres at drawing time, that disc is congruent with the drawn node only
+#' on a panel about 180 mm wide. On a narrower device the disc is smaller than
+#' the node it stands for and a label may come to rest on the node; on a wider
+#' one it is larger and labels are pushed further away than they need to be.
+#' Set `n_node_points = 0` to rely on `point.size` alone.
+#'
+#' Points along an edge trace the path that edge is drawn along, including the
+#' arc of a bidirected edge and of [geom_dag_edges_arc()]. Edges drawn by
+#' [geom_dag_edges_diagonal()], [geom_dag_edges_fan()], and the ggarrow engine
+#' are traced along the straight line between their nodes.
 #'
 #' Additional segment parameters can be passed through `...`, including:
 #' - `segment.linetype`: Line style
@@ -455,10 +468,10 @@ geom_dag_text_repel <- function(
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
-  segment.colour <- dots[["segment.colour"]]
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
-  stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+  stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
+  uses_repel_stat <- inherits(stat_to_use, "StatNodesRepel")
 
   # If nudge_x or nudge_y are provided and position is "identity",
   # convert to position_nudge_repel for proper behavior
@@ -478,7 +491,11 @@ geom_dag_text_repel <- function(
     box.padding = box.padding,
     point.padding = point.padding,
     min.segment.length = min.segment.length,
-    segment.colour = segment.color %||% segment.colour,
+    segment.colour = resolve_segment_colour(
+      segment.color,
+      dots,
+      missing(segment.color)
+    ),
     segment.size = segment.size,
     fontface = fontface,
     arrow = arrow,
@@ -504,6 +521,12 @@ geom_dag_text_repel <- function(
   # Add any additional parameters from dots
   params <- c(params, dots[!names(dots) %in% names(params)])
 
+  # The skeleton parameters configure `StatNodesRepel`; another stat would
+  # only report them as unknown.
+  if (!uses_repel_stat) {
+    params[c("node_size", "n_edge_points", "n_node_points")] <- NULL
+  }
+
   layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -515,7 +538,15 @@ geom_dag_text_repel <- function(
     params = params
   )
 
-  dag_layer(layer, discover = "node_size")
+  dag_layer(
+    layer,
+    discover = if (uses_repel_stat) {
+      c("node_size", "edge_geometry")
+    } else {
+      character()
+    },
+    debug = uses_repel_stat
+  )
 }
 
 #' @rdname repel
@@ -559,10 +590,10 @@ geom_dag_label_repel <- function(
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
-  segment.colour <- dots[["segment.colour"]]
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
-  stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+  stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
+  uses_repel_stat <- inherits(stat_to_use, "StatNodesRepel")
 
   # If nudge_x or nudge_y are provided and position is "identity",
   # convert to position_nudge_repel for proper behavior
@@ -584,7 +615,11 @@ geom_dag_label_repel <- function(
     label.r = label.r,
     label.size = label.size,
     min.segment.length = min.segment.length,
-    segment.colour = segment.color %||% segment.colour,
+    segment.colour = resolve_segment_colour(
+      segment.color,
+      dots,
+      missing(segment.color)
+    ),
     segment.size = segment.size,
     arrow = arrow,
     na.rm = na.rm,
@@ -610,6 +645,12 @@ geom_dag_label_repel <- function(
   # Add any additional parameters from dots
   params <- c(params, dots[!names(dots) %in% names(params)])
 
+  # The skeleton parameters configure `StatNodesRepel`; another stat would
+  # only report them as unknown.
+  if (!uses_repel_stat) {
+    params[c("node_size", "n_edge_points", "n_node_points")] <- NULL
+  }
+
   layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -621,7 +662,15 @@ geom_dag_label_repel <- function(
     params = params
   )
 
-  dag_layer(layer, discover = "node_size")
+  dag_layer(
+    layer,
+    discover = if (uses_repel_stat) {
+      c("node_size", "edge_geometry")
+    } else {
+      character()
+    },
+    debug = uses_repel_stat
+  )
 }
 
 #' @rdname repel
@@ -662,6 +711,17 @@ geom_dag_text_repel2 <- function(
     max.overlaps = max.overlaps,
     ...
   )
+}
+
+# ggrepel accepts either spelling of the segment colour, and so do these
+# wrappers. `segment.color` has a documented default here, so it can only give
+# way to the British spelling when the caller left it alone.
+resolve_segment_colour <- function(segment.color, dots, color_missing) {
+  if (color_missing) {
+    dots[["segment.colour"]] %||% segment.color
+  } else {
+    segment.color
+  }
 }
 
 filter_direction <- function(.direction) {
@@ -1274,11 +1334,25 @@ aes_dag <- function(...) {
   default_aes
 }
 
+# Layer data for an edge layer that also filters by edge direction. The user's
+# data, whether a function or a data frame, is applied first and the direction
+# filter narrows what it returns.
+compose_edge_data <- function(user_data, dir_filter) {
+  if (is.null(user_data)) {
+    return(dir_filter)
+  }
+  if (is.function(user_data)) {
+    return(function(x) dir_filter(user_data(x)))
+  }
+  dir_filter(user_data)
+}
+
 # Build ggarrow edge layers for geom_dag()
 geom_dag_ggarrow_edges <- function(
   edge_type,
   sizes,
-  show.legend = NA
+  show.legend = NA,
+  data = NULL
 ) {
   rlang::check_installed(
     "ggarrow",
@@ -1299,7 +1373,7 @@ geom_dag_ggarrow_edges <- function(
     "link_arc" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("->"),
+        data = compose_edge_data(data, filter_direction("->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1309,7 +1383,7 @@ geom_dag_ggarrow_edges <- function(
       ),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("<->"),
+        data = compose_edge_data(data, filter_direction("<->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
@@ -1320,6 +1394,7 @@ geom_dag_ggarrow_edges <- function(
     ),
     "link" = geom_dag_arrow(
       mapping = dag_mapping,
+      data = data,
       arrow_head = arrow_head,
       arrow_fins = arrow_fins,
       arrow_mid = arrow_mid,
@@ -1329,7 +1404,7 @@ geom_dag_ggarrow_edges <- function(
     "arc" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("->"),
+        data = compose_edge_data(data, filter_direction("->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1339,7 +1414,7 @@ geom_dag_ggarrow_edges <- function(
       ),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("<->"),
+        data = compose_edge_data(data, filter_direction("<->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
@@ -1351,7 +1426,7 @@ geom_dag_ggarrow_edges <- function(
     "diagonal" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("->"),
+        data = compose_edge_data(data, filter_direction("->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1361,7 +1436,7 @@ geom_dag_ggarrow_edges <- function(
       ),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("<->"),
+        data = compose_edge_data(data, filter_direction("<->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
@@ -1418,10 +1493,13 @@ geom_dag_ggarrow_edges <- function(
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge for label repulsion. Passed to repel label geoms. Defaults to `NULL`
 #'   (uses `StatNodesRepel` default of 50). Set to 0 to disable.
-#' @param n_node_points Number of invisible skeleton points to place around each
-#'   node's perimeter for label repulsion. Passed to repel label geoms.
+#' @param n_node_points Target number of invisible skeleton points filling the
+#'   disc that covers each node for label repulsion: a center point plus four
+#'   concentric rings, each holding at least six points, so every value from 1
+#'   to 16 gives the same 25 points per node. Passed to repel label geoms.
 #'   Defaults to `NULL` (uses `StatNodesRepel` default of 12). Set to 0 to
-#'   disable.
+#'   disable. The disc is measured in data units, so it matches the drawn node
+#'   only on a panel about 180 mm wide; see [geom_dag_label_repel()].
 #' @param unified_legend A logical value. When `TRUE` and both `use_edges` and
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
@@ -1528,7 +1606,8 @@ geom_dag <- function(
       edge_geom <- geom_dag_ggarrow_edges(
         edge_type = edge_type,
         sizes = sizes,
-        show.legend = edge_show_legend
+        show.legend = edge_show_legend,
+        data = data
       )
     } else {
       if (edge_type == "link_arc") {
@@ -1537,6 +1616,8 @@ geom_dag <- function(
             start_cap = ggraph::circle(sizes[["cap"]], "mm"),
             end_cap = ggraph::circle(sizes[["cap"]], "mm")
           ),
+          data_directed = compose_edge_data(data, filter_direction("->")),
+          data_bidirected = compose_edge_data(data, filter_direction("<->")),
           edge_width = sizes[["edge"]],
           arrow_directed = grid::arrow(
             length = grid::unit(sizes[["arrow"]], "pt"),
@@ -1692,32 +1773,12 @@ geom_dag <- function(
       common_params$max.overlaps <- Inf
     }
 
+    # The label layer stays wrapped so that it can read the edge layers of the
+    # plot it is added to; `node_size` is already threaded here, so the wrapper
+    # leaves it alone.
     label_geom_result <- do.call(label_geom, common_params)
-    # Unwrap dag_layer since geom_dag() already threads node_size explicitly
-    if (inherits(label_geom_result, "dag_layer")) {
-      label_geom_result <- label_geom_result$layer
-    }
   } else {
     label_geom_result <- NULL
-  }
-
-  # Inject debug layer when option is set and a repel label geom is used
-  debug_geom <- NULL
-  if (
-    isTRUE(getOption("ggdag.debug_repel_points")) &&
-      !is.null(label_geom_result)
-  ) {
-    is_repel <- identical(label_geom, geom_dag_label_repel) ||
-      identical(label_geom, geom_dag_label_repel2) ||
-      identical(label_geom, geom_dag_text_repel) ||
-      identical(label_geom, geom_dag_text_repel2)
-    if (is_repel) {
-      debug_geom <- make_debug_repel_layer(
-        node_size = common_params$node_size,
-        n_edge_points = common_params$n_edge_points,
-        n_node_points = common_params$n_node_points
-      )
-    }
   }
 
   result <- list(
@@ -1726,10 +1787,6 @@ geom_dag <- function(
     text_geom,
     label_geom_result
   )
-
-  if (!is.null(debug_geom)) {
-    result <- c(result, list(debug_geom))
-  }
 
   structure(result, class = "geom_dag_layers")
 }
@@ -1757,7 +1814,8 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
     if (
       is.list(item) &&
         !inherits(item, "ggproto") &&
-        !inherits(item, "dag_arrow_layer")
+        !inherits(item, "dag_arrow_layer") &&
+        !inherits(item, "dag_layer")
     ) {
       for (sub_item in item) {
         if (has_curvature && inherits(sub_item, "dag_arrow_layer")) {

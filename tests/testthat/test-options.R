@@ -20,7 +20,8 @@ test_that("ggdag_defaults contains all expected options", {
     "arrow_head",
     "arrow_fins",
     "arrow_mid",
-    "curvature"
+    "curvature",
+    "debug_repel_points"
   )
   expect_named(ggdag_defaults, expected_names, ignore.order = TRUE)
 })
@@ -769,6 +770,36 @@ test_that("curvature option stores and retrieves correctly", {
 test_that("curvature option rejects non-numeric", {
   expect_ggdag_error(ggdag_options_set(curvature = "bad"))
   expect_ggdag_error(ggdag_options_set(curvature = TRUE))
+})
+
+test_that("debug_repel_points is settable through the options API", {
+  local_ggdag_option_state()
+
+  repel_plot <- function() {
+    g <- dagify(y ~ x, coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0)))
+    ggplot(tidy_dagitty(g), aes_dag()) +
+      geom_dag_edges() +
+      geom_dag_point() +
+      geom_dag_label_repel(aes(label = name), seed = 1)
+  }
+  layer_stats <- function(p) {
+    vapply(p$layers, function(l) class(l$stat)[1], character(1))
+  }
+
+  expect_no_error(ggdag_options_set(debug_repel_points = TRUE))
+  expect_true(isTRUE(ggdag_options_get("debug_repel_points")))
+  expect_true("StatDebugRepelPoints" %in% layer_stats(repel_plot()))
+
+  ggdag_options_reset()
+  expect_null(ggdag_options_get("debug_repel_points"))
+  expect_false("StatDebugRepelPoints" %in% layer_stats(repel_plot()))
+})
+
+test_that("debug_repel_points rejects non-logical values", {
+  expect_error(
+    ggdag_options_set(debug_repel_points = "yes"),
+    class = "ggdag_type_error"
+  )
 })
 
 # Keep this test last: it guards the suite-wide layout option that

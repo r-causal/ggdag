@@ -200,6 +200,34 @@
 * dplyr (>= 1.1.0) is now required.
 * Added quick plot functions for the causal quartet: `quartet_collider()`, `quartet_confounder()`, `quartet_mediator()`, `quartet_m_bias()`, and `quartet_time_collider()`, along with their `ggdag_*` counterparts. These functions create DAGs representing the causal quartet from D'Agostino McGowan, Gerke, and Barrett (2023), demonstrating that statistical properties alone cannot determine causal relationships (#171)
 
+* `geom_dag_edges_fan()` now fans only the edges that join the same pair of nodes. The two node columns it hands to ggraph were numbered separately, so the same node carried a different number in each, and two edges with no node in common could be given the same pair identifier and drawn curved apart. Whether a DAG came out straight depended on the alphabetical spelling of its node names. Genuine parallel edges, such as the repeated path edges of `ggdag_paths_fan()`, now also fan symmetrically instead of being spread as though they belonged to a larger group.
+
+* `geom_dag_edges_link()`, `geom_dag_edges_arc()`, `geom_dag_edges_diagonal()`, and `geom_dag_edges_fan()` now draw an empty layer for a DAG with no edges, such as a single-node DAG or one filtered down to isolated nodes. Each returned `NULL` once the edge filter left no rows, which surfaced either as a report that every required aesthetic was missing or as a replacement-length error from the helper that fills in the `circular` column.
+
+* `geom_dag_text_repel()` and `geom_dag_label_repel()` now honor `segment.colour`, the British spelling ggrepel itself accepts. Because `segment.color` carries a default in these wrappers, the value passed under the other spelling could never be reached, and the segment kept its default color with nothing said. Passing `segment.color` still wins when both are given.
+
+* `geom_dag_text()` and `geom_dag_label()` now use a `stat` supplied by the caller, as their documented `stat` argument has always implied. The layer was fixed to `StatNodes` and any supplied value was discarded. The default still resolves to `StatNodes`. `geom_dag_label()` no longer takes `check_overlap`, which `ggplot2::geom_label()` does not support and which was accepted and then dropped; supplying it now produces ggplot2's unknown-parameter warning.
+
+* `geom_dag_text()` and `geom_dag_label()` now honor a `label` mapping made at the plot level, for example `ggplot(dag, aes_dag(label = label)) + geom_dag_text()`. They injected `label = name` as a layer mapping whenever their own mapping had none, and a layer mapping overrides the plot mapping, so node names were drawn over the labels the user asked for. Node names remain the default when nothing maps `label`, and a mapping given in the layer still wins.
+
+* `theme_dag()`, `theme_dag_blank()`, `theme_dag_grid()`, `theme_dag_grey()`, `theme_dag_grey_grid()`, and their `gray` aliases now let `...` override an element the theme itself sets, as their documentation promises. Passing one, such as `theme_dag(axis.text = element_text(size = 5))`, previously failed with R's duplicate-argument error because the theme named those elements alongside `...` in one call.
+
+* `geom_dag(data = )` now reaches the edge layers for every `edge_type` and both edge engines. With the default `"link_arc"`, and with `edge_engine = "ggarrow"`, the edge layers ignored it and drew the whole DAG while the node and text layers used the supplied data, so filtered-out edges reappeared.
+
+* Repelled labels are now pushed away from the whole of a node rather than from a circle much smaller than the one drawn. The `point.size` handed to ggrepel is now the size that its own conversion turns into the radius of the drawn node, so labels are no longer buried under large nodes. Labels sit slightly further from their nodes at every node size.
+
+* Repelled labels now avoid nodes whose label is missing, the shape `dagify(labels = )` produces whenever only some variables are labeled. The repulsion geometry was built from the rows that survive label filtering, so an unlabeled node contributed neither a point size nor a skeleton disc and a label box could come to rest on top of it. With only one node labeled, the skeleton disappeared for that node as well.
+
+* Repelled labels now avoid the curve a bidirected edge is drawn along, and the curve of `geom_dag_edges_arc()`, rather than the straight line between the two nodes. The invisible points that push labels off edges were interpolated along the chord, which left the drawn arc unprotected while pushing labels off empty space. Edges drawn by `geom_dag_edges_diagonal()`, `geom_dag_edges_fan()`, and the ggarrow engine are still traced along the chord.
+
+* `geom_dag_text_repel()` and `geom_dag_label_repel()` now accept a `Stat` ggproto object for `stat`, as ggplot2's convention allows. Comparing the argument with `==` raised a low-level error about comparison of non-atomic types, which also left `stat = ggplot2::StatIdentity` as the only route to plain identity behavior unusable.
+
+* `StatNodesRepel` now declares `xend` and `yend` as optional aesthetics. Mapping them in the layer, which is what `aes_dag()` does, warned that they were unknown and being ignored even though the stat uses both for edge-aware repulsion.
+
+* `ggdag.debug_repel_points` is now part of the options API: `ggdag_options_set(debug_repel_points = TRUE)` sets it, `ggdag_options_reset()` clears it, and it is documented. The repel geoms read it to add a layer showing the invisible geometry that labels are repelled from, but the option was absent from `ggdag_defaults`, so the documented interface rejected it and only the raw `options()` name worked.
+
+* Corrected documentation: the aesthetics section for `geom_dag_node()` and `geom_dag_point()` listed `filter`, which neither the geoms nor `StatNodes` support; the `n_node_points` argument of the repelling label geoms and of `geom_dag()` is a target count for a filled disc of a center point and four rings rather than a count of points around each node's perimeter, and every value from 1 to 16 produces the same 25 points; and the repel help page now records that the skeleton disc is measured in data units, so it matches the drawn node only on a panel about 180 mm wide.
+
 # ggdag 0.2.11
 
 * Internal update to address upcoming changes in ggplot2 (#125, thanks @teunbrand)

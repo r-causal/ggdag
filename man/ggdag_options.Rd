@@ -61,6 +61,12 @@ functions that use it.
 Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}},
 \code{\link[=ggdag_drelationship]{ggdag_drelationship()}}) maintain a proportional offset. If you set
 \code{ggdag.edge_cap} to a custom value, these functions scale it by \code{10/8}.
+
+\code{debug_repel_points} is a diagnostic rather than an appearance setting. When
+it is \code{TRUE}, every repelling label geom (see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}) adds
+a layer of purple points showing the invisible geometry that labels are
+repelled from: the points traced along each edge and the disc filling each
+node. It is useful for understanding why a label came to rest where it did.
 }
 \examples{
 # Set global options

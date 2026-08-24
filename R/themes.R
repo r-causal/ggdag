@@ -37,16 +37,17 @@ theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      strip.text = ggplot2::element_text(
-        face = "bold",
-        margin = ggplot2::margin(5, 5, 5, 5)
+    dag_theme(
+      list(
+        strip.text = ggplot2::element_text(
+          face = "bold",
+          margin = ggplot2::margin(5, 5, 5, 5)
+        ),
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank(),
+        panel.grid = ggplot2::element_blank()
       ),
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      panel.grid = ggplot2::element_blank(),
-      ...,
-      complete = TRUE
+      ...
     )
 }
 
@@ -62,11 +63,12 @@ theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      ...,
-      complete = TRUE
+    dag_theme(
+      list(
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank()
+      ),
+      ...
     )
 }
 
@@ -89,14 +91,15 @@ theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      axis.ticks = ggplot2::element_blank(),
-      panel.grid.major = ggplot2::element_line(colour = "grey92"),
-      panel.grid.minor = ggplot2::element_line(colour = "grey92"),
-      ...,
-      complete = TRUE
+    dag_theme(
+      list(
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank(),
+        axis.ticks = ggplot2::element_blank(),
+        panel.grid.major = ggplot2::element_line(colour = "grey92"),
+        panel.grid.minor = ggplot2::element_line(colour = "grey92")
+      ),
+      ...
     )
 }
 
@@ -111,18 +114,30 @@ theme_dag_grey_grid <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      axis.ticks = ggplot2::element_blank(),
-      ...,
-      complete = TRUE
+    dag_theme(
+      list(
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank(),
+        axis.ticks = ggplot2::element_blank()
+      ),
+      ...
     )
 }
 
 #' @rdname theme_dag_grey
 #' @export
 theme_dag_gray_grid <- theme_dag_grey_grid
+
+# The themes document that `...` reaches `theme()`. Naming the presets as
+# literal arguments alongside `...` would instead make R refuse a user value
+# for any element the theme sets, so the user's value replaces the preset by
+# name before the theme is built.
+dag_theme <- function(presets, ...) {
+  args <- c(presets, list(complete = TRUE))
+  dots <- list(...)
+  args[names(dots)] <- dots
+  do.call(ggplot2::theme, args)
+}
 
 #' Common scale adjustments for DAGs
 #'

@@ -2593,15 +2593,30 @@ test_that("visual: fixed_time separates same-layer siblings", {
 
 test_that("visual: fixed_time creates gap for known timing", {
   withr::local_seed(1234)
-  # User knows smoking happens well before cancer in a confounding DAG.
-  # Without pin: smoking and cancer are adjacent. Pin cancer=4 to show delay.
-  p <- dagify(
+  # The user knows cancer follows tar only after a long delay. Pinning cancer
+  # to 4 buys a gap only when the unpinned nodes stay at their earliest times:
+  # the default rightward auto-sort pushes smoking and tar along with the pin,
+  # so the layers come out adjacent again and no delay is drawn.
+  dag <- dagify(
     cancer ~ smoking + tar,
     tar ~ smoking,
-    coords = time_ordered_coords(fixed_time = c(cancer = 4))
-  ) |>
-    ggdag()
-  expect_doppelganger("time-ordered-fixed-time-timing-gap", p)
+    coords = time_ordered_coords(
+      fixed_time = c(cancer = 4),
+      auto_sort_direction = "left"
+    )
+  )
+
+  layer_of <- function(.name) {
+    dag_data <- pull_dag_data(tidy_dagitty(dag))
+    unique(dag_data$x[dag_data$name == .name])
+  }
+
+  expect_equal(layer_of("smoking"), 1)
+  expect_equal(layer_of("tar"), 2)
+  # the pin leaves an empty layer between tar and cancer
+  expect_equal(layer_of("cancer"), 4)
+
+  expect_doppelganger("time-ordered-fixed-time-timing-gap", ggdag(dag))
 })
 
 test_that("visual: fixed_time with multiple pins", {

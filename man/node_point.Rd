@@ -130,7 +130,6 @@ following aesthetics (required aesthetics are in bold):
 \item shape
 \item size
 \item stroke
-\item filter
 }
 
 \code{geom_dag_node} also accepts:

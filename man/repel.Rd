@@ -130,9 +130,10 @@ displayed as described in ?plotmath}
 
 \item{node_size}{The size of the DAG nodes, used to compute the
 \code{point.size} aesthetic so that labels repel from the node boundary
-rather than the node center. Defaults to \code{NULL}, which auto-discovers the
-size from a node layer (\code{geom_dag_node()} or \code{geom_dag_point()}) already
-added to the plot. Falls back to 16 if no node layer is found.}
+rather than the node center, and to size the skeleton discs described
+under Details. Defaults to \code{NULL}, which auto-discovers the size from a
+node layer (\code{geom_dag_node()} or \code{geom_dag_point()}) already added to the
+plot. Falls back to 16 if no node layer is found.}
 
 \item{n_edge_points}{Number of invisible points to interpolate along each
 edge. These "fake" points participate in ggrepel's repulsion calculation
@@ -140,10 +141,12 @@ so that labels avoid overlapping edges. Defaults to \code{NULL}, which uses
 the \code{StatNodesRepel} default of 50. Set to 0 to disable edge-aware
 repulsion.}
 
-\item{n_node_points}{Number of invisible points to place around each node's
-perimeter. These skeleton points help ggrepel push labels away from node
-boundaries. Defaults to \code{NULL}, which uses the \code{StatNodesRepel} default
-of 12. Set to 0 to disable node skeleton repulsion.}
+\item{n_node_points}{Target number of invisible points filling the disc
+that covers each node: a center point plus four concentric rings. Each
+ring holds at least six points, so every value from 1 to 16 gives the
+same 25 points per node and the parameter only starts to take effect
+above 16. Defaults to \code{NULL}, which uses the \code{StatNodesRepel} default of
+12. Set to 0 to disable node skeleton repulsion.}
 
 \item{box.padding}{Amount of padding around bounding box, as unit or number.
 Defaults to 0.25. (Default unit is lines, but other units can be specified
@@ -238,6 +241,24 @@ These geoms are wrappers around \code{\link[ggrepel:geom_text_repel]{ggrepel::ge
 \code{\link[ggrepel:geom_label_repel]{ggrepel::geom_label_repel()}} that use the custom \code{StatNodesRepel}
 for better handling of DAG data. All arguments available in ggrepel
 functions are supported.
+
+Labels are kept off nodes and edges by two mechanisms. The \code{point.size}
+aesthetic, computed from \code{node_size}, is converted by ggrepel at draw time
+and so describes the same circle at every device size. The invisible points
+along edges and the disc filling each node, on the other hand, are placed in
+data units: the disc radius is \code{node_size} times the average spread of the
+nodes divided by 400 (the same divisor sizes the debug overlay described in
+\code{\link[=ggdag_options_set]{ggdag_options_set()}}). Because the panel converts data units to
+millimetres at drawing time, that disc is congruent with the drawn node only
+on a panel about 180 mm wide. On a narrower device the disc is smaller than
+the node it stands for and a label may come to rest on the node; on a wider
+one it is larger and labels are pushed further away than they need to be.
+Set \code{n_node_points = 0} to rely on \code{point.size} alone.
+
+Points along an edge trace the path that edge is drawn along, including the
+arc of a bidirected edge and of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}}. Edges drawn by
+\code{\link[=geom_dag_edges_diagonal]{geom_dag_edges_diagonal()}}, \code{\link[=geom_dag_edges_fan]{geom_dag_edges_fan()}}, and the ggarrow engine
+are traced along the straight line between their nodes.
 
 Additional segment parameters can be passed through \code{...}, including:
 \itemize{

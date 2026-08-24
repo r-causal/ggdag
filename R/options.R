@@ -13,6 +13,12 @@
 #' [ggdag_drelationship()]) maintain a proportional offset. If you set
 #' `ggdag.edge_cap` to a custom value, these functions scale it by `10/8`.
 #'
+#' `debug_repel_points` is a diagnostic rather than an appearance setting. When
+#' it is `TRUE`, every repelling label geom (see [geom_dag_label_repel()]) adds
+#' a layer of purple points showing the invisible geometry that labels are
+#' repelled from: the points traced along each edge and the disc filling each
+#' node. It is useful for understanding why a label came to rest where it did.
+#'
 #' @param ... Named option values to set. See `ggdag_defaults` for valid names
 #'   and types.
 #' @param name Character string. The option name (without the `ggdag.` prefix).
@@ -66,7 +72,8 @@ ggdag_defaults <- list(
   arrow_head = NULL,
   arrow_fins = NULL,
   arrow_mid = NULL,
-  curvature = 0.3
+  curvature = 0.3,
+  debug_repel_points = FALSE
 )
 
 #' @export
@@ -163,7 +170,8 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
     "use_nodes",
     "use_stylized",
     "use_text",
-    "use_labels"
+    "use_labels",
+    "debug_repel_points"
   )
   character_opts <- c("text_col", "label_col")
   valid_edge_types <- c("link_arc", "link", "arc", "diagonal")

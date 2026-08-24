@@ -1046,3 +1046,289 @@ test_that("geom_dag_node (stylized) also triggers auto-sync", {
 
   expect_doppelganger("auto-sync-with-stylized-node", p_stylized)
 })
+
+test_that("geom_dag_edges_fan() leaves unrelated edges straight", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    z ~ a,
+    w ~ b,
+    coords = list(
+      x = c(a = 0, b = 0, z = 1, w = 1),
+      y = c(a = 0, b = 1, z = 0, w = 1)
+    )
+  )
+
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges_fan() +
+    geom_dag_text()
+
+  expect_doppelganger("geom_dag_edges_fan() with no parallel edges", p)
+})
+
+test_that("repel geoms honour the British spelling of segment.colour", {
+  segment_colour <- function(layer) {
+    if (inherits(layer, "dag_layer")) {
+      layer <- layer$layer
+    }
+    layer$aes_params$segment.colour
+  }
+
+  expect_equal(
+    segment_colour(geom_dag_label_repel(
+      aes(label = label),
+      segment.colour = "red"
+    )),
+    "red"
+  )
+  expect_equal(
+    segment_colour(geom_dag_text_repel(
+      aes(label = name),
+      segment.colour = "red"
+    )),
+    "red"
+  )
+  expect_equal(
+    segment_colour(geom_dag_label_repel2(
+      aes(label = label),
+      segment.colour = "red"
+    )),
+    "red"
+  )
+
+  # the American spelling still works, and wins when both are supplied
+  expect_equal(
+    segment_colour(geom_dag_label_repel(
+      aes(label = label),
+      segment.color = "blue"
+    )),
+    "blue"
+  )
+  expect_equal(
+    segment_colour(geom_dag_label_repel(
+      aes(label = label),
+      segment.color = "blue",
+      segment.colour = "red"
+    )),
+    "blue"
+  )
+
+  # the documented defaults are unchanged when neither spelling is given
+  expect_equal(
+    segment_colour(geom_dag_label_repel(aes(label = label))),
+    "grey50"
+  )
+  expect_equal(
+    segment_colour(geom_dag_text_repel(aes(label = name))),
+    "#666666"
+  )
+})
+
+test_that("geom_dag_text() and geom_dag_label() use a supplied stat", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x))
+  layer_stat <- function(layer) {
+    p <- ggplot(tidy_dag, aes_dag()) + layer
+    p$layers[[1]]$stat
+  }
+
+  # the default maps to StatNodes, as it always has
+  expect_s3_class(layer_stat(geom_dag_text()), "StatNodes")
+  expect_s3_class(layer_stat(geom_dag_text(stat = "identity")), "StatNodes")
+  expect_s3_class(layer_stat(geom_dag_label()), "StatNodes")
+  expect_s3_class(layer_stat(geom_dag_label(stat = "identity")), "StatNodes")
+
+  # a supplied stat is used, as a string or as a ggproto object
+  expect_s3_class(layer_stat(geom_dag_text(stat = "unique")), "StatUnique")
+  expect_s3_class(
+    layer_stat(geom_dag_text(stat = ggplot2::StatUnique)),
+    "StatUnique"
+  )
+  expect_s3_class(layer_stat(geom_dag_label(stat = "unique")), "StatUnique")
+  expect_s3_class(
+    layer_stat(geom_dag_label(stat = ggplot2::StatUnique)),
+    "StatUnique"
+  )
+})
+
+test_that("geom_dag_label() does not silently swallow check_overlap", {
+  # GeomLabel does not support check_overlap, so a user who supplies it
+  # should hear about it rather than have it quietly dropped
+  expect_warning(geom_dag_label(check_overlap = TRUE), "check_overlap")
+
+  # geom_dag_text() supports it and passes it on
+  expect_true(geom_dag_text(check_overlap = TRUE)$geom_params$check_overlap)
+})
+
+test_that("geom_dag_text()/geom_dag_label() honour an inherited label", {
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x,
+    labels = c(x = "Exposure", y = "Outcome")
+  ))
+
+  labels_drawn <- function(layer) {
+    p <- ggplot(tidy_dag, aes_dag(label = label)) + layer
+    unique(ggplot2::layer_data(p, 1)$label)
+  }
+
+  expect_setequal(labels_drawn(geom_dag_text()), c("Exposure", "Outcome"))
+  expect_setequal(labels_drawn(geom_dag_label()), c("Exposure", "Outcome"))
+
+  # a layer-level mapping still wins over the plot-level one
+  expect_setequal(labels_drawn(geom_dag_text(aes(label = name))), c("x", "y"))
+
+  # and node names remain the default when nothing maps label
+  p_default <- ggplot(tidy_dag, aes_dag()) + geom_dag_text()
+  expect_setequal(unique(ggplot2::layer_data(p_default, 1)$label), c("x", "y"))
+})
+
+test_that("inherited label mappings look right", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x,
+    labels = c(x = "Exposure", y = "Outcome")
+  ))
+
+  p <- ggplot(tidy_dag, aes_dag(label = label)) +
+    geom_dag_point() +
+    geom_dag_edges() +
+    geom_dag_label()
+
+  expect_doppelganger("geom_dag_label() with inherited label mapping", p)
+})
+
+# Number of edges actually drawn across a plot's DAG edge layers. ggraph edge
+# geoms interpolate each edge into many rows sharing a group; ggarrow edge
+# geoms keep one row per edge.
+count_drawn_dag_edges <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  total <- 0
+  for (i in seq_along(plot$layers)) {
+    geom_class <- class(plot$layers[[i]]$geom)[1]
+    if (!grepl("^GeomDAGEdge|^GeomDAGArrow", geom_class)) {
+      next
+    }
+    layer_rows <- built$data[[i]]
+    if (nrow(layer_rows) == 0) {
+      next
+    }
+    total <- total +
+      if (grepl("Arrow", geom_class)) {
+        nrow(layer_rows)
+      } else {
+        length(unique(layer_rows$group))
+      }
+  }
+  total
+}
+
+test_that("geom_dag(data = ) filters edges for every edge type and engine", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  keep_zx <- function(.data) {
+    dplyr::filter(.data, .data$name == "z" & .data$to == "x")
+  }
+
+  filtered <- function(...) {
+    count_drawn_dag_edges(
+      ggplot(dag, aes_dag()) + geom_dag(data = keep_zx, use_text = FALSE, ...)
+    )
+  }
+  unfiltered <- function(...) {
+    count_drawn_dag_edges(
+      ggplot(dag, aes_dag()) + geom_dag(use_text = FALSE, ...)
+    )
+  }
+
+  # the whole DAG has three directed edges
+  expect_equal(unfiltered(), 3)
+  expect_equal(unfiltered(edge_type = "link"), 3)
+  expect_equal(unfiltered(edge_engine = "ggarrow"), 3)
+  expect_equal(unfiltered(edge_engine = "ggarrow", edge_type = "link"), 3)
+
+  # supplying data keeps only the z -> x edge, whatever draws it
+  expect_equal(filtered(edge_type = "link"), 1)
+  expect_equal(filtered(), 1)
+  expect_equal(filtered(edge_engine = "ggarrow"), 1)
+  expect_equal(filtered(edge_engine = "ggarrow", edge_type = "link"), 1)
+})
+
+test_that("geom_dag(data = ) accepts a data frame as well as a function", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  edge_data <- dplyr::filter(
+    pull_dag_data(tidy_dagitty(dag)),
+    .data$name == "z" & !is.na(.data$to) & .data$to == "x"
+  )
+
+  p <- ggplot(dag, aes_dag()) + geom_dag(data = edge_data, use_text = FALSE)
+  expect_equal(count_drawn_dag_edges(p), 1)
+})
+
+test_that("geom_dag(data = ) looks right with the default edge type", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 1, y = 2, z = 0), y = c(x = 0, y = 0, z = 1))
+  )
+  keep_zx <- function(.data) {
+    dplyr::filter(.data, .data$name == "z" & .data$to == "x")
+  }
+
+  p <- ggplot(dag, aes_dag()) + geom_dag(data = keep_zx)
+  expect_doppelganger("geom_dag() with filtered edge data", p)
+})
+
+test_that("repel geoms accept a Stat ggproto object", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x))
+  layer_stat <- function(layer) {
+    if (is.null(layer)) {
+      return(NULL)
+    }
+    p <- ggplot(tidy_dag, aes_dag()) + layer
+    p$layers[[1]]$stat
+  }
+
+  identity_layer <- function(repel_geom) {
+    tryCatch(
+      repel_geom(aes(label = name), stat = ggplot2::StatIdentity),
+      error = function(e) NULL
+    )
+  }
+
+  expect_no_error(
+    geom_dag_text_repel(aes(label = name), stat = ggplot2::StatIdentity)
+  )
+  expect_no_error(
+    geom_dag_label_repel(aes(label = name), stat = ggplot2::StatIdentity)
+  )
+
+  text_layer <- identity_layer(geom_dag_text_repel)
+  label_layer <- identity_layer(geom_dag_label_repel)
+  expect_s3_class(layer_stat(text_layer), "StatIdentity")
+  expect_s3_class(layer_stat(label_layer), "StatIdentity")
+
+  # the default still selects the DAG-aware stat
+  expect_s3_class(
+    layer_stat(geom_dag_text_repel(aes(label = name))),
+    "StatNodesRepel"
+  )
+  expect_s3_class(
+    layer_stat(geom_dag_label_repel(aes(label = name))),
+    "StatNodesRepel"
+  )
+})
+
+test_that("repelled labels avoid drawn bidirected arcs", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x,
+    m ~ ~x,
+    coords = list(x = c(x = 0, y = 2, m = 1), y = c(x = 0, y = 0, m = 1.5))
+  )
+
+  p <- ggplot(tidy_dagitty(g), aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel(aes(label = name), seed = 1234)
+
+  expect_doppelganger("repel labels around a bidirected arc", p)
+})

@@ -99,10 +99,13 @@ and \code{geom_dag_text_repel2}.}
 edge for label repulsion. Passed to repel label geoms. Defaults to \code{NULL}
 (uses \code{StatNodesRepel} default of 50). Set to 0 to disable.}
 
-\item{n_node_points}{Number of invisible skeleton points to place around each
-node's perimeter for label repulsion. Passed to repel label geoms.
+\item{n_node_points}{Target number of invisible skeleton points filling the
+disc that covers each node for label repulsion: a center point plus four
+concentric rings, each holding at least six points, so every value from 1
+to 16 gives the same 25 points per node. Passed to repel label geoms.
 Defaults to \code{NULL} (uses \code{StatNodesRepel} default of 12). Set to 0 to
-disable.}
+disable. The disc is measured in data units, so it matches the drawn node
+only on a panel about 180 mm wide; see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

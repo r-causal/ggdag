@@ -2,6 +2,7 @@
 
 S3method("$",dag_arrow_layer)
 S3method("$",dag_edge_layer)
+S3method("$",dag_layer)
 S3method("label<-",dagitty)
 S3method("label<-",tidy_dagitty)
 S3method("update_dag<-",tidy_dagitty)
