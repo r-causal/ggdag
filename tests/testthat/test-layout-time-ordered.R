@@ -2892,6 +2892,39 @@ test_that("visual: bidirected pair joined by a directed path", {
   expect_doppelganger("time-ordered-bidirected-directed-path", ggdag(td))
 })
 
+test_that("a bidirected group downstream of an impossible one still holds", {
+  # a <-> b cannot share a layer because a -> b -> c, but c <-> d sits
+  # downstream of that and is perfectly satisfiable
+  td <- dagify(b ~ a, c ~ b, a ~ ~b, c ~ ~d) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("c"), node_x("d"))
+  expect_lt(node_x("a"), node_x("b"))
+})
+
+test_that("a bidirected chain downstream of an impossible group still holds", {
+  td <- dagify(b ~ a, c ~ b, a ~ ~b, c ~ ~d, d ~ ~e) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("c"), node_x("d"))
+  expect_equal(node_x("d"), node_x("e"))
+  expect_lt(node_x("a"), node_x("b"))
+})
+
+test_that("two bidirected groups that order each other are both dropped", {
+  # a <-> b and c <-> d with a -> c and d -> b: keeping either group would
+  # order the other backwards, and nothing favors one over the other
+  td <- dagify(c ~ a, b ~ d, a ~ ~b, c ~ ~d) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_false(node_x("a") == node_x("b"))
+  expect_false(node_x("c") == node_x("d"))
+  expect_forward_directed_edges(td)
+})
+
 # Infeasible fixed_time pins ---------------------------------------------------
 
 test_that("compute_time_ordered_layout: pin before a node's ancestors errors", {
@@ -2928,6 +2961,20 @@ test_that("longest_path_layers: infeasible pin never produces negative layers", 
       fixed_time = c(c = 0L)
     ),
     class = "ggdag_dag_error"
+  )
+})
+
+test_that("compute_time_ordered_layout: pins squeezing a node out name the pins", {
+  # a -> b -> c with a pinned to 3 and c to 4 leaves no layer for b. Both
+  # nodes at the failing edge are the pins themselves once b is pushed, so the
+  # message must name them rather than b.
+  edges_df <- make_edges_df(c("a", "b"), c("b", "c"))
+  expect_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(a = 3, c = 4)),
+    class = "ggdag_dag_error"
+  )
+  expect_ggdag_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(a = 3, c = 4))
   )
 })
 
@@ -3168,6 +3215,30 @@ test_that("tidy_dagitty(): the shift keeps a bidirected pair on one layer", {
   node_x <- function(.name) unname(coords$x[coords$name == .name])
   expect_equal(node_x("y"), node_x("w"))
   expect_gt(node_x("y"), node_x("x"))
+})
+
+test_that("exposure/outcome shift: an exposure that moves too blocks the shift", {
+  # x <-> y ties the exposure to the outcome, so shifting the outcome carries
+  # the exposure along and separates nothing. The pin on z fixes the layers to
+  # absolute time points, which is where a pointless shift would show.
+  expect_message(
+    dag <- dagify(
+      x ~ z,
+      y ~ z,
+      w ~ z,
+      x ~ ~y,
+      exposure = "x",
+      outcome = "y",
+      coords = time_ordered_coords(fixed_time = c(z = 1))
+    ),
+    class = "ggdag_message"
+  )
+  coords <- get_node_coords(tidy_dagitty(dag))
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("x"), node_x("y"))
+  # the pair is not pushed past its unrelated sibling
+  expect_equal(node_x("x"), node_x("w"))
+  expect_equal(node_x("z"), 1)
 })
 
 test_that("visual: exposure/outcome shift with a bidirected outcome", {

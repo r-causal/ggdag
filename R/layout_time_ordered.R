@@ -180,13 +180,16 @@ group_representatives <- function(all_nodes, groups) {
   reps
 }
 
-#' Find condensed nodes a topological sort cannot reach
+#' Find the condensed nodes that lie on a cycle
 #'
 #' Condensing a bidirected group can create a cycle where the directed graph
 #' had none: a directed path between two members of a group becomes a
 #' self-loop, and two groups joined in both directions become a two-node
-#' cycle. Kahn's algorithm never dequeues the nodes of a cycle, so whatever it
-#' leaves behind marks the groups that cannot hold.
+#' cycle. Every cycle lies inside one strongly connected component, so a
+#' component holding more than one node, or a node with an edge to itself,
+#' names exactly the supernodes whose shared layer cannot hold. A supernode
+#' merely downstream of one of those is not itself on a cycle and keeps its
+#' group.
 #'
 #' @param reps Named character vector from `group_representatives()`.
 #' @param directed Data frame of directed edges with `name` and `to`.
@@ -194,31 +197,26 @@ group_representatives <- function(all_nodes, groups) {
 #' @noRd
 cyclic_supernodes <- function(reps, directed) {
   supernodes <- unique(unname(reps))
-  adj <- stats::setNames(vector("list", length(supernodes)), supernodes)
-  in_deg <- stats::setNames(integer(length(supernodes)), supernodes)
-
-  for (i in seq_len(nrow(directed))) {
-    src <- reps[[directed$name[i]]]
-    tgt <- reps[[directed$to[i]]]
-    adj[[src]] <- c(adj[[src]], tgt)
-    in_deg[[tgt]] <- in_deg[[tgt]] + 1L
+  if (length(supernodes) == 0 || nrow(directed) == 0) {
+    return(character(0))
   }
 
-  queue <- names(in_deg[in_deg == 0L])
-  reached <- character(0)
-  while (length(queue) > 0) {
-    node <- queue[1]
-    queue <- queue[-1]
-    reached <- c(reached, node)
-    for (child in adj[[node]]) {
-      in_deg[[child]] <- in_deg[[child]] - 1L
-      if (in_deg[[child]] == 0L) {
-        queue <- c(queue, child)
-      }
-    }
-  }
+  src <- unname(reps[directed$name])
+  tgt <- unname(reps[directed$to])
 
-  setdiff(supernodes, reached)
+  # A directed edge between two members of one group condenses to a self-loop,
+  # which igraph does not count as a strongly connected component of its own
+  self_looped <- unique(src[src == tgt])
+
+  condensed <- igraph::graph_from_data_frame(
+    data.frame(from = src, to = tgt, stringsAsFactors = FALSE),
+    vertices = data.frame(name = supernodes, stringsAsFactors = FALSE)
+  )
+  components <- igraph::components(condensed, mode = "strong")
+  membership <- components$membership
+  on_cycle <- names(membership)[membership %in% which(components$csize >= 2L)]
+
+  unique(c(self_looped, on_cycle))
 }
 
 #' Drop the bidirected groups whose shared layer is impossible
@@ -232,6 +230,11 @@ cyclic_supernodes <- function(reps, directed) {
 #' they sit on different layers, and `x -> y` alongside `x <-> y` is common
 #' enough that saying so every time would make ordinary plots chatty, so the
 #' dropped constraint is not reported.
+#'
+#' When two groups order each other, as `a <-> b` and `c <-> d` do with
+#' `a -> c` and `d -> b`, either group alone could be kept. Both are dropped
+#' rather than picking one, since nothing in the DAG favors either choice and
+#' a silent arbitrary pick would be harder to read than the directed order.
 #'
 #' @param edges_df A data frame with columns `name` and `to`, optionally
 #'   `direction`.
@@ -270,6 +273,32 @@ resolve_bidirected_groups <- function(edges_df) {
   }
 
   groups
+}
+
+#' Find a condensed node and everything upstream of it
+#'
+#' Used to report which pins pushed an unpinned node to the layer it holds.
+#'
+#' @param node Character scalar: a supernode representative.
+#' @param adj Condensed adjacency list (representative -> child
+#'   representatives).
+#' @param topo_order Character vector: a topological order of the condensed
+#'   graph.
+#' @return Character vector of representatives, including `node`.
+#' @noRd
+condensed_ancestors <- function(node, adj, topo_order) {
+  upstream <- stats::setNames(logical(length(topo_order)), topo_order)
+  upstream[[node]] <- TRUE
+
+  # Walking the order backwards visits every parent after its children, so one
+  # pass marks the whole ancestry
+  for (parent in rev(topo_order)) {
+    if (any(upstream[adj[[parent]]])) {
+      upstream[[parent]] <- TRUE
+    }
+  }
+
+  names(upstream)[upstream]
 }
 
 #' Collect the nodes that have to move with a shifted node
@@ -472,14 +501,20 @@ but are pinned to different times: {.val {pin_values + 1L}}."
     }
 
     # A pinned node the re-propagation could not move may now sit at or before
-    # one of its own ancestors
+    # one of its own ancestors. The nodes at the failing edge are often
+    # unpinned intermediates, so name the pins that put them there instead.
     for (node in topo_order) {
       for (child in adj[[node]]) {
         if (dist[[child]] <= dist[[node]]) {
+          late_pins <- pin_names[pin_supernodes == child]
+          early_pins <- pin_names[
+            pin_supernodes %in% condensed_ancestors(node, adj, topo_order)
+          ]
           abort(
             c(
               "Pinned times violate DAG ordering.",
-              "x" = "{.val {node}} (time {dist[[node]] + 1L}) must be before {.val {child}} (time {dist[[child]] + 1L})."
+              "x" = "{.val {late_pins}} {?is/are} pinned to time {dist[[child]] + 1L}, but {.val {early_pins}} push{?es/} it to time {dist[[node]] + 2L} at the earliest.",
+              "i" = "Move {.val {late_pins}} later, or move {.val {early_pins}} earlier."
             ),
             error_class = "ggdag_dag_error"
           )
@@ -1084,6 +1119,25 @@ compute_time_ordered_layout <- function(
           # bidirected constraint ties to them, all by +1
           shift_nodes <- shift_closure(out_node, directed, groups)
           shift_nodes <- intersect(shift_nodes, names(layer_assign))
+
+          # The exposure travels with the outcome when a bidirected edge ties
+          # the two, or when the outcome is an ancestor of the exposure. The
+          # shift cannot separate them then, and applying it anyway moves the
+          # pair to a later time point for no reason, which shows once
+          # `fixed_time` fixes the layers to absolute time points.
+          if (exp_node %in% shift_nodes) {
+            cli::cli_inform(
+              c(
+                "Outcome {.val {out_node}} shares a layer with exposure
+{.val {exp_node}}, but was not shifted because the two move together.",
+                "i" = "Separate them with {.arg fixed_time}, or set
+{.code adjust_exposure_outcome = FALSE}."
+              ),
+              class = "ggdag_message"
+            )
+            next
+          }
+
           movable <- setdiff(shift_nodes, pinned)
           blocked <- intersect(shift_nodes, pinned)
 
