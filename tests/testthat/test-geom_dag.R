@@ -1181,6 +1181,30 @@ test_that("geom_dag_text()/geom_dag_label() honour an inherited label", {
   expect_setequal(unique(ggplot2::layer_data(p_default, 1)$label), c("x", "y"))
 })
 
+test_that("one stored text layer serves plots with different mappings", {
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x,
+    labels = c(x = "Exposure", y = "Outcome")
+  ))
+
+  text_layer <- geom_dag_text()
+
+  # the first plot maps no label, so the layer falls back to node names there
+  p_names <- ggplot(tidy_dag, aes_dag()) + text_layer
+  expect_setequal(unique(ggplot2::layer_data(p_names, 1)$label), c("x", "y"))
+
+  # adding the same object to a plot that does map label must not replay the
+  # fallback the first plot needed
+  p_labels <- ggplot(tidy_dag, aes_dag(label = label)) + text_layer
+  expect_setequal(
+    unique(ggplot2::layer_data(p_labels, 1)$label),
+    c("Exposure", "Outcome")
+  )
+
+  # and the stored layer itself is unchanged
+  expect_null(text_layer$layer$mapping$label)
+})
+
 test_that("inherited label mappings look right", {
   withr::local_seed(1234)
   tidy_dag <- tidy_dagitty(dagify(

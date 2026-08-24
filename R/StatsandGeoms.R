@@ -822,9 +822,22 @@ dag_layer <- function(
   }
 }
 
+# A ggproto layer is an environment, so filling in what a layer can only learn
+# from the plot it joins would otherwise write into the object the caller
+# holds. A layer stored in a variable and added to a second plot would carry
+# the first plot's node size, edge geometry, and label mapping with it.
+clone_layer <- function(layer) {
+  cloned <- list2env(
+    as.list(layer, all.names = TRUE),
+    parent = parent.env(layer)
+  )
+  class(cloned) <- class(layer)
+  cloned
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_layer <- function(object, plot, ...) {
-  layer <- .subset2(object, "layer")
+  layer <- clone_layer(.subset2(object, "layer"))
 
   if ("node_size" %in% .subset2(object, "discover")) {
     if (is.null(layer$stat_params$node_size)) {

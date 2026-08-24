@@ -22,7 +22,10 @@ expand_plot <- function(
 #' Minimalist DAG themes
 #'
 #' @inheritParams ggplot2::theme_minimal
-#' @param ... additional arguments passed to `theme()`
+#' @param ... additional arguments passed to `theme()`. A value given here
+#'   replaces the theme's own setting for that element. `complete` is the one
+#'   exception: the result takes its completeness from the base theme, so a
+#'   `complete` passed here has no effect.
 #'
 #' @export
 #'
@@ -75,7 +78,10 @@ theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
 #' Simple grey themes for DAGs
 #'
 #' @inheritParams ggplot2::theme_grey
-#' @param ... additional arguments passed to `theme()`
+#' @param ... additional arguments passed to `theme()`. A value given here
+#'   replaces the theme's own setting for that element. `complete` is the one
+#'   exception: the result takes its completeness from the base theme, so a
+#'   `complete` passed here has no effect.
 #'
 #' @export
 #'

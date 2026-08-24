@@ -92,7 +92,7 @@ test_that("StatNodesRepel adds point.size from node_size param", {
   expect_length(size_20, 3)
   expect_gt(size_20[1], point_size_for(node_size = 16)[1])
 
-  # with default (NULL) params — should use node_size = 16
+  # with default (NULL) params, node_size = 16 is used
   expect_equal(point_size_for(), point_size_for(node_size = 16))
 })
 
@@ -572,6 +572,53 @@ test_that("ggplot_add.dag_layer falls back when no node layer exists", {
   # node_size should remain NULL; StatNodesRepel falls back to 16
   repel_layer <- result$layers[[1]]
   expect_null(repel_layer$stat_params$node_size)
+})
+
+test_that("one stored repel layer reads each plot it joins", {
+  # what a layer learns from the plot it is added to -- the node size and the
+  # curve each edge is drawn along -- must not follow the object to the next
+  # plot.
+  arced_dag <- function(m_x, m_y) {
+    tidy_dagitty(dagify(
+      y ~ x,
+      m ~ ~x,
+      coords = list(
+        x = c(x = 0, y = 2 * m_x, m = m_x),
+        y = c(x = 0, y = 0, m = m_y)
+      )
+    ))
+  }
+
+  repel_layer <- geom_dag_label_repel(aes(label = name), seed = 1234)
+  plot_with <- function(tidy_dag, node_size) {
+    ggplot(tidy_dag, aes_dag()) +
+      geom_dag_edges() +
+      geom_dag_point(size = node_size) +
+      repel_layer
+  }
+
+  first <- plot_with(arced_dag(1, 1.5), 16)
+  second <- plot_with(arced_dag(3, 3), 24)
+
+  repel_stat_params <- function(p) {
+    stats <- vapply(p$layers, function(l) class(l$stat)[1], character(1))
+    p$layers[[which(stats == "StatNodesRepel")[1]]]$stat_params
+  }
+
+  first_geometry <- repel_stat_params(first)$edge_geometry
+  second_geometry <- repel_stat_params(second)$edge_geometry
+
+  expect_equal(first_geometry$x, 1)
+  expect_equal(first_geometry$y, 1.5)
+  expect_equal(second_geometry$x, 3)
+  expect_equal(second_geometry$y, 3)
+
+  expect_equal(repel_stat_params(first)$node_size, 16)
+  expect_equal(repel_stat_params(second)$node_size, 24)
+
+  # the stored layer is still the blank one that was created
+  expect_null(repel_layer$layer$stat_params$edge_geometry)
+  expect_null(repel_layer$layer$stat_params$node_size)
 })
 
 test_that("StatNodesRepel protects nodes whose label is missing", {
