@@ -308,7 +308,9 @@ recompile_dag <- function(.dag) {
     select("name", "x", "y") |>
     coords2list()
 
-  new_dag
+  # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
+  # so labels have to be set afterwards
+  set_node_labels(new_dag, label(pull_dag(.dag)))
 }
 
 compile_dag_from_df <- function(.df, call = rlang::caller_env()) {

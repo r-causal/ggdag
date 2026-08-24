@@ -1,5 +1,23 @@
 # ggdag (development version)
 
+* `dag_prune()` now keeps a node whose every edge is pruned, as an isolated node. It protected such a node only when the node had exactly one edge to begin with and a row of its own to be converted, so pruning both edges of a node at once removed the node itself, batch pruning disagreed with pruning the same edges one at a time, and a node that only ever ends an edge was removed along with the edge.
+
+* `dag_prune()` no longer sets every edge direction to `NA` when the `direction` column holds text rather than a factor, which is the shape `as_tidy_dagitty()` produces for a data frame that supplies its own coordinates. It rebuilt the column from factor codes, so the corrupted directions were then compiled into the DAG. Reordering the levels of a factor `direction` column had the same effect.
+
+* `dag_prune()` now raises `ggdag_missing_edges_error` when `edges` names an edge that the DAG does not contain, including an edge written in the reverse direction, and reports which pairs are missing, each of them once. Such a call previously returned the DAG unchanged with nothing said. A bidirected or undirected edge carries no direction of its own, so either orientation of its endpoints names it for pruning. Unnamed and partially named `edges` vectors now raise the package's own `ggdag_type_error` rather than a bare `stopifnot()` message, and a partially named vector is no longer accepted with its unnamed elements quietly ignored. An `edges` vector that is not character, or that holds a missing value or a missing name, raises the same error; a missing value names no node.
+
+* `dag_saturate()` now carries the bidirected edges of its input through to the saturated DAG. It assigned time order from every edge, and a bidirected edge holds its two nodes in the same layer, so the edge was dropped and the saturated model asserted an independence the input denies. A pair joined by both a directed and a bidirected edge previously saturated to a DAG with no edges at all.
+
+* `dag_saturate()` now carries adjusted nodes over to the saturated DAG, as it already did for exposures, outcomes, latent variables, and labels.
+
+* `dag_saturate(use_existing_coords = TRUE)` now treats stored coordinates that are entirely missing as no coordinates at all and computes the layout, as `use_existing_coords = FALSE` does. `dagitty::coordinates()` reports that shape for any DAG whose coordinates have never been set, and it reached the layout engine as an unresolved layout name, which failed with an error from ggraph.
+
+* `update_dag()`, and with it every function that rebuilds a DAG from its own data, now carries the labels of the input over to the rebuilt `dagitty` object. `dagitty::coordinates<-` rebuilds the object and strips custom attributes, so `label()` came back empty afterwards even though the `label` column of the data survived. `dag_prune()` on a labeled DAG is the case most easily met.
+
+* `node_equivalent_dags()` is now idempotent: applying it to its own output returns the single-application result. The `dag` column of the earlier application was joined back alongside the new one, which left the plotting functions with no `dag` column to facet by.
+
+* `node_equivalent_class()` no longer marks a bidirected edge reversable. Both endpoints of a bidirected edge match the undirected edge of the equivalence class, so a pair holding both a directed and a bidirected edge had both of them drawn undirected; only the directed edge is the one the class leaves free to reverse.
+
 * `ggdag_equivalent_class()` no longer empties a mapped colour or fill legend. It passed an undefined `breaks` argument to its colour and fill scales, which R resolved to the package's internal `breaks()` function, so the trained scale reported no breaks at all and any colour or fill aesthetic added to the plot lost its legend.
 
 * `node_equivalent_dags()` no longer multiplies rows when its input carries columns beyond the standard ones, such as `label` or `status`. Those columns were joined back on node name from edge-level rows, so a node with several edges gained a row per edge in every equivalent DAG, which drew each of its edges more than once, doubled the reported edge counts, and mixed values across the edges of a node.

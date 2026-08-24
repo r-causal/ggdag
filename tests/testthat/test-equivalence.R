@@ -253,6 +253,58 @@ test_that("node_equivalent_class() is idempotent", {
   expect_equal(pull_dag_data(twice), pull_dag_data(once))
 })
 
+test_that("node_equivalent_dags() is idempotent", {
+  withr::local_seed(1234)
+  g_ex <- dagify(y ~ x + z, x ~ z)
+
+  once <- node_equivalent_dags(g_ex)
+  twice <- node_equivalent_dags(once)
+
+  expect_false(any(c("dag.x", "dag.y") %in% names(pull_dag_data(twice))))
+  expect_equal(pull_dag_data(twice), pull_dag_data(once))
+})
+
+test_that("ggdag_equivalent_dags() facets a DAG that already holds equivalent DAGs", {
+  withr::local_seed(1234)
+  once <- node_equivalent_dags(dagify(y ~ x + z, x ~ z))
+
+  expect_no_warning(built <- ggplot2::ggplot_build(ggdag_equivalent_dags(once)))
+
+  panels <- built$layout$layout
+  expect_equal(nrow(panels), 6)
+  expect_equal(panels$dag[order(panels$PANEL)], seq_len(nrow(panels)))
+})
+
+test_that("node_equivalent_class() does not mark bidirected edges reversable", {
+  withr::local_seed(1234)
+  # the equivalence class of this DAG holds a -- b and a <-> b, so only the
+  # directed edge is reversable
+  dag <- dagify(b ~ a, a ~ ~b)
+
+  edges <- pull_dag_data(node_equivalent_class(dag)) |>
+    dplyr::filter(!is.na(to))
+  directed <- dplyr::filter(edges, direction == "->")
+  bidirected <- dplyr::filter(edges, direction == "<->")
+
+  expect_equal(nrow(directed), 1)
+  expect_equal(nrow(bidirected), 1)
+  expect_true(directed$reversable)
+  expect_false(bidirected$reversable)
+})
+
+test_that("visual: ggdag_equivalent_class() with a directed and a bidirected edge", {
+  withr::local_seed(1234)
+  dag <- dagify(b ~ a, a ~ ~b)
+  edges <- pull_dag_data(node_equivalent_class(dag)) |>
+    dplyr::filter(!is.na(to))
+  # never record a baseline while the bidirected edge is marked reversable
+  skip_if_not(!any(edges$reversable[edges$direction == "<->"]))
+  expect_doppelganger(
+    "ggdag_equivalent_class() with a bidirected edge",
+    ggdag_equivalent_class(dag)
+  )
+})
+
 test_that("equivalence functions use the package-wide default layout", {
   expect_equal(
     formals(node_equivalent_dags)$layout,

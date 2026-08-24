@@ -46,6 +46,16 @@ a saturated DAG from scratch, see \code{\link[=as_tidy_dagitty.list]{as_tidy_dag
 takes an existing DAG and removes edges. This is most useful when used
 together with saturated DAG.
 }
+\details{
+Bidirected edges carry no time-ordering information, so \code{dag_saturate()}
+assigns time order from the directed edges alone and then passes the input's
+bidirected edges through to the saturated DAG unchanged. A saturated model
+therefore never implies an independence that the input denies.
+
+\code{dag_prune()} errors if \code{edges} names an edge the DAG does not contain,
+including an edge written in the reverse direction. A node whose every edge
+is pruned is kept as an isolated node.
+}
 \examples{
 # Example usage:
 dag <- dagify(y ~ x, x ~ z)

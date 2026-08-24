@@ -171,7 +171,7 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{path} column for path variables, a \code{set}

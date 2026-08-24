@@ -1425,7 +1425,7 @@ geom_dag_ggarrow_edges <- function(
 #' @param unified_legend A logical value. When `TRUE` and both `use_edges` and
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
-#'   cleaner, more compact legends. Default is `TRUE`.
+#'   a single, more compact legend. Default is `TRUE`.
 #' @param key_glyph A function to use for drawing the legend key glyph for nodes.
 #'   If `NULL` (the default), the glyph is chosen automatically based on the
 #'   `unified_legend` setting. When provided, this overrides the automatic

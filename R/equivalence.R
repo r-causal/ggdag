@@ -45,6 +45,8 @@ node_equivalent_dags <- function(
   ...
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
+  # drop the results of an earlier application so the join does not suffix
+  .dag <- dplyr::select(.dag, -dplyr::any_of("dag"))
   extra_columns <- has_extra_columns(.dag)
 
   layout_coords <- .dag |>
@@ -215,7 +217,14 @@ node_equivalent_class <- function(
       edge_end = pmax(.data$name, .data$to)
     ) |>
     dplyr::left_join(ec_data, by = c("edge_start", "edge_end")) |>
-    dplyr::mutate(reversable = !is.na(.data$reversable)) |>
+    dplyr::mutate(
+      # both endpoints of a bidirected edge match an undirected edge of the
+      # equivalence class, but only the directed edge between them is the one
+      # the class leaves free to reverse
+      reversable = !is.na(.data$reversable) &
+        !is.na(.data$direction) &
+        .data$direction != "<->"
+    ) |>
     dplyr::select(-"edge_start", -"edge_end")
 }
 
