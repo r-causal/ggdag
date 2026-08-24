@@ -288,4 +288,3 @@ importFrom(pillar,
 importFrom(purrr,"%||%")
 importFrom(stats,setNames)
 importFrom(tidygraph,as_tbl_graph)
-importFrom(utils,packageVersion)

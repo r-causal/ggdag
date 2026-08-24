@@ -228,32 +228,6 @@ test_that("collider_paths returns correct paths", {
   expect_true(all(grepl("<->", paths)))
 })
 
-test_that("expansion returns correct expansion function", {
-  # Should return a scale expansion
-  exp <- expansion(mult = 0.1)
-  expect_true(inherits(exp, "numeric") || inherits(exp, "expansion"))
-
-  # Test with different arguments
-  exp2 <- expansion(mult = c(0.1, 0.2))
-  expect_true(inherits(exp2, "numeric") || inherits(exp2, "expansion"))
-})
-
-test_that("ggplot2_version returns a package version", {
-  version <- ggplot2_version()
-  expect_s3_class(version, "package_version")
-  # Check it has major.minor.patch structure
-  expect_true(length(version) >= 1)
-  expect_true(is.integer(unclass(version)[[1]]))
-})
-
-test_that("dplyr_version returns a package version", {
-  version <- dplyr_version()
-  expect_s3_class(version, "package_version")
-  # Check it has major.minor.patch structure
-  expect_true(length(version) >= 1)
-  expect_true(is.integer(unclass(version)[[1]]))
-})
-
 test_that("ggname adds name to grob", {
   # Create a simple grob
   grob <- grid::circleGrob()

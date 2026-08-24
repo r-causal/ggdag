@@ -1388,14 +1388,9 @@ geom_dag_collider_edges <- function(
     ncp = ncp,
     lineend = lineend,
     na.rm = na.rm,
+    linewidth = linewidth,
     ...
   )
-
-  if (ggplot2_version() >= "3.3.6.9000") {
-    params$linewidth <- linewidth
-  } else {
-    params$size <- linewidth
-  }
 
   ggplot2::layer(
     data = data,

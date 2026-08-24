@@ -18,7 +18,7 @@ Depends:
 Imports:
     cli (>= 3.0.0),
     dagitty,
-    dplyr (>= 1.1.0),
+    dplyr (>= 1.1.1),
     forcats,
     ggarrow (>= 0.1.1.9000),
     ggplot2 (>= 3.5.0),
