@@ -12,9 +12,9 @@
 #' bidirected edges through to the saturated DAG unchanged. A saturated model
 #' therefore never implies an independence that the input denies.
 #'
-#' `dag_prune()` errors if `edges` names an edge the DAG does not contain,
-#' including an edge written in the reverse direction. A node whose every edge
-#' is pruned is kept as an isolated node.
+#' `dag_prune()` errors if `edges` is empty, and if it names an edge the DAG
+#' does not contain, including an edge written in the reverse direction. A node
+#' whose every edge is pruned is kept as an isolated node.
 #'
 #' A pair of nodes can hold a directed edge and a bidirected edge at the same
 #' time, and endpoints alone name both of them. `dag_prune()` errors on such a
@@ -380,6 +380,19 @@ na_like <- function(x) {
 #'   the specification named no direction.
 #' @noRd
 as_edge_specs <- function(edges, call = rlang::caller_env()) {
+  n_specs <- if (is.data.frame(edges)) nrow(edges) else length(edges)
+  if (n_specs == 0) {
+    # pruning nothing would return the DAG unchanged, which reads as success
+    abort(
+      c(
+        "{.arg edges} must name at least one edge to prune.",
+        "i" = "Use the form {.code c(\"from\" = \"to\")}."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
   if (!is.data.frame(edges)) {
     validate_edge_specs(edges, call = call)
 

@@ -440,6 +440,12 @@ StatNodes <- ggplot2::ggproto(
 #' the marked one underneath it. The row carrying the most values is the one
 #' that describes the node, so it is the one kept.
 #'
+#' A position alone does not identify a node: two nodes given the same
+#' coordinates sit on top of one another, and collapsing them would draw one
+#' node where the DAG has two, hiding the mistake rather than showing it. The
+#' rows of one node share a label, so the label tells them apart wherever a
+#' layer carries one.
+#'
 #' @param data A layer's data, with no edge columns.
 #' @return `data`, with one row per node per panel.
 #' @noRd
@@ -452,6 +458,9 @@ one_row_per_node <- function(data) {
 
   panel <- if ("PANEL" %in% names(data)) data$PANEL else 1L
   node <- paste(data$x, data$y, panel, sep = "\r")
+  if ("label" %in% names(data)) {
+    node <- paste(node, data$label, sep = "\r")
+  }
 
   # `group` follows the aesthetics rather than describing the node, and the
   # position columns are the key itself
@@ -786,8 +795,11 @@ StatNodesRepel <- ggplot2::ggproto(
     if (has_edges) {
       data <- unique(dplyr::select(data, -"xend", -"yend"))
       if ("alpha" %in% names(data)) {
+        # rows of one node can differ in an edge-level aesthetic and so survive
+        # `unique()`; each would otherwise repel a label of its own
         data <- data |>
-          dplyr::filter(!is.na(alpha), !is.na(label))
+          dplyr::filter(!is.na(alpha), !is.na(label)) |>
+          one_row_per_node()
       } else {
         data <- data |>
           dplyr::filter(!is.na(label)) |>

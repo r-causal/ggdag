@@ -603,3 +603,17 @@ test_that("dag_prune() rejects an edges data frame it cannot read", {
     class = "ggdag_missing_edges_error"
   )
 })
+
+test_that("dag_prune() rejects an edges specification that names no edge", {
+  withr::local_seed(1234)
+  .tdy_dag <- tidy_dagitty(dagify(y ~ x))
+
+  expect_error(
+    dag_prune(.tdy_dag, data.frame(name = character(), to = character())),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    dag_prune(.tdy_dag, c("x" = "y")[0]),
+    class = "ggdag_type_error"
+  )
+})

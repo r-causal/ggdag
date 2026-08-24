@@ -55,9 +55,9 @@ assigns time order from the directed edges alone and then passes the input's
 bidirected edges through to the saturated DAG unchanged. A saturated model
 therefore never implies an independence that the input denies.
 
-\code{dag_prune()} errors if \code{edges} names an edge the DAG does not contain,
-including an edge written in the reverse direction. A node whose every edge
-is pruned is kept as an isolated node.
+\code{dag_prune()} errors if \code{edges} is empty, and if it names an edge the DAG
+does not contain, including an edge written in the reverse direction. A node
+whose every edge is pruned is kept as an isolated node.
 
 A pair of nodes can hold a directed edge and a bidirected edge at the same
 time, and endpoints alone name both of them. \code{dag_prune()} errors on such a

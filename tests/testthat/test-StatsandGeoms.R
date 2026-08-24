@@ -997,3 +997,67 @@ test_that("StatNodes keeps a node in each panel it appears in", {
   expect_equal(as.character(result$PANEL), c("1", "2"))
   expect_equal(result$colour, c("direct", NA))
 })
+
+test_that("StatNodes keeps two nodes that share coordinates", {
+  # a coordinate typo puts two nodes in one place; both are still drawn, so the
+  # typo is visible rather than one node quietly going missing
+  dag <- dagify(
+    c ~ a,
+    c ~ b,
+    coords = list(
+      x = c(a = 0, b = 0, c = 1),
+      y = c(a = 0, b = 0, c = 1)
+    )
+  )
+
+  p <- ggplot2::ggplot(dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_text()
+
+  expect_setequal(built_text_labels(p), c("a", "b", "c"))
+})
+
+test_that("StatNodes tells two labelled nodes at one position apart", {
+  node_data <- data.frame(
+    x = c(0, 0, 0),
+    y = c(0, 0, 0),
+    PANEL = factor(1),
+    group = c(1L, 2L, 3L),
+    label = c("a", "a", "b"),
+    colour = c("direct", NA, NA),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodes$compute_layer(node_data, NULL, list())
+
+  expect_equal(nrow(result), 2)
+  expect_equal(result$label, c("a", "b"))
+  # the duplicate rows of one node still collapse to the marked one
+  expect_equal(result$colour, c("direct", NA))
+})
+
+test_that("StatNodesRepel draws one label per node when alpha is mapped", {
+  # rows of one node can differ in an edge-level aesthetic, so they survive
+  # `unique()` and would each repel a label of their own
+  test_data <- data.frame(
+    x = c(0, 0, 1),
+    y = c(0, 0, 1),
+    xend = c(1, 1, NA),
+    yend = c(1, 1, NA),
+    label = c("x", "x", "y"),
+    alpha = c(1, 1, 1),
+    group = c(1L, 2L, 1L),
+    PANEL = factor(1),
+    stringsAsFactors = FALSE
+  )
+
+  result <- StatNodesRepel$compute_layer(
+    test_data,
+    list(n_node_points = 0, n_edge_points = 0),
+    NULL
+  )
+
+  labelled <- result[result$label != "", ]
+  expect_equal(nrow(labelled), 2)
+  expect_setequal(labelled$label, c("x", "y"))
+})
