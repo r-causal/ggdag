@@ -178,3 +178,13 @@
       ! `use_edges` must be a single logical value (TRUE or FALSE).
       x You provided `NA`.
 
+# ggdag_options_set() reports an unnamed value through cli
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `ggdag_options_set()`:
+      ! Every option passed to `ggdag_options_set()` must be named.
+      x 1 value has no name.
+      i Valid options: "node_size", "text_size", "label_size", "text_col", "label_col", "edge_width", "edge_cap", "arrow_length", "use_edges", "use_nodes", "use_stylized", "use_text", "use_labels", "label_geom", "edge_type", "layout", "edge_engine", "arrow_head", ..., "curvature", and "debug_repel_points".
+
