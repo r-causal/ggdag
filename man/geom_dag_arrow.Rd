@@ -19,7 +19,7 @@ geom_dag_arrow(
   justify = 0,
   force_arrow = FALSE,
   mid_place = 0.5,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   lineend = "butt",
@@ -48,7 +48,7 @@ geom_dag_arrow_arc(
   justify = 0,
   force_arrow = FALSE,
   mid_place = 0.5,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   lineend = "butt",
@@ -69,7 +69,7 @@ geom_dag_arrows(
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
   arrow_mid = NULL,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   position = "identity",
@@ -109,11 +109,14 @@ than the arrow ornaments. Default \code{FALSE}.}
 \item{mid_place}{Numeric vector with values between 0 and 1 setting
 positions for interior arrows, or a \code{\link[grid:unit]{grid::unit()}} for spacing.}
 
-\item{resect}{A numeric value in millimetres to shorten the arrow from
-both ends. Overridden by \code{resect_head}/\code{resect_fins} if set.}
+\item{resect}{A numeric value in millimetres to shorten the arrow from both
+ends, or \code{NULL} (the default) to leave both ends to auto-resection.
+Overridden by \code{resect_head}/\code{resect_fins} if set. \code{0} is a value like any
+other: it turns auto-resection off and draws the edge up to the node.}
 
-\item{resect_head, resect_fins}{Numeric values in millimetres to shorten
-the arrow from the head or fins end respectively.}
+\item{resect_head, resect_fins}{Numeric values in millimetres to shorten the
+arrow from the head or fins end respectively, or \code{NULL} (the default) to
+leave that end to auto-resection.}
 
 \item{lineend}{Line end style: \code{"butt"} (default), \code{"round"}, or
 \code{"square"}.}
@@ -175,13 +178,20 @@ straight lines; positive values curve right, negative values curve left.
 Any \code{NA} values fall back to the scalar \code{curvature} parameter. This is
 useful in time-ordered DAGs where some edges need to curve around
 intermediate nodes while adjacent edges stay straight.
+}
 
-Auto-resection: when neither \code{resect} nor \code{resect_head}/\code{resect_fins} are
-set by the user, edges are automatically shortened from both ends to avoid
-overlapping with nodes. If a node layer (\code{geom_dag_point()} or
-\code{geom_dag_node()}) is already added to the plot, the resection is derived
-from the node size. Otherwise, the \code{ggdag.edge_cap} option (default: 8mm)
-is used as a fallback.
+\subsection{Auto-resection}{
+
+Edges are automatically shortened so that they do not run underneath the
+nodes. Resection is decided one end at a time: an end you set, through
+\code{resect} or through \code{resect_head}/\code{resect_fins}, keeps the value you gave
+it, and every end you leave unset is shortened automatically. Setting only
+\code{resect_head}, for instance, leaves the fins end to the automatic value.
+Pass \code{0} to an end to draw the edge all the way to the node.
+
+The automatic value comes from the node size when a node layer
+(\code{geom_dag_point()} or \code{geom_dag_node()}) is already on the plot, and from
+the \code{ggdag.edge_cap} option (default: 8mm) otherwise.
 }
 }
 \examples{

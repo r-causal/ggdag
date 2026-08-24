@@ -32,6 +32,7 @@ ggdag_adjust(
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   key_glyph = draw_key_dag_point,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -96,6 +97,12 @@ If \code{NULL} (the default), the glyph is chosen automatically based on the
 \code{unified_legend} setting. When provided, this overrides the automatic
 selection. Common options include \code{draw_key_dag_point},
 \code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}

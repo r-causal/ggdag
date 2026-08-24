@@ -131,6 +131,7 @@ ggdag_equivalent_dags <- function(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -139,6 +140,7 @@ ggdag_equivalent_dags <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     node_equivalent_dags(...)
@@ -149,6 +151,7 @@ ggdag_equivalent_dags <- function(
     geom_dag(
       size = size,
       edge_type = edge_type,
+      edge_engine = edge_engine,
       node_size = node_size,
       text_size = text_size,
       label_size = label_size,
@@ -287,9 +290,14 @@ ggdag_equivalent_class <- function(
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
 
+      edge_mapping <- with_edge_curvature(
+        ggplot2::aes(alpha = .data$reversable),
+        p$data
+      )
+
       p <- p +
-        geom_dag_arrows(
-          mapping = ggplot2::aes(alpha = .data$reversable),
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
           data_directed = function(x) {
             dplyr::filter(x, !.data$reversable, .data$direction == "->")
           },
@@ -299,14 +307,19 @@ ggdag_equivalent_class <- function(
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
         ) +
-        geom_dag_arrow(
-          mapping = ggplot2::aes(alpha = .data$reversable),
+        geom_dag_arrow_arc(
+          mapping = edge_mapping,
           data = reversable_lines,
+          curvature = 0,
           arrow_head = NULL,
           arrow_fins = NULL,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
         ) +
         breaks() +
@@ -349,6 +362,7 @@ ggdag_equivalent_class <- function(
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      edge_engine = edge_engine,
       use_edges = FALSE,
       use_nodes = use_nodes,
       use_stylized = use_stylized,

@@ -132,6 +132,13 @@ test_that("ggdag() respects global text_col", {
 test_that("ggdag() respects global edge_type", {
   withr::local_options(ggdag.edge_type = "arc")
   p <- ggdag(test_dag)
+
+  # both edge types draw through GeomDAGEdgePath, so the stat is what tells
+  # arc edges from the default link_arc pair
+  stats <- vapply(p$layers, function(l) class(l$stat)[1], character(1))
+  expect_true("StatEdgeArc" %in% stats)
+  expect_false("StatEdgeLink" %in% stats)
+
   expect_doppelganger("opts-ggdag-arc-edges", p)
 })
 

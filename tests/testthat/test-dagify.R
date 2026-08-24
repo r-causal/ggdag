@@ -305,6 +305,46 @@ test_that("curved() works with bidirected edges", {
   expect_equal(curved_edges$edge_curvature, 0.5)
 })
 
+test_that("curved() reaches the tidy data for a bidirected edge", {
+  # dagitty stores a bidirected edge in written order, which is the reverse of
+  # the order `curved()` records it in, so matching on one order alone loses
+  # the curvature the user asked for
+  tidy_dag <- tidy_dagitty(dagify(y ~ ~ curved(z, 0.5)), seed = 1234)
+  dag_data <- pull_dag_data(tidy_dag)
+  edge_row <- dag_data[!is.na(dag_data$to), ]
+
+  expect_equal(nrow(edge_row), 1)
+  expect_equal(abs(edge_row$edge_curvature), 0.5)
+})
+
+test_that("curve_edge() reaches a bidirected edge given either way round", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ ~z), seed = 1234)
+
+  stored_order <- pull_dag_data(curve_edge(tidy_dag, "y", "z", 0.5))
+  written_order <- pull_dag_data(curve_edge(tidy_dag, "z", "y", 0.5))
+
+  expect_equal(
+    abs(stored_order$edge_curvature[!is.na(stored_order$to)]),
+    0.5
+  )
+  expect_equal(
+    abs(written_order$edge_curvature[!is.na(written_order$to)]),
+    0.5
+  )
+})
+
+test_that("set_curve_edges() reaches a bidirected edge given either way round", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ ~z), seed = 1234)
+
+  reversed <- set_curve_edges(
+    tidy_dag,
+    data.frame(from = "z", to = "y", curvature = 0.5)
+  )
+  dag_data <- pull_dag_data(reversed)
+
+  expect_equal(abs(dag_data$edge_curvature[!is.na(dag_data$to)]), 0.5)
+})
+
 # -- tidy_dagitty curved_edges integration ------------------------------------
 
 test_that("tidy_dagitty() picks up curved_edges from dagitty attr", {

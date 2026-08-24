@@ -1,5 +1,33 @@
 # ggdag (development version)
 
+* `geom_dag_arrow()`, `geom_dag_arrow_arc()`, and `geom_dag_arrows()` now treat `resect = 0` as a resection of zero rather than as a request for the automatic one. The value `0` was the marker for "nothing was set", so an explicit `resect = 0` was replaced by the 8mm `ggdag.edge_cap` fallback, while `resect = 0L` escaped the test and drew an arrow that was not shortened at all, giving two spellings of the same number two different plots. The unset marker is now `NULL`, which no user value collides with.
+
+* Documented that auto-resection is decided one end at a time. The help page said that resection applies only when neither `resect` nor `resect_head`/`resect_fins` is set, while `geom_dag_arrow(resect_head = 4)` shortened the fins end by the automatic amount all the same. The implementation was already per end and is what the page now describes.
+
+* `geom_dag(edge_engine = "ggarrow")` now draws its edges at the documented `edge_width`, scales them with `size`, and honors `arrow_length`. The ggarrow branch read only the edge cap out of the size vector, so edges were drawn at ggarrow's own defaults, and the `ggdag.edge_width` and `ggdag.arrow_length` options had no effect on them. The arrow length travels as a `grid::unit()` in points, since ggarrow reads a bare number as a multiple of the shaft width.
+
+* `curved()` in a `dagify()` formula now reaches a bidirected edge. dagitty stores a bidirected edge in the order it was written, which is the reverse of the order `curved()` records, so the curvature was matched against nothing and filled in as zero. `curve_edge()` and `set_curve_edges()` accept either orientation of a bidirected edge for the same reason. Curvature is measured relative to the direction the edge is drawn in, so a match found the other way round has its sign flipped and the arc keeps the side of the page it was asked for.
+
+* A bidirected edge under the ggarrow engine now keeps the arc its edge layer draws it with when some other edge is curved. Every edge row was filled with a curvature of zero as soon as any edge carried one, and a value in the data overrides the layer's own curvature, so curving one directed edge silently straightened every bidirected edge on the plot.
+
+* Per-edge curvature is now documented as a feature of the ggarrow edge engine, and asking for it under the default ggraph engine raises a `ggdag_edge_curvature_warning` rather than passing without a word. The sign convention on the help pages for `curved()`, `curve_edge()`, and `set_curve_edges()` described how the ggraph engine renders positive curvature, which no ggraph stat or geom in the package has ever read.
+
+* Edge caps now follow the node layer whichever order the layers were added in. The node size was read from the layers already on the plot when the edge layer was added, so the edges-before-nodes order that every layer-by-layer example uses left the caps at their 8mm default and ran arrowheads under the nodes. Caps that no node layer answered for at that point are settled when the plot is built, where the whole layer list is in view. Repelled labels find the plot's edge layers the same way, so a label geom added before its edges now repels from them.
+
+* An edge layer inside the list `geom_dag()` returns now goes through the same cap injection as one added on its own. The list was walked as a plain list of layers, which stepped over the wrapper that carries the injection.
+
+* A DAG edge or arrow layer stored in a variable and added to more than one plot no longer carries the first plot's caps and resections to the next. A layer is an environment, so what it learned from one plot was written into the object the caller was holding.
+
+* Repelled labels now avoid drawn diagonal and fan edges as they already avoided arcs, and they follow the drawn curve through a transforming position scale such as `scale_x_log10()`. The obstacles that guide the repulsion were placed along the straight chord between the two nodes for those geometries, and the edges were matched to the plot data by untransformed coordinates, which no longer matched once a scale had moved them. Obstacles are now placed on the corners of the path each edge is drawn as.
+
+* `ggdag_paths()`, `ggdag_adjustment_set()`, and `ggdag_equivalent_class()` now draw per-edge curvature under the ggarrow engine. These functions build their own edge layers so that they can color or fade edges by an analysis column, and those layers were given neither the `edge_curvature` aesthetic nor a geom able to bend an edge.
+
+* `ggdag_adjust()` gains an `edge_engine` argument and draws ggarrow edges when asked for them, and `ggdag_equivalent_dags()` gains the same argument. Passing `edge_engine` to either was an error, and `ggdag_adjust()` drew ggraph edges whatever the `ggdag.edge_engine` option said.
+
+* Legend key glyphs now follow the engine the plot was built with rather than the `ggdag.edge_engine` option in force when the legend is drawn. A plot given `edge_engine = "ggarrow"` as an argument drew ggarrow edges beside a key showing a grid arrow.
+
+* `ggdag()` now honors the `ggdag.edge_type` option. It always passed an edge type on to `geom_dag()`, which reads the option only when the argument is missing, so `options(ggdag.edge_type = "arc")` changed nothing.
+
 * The time-ordered layout no longer draws a directed edge backwards in time when its two nodes are also joined by a bidirected edge. Every group of nodes joined by bidirected edges is now condensed into a single node before the layers are assigned, so the shared layer a bidirected edge asks for comes out of the layering itself rather than from moving nodes onto one layer afterwards. Raising a group to the layer of its latest member used to leave a child of that group on its own parent's layer, and a pair joined by both a directed and a bidirected edge, such as `dagify(y ~ x + m, m ~ x, x ~~ y)`, placed the exposure after its own mediator. Where the directed edges order two members of a group no shared layer exists, and the directed order now decides.
 
 * The time-ordered layout honors a `fixed_time` pin on a node that bidirected edges join to others. The group was moved to the layer of its latest member, which overrode the pin with nothing said, even when the whole group could have sat at the pinned layer.

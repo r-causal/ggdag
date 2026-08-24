@@ -21,19 +21,21 @@ single edge.
 }
 \section{Curvature sign convention}{
 
-The curvature value is passed directly to the active edge rendering engine.
-The \strong{ggraph} engine (default) and \strong{ggarrow} engine interpret the sign
-differently:
-\itemize{
-\item \strong{ggraph}: positive curvature curves \emph{above} (to the left of) a
-left-to-right edge.
-\item \strong{ggarrow} / \strong{grid}: positive curvature curves \emph{below} (to the right
-of) a left-to-right edge, following \code{grid::curveGrob()} convention.
-}
+Per-edge curvature is drawn by the \strong{ggarrow} edge engine only. Set it with
+\code{edge_engine = "ggarrow"} on \code{\link[=geom_dag]{geom_dag()}} and the \verb{ggdag_*()} quick plots, or
+globally with \code{ggdag_options_set(edge_engine = "ggarrow")}; the default
+\strong{ggraph} engine draws every edge with the curvature of its own edge type
+and warns when it is handed a per-edge value it cannot draw.
 
-This means the same \code{curvature} value will render as a mirror image
-depending on the engine. ggdag does not negate or transform the value;
-each engine uses its native convention.
+ggarrow follows the \code{grid::curveGrob()} convention, so positive curvature
+curves \emph{below} (to the right of) a left-to-right edge and negative curvature
+curves \emph{above} it. ggdag passes the value through untouched.
+
+A bidirected edge has no direction of its own, so ggdag draws it from the
+endpoint dagitty stores first. Naming its endpoints the other way round,
+as in \code{curve_edge(dag, "y", "x", 0.5)} for an edge stored as \verb{x <-> y},
+curves the edge to the same side of the page: the sign is flipped to match
+the direction the edge is drawn in.
 }
 
 \examples{

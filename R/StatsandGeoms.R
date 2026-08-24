@@ -23,6 +23,29 @@ calculate_key_box_size <- function(size, linewidth = 0, scale_factor = 1) {
   ((size * scale_factor) + linewidth) / 10
 }
 
+# The engine a legend key should draw with. A plot built with an explicit
+# `edge_engine` carries it here in the key's parameters, since the option alone
+# would describe a different plot.
+key_edge_engine <- function(params) {
+  params$edge_engine %||% ggdag_option("edge_engine", "ggraph")
+}
+
+key_draws_arrows <- function(params) {
+  identical(key_edge_engine(params), "ggarrow") &&
+    rlang::is_installed("ggarrow")
+}
+
+# Wrap a key glyph so that it draws for a known engine rather than for whichever
+# one the option names at drawing time.
+dag_key_glyph <- function(key_fn, edge_engine) {
+  force(key_fn)
+  force(edge_engine)
+  function(data, params, size) {
+    params$edge_engine <- edge_engine
+    key_fn(data, params, size)
+  }
+}
+
 # Build an arrow grob for legend keys, engine-aware.
 # When edge_engine is "ggarrow" and ggarrow is installed, uses ggarrow::grob_arrow()
 # to match the actual plot edge rendering. Otherwise uses grid::segmentsGrob().
@@ -34,15 +57,12 @@ build_key_arrow_grob <- function(
   colour,
   alpha = 1,
   lwd = 0.5 * .pt,
-  arrow_length = unit(2, "mm")
+  arrow_length = unit(2, "mm"),
+  params = list()
 ) {
-  edge_engine <- ggdag_option("edge_engine", "ggraph")
   col <- ggplot2::alpha(colour, alpha)
 
-  if (
-    identical(edge_engine, "ggarrow") &&
-      rlang::is_installed("ggarrow")
-  ) {
+  if (key_draws_arrows(params)) {
     arrow_head <- ggdag_option("arrow_head", NULL) %||%
       ggarrow::arrow_head_wings()
     ggarrow::grob_arrow(
@@ -145,17 +165,15 @@ draw_key_dag_combined <- function(data, params, size) {
       )
     ),
     # Arrow -- engine-aware rendering
-    if (
-      identical(ggdag_option("edge_engine", "ggraph"), "ggarrow") &&
-        rlang::is_installed("ggarrow")
-    ) {
+    if (key_draws_arrows(params)) {
       build_key_arrow_grob(
         0.35,
         0.5,
         0.65,
         0.5,
         colour = data$colour %||% "black",
-        alpha = data$alpha %||% 1
+        alpha = data$alpha %||% 1,
+        params = params
       )
     } else {
       segmentsGrob(
@@ -254,10 +272,7 @@ draw_key_dag_collider <- function(data, params, size) {
       )
     ),
     # Upper arrow -- engine-aware rendering
-    if (
-      identical(ggdag_option("edge_engine", "ggraph"), "ggarrow") &&
-        rlang::is_installed("ggarrow")
-    ) {
+    if (key_draws_arrows(params)) {
       build_key_arrow_grob(
         0.35,
         0.7,
@@ -266,7 +281,8 @@ draw_key_dag_collider <- function(data, params, size) {
         colour = data$colour %||% "black",
         alpha = data$alpha %||% 1,
         lwd = 0.4 * .pt,
-        arrow_length = unit(1.5, "mm")
+        arrow_length = unit(1.5, "mm"),
+        params = params
       )
     } else {
       segmentsGrob(
@@ -283,10 +299,7 @@ draw_key_dag_collider <- function(data, params, size) {
       )
     },
     # Lower arrow -- engine-aware rendering
-    if (
-      identical(ggdag_option("edge_engine", "ggraph"), "ggarrow") &&
-        rlang::is_installed("ggarrow")
-    ) {
+    if (key_draws_arrows(params)) {
       build_key_arrow_grob(
         0.35,
         0.3,
@@ -295,7 +308,8 @@ draw_key_dag_collider <- function(data, params, size) {
         colour = data$colour %||% "black",
         alpha = data$alpha %||% 1,
         lwd = 0.4 * .pt,
-        arrow_length = unit(1.5, "mm")
+        arrow_length = unit(1.5, "mm"),
+        params = params
       )
     } else {
       segmentsGrob(
@@ -345,11 +359,7 @@ draw_key_dag_edge <- function(data, params, size) {
   edge_alpha <- data$edge_alpha %||% data$alpha %||% 1
   edge_lwd <- (data$edge_width %||% 0.6) * .stroke * 0.7
 
-  edge_engine <- ggdag_option("edge_engine", "ggraph")
-  if (
-    identical(edge_engine, "ggarrow") &&
-      rlang::is_installed("ggarrow")
-  ) {
+  if (key_draws_arrows(params)) {
     grob <- build_key_arrow_grob(
       0.2,
       0.5,
@@ -357,7 +367,8 @@ draw_key_dag_edge <- function(data, params, size) {
       0.5,
       colour = edge_col,
       alpha = edge_alpha,
-      lwd = edge_lwd
+      lwd = edge_lwd,
+      params = params
     )
   } else {
     grob <- segmentsGrob(
@@ -467,34 +478,56 @@ straight_edge_points <- function(edges, n_edge_points) {
   )
 }
 
-# Positions along the arc `ggraph::StatEdgeArc` draws for these edges. The arc
-# stat itself produces them, so the points sit on the curve the reader sees
-# rather than on the chord between the two nodes.
-arc_edge_points <- function(edges, n_edge_points, strength, fold) {
-  control_points <- ggraph::StatEdgeArc$setup_data(
+# The stat that draws each bent edge geometry ggdag offers.
+edge_geometry_stat <- function(type) {
+  switch(
+    type,
+    arc = ggraph::StatEdgeArc,
+    diagonal = ggraph::StatEdgeDiagonal,
+    fan = ggraph::StatEdgeFan
+  )
+}
+
+# Positions along the path the edge layer draws for these edges. The layer's own
+# stat produces them, so the points sit on the curve the reader sees rather than
+# on the chord between the two nodes.
+drawn_edge_points <- function(geometry, panel, n_edge_points) {
+  stat <- edge_geometry_stat(geometry$type[[1]])
+  n_drawn <- geometry$n[[1]]
+  params <- list(
+    strength = geometry$strength[[1]],
+    fold = geometry$fold[[1]],
+    flipped = geometry$flipped[[1]]
+  )
+
+  # the bezier code behind the diagonal and fan geometries reads coordinates as
+  # doubles, and a DAG laid out on a grid arrives with integer ones
+  control_points <- stat$setup_data(
     data.frame(
-      x = edges$x,
-      y = edges$y,
-      xend = edges$xend,
-      yend = edges$yend,
-      PANEL = edges$PANEL,
-      group = seq_len(nrow(edges)),
-      circular = FALSE,
-      filter = TRUE
+      x = as.double(geometry$x),
+      y = as.double(geometry$y),
+      xend = as.double(geometry$xend),
+      yend = as.double(geometry$yend),
+      PANEL = panel,
+      group = seq_len(nrow(geometry)),
+      circular = geometry$circular,
+      filter = TRUE,
+      from = geometry$from,
+      to = geometry$to,
+      stringsAsFactors = FALSE
     ),
-    list(strength = strength, fold = fold)
+    params
   )
 
   if (nrow(control_points) == 0) {
     return(NULL)
   }
 
-  path <- ggraph::StatEdgeArc$compute_panel(
-    control_points,
-    NULL,
-    n = n_edge_points + 2
-  )
-  path <- path[path$index > 0 & path$index < 1, , drop = FALSE]
+  # The path is traced at the resolution the layer draws it at and thinned from
+  # there, so every obstacle sits on a corner of the polyline the reader sees
+  # rather than between two of them.
+  path <- stat$compute_panel(control_points, NULL, n = n_drawn)
+  path <- path[path$index %in% thin_path_index(path$index, n_edge_points), ]
 
   data.frame(
     x = path$x,
@@ -502,6 +535,24 @@ arc_edge_points <- function(edges, n_edge_points, strength, fold) {
     PANEL = path$PANEL,
     stringsAsFactors = FALSE
   )
+}
+
+# The positions along a drawn path, endpoints excluded, closest to `n` evenly
+# spaced ones.
+thin_path_index <- function(index, n) {
+  available <- sort(unique(index))
+  available <- available[available > 0 & available < 1]
+  if (length(available) == 0) {
+    return(numeric())
+  }
+
+  wanted <- seq(0, 1, length.out = n + 2)
+  wanted <- wanted[-c(1, n + 2)]
+  unique(available[vapply(
+    wanted,
+    function(target) which.min(abs(available - target)),
+    integer(1)
+  )])
 }
 
 edge_key <- function(x, y, xend, yend) {
@@ -512,62 +563,71 @@ node_key <- function(x, y, panel) {
   paste(x, y, panel, sep = "\r")
 }
 
-# Pair each edge with the curvature it is drawn at. `edge_geometry` comes from
-# the DAG edge layers already on the plot; edges no curved layer claims are
-# drawn straight.
-edge_curvature <- function(edges, edge_geometry) {
-  curvature <- data.frame(
-    strength = rep(0, nrow(edges)),
-    fold = rep(FALSE, nrow(edges))
-  )
-
-  if (is.null(edge_geometry) || nrow(edge_geometry) == 0) {
-    return(curvature)
+# Invisible points tracing each edge, used as obstacles in ggrepel's repulsion.
+# The rows of `edge_geometry` are the edges the plot's bent edge layers draw,
+# one row each; an edge no such layer claims is traced as a straight chord.
+repel_edge_points <- function(
+  edges,
+  n_edge_points,
+  edge_geometry = NULL,
+  layout = NULL
+) {
+  if (n_edge_points <= 0 || nrow(edges) == 0) {
+    return(NULL)
   }
 
-  matched <- match(
-    edge_key(edges$x, edges$y, edges$xend, edges$yend),
+  edge_geometry <- rescale_edge_geometry(edge_geometry, layout)
+  drawn_keys <- if (is.null(edge_geometry)) {
+    character()
+  } else {
     edge_key(
       edge_geometry$x,
       edge_geometry$y,
       edge_geometry$xend,
       edge_geometry$yend
     )
-  )
-
-  found <- !is.na(matched)
-  curvature$strength[found] <- edge_geometry$strength[matched[found]]
-  curvature$fold[found] <- edge_geometry$fold[matched[found]]
-  curvature
-}
-
-# Invisible points tracing each edge, used as obstacles in ggrepel's repulsion.
-repel_edge_points <- function(edges, n_edge_points, edge_geometry = NULL) {
-  if (n_edge_points <= 0 || nrow(edges) == 0) {
-    return(NULL)
   }
-
-  curvature <- edge_curvature(edges, edge_geometry)
-  is_straight <- curvature$strength == 0
 
   points <- list()
-  if (any(is_straight)) {
-    points[[1]] <- straight_edge_points(
-      edges[is_straight, , drop = FALSE],
-      n_edge_points
+  for (panel in unique(edges$PANEL)) {
+    panel_edges <- edges[edges$PANEL == panel, , drop = FALSE]
+    keys <- edge_key(
+      panel_edges$x,
+      panel_edges$y,
+      panel_edges$xend,
+      panel_edges$yend
     )
-  }
 
-  curved <- unique(curvature[!is_straight, , drop = FALSE])
-  for (i in seq_len(nrow(curved))) {
-    in_group <- curvature$strength == curved$strength[i] &
-      curvature$fold == curved$fold[i]
-    points[[length(points) + 1]] <- arc_edge_points(
-      edges[in_group, , drop = FALSE],
-      n_edge_points,
-      strength = curved$strength[i],
-      fold = curved$fold[i]
+    is_straight <- !keys %in% drawn_keys
+    if (any(is_straight)) {
+      points[[length(points) + 1]] <- straight_edge_points(
+        panel_edges[is_straight, , drop = FALSE],
+        n_edge_points
+      )
+    }
+
+    if (all(is_straight)) {
+      next
+    }
+
+    # Edges drawn by one layer are traced together: a fan places each edge
+    # according to how many others share its pair of nodes.
+    drawn <- edge_geometry[drawn_keys %in% keys, , drop = FALSE]
+    group <- paste(
+      drawn$type,
+      drawn$strength,
+      drawn$n,
+      drawn$fold,
+      drawn$flipped,
+      sep = "\r"
     )
+    for (rows in split(seq_len(nrow(drawn)), group)) {
+      points[[length(points) + 1]] <- drawn_edge_points(
+        drawn[rows, , drop = FALSE],
+        panel,
+        n_edge_points
+      )
+    }
   }
 
   points <- points[!vapply(points, is.null, logical(1))]
@@ -576,6 +636,35 @@ repel_edge_points <- function(edges, n_edge_points, edge_geometry = NULL) {
   }
 
   do.call(rbind, points)
+}
+
+# A transforming position scale, `scale_x_log10()` say, moves the data before
+# any stat sees it, so edge endpoints read from the plot data have to make the
+# same trip before they can be matched against the rows this stat is given.
+rescale_edge_geometry <- function(edge_geometry, layout) {
+  if (is.null(edge_geometry) || is.null(layout)) {
+    return(edge_geometry)
+  }
+
+  x_scale <- layout$panel_scales_x[[1]]
+  y_scale <- layout$panel_scales_y[[1]]
+  edge_geometry$x <- transform_positions(x_scale, edge_geometry$x)
+  edge_geometry$xend <- transform_positions(x_scale, edge_geometry$xend)
+  edge_geometry$y <- transform_positions(y_scale, edge_geometry$y)
+  edge_geometry$yend <- transform_positions(y_scale, edge_geometry$yend)
+  edge_geometry
+}
+
+transform_positions <- function(scale, values) {
+  if (is.null(scale) || isTRUE(scale$is_discrete())) {
+    return(values)
+  }
+
+  transformed <- tryCatch(scale$transform(values), error = function(e) NULL)
+  if (!is.numeric(transformed) || length(transformed) != length(values)) {
+    return(values)
+  }
+  transformed
 }
 
 # Invisible points filling the disc each node covers.
@@ -642,7 +731,8 @@ StatNodesRepel <- ggplot2::ggproto(
       edge_points <- repel_edge_points(
         edges,
         n_edge_points,
-        params$edge_geometry
+        params$edge_geometry,
+        layout
       )
       if (!is.null(edge_points)) {
         edge_points$label <- ""
@@ -744,7 +834,8 @@ StatDebugRepelPoints <- ggplot2::ggproto(
       fake_points <- repel_edge_points(
         edges,
         n_edge_points,
-        params$edge_geometry
+        params$edge_geometry,
+        layout
       )
     }
 
@@ -835,12 +926,32 @@ clone_layer <- function(layer) {
   cloned
 }
 
+# A layer sees only the layers added before it, so anything it takes from the
+# rest of the plot depends on the order the plot was assembled in. The plot is
+# whole by the time it is built, so the same question asked again there has an
+# order-independent answer, and `setup_layer()` is the first step of the build
+# that is handed the plot.
+plot_aware_layer <- function(layer, resolve) {
+  ggplot2::ggproto(
+    "DagPlotAwareLayer",
+    layer,
+    setup_layer = function(self, data, plot) {
+      data <- ggplot2::ggproto_parent(layer, self)$setup_layer(data, plot)
+      resolve(self, plot)
+      data
+    }
+  )
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
+  discover <- .subset2(object, "discover")
+  discover_at_build <- character()
 
-  if ("node_size" %in% .subset2(object, "discover")) {
+  if ("node_size" %in% discover) {
     if (is.null(layer$stat_params$node_size)) {
+      discover_at_build <- c(discover_at_build, "node_size")
       discovered <- discover_node_size(plot)
       if (!is.null(discovered)) {
         layer$stat_params$node_size <- discovered
@@ -848,14 +959,26 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
     }
   }
 
-  if ("edge_geometry" %in% .subset2(object, "discover")) {
+  if ("edge_geometry" %in% discover) {
     if (is.null(layer$stat_params$edge_geometry)) {
+      discover_at_build <- c(discover_at_build, "edge_geometry")
       layer$stat_params$edge_geometry <- discover_edge_geometry(plot)
     }
   }
 
   if (isTRUE(.subset2(object, "default_label"))) {
     layer <- add_default_label_mapping(layer, plot)
+  }
+
+  if (length(discover_at_build) > 0) {
+    layer <- plot_aware_layer(layer, function(self, plot) {
+      if ("node_size" %in% discover_at_build) {
+        self$stat_params$node_size <- discover_node_size(plot)
+      }
+      if ("edge_geometry" %in% discover_at_build) {
+        self$stat_params$edge_geometry <- discover_edge_geometry(plot)
+      }
+    })
   }
 
   plot <- ggplot2::ggplot_add(layer, plot, ...)
@@ -897,9 +1020,9 @@ add_default_label_mapping <- function(layer, plot) {
   layer
 }
 
-# The curvature the plot's DAG edge layers draw each edge with. Repulsion
+# The geometry the plot's DAG edge layers draw each edge with. Repulsion
 # obstacles follow those curves, so a label cannot be placed on top of a drawn
-# arc, and edges no curved layer claims stay straight.
+# edge, and edges no bent layer claims stay straight.
 discover_edge_geometry <- function(plot) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
@@ -911,40 +1034,86 @@ discover_edge_geometry <- function(plot) {
 
   specs <- list()
   for (existing in plot$layers) {
-    if (!inherits(existing$stat, "StatEdgeArc")) {
-      next
+    spec <- edge_layer_geometry(existing, plot_data)
+    if (!is.null(spec)) {
+      specs[[length(specs) + 1]] <- spec
     }
-
-    strength <- existing$stat_params$strength
-    if (!is.numeric(strength) || length(strength) != 1 || strength == 0) {
-      next
-    }
-
-    layer_data <- resolve_layer_data(existing, plot_data)
-    if (is.null(layer_data)) {
-      next
-    }
-
-    layer_data <- layer_data[!is.na(layer_data$xend), , drop = FALSE]
-    if (nrow(layer_data) == 0) {
-      next
-    }
-
-    specs[[length(specs) + 1]] <- data.frame(
-      x = layer_data$x,
-      y = layer_data$y,
-      xend = layer_data$xend,
-      yend = layer_data$yend,
-      strength = strength,
-      fold = isTRUE(existing$stat_params$fold)
-    )
   }
 
   if (length(specs) == 0) {
     return(NULL)
   }
 
-  unique(do.call(rbind, specs))
+  # Kept row for row: two edges drawn between the same pair of nodes are two
+  # rows, and a fan spreads them apart only because there are two of them.
+  do.call(rbind, specs)
+}
+
+# Which of ggdag's bent edge geometries a layer draws, if any. A straight link
+# layer needs no tracing, so it is not one of them.
+edge_geometry_type <- function(stat) {
+  types <- c(
+    arc = "StatEdgeArc",
+    diagonal = "StatEdgeDiagonal",
+    fan = "StatEdgeFan"
+  )
+  drawn <- names(types)[vapply(types, inherits, logical(1), x = stat)]
+  if (length(drawn) == 0) {
+    return(NULL)
+  }
+  drawn[[1]]
+}
+
+edge_layer_geometry <- function(layer, plot_data) {
+  type <- edge_geometry_type(layer$stat)
+  if (is.null(type)) {
+    return(NULL)
+  }
+
+  strength <- layer$stat_params$strength
+  if (!is.numeric(strength) || length(strength) != 1 || strength == 0) {
+    return(NULL)
+  }
+
+  layer_data <- resolve_layer_data(layer, plot_data)
+  if (is.null(layer_data)) {
+    return(NULL)
+  }
+
+  layer_data <- layer_data[!is.na(layer_data$xend), , drop = FALSE]
+  if (nrow(layer_data) == 0) {
+    return(NULL)
+  }
+
+  # A fan spreads the edges that share a pair of nodes, so it can only be
+  # traced when the node names those edges run between are known.
+  column <- function(name, default) {
+    if (name %in% names(layer_data)) layer_data[[name]] else default
+  }
+  from <- as.character(column("name", NA_character_))
+  to <- as.character(column("to", NA_character_))
+  if (identical(type, "fan") && (anyNA(from) || anyNA(to))) {
+    return(NULL)
+  }
+
+  circular <- column("circular", FALSE)
+  circular[is.na(circular)] <- FALSE
+
+  data.frame(
+    x = layer_data$x,
+    y = layer_data$y,
+    xend = layer_data$xend,
+    yend = layer_data$yend,
+    circular = circular,
+    type = type,
+    strength = strength,
+    n = layer$stat_params$n %||% 100,
+    fold = isTRUE(layer$stat_params$fold),
+    flipped = isTRUE(layer$stat_params$flipped),
+    from = from,
+    to = to,
+    stringsAsFactors = FALSE
+  )
 }
 
 resolve_layer_data <- function(layer, plot_data) {
@@ -985,14 +1154,25 @@ dag_edge_layer <- function(layer) {
   }
 }
 
+# The ends whose cap the user has not set, either as an aesthetic or as a
+# fixed value.
+unset_edge_caps <- function(layer) {
+  ends <- c("start_cap", "end_cap")
+  ends[vapply(
+    ends,
+    function(end) {
+      is.null(layer$mapping[[end]]) && is.null(layer$aes_params[[end]])
+    },
+    logical(1)
+  )]
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_edge_layer <- function(object, plot, ...) {
-  layer <- object$layer
-  # Only inject caps if the user hasn't set them explicitly in mapping
-  has_start_cap <- !is.null(layer$mapping$start_cap)
-  has_end_cap <- !is.null(layer$mapping$end_cap)
+  layer <- clone_layer(.subset2(object, "layer"))
+  needs_cap <- unset_edge_caps(layer)
 
-  if (!has_start_cap || !has_end_cap) {
+  if (length(needs_cap) > 0) {
     discovered <- discover_node_size(plot)
     if (!is.null(discovered)) {
       cap_mm <- node_size_to_cap(discovered)
@@ -1001,13 +1181,28 @@ ggplot_add.dag_edge_layer <- function(object, plot, ...) {
       if (is.null(layer$mapping)) {
         layer$mapping <- ggplot2::aes()
       }
-      if (!has_start_cap) {
-        layer$mapping$start_cap <- cap_quo
+      for (end in needs_cap) {
+        layer$mapping[[end]] <- cap_quo
       }
-      if (!has_end_cap) {
-        layer$mapping$end_cap <- cap_quo
-      }
+      needs_cap <- character()
     }
+  }
+
+  if (length(needs_cap) > 0) {
+    # No node layer is on the plot yet, which is the order every layer-by-layer
+    # example uses. The node layer that follows is in view once the plot is
+    # built, so the caps are settled there instead.
+    layer <- plot_aware_layer(layer, function(self, plot) {
+      discovered <- discover_node_size(plot)
+      cap <- if (is.null(discovered)) {
+        NULL
+      } else {
+        ggraph::circle(node_size_to_cap(discovered), "mm")
+      }
+      for (end in needs_cap) {
+        self$aes_params[[end]] <- cap
+      }
+    })
   }
 
   ggplot2::ggplot_add(layer, plot, ...)

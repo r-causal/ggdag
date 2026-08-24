@@ -314,3 +314,72 @@ test_that("ggdag_equivalent_dags has exact expected edge counts", {
   analysis_without <- analyze_plot_edges(p_without)
   expect_equal(analysis_without$total_edges, 0)
 })
+
+# The ggarrow engine draws its edges with geoms the counting helpers have to
+# recognise too, otherwise every count below reads zero for those plots and the
+# suite cannot see a duplicated or missing ggarrow edge.
+
+test_that("edge counting sees the ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 0, z = 1, y = 2), y = c(x = 0, z = 1, y = 0))
+  )
+  p <- ggdag(dag)
+
+  # link_arc adds a directed and a bidirected layer, and the DAG has 3 edges
+  expect_equal(count_edge_layers(p), 2)
+  expect_equal(count_total_edges(p), 3)
+  expect_false(detect_duplicate_edges(p)$duplicates)
+})
+
+test_that("ggarrow-engine quick plots draw the same edges as ggraph ones", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = list(x = c(x = 0, z = 1, y = 2), y = c(x = 0, z = 1, y = 0))
+  )
+
+  edges_under <- function(engine, plot_func) {
+    withr::local_options(ggdag.edge_engine = engine)
+    p <- plot_func(dag)
+    # a positive control: the helpers must be able to see this plot's edges
+    expect_gt(count_edge_layers(p), 0)
+    count_total_edges(p)
+  }
+
+  for (plot_func in list(
+    ggdag,
+    ggdag_status,
+    ggdag_paths,
+    ggdag_adjustment_set
+  )) {
+    expect_equal(
+      edges_under("ggarrow", plot_func),
+      edges_under("ggraph", plot_func)
+    )
+  }
+})
+
+test_that("duplicate detection tells one facet from another", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = list(x = c(x = 0, z = 1, y = 2), y = c(x = 0, z = 1, y = 0))
+  )
+
+  # every facet draws the whole DAG, so the same pair of endpoints appears
+  # once per panel without any edge being drawn twice
+  p <- ggdag_paths(dag, from = "x", to = "y")
+  expect_gt(length(unique(ggplot2::layer_data(p, 1)$PANEL)), 1)
+  expect_false(detect_duplicate_edges(p)$duplicates)
+})

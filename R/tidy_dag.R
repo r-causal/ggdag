@@ -168,13 +168,11 @@ tidy_dagitty <- function(
     tidy_dag_edges_and_coords(coords_df)
 
   if (!is.null(curved_edges) && nrow(curved_edges) > 0) {
-    tidy_dag <- dplyr::left_join(
-      tidy_dag,
-      curved_edges[, c("name", "to", "edge_curvature")],
-      by = c("name", "to")
-    )
-    # Non-curved edges should be straight, not inherit geom scalar fallback
-    edge_rows <- !is.na(tidy_dag$to)
+    tidy_dag$edge_curvature <- match_edge_curvature(tidy_dag, curved_edges)
+    # Non-curved edges should be straight, not inherit geom scalar fallback.
+    # Bidirected edges are the exception: their edge layer arcs them by
+    # default, and a zero here would flatten them.
+    edge_rows <- !is.na(tidy_dag$to) & !is_bidirected_edge(tidy_dag)
     tidy_dag$edge_curvature[edge_rows & is.na(tidy_dag$edge_curvature)] <- 0
   }
 
@@ -200,9 +198,12 @@ tidy_dagitty <- function(
       } else {
         tidy_dag$edge_curvature <- ctrl_curvature
       }
-      # Edges without control points should be straight (0), not NA,
-      # so the scalar curvature fallback doesn't curve them unexpectedly
-      tidy_dag$edge_curvature[is.na(tidy_dag$edge_curvature)] <- 0
+      # Edges without control points should be straight (0), not NA, so the
+      # scalar curvature fallback doesn't curve them unexpectedly. Bidirected
+      # edges keep the arc their edge layer draws them with.
+      straighten <- is.na(tidy_dag$edge_curvature) &
+        !is_bidirected_edge(tidy_dag)
+      tidy_dag$edge_curvature[straighten] <- 0
     }
   }
 

@@ -21,7 +21,19 @@ is_edge_layer <- function(layer) {
     "GeomEdgeLink"
   )
 
-  geom_class %in% c(ggdag_edge_geoms, ggraph_edge_geoms)
+  # ggarrow edge geoms, drawn by the ggarrow engine
+  ggarrow_edge_geoms <- c("GeomDAGArrow", "GeomDAGArrowCurve")
+
+  matched <- geom_class %in%
+    c(ggdag_edge_geoms, ggraph_edge_geoms, ggarrow_edge_geoms)
+
+  matched || inherits(layer$geom, "GeomArrow")
+}
+
+# Edges in a ggarrow layer are one row each and share a single group, so the
+# group count every other edge layer is measured by would report one.
+is_row_counted_edge_layer <- function(layer) {
+  inherits(layer$stat, "StatDAGArrowEdges")
 }
 
 # Count edge layers in a plot
@@ -44,7 +56,9 @@ count_total_edges <- function(plot) {
   for (i in edge_layer_indices) {
     layer_data <- built_plot$data[[i]]
 
-    if (nrow(layer_data) > 0 && "group" %in% names(layer_data)) {
+    if (nrow(layer_data) > 0 && is_row_counted_edge_layer(plot$layers[[i]])) {
+      total_edges <- total_edges + nrow(layer_data)
+    } else if (nrow(layer_data) > 0 && "group" %in% names(layer_data)) {
       if ("PANEL" %in% names(layer_data)) {
         # For faceted plots: count unique group-panel combinations
         group_panel_combos <- layer_data |>
@@ -83,8 +97,11 @@ detect_duplicate_edges <- function(plot) {
       nrow(layer_data) > 0 &&
         all(c("x", "y", "xend", "yend") %in% names(layer_data))
     ) {
+      if (!"PANEL" %in% names(layer_data)) {
+        layer_data$PANEL <- factor(1)
+      }
       layer_data |>
-        dplyr::select(x, y, xend, yend) |>
+        dplyr::select(x, y, xend, yend, PANEL) |>
         dplyr::mutate(layer = i)
     }
   })
@@ -97,15 +114,16 @@ detect_duplicate_edges <- function(plot) {
     ))
   }
 
-  # Create edge identifiers (normalize direction)
+  # Create edge identifiers (normalize direction). The same edge drawn in two
+  # facets is two edges, not a duplicate, so the panel is part of the identity.
   all_edges <- all_edges |>
     dplyr::mutate(
       edge_id = purrr::pmap_chr(
-        list(x, y, xend, yend),
-        function(x1, y1, x2, y2) {
+        list(x, y, xend, yend, PANEL),
+        function(x1, y1, x2, y2, panel) {
           # Normalize edge direction for comparison
           coords <- sort(c(paste0(x1, ",", y1), paste0(x2, ",", y2)))
-          paste0(coords[1], "->", coords[2])
+          paste0(panel, ": ", coords[1], "->", coords[2])
         }
       )
     )

@@ -155,9 +155,11 @@ ggdag_adjustment_set <- function(
       arrow_fins <- ggdag_option("arrow_fins", NULL)
 
       blocked_colour <- if (shadow) "grey80" else "#FFFFFF00"
+      edge_mapping <- with_edge_curvature(NULL, p$data)
 
       p <- p +
-        geom_dag_arrows(
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
           data_directed = function(x) {
             dplyr::filter(x, is.na(.data$blocked), .data$direction == "->")
           },
@@ -167,10 +169,13 @@ ggdag_adjustment_set <- function(
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           colour = "black",
           show.legend = FALSE
         ) +
-        geom_dag_arrows(
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
           data_directed = function(x) {
             dplyr::filter(x, !is.na(.data$blocked), .data$direction == "->")
           },
@@ -180,6 +185,8 @@ ggdag_adjustment_set <- function(
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           colour = blocked_colour,
           show.legend = FALSE
         )
@@ -219,6 +226,7 @@ ggdag_adjustment_set <- function(
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      edge_engine = edge_engine,
       use_edges = FALSE,
       use_nodes = use_nodes,
       use_stylized = use_stylized,
@@ -384,6 +392,7 @@ ggdag_adjust <- function(
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   key_glyph = draw_key_dag_point,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -393,6 +402,7 @@ ggdag_adjust <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is_empty_or_null(var)) {
     .tdy_dag <- .tdy_dag |> control_for(var)
@@ -420,12 +430,36 @@ ggdag_adjust <- function(
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (use_edges) {
-    p <- p +
-      geom_dag_edges(
-        ggplot2::aes(edge_alpha = .data$adjusted),
-        start_cap = ggraph::circle(edge_cap, "mm"),
-        end_cap = ggraph::circle(edge_cap, "mm")
+    if (identical(edge_engine, "ggarrow")) {
+      rlang::check_installed(
+        "ggarrow",
+        reason = "to use edge_engine = \"ggarrow\"."
       )
+
+      p <- p +
+        quick_plot_arrow_edges(
+          mapping = with_edge_curvature(
+            ggplot2::aes(alpha = .data$adjusted),
+            p$data
+          ),
+          data_directed = filter_direction("->"),
+          data_bidirected = filter_direction("<->"),
+          arrow_head = ggdag_option("arrow_head", NULL) %||%
+            ggarrow::arrow_head_wings(),
+          arrow_fins = ggdag_option("arrow_fins", NULL),
+          resect = edge_cap * size,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
+          show.legend = FALSE
+        )
+    } else {
+      p <- p +
+        geom_dag_edges(
+          ggplot2::aes(edge_alpha = .data$adjusted),
+          start_cap = ggraph::circle(edge_cap, "mm"),
+          end_cap = ggraph::circle(edge_cap, "mm")
+        )
+    }
 
     if (collider_lines) {
       p <- p + geom_dag_collider_edges()
@@ -444,6 +478,7 @@ ggdag_adjust <- function(
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      edge_engine = edge_engine,
       use_edges = FALSE,
       use_nodes = use_nodes,
       use_stylized = use_stylized,

@@ -382,13 +382,18 @@ ggdag_paths <- function(
       arrow_fins <- ggdag_option("arrow_fins", NULL)
 
       p <- p +
-        geom_dag_arrows(
-          mapping = ggplot2::aes(colour = .data$path_type),
+        quick_plot_arrow_edges(
+          mapping = with_edge_curvature(
+            ggplot2::aes(colour = .data$path_type),
+            p$data
+          ),
           data_directed = f_directed,
           data_bidirected = f_bidirected,
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           show.legend = FALSE
         )
 
@@ -441,6 +446,7 @@ ggdag_paths <- function(
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      edge_engine = edge_engine,
       use_edges = FALSE,
       use_nodes = use_nodes,
       use_stylized = use_stylized,

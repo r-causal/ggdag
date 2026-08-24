@@ -335,18 +335,21 @@ validate_dag_inputs <- function(
 #'   in one direction, negative in the other. Default is `0.3`.
 #'
 #' @section Curvature sign convention:
-#' The curvature value is passed directly to the active edge rendering engine.
-#' The **ggraph** engine (default) and **ggarrow** engine interpret the sign
-#' differently:
+#' Per-edge curvature is drawn by the **ggarrow** edge engine only. Set it with
+#' `edge_engine = "ggarrow"` on [geom_dag()] and the `ggdag_*()` quick plots, or
+#' globally with `ggdag_options_set(edge_engine = "ggarrow")`; the default
+#' **ggraph** engine draws every edge with the curvature of its own edge type
+#' and warns when it is handed a per-edge value it cannot draw.
 #'
-#' - **ggraph**: positive curvature curves *above* (to the left of) a
-#'   left-to-right edge.
-#' - **ggarrow** / **grid**: positive curvature curves *below* (to the right
-#'   of) a left-to-right edge, following `grid::curveGrob()` convention.
+#' ggarrow follows the `grid::curveGrob()` convention, so positive curvature
+#' curves *below* (to the right of) a left-to-right edge and negative curvature
+#' curves *above* it. ggdag passes the value through untouched.
 #'
-#' This means the same `curvature` value will render as a mirror image
-#' depending on the engine. ggdag does not negate or transform the value;
-#' each engine uses its native convention.
+#' A bidirected edge has no direction of its own, so ggdag draws it from the
+#' endpoint dagitty stores first. Naming its endpoints the other way round,
+#' as in `curve_edge(dag, "y", "x", 0.5)` for an edge stored as `x <-> y`,
+#' curves the edge to the same side of the page: the sign is flipped to match
+#' the direction the edge is drawn in.
 #'
 #' @return This function is not intended to be called directly. It is detected
 #'   in the formula AST by [dagify()].
@@ -448,13 +451,14 @@ curve_edge.tidy_dagitty <- function(.dag, from, to, curvature = 0.3) {
   update_dag(.dag) <- dag
 
   dag_data <- pull_dag_data(.dag)
-  if ("edge_curvature" %nin% names(dag_data)) {
-    dag_data$edge_curvature <- NA_real_
-  }
-  edge_match <- dag_data$name == from & dag_data$to == to & !is.na(dag_data$to)
-  dag_data$edge_curvature[edge_match] <- curvature
-  # Non-curved edges should be 0 when any curvature is set
-  edge_rows <- !is.na(dag_data$to)
+  dag_data$edge_curvature <- NULL
+  dag_data$edge_curvature <- match_edge_curvature(
+    dag_data,
+    attr(dag, "curved_edges")
+  )
+  # Non-curved edges should be 0 when any curvature is set, except bidirected
+  # ones, which keep the arc their edge layer draws them with
+  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
   dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
@@ -544,19 +548,57 @@ set_curve_edges.tidy_dagitty <- function(.dag, edges) {
   curved_edges <- attr(dag, "curved_edges")
   dag_data <- pull_dag_data(.dag)
 
-  # Remove existing edge_curvature and re-join
+  # Remove existing edge_curvature and re-match
   dag_data$edge_curvature <- NULL
-  dag_data <- dplyr::left_join(
-    dag_data,
-    curved_edges[, c("name", "to", "edge_curvature")],
-    by = c("name", "to")
-  )
-  # Non-curved edges should be 0
-  edge_rows <- !is.na(dag_data$to)
+  dag_data$edge_curvature <- match_edge_curvature(dag_data, curved_edges)
+  # Non-curved edges should be 0, except bidirected ones, which keep the arc
+  # their edge layer draws them with
+  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
   dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
   .dag
+}
+
+#' Match recorded curvatures to the edge rows of a tidy DAG
+#'
+#' A bidirected edge is stored by dagitty in the order it was written, which is
+#' not always the order the curvature was recorded in: `dagify()` records a
+#' `curved()` term as (parent, child), and a user calling [curve_edge()] may
+#' name either endpoint first. Matching a bidirected edge in both orientations
+#' keeps the curvature the user asked for. Curvature is measured relative to the
+#' direction the edge is drawn in, so a match found the other way round has its
+#' sign flipped and the arc keeps the side of the page it was asked for.
+#'
+#' @param dag_data The data of a `tidy_dagitty`.
+#' @param curved_edges A tibble of `name`, `to`, and `edge_curvature`.
+#' @return A numeric vector, one value per row of `dag_data`, `NA` where no
+#'   curvature was recorded.
+#' @noRd
+match_edge_curvature <- function(dag_data, curved_edges) {
+  recorded <- edge_pair_key(curved_edges$name, curved_edges$to)
+  curvature <- curved_edges$edge_curvature[
+    match(edge_pair_key(dag_data$name, dag_data$to), recorded)
+  ]
+
+  swapped <- match(edge_pair_key(dag_data$to, dag_data$name), recorded)
+  reversed <- is_bidirected_edge(dag_data) & is.na(curvature) & !is.na(swapped)
+  curvature[reversed] <- -curved_edges$edge_curvature[swapped[reversed]]
+
+  curvature
+}
+
+edge_pair_key <- function(from, to) {
+  ifelse(is.na(from) | is.na(to), NA_character_, paste(from, to, sep = "\r"))
+}
+
+# Rows holding a bidirected edge. Bidirected edges keep whatever curvature they
+# were given rather than being flattened with the directed ones, so that the
+# arc an edge layer draws them with survives another edge being curved.
+is_bidirected_edge <- function(dag_data) {
+  !is.na(dag_data$to) &
+    !is.na(dag_data$direction) &
+    dag_data$direction == "<->"
 }
 
 #' Check that every requested edge is actually in the DAG

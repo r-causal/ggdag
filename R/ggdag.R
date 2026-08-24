@@ -51,6 +51,12 @@ ggdag <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
+  # `geom_dag()` is always handed a value here, so the global option has to be
+  # resolved before the call rather than inside it
+  if (missing(edge_type)) {
+    edge_type <- ggdag_option("edge_type", "link_arc")
+  }
+
   if_not_tidy_daggity(.tdy_dag, ...) |>
     ggplot2::ggplot(aes_dag()) +
     geom_dag(

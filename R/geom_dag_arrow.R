@@ -55,7 +55,7 @@ geom_dag_arrow_geom <- function() {
         justify = 0,
         force_arrow = FALSE,
         mid_place = 0.5,
-        resect = list(head = 0, fins = 0),
+        resect = list(head = NULL, fins = NULL),
         sep = 0
       ) {
         resect <- inject_dag_resect(resect, data)
@@ -120,7 +120,7 @@ geom_dag_arrow_curve_geom <- function() {
         justify = 0,
         force_arrow = FALSE,
         mid_place = 0.5,
-        resect = list(head = 0, fins = 0),
+        resect = list(head = NULL, fins = NULL),
         curvature = 0.5,
         angle = 90,
         ncp = 5,
@@ -188,13 +188,17 @@ geom_dag_arrow_curve_geom <- function() {
 
 inject_dag_resect <- function(resect, data) {
   edge_cap <- ggdag_option("edge_cap", 8)
-  if (identical(resect$head, 0) && is.null(data$resect_head)) {
+  if (is.null(resect$head) && is.null(data$resect_head)) {
     resect$head <- edge_cap
   }
-  if (identical(resect$fins, 0) && is.null(data$resect_fins)) {
+  if (is.null(resect$fins) && is.null(data$resect_fins)) {
     resect$fins <- edge_cap
   }
-  resect
+
+  # ggarrow measures whatever it is handed, so an end still unset here (its
+  # value comes from the `resect_head`/`resect_fins` aesthetic instead) has to
+  # arrive as a number rather than as `NULL`.
+  list(head = resect$head %||% 0, fins = resect$fins %||% 0)
 }
 
 # Layer wrapper: discover node size at add time --------------------------------
@@ -217,11 +221,11 @@ dag_arrow_layer <- function(layer) {
 
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
-  layer <- object$layer
+  layer <- clone_layer(.subset2(object, "layer"))
   resect <- layer$geom_params$resect
 
-  needs_head <- identical(resect$head, 0)
-  needs_fins <- identical(resect$fins, 0)
+  needs_head <- is.null(resect$head)
+  needs_fins <- is.null(resect$fins)
 
   if (needs_head || needs_fins) {
     discovered <- discover_node_size(plot)
@@ -265,12 +269,18 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
 #' useful in time-ordered DAGs where some edges need to curve around
 #' intermediate nodes while adjacent edges stay straight.
 #'
-#' Auto-resection: when neither `resect` nor `resect_head`/`resect_fins` are
-#' set by the user, edges are automatically shortened from both ends to avoid
-#' overlapping with nodes. If a node layer (`geom_dag_point()` or
-#' `geom_dag_node()`) is already added to the plot, the resection is derived
-#' from the node size. Otherwise, the `ggdag.edge_cap` option (default: 8mm)
-#' is used as a fallback.
+#' ## Auto-resection
+#'
+#' Edges are automatically shortened so that they do not run underneath the
+#' nodes. Resection is decided one end at a time: an end you set, through
+#' `resect` or through `resect_head`/`resect_fins`, keeps the value you gave
+#' it, and every end you leave unset is shortened automatically. Setting only
+#' `resect_head`, for instance, leaves the fins end to the automatic value.
+#' Pass `0` to an end to draw the edge all the way to the node.
+#'
+#' The automatic value comes from the node size when a node layer
+#' (`geom_dag_point()` or `geom_dag_node()`) is already on the plot, and from
+#' the `ggdag.edge_cap` option (default: 8mm) otherwise.
 #'
 #' @param mapping Set of aesthetic mappings created by [ggplot2::aes()]. If
 #'   specified and `inherit.aes = TRUE` (the default), it is combined with the
@@ -294,10 +304,13 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
 #'   than the arrow ornaments. Default `FALSE`.
 #' @param mid_place Numeric vector with values between 0 and 1 setting
 #'   positions for interior arrows, or a [grid::unit()] for spacing.
-#' @param resect A numeric value in millimetres to shorten the arrow from
-#'   both ends. Overridden by `resect_head`/`resect_fins` if set.
-#' @param resect_head,resect_fins Numeric values in millimetres to shorten
-#'   the arrow from the head or fins end respectively.
+#' @param resect A numeric value in millimetres to shorten the arrow from both
+#'   ends, or `NULL` (the default) to leave both ends to auto-resection.
+#'   Overridden by `resect_head`/`resect_fins` if set. `0` is a value like any
+#'   other: it turns auto-resection off and draws the edge up to the node.
+#' @param resect_head,resect_fins Numeric values in millimetres to shorten the
+#'   arrow from the head or fins end respectively, or `NULL` (the default) to
+#'   leave that end to auto-resection.
 #' @param lineend Line end style: `"butt"` (default), `"round"`, or
 #'   `"square"`.
 #' @param linejoin Line join style: `"round"` (default), `"mitre"`, or
@@ -383,7 +396,7 @@ geom_dag_arrow <- function(
   justify = 0,
   force_arrow = FALSE,
   mid_place = 0.5,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   lineend = "butt",
@@ -458,7 +471,7 @@ geom_dag_arrow_arc <- function(
   justify = 0,
   force_arrow = FALSE,
   mid_place = 0.5,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   lineend = "butt",
@@ -524,7 +537,7 @@ geom_dag_arrows <- function(
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
   arrow_mid = NULL,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   position = "identity",

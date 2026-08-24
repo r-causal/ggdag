@@ -222,13 +222,10 @@ test_that("ggdag_butterfly_bias creates plots correctly", {
     arrow_length = 10,
     use_edges = FALSE
   )
-  # Should not have edge layers
-  has_edge_layer <- any(purrr::map_lgl(p3$layers, \(l) {
-    inherits(l$geom, "GeomDagEdges") ||
-      inherits(l$geom, "GeomCurve") ||
-      inherits(l$geom, "GeomSegment")
-  }))
-  expect_false(has_edge_layer)
+  # the same predicate has to find the edges of a plot that draws them,
+  # otherwise its absence below proves nothing
+  expect_true(any(purrr::map_lgl(p1$layers, is_edge_layer)))
+  expect_false(any(purrr::map_lgl(p3$layers, is_edge_layer)))
 })
 
 test_that("ggdag_confounder_triangle creates plots correctly", {

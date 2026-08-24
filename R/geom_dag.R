@@ -1347,6 +1347,71 @@ compose_edge_data <- function(user_data, dir_filter) {
   dir_filter(user_data)
 }
 
+# `geom_dag()` gives its ggarrow edge layers the per-edge curvature aesthetic
+# through `ggplot_add.geom_dag_layers()`. The quick plotters that build edge
+# layers of their own, to colour or fade them by an analysis column, add it
+# here instead.
+with_edge_curvature <- function(mapping, dag_data) {
+  if ("edge_curvature" %nin% names(dag_data)) {
+    return(mapping)
+  }
+
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes()
+  }
+  mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
+  mapping
+}
+
+# The ggarrow edge layers a quick plotter builds for itself. Directed edges go
+# through the arc geom at zero curvature, which draws them straight but leaves
+# room for a per-edge curvature value to bend them.
+quick_plot_arrow_edges <- function(
+  mapping = NULL,
+  data_directed,
+  data_bidirected,
+  arrow_head,
+  arrow_fins,
+  resect,
+  linewidth,
+  length,
+  show.legend = NA,
+  ...
+) {
+  list(
+    geom_dag_arrow_arc(
+      mapping = mapping,
+      data = data_directed,
+      curvature = 0,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      resect = resect,
+      linewidth = linewidth,
+      length = length,
+      show.legend = show.legend,
+      ...
+    ),
+    geom_dag_arrow_arc(
+      mapping = mapping,
+      data = data_bidirected,
+      curvature = ggdag_option("curvature", 0.3),
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+      resect = resect,
+      linewidth = linewidth,
+      length = length,
+      show.legend = show.legend,
+      ...
+    )
+  )
+}
+
+# ggarrow reads a bare arrow length as a multiple of the shaft width, so the
+# length ggdag documents in points has to travel as an absolute unit.
+arrow_length_unit <- function(arrow_length) {
+  grid::unit(arrow_length, "pt")
+}
+
 # Build ggarrow edge layers for geom_dag()
 geom_dag_ggarrow_edges <- function(
   edge_type,
@@ -1365,6 +1430,8 @@ geom_dag_ggarrow_edges <- function(
   arrow_mid <- ggdag_option("arrow_mid", NULL)
   curvature <- ggdag_option("curvature", 0.3)
   resect <- sizes[["cap"]]
+  linewidth <- sizes[["edge"]]
+  arrow_length <- arrow_length_unit(sizes[["arrow"]])
 
   dag_mapping <- aes_dag()
 
@@ -1379,6 +1446,8 @@ geom_dag_ggarrow_edges <- function(
         arrow_mid = arrow_mid,
         curvature = 0,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       ),
       geom_dag_arrow_arc(
@@ -1389,6 +1458,8 @@ geom_dag_ggarrow_edges <- function(
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       )
     ),
@@ -1399,6 +1470,8 @@ geom_dag_ggarrow_edges <- function(
       arrow_fins = arrow_fins,
       arrow_mid = arrow_mid,
       resect = resect,
+      linewidth = linewidth,
+      length = arrow_length,
       show.legend = show.legend
     ),
     "arc" = list(
@@ -1410,6 +1483,8 @@ geom_dag_ggarrow_edges <- function(
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       ),
       geom_dag_arrow_arc(
@@ -1420,6 +1495,8 @@ geom_dag_ggarrow_edges <- function(
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       )
     ),
@@ -1432,6 +1509,8 @@ geom_dag_ggarrow_edges <- function(
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       ),
       geom_dag_arrow_arc(
@@ -1442,6 +1521,8 @@ geom_dag_ggarrow_edges <- function(
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       )
     )
@@ -1579,6 +1660,7 @@ geom_dag <- function(
 ) {
   use_nodes <- check_arg_node(node, use_nodes)
   use_stylized <- check_arg_stylized(stylized, use_stylized)
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
   sizes <- c(
     cap = edge_cap,
@@ -1599,8 +1681,6 @@ geom_dag <- function(
       edge_type <- ggdag_option("edge_type", "link_arc")
     }
     edge_type <- match.arg(edge_type)
-
-    edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
     if (identical(edge_engine, "ggarrow")) {
       edge_geom <- geom_dag_ggarrow_edges(
@@ -1660,6 +1740,10 @@ geom_dag <- function(
     } else {
       draw_key_dag_point
     }
+
+    # the key draws the ornament this plot's edges are drawn with, which the
+    # argument settles even when the global option says otherwise
+    node_key_glyph <- dag_key_glyph(node_key_glyph, edge_engine)
 
     if (isTRUE(use_stylized)) {
       node_geom <- geom_dag_node(
@@ -1793,44 +1877,77 @@ geom_dag <- function(
 
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.geom_dag_layers <- function(object, plot, ...) {
-  # Check if plot data has edge_curvature column
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
     plot_data <- pull_dag_data(plot_data)
   }
   has_curvature <- "edge_curvature" %in% names(plot_data)
+  wants_curve <- has_curvature &&
+    any(plot_data$edge_curvature != 0, na.rm = TRUE)
+  curvature_ignored <- FALSE
 
+  for (item in flatten_dag_layers(object)) {
+    if (has_curvature && inherits(item, "dag_arrow_layer")) {
+      item <- inject_edge_curvature(item)
+    }
+    if (wants_curve && inherits(item, "dag_edge_layer")) {
+      curvature_ignored <- TRUE
+    }
+    plot <- ggplot2::ggplot_add(item, plot, ...)
+  }
+
+  if (curvature_ignored) {
+    warn_ignored_edge_curvature()
+  }
+
+  plot
+}
+
+# `geom_dag()` hands back a list that can hold further lists, because an edge
+# type such as `link_arc` needs a layer per edge direction. The wrapped layer
+# classes are lists too, so they are the leaves of the walk rather than
+# something to iterate into: routing them through `ggplot_add()` themselves is
+# what gives them their caps and their discovered node size.
+flatten_dag_layers <- function(object) {
+  leaves <- list()
   for (item in object) {
     if (is.null(item)) {
       next
     }
-
-    # Inject edge_curvature mapping into ggarrow edge layers
-    if (has_curvature && inherits(item, "dag_arrow_layer")) {
-      item$layer$mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
-    }
-
-    # Lists of layers (e.g., link_arc returns two geom_dag_arrow_arc layers)
-    if (
-      is.list(item) &&
-        !inherits(item, "ggproto") &&
-        !inherits(item, "dag_arrow_layer") &&
-        !inherits(item, "dag_layer")
-    ) {
-      for (sub_item in item) {
-        if (has_curvature && inherits(sub_item, "dag_arrow_layer")) {
-          sub_item$layer$mapping$edge_curvature <- rlang::quo(
-            .data$edge_curvature
-          )
-        }
-        plot <- ggplot2::ggplot_add(sub_item, plot, ...)
-      }
+    is_branch <- is.list(item) &&
+      !inherits(item, "ggproto") &&
+      !inherits(item, "dag_arrow_layer") &&
+      !inherits(item, "dag_edge_layer") &&
+      !inherits(item, "dag_layer")
+    if (is_branch) {
+      leaves <- c(leaves, flatten_dag_layers(item))
     } else {
-      plot <- ggplot2::ggplot_add(item, plot, ...)
+      leaves <- c(leaves, list(item))
     }
   }
+  leaves
+}
 
-  plot
+# A layer is an environment, so the mapping goes onto a copy: the caller may be
+# holding the layer this one was built from.
+inject_edge_curvature <- function(item) {
+  layer <- clone_layer(.subset2(item, "layer"))
+  layer$mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
+  dag_arrow_layer(layer)
+}
+
+# The ggraph edge geoms draw each edge with the curvature of their own edge
+# type and have nowhere to put a per-edge value, so a curvature the plot asked
+# for would otherwise disappear without a word.
+warn_ignored_edge_curvature <- function() {
+  warn(
+    c(
+      "Per-edge curvature is drawn by the ggarrow edge engine only.",
+      "x" = "The {.val ggraph} engine is drawing these edges, so the {.field edge_curvature} values are ignored.",
+      "i" = 'Set {.code edge_engine = "ggarrow"}, or {.code ggdag_options_set(edge_engine = "ggarrow")}, to draw them.'
+    ),
+    warning_class = "ggdag_edge_curvature_warning"
+  )
 }
 
 is_quo_logical <- function(x) {

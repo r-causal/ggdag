@@ -1356,3 +1356,204 @@ test_that("repelled labels avoid drawn bidirected arcs", {
 
   expect_doppelganger("repel labels around a bidirected arc", p)
 })
+
+# -- per-edge curvature and the ggraph engine ---------------------------------
+
+curved_chain_dag <- function() {
+  dagify(
+    y ~ x + curved(m, 0.5),
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+}
+
+test_that("per-edge curvature under the ggraph engine is signalled, not dropped", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  # the ggraph edge layers cannot draw a per-edge curve, so a request for one
+  # has to be reported rather than silently discarded
+  expect_warning(
+    ggdag(curved_chain_dag()),
+    class = "ggdag_edge_curvature_warning"
+  )
+})
+
+test_that("a DAG with no curved edge draws quietly under the ggraph engine", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+
+  expect_no_warning(ggdag(dag))
+  # a curvature column that is all zeros is not a request for a curve either
+  expect_no_warning(ggdag(curve_edge(tidy_dagitty(dag), "x", "m", 0)))
+})
+
+test_that("the ggarrow engine draws per-edge curvature without complaint", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  expect_no_warning(ggdag(curved_chain_dag()))
+})
+
+# -- edge caps sync to the node layer in either layer order -------------------
+
+built_edge_cap <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  for (i in seq_along(plot$layers)) {
+    if (!inherits(plot$layers[[i]]$geom, "GeomDAGEdgePath")) {
+      next
+    }
+    caps <- built$data[[i]]$start_cap
+    if (is.null(caps)) {
+      return(NA_real_)
+    }
+    # a ggraph circle geometry stores its diameter as `width`
+    return(unique(vapply(
+      caps,
+      function(cap) unclass(cap)$width / 2,
+      numeric(1)
+    )))
+  }
+  NA_real_
+}
+
+test_that("edge caps sync to the node layer whichever order the layers arrive", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+
+  nodes_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 24) +
+    geom_dag_edges_link()
+  edges_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_edges_link() +
+    geom_dag_point(size = 24)
+
+  expect_equal(built_edge_cap(nodes_first), 12)
+  # the order every layer-by-layer example uses; the caps must still sync
+  expect_equal(built_edge_cap(edges_first), 12)
+})
+
+test_that("an edge layer inside a geom_dag() layer list still syncs its caps", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+
+  # geom_dag() hands back a bare list of layers; an edge layer arriving that
+  # way has to go through the same cap injection as a standalone one
+  p <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    structure(list(geom_dag_edges_link()), class = "geom_dag_layers")
+
+  edge_layer <- p$layers[[2]]
+  expect_false(is.null(edge_layer$mapping$start_cap))
+  cap <- rlang::eval_tidy(edge_layer$mapping$start_cap)
+  expect_equal(unclass(cap)$width / 2, 16)
+})
+
+test_that("one stored edge layer reads each plot it joins", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+  edge_layer <- geom_dag_edges_link()
+
+  with_nodes <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    edge_layer
+  without_nodes <- ggplot(tidy_dag, aes_dag()) + edge_layer
+
+  cap <- rlang::eval_tidy(with_nodes$layers[[2]]$mapping$start_cap)
+  expect_equal(unclass(cap)$width / 2, 16)
+
+  # the second plot has no node layer, so its caps stay at the geom default
+  expect_null(without_nodes$layers[[1]]$mapping$start_cap)
+  # and the stored layer is still the blank one that was created
+  expect_null(edge_layer$layer$mapping$start_cap)
+})
+
+# -- repel obstacles follow the geometry each edge is drawn with --------------
+
+repel_obstacle_points <- function(plot) {
+  stats <- vapply(plot$layers, function(l) class(l$stat)[1], character(1))
+  index <- which(stats == "StatNodesRepel")[1]
+  layer_rows <- ggplot2::layer_data(plot, index)
+  layer_rows[
+    layer_rows$label == "" & layer_rows[["point.size"]] == 0,
+    c("x", "y")
+  ]
+}
+
+repel_plot <- function(tidy_dag, edge_layer) {
+  ggplot(tidy_dag, aes_dag()) +
+    edge_layer +
+    geom_dag_point() +
+    geom_dag_label_repel(
+      aes(label = name),
+      seed = 1234,
+      n_edge_points = 5,
+      n_node_points = 0
+    )
+}
+
+# how far each obstacle sits from the nearest point of the drawn edge path
+distance_to_drawn_edges <- function(plot, obstacles) {
+  drawn <- ggplot2::layer_data(plot, 1)
+  vapply(
+    seq_len(nrow(obstacles)),
+    function(i) {
+      min(sqrt(
+        (drawn$x - obstacles$x[i])^2 + (drawn$y - obstacles$y[i])^2
+      ))
+    },
+    numeric(1)
+  )
+}
+
+test_that("repelled labels avoid drawn diagonal edges", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    b ~ a,
+    c ~ b,
+    coords = list(x = c(a = 0, b = 1, c = 2), y = c(a = 0, b = 1, c = 0))
+  ))
+
+  p <- repel_plot(tidy_dag, geom_dag_edges_diagonal())
+  obstacles <- repel_obstacle_points(p)
+
+  expect_gt(nrow(obstacles), 0)
+  expect_lt(max(distance_to_drawn_edges(p, obstacles)), 0.01)
+})
+
+test_that("repelled labels avoid drawn fan edges", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    b ~ a,
+    b ~ ~a,
+    coords = list(x = c(a = 0, b = 2), y = c(a = 0, b = 0))
+  ))
+
+  p <- repel_plot(tidy_dag, geom_dag_edges_fan(spread = 2))
+  obstacles <- repel_obstacle_points(p)
+
+  # the two parallel edges fan out either side of the straight chord, so
+  # obstacles pinned to the chord protect neither of them
+  expect_gt(nrow(obstacles), 0)
+  expect_gt(max(abs(obstacles$y)), 0.1)
+  expect_lt(max(distance_to_drawn_edges(p, obstacles)), 0.01)
+})
+
+test_that("repel obstacles follow arcs through a transformed position scale", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    b ~ a,
+    c ~ b,
+    coords = list(x = c(a = 1, b = 10, c = 100), y = c(a = 0, b = 0, c = 0))
+  ))
+
+  p <- repel_plot(tidy_dag, geom_dag_edges_arc(curvature = 0.6)) +
+    scale_x_log10()
+  obstacles <- repel_obstacle_points(p)
+
+  # the arc bulges away from the chord; matching stat coordinates against the
+  # untransformed data must not send the obstacles back onto the chord
+  expect_gt(nrow(obstacles), 0)
+  expect_gt(max(abs(obstacles$y)), 0.1)
+})
