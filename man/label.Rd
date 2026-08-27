@@ -25,8 +25,9 @@ has_labels(.tdy_dag)
 \arguments{
 \item{x}{an object of either class \code{tidy_dagitty} or \code{dagitty}}
 
-\item{value}{a named character vector, where the names are node names, or
-\code{NULL} to remove labels}
+\item{value}{a named character vector, where the names are nodes in the
+DAG (a name that matches no node is an error), or \code{NULL} to remove
+labels}
 
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 

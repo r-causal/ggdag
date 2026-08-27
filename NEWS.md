@@ -1,5 +1,7 @@
 # ggdag (development version)
 
+* A label naming a variable the DAG does not hold is an error, from `dagify()`, `dag_label()`, and `label<-` alike. Such a name is a typo or a leftover from an edit to the DAG, and it was silently dropped, so a misspelled name left its node unlabeled without a word. Labels carried over when a DAG is rebuilt from filtered data still drop the removed variables' labels quietly.
+
 * Node layers now draw each variable once per panel. The tidy data holds a row per edge, so a node with several edges was drawn once per row, and where an analysis column such as `path` was mapped to a color, an unmarked copy drawn last hid the marked one underneath it. In `ggdag_paths()`, a variable on an open path could be drawn in the shadow color as a result. Two nodes given the same coordinates are still drawn as two. A node layer trains its scales on the rows it draws, so a level of an edge-level aesthetic that appeared only on a dropped duplicate row no longer reaches the legend.
 
 * `dag_prune()` takes a data frame of edges, with `name` and `to` columns and an optional `direction` column, as well as the named character vector it has always taken. A pair of nodes can hold a directed edge and a bidirected edge at once, and endpoints alone name both; `dag_prune()` now errors on such a pair rather than pruning both, and the `direction` column names the one to remove. An `edges` argument that names no edge at all is an error too, in either form, rather than returning the DAG unchanged.

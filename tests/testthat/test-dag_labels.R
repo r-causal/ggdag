@@ -149,3 +149,78 @@ test_that("unnamed labels produce an informative message", {
 
   expect_ggdag_error(dagify(y ~ x, labels = c("The Exposure", "The Outcome")))
 })
+
+test_that("labels naming nodes not in the DAG are rejected", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x))
+  .dag <- dagify(y ~ x)
+  ghost_labels <- c("x" = "The Exposure", "nope" = "Ghost")
+
+  expect_error(
+    dagify(y ~ x, labels = ghost_labels),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    dag_label(tidy_dag, labels = ghost_labels),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    {
+      label(.dag) <- ghost_labels
+    },
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    {
+      label(tidy_dag) <- ghost_labels
+    },
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    as_tidy_dagitty(
+      data.frame(name = "x", to = "y"),
+      labels = ghost_labels
+    ),
+    class = "ggdag_missing_nodes_error"
+  )
+
+  # labels that name only DAG nodes still attach
+  labels <- c("x" = "The Exposure", "y" = "The Outcome")
+  labelled_dag <- dagify(y ~ x, labels = labels) |> tidy_dagitty()
+  expect_equal(label(pull_dag(labelled_dag)), labels)
+})
+
+test_that("unknown label names produce an informative message", {
+  # never record a baseline from the pre-fix silent drop
+  skip_if_not(inherits(
+    tryCatch(
+      dagify(y ~ x, labels = c("x" = "The Exposure", "nope" = "Ghost")),
+      error = identity
+    ),
+    "ggdag_missing_nodes_error"
+  ))
+
+  expect_ggdag_error(
+    dagify(y ~ x, labels = c("x" = "The Exposure", "nope" = "Ghost"))
+  )
+})
+
+test_that("rebuilding a DAG from filtered data drops orphaned labels quietly", {
+  labelled <- dagify(
+    y ~ x,
+    z ~ x,
+    labels = c("x" = "The Exposure", "z" = "Removed")
+  ) |>
+    tidy_dagitty()
+
+  # `update_dag()` rebuilds the dagitty object from the remaining rows, so
+  # the label for the removed node has no home; it is dropped, not an error
+  filtered <- labelled |>
+    dplyr::filter(name != "z", !to %in% "z") |>
+    update_dag()
+
+  expect_false("z" %in% pull_dag_data(filtered)$name)
+  expect_equal(
+    label(pull_dag(filtered)),
+    c("x" = "The Exposure")
+  )
+})

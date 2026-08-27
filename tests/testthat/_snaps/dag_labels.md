@@ -18,3 +18,13 @@
       x Each label must be named for the node it belongs to.
       i For example: `c(x = "Exposure", y = "Outcome")`.
 
+# unknown label names produce an informative message
+
+    Code
+      expr
+    Condition <ggdag_missing_nodes_error>
+      Error in `label<-`:
+      ! `labels` not found in DAG.
+      x Missing: "nope"
+      i Available nodes: "x" and "y"
+
