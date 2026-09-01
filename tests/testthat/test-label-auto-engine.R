@@ -530,7 +530,7 @@ test_that("curved edge polylines act as obstacles", {
   # -19.206 with t = x / 80) fall inside the S, SE, and SW boxes (for
   # example (40, -9.603) in S, (44, -9.507) in SE, (36, -9.507) in SW). So
   # b's label must move farther out; the first fully clear candidate in
-  # preference order is SE ring 2 (x in [51.853, 69.853], y in [-18.853,
+  # preference order is SE ring 2 (x in [50.853, 68.853], y in [-18.853,
   # -10.853]), which every sampled edge point misses (the curve stays above
   # y = -8.8 over that x range and the other edges stay at or above y = 0).
   # Nodes d, e, and c have unobstructed NE quadrants (every nearby edge
