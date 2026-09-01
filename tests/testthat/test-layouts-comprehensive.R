@@ -6,8 +6,8 @@ test_that("time_ordered_coords with direction = 'y' works", {
     stringsAsFactors = FALSE
   )
 
-  # Test with direction = "y" (vertical layout)
-  coords_y <- time_ordered_coords(time_df, direction = "y")
+  # Test with direction = "y" (vertical layout); the spread tibble form
+  coords_y <- time_ordered_coords(time_df, direction = "y", optimize = FALSE)
 
   # Check structure
   expect_s3_class(coords_y, "data.frame")
@@ -54,8 +54,8 @@ test_that("time_ordered_coords with different time points", {
     stringsAsFactors = FALSE
   )
 
-  # Test basic functionality
-  coords <- time_ordered_coords(time_df)
+  # Test basic functionality of the spread tibble form
+  coords <- time_ordered_coords(time_df, optimize = FALSE)
 
   # Check structure
   expect_s3_class(coords, "data.frame")
@@ -81,7 +81,7 @@ test_that("time_ordered_coords only returns name, x, y columns", {
     stringsAsFactors = FALSE
   )
 
-  coords <- time_ordered_coords(time_df)
+  coords <- time_ordered_coords(time_df, optimize = FALSE)
 
   # Should only have name, x, y columns
   expect_equal(names(coords), c("name", "x", "y"))

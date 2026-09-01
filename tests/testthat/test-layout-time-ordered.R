@@ -1041,7 +1041,7 @@ test_that("time_ordered_coords() with no args returns a closure", {
 })
 
 test_that("time_ordered_coords(list(...)) still works (manual path)", {
-  coords <- time_ordered_coords(list("a", c("b1", "b2"), "c"))
+  coords <- time_ordered_coords(list("a", c("b1", "b2"), "c"), optimize = FALSE)
   expect_s3_class(coords, "tbl_df")
   expect_named(coords, c("name", "x", "y"))
   expect_equal(nrow(coords), 4)
@@ -1052,7 +1052,7 @@ test_that("time_ordered_coords(data.frame(...)) still works", {
     name = c("x1", "x2", "y"),
     time = c(1, 1, 2)
   )
-  coords <- time_ordered_coords(df)
+  coords <- time_ordered_coords(df, optimize = FALSE)
   expect_s3_class(coords, "tbl_df")
   expect_equal(nrow(coords), 3)
 })

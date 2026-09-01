@@ -83,12 +83,15 @@ test_that("layout = time_ordered_coords() (function) works in tidy_dagitty", {
 })
 
 test_that("layout = time_ordered_coords(list(...)) (tibble) works in tidy_dagitty", {
-  coords <- time_ordered_coords(list(
-    "a",
-    c("b1", "b2"),
-    c("c1", "c2", "c3"),
-    "d"
-  ))
+  coords <- time_ordered_coords(
+    list(
+      "a",
+      c("b1", "b2"),
+      c("c1", "c2", "c3"),
+      "d"
+    ),
+    optimize = FALSE
+  )
 
   dag <- dagify(
     d ~ c1 + c2 + c3,
@@ -151,13 +154,17 @@ test_that("time_ordered_coords(): a factor time column errors", {
 
 test_that("time_ordered_coords(): default time points are one per period", {
   vars <- list("a", c("b1", "b2"), c("c1", "c2", "c3"), "d")
-  coords <- time_ordered_coords(vars)
+  coords <- time_ordered_coords(vars, optimize = FALSE)
   expect_equal(sort(unique(coords$x)), seq_along(vars))
 })
 
 test_that("time_ordered_coords(): time_points is one element per period", {
   vars <- list("a", c("b1", "b2"), c("c1", "c2", "c3"), "d")
-  coords <- time_ordered_coords(vars, time_points = c(1, 2, 4, 8))
+  coords <- time_ordered_coords(
+    vars,
+    time_points = c(1, 2, 4, 8),
+    optimize = FALSE
+  )
   expect_equal(sort(unique(coords$x)), c(1, 2, 4, 8))
 })
 

@@ -434,6 +434,68 @@ test_that("a tier list keeps an isolated node at its given tier", {
   )
 })
 
+# Construction and defaults ----------------------------------------------------
+
+test_that("direction = 'y' groups tiers along the y axis when optimizing", {
+  tiers <- list("a", c("b1", "b2"), "c")
+  coords_fun <- time_ordered_coords(tiers, direction = "y")
+  coords <- coords_fun(manual_edges(c("a->b1", "a->b2", "b1->c", "b2->c")))
+
+  tier_y <- purrr::map(tiers, function(nodes) {
+    unique(coords$y[coords$name %in% nodes])
+  })
+  # y is constant within each tier and strictly increasing across tiers
+  expect_true(all(lengths(tier_y) == 1))
+  expect_true(all(diff(unlist(tier_y)) > 0))
+})
+
+test_that("the closure defaults to sequential tier positions and layout columns", {
+  coords_fun <- time_ordered_coords(list("a", c("b1", "b2"), "c"))
+  coords <- coords_fun(manual_edges(c("a->b1", "a->b2", "b1->c", "b2->c")))
+
+  expect_named(coords, c("name", "x", "y"))
+  expect_equal(node_x(coords, "a"), 1)
+  expect_equal(node_x(coords, "b1"), 2)
+  expect_equal(node_x(coords, "b2"), 2)
+  expect_equal(node_x(coords, "c"), 3)
+})
+
+test_that("manual-mode validation speaks in terms of .vars and time_points", {
+  # a node the time periods do not cover errors at layout time, naming .vars
+  coords_fun <- time_ordered_coords(list("a", "b"))
+  expect_error(
+    coords_fun(manual_edges(c("a->b", "a->c"))),
+    class = "ggdag_type_error",
+    regexp = "\\.vars"
+  )
+
+  # a variable listed twice errors when the coordinates are created
+  expect_error(
+    time_ordered_coords(list("a", c("a", "b"))),
+    class = "ggdag_type_error",
+    regexp = "\\.vars"
+  )
+
+  # a time_points length mismatch errors when the coordinates are created
+  expect_error(
+    time_ordered_coords(list("a", "b"), time_points = c(1, 2, 3)),
+    class = "ggdag_type_error",
+    regexp = "time_points"
+  )
+})
+
+test_that("an empty time period keeps its axis gap under the default", {
+  coords_fun <- time_ordered_coords(list("a", character(0), "b"))
+  coords <- coords_fun(manual_edges("a->b"))
+  expect_equal(node_x(coords, "a"), 1)
+  expect_equal(node_x(coords, "b"), 3)
+
+  # and the spread tibble form is unchanged
+  naive <- time_ordered_coords(list("a", character(0), "b"), optimize = FALSE)
+  expect_equal(naive$x[naive$name == "a"], 1)
+  expect_equal(naive$x[naive$name == "b"], 3)
+})
+
 # Back-compat ------------------------------------------------------------------
 
 test_that("as_tidy_dagitty.list() output is unchanged", {

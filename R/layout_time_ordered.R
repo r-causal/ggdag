@@ -1167,6 +1167,145 @@ greedy_post_correction <- function(
   positions
 }
 
+# Fixed layer assignment -------------------------------------------------------
+
+#' Validate a fixed layer assignment and convert it to internal layers
+#'
+#' Checks that `fixed_layers` is a named vector of whole non-negative tiers,
+#' assigns each node at most once, and covers every node in the edge data.
+#' The stages downstream index layers from 0 with no gaps, so the given tiers
+#' are ranked densely; their relative order is all the stages use, and
+#' `normalize_positions()` maps the ranks back to time points at the end.
+#'
+#' @param fixed_layers Named numeric vector (node name -> tier).
+#' @param edges_df Data frame with columns `name` and `to`.
+#' @param arg Argument name used in error messages, so a validation failure
+#'   speaks in the caller's vocabulary: `time_ordered_coords()` passes
+#'   `".vars"`, while direct engine calls keep the default.
+#' @return A named integer vector of 0-based dense layer indices, in the
+#'   order the nodes were given, so within-tier order survives into the
+#'   layer construction.
+#' @noRd
+validate_fixed_layers <- function(
+  fixed_layers,
+  edges_df,
+  arg = "fixed_layers"
+) {
+  nms <- names(fixed_layers)
+  if (
+    length(fixed_layers) == 0 ||
+      is.null(nms) ||
+      anyNA(nms) ||
+      any(nms == "")
+  ) {
+    abort(
+      "{.arg {arg}} must be a named vector (e.g. {.code c(x = 1, z = 2)}).",
+      error_class = "ggdag_type_error"
+    )
+  }
+  if (anyDuplicated(nms) > 0) {
+    dupes <- unique(nms[duplicated(nms)])
+    abort(
+      c(
+        "{.arg {arg}} must assign each node exactly one tier.",
+        "x" = "{.val {dupes}} {?is/are} assigned more than once."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+  if (
+    !is.numeric(fixed_layers) ||
+      anyNA(fixed_layers) ||
+      !all(is.finite(fixed_layers))
+  ) {
+    abort(
+      "{.arg {arg}} values must be finite numbers.",
+      error_class = "ggdag_type_error"
+    )
+  }
+  if (any(fixed_layers != round(fixed_layers))) {
+    fractional <- nms[fixed_layers != round(fixed_layers)]
+    abort(
+      c(
+        "{.arg {arg}} values must be whole numbers.",
+        "x" = "{.val {fractional}} {?is/are} assigned a fractional tier."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+  if (any(fixed_layers < 0)) {
+    negative <- nms[fixed_layers < 0]
+    abort(
+      c(
+        "{.arg {arg}} values must not be negative.",
+        "x" = "{.val {negative}} {?is/are} assigned a negative tier."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  edge_nodes <- unique(c(edges_df$name, edges_df$to))
+  edge_nodes <- edge_nodes[!is.na(edge_nodes)]
+  uncovered <- setdiff(edge_nodes, nms)
+  if (length(uncovered) > 0) {
+    abort(
+      c(
+        "{.arg {arg}} must assign a tier to every node.",
+        "x" = "No tier for: {.val {uncovered}}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  tiers <- as.numeric(fixed_layers)
+  stats::setNames(match(tiers, sort(unique(tiers))) - 1L, nms)
+}
+
+#' Warn about and drop edges that violate a fixed layer assignment
+#'
+#' A directed edge whose source tier is not strictly earlier than its target
+#' tier contradicts the given layers, and the layers win: every such edge is
+#' named in a single warning and removed from the data the ordering and
+#' geometry stages optimize. The caller still draws it, since the returned
+#' layout covers both of its endpoints.
+#'
+#' @param edges_df A data frame with columns `name` and `to`, optionally
+#'   `direction`. Bidirected rows carry no time order and are never
+#'   violations.
+#' @param layer_assign Named integer vector (node -> 0-based layer index).
+#' @return `edges_df` without the violating rows.
+#' @noRd
+drop_tier_violations <- function(edges_df, layer_assign) {
+  if ("direction" %in% names(edges_df)) {
+    is_bidirected <- !is.na(edges_df$to) &
+      !is.na(edges_df$direction) &
+      edges_df$direction == "<->"
+  } else {
+    is_bidirected <- rep(FALSE, nrow(edges_df))
+  }
+
+  violating <- rep(FALSE, nrow(edges_df))
+  directed_idx <- which(!is.na(edges_df$to) & !is_bidirected)
+  violating[directed_idx] <- layer_assign[edges_df$name[directed_idx]] >=
+    layer_assign[edges_df$to[directed_idx]]
+
+  n_bad <- sum(violating)
+  if (n_bad > 0) {
+    bad <- edges_df[violating, , drop = FALSE]
+    bad_edges <- paste(bad$name, "->", bad$to)
+    warn(
+      c(
+        "{cli::qty(n_bad)}{?An edge contradicts/Edges contradict} the time ordering of the given tiers.",
+        "x" = "{cli::qty(n_bad)}Edge{?s} {.val {bad_edges}} do{?es/} not point to a later tier.",
+        "i" = "The tiers are kept as given; {cli::qty(n_bad)}{?this edge is/these edges are} drawn but excluded from layout optimization."
+      ),
+      warning_class = "ggdag_tier_violation_warning"
+    )
+  }
+
+  edges_df[!violating, , drop = FALSE]
+}
+
 # Orchestrator -----------------------------------------------------------------
 
 #' Compute overlap-free time-ordered layout
@@ -1179,6 +1318,21 @@ greedy_post_correction <- function(
 #'
 #' @param edges_df Data frame with `name` and `to` columns (from `edges2df()`).
 #' @param direction Either `"x"` (default, time on x-axis) or `"y"`.
+#' @param fixed_layers Optional named numeric vector assigning every node in
+#'   `edges_df` to a tier (node name -> tier). When supplied, layer inference
+#'   is skipped entirely and the assignment is honored exactly as given;
+#'   `fixed_time`, `sort_direction`, `exposure`, `outcome`, and
+#'   `adjust_exposure_outcome` take no part. Tiers must be whole non-negative
+#'   numbers, and a directed edge that does not point to a strictly later
+#'   tier is named in one warning and excluded from the optimization, though
+#'   its endpoints still receive coordinates.
+#' @param time_points Optional numeric vector mapping tiers to axis
+#'   positions, one value per distinct tier in ascending tier order. Only
+#'   used with `fixed_layers`; the default positions tiers at 1, 2, 3, and
+#'   so on.
+#' @param fixed_layers_arg Argument name used in `fixed_layers` error
+#'   messages; `time_ordered_coords()` passes `".vars"` so the errors its
+#'   layout closures raise name the argument the user actually supplied.
 #' @param node_scale Multiplier for the drawn node size, `node_size / 16`
 #'   for the default node size of 16. Scales `node_radius` and, through it,
 #'   the spacing and clearance defaults below, so larger nodes get room in
@@ -1198,6 +1352,9 @@ compute_time_ordered_layout <- function(
   direction = "x",
   sort_direction = "right",
   fixed_time = NULL,
+  fixed_layers = NULL,
+  time_points = NULL,
+  fixed_layers_arg = "fixed_layers",
   exposure = character(0),
   outcome = character(0),
   adjust_exposure_outcome = TRUE,
@@ -1218,151 +1375,182 @@ compute_time_ordered_layout <- function(
   # Filter out bidirected edges — only directed edges drive stages 2-4
   directed <- split_edge_types(edges_df)$directed
 
-  # Validate fixed_time
-  if (!is.null(fixed_time) && length(fixed_time) > 0) {
+  if (!is.null(fixed_layers)) {
+    # The given tiers replace Stage 1 wholesale: no layer inference runs, no
+    # exposure/outcome adjustment applies, and an edge that contradicts the
+    # tiers is warned about once and set aside for the stages below.
+    layer_assign <- validate_fixed_layers(
+      fixed_layers,
+      edges_df,
+      arg = fixed_layers_arg
+    )
     if (
-      is.null(names(fixed_time)) ||
-        anyNA(names(fixed_time)) ||
-        any(names(fixed_time) == "")
+      !is.null(time_points) &&
+        length(time_points) != length(unique(layer_assign))
     ) {
-      abort(
-        "{.arg fixed_time} must be a named vector (e.g. {.code c(x = 2, z = 3)})."
-      )
-    }
-    if (
-      !is.numeric(fixed_time) ||
-        anyNA(fixed_time) ||
-        !all(is.finite(fixed_time))
-    ) {
-      abort(
-        "{.arg fixed_time} values must be finite numbers."
-      )
-    }
-    if (any(fixed_time < 1)) {
-      abort(
-        "{.arg fixed_time} values must be >= 1 (time points are 1-based)."
-      )
-    }
-    # A time point is a layer index, so a fractional pin has no meaning here.
-    # Truncating one silently would contradict the promise that a pinned time
-    # comes back unchanged, and rounding would guess at the user's intent.
-    if (any(fixed_time != round(fixed_time))) {
-      fractional <- names(fixed_time)[fixed_time != round(fixed_time)]
       abort(
         c(
-          "{.arg fixed_time} values must be whole numbers.",
-          "x" = "{.val {fractional}} {?is/are} pinned to a fractional time."
-        )
+          "{.arg time_points} must have one value per tier.",
+          "x" = "{.arg time_points} has {length(time_points)} value{?s}, but
+                 {.arg {fixed_layers_arg}} holds
+                 {length(unique(layer_assign))} tier{?s}."
+        ),
+        error_class = "ggdag_type_error"
       )
     }
-  }
+    edges_df <- drop_tier_violations(edges_df, layer_assign)
+    directed <- split_edge_types(edges_df)$directed
+    fixed_time <- NULL
+  } else {
+    time_points <- NULL
 
-  # Convert user-facing 1-based fixed_time to internal 0-based layers
-  internal_fixed_time <- fixed_time
-  if (!is.null(internal_fixed_time) && length(internal_fixed_time) > 0) {
-    internal_fixed_time <- stats::setNames(
-      as.integer(internal_fixed_time) - 1L,
-      names(internal_fixed_time)
-    )
-  }
-
-  # Stage 1: Layer assignment (handles bidirected internally). Resolve the
-  # bidirected groups here so the exposure/outcome adjustment below sees the
-  # same groups the layering used, including any the layering had to drop.
-  groups <- resolve_bidirected_groups(edges_df)
-  layer_assign <- longest_path_layers(
-    edges_df,
-    sort_direction = sort_direction,
-    fixed_time = internal_fixed_time,
-    groups = groups
-  )
-
-  # Exposure/outcome same-layer adjustment
-  if (
-    isTRUE(adjust_exposure_outcome) &&
-      length(exposure) > 0 &&
-      length(outcome) > 0
-  ) {
-    pinned <- if (!is.null(internal_fixed_time)) {
-      names(internal_fixed_time)
-    } else {
-      character(0)
+    # Validate fixed_time
+    if (!is.null(fixed_time) && length(fixed_time) > 0) {
+      if (
+        is.null(names(fixed_time)) ||
+          anyNA(names(fixed_time)) ||
+          any(names(fixed_time) == "")
+      ) {
+        abort(
+          "{.arg fixed_time} must be a named vector (e.g. {.code c(x = 2, z = 3)})."
+        )
+      }
+      if (
+        !is.numeric(fixed_time) ||
+          anyNA(fixed_time) ||
+          !all(is.finite(fixed_time))
+      ) {
+        abort(
+          "{.arg fixed_time} values must be finite numbers."
+        )
+      }
+      if (any(fixed_time < 1)) {
+        abort(
+          "{.arg fixed_time} values must be >= 1 (time points are 1-based)."
+        )
+      }
+      # A time point is a layer index, so a fractional pin has no meaning here.
+      # Truncating one silently would contradict the promise that a pinned time
+      # comes back unchanged, and rounding would guess at the user's intent.
+      if (any(fixed_time != round(fixed_time))) {
+        fractional <- names(fixed_time)[fixed_time != round(fixed_time)]
+        abort(
+          c(
+            "{.arg fixed_time} values must be whole numbers.",
+            "x" = "{.val {fractional}} {?is/are} pinned to a fractional time."
+          )
+        )
+      }
     }
 
-    for (exp_node in exposure) {
-      for (out_node in outcome) {
-        if (
-          !(exp_node %in% names(layer_assign)) ||
-            !(out_node %in% names(layer_assign))
-        ) {
-          next
-        }
-        if (layer_assign[[exp_node]] == layer_assign[[out_node]]) {
-          # Check if outcome is pinned — if so, skip with message
-          if (out_node %in% pinned) {
-            cli::cli_inform(
-              c(
-                "Outcome {.val {out_node}} shares a layer with exposure
+    # Convert user-facing 1-based fixed_time to internal 0-based layers
+    internal_fixed_time <- fixed_time
+    if (!is.null(internal_fixed_time) && length(internal_fixed_time) > 0) {
+      internal_fixed_time <- stats::setNames(
+        as.integer(internal_fixed_time) - 1L,
+        names(internal_fixed_time)
+      )
+    }
+
+    # Stage 1: Layer assignment (handles bidirected internally). Resolve the
+    # bidirected groups here so the exposure/outcome adjustment below sees the
+    # same groups the layering used, including any the layering had to drop.
+    groups <- resolve_bidirected_groups(edges_df)
+    layer_assign <- longest_path_layers(
+      edges_df,
+      sort_direction = sort_direction,
+      fixed_time = internal_fixed_time,
+      groups = groups
+    )
+
+    # Exposure/outcome same-layer adjustment
+    if (
+      isTRUE(adjust_exposure_outcome) &&
+        length(exposure) > 0 &&
+        length(outcome) > 0
+    ) {
+      pinned <- if (!is.null(internal_fixed_time)) {
+        names(internal_fixed_time)
+      } else {
+        character(0)
+      }
+
+      for (exp_node in exposure) {
+        for (out_node in outcome) {
+          if (
+            !(exp_node %in% names(layer_assign)) ||
+              !(out_node %in% names(layer_assign))
+          ) {
+            next
+          }
+          if (layer_assign[[exp_node]] == layer_assign[[out_node]]) {
+            # Check if outcome is pinned — if so, skip with message
+            if (out_node %in% pinned) {
+              cli::cli_inform(
+                c(
+                  "Outcome {.val {out_node}} shares a layer with exposure
 {.val {exp_node}}, but was not shifted because it has a
 {.arg fixed_time} pin.",
-                "i" = "Remove the pin or adjust it manually to separate them."
-              ),
-              class = "ggdag_message"
-            )
-            next
-          }
-          # Shift the outcome, its descendants, and anything the same-layer
-          # bidirected constraint ties to them, all by +1
-          shift_nodes <- shift_closure(out_node, directed, groups)
-          shift_nodes <- intersect(shift_nodes, names(layer_assign))
+                  "i" = "Remove the pin or adjust it manually to separate them."
+                ),
+                class = "ggdag_message"
+              )
+              next
+            }
+            # Shift the outcome, its descendants, and anything the same-layer
+            # bidirected constraint ties to them, all by +1
+            shift_nodes <- shift_closure(out_node, directed, groups)
+            shift_nodes <- intersect(shift_nodes, names(layer_assign))
 
-          # The exposure travels with the outcome when a bidirected edge ties
-          # the two, or when the outcome is an ancestor of the exposure. The
-          # shift cannot separate them then, and applying it anyway moves the
-          # pair to a later time point for no reason, which shows once
-          # `fixed_time` fixes the layers to absolute time points.
-          if (exp_node %in% shift_nodes) {
-            cli::cli_inform(
-              c(
-                "Outcome {.val {out_node}} shares a layer with exposure
+            # The exposure travels with the outcome when a bidirected edge ties
+            # the two, or when the outcome is an ancestor of the exposure. The
+            # shift cannot separate them then, and applying it anyway moves the
+            # pair to a later time point for no reason, which shows once
+            # `fixed_time` fixes the layers to absolute time points.
+            if (exp_node %in% shift_nodes) {
+              cli::cli_inform(
+                c(
+                  "Outcome {.val {out_node}} shares a layer with exposure
 {.val {exp_node}}, but was not shifted because the two move together.",
-                "i" = "Separate them with {.arg fixed_time}, or set
+                  "i" = "Separate them with {.arg fixed_time}, or set
 {.code adjust_exposure_outcome = FALSE}."
-              ),
-              class = "ggdag_message"
+                ),
+                class = "ggdag_message"
+              )
+              next
+            }
+
+            movable <- setdiff(shift_nodes, pinned)
+            blocked <- intersect(shift_nodes, pinned)
+
+            candidate <- layer_assign
+            candidate[movable] <- candidate[movable] + 1L
+            # Only the edges the shift touches can change: everything else keeps
+            # the layers it already had
+            touched <- directed$name %in%
+              shift_nodes |
+              directed$to %in% shift_nodes
+            advances <- all(
+              candidate[directed$name[touched]] <
+                candidate[directed$to[touched]]
             )
-            next
-          }
-
-          movable <- setdiff(shift_nodes, pinned)
-          blocked <- intersect(shift_nodes, pinned)
-
-          candidate <- layer_assign
-          candidate[movable] <- candidate[movable] + 1L
-          # Only the edges the shift touches can change: everything else keeps
-          # the layers it already had
-          touched <- directed$name %in%
-            shift_nodes |
-            directed$to %in% shift_nodes
-          advances <- all(
-            candidate[directed$name[touched]] < candidate[directed$to[touched]]
-          )
-          if (!advances) {
-            # Only a pinned member of the shifted set can hold a node back,
-            # and moving the rest would draw a cause and its effect at the
-            # same time point
-            cli::cli_inform(
-              c(
-                "Outcome {.val {out_node}} shares a layer with exposure
+            if (!advances) {
+              # Only a pinned member of the shifted set can hold a node back,
+              # and moving the rest would draw a cause and its effect at the
+              # same time point
+              cli::cli_inform(
+                c(
+                  "Outcome {.val {out_node}} shares a layer with exposure
 {.val {exp_node}}, but was not shifted because {.val {blocked}} {?has/have} a
 {.arg fixed_time} pin.",
-                "i" = "Remove the pin or adjust it manually to separate them."
-              ),
-              class = "ggdag_message"
-            )
-            next
+                  "i" = "Remove the pin or adjust it manually to separate them."
+                ),
+                class = "ggdag_message"
+              )
+              next
+            }
+            layer_assign <- candidate
           }
-          layer_assign <- candidate
         }
       }
     }
@@ -1476,6 +1664,7 @@ compute_time_ordered_layout <- function(
     layer_assign,
     direction,
     fixed_time = fixed_time,
+    time_points = time_points,
     layer_gap = layer_gap
   )
 }
@@ -1524,6 +1713,11 @@ better_positions <- function(a, b, edges_df, node_radius) {
 #' @param positions List with `$x` and `$y` (named numeric vectors).
 #' @param layer_assign Named integer vector (node -> 0-based layer).
 #' @param direction `"x"` or `"y"` — swap axes if `"y"`.
+#' @param fixed_time Named vector of user pins; its presence switches the
+#'   layer-to-x mapping to preserve the pinned 1-based time points.
+#' @param time_points Optional numeric vector of axis positions, one per
+#'   distinct layer in ascending layer order; used verbatim as the layer-to-x
+#'   mapping and taking precedence over `fixed_time`.
 #' @param layer_gap Horizontal pixel distance between layers. Both axes are
 #'   divided by this one scale, so internal geometry (spacing, clearances,
 #'   the bow of arc edges) survives into data space undistorted.
@@ -1534,6 +1728,7 @@ normalize_positions <- function(
   layer_assign,
   direction = "x",
   fixed_time = NULL,
+  time_points = NULL,
   layer_gap = 180
 ) {
   node_names <- names(positions$x)
@@ -1543,7 +1738,13 @@ normalize_positions <- function(
 
   # at 1) so pinned nodes keep their requested time point.
   unique_layers <- sort(unique(layer_assign))
-  if (!is.null(fixed_time) && length(fixed_time) > 0) {
+  if (!is.null(time_points) && length(time_points) > 0) {
+    # The caller supplies one axis position per layer, ascending
+    layer_map <- stats::setNames(
+      as.numeric(time_points),
+      as.character(unique_layers)
+    )
+  } else if (!is.null(fixed_time) && length(fixed_time) > 0) {
     # Preserve user's 1-based time points: internal 0-based + 1
     layer_map <- stats::setNames(
       unique_layers + 1L,

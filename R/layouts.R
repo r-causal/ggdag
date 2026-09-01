@@ -4,9 +4,13 @@
 #' Pass the results to the `coords` argument of `dagify()`. If `.vars` if not
 #' specified, these coordinates will be determined automatically. If you want to
 #' be specific, you can also use a list or data frame. The default is to assume
-#' you want variables to go from left to right in order by time. Variables are
-#' spread along the y-axis using a simple algorithm to stack them. You can also
-#' work along the y-axis by setting `direction = "y"`.
+#' you want variables to go from left to right in order by time. By default,
+#' manually supplied time periods are also routed through the layout engine:
+#' each variable keeps the time period you gave it, while positions within and
+#' across time periods are optimized to reduce edge crossings and node-edge
+#' overlaps. Set `optimize = FALSE` to instead spread variables along the
+#' y-axis with the simple stacking algorithm earlier versions used. You can
+#' also work along the y-axis by setting `direction = "y"`.
 #'
 #' @param .vars A list of character vectors, where each vector represents a
 #'   single time period. Alternatively, a data frame where the first column is
@@ -36,9 +40,21 @@
 #'   minimize node-edge overlaps. If `FALSE`, nodes are evenly spaced within
 #'   each layer using barycenter ordering only. Setting to `FALSE` is useful
 #'   when edges will be curved or auto-routed, where tight Y positioning is
-#'   less important. Only used in auto mode (`.vars = NULL`).
+#'   less important. Used whenever a layout is computed, that is, in auto mode
+#'   (`.vars = NULL`) and when `.vars` is supplied with `optimize = TRUE`.
+#' @param optimize If `TRUE` (default) and `.vars` is supplied, return a layout
+#'   function that routes your time periods through the layout engine. The
+#'   time period of every variable is honored exactly as given, including any
+#'   edge that contradicts it; such an edge is still drawn, but a warning
+#'   names it and it takes no part in the optimization. If `FALSE`, return a
+#'   tibble of coordinates that spreads each time period's variables evenly,
+#'   as earlier versions of ggdag did. With `.vars = NULL`, `optimize` is
+#'   ignored and the automatic layout function is returned either way.
 #'
-#' @return A tibble with three columns: `name`, `x`, and `y`.
+#' @return A layout function for the `coords` argument of [dagify()] or the
+#'   `layout` argument of [tidy_dagitty()], except when `.vars` is supplied
+#'   with `optimize = FALSE`, which returns a tibble with three columns:
+#'   `name`, `x`, and `y`.
 #'
 #' @examples
 #'
@@ -91,7 +107,8 @@ time_ordered_coords <- function(
   auto_sort_direction = c("right", "left"),
   fixed_time = NULL,
   adjust_exposure_outcome = TRUE,
-  force_y = TRUE
+  force_y = TRUE,
+  optimize = TRUE
 ) {
   direction <- match.arg(direction)
   auto_sort_direction <- match.arg(auto_sort_direction)
@@ -150,12 +167,66 @@ time_ordered_coords <- function(
     .vars <- split(.vars[[1]], times)
   }
 
-  purrr::map2_dfr(
-    time_points %||% seq_along(.vars),
-    .vars,
-    spread_coords,
-    direction = direction
+  if (!isTRUE(optimize)) {
+    return(purrr::map2_dfr(
+      time_points %||% seq_along(.vars),
+      .vars,
+      spread_coords,
+      direction = direction
+    ))
+  }
+
+  tiers <- lapply(.vars, as.character)
+
+  all_names <- unlist(tiers)
+  dupes <- unique(all_names[duplicated(all_names)])
+  if (length(dupes) > 0) {
+    abort(
+      c(
+        "Every variable in {.arg .vars} must appear in exactly one time period.",
+        "x" = "{.val {dupes}} {?is/are} listed more than once."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  tier_points <- time_points %||% seq_along(tiers)
+  if (length(tier_points) != length(tiers)) {
+    abort(
+      c(
+        "{.arg time_points} must have one value per time period.",
+        "x" = "{.arg time_points} has {length(tier_points)} value{?s}, but
+               {.arg .vars} has {length(tiers)} time period{?s}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  # An empty time period holds no variables but keeps its place on the axis:
+  # with default time points, list("a", character(0), "b") puts "b" at 3
+  keep <- lengths(tiers) > 0
+  tiers <- tiers[keep]
+  tier_points <- tier_points[keep]
+
+  fixed_layers <- stats::setNames(
+    rep(seq_along(tiers), lengths(tiers)),
+    unlist(tiers)
   )
+
+  manual_time_ordered_coords <- function(.df, ...) {
+    compute_time_ordered_layout(
+      .df,
+      direction = direction,
+      fixed_layers = fixed_layers,
+      time_points = tier_points,
+      fixed_layers_arg = ".vars",
+      force_y = force_y,
+      node_scale = ggdag_option("node_size", 16) / 16,
+      ...
+    )
+  }
+
+  manual_time_ordered_coords
 }
 
 spread_coords <- function(.time, .vars, direction) {
