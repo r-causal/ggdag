@@ -84,22 +84,12 @@ tidy_dagitty <- function(
   # them to generate_layout regardless of use_existing_coords.
   computed_coords <- FALSE
   if (is.function(layout)) {
-    # isolated nodes never appear in the edge list, so add them explicitly or
-    # the user's layout function will not position them
-    edge_df <- dag_edges |>
-      edges2df() |>
-      add_isolated_nodes(names(.dagitty))
-    coords <- if ("..." %in% names(formals(layout))) {
-      layout(
-        edge_df,
-        exposure = dagitty::exposures(.dagitty),
-        outcome = dagitty::outcomes(.dagitty)
-      )
-    } else {
-      layout(edge_df)
-    }
-    coords <- coords2list(coords)
-    dagitty::coordinates(.dagitty) <- coords
+    dagitty::coordinates(.dagitty) <- compute_layout_coords(
+      layout,
+      dag_edges,
+      names(.dagitty),
+      dag = .dagitty
+    )
     computed_coords <- TRUE
     layout <- "nicely"
   } else if (is.data.frame(layout)) {
@@ -112,15 +102,12 @@ tidy_dagitty <- function(
       !all(is.na(unlist(existing)))
     if (!isTRUE(use_existing_coords) || !has_coords) {
       time_ordered_coords <- tryCatch(
-        dag_edges |>
-          edges2df() |>
-          add_isolated_nodes(names(.dagitty)) |>
-          compute_time_ordered_layout(
-            exposure = dagitty::exposures(.dagitty),
-            outcome = dagitty::outcomes(.dagitty),
-            node_scale = ggdag_option("node_size", 16) / 16
-          ) |>
-          coords2list(),
+        compute_layout_coords(
+          "time_ordered",
+          dag_edges,
+          names(.dagitty),
+          dag = .dagitty
+        ),
         error = function(e) {
           # The package's own errors describe a DAG or an argument the user
           # can fix, such as a time pin no ordering can satisfy. Falling back

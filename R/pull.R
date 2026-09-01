@@ -100,7 +100,11 @@ pull_dag_data.dagitty <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag_data<-.tidy_dagitty` <- function(x, value) {
-  x$data <- prep_dag_data(value, call = rlang::caller_env())
+  x$data <- prep_dag_data(
+    value,
+    dag = pull_dag(x),
+    call = rlang::caller_env()
+  )
   x
 }
 
@@ -108,6 +112,7 @@ prep_dag_data <- function(
   value,
   layout = ggdag_option("layout", "nicely"),
   coords = NULL,
+  dag = NULL,
   ...,
   call = rlang::caller_env()
 ) {
@@ -139,7 +144,7 @@ prep_dag_data <- function(
     value <- dplyr::select(value, -dplyr::any_of(c("x", "y", "xend", "yend")))
 
     if (is.null(coords)) {
-      coords <- layout_coordinates(value, layout)
+      coords <- layout_coordinates(value, layout, dag)
     }
 
     coords_df <- value |>
@@ -189,22 +194,67 @@ prep_dag_data <- function(
 #'
 #' @param value A data frame of edges.
 #' @param layout A layout name, data frame, or function.
+#' @param dag The `dagitty` object the data came from, or `NULL` when there is
+#'   none, as when a DAG is first built from a data frame.
 #' @return A list of `x` and `y`, or `NULL` if ggraph is to lay the DAG out.
 #' @noRd
-layout_coordinates <- function(value, layout) {
-  if (is.function(layout)) {
-    return(coords2list(layout(edges2df(value))))
-  }
-
+layout_coordinates <- function(value, layout, dag = NULL) {
   if (is.data.frame(layout)) {
     return(coords2list(layout))
   }
 
-  if (identical(layout, "time_ordered")) {
-    return(coords2list(compute_time_ordered_layout(edges2df(value))))
+  if (is.function(layout) || identical(layout, "time_ordered")) {
+    return(compute_layout_coords(layout, value, all_node_names(value), dag))
   }
 
   NULL
+}
+
+#' Compute coordinates for a layout ggdag resolves itself
+#'
+#' Both entry points to a resolved layout go through this builder: the direct
+#' path in `tidy_dagitty()` and the rebuild in `prep_dag_data()` when a dplyr
+#' verb removes the coordinate columns. Sharing it keeps the two paths in
+#' step: the engine's input always lists edge rows first, then terminal
+#' nodes, then isolated nodes, and the layout always sees the DAG's exposure,
+#' outcome, and the node size option.
+#'
+#' @param layout A layout function, or the string `"time_ordered"`.
+#' @param edges_df A data frame with `name` and `to` columns; rows with a
+#'   missing `to` are node-only rows and are rebuilt in canonical order.
+#' @param nodes A character vector of every node in the DAG.
+#' @param dag The `dagitty` object the edges came from, for its exposure and
+#'   outcome, or `NULL` when there is none.
+#' @return A list of `x` and `y` coordinates named by node.
+#' @noRd
+compute_layout_coords <- function(layout, edges_df, nodes, dag = NULL) {
+  exposure <- if (is.null(dag)) character(0) else dagitty::exposures(dag)
+  outcome <- if (is.null(dag)) character(0) else dagitty::outcomes(dag)
+
+  # isolated nodes never appear in the edge list, so add them explicitly or
+  # the layout will not position them; they go last so the engine seeds
+  # within-layer order from the edges rather than from stored row order
+  input <- edges_df |>
+    dplyr::filter(!is.na(.data$to)) |>
+    edges2df() |>
+    add_isolated_nodes(nodes)
+
+  if (is.function(layout)) {
+    coords <- if ("..." %in% names(formals(layout))) {
+      layout(input, exposure = exposure, outcome = outcome)
+    } else {
+      layout(input)
+    }
+    return(coords2list(coords))
+  }
+
+  input |>
+    compute_time_ordered_layout(
+      exposure = exposure,
+      outcome = outcome,
+      node_scale = ggdag_option("node_size", 16) / 16
+    ) |>
+    coords2list()
 }
 
 #' Check that edge directions are ones ggdag understands
