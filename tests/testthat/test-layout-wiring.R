@@ -684,6 +684,109 @@ test_that("greedy_post_correction clears bidirected arcs when asked", {
   )
 })
 
+test_that("the layout clears bidirected arcs at the curvature option", {
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.curvature = 0.15))
+
+  # x <-> y spans two layers and its drawn arc follows the curvature option,
+  # so the engine must model the arc at that curvature when it clears nodes.
+  # At 0.15 the arc passes between the chord and the deeper 0.3 bow, exactly
+  # where a middle-layer node settles when the engine clears only the 0.3
+  # arc: an engine that hardcodes 0.3 leaves m1 clipping the drawn arc.
+  edges <- data.frame(
+    name = c("x", "x", "m1", "m2", "x"),
+    to = c("m1", "m2", "y", "y", "y"),
+    direction = c("->", "->", "->", "->", "<->"),
+    stringsAsFactors = FALSE
+  )
+  coords <- compute_time_ordered_layout(edges)
+
+  curvature <- ifelse(edges$direction == "<->", 0.15, 0)
+  expect_identical(
+    count_node_edge_overlaps(
+      coords,
+      edges,
+      node_radius_data(),
+      curvature = curvature
+    ),
+    0L
+  )
+})
+
+test_that("better_positions scores bidirected rows as drawn arcs", {
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.curvature = 0.3))
+
+  # One bidirected edge u <-> v plus an isolated node w. The candidates tie
+  # on every straight-line criterion: no crossings, w clears the chord in
+  # both, and the stress term skips the disconnected w. Only the drawn arc
+  # separates them: arc_hugging parks w on the 0.3 arc below the chord,
+  # arc_clear keeps w far from it, so arc-aware scoring must choose
+  # arc_clear.
+  edges <- data.frame(
+    name = c("u", "w"),
+    to = c("v", NA),
+    direction = c("<->", NA),
+    stringsAsFactors = FALSE
+  )
+  arc_hugging <- list(
+    x = c(u = 0, v = 360, w = 180),
+    y = c(u = 0, v = 0, w = -90)
+  )
+  arc_clear <- list(
+    x = c(u = 0, v = 360, w = 180),
+    y = c(u = 0, v = 0, w = 200)
+  )
+
+  as_coords <- function(positions) {
+    data.frame(
+      name = names(positions$x),
+      x = unname(positions$x),
+      y = unname(positions$y),
+      stringsAsFactors = FALSE
+    )
+  }
+  curvature <- ifelse(
+    !is.na(edges$direction) & edges$direction == "<->",
+    0.3,
+    0
+  )
+
+  # the fixture really does tie on straight-line overlaps and differ on the
+  # arc
+  expect_identical(
+    count_node_edge_overlaps(as_coords(arc_hugging), edges, 26),
+    0L
+  )
+  expect_identical(
+    count_node_edge_overlaps(as_coords(arc_clear), edges, 26),
+    0L
+  )
+  expect_identical(
+    count_node_edge_overlaps(
+      as_coords(arc_hugging),
+      edges,
+      26,
+      curvature = curvature
+    ),
+    1L
+  )
+  expect_identical(
+    count_node_edge_overlaps(
+      as_coords(arc_clear),
+      edges,
+      26,
+      curvature = curvature
+    ),
+    0L
+  )
+
+  expect_identical(
+    better_positions(arc_hugging, arc_clear, edges, 26),
+    arc_clear
+  )
+})
+
 # Regression guards ------------------------------------------------------------
 
 test_that("fixed_time pins survive the wiring", {
