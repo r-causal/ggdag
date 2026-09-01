@@ -117,7 +117,8 @@ tidy_dagitty <- function(
           add_isolated_nodes(names(.dagitty)) |>
           compute_time_ordered_layout(
             exposure = dagitty::exposures(.dagitty),
-            outcome = dagitty::outcomes(.dagitty)
+            outcome = dagitty::outcomes(.dagitty),
+            node_scale = ggdag_option("node_size", 16) / 16
           ) |>
           coords2list(),
         error = function(e) {

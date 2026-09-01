@@ -494,8 +494,7 @@ test_that("the largest canonical DAG lays out in under a second", {
 
   # Lax regression tripwire only. The strict interactive-speed criterion
   # (under 100 ms for the wired pipeline, under 40 ms for order_layers()) is
-  # enforced by a dedicated optimization issue and the benchmark phase, not
-  # by this test.
+  # enforced separately from this tripwire.
   edges <- wiring_edges(canonical_wiring_dags$large_epi$spec)
   times <- replicate(
     5,

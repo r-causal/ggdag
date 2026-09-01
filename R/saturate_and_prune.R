@@ -72,7 +72,7 @@ dag_saturate <- function(
   # ordering comes from the directed edges alone; the bidirected edges are
   # added back to the saturated DAG below
   layer_assign <- edges_df |>
-    dplyr::filter(is.na(.data$to) | .data$direction != "<->") |>
+    dplyr::filter(.data$direction != "<->") |>
     add_isolated_nodes(edged_nodes) |>
     longest_path_layers()
 

@@ -639,7 +639,8 @@ barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
         }
       }
 
-      layer_nodes[[i]] <- names(sort(bary))
+      # Stable sort: on tied barycenters the incumbent order is kept
+      layer_nodes[[i]] <- layer_nodes[[i]][order(bary, seq_along(bary))]
     }
 
     # Backward pass: right to left
@@ -663,7 +664,8 @@ barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
         }
       }
 
-      layer_nodes[[i]] <- names(sort(bary))
+      # Stable sort: on tied barycenters the incumbent order is kept
+      layer_nodes[[i]] <- layer_nodes[[i]][order(bary, seq_along(bary))]
     }
   }
 
@@ -671,6 +673,74 @@ barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
 }
 
 # Stage 3: Force-directed Y optimization --------------------------------------
+
+#' Median-based initial Y positions from an augmented layer ordering
+#'
+#' Dummy-aware median sweeps over the augmented graph described by
+#' `order_layers()$augmented`. Positions start evenly spaced within each
+#' augmented layer, then alternating forward passes (each node moves to the
+#' median of its parents' positions) and backward passes (median of its
+#' children's positions) pull connected nodes into vertical alignment; after
+#' each layer update the within-layer order is restored with a `node_gap`
+#' minimum gap. Because the dummy chains route multi-layer edges through
+#' every intermediate layer, long edges pull their endpoints together layer
+#' by layer instead of being invisible to the sweeps. The dummies are dropped
+#' at the end, so the real nodes' positions can seed `force_directed_y()`.
+#'
+#' @param augmented The `augmented` element of an `order_layers()` result:
+#'   a list with `layer_nodes`, `layer_assign`, and `edges`.
+#' @param node_gap Vertical spacing unit between same-layer nodes.
+#' @param sweeps Number of forward-plus-backward sweep iterations.
+#' @return A named numeric vector of Y positions covering every real node.
+#' @noRd
+median_y_init <- function(augmented, node_gap = 85, sweeps = 4L) {
+  aug_layers <- augmented$layer_nodes
+  aug_edges <- augmented$edges[!is.na(augmented$edges$to), , drop = FALSE]
+
+  max_size <- max(lengths(aug_layers))
+  y <- numeric(0)
+  for (i in seq_along(aug_layers)) {
+    nodes <- aug_layers[[i]]
+    offset <- (max_size - length(nodes)) * node_gap / 2
+    y[nodes] <- offset + (seq_along(nodes) - 1) * node_gap
+  }
+
+  fix_layer <- function(y, nodes) {
+    yy <- y[nodes]
+    if (length(nodes) > 1) {
+      for (j in seq(2, length(nodes))) {
+        if (yy[j] - yy[j - 1] < node_gap) {
+          yy[j] <- yy[j - 1] + node_gap
+        }
+      }
+    }
+    y[nodes] <- yy
+    y
+  }
+
+  for (s in seq_len(sweeps)) {
+    for (i in seq_along(aug_layers)[-1]) {
+      for (node in aug_layers[[i]]) {
+        parents <- aug_edges$name[aug_edges$to == node]
+        if (length(parents) > 0) {
+          y[[node]] <- stats::median(y[parents])
+        }
+      }
+      y <- fix_layer(y, aug_layers[[i]])
+    }
+    for (i in rev(seq_along(aug_layers)[-length(aug_layers)])) {
+      for (node in aug_layers[[i]]) {
+        children <- aug_edges$to[aug_edges$name == node]
+        if (length(children) > 0) {
+          y[[node]] <- stats::median(y[children])
+        }
+      }
+      y <- fix_layer(y, aug_layers[[i]])
+    }
+  }
+
+  y[!startsWith(names(y), dummy_node_prefix)]
+}
 
 #' Optimize Y positions using force simulation
 #'
@@ -686,6 +756,9 @@ barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
 #' @param min_spacing Minimum Y gap enforced between same-layer nodes.
 #' @param clearance Edge-avoidance trigger distance.
 #' @param iterations Number of force simulation iterations.
+#' @param y_init Optional named numeric vector of initial Y positions
+#'   covering every node, such as the result of `median_y_init()`. `NULL`
+#'   falls back to even spacing within each layer.
 #' @return A list with `$x` and `$y`, both named numeric vectors.
 #' @noRd
 force_directed_y <- function(
@@ -697,7 +770,8 @@ force_directed_y <- function(
   node_gap = 85,
   min_spacing = 72,
   clearance = node_radius * 2.5 + 12,
-  iterations = 350L
+  iterations = 350L,
+  y_init = NULL
 ) {
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   all_nodes <- unlist(layer_nodes)
@@ -718,6 +792,10 @@ force_directed_y <- function(
       x_pos[[nodes[j]]] <- layer_idx * layer_gap
       y_pos[[nodes[j]]] <- offset + (j - 1) * node_gap
     }
+  }
+
+  if (!is.null(y_init)) {
+    y_pos <- y_init[all_nodes]
   }
 
   if (nrow(directed) == 0) {
@@ -846,6 +924,69 @@ force_directed_y <- function(
 
 # Stage 4: Greedy post-correction ----------------------------------------------
 
+# Curvature of the arc a bidirected edge is drawn with, matching the default
+# curvature of the edge geoms.
+bidirected_arc_curvature <- 0.3
+
+#' Find nodes too close to drawn bidirected arcs
+#'
+#' Traces each bidirected edge as the arc it is drawn with (curvature
+#' `bidirected_arc_curvature`) and reports every node, other than the two
+#' endpoints, whose center comes closer to the arc than `node_radius + 8`,
+#' mirroring the straight-line detection threshold in `find_overlaps()`.
+#' Unlike the straight-line check, the arc of a same-layer pair bows into
+#' the neighboring column, so no layer-between filter applies: every other
+#' node is a candidate.
+#'
+#' @param positions List with `$x` and `$y` (named numeric vectors).
+#' @param bidirected Data frame of bidirected edges with `name` and `to`.
+#' @param node_radius Radius of each node circle.
+#' @return Data frame with columns: `edge_from`, `edge_to`, `node`, `dist`.
+#' @noRd
+find_arc_overlaps <- function(positions, bidirected, node_radius) {
+  clearance <- node_radius + 8
+  all_nodes <- names(positions$x)
+
+  overlaps <- data.frame(
+    edge_from = character(0),
+    edge_to = character(0),
+    node = character(0),
+    dist = numeric(0),
+    stringsAsFactors = FALSE
+  )
+
+  for (i in seq_len(nrow(bidirected))) {
+    u <- bidirected$name[i]
+    v <- bidirected$to[i]
+    pts <- sample_curved_edge(
+      positions$x[[u]],
+      positions$y[[u]],
+      positions$x[[v]],
+      positions$y[[v]],
+      bidirected_arc_curvature
+    )
+    for (w in setdiff(all_nodes, c(u, v))) {
+      dist <- min(
+        sqrt((positions$x[[w]] - pts$x)^2 + (positions$y[[w]] - pts$y)^2)
+      )
+      if (dist < clearance) {
+        overlaps <- rbind(
+          overlaps,
+          data.frame(
+            edge_from = u,
+            edge_to = v,
+            node = w,
+            dist = dist,
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+    }
+  }
+
+  overlaps
+}
+
 #' Find node-edge overlaps
 #'
 #' @param positions List with `$x` and `$y` (named numeric vectors).
@@ -914,11 +1055,16 @@ find_overlaps <- function(positions, edges_df, layer_assign, node_radius = 26) {
 #' Fix remaining overlaps with exact displacements
 #'
 #' @param positions List with `$x` and `$y` (named numeric vectors).
-#' @param edges_df Data frame with `name` and `to` columns.
+#' @param edges_df Data frame with `name` and `to` columns; a `direction`
+#'   column is honored when present, and bidirected rows take no part in the
+#'   straight-line correction.
 #' @param layer_assign Named integer vector (node -> 0-based layer).
 #' @param node_radius Radius of each node circle.
 #' @param min_spacing Minimum Y gap between same-layer nodes.
 #' @param max_passes Maximum correction iterations.
+#' @param check_bidirected If `TRUE`, each pass also traces the arcs the
+#'   bidirected rows of `edges_df` are drawn with and applies the same
+#'   displacement correction to nodes the arcs pass through.
 #' @return Updated positions list.
 #' @noRd
 greedy_post_correction <- function(
@@ -927,16 +1073,26 @@ greedy_post_correction <- function(
   layer_assign,
   node_radius = 26,
   min_spacing = 72,
-  max_passes = 50L
+  max_passes = 50L,
+  check_bidirected = FALSE
 ) {
   target_clearance <- node_radius + 12
+
+  parts <- split_edge_types(edges_df)
+  directed <- parts$directed
+  bidirected <- if (isTRUE(check_bidirected)) {
+    parts$bidirected
+  } else {
+    parts$bidirected[0, , drop = FALSE]
+  }
 
   # Enforce spacing first
   positions$y <- enforce_spacing(positions$y, layer_assign, min_spacing)
 
   for (pass in seq_len(max_passes)) {
-    overlaps <- find_overlaps(positions, edges_df, layer_assign, node_radius)
-    if (nrow(overlaps) == 0) {
+    overlaps <- find_overlaps(positions, directed, layer_assign, node_radius)
+    arc_overlaps <- find_arc_overlaps(positions, bidirected, node_radius)
+    if (nrow(overlaps) == 0 && nrow(arc_overlaps) == 0) {
       break
     }
 
@@ -972,6 +1128,38 @@ greedy_post_correction <- function(
       positions$y[[v]] <- positions$y[[v]] - direction * needed * 0.45 * t_safe
     }
 
+    for (oi in seq_len(nrow(arc_overlaps))) {
+      u <- arc_overlaps$edge_from[oi]
+      v <- arc_overlaps$edge_to[oi]
+      w <- arc_overlaps$node[oi]
+
+      # Recompute against the current arc — earlier fixes may have moved nodes
+      pts <- sample_curved_edge(
+        positions$x[[u]],
+        positions$y[[u]],
+        positions$x[[v]],
+        positions$y[[v]],
+        bidirected_arc_curvature
+      )
+      dists <- sqrt(
+        (positions$x[[w]] - pts$x)^2 + (positions$y[[w]] - pts$y)^2
+      )
+      nearest <- which.min(dists)
+      if (dists[[nearest]] >= target_clearance) {
+        next
+      }
+
+      needed <- target_clearance - dists[[nearest]] + 2
+      direction <- if (positions$y[[w]] >= pts$y[[nearest]]) 1 else -1
+      t_safe <- max(0.1, min(0.9, (nearest - 1) / (nrow(pts) - 1)))
+
+      # Same displacement split as the straight-line correction above
+      positions$y[[w]] <- positions$y[[w]] + direction * needed * 0.55
+      positions$y[[u]] <- positions$y[[u]] -
+        direction * needed * 0.45 * (1 - t_safe)
+      positions$y[[v]] <- positions$y[[v]] - direction * needed * 0.45 * t_safe
+    }
+
     # Re-enforce spacing
     positions$y <- enforce_spacing(positions$y, layer_assign, min_spacing)
   }
@@ -983,18 +1171,25 @@ greedy_post_correction <- function(
 
 #' Compute overlap-free time-ordered layout
 #'
-#' Runs the full 4-stage algorithm: longest-path layer assignment, barycenter
-#' crossing minimization, force-directed Y optimization, and greedy
-#' post-correction. Returns normalized coordinates suitable for ggdag.
+#' Runs the full 4-stage algorithm: longest-path layer assignment, exact
+#' within-layer crossing minimization, force-directed Y optimization, and
+#' greedy post-correction. Stage 3 runs from two initializations, even
+#' spacing and median sweeps, and the geometrically better result is kept.
+#' Returns normalized coordinates suitable for ggdag.
 #'
 #' @param edges_df Data frame with `name` and `to` columns (from `edges2df()`).
 #' @param direction Either `"x"` (default, time on x-axis) or `"y"`.
+#' @param node_scale Multiplier for the drawn node size, `node_size / 16`
+#'   for the default node size of 16. Scales `node_radius` and, through it,
+#'   the spacing and clearance defaults below, so larger nodes get room in
+#'   proportion. Explicit values for those arguments override the scaled
+#'   defaults.
 #' @param node_radius Node circle radius for overlap detection.
 #' @param layer_gap Horizontal distance between layers (internal).
 #' @param node_gap Initial vertical spacing between same-layer nodes.
 #' @param min_spacing Minimum Y gap enforced between same-layer nodes.
 #' @param iterations Force simulation iterations.
-#' @param sweeps Barycenter sweep iterations.
+#' @param sweeps Barycenter sweep iterations for the ordering stage.
 #' @param max_correction_passes Maximum greedy correction iterations.
 #' @return A tibble with columns `name`, `x`, `y`.
 #' @noRd
@@ -1007,12 +1202,13 @@ compute_time_ordered_layout <- function(
   outcome = character(0),
   adjust_exposure_outcome = TRUE,
   force_y = TRUE,
-  node_radius = 26,
+  node_scale = 1,
+  node_radius = 26 * node_scale,
   layer_gap = 180,
-  node_gap = 85,
-  min_spacing = 72,
+  node_gap = max(85, min_spacing + 13),
+  min_spacing = 2 * node_radius + 20,
   iterations = 350L,
-  sweeps = 40L,
+  sweeps = 8L,
   max_correction_passes = 50L,
   ...
 ) {
@@ -1190,30 +1386,57 @@ compute_time_ordered_layout <- function(
   })
 
   if (nrow(directed) > 0) {
-    layer_nodes <- barycenter_sort(layer_nodes, directed, layer_assign, sweeps)
+    # Same-layer bidirected pairs feed the adjacency penalty, nudging the
+    # members of a pair next to each other so their arc stays short
+    ordering <- order_layers(
+      layer_nodes,
+      directed,
+      layer_assign,
+      sweeps = sweeps,
+      bidirected_pairs = split_edge_types(edges_df)$bidirected
+    )
+    layer_nodes <- ordering$layer_nodes
 
     if (isTRUE(force_y)) {
-      # Stage 3: Force-directed Y optimization
-      positions <- force_directed_y(
-        layer_nodes,
-        layer_assign,
-        directed,
-        node_radius = node_radius,
-        layer_gap = layer_gap,
-        node_gap = node_gap,
-        min_spacing = min_spacing,
-        clearance = node_radius * 2.5 + 12,
-        iterations = iterations
-      )
+      # Stages 3 and 4: force-directed Y optimization, then greedy
+      # post-correction
+      run_geometry <- function(y_init) {
+        positions <- force_directed_y(
+          layer_nodes,
+          layer_assign,
+          directed,
+          node_radius = node_radius,
+          layer_gap = layer_gap,
+          node_gap = node_gap,
+          min_spacing = min_spacing,
+          clearance = node_radius * 2.5 + 12,
+          iterations = iterations,
+          y_init = y_init
+        )
+        greedy_post_correction(
+          positions,
+          edges_df,
+          layer_assign,
+          node_radius = node_radius,
+          min_spacing = min_spacing,
+          max_passes = max_correction_passes,
+          check_bidirected = TRUE
+        )
+      }
 
-      # Stage 4: Greedy post-correction
-      positions <- greedy_post_correction(
-        positions,
-        directed,
-        layer_assign,
-        node_radius = node_radius,
-        min_spacing = min_spacing,
-        max_passes = max_correction_passes
+      # Never-worse guard: the median initialization untangles most DAGs
+      # better than even spacing, but not all of them, so both run and the
+      # geometrically better result is kept. Ties keep the even-spacing
+      # result.
+      even_result <- run_geometry(NULL)
+      median_result <- run_geometry(
+        median_y_init(ordering$augmented, node_gap = node_gap)
+      )
+      positions <- better_positions(
+        even_result,
+        median_result,
+        edges_df,
+        node_radius
       )
     } else {
       # Skip force simulation — evenly space nodes within each layer
@@ -1247,14 +1470,53 @@ compute_time_ordered_layout <- function(
   }
 
   # Normalize: x → integer layer indices (1, 2, 3, ...)
-  # y → centered per layer, scaled so avg spacing ≈ 1
+  # y → centered, divided by the same uniform scale as x
   normalize_positions(
     positions,
     layer_assign,
     direction,
     fixed_time = fixed_time,
-    min_spacing = min_spacing
+    layer_gap = layer_gap
   )
+}
+
+#' Choose the better of two candidate position sets
+#'
+#' Compares two stage 3/4 results computed on the same internal coordinate
+#' scale: fewer straight-line edge crossings wins, then fewer node-edge
+#' overlaps, then lower stress. Ties keep the first candidate.
+#'
+#' @param a,b Position lists with `$x` and `$y` (named numeric vectors).
+#' @param edges_df Data frame with `name` and `to` columns.
+#' @param node_radius Radius of each node circle.
+#' @return Either `a` or `b`.
+#' @noRd
+better_positions <- function(a, b, edges_df, node_radius) {
+  score <- function(positions) {
+    coords <- data.frame(
+      name = names(positions$x),
+      x = unname(positions$x),
+      y = unname(positions$y),
+      stringsAsFactors = FALSE
+    )
+    c(
+      count_edge_crossings(coords, edges_df),
+      count_node_edge_overlaps(coords, edges_df, node_radius),
+      layout_stress(coords, edges_df)
+    )
+  }
+
+  score_a <- score(a)
+  score_b <- score(b)
+  for (i in seq_along(score_a)) {
+    if (score_b[[i]] < score_a[[i]]) {
+      return(b)
+    }
+    if (score_a[[i]] < score_b[[i]]) {
+      return(a)
+    }
+  }
+  a
 }
 
 #' Normalize pixel-space positions to ggdag-friendly coordinates
@@ -1262,8 +1524,9 @@ compute_time_ordered_layout <- function(
 #' @param positions List with `$x` and `$y` (named numeric vectors).
 #' @param layer_assign Named integer vector (node -> 0-based layer).
 #' @param direction `"x"` or `"y"` — swap axes if `"y"`.
-#' @param min_spacing Minimum Y gap enforced between same-layer nodes, used as
-#'   the scale fallback when no layer holds more than one node.
+#' @param layer_gap Horizontal pixel distance between layers. Both axes are
+#'   divided by this one scale, so internal geometry (spacing, clearances,
+#'   the bow of arc edges) survives into data space undistorted.
 #' @return A tibble with `name`, `x`, `y`.
 #' @noRd
 normalize_positions <- function(
@@ -1271,7 +1534,7 @@ normalize_positions <- function(
   layer_assign,
   direction = "x",
   fixed_time = NULL,
-  min_spacing = 72
+  layer_gap = 180
 ) {
   node_names <- names(positions$x)
 
@@ -1300,39 +1563,13 @@ normalize_positions <- function(
     numeric(1)
   )
 
-  # y: center globally, then scale
-  norm_y <- positions$y
-
-  # Center the whole graph at y = 0
-  global_center <- mean(norm_y)
-  norm_y <- norm_y - global_center
-
-  # Scale so average gap between consecutive same-layer nodes ≈ 1
-  all_gaps <- numeric(0)
-  for (layer in unique_layers) {
-    nodes_in <- node_names[layer_assign[node_names] == layer]
-    if (length(nodes_in) > 1) {
-      sorted_y <- sort(norm_y[nodes_in])
-      gaps <- diff(sorted_y)
-      all_gaps <- c(all_gaps, gaps)
-    }
-  }
-
-  # When every layer holds a single node there are no gaps to measure. Fall
-  # back to the spacing the layout enforces between same-layer nodes, which is
-  # the same unit the measured gaps are drawn from. Without a fallback the
-  # coordinates stay in the layout's internal pixel space while x is spaced one
-  # unit per layer, and the resulting anisotropy distorts anything that reads
-  # the two axes together, such as the bow of arc edges.
-  scale_factor <- if (length(all_gaps) > 0 && mean(all_gaps) > 0) {
-    mean(all_gaps)
-  } else {
-    min_spacing
-  }
-
-  if (scale_factor > 0) {
-    norm_y <- norm_y / scale_factor
-  }
+  # y: center the whole graph at y = 0, then divide by the layer gap — the
+  # same uniform scale that maps one internal layer to one x unit. A single
+  # isotropic scale keeps the solved geometry intact in data space, so a
+  # clearance or an arc bow measured internally means the same thing after
+  # normalization.
+  norm_y <- positions$y - mean(positions$y)
+  norm_y <- norm_y / layer_gap
 
   if (direction == "y") {
     tibble::tibble(name = node_names, x = unname(norm_y), y = unname(norm_x))

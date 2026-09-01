@@ -311,6 +311,28 @@ order_layers <- function(
   bidirected_pairs = NULL
 ) {
   layer_assign <- stats::setNames(as.integer(layer_assign), names(layer_assign))
+
+  # Layers are indexed as layer_assign + 1 throughout, so an assignment
+  # outside 0..(n_layers - 1) would slot nodes into the wrong layer or past
+  # the end of the list without a word
+  if (
+    length(layer_assign) > 0L &&
+      (anyNA(layer_assign) ||
+        min(layer_assign) < 0L ||
+        max(layer_assign) >= length(layer_nodes))
+  ) {
+    abort(
+      c(
+        "{.arg layer_assign} must hold 0-based layer indices into
+         {.arg layer_nodes}.",
+        "x" = "{.arg layer_nodes} has {length(layer_nodes)} layer{?s}, so
+               every value must be a whole number from 0 to
+               {length(layer_nodes) - 1L}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
   directed <- split_edge_types(edges_df)$directed
   directed <- directed[, c("name", "to"), drop = FALSE]
 
@@ -335,12 +357,23 @@ order_layers <- function(
 
   n_layers <- length(aug_layers)
 
-  # Same-layer bidirected pairs, grouped by layer, for the adjacency penalty
+  # Same-layer bidirected pairs, grouped by layer, for the adjacency penalty.
+  # A pair whose member is absent from the ordering (an isolated mention, or
+  # a node the caller left out of layer_nodes) has no rank to compare, so it
+  # takes no part in the penalty rather than poisoning the objective.
+  ordered_nodes <- unlist(layer_nodes)
   bidi_by_layer <- vector("list", n_layers)
   if (!is.null(bidirected_pairs) && nrow(bidirected_pairs) > 0L) {
     u_layer <- layer_assign[bidirected_pairs$name]
     v_layer <- layer_assign[bidirected_pairs$to]
-    same <- which(!is.na(u_layer) & !is.na(v_layer) & u_layer == v_layer)
+    same <- which(
+      bidirected_pairs$name %in%
+        ordered_nodes &
+        bidirected_pairs$to %in% ordered_nodes &
+        !is.na(u_layer) &
+        !is.na(v_layer) &
+        u_layer == v_layer
+    )
     for (r in same) {
       li <- u_layer[[r]] + 1L
       bidi_by_layer[[li]] <- rbind(
@@ -390,8 +423,10 @@ order_layers <- function(
     obj
   }
 
-  # Exact refinement: first strict improver in lexicographic order wins, so
-  # the incumbent keeps ties
+  # Exact refinement: every permutation is scanned and only strict
+  # improvements are accepted, so among equal bests the permutation earliest
+  # in lexicographic order wins. The incumbent is the identity permutation,
+  # scanned first, so it keeps any tie at the current best.
   refine_exact <- function(current, i, perms) {
     best <- current
     best_obj <- layer_objective(aug_layers, i, current)

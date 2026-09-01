@@ -1,5 +1,11 @@
 # ggdag (development version)
 
+* The time-ordered layout crosses fewer edges. Within each time layer, small layers are now ordered by an exact search over their permutations rather than the barycenter heuristic alone, multi-layer edges count toward the ordering through every layer they pass, and vertical positions start from a median-based placement whenever that draws a better DAG than even spacing. Layouts that were already at their best are unchanged in structure, and the members of a bidirected pair sharing a layer are nudged next to each other so their arc stays short.
+
+* The time-ordered layout spaces nodes to the size they are drawn at. The spacing and clearance the layout solves for now scale with the `node_size` option, so larger nodes get room in proportion instead of overlapping the edges threaded between them.
+
+* Time-ordered coordinates use one scale for both axes. The y axis was rescaled by the average within-layer gap, so the same DAG could come out vertically stretched or squashed depending on how many nodes shared a layer, and the clearance the layout had solved for did not survive into the drawn plot. Both axes are now divided by the layer gap, so solved spacing, edge clearance, and the bow of bidirected arcs mean the same thing on screen as in the layout. The arcs of bidirected edges are also traced during the final correction pass, so a node sitting on the drawn curve, invisible to the straight-line check, is moved clear.
+
 * `dag_saturate()` no longer draws an edge out of a node that has no edges at all. Such a node says nothing about its time order, but it was placed at the first time point and completed forward, so `dag_saturate()` on a DAG holding `x -> y` and a lone `z` invented `z -> y`. An edge-free node now takes no part in the saturation and is kept as an isolated node, just as bidirected edges are set aside when the time order is read from the directed edges.
 
 * A label naming a variable the DAG does not hold is an error, from `dagify()`, `dag_label()`, and `label<-` alike. Such a name is a typo or a leftover from an edit to the DAG, and it was silently dropped, so a misspelled name left its node unlabeled without a word. Labels carried over when a DAG is rebuilt from filtered data still drop the removed variables' labels quietly.

@@ -279,8 +279,10 @@ count_narrow_angles <- function(coords, edges_df, min_angle = 15) {
 layout_stress <- function(coords, edges_df) {
   edges_df <- edges_df[!is.na(edges_df$to), , drop = FALSE]
 
+  # igraph reads the first two columns as the edge endpoints, so select them
+  # by name rather than trusting the column order of the input
   graph <- igraph::graph_from_data_frame(
-    edges_df,
+    edges_df[, c("name", "to"), drop = FALSE],
     directed = FALSE,
     vertices = coords$name
   )
