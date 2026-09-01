@@ -29,6 +29,19 @@ sorted_y_gaps <- function(coords, nodes) {
   diff(sort(coords$y[coords$name %in% nodes]))
 }
 
+# One coordinate row per node, rounded to the three decimals that
+# `dagitty::coordinates<-` stores, so a layout that round-trips through the
+# dagitty object compares against one that keeps full precision.
+layout_node_coords <- function(.tdy_dag) {
+  pull_dag_data(.tdy_dag) |>
+    dplyr::distinct(name, x, y) |>
+    dplyr::arrange(name) |>
+    dplyr::mutate(
+      x = round(as.numeric(x), digits = 3),
+      y = round(as.numeric(y), digits = 3)
+    )
+}
+
 # The 22 canonical DAGs from the layout design spec (scratch/time_order.md),
 # with per-DAG budgets for straight-line edge crossings in the final layout.
 # "current" records what the engine produces before the ordering and
@@ -419,6 +432,31 @@ test_that("the node_size option scales time-ordered spacing", {
     min_root_gap(tidy_dagitty(dag, layout = time_ordered_coords())),
     default_gap
   )
+})
+
+test_that("a dplyr-verb rebuild reproduces the direct time-ordered layout", {
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.layout = "time_ordered"))
+  dag <- dagify(y ~ a + b + c + d + e)
+
+  direct <- tidy_dagitty(dag, layout = "time_ordered")
+  rebuilt <- dplyr::select(direct, -x, -y, -xend, -yend)
+
+  expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
+})
+
+test_that("the node_size option survives a dplyr-verb layout rebuild", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.node_size = 24
+  ))
+  dag <- dagify(y ~ a + b + c + d + e)
+
+  direct <- tidy_dagitty(dag, layout = "time_ordered")
+  rebuilt <- dplyr::select(direct, -x, -y, -xend, -yend)
+
+  expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
 })
 
 # Determinism ------------------------------------------------------------------
