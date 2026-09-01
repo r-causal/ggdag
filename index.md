@@ -156,7 +156,7 @@ dagify(m ~ x + y) |>
   scale_color_viridis_d(
     name = "d-relationship",
     na.value = "grey85",
-    begin = .35
+    begin = 0.35
   )
 ```
 

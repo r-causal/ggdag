@@ -204,17 +204,20 @@ edge for label repulsion. Passed to repel label geoms. Defaults to <code>NULL</c
 
 
 <dt id="arg-n-node-points">n_node_points<a class="anchor" aria-label="anchor" href="#arg-n-node-points"></a></dt>
-<dd><p>Number of invisible skeleton points to place around each
-node's perimeter for label repulsion. Passed to repel label geoms.
+<dd><p>Target number of invisible skeleton points filling the
+disc that covers each node for label repulsion: a center point plus four
+concentric rings, each holding at least six points, so every value from 1
+to 16 gives the same 25 points per node. Passed to repel label geoms.
 Defaults to <code>NULL</code> (uses <code>StatNodesRepel</code> default of 12). Set to 0 to
-disable.</p></dd>
+disable. The disc is measured in data units, so it matches the drawn node
+only on a panel about 180 mm wide; see <code><a href="repel.html">geom_dag_label_repel()</a></code>.</p></dd>
 
 
 <dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>
 <dd><p>A logical value. When <code>TRUE</code> and both <code>use_edges</code> and
 <code>use_nodes</code> are <code>TRUE</code>, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is <code>TRUE</code>.</p></dd>
+a single, more compact legend. Default is <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-key-glyph">key_glyph<a class="anchor" aria-label="anchor" href="#arg-key-glyph"></a></dt>

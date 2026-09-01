@@ -44,10 +44,10 @@ query_parents(dag)
 #> # A tibble: 4 × 4
 #>   node  parent_set parents   n_parents
 #>   <chr> <chr>      <list>        <int>
-#> 1 w     NA         <chr [1]>         0
+#> 1 w     {}         <chr [0]>         0
 #> 2 x     {w}        <chr [1]>         1
 #> 3 y     {x, z}     <chr [2]>         2
-#> 4 z     NA         <chr [1]>         0
+#> 4 z     {}         <chr [0]>         0
 query_parents(dag, .var = "y")
 #> # A tibble: 1 × 4
 #>   node  parent_set parents   n_parents

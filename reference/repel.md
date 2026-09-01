@@ -152,8 +152,8 @@ geom_dag_text_repel2(
 
   The size of the DAG nodes, used to compute the `point.size` aesthetic
   so that labels repel from the node boundary rather than the node
-  center. Defaults to `NULL`, which auto-discovers the size from a node
-  layer
+  center, and to size the skeleton discs described under Details.
+  Defaults to `NULL`, which auto-discovers the size from a node layer
   ([`geom_dag_node()`](https://r-causal.github.io/ggdag/reference/node_point.md)
   or
   [`geom_dag_point()`](https://r-causal.github.io/ggdag/reference/node_point.md))
@@ -169,10 +169,12 @@ geom_dag_text_repel2(
 
 - n_node_points:
 
-  Number of invisible points to place around each node's perimeter.
-  These skeleton points help ggrepel push labels away from node
-  boundaries. Defaults to `NULL`, which uses the `StatNodesRepel`
-  default of 12. Set to 0 to disable node skeleton repulsion.
+  Target number of invisible points filling the disc that covers each
+  node: a center point plus four concentric rings. Each ring holds at
+  least six points, so every value from 1 to 16 gives the same 25 points
+  per node and the parameter only starts to take effect above 16.
+  Defaults to `NULL`, which uses the `StatNodesRepel` default of 12. Set
+  to 0 to disable node skeleton repulsion.
 
 - box.padding:
 
@@ -310,6 +312,30 @@ and
 [`ggrepel::geom_label_repel()`](https://ggrepel.slowkow.com/reference/geom_text_repel.html)
 that use the custom `StatNodesRepel` for better handling of DAG data.
 All arguments available in ggrepel functions are supported.
+
+Labels are kept off nodes and edges by two mechanisms. The `point.size`
+aesthetic, computed from `node_size`, is converted by ggrepel at draw
+time and so describes the same circle at every device size. The
+invisible points along edges and the disc filling each node, on the
+other hand, are placed in data units: the disc radius is `node_size`
+times the average spread of the nodes divided by 400 (the same divisor
+sizes the debug overlay described in
+[`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
+Because the panel converts data units to millimetres at drawing time,
+that disc is congruent with the drawn node only on a panel about 180 mm
+wide. On a narrower device the disc is smaller than the node it stands
+for and a label may come to rest on the node; on a wider one it is
+larger and labels are pushed further away than they need to be. Set
+`n_node_points = 0` to rely on `point.size` alone.
+
+Points along an edge trace the path that edge is drawn along, including
+the arc of a bidirected edge and of
+[`geom_dag_edges_arc()`](https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.md).
+Edges drawn by
+[`geom_dag_edges_diagonal()`](https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.md),
+[`geom_dag_edges_fan()`](https://r-causal.github.io/ggdag/reference/geom_dag_edge_functions.md),
+and the ggarrow engine are traced along the straight line between their
+nodes.
 
 Additional segment parameters can be passed through `...`, including:
 

@@ -14,20 +14,26 @@ node_canonical(.dag, ...)
 ggdag_canonical(
   .tdy_dag,
   ...,
-  edge_type = ggdag_option("edge_type", "link_arc"),
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
   text_col = ggdag_option("text_col", "white"),
-  label_col = ggdag_option("label_col", text_col),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option("edge_cap", 8),
+  arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
-  use_labels = ggdag_option("use_labels", NULL),
+  use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
-  label = NULL,
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
+  label = NULL,
   node = deprecated(),
   stylized = deprecated()
 )
@@ -42,7 +48,16 @@ ggdag_canonical(
 - ...:
 
   additional arguments passed to
-  [`tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/tidy_dagitty.md)
+  [`tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/tidy_dagitty.md),
+  which lays out the canonical DAG. `use_existing_coords` is not among
+  them: the latent variables that the canonical form introduces have no
+  coordinates to reuse.
+
+- size:
+
+  A numeric value scaling the size of all elements in the DAG. This
+  allows you to change the scale of the DAG without changing the
+  proportions.
 
 - edge_type:
 
@@ -67,6 +82,19 @@ ggdag_canonical(
 - label_col:
 
   The color of the labels.
+
+- edge_width:
+
+  The width of the edges.
+
+- edge_cap:
+
+  The size of edge caps (the distance between the arrowheads and the
+  node borders).
+
+- arrow_length:
+
+  The length of arrows on edges.
 
 - use_edges:
 
@@ -100,16 +128,31 @@ ggdag_canonical(
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
 
-- label:
+- unified_legend:
 
-  The bare name of a column to use for labels. If `use_labels = TRUE`,
-  the default is to use `label`.
+  A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
+  `TRUE`, creates a unified legend entry showing both nodes and edges in
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
+
+- key_glyph:
+
+  A function to use for drawing the legend key glyph for nodes. If
+  `NULL` (the default), the glyph is chosen automatically based on the
+  `unified_legend` setting. When provided, this overrides the automatic
+  selection. Common options include `draw_key_dag_point`,
+  `draw_key_dag_combined`, and `draw_key_dag_collider`.
 
 - text:
 
   The bare name of a column to use for
   [`geom_dag_text()`](https://r-causal.github.io/ggdag/reference/geom_dag_text.md).
   If `use_text = TRUE`, the default is to use `name`.
+
+- label:
+
+  The bare name of a column to use for labels. If `use_labels = TRUE`,
+  the default is to use `label`.
 
 - node:
 

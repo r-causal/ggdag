@@ -1,8 +1,10 @@
 # Generating Equivalent Models
 
-Returns a set of complete partially directed acyclic graphs (CPDAGs)
-given an input DAG. CPDAGs are Markov equivalent to the input graph. See
+Analyze the Markov equivalence class of an input DAG: the DAGs that
+encode the same conditional independencies as the input graph. See
 [`dagitty::equivalentDAGs()`](https://rdrr.io/pkg/dagitty/man/EquivalentModels.html)
+and
+[`dagitty::equivalenceClass()`](https://rdrr.io/pkg/dagitty/man/EquivalentModels.html)
 for details. `node_equivalent_dags()` returns a set of DAGs, while
 `node_equivalent_class()` tags reversable edges.
 `ggdag_equivalent_dags()` plots all equivalent DAGs, while
@@ -14,7 +16,7 @@ for details. `node_equivalent_dags()` returns a set of DAGs, while
 node_equivalent_dags(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "auto"),
+  layout = ggdag_option("layout", "nicely"),
   ...
 )
 
@@ -39,13 +41,14 @@ ggdag_equivalent_dags(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = ggdag_option("layout", "auto"))
+node_equivalent_class(.dag, layout = ggdag_option("layout", "nicely"), ...)
 
 ggdag_equivalent_class(
   .tdy_dag,
@@ -185,8 +188,8 @@ ggdag_equivalent_class(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - key_glyph:
 
@@ -195,6 +198,15 @@ ggdag_equivalent_class(
   `unified_legend` setting. When provided, this overrides the automatic
   selection. Common options include `draw_key_dag_point`,
   `draw_key_dag_combined`, and `draw_key_dag_collider`.
+
+- edge_engine:
+
+  The engine used to draw edges. Either `"ggraph"` (default) or
+  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
+  geoms, which support additional customization via the `arrow_head`,
+  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
 
 - text:
 
@@ -215,20 +227,29 @@ ggdag_equivalent_class(
 
   Deprecated.
 
-- edge_engine:
-
-  The engine used to draw edges. Either `"ggraph"` (default) or
-  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
-  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
-  geoms, which support additional customization via the `arrow_head`,
-  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
-  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
-
 ## Value
 
 a `tidy_dagitty` with at least one DAG, including a `dag` column to
 identify graph set for equivalent DAGs or a `reversable` column for
 equivalent classes, or a `ggplot`
+
+## Details
+
+`node_equivalent_dags()` restores columns that the input `tidy_dagitty`
+carries beyond the standard ones, such as `label` or `status`, by
+joining them back on node name. Only node-level columns survive: a
+column whose value varies across the edges of a node cannot be matched
+to the edges of the equivalent DAGs, so the value of its first edge is
+used for every row of that node.
+
+## Edge layers of the composite plotters
+
+The plotters that color or fade edges by an analysis column build their
+edge layers themselves, and which layers they build is settled from the
+DAG they are called with: a DAG with no bidirected edge is given no
+bidirected edge layer. Replacing the data of the returned plot
+afterwards, with ggplot2's `%+%`, does not bring a layer back, so a plot
+built for one DAG is not a template for another.
 
 ## Examples
 
@@ -241,12 +262,12 @@ g_ex |> node_equivalent_class()
 #> #
 #> # Data:
 #> # A tibble: 4 × 8
-#>   name      x     y direction to     xend  yend reversable
-#>   <chr> <dbl> <dbl> <fct>     <chr> <dbl> <dbl> <lgl>     
-#> 1 x       0       2 ->        y       0.5     1 TRUE      
-#> 2 y       0.5     1 NA        NA     NA      NA FALSE     
-#> 3 z       0.5     3 ->        x       0       2 TRUE      
-#> 4 z       0.5     3 ->        y       0.5     1 TRUE      
+#>   name          x      y direction to      xend   yend reversable
+#>   <chr>     <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl> <lgl>     
+#> 1 x     -4.99e- 1 -0.288 ->        y      0.499 -0.288 TRUE      
+#> 2 y      4.99e- 1 -0.288 NA        NA    NA     NA     FALSE     
+#> 3 z      9.70e-11  0.576 ->        x     -0.499 -0.288 TRUE      
+#> 4 z      9.70e-11  0.576 ->        y      0.499 -0.288 TRUE      
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

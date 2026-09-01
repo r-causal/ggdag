@@ -244,7 +244,15 @@ functions label variables depending on their relationship. The
 
 
 <dt id="arg--var">.var<a class="anchor" aria-label="anchor" href="#arg--var"></a></dt>
-<dd><p>a character vector, the variable to be assessed (must by in DAG)</p></dd>
+<dd><p>a character vector, the variable(s) to be assessed (must be in
+the DAG). When more than one variable is given, the relation is assessed
+against the set as a whole. <code>node_parents()</code>, <code>node_children()</code>, and
+<code>node_adjacent()</code> label a queried variable that is also a relative of
+another queried variable with the relation rather than as a queried
+variable. <code>node_ancestors()</code>, <code>node_descendants()</code>, and
+<code>node_markov_blanket()</code> instead drop every queried variable from the
+relation set, so a queried variable always carries the queried-set label
+and only variables outside the queried set carry the relation label.</p></dd>
 
 
 <dt id="arg-as-factor">as_factor<a class="anchor" aria-label="anchor" href="#arg-as-factor"></a></dt>
@@ -332,7 +340,7 @@ and <code>geom_dag_text_repel2</code>.</p></dd>
 <dd><p>A logical value. When <code>TRUE</code> and both <code>use_edges</code> and
 <code>use_nodes</code> are <code>TRUE</code>, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is <code>TRUE</code>.</p></dd>
+a single, more compact legend. Default is <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg-text">text<a class="anchor" aria-label="anchor" href="#arg-text"></a></dt>

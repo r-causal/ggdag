@@ -77,6 +77,8 @@ ggdag_paths_fan(
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
+  key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -245,14 +247,33 @@ ggdag_paths_fan(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
+
+- key_glyph:
+
+  A function to use for drawing the legend key glyph for nodes. If
+  `NULL` (the default), the glyph is chosen automatically based on the
+  `unified_legend` setting. When provided, this overrides the automatic
+  selection. Common options include `draw_key_dag_point`,
+  `draw_key_dag_combined`, and `draw_key_dag_collider`.
 
 ## Value
 
 a `tidy_dagitty` with a `path` column for path variables, a `set`
-grouping column, and a `path_type` column classifying paths as
-"backdoor" or "direct", or a `ggplot`.
+grouping column, and a `path_type` column classifying paths as "direct"
+(a directed causal path), "backdoor" (a path whose first edge points
+into the exposure), or "other" (any other path, such as one through a
+collider), or a `ggplot`.
+
+## Edge layers of the composite plotters
+
+The plotters that color or fade edges by an analysis column build their
+edge layers themselves, and which layers they build is settled from the
+DAG they are called with: a DAG with no bidirected edge is given no
+bidirected edge layer. Replacing the data of the returned plot
+afterwards, with ggplot2's `%+%`, does not bring a layer back, so a plot
+built for one DAG is not a template for another.
 
 ## Examples
 

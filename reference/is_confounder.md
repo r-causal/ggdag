@@ -30,6 +30,15 @@ is_confounder(.tdy_dag, z, x, y, direct = FALSE)
 
 Logical. Is the variable a confounder?
 
+## Details
+
+A confounder is a common cause of `x` and `y`. `z` therefore has to
+reach `x` by a directed path that does not run through `y`, and reach
+`y` by a directed path that does not run through `x`. Being a descendant
+of `z` is not enough: descent is transitive through `x`, so every
+upstream cause of the exposure, such as an instrument, would qualify
+even though it opens no backdoor path.
+
 ## Examples
 
 ``` r

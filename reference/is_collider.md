@@ -1,6 +1,9 @@
 # Detecting colliders in DAGs
 
-Detecting colliders in DAGs
+A collider is a variable that two edges point into. Bidirected edges
+count, so a variable with one directed parent and one bidirected partner
+is a collider, as is a variable with two bidirected partners and no
+parents.
 
 ## Usage
 

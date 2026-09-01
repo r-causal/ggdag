@@ -59,20 +59,26 @@ are not currently supported in <code>ggdag</code>.</p>
 <span><span class="fu">ggdag_canonical</span><span class="op">(</span></span>
 <span>  <span class="va">.tdy_dag</span>,</span>
 <span>  <span class="va">...</span>,</span>
-<span>  edge_type <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"edge_type"</span>, <span class="st">"link_arc"</span><span class="op">)</span>,</span>
+<span>  size <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  edge_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"link_arc"</span>, <span class="st">"link"</span>, <span class="st">"arc"</span>, <span class="st">"diagonal"</span><span class="op">)</span>,</span>
 <span>  node_size <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"node_size"</span>, <span class="fl">16</span><span class="op">)</span>,</span>
 <span>  text_size <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"text_size"</span>, <span class="fl">3.88</span><span class="op">)</span>,</span>
 <span>  label_size <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"label_size"</span>, <span class="va">text_size</span><span class="op">)</span>,</span>
 <span>  text_col <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"text_col"</span>, <span class="st">"white"</span><span class="op">)</span>,</span>
-<span>  label_col <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"label_col"</span>, <span class="va">text_col</span><span class="op">)</span>,</span>
+<span>  label_col <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"label_col"</span>, <span class="st">"black"</span><span class="op">)</span>,</span>
+<span>  edge_width <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"edge_width"</span>, <span class="fl">0.6</span><span class="op">)</span>,</span>
+<span>  edge_cap <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"edge_cap"</span>, <span class="fl">8</span><span class="op">)</span>,</span>
+<span>  arrow_length <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"arrow_length"</span>, <span class="fl">5</span><span class="op">)</span>,</span>
 <span>  use_edges <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"use_edges"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  use_nodes <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"use_nodes"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  use_stylized <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"use_stylized"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  use_text <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"use_text"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>  use_labels <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"use_labels"</span>, <span class="cn">NULL</span><span class="op">)</span>,</span>
+<span>  use_labels <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"use_labels"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  label_geom <span class="op">=</span> <span class="fu"><a href="ggdag_options.html">ggdag_option</a></span><span class="op">(</span><span class="st">"label_geom"</span>, <span class="va">geom_dag_label_repel</span><span class="op">)</span>,</span>
-<span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  unified_legend <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  key_glyph <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  text <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  label <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  node <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  stylized <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -88,7 +94,14 @@ are not currently supported in <code>ggdag</code>.</p>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>additional arguments passed to <code><a href="tidy_dagitty.html">tidy_dagitty()</a></code></p></dd>
+<dd><p>additional arguments passed to <code><a href="tidy_dagitty.html">tidy_dagitty()</a></code>, which lays out
+the canonical DAG. <code>use_existing_coords</code> is not among them: the latent
+variables that the canonical form introduces have no coordinates to reuse.</p></dd>
+
+
+<dt id="arg-size">size<a class="anchor" aria-label="anchor" href="#arg-size"></a></dt>
+<dd><p>A numeric value scaling the size of all elements in the DAG. This
+allows you to change the scale of the DAG without changing the proportions.</p></dd>
 
 
 <dt id="arg-edge-type">edge_type<a class="anchor" aria-label="anchor" href="#arg-edge-type"></a></dt>
@@ -114,6 +127,19 @@ are not currently supported in <code>ggdag</code>.</p>
 
 <dt id="arg-label-col">label_col<a class="anchor" aria-label="anchor" href="#arg-label-col"></a></dt>
 <dd><p>The color of the labels.</p></dd>
+
+
+<dt id="arg-edge-width">edge_width<a class="anchor" aria-label="anchor" href="#arg-edge-width"></a></dt>
+<dd><p>The width of the edges.</p></dd>
+
+
+<dt id="arg-edge-cap">edge_cap<a class="anchor" aria-label="anchor" href="#arg-edge-cap"></a></dt>
+<dd><p>The size of edge caps (the distance between the arrowheads
+and the node borders).</p></dd>
+
+
+<dt id="arg-arrow-length">arrow_length<a class="anchor" aria-label="anchor" href="#arg-arrow-length"></a></dt>
+<dd><p>The length of arrows on edges.</p></dd>
 
 
 <dt id="arg-use-edges">use_edges<a class="anchor" aria-label="anchor" href="#arg-use-edges"></a></dt>
@@ -145,14 +171,29 @@ include <code>geom_dag_label</code>, <code>geom_dag_text_repel</code>, <code>geo
 and <code>geom_dag_text_repel2</code>.</p></dd>
 
 
-<dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
-<dd><p>The bare name of a column to use for labels.
-If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p></dd>
+<dt id="arg-unified-legend">unified_legend<a class="anchor" aria-label="anchor" href="#arg-unified-legend"></a></dt>
+<dd><p>A logical value. When <code>TRUE</code> and both <code>use_edges</code> and
+<code>use_nodes</code> are <code>TRUE</code>, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+a single, more compact legend. Default is <code>TRUE</code>.</p></dd>
+
+
+<dt id="arg-key-glyph">key_glyph<a class="anchor" aria-label="anchor" href="#arg-key-glyph"></a></dt>
+<dd><p>A function to use for drawing the legend key glyph for nodes.
+If <code>NULL</code> (the default), the glyph is chosen automatically based on the
+<code>unified_legend</code> setting. When provided, this overrides the automatic
+selection. Common options include <code>draw_key_dag_point</code>,
+<code>draw_key_dag_combined</code>, and <code>draw_key_dag_collider</code>.</p></dd>
 
 
 <dt id="arg-text">text<a class="anchor" aria-label="anchor" href="#arg-text"></a></dt>
 <dd><p>The bare name of a column to use for <code><a href="geom_dag_text.html">geom_dag_text()</a></code>. If
 <code>use_text = TRUE</code>, the default is to use <code>name</code>.</p></dd>
+
+
+<dt id="arg-label">label<a class="anchor" aria-label="anchor" href="#arg-label"></a></dt>
+<dd><p>The bare name of a column to use for labels.
+If <code>use_labels = TRUE</code>, the default is to use <code>label</code>.</p></dd>
 
 
 <dt id="arg-node">node<a class="anchor" aria-label="anchor" href="#arg-node"></a></dt>

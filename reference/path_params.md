@@ -23,3 +23,6 @@ Path-related parameters
 - collider_lines:
 
   Logical. Should paths opened by conditioning on colliders be shown?
+  These paths are drawn as dashed ggraph curves whatever `edge_engine`
+  is in use: they mark an association rather than an edge of the DAG, so
+  they stay visibly apart from the arrows the engine draws.

@@ -75,20 +75,22 @@ dag <- pull_dag(tidy_dagitty_obj)
 dag_data <- pull_dag_data(tidy_dagitty_obj)
 
 tidy_dagitty_obj |>
-  dplyr::mutate(name = toupper(name)) |>
+  # rename both endpoints of every edge, or the recompiled DAG will hold a
+  # mix of the old and new names
+  dplyr::mutate(name = toupper(name), to = toupper(to)) |>
   # recreate the DAG component
   update_dag()
 #> # DAG:
-#> # A `dagitty` DAG with: 4 nodes and 3 edges
+#> # A `dagitty` DAG with: 3 nodes and 3 edges
 #> #
 #> # Data:
 #> # A tibble: 4 × 7
 #>   name          x      y direction to      xend   yend
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>  <dbl>  <dbl>
-#> 1 X     -5.00e- 1  0.289 ->        y      0.500  0.289
-#> 2 Y      5.00e- 1  0.289 NA        NA    NA     NA    
-#> 3 Z     -1.49e-10 -0.578 ->        x     -0.500  0.289
-#> 4 Z     -1.49e-10 -0.578 ->        y      0.500  0.289
+#> 1 X     -5.01e- 1  0.289 ->        Y      0.501  0.289
+#> 2 Y      5.01e- 1  0.289 NA        NA    NA     NA    
+#> 3 Z     -6.82e-11 -0.579 ->        X     -0.501  0.289
+#> 4 Z     -6.82e-11 -0.579 ->        Y      0.501  0.289
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 

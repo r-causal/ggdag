@@ -53,8 +53,8 @@ edge_backdoor(
 
 A `tidy_dagitty` object with additional columns:
 
-- `path_type`: "backdoor", "direct", or "both" classification for each
-  edge
+- `path_type`: "direct", "backdoor", "other", or "both" classification
+  for each edge
 
 - `open`: logical indicating if the edge is part of an open path
 
@@ -65,9 +65,13 @@ outcome:
 
 - Direct edges appear only on directed causal paths
 
-- Backdoor edges appear only on backdoor paths
+- Backdoor edges appear only on backdoor paths, whose first edge points
+  into the exposure
 
-- Both edges appear on both direct and backdoor paths
+- Other edges appear only on paths that are neither causal nor backdoor,
+  such as a path through a collider
+
+- Both edges appear on more than one of those kinds of path
 
 When `open_only = TRUE` (default), `path_type` will be NA for edges that
 are only part of closed paths.

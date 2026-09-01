@@ -72,7 +72,10 @@ uses the outcome defined in the DAG.</p></dd>
 
 
 <dt id="arg-conditioned-on">conditioned_on<a class="anchor" aria-label="anchor" href="#arg-conditioned-on"></a></dt>
-<dd><p>Character vector of variables that must be conditioned on.</p></dd>
+<dd><p>Defunct. <code><a href="https://rdrr.io/pkg/dagitty/man/instrumentalVariables.html" class="external-link">dagitty::instrumentalVariables()</a></code> works out
+the conditioning set an instrument requires on its own and reports it in
+the <code>conditioning_set</code> and <code>conditioned_on</code> columns, so there is nothing
+for this argument to do. Supplying it is an error.</p></dd>
 
 </dl></div>
     <div class="section level2">

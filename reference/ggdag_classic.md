@@ -75,6 +75,6 @@ ggdag_classic(dag)
 ggdag_classic(dag) + theme_dag_blank()
 
 
-ggdag_classic(dagitty::randomDAG(5, .5))
+ggdag_classic(dagitty::randomDAG(5, 0.5))
 
 ```

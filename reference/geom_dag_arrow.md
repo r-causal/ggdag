@@ -23,7 +23,7 @@ geom_dag_arrow(
   justify = 0,
   force_arrow = FALSE,
   mid_place = 0.5,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   lineend = "butt",
@@ -52,7 +52,7 @@ geom_dag_arrow_arc(
   justify = 0,
   force_arrow = FALSE,
   mid_place = 0.5,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   lineend = "butt",
@@ -73,7 +73,7 @@ geom_dag_arrows(
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
   arrow_mid = NULL,
-  resect = 0,
+  resect = NULL,
   resect_head = NULL,
   resect_fins = NULL,
   position = "identity",
@@ -136,13 +136,16 @@ geom_dag_arrows(
 
 - resect:
 
-  A numeric value in millimetres to shorten the arrow from both ends.
-  Overridden by `resect_head`/`resect_fins` if set.
+  A numeric value in millimetres to shorten the arrow from both ends, or
+  `NULL` (the default) to leave both ends to auto-resection. Overridden
+  by `resect_head`/`resect_fins` if set. `0` is a value like any other:
+  it turns auto-resection off and draws the edge up to the node.
 
 - resect_head, resect_fins:
 
   Numeric values in millimetres to shorten the arrow from the head or
-  fins end respectively.
+  fins end respectively, or `NULL` (the default) to leave that end to
+  auto-resection.
 
 - lineend:
 
@@ -225,15 +228,23 @@ back to the scalar `curvature` parameter. This is useful in time-ordered
 DAGs where some edges need to curve around intermediate nodes while
 adjacent edges stay straight.
 
-Auto-resection: when neither `resect` nor `resect_head`/`resect_fins`
-are set by the user, edges are automatically shortened from both ends to
-avoid overlapping with nodes. If a node layer
+### Auto-resection
+
+Edges are automatically shortened so that they do not run underneath the
+nodes. Resection is decided one end at a time: an end you set, through
+`resect` or through `resect_head`/`resect_fins`, keeps the value you
+gave it, and every end you leave unset is shortened automatically.
+Setting only `resect_head`, for instance, leaves the fins end to the
+automatic value. Pass `0` to an end to draw the edge all the way to the
+node.
+
+The automatic value comes from the node size when the plot has a node
+layer
 ([`geom_dag_point()`](https://r-causal.github.io/ggdag/reference/node_point.md)
 or
-[`geom_dag_node()`](https://r-causal.github.io/ggdag/reference/node_point.md))
-is already added to the plot, the resection is derived from the node
-size. Otherwise, the `ggdag.edge_cap` option (default: 8mm) is used as a
-fallback.
+[`geom_dag_node()`](https://r-causal.github.io/ggdag/reference/node_point.md)),
+whichever order the two layers were added in, and from the
+`ggdag.edge_cap` option (default: 8mm) when the plot has none.
 
 ## Examples
 

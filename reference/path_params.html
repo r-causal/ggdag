@@ -66,7 +66,9 @@ character vector of variable names, a list of the form <code>list(c(...))</code>
 
 <dt id="arg-collider-lines">collider_lines<a class="anchor" aria-label="anchor" href="#arg-collider-lines"></a></dt>
 <dd><p>Logical. Should paths opened by conditioning on
-colliders be shown?</p></dd>
+colliders be shown? These paths are drawn as dashed ggraph curves whatever
+<code>edge_engine</code> is in use: they mark an association rather than an edge of
+the DAG, so they stay visibly apart from the arrows the engine draws.</p></dd>
 
 </dl></div>
 

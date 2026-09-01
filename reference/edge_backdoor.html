@@ -98,14 +98,18 @@ Default is <code>NULL</code>.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>tidy_dagitty</code> object with additional columns:</p><ul><li><p><code>path_type</code>: "backdoor", "direct", or "both" classification for each edge</p></li>
+    <p>A <code>tidy_dagitty</code> object with additional columns:</p><ul><li><p><code>path_type</code>: "direct", "backdoor", "other", or "both" classification for
+each edge</p></li>
 <li><p><code>open</code>: logical indicating if the edge is part of an open path</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Edges are classified by examining the paths between exposure and outcome:</p><ul><li><p>Direct edges appear only on directed causal paths</p></li>
-<li><p>Backdoor edges appear only on backdoor paths</p></li>
-<li><p>Both edges appear on both direct and backdoor paths</p></li>
+<li><p>Backdoor edges appear only on backdoor paths, whose first edge points into
+the exposure</p></li>
+<li><p>Other edges appear only on paths that are neither causal nor backdoor, such
+as a path through a collider</p></li>
+<li><p>Both edges appear on more than one of those kinds of path</p></li>
 </ul><p>When <code>open_only = TRUE</code> (default), <code>path_type</code> will be NA for edges that are
 only part of closed paths.</p>
     </div>

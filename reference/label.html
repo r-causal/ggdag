@@ -72,7 +72,9 @@ tidy_dagitty or dagitty"><meta property="og:image" content="https://r-causal.git
 
 
 <dt id="arg-value">value<a class="anchor" aria-label="anchor" href="#arg-value"></a></dt>
-<dd><p>a character vector</p></dd>
+<dd><p>a named character vector, where the names are nodes in the
+DAG (a name that matches no node is an error), or <code>NULL</code> to remove
+labels</p></dd>
 
 
 <dt id="arg--tdy-dag">.tdy_dag<a class="anchor" aria-label="anchor" href="#arg--tdy-dag"></a></dt>
@@ -80,7 +82,8 @@ tidy_dagitty or dagitty"><meta property="og:image" content="https://r-causal.git
 
 
 <dt id="arg-labels">labels<a class="anchor" aria-label="anchor" href="#arg-labels"></a></dt>
-<dd><p>a character vector</p></dd>
+<dd><p>a named character vector, where the names are node names, or
+<code>NULL</code> to reuse the labels already attached to the DAG</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -95,7 +98,7 @@ tidy_dagitty or dagitty"><meta property="og:image" content="https://r-causal.git
 <span class="r-in"><span>  <span class="fu">dag_label</span><span class="op">(</span>labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span> <span class="op">=</span> <span class="st">"exposure"</span>, <span class="st">"y"</span> <span class="op">=</span> <span class="st">"outcome"</span>, <span class="st">"z"</span> <span class="op">=</span> <span class="st">"confounder"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">has_labels</span><span class="op">(</span><span class="va">labelled_dag</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

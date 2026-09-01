@@ -21,3 +21,8 @@ Useful links:
 
 **Maintainer**: Malcolm Barrett <malcolmbarrett@gmail.com>
 ([ORCID](https://orcid.org/0000-0003-0299-5825))
+
+Authors:
+
+- Malcolm Barrett <malcolmbarrett@gmail.com>
+  ([ORCID](https://orcid.org/0000-0003-0299-5825))

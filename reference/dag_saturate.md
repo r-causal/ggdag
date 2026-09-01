@@ -54,13 +54,34 @@ dag_prune(.tdy_dag, edges)
 
 - edges:
 
-  A named character vector where the name is the starting node and the
-  value is the end node, e.g. `c("x" = "y")` will remove the edge going
-  from `x` to `y`.
+  The edges to remove, in either of two forms. A named character vector
+  where the name is the starting node and the value is the end node,
+  e.g. `c("x" = "y")` removes the edge going from `x` to `y`. Or a data
+  frame with a `name` and a `to` column, which says the same thing, and
+  an optional `direction` column of `"->"`, `"<->"`, or `"--"`, which
+  names one of the edges a pair of nodes holds.
 
 ## Value
 
 A `tidy_dagitty` object
+
+## Details
+
+Bidirected edges carry no time-ordering information, so `dag_saturate()`
+assigns time order from the directed edges alone and then passes the
+input's bidirected edges through to the saturated DAG unchanged. A
+saturated model therefore never implies an independence that the input
+denies.
+
+`dag_prune()` errors if `edges` is empty, and if it names an edge the
+DAG does not contain, including an edge written in the reverse
+direction. A node whose every edge is pruned is kept as an isolated
+node.
+
+A pair of nodes can hold a directed edge and a bidirected edge at the
+same time, and endpoints alone name both of them. `dag_prune()` errors
+on such a pair rather than pruning both; name the direction as well,
+with the data frame form of `edges`, to prune one of them.
 
 ## See also
 

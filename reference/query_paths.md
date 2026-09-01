@@ -54,11 +54,19 @@ A tibble with columns:
 
 - `path`: Character string representation of the path
 
-- `path_type`: Character classification as "backdoor" or "direct"
+- `path_type`: Character classification as "direct" (a directed causal
+  path), "backdoor" (a path whose first edge points into `from`), or
+  "other" (any other path, such as one through a collider)
 
 - `variables`: List column containing all variables in the path
 
 - `open`: Logical indicating if the path is open
+
+## Details
+
+When `from` or `to` has more than one element, paths are enumerated once
+for each ordered pair of endpoints and the results are stacked, so every
+row names the pair its path runs between.
 
 ## Examples
 

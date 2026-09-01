@@ -17,11 +17,11 @@ query_dseparated(.tdy_dag, from, to, conditioned_on = NULL)
 
 - from:
 
-  Character vector of nodes or a list of node sets.
+  Character vector of node names.
 
 - to:
 
-  Character vector of nodes or a list of node sets.
+  Character vector of node names.
 
 - conditioned_on:
 

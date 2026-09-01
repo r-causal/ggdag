@@ -5,4 +5,4 @@ to see their documentation.
 
 - dplyr:
 
-  [`filter`](https://dplyr.tidyverse.org/reference/filter.html)
+  [`filter()`](https://dplyr.tidyverse.org/reference/filter.html)

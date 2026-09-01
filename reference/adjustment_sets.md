@@ -30,6 +30,8 @@ ggdag_adjustment_set(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -135,6 +137,21 @@ ggdag_adjustment_set(
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
 
+- unified_legend:
+
+  A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
+  `TRUE`, creates a unified legend entry showing both nodes and edges in
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
+
+- key_glyph:
+
+  A function to use for drawing the legend key glyph for nodes. If
+  `NULL` (the default), the glyph is chosen automatically based on the
+  `unified_legend` setting. When provided, this overrides the automatic
+  selection. Common options include `draw_key_dag_point`,
+  `draw_key_dag_combined`, and `draw_key_dag_collider`.
+
 - label:
 
   The bare name of a column to use for labels. If `use_labels = TRUE`,
@@ -176,6 +193,15 @@ ggdag_adjustment_set(
 a `tidy_dagitty` with an `adjusted` column and `set` column, indicating
 adjustment status and DAG ID, respectively, for the adjustment sets or a
 `ggplot`
+
+## Edge layers of the composite plotters
+
+The plotters that color or fade edges by an analysis column build their
+edge layers themselves, and which layers they build is settled from the
+DAG they are called with: a DAG with no bidirected edge is given no
+bidirected edge layer. Replacing the data of the returned plot
+afterwards, with ggplot2's `%+%`, does not bring a layer back, so a plot
+built for one DAG is not a template for another.
 
 ## Examples
 
@@ -219,7 +245,7 @@ ggdag_adjustment_set(dag)
 
 
 ggdag_adjustment_set(
-  dagitty::randomDAG(10, .5),
+  dagitty::randomDAG(10, 0.5),
   exposure = "x3",
   outcome = "x5"
 )

@@ -170,8 +170,6 @@ geom_dag_point(
 
 - stroke
 
-- filter
-
 `geom_dag_node` also accepts:
 
 - internal_colour

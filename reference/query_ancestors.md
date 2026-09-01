@@ -44,10 +44,10 @@ query_ancestors(dag)
 #> # A tibble: 4 × 4
 #>   node  ancestor_set ancestors n_ancestors
 #>   <chr> <chr>        <list>          <int>
-#> 1 w     NA           <chr [1]>           0
+#> 1 w     {}           <chr [0]>           0
 #> 2 x     {w}          <chr [1]>           1
 #> 3 y     {w, x, z}    <chr [3]>           3
-#> 4 z     NA           <chr [1]>           0
+#> 4 z     {}           <chr [0]>           0
 query_ancestors(dag, .var = "y")
 #> # A tibble: 1 × 4
 #>   node  ancestor_set ancestors n_ancestors

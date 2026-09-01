@@ -10,6 +10,7 @@ ggdag(
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -24,6 +25,8 @@ ggdag(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  n_edge_points = NULL,
+  n_node_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   text = NULL,
@@ -53,6 +56,15 @@ ggdag(
 - edge_type:
 
   The type of edge, one of "link_arc", "link", "arc", "diagonal".
+
+- edge_engine:
+
+  The engine used to draw edges. Either `"ggraph"` (default) or
+  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
+  geoms, which support additional customization via the `arrow_head`,
+  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
 
 - node_size:
 
@@ -119,12 +131,29 @@ ggdag(
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
 
+- n_edge_points:
+
+  Number of invisible points to interpolate along each edge for label
+  repulsion. Passed to repel label geoms. Defaults to `NULL` (uses
+  `StatNodesRepel` default of 50). Set to 0 to disable.
+
+- n_node_points:
+
+  Target number of invisible skeleton points filling the disc that
+  covers each node for label repulsion: a center point plus four
+  concentric rings, each holding at least six points, so every value
+  from 1 to 16 gives the same 25 points per node. Passed to repel label
+  geoms. Defaults to `NULL` (uses `StatNodesRepel` default of 12). Set
+  to 0 to disable. The disc is measured in data units, so it matches the
+  drawn node only on a panel about 180 mm wide; see
+  [`geom_dag_label_repel()`](https://r-causal.github.io/ggdag/reference/repel.md).
+
 - unified_legend:
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - key_glyph:
 
@@ -178,6 +207,6 @@ ggdag(dag)
 ggdag(dag) + theme_dag()
 
 
-ggdag(dagitty::randomDAG(5, .5))
+ggdag(dagitty::randomDAG(5, 0.5))
 
 ```

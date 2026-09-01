@@ -394,7 +394,7 @@ going to be biased.
   Causal Inference with Reflections on Machine
   Learning](http://ftp.cs.ucla.edu/pub/stat_ser/r481.pdf). A more
   technical introduction is [Causal Inference in Statistics: A
-  Primer](http://bayes.cs.ucla.edu/PRIMER/). See also his article with
+  Primer](https://bayes.cs.ucla.edu/PRIMER/). See also his article with
   Sander Greenland and James Robins on collapsibility: Confounding and
   Collapsibility in Causal Inference.
 - Miguel Hernán, who has written extensively on the subject of causal

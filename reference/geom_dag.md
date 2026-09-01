@@ -156,16 +156,21 @@ geom_dag(
 
 - n_node_points:
 
-  Number of invisible skeleton points to place around each node's
-  perimeter for label repulsion. Passed to repel label geoms. Defaults
-  to `NULL` (uses `StatNodesRepel` default of 12). Set to 0 to disable.
+  Target number of invisible skeleton points filling the disc that
+  covers each node for label repulsion: a center point plus four
+  concentric rings, each holding at least six points, so every value
+  from 1 to 16 gives the same 25 points per node. Passed to repel label
+  geoms. Defaults to `NULL` (uses `StatNodesRepel` default of 12). Set
+  to 0 to disable. The disc is measured in data units, so it matches the
+  drawn node only on a panel about 180 mm wide; see
+  [`geom_dag_label_repel()`](https://r-causal.github.io/ggdag/reference/repel.md).
 
 - unified_legend:
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - key_glyph:
 

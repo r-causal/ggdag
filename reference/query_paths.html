@@ -92,10 +92,18 @@ open or closed given a conditioning set.</p>
 <li><p><code>from</code>: Starting node</p></li>
 <li><p><code>to</code>: Ending node</p></li>
 <li><p><code>path</code>: Character string representation of the path</p></li>
-<li><p><code>path_type</code>: Character classification as "backdoor" or "direct"</p></li>
+<li><p><code>path_type</code>: Character classification as "direct" (a directed causal
+path), "backdoor" (a path whose first edge points into <code>from</code>), or
+"other" (any other path, such as one through a collider)</p></li>
 <li><p><code>variables</code>: List column containing all variables in the path</p></li>
 <li><p><code>open</code>: Logical indicating if the path is open</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>When <code>from</code> or <code>to</code> has more than one element, paths are enumerated once for
+each ordered pair of endpoints and the results are stacked, so every row
+names the pair its path runs between.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

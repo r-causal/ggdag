@@ -46,7 +46,7 @@ query_children(dag)
 #>   <chr> <chr>     <list>         <int>
 #> 1 w     {x}       <chr [1]>          1
 #> 2 x     {y}       <chr [1]>          1
-#> 3 y     NA        <chr [1]>          0
+#> 3 y     {}        <chr [0]>          0
 #> 4 z     {y}       <chr [1]>          1
 query_children(dag, .var = "x")
 #> # A tibble: 1 × 4

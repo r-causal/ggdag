@@ -62,10 +62,6 @@ are used as defaults by all <code><a href="geom_dag.html">geom_dag()</a></code>,
     </div>
 
     <div class="section level2">
-    <h2 id="format">Format<a class="anchor" aria-label="anchor" href="#format"></a></h2>
-    <p>An object of class <code>list</code> of length 21.</p>
-    </div>
-    <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
@@ -110,10 +106,19 @@ invisibly.</p></li>
     <p>Options are stored in R's global <code><a href="https://rdrr.io/r/base/options.html" class="external-link">options()</a></code> as <code>ggdag.&lt;name&gt;</code>. When an
 option is <code>NULL</code> (the default), each function uses its own built-in
 default. Setting a global option overrides the built-in default for all
-functions that use it.</p>
+functions that use it. Passing <code>NULL</code> to <code>ggdag_options_set()</code> leaves that
+one option unset, which returns it to the built-in default and leaves every
+other option alone. That also makes the previous values
+<code>ggdag_options_set()</code> returns safe to restore with
+<code>do.call(ggdag_options_set, old)</code>.</p>
 <p>Functions that normally use <code>edge_cap = 10</code> (e.g., <code><a href="adjustment_sets.html">ggdag_adjustment_set()</a></code>,
 <code><a href="d_relationship.html">ggdag_drelationship()</a></code>) maintain a proportional offset. If you set
 <code>ggdag.edge_cap</code> to a custom value, these functions scale it by <code>10/8</code>.</p>
+<p><code>debug_repel_points</code> is a diagnostic rather than an appearance setting. When
+it is <code>TRUE</code>, every repelling label geom (see <code><a href="repel.html">geom_dag_label_repel()</a></code>) adds
+a layer of purple points showing the invisible geometry that labels are
+repelled from: the points traced along each edge and the disc filling each
+node. It is useful for understanding why a label came to rest where it did.</p>
     </div>
 
     <div class="section level2">

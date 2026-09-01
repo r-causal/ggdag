@@ -29,7 +29,9 @@ ggdag_adjust(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -46,7 +48,8 @@ ggdag_adjust(
 
 - var:
 
-  a character vector, the variable(s) to adjust for.
+  the variable(s) to adjust for. This can be a character vector of
+  variable names or a list of the form `list(c(...))`.
 
 - as_factor:
 
@@ -136,6 +139,13 @@ ggdag_adjust(
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
 
+- unified_legend:
+
+  A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
+  `TRUE`, creates a unified legend entry showing both nodes and edges in
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
+
 - key_glyph:
 
   A function to use for drawing the legend key glyph for nodes. If
@@ -143,6 +153,15 @@ ggdag_adjust(
   `unified_legend` setting. When provided, this overrides the automatic
   selection. Common options include `draw_key_dag_point`,
   `draw_key_dag_combined`, and `draw_key_dag_collider`.
+
+- edge_engine:
+
+  The engine used to draw edges. Either `"ggraph"` (default) or
+  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
+  geoms, which support additional customization via the `arrow_head`,
+  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
 
 - text:
 
@@ -166,12 +185,24 @@ ggdag_adjust(
 - collider_lines:
 
   logical. Should the plot show paths activated by adjusting for a
-  collider?
+  collider? These paths are drawn as dashed ggraph curves whatever
+  `edge_engine` is in use: they mark an association rather than an edge
+  of the DAG, so they stay visibly apart from the arrows the engine
+  draws.
 
 ## Value
 
 a `tidy_dagitty` with a `adjusted` column for adjusted variables, as
 well as any biasing paths that arise, or a `ggplot`
+
+## Edge layers of the composite plotters
+
+The plotters that color or fade edges by an analysis column build their
+edge layers themselves, and which layers they build is settled from the
+DAG they are called with: a DAG with no bidirected edge is given no
+bidirected edge layer. Replacing the data of the returned plot
+afterwards, with ggplot2's `%+%`, does not bring a layer back, so a plot
+built for one DAG is not a template for another.
 
 ## Examples
 
@@ -181,23 +212,20 @@ dag <- dagify(m ~ a + b, x ~ a, y ~ b)
 control_for(dag, var = "m")
 #> # DAG:
 #> # A `dagitty` DAG with: 5 nodes and 4 edges
-#> # Paths opened by conditioning on a collider: a <-> b, a <-> b, a <-> b, a <-> b
+#> # Paths opened by conditioning on a collider: a <-> b
 #> #
 #> # Data:
-#> # A tibble: 11 × 9
-#>    name         x         y direction to        xend      yend collider_line
-#>    <chr>    <dbl>     <dbl> <fct>     <chr>    <dbl>     <dbl> <lgl>        
-#>  1 a      1.44    -2.95e-10 ->        m     -0.00334 -6.27e-10 FALSE        
-#>  2 a      1.44    -2.95e-10 ->        x      2.71     4.78e-10 FALSE        
-#>  3 b     -1.45     3.25e-12 ->        m     -0.00334 -6.27e-10 FALSE        
-#>  4 b     -1.45     3.25e-12 ->        y     -2.70     4.41e-10 FALSE        
-#>  5 m     -0.00334 -6.27e-10 NA        NA    NA       NA        FALSE        
-#>  6 x      2.71     4.78e-10 NA        NA    NA       NA        FALSE        
-#>  7 y     -2.70     4.41e-10 NA        NA    NA       NA        FALSE        
-#>  8 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
-#>  9 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
-#> 10 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
-#> 11 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
+#> # A tibble: 8 × 9
+#>   name         x         y direction to        xend      yend collider_line
+#>   <chr>    <dbl>     <dbl> <fct>     <chr>    <dbl>     <dbl> <lgl>        
+#> 1 a      1.44    -2.95e-10 ->        m     -0.00334 -6.27e-10 FALSE        
+#> 2 a      1.44    -2.95e-10 ->        x      2.71     4.78e-10 FALSE        
+#> 3 b     -1.45     3.25e-12 ->        m     -0.00334 -6.27e-10 FALSE        
+#> 4 b     -1.45     3.25e-12 ->        y     -2.70     4.41e-10 FALSE        
+#> 5 m     -0.00334 -6.27e-10 NA        NA    NA       NA        FALSE        
+#> 6 x      2.71     4.78e-10 NA        NA    NA       NA        FALSE        
+#> 7 y     -2.70     4.41e-10 NA        NA    NA       NA        FALSE        
+#> 8 a      1.44    -2.95e-10 <->       b     -1.45     3.25e-12 TRUE         
 #> # ℹ 1 more variable: adjusted <fct>
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame

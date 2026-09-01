@@ -53,6 +53,20 @@ dagify(
 
 a `dagitty` DAG
 
+## Details
+
+A single formula can mix the two: `y ~ x + ~z` gives `x -> y` and
+`y <-> z`. R's parser lets a unary `~` take in the rest of the
+right-hand side, so every term after the tilde is bidirected:
+`y ~ x + ~z + w` gives `x -> y`, `y <-> z`, and `y <-> w`, and
+`y ~ ~x + z` leaves both `x` and `z` bidirected. Parentheses limit how
+far the tilde reaches, so `y ~ x + (~z) + w` gives `x -> y`, `y <-> z`,
+and `w -> y`.
+
+A term that is a call contributes one edge for each variable it
+mentions, so both `y ~ f(x, z)` and `y ~ x:z` give `x -> y` and
+`z -> y`.
+
 ## See also
 
 [`dag()`](https://r-causal.github.io/ggdag/reference/dag.md),
@@ -74,8 +88,8 @@ dagify(y ~ x + z, x ~ z)
 #> }
 
 coords <- list(
-  x = c(A = 1, B = 2, D = 3, C = 3, F = 3, E = 4, G = 5, H = 5, I = 5),
-  y = c(A = 0, B = 0, D = 1, C = 0, F = -1, E = 0, G = 1, H = 0, I = -1)
+  x = c(A = 1, B = 2, D = 3, C = 3, J = 3, E = 4, G = 5, H = 5, I = 5),
+  y = c(A = 0, B = 0, D = 1, C = 0, J = -1, E = 0, G = 1, H = 0, I = -1)
 )
 
 dag <- dagify(
@@ -85,8 +99,8 @@ dag <- dagify(
   H ~ ~I,
   D ~ B,
   C ~ B,
-  I ~ C + F,
-  F ~ B,
+  I ~ C + J,
+  J ~ B,
   B ~ A,
   H ~ E,
   C ~ E + G,

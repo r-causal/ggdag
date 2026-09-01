@@ -194,7 +194,16 @@ ggdag_adjacent(
 
 - .var:
 
-  a character vector, the variable to be assessed (must by in DAG)
+  a character vector, the variable(s) to be assessed (must be in the
+  DAG). When more than one variable is given, the relation is assessed
+  against the set as a whole. `node_parents()`, `node_children()`, and
+  `node_adjacent()` label a queried variable that is also a relative of
+  another queried variable with the relation rather than as a queried
+  variable. `node_ancestors()`, `node_descendants()`, and
+  `node_markov_blanket()` instead drop every queried variable from the
+  relation set, so a queried variable always carries the queried-set
+  label and only variables outside the queried set carry the relation
+  label.
 
 - as_factor:
 
@@ -286,8 +295,8 @@ ggdag_adjacent(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - text:
 

@@ -85,8 +85,10 @@ the variable name and the second column is the time period.</p></dd>
 
 
 <dt id="arg-time-points">time_points<a class="anchor" aria-label="anchor" href="#arg-time-points"></a></dt>
-<dd><p>A vector of time points. Default is <code>NULL</code>, which creates
-a sequence from 1 to the number of variables.</p></dd>
+<dd><p>A vector of time points, one element per time period in
+<code>.vars</code>. Default is <code>NULL</code>, which creates a sequence from 1 to the number
+of time periods (the length of <code>.vars</code>). A data frame carries its own time
+points in its second column, so supplying both is an error.</p></dd>
 
 
 <dt id="arg-direction">direction<a class="anchor" aria-label="anchor" href="#arg-direction"></a></dt>
@@ -104,7 +106,10 @@ descendants.</p></dd>
 <dt id="arg-fixed-time">fixed_time<a class="anchor" aria-label="anchor" href="#arg-fixed-time"></a></dt>
 <dd><p>A named numeric vector pinning specific nodes to time
 points (e.g., <code>c(x = 3, z = 1)</code>). Only used in auto mode (<code>.vars = NULL</code>). Other nodes are placed automatically while respecting these
-constraints. Pinned times are 1-based and preserved in the output.</p></dd>
+constraints. Pinned times are 1-based and preserved in the output, so
+they must be whole numbers of at least 1. A pin that no ordering can
+satisfy, such as a time earlier than the node's own ancestors allow, is
+an error.</p></dd>
 
 
 <dt id="arg-adjust-exposure-outcome">adjust_exposure_outcome<a class="anchor" aria-label="anchor" href="#arg-adjust-exposure-outcome"></a></dt>

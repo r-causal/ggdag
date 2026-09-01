@@ -12,6 +12,9 @@ select(.data, ...)
 filter(.data, ...)
 
 # S3 method for class 'tidy_dagitty'
+rename(.data, ...)
+
+# S3 method for class 'tidy_dagitty'
 mutate(.data, ...)
 
 # S3 method for class 'tidy_dagitty'

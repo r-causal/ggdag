@@ -121,8 +121,10 @@ geom_dag_edges_fan(
 
 - na.rm:
 
-  If FALSE (the default), removes missing values with a warning. If TRUE
-  silently removes missing values
+  If `TRUE`, the default, missing values are removed silently. A node
+  with no outgoing edge has a missing edge end, so the edge layers drop
+  those rows rather than warning about them. If `FALSE`, missing values
+  are removed with a warning.
 
 - show.legend:
 

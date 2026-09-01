@@ -83,6 +83,9 @@ ggdag_m_bias(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -112,6 +115,9 @@ ggdag_butterfly_bias(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -139,6 +145,9 @@ ggdag_confounder_triangle(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -166,6 +175,9 @@ ggdag_collider_triangle(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -193,6 +205,9 @@ ggdag_mediation_triangle(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -220,6 +235,9 @@ ggdag_quartet_collider(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -245,6 +263,9 @@ ggdag_quartet_confounder(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -270,6 +291,9 @@ ggdag_quartet_mediator(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -297,6 +321,9 @@ ggdag_quartet_m_bias(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -328,6 +355,9 @@ ggdag_quartet_time_collider(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -341,7 +371,11 @@ ggdag_quartet_time_collider(
 
 - x_y_associated:
 
-  Logical. Are x and y associated? Default is `FALSE`.
+  Logical. Are x and y associated? Default is `FALSE` for the
+  bias-structure DAGs and for `quartet_mediator()`, and `TRUE` for
+  `quartet_collider()`, `quartet_confounder()`, and `quartet_m_bias()`,
+  whose datasets have x and y associated by construction.
+  `quartet_time_collider()` has no such argument.
 
 - u1, u2:
 
@@ -351,7 +385,10 @@ ggdag_quartet_time_collider(
 - x0, x1, x2, x3, y1, y2, y3, z1, z2, z3:
 
   Character vector. Optional labels for time-indexed nodes, used in
-  `quartet_time_collider()`. Default is `NULL`
+  `quartet_time_collider()`. Default is `NULL`. The DAG holds six nodes,
+  `x1`, `x2`, `y2`, `y3`, `z2`, and `z3`; `x0`, `x3`, `y1`, and `z1`
+  name none of them and are accepted only so that code written against
+  the older signature still runs. Labels given for them are ignored.
 
 - size:
 
@@ -427,6 +464,30 @@ ggdag_quartet_time_collider(
   Default is `geom_dag_label_repel`. Other options include
   `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`, and
   `geom_dag_text_repel2`.
+
+- edge_engine:
+
+  The engine used to draw edges. Either `"ggraph"` (default) or
+  `"ggarrow"`. When `"ggarrow"`, edges are drawn using
+  [ggarrow](https://teunbrand.github.io/ggarrow/reference/ggarrow-package.html)
+  geoms, which support additional customization via the `arrow_head`,
+  `arrow_fins`, `arrow_mid`, and `curvature` global options (see
+  [`ggdag_options_set()`](https://r-causal.github.io/ggdag/reference/ggdag_options.md)).
+
+- unified_legend:
+
+  A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
+  `TRUE`, creates a unified legend entry showing both nodes and edges in
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
+
+- key_glyph:
+
+  A function to use for drawing the legend key glyph for nodes. If
+  `NULL` (the default), the glyph is chosen automatically based on the
+  `unified_legend` setting. When provided, this overrides the automatic
+  selection. Common options include `draw_key_dag_point`,
+  `draw_key_dag_combined`, and `draw_key_dag_collider`.
 
 - text:
 

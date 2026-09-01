@@ -34,4 +34,4 @@ as_tibble(x, row.names = NULL, optional = FALSE, ...)
 - ...:
 
   optional arguments passed to
-  [`dplyr::as_tibble()`](https://dplyr.tidyverse.org/reference/reexports.html)
+  [`dplyr::as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html)

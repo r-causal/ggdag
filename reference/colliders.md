@@ -1,7 +1,7 @@
 # Find colliders
 
 Detects any colliders given a DAG. `node_collider` tags colliders and
-`ggdag_collider` plots all exogenous variables.
+`ggdag_collider` plots all colliders.
 
 ## Usage
 
@@ -133,8 +133,8 @@ ggdag_collider(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - text:
 
@@ -157,7 +157,7 @@ ggdag_collider(
 
 ## Value
 
-a `tidy_dagitty` with a `collider` column for colliders or a `ggplot`
+a `tidy_dagitty` with a `colliders` column for colliders or a `ggplot`
 
 ## Examples
 

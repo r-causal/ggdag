@@ -208,10 +208,12 @@ bigger_dag |>
   group_by(set) |>
   filter(!is.na(path) & !is.na(name)) |>
   summarize(n_vars_between = n() - 1L)
-#> # A tibble: 1 × 1
-#>   n_vars_between
-#>            <int>
-#> 1              9
+#> # A tibble: 3 × 2
+#>   set   n_vars_between
+#>   <chr>          <int>
+#> 1 1                  1
+#> 2 2                  3
+#> 3 3                  3
 ```
 
 ## Plotting DAGs

@@ -34,8 +34,10 @@ time_ordered_coords(
 
 - time_points:
 
-  A vector of time points. Default is `NULL`, which creates a sequence
-  from 1 to the number of variables.
+  A vector of time points, one element per time period in `.vars`.
+  Default is `NULL`, which creates a sequence from 1 to the number of
+  time periods (the length of `.vars`). A data frame carries its own
+  time points in its second column, so supplying both is an error.
 
 - direction:
 
@@ -53,7 +55,9 @@ time_ordered_coords(
   A named numeric vector pinning specific nodes to time points (e.g.,
   `c(x = 3, z = 1)`). Only used in auto mode (`.vars = NULL`). Other
   nodes are placed automatically while respecting these constraints.
-  Pinned times are 1-based and preserved in the output.
+  Pinned times are 1-based and preserved in the output, so they must be
+  whole numbers of at least 1. A pin that no ordering can satisfy, such
+  as a time earlier than the node's own ancestors allow, is an error.
 
 - adjust_exposure_outcome:
 

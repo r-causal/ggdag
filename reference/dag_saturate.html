@@ -99,14 +99,31 @@ returned when called with arguments.</p></dd>
 
 
 <dt id="arg-edges">edges<a class="anchor" aria-label="anchor" href="#arg-edges"></a></dt>
-<dd><p>A named character vector where the name is the starting node and
-the value is the end node, e.g. <code>c("x" = "y")</code> will remove the edge going
-from <code>x</code> to <code>y</code>.</p></dd>
+<dd><p>The edges to remove, in either of two forms. A named character
+vector where the name is the starting node and the value is the end node,
+e.g. <code>c("x" = "y")</code> removes the edge going from <code>x</code> to <code>y</code>. Or a data frame
+with a <code>name</code> and a <code>to</code> column, which says the same thing, and an optional
+<code>direction</code> column of <code>"-&gt;"</code>, <code>"&lt;-&gt;"</code>, or <code>"--"</code>, which names one of the
+edges a pair of nodes holds.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>tidy_dagitty</code> object</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Bidirected edges carry no time-ordering information, so <code>dag_saturate()</code>
+assigns time order from the directed edges alone and then passes the input's
+bidirected edges through to the saturated DAG unchanged. A saturated model
+therefore never implies an independence that the input denies.</p>
+<p><code>dag_prune()</code> errors if <code>edges</code> is empty, and if it names an edge the DAG
+does not contain, including an edge written in the reverse direction. A node
+whose every edge is pruned is kept as an isolated node.</p>
+<p>A pair of nodes can hold a directed edge and a bidirected edge at the same
+time, and endpoints alone name both of them. <code>dag_prune()</code> errors on such a
+pair rather than pruning both; name the direction as well, with the data
+frame form of <code>edges</code>, to prune one of them.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

@@ -300,6 +300,7 @@ Direct analytical queries that return tibbles
 
 - [`select(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   [`filter(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
+  [`rename(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   [`mutate(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   [`summarise(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)
   [`arrange(`*`<tidy_dagitty>`*`)`](https://r-causal.github.io/ggdag/reference/dplyr.md)

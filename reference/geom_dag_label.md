@@ -14,7 +14,6 @@ geom_dag_label(
   parse = FALSE,
   nudge_x = 0,
   nudge_y = 0,
-  check_overlap = FALSE,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -135,16 +134,6 @@ geom_dag_label(
 - nudge_x, nudge_y:
 
   Horizontal and vertical adjustment to nudge labels by.
-
-- check_overlap:
-
-  If `TRUE`, text that overlaps previous text in the same layer will not
-  be plotted. `check_overlap` happens at draw time and in the order of
-  the data. Therefore data should be arranged by the label column before
-  calling
-  [`geom_text()`](https://ggplot2.tidyverse.org/reference/geom_text.html).
-  Note that this argument is not supported by
-  [`geom_label()`](https://ggplot2.tidyverse.org/reference/geom_text.html).
 
 - na.rm:
 

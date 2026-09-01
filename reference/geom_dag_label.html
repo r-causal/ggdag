@@ -54,7 +54,6 @@
 <span>  parse <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  nudge_x <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  nudge_y <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  check_overlap <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  na.rm <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  show.legend <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  inherit.aes <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -147,14 +146,6 @@ displayed as described in <code><a href="https://rdrr.io/r/grDevices/plotmath.ht
 
 <dt id="arg-nudge-x-nudge-y">nudge_x, nudge_y<a class="anchor" aria-label="anchor" href="#arg-nudge-x-nudge-y"></a></dt>
 <dd><p>Horizontal and vertical adjustment to nudge labels by.</p></dd>
-
-
-<dt id="arg-check-overlap">check_overlap<a class="anchor" aria-label="anchor" href="#arg-check-overlap"></a></dt>
-<dd><p>If <code>TRUE</code>, text that overlaps previous text in the
-same layer will not be plotted. <code>check_overlap</code> happens at draw time and in
-the order of the data. Therefore data should be arranged by the label
-column before calling <code><a href="https://ggplot2.tidyverse.org/reference/geom_text.html" class="external-link">geom_text()</a></code>. Note that this argument is not
-supported by <code><a href="https://ggplot2.tidyverse.org/reference/geom_text.html" class="external-link">geom_label()</a></code>.</p></dd>
 
 
 <dt id="arg-na-rm">na.rm<a class="anchor" aria-label="anchor" href="#arg-na-rm"></a></dt>

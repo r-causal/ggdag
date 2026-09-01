@@ -29,7 +29,8 @@ has_labels(.tdy_dag)
 
 - value:
 
-  a character vector
+  a named character vector, where the names are nodes in the DAG (a name
+  that matches no node is an error), or `NULL` to remove labels
 
 - .tdy_dag:
 
@@ -37,7 +38,8 @@ has_labels(.tdy_dag)
 
 - labels:
 
-  a character vector
+  a named character vector, where the names are node names, or `NULL` to
+  reuse the labels already attached to the DAG
 
 ## Value
 
@@ -51,5 +53,5 @@ labelled_dag <- dagify(y ~ z, x ~ z) |>
   dag_label(labels = c("x" = "exposure", "y" = "outcome", "z" = "confounder"))
 
 has_labels(labelled_dag)
-#> [1] FALSE
+#> [1] TRUE
 ```

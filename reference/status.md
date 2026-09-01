@@ -130,8 +130,8 @@ ggdag_status(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - text:
 
@@ -159,8 +159,8 @@ a `tidy_dagitty` with a `status` column for variable status or a
 
 ## Details
 
-`node_collider` tags variable status and `ggdag_collider` plots all
-variable statuses.
+`node_status` tags variable status and `ggdag_status` plots all variable
+statuses.
 
 ## Examples
 
@@ -184,10 +184,10 @@ node_status(dag)
 #> # A tibble: 4 × 8
 #>   name          x      y direction to         xend   yend status  
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>     <dbl>  <dbl> <fct>   
-#> 1 l     -5.01e- 1  0.289 NA        NA    NA        NA     latent  
-#> 2 x      5.01e- 1  0.289 ->        l     -5.01e- 1  0.289 exposure
-#> 3 x      5.01e- 1  0.289 ->        y      1.53e-10 -0.579 exposure
-#> 4 y      1.53e-10 -0.579 ->        l     -5.01e- 1  0.289 outcome 
+#> 1 l      5.01e- 1 -0.289 NA        NA    NA        NA     latent  
+#> 2 x     -5.01e- 1 -0.289 ->        l      5.01e- 1 -0.289 exposure
+#> 3 x     -5.01e- 1 -0.289 ->        y      5.15e-11  0.579 exposure
+#> 4 y      5.15e-11  0.579 ->        l      5.01e- 1 -0.289 outcome 
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ggdag_status(dag)

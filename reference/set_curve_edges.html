@@ -74,15 +74,19 @@ single edge.</p>
     <h2 id="curvature-sign-convention">Curvature sign convention<a class="anchor" aria-label="anchor" href="#curvature-sign-convention"></a></h2>
 
 
-<p>The curvature value is passed directly to the active edge rendering engine.
-The <strong>ggraph</strong> engine (default) and <strong>ggarrow</strong> engine interpret the sign
-differently:</p><ul><li><p><strong>ggraph</strong>: positive curvature curves <em>above</em> (to the left of) a
-left-to-right edge.</p></li>
-<li><p><strong>ggarrow</strong> / <strong>grid</strong>: positive curvature curves <em>below</em> (to the right
-of) a left-to-right edge, following <code><a href="https://rdrr.io/r/grid/grid.curve.html" class="external-link">grid::curveGrob()</a></code> convention.</p></li>
-</ul><p>This means the same <code>curvature</code> value will render as a mirror image
-depending on the engine. ggdag does not negate or transform the value;
-each engine uses its native convention.</p>
+<p>Per-edge curvature is drawn by the <strong>ggarrow</strong> edge engine only. Set it with
+<code>edge_engine = "ggarrow"</code> on <code><a href="geom_dag.html">geom_dag()</a></code> and the <code>ggdag_*()</code> quick plots, or
+globally with <code>ggdag_options_set(edge_engine = "ggarrow")</code>; the default
+<strong>ggraph</strong> engine draws every edge with the curvature of its own edge type
+and warns when it is handed a per-edge value it cannot draw.</p>
+<p>ggarrow follows the <code><a href="https://rdrr.io/r/grid/grid.curve.html" class="external-link">grid::curveGrob()</a></code> convention, so positive curvature
+curves <em>below</em> (to the right of) a left-to-right edge and negative curvature
+curves <em>above</em> it. ggdag passes the value through untouched.</p>
+<p>A bidirected edge has no direction of its own, so ggdag draws it from the
+endpoint dagitty stores first. Naming its endpoints the other way round,
+as in <code>curve_edge(dag, "y", "x", 0.5)</code> for an edge stored as <code>x &lt;-&gt; y</code>,
+curves the edge to the same side of the page: the sign is flipped to match
+the direction the edge is drawn in.</p>
     </div>
 
     <div class="section level2">

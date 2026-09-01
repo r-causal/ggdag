@@ -100,8 +100,10 @@ call to a position adjustment function.</p></dd>
 
 
 <dt id="arg-na-rm">na.rm<a class="anchor" aria-label="anchor" href="#arg-na-rm"></a></dt>
-<dd><p>If FALSE (the default), removes missing values with a warning.
-If TRUE silently removes missing values</p></dd>
+<dd><p>If <code>TRUE</code>, the default, missing values are removed silently. A
+node with no outgoing edge has a missing edge end, so the edge layers drop
+those rows rather than warning about them. If <code>FALSE</code>, missing values are
+removed with a warning.</p></dd>
 
 
 <dt id="arg-show-legend">show.legend<a class="anchor" aria-label="anchor" href="#arg-show-legend"></a></dt>

@@ -143,8 +143,8 @@ ggdag_instrumental(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - text:
 
@@ -183,10 +183,10 @@ node_instrumental(dagitty("dag{ i->x->y; x<->y }"), "x", "y")
 #> # A tibble: 4 × 9
 #>   name        x         y direction to       xend      yend instrumental_name
 #>   <chr>   <dbl>     <dbl> <fct>     <chr>   <dbl>     <dbl> <chr>            
-#> 1 i      1.07   -7.44e-11 ->        x     -0.0868  9.04e-11 i                
-#> 2 x     -0.0868  9.04e-11 ->        y     -0.984  -1.60e-11 i                
-#> 3 x     -0.0868  9.04e-11 <->       y     -0.984  -1.60e-11 i                
-#> 4 y     -0.984  -1.60e-11 NA        NA    NA      NA        i                
+#> 1 i     -1.07    5.91e-11 ->        x      0.0890 -7.21e-11 i                
+#> 2 x      0.0890 -7.21e-11 ->        y      0.985   1.30e-11 i                
+#> 3 x      0.0890 -7.21e-11 <->       y      0.985   1.30e-11 i                
+#> 4 y      0.985   1.30e-11 NA        NA    NA      NA        i                
 #> # ℹ 1 more variable: instrumental <chr>
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame

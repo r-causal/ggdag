@@ -31,7 +31,11 @@ query_instrumental(
 
 - conditioned_on:
 
-  Character vector of variables that must be conditioned on.
+  Defunct.
+  [`dagitty::instrumentalVariables()`](https://rdrr.io/pkg/dagitty/man/instrumentalVariables.html)
+  works out the conditioning set an instrument requires on its own and
+  reports it in the `conditioning_set` and `conditioned_on` columns, so
+  there is nothing for this argument to do. Supplying it is an error.
 
 ## Value
 

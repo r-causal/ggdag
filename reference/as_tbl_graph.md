@@ -27,7 +27,7 @@ as_tbl_graph(x, directed = TRUE, ...)
 
 - ...:
 
-  other arguments passed to `as_tbl_graph`
+  currently unused
 
 ## Value
 

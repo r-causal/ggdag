@@ -1,7 +1,8 @@
 # Find Exogenous Variables
 
-`node_exogenous` tags exogenous variables given an exposure and outcome.
-`ggdag_exogenous` plots all exogenous variables. See
+`node_exogenous` tags exogenous variables, the variables with no
+directed arrows pointing at them. `ggdag_exogenous` plots all exogenous
+variables. See
 [`dagitty::exogenousVariables()`](https://rdrr.io/pkg/dagitty/man/exogenousVariables.html)
 for details.
 
@@ -127,8 +128,8 @@ ggdag_exogenous(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - text:
 
@@ -166,15 +167,15 @@ node_exogenous(dag)
 #> #
 #> # Data:
 #> # A tibble: 7 × 8
-#>   name       x         y direction to      xend      yend exogenous
-#>   <chr>  <dbl>     <dbl> <fct>     <chr>  <dbl>     <dbl> <chr>    
-#> 1 b      1.45   1.64e-10 NA        NA    NA     NA        NA       
-#> 2 x1     0.521  7.08e- 1 ->        b      1.45   1.64e-10 exogenous
-#> 3 x1     0.521  7.08e- 1 ->        y     -0.573 -1.36e-10 exogenous
-#> 4 x2     0.521 -7.08e- 1 ->        b      1.45   1.64e-10 exogenous
-#> 5 x2     0.521 -7.08e- 1 ->        y     -0.573 -1.36e-10 exogenous
-#> 6 x3    -1.92   1.18e-10 ->        y     -0.573 -1.36e-10 exogenous
-#> 7 y     -0.573 -1.36e-10 NA        NA    NA     NA        NA       
+#>   name       x        y direction to      xend          yend exogenous
+#>   <chr>  <dbl>    <dbl> <fct>     <chr>  <dbl>         <dbl> <chr>    
+#> 1 b     -1.44   1.52e-8 NA        NA    NA     NA            NA       
+#> 2 x1    -0.516 -7.18e-1 ->        b     -1.44   0.0000000152 exogenous
+#> 3 x1    -0.516 -7.18e-1 ->        y      0.564 -0.0000000138 exogenous
+#> 4 x2    -0.516  7.18e-1 ->        b     -1.44   0.0000000152 exogenous
+#> 5 x2    -0.516  7.18e-1 ->        y      0.564 -0.0000000138 exogenous
+#> 6 x3     1.90   6.10e-9 ->        y      0.564 -0.0000000138 exogenous
+#> 7 y      0.564 -1.38e-8 NA        NA    NA     NA            NA       
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```

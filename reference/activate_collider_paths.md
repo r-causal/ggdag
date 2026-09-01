@@ -2,7 +2,13 @@
 
 Stratifying on colliders can open biasing pathways between variables.
 `activate_collider_paths` activates any such pathways given a variable
-or set of variables to adjust for and adds them to the `tidy_dagitty`.
+or set of variables to adjust for and adds them to the `tidy_dagitty`. A
+pathway is added for a pair of variables upstream of an adjusted
+collider only when the adjustment opens a path between them that is
+closed without it, so variables joined only by a path that the
+adjustment leaves as it found it are not connected. Openness is judged
+under the whole of `adjust_for`, so adjusting for a collider and for a
+variable that blocks the path it opens leaves the pair unconnected.
 
 ## Usage
 
@@ -23,7 +29,8 @@ activate_collider_paths(.tdy_dag, adjust_for, ...)
 - ...:
 
   additional arguments passed to
-  [`tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/tidy_dagitty.md)
+  [`tidy_dagitty()`](https://r-causal.github.io/ggdag/reference/tidy_dagitty.md).
+  These are only used when `.tdy_dag` is not already a `tidy_dagitty`.
 
 ## Value
 
@@ -44,10 +51,10 @@ collided_dag <- activate_collider_paths(dag, adjust_for = "m")
 collided_dag
 #> # DAG:
 #> # A `dagitty` DAG with: 3 nodes and 3 edges
-#> # Paths opened by conditioning on a collider: x <-> y, x <-> y
+#> # Paths opened by conditioning on a collider: x <-> y
 #> #
 #> # Data:
-#> # A tibble: 6 × 8
+#> # A tibble: 5 × 8
 #>   name          x      y direction to         xend   yend collider_line
 #>   <chr>     <dbl>  <dbl> <fct>     <chr>     <dbl>  <dbl> <lgl>        
 #> 1 m     -5.02e- 1 -0.290 NA        NA    NA        NA     FALSE        
@@ -55,7 +62,6 @@ collided_dag
 #> 3 y      1.15e-10  0.579 ->        m     -5.02e- 1 -0.290 FALSE        
 #> 4 y      1.15e-10  0.579 ->        x      5.02e- 1 -0.290 FALSE        
 #> 5 x      5.02e- 1 -0.290 <->       y      1.15e-10  0.579 TRUE         
-#> 6 x      5.02e- 1 -0.290 <->       y      1.15e-10  0.579 TRUE         
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```

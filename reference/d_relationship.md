@@ -27,7 +27,8 @@ node_dseparated(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 )
 
 node_drelationship(
@@ -35,7 +36,8 @@ node_drelationship(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 )
 
 ggdag_drelationship(
@@ -242,8 +244,8 @@ ggdag_dconnected(
 
   A logical value. When `TRUE` and both `use_edges` and `use_nodes` are
   `TRUE`, creates a unified legend entry showing both nodes and edges in
-  a single key, and hides the separate edge legend. This creates
-  cleaner, more compact legends. Default is `TRUE`.
+  a single key, and hides the separate edge legend. This creates a
+  single, more compact legend. Default is `TRUE`.
 
 - key_glyph:
 
@@ -275,6 +277,9 @@ ggdag_dconnected(
 - collider_lines:
 
   Logical. Should paths opened by conditioning on colliders be shown?
+  These paths are drawn as dashed ggraph curves whatever `edge_engine`
+  is in use: they mark an association rather than an edge of the DAG, so
+  they stay visibly apart from the arrows the engine draws.
 
 ## Value
 
@@ -293,14 +298,12 @@ dag |> ggdag_drelationship("x", "y", controlling_for = "m")
 
 dag |>
   node_dseparated("x", "y") |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend,
              col = d_relationship)) +
   geom_dag_edges() +
-  geom_dag_collider_edges() +
   geom_dag_node() +
   geom_dag_text(col = "white") +
-  theme_dag() +
-  scale_adjusted(include_color = FALSE)
+  theme_dag()
 
 
 dag |>

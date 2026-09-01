@@ -523,7 +523,7 @@ are a few sources with interesting examples:
   Your
   Conclusions](https://www.edx.org/learn/data-analysis/harvard-university-causal-diagrams-draw-your-assumptions-before-your-conclusions).
   Also see his article [A structural approach to selection
-  bias](https://pubmed.ncbi.nlm.nih.gov/15308962/).
+  bias](https://doi.org/10.1097/01.ede.0000135174.63482.43).
 - The chapter on DAGs in [Modern
   Epidemiology](https://books.google.com/books/about/Modern_Epidemiology.html?id=Z3vjT9ALxHUC)
   includes a couple of the examples here and many more directly related

@@ -27,7 +27,10 @@ theme_dag_gray_grid(base_size = 12, base_family = "", ...)
 - ...:
 
   additional arguments passed to
-  [`theme()`](https://ggplot2.tidyverse.org/reference/theme.html)
+  [`theme()`](https://ggplot2.tidyverse.org/reference/theme.html). A
+  value given here replaces the theme's own setting for that element.
+  `complete` is the one exception: the result takes its completeness
+  from the base theme, so a `complete` passed here has no effect.
 
 ## Examples
 
