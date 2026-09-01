@@ -489,6 +489,27 @@ test_that("exposure and outcome survive a function-layout rebuild", {
   expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
 })
 
+test_that("an isolated node survives a dplyr-verb layout rebuild", {
+  # The direct path builds the engine's input by appending isolated nodes
+  # after the edge and terminal rows. The rebuild path feeds the tidy data in
+  # its stored row order, which follows dagitty's code-unit-sorted vertex
+  # ordering (alphabetical for ASCII names), so an isolated node that sorts
+  # before its layer-mates enters the engine first. The engine seeds
+  # within-layer order from first appearance, so the whole layer ends up on
+  # different y coordinates. Without the isolated node the two paths agree,
+  # so any mismatch here comes from isolated-node handling alone. The DAG is
+  # written as a dagitty string because dagify() has no way to declare a node
+  # with no edges.
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.layout = "time_ordered"))
+  dag <- dagitty::dagitty("dag{u -> x; u -> y; iso}")
+
+  direct <- tidy_dagitty(dag, layout = "time_ordered")
+  rebuilt <- dplyr::select(direct, -x, -y, -xend, -yend)
+
+  expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
+})
+
 # Determinism ------------------------------------------------------------------
 
 test_that("every entry path is deterministic and leaves the RNG alone", {
