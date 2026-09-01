@@ -561,41 +561,22 @@ count_crossings <- function(layer_nodes, edges_df, layer_assign) {
     return(0L)
   }
 
-  # Build position lookup: node -> 1-based index within its layer
-  pos <- integer(0)
-  for (i in seq_along(layer_nodes)) {
-    for (j in seq_along(layer_nodes[[i]])) {
-      pos[[layer_nodes[[i]][j]]] <- j
-    }
-  }
+  from_layer <- layer_assign[directed$name]
+  to_layer <- layer_assign[directed$to]
 
   crossings <- 0L
-  max_layer <- length(layer_nodes) - 1L
-
-  for (li in seq_len(max_layer)) {
-    layer_idx <- li - 1L
+  for (li in seq_len(length(layer_nodes) - 1L)) {
     # Edges between this layer and next
-    between <- directed[
-      layer_assign[directed$name] == layer_idx &
-        layer_assign[directed$to] == layer_idx + 1L,
-      ,
-      drop = FALSE
-    ]
-    if (nrow(between) < 2) {
+    between <- which(from_layer == li - 1L & to_layer == li)
+    if (length(between) < 2L) {
       next
     }
-
-    for (a in seq_len(nrow(between) - 1)) {
-      for (b in seq(a + 1, nrow(between))) {
-        u1 <- between$name[a]
-        v1 <- between$to[a]
-        u2 <- between$name[b]
-        v2 <- between$to[b]
-        if ((pos[[u1]] - pos[[u2]]) * (pos[[v1]] - pos[[v2]]) < 0) {
-          crossings <- crossings + 1L
-        }
-      }
-    }
+    crossings <- crossings +
+      count_crossings_bilayer(
+        layer_nodes[[li]],
+        layer_nodes[[li + 1L]],
+        directed[between, , drop = FALSE]
+      )
   }
 
   crossings
@@ -604,6 +585,11 @@ count_crossings <- function(layer_nodes, edges_df, layer_assign) {
 #' Reorder nodes within layers to minimize edge crossings
 #'
 #' Uses the barycenter heuristic with iterative forward/backward sweeps.
+#' Each pass runs `barycenter_reorder()`, so a node moves to the mean
+#' position of its parents (forward) or children (backward) in the fixed
+#' neighbor layer, with a stable sort keeping the incumbent order on ties.
+#' Sweeping stops early once a full forward-plus-backward sweep leaves every
+#' layer unchanged, since further passes could not move anything.
 #'
 #' @param layer_nodes List of character vectors (one per layer).
 #' @param edges_df Data frame with `name` and `to` columns.
@@ -617,55 +603,32 @@ barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
     return(layer_nodes)
   }
 
+  parents_of <- split(directed$name, directed$to)
+  children_of <- split(directed$to, directed$name)
+
   for (s in seq_len(sweeps)) {
+    before <- layer_nodes
+
     # Forward pass: left to right
     for (i in seq(2, length(layer_nodes))) {
-      prev_layer <- layer_nodes[[i - 1]]
-      prev_pos <- stats::setNames(seq_along(prev_layer), prev_layer)
-
-      bary <- stats::setNames(
-        seq_along(layer_nodes[[i]]) * 1.0,
-        layer_nodes[[i]]
+      layer_nodes[[i]] <- barycenter_reorder(
+        layer_nodes[[i]],
+        layer_nodes[[i - 1]],
+        parents_of
       )
-
-      for (node in layer_nodes[[i]]) {
-        # Parents = nodes in prev layer with edge to this node
-        parents <- directed$name[
-          directed$to == node &
-            directed$name %in% prev_layer
-        ]
-        if (length(parents) > 0) {
-          bary[[node]] <- mean(prev_pos[parents])
-        }
-      }
-
-      # Stable sort: on tied barycenters the incumbent order is kept
-      layer_nodes[[i]] <- layer_nodes[[i]][order(bary, seq_along(bary))]
     }
 
     # Backward pass: right to left
     for (i in seq(length(layer_nodes) - 1, 1)) {
-      next_layer <- layer_nodes[[i + 1]]
-      next_pos <- stats::setNames(seq_along(next_layer), next_layer)
-
-      bary <- stats::setNames(
-        seq_along(layer_nodes[[i]]) * 1.0,
-        layer_nodes[[i]]
+      layer_nodes[[i]] <- barycenter_reorder(
+        layer_nodes[[i]],
+        layer_nodes[[i + 1]],
+        children_of
       )
+    }
 
-      for (node in layer_nodes[[i]]) {
-        # Children = nodes in next layer that this node has edge to
-        children <- directed$to[
-          directed$name == node &
-            directed$to %in% next_layer
-        ]
-        if (length(children) > 0) {
-          bary[[node]] <- mean(next_pos[children])
-        }
-      }
-
-      # Stable sort: on tied barycenters the incumbent order is kept
-      layer_nodes[[i]] <- layer_nodes[[i]][order(bary, seq_along(bary))]
+    if (identical(layer_nodes, before)) {
+      break
     }
   }
 
@@ -802,9 +765,17 @@ force_directed_y <- function(
     return(list(x = x_pos, y = y_pos))
   }
 
-  # Precompute intermediates for each edge
-  intermediates <- vector("list", nrow(directed))
-  for (ei in seq_len(nrow(directed))) {
+  # The simulation below runs hundreds of iterations, so every per-iteration
+  # lookup works on integer indices into all_nodes precomputed here; the
+  # arithmetic itself is untouched, so positions come out bit-identical to
+  # the name-indexed loops this replaces
+
+  # Precompute intermediates for each edge, as indices into all_nodes
+  n_edges <- nrow(directed)
+  edge_from <- match(directed$name, all_nodes)
+  edge_to <- match(directed$to, all_nodes)
+  intermediates <- vector("list", n_edges)
+  for (ei in seq_len(n_edges)) {
     u <- directed$name[ei]
     v <- directed$to[ei]
     u_layer <- layer_assign[[u]]
@@ -813,34 +784,67 @@ force_directed_y <- function(
     hi <- max(u_layer, v_layer)
 
     if (hi - lo <= 1) {
-      intermediates[[ei]] <- character(0)
+      intermediates[[ei]] <- integer(0)
       next
     }
 
-    intermediates[[ei]] <- all_nodes[
+    intermediates[[ei]] <- which(
       all_nodes != u &
         all_nodes != v &
         layer_assign[all_nodes] > lo &
         layer_assign[all_nodes] < hi
-    ]
+    )
   }
+  # Flatten the edge-avoidance work into one vector per (edge, intermediate)
+  # pair, ordered edge by edge and intermediate by intermediate exactly as
+  # the nested loops would visit them. The x geometry never changes during
+  # the simulation, so it is computed once here.
+  pair_w <- unlist(intermediates)
+  n_pairs <- length(pair_w)
+  pair_count <- lengths(intermediates)
+  pair_u <- rep(edge_from, pair_count)
+  pair_v <- rep(edge_to, pair_count)
+  pair_wx <- x_pos[pair_w]
+  pair_ax <- x_pos[pair_u]
+  pair_dx <- x_pos[pair_v] - pair_ax
 
   # Build neighbor lookup (all nodes connected by any edge)
-  neighbors <- stats::setNames(
-    vector("list", length(all_nodes)),
-    all_nodes
-  )
-  for (ei in seq_len(nrow(directed))) {
-    u <- directed$name[ei]
-    v <- directed$to[ei]
-    if (u %in% all_nodes && v %in% all_nodes) {
+  neighbors <- vector("list", length(all_nodes))
+  for (ei in seq_len(n_edges)) {
+    u <- edge_from[ei]
+    v <- edge_to[ei]
+    if (!is.na(u) && !is.na(v)) {
       neighbors[[u]] <- c(neighbors[[u]], v)
       neighbors[[v]] <- c(neighbors[[v]], u)
     }
   }
+  # The mean of a single value is that value, so single-neighbor nodes skip
+  # the mean() call entirely
+  single_neighbor <- which(lengths(neighbors) == 1)
+  multi_neighbor <- which(lengths(neighbors) > 1)
+  single_neighbor_of <- vapply(
+    neighbors[single_neighbor],
+    identity,
+    integer(1)
+  )
 
-  # Force simulation
-  forces <- stats::setNames(numeric(length(all_nodes)), all_nodes)
+  # Same-layer node groups, as indices into all_nodes, with the inner pair
+  # walk of the repulsion pass hoisted out of the iteration loop
+  layer_index <- lapply(layer_nodes, function(nodes) match(nodes, all_nodes))
+  multi_node_layers <- which(lengths(layer_index) >= 2)
+  layer_pair_walk <- lapply(layer_index, function(idx) {
+    if (length(idx) >= 2) seq(2, length(idx)) else integer(0)
+  })
+
+  # Force simulation. Arithmetic on named vectors copies the names at every
+  # step, so the simulation runs on bare positions and the names return at
+  # the end.
+  pair_wx <- unname(pair_wx)
+  pair_ax <- unname(pair_ax)
+  pair_dx <- unname(pair_dx)
+  y_names <- names(y_pos)
+  y_pos <- unname(y_pos)
+  forces <- numeric(length(all_nodes))
 
   for (iter in seq(0, iterations - 1)) {
     progress <- iter / iterations
@@ -850,64 +854,60 @@ force_directed_y <- function(
 
     forces[] <- 0
 
-    # FORCE A: Barycenter pull
-    for (node in all_nodes) {
-      nbrs <- neighbors[[node]]
-      if (length(nbrs) > 0) {
-        avg_y <- mean(y_pos[nbrs])
-        forces[[node]] <- forces[[node]] + (avg_y - y_pos[[node]]) * bary_weight
+    # FORCE A: Barycenter pull. Each node only reads positions and writes
+    # its own force, so the two groups can run in any order
+    forces[single_neighbor] <- forces[single_neighbor] +
+      (y_pos[single_neighbor_of] - y_pos[single_neighbor]) * bary_weight
+    for (node in multi_neighbor) {
+      avg_y <- mean.default(y_pos[neighbors[[node]]])
+      forces[node] <- forces[node] + (avg_y - y_pos[node]) * bary_weight
+    }
+
+    # FORCE B: Edge-avoidance (bidirectional). The projection geometry of
+    # y_dist_to_edge() is computed for every (edge, intermediate) pair at
+    # once, elementwise, then the affected nodes accumulate their pushes in
+    # the order the original nested loops visited them. A degenerate edge
+    # (near-zero length) takes no part, as the per-pair distance helper
+    # would have reported an infinite distance for it.
+    if (n_pairs > 0) {
+      ay <- y_pos[pair_u]
+      dy <- y_pos[pair_v] - ay
+      len2 <- pair_dx * pair_dx + dy * dy
+      wy <- y_pos[pair_w]
+      t <- ((pair_wx - pair_ax) * pair_dx + (wy - ay) * dy) / len2
+      proj_y <- ay + t * dy
+      dist <- abs(wy - proj_y)
+      hits <- which(
+        len2 >= 1e-10 & t >= 0.005 & t <= 0.995 & dist < clearance
+      )
+
+      for (h in hits) {
+        w <- pair_w[h]
+        u <- pair_u[h]
+        v <- pair_v[h]
+        overlap <- clearance - dist[h]
+        direction <- if (wy[h] >= proj_y[h]) 1 else -1
+        strength <- overlap * avoid_weight * (1 + overlap / clearance)
+
+        forces[w] <- forces[w] + direction * strength
+        forces[u] <- forces[u] - direction * strength * 0.45 * (1 - t[h])
+        forces[v] <- forces[v] - direction * strength * 0.45 * t[h]
       }
     }
 
-    # FORCE B: Edge-avoidance (bidirectional)
-    for (ei in seq_len(nrow(directed))) {
-      inters <- intermediates[[ei]]
-      if (length(inters) == 0) {
-        next
-      }
+    # FORCE C: Same-layer repulsion. An already-sorted layer keeps its
+    # order, exactly what the stable sort would return
+    for (i in multi_node_layers) {
+      nodes <- layer_index[[i]]
+      layer_y <- y_pos[nodes]
+      sorted <- if (is.unsorted(layer_y)) nodes[order(layer_y)] else nodes
 
-      u <- directed$name[ei]
-      v <- directed$to[ei]
-
-      for (w in inters) {
-        result <- y_dist_to_edge(
-          x_pos[[w]],
-          y_pos[[w]],
-          x_pos[[u]],
-          y_pos[[u]],
-          x_pos[[v]],
-          y_pos[[v]]
-        )
-
-        if (result$dist < clearance) {
-          overlap <- clearance - result$dist
-          direction <- if (y_pos[[w]] >= result$proj_y) 1 else -1
-          strength <- overlap * avoid_weight * (1 + overlap / clearance)
-
-          forces[[w]] <- forces[[w]] + direction * strength
-          forces[[u]] <- forces[[u]] -
-            direction * strength * 0.45 * (1 - result$t)
-          forces[[v]] <- forces[[v]] - direction * strength * 0.45 * result$t
-        }
-      }
-    }
-
-    # FORCE C: Same-layer repulsion
-    for (i in seq_along(layer_nodes)) {
-      nodes <- layer_nodes[[i]]
-      if (length(nodes) < 2) {
-        next
-      }
-
-      sorted_idx <- order(y_pos[nodes])
-      sorted <- nodes[sorted_idx]
-
-      for (j in seq(2, length(sorted))) {
-        gap <- y_pos[[sorted[j]]] - y_pos[[sorted[j - 1]]]
+      for (j in layer_pair_walk[[i]]) {
+        gap <- y_pos[sorted[j]] - y_pos[sorted[j - 1]]
         if (gap < min_spacing) {
           push <- (min_spacing - gap) * 0.5
-          forces[[sorted[j - 1]]] <- forces[[sorted[j - 1]]] - push
-          forces[[sorted[j]]] <- forces[[sorted[j]]] + push
+          forces[sorted[j - 1]] <- forces[sorted[j - 1]] - push
+          forces[sorted[j]] <- forces[sorted[j]] + push
         }
       }
     }
@@ -915,6 +915,8 @@ force_directed_y <- function(
     # Apply forces
     y_pos <- y_pos + forces * damping
   }
+
+  names(y_pos) <- y_names
 
   # Enforce spacing as hard constraint after simulation
   y_pos <- enforce_spacing(y_pos, layer_assign, min_spacing)

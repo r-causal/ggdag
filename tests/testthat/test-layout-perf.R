@@ -66,6 +66,42 @@ test_that("time-ordered coordinates are deterministic and match the fixture", {
   }
 })
 
+test_that("geometry variants are deterministic and match the fixture", {
+  fixture <- readRDS(test_path("fixtures", "layout-invariance.rds"))
+
+  napkin_edges <- canonical_dag_edges(canonical_dag_specs$napkin)
+  no_force_first <- compute_time_ordered_layout(napkin_edges, force_y = FALSE)
+  no_force_second <- compute_time_ordered_layout(napkin_edges, force_y = FALSE)
+  expect_identical(
+    no_force_first,
+    no_force_second,
+    label = "napkin: first force_y = FALSE run",
+    expected.label = "napkin: second force_y = FALSE run"
+  )
+  expect_identical(
+    no_force_first,
+    fixture$napkin$coords_no_force,
+    label = "napkin: force_y = FALSE coordinates",
+    expected.label = "napkin: pinned force_y = FALSE fixture"
+  )
+
+  epi_edges <- canonical_dag_edges(canonical_dag_specs$large_epi)
+  scaled_first <- compute_time_ordered_layout(epi_edges, node_scale = 1.25)
+  scaled_second <- compute_time_ordered_layout(epi_edges, node_scale = 1.25)
+  expect_identical(
+    scaled_first,
+    scaled_second,
+    label = "large_epi: first node_scale = 1.25 run",
+    expected.label = "large_epi: second node_scale = 1.25 run"
+  )
+  expect_identical(
+    scaled_first,
+    fixture$large_epi$coords_scaled,
+    label = "large_epi: node_scale = 1.25 coordinates",
+    expected.label = "large_epi: pinned node_scale = 1.25 fixture"
+  )
+})
+
 # Performance ------------------------------------------------------------------
 
 test_that("order_layers reaches interactive speed on large_epi", {

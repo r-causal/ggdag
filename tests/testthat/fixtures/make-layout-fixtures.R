@@ -20,6 +20,17 @@ fixture <- lapply(canonical_dag_specs, function(spec) {
   )
 })
 
+# Geometry variants: the evenly spaced no-force branch and a non-default
+# node scale pin the geometry stages beyond the default path
+fixture$napkin$coords_no_force <- compute_time_ordered_layout(
+  canonical_dag_edges(canonical_dag_specs$napkin),
+  force_y = FALSE
+)
+fixture$large_epi$coords_scaled <- compute_time_ordered_layout(
+  canonical_dag_edges(canonical_dag_specs$large_epi),
+  node_scale = 1.25
+)
+
 path <- file.path("tests", "testthat", "fixtures", "layout-invariance.rds")
 saveRDS(fixture, path, version = 3)
 cat("Wrote", path, "with", length(fixture), "canonical DAGs.\n")

@@ -107,7 +107,13 @@ insert_dummy_nodes <- function(edges_df, layer_assign) {
   )
 }
 
+# Session-lifetime cache for permutation matrices and their inverses, keyed
+# by size: the ordering engine asks for the same few small sizes over and over.
+permutation_cache <- new.env(parent = emptyenv())
+
 #' Enumerate all permutations of `1:n` in lexicographic order
+#'
+#' Results are cached per `n` for the life of the session.
 #'
 #' @param n A single non-negative whole number. Callers keep `n` small (at
 #'   most `exact_max`, 7 by default) because the result has `n!` rows.
@@ -131,7 +137,40 @@ permutations_lex <- function(n) {
     return(matrix(integer(0), nrow = 1L, ncol = 0L))
   }
 
-  permutations_of(seq_len(n))
+  key <- as.character(n)
+  cached <- permutation_cache[[key]]
+  if (!is.null(cached)) {
+    return(cached)
+  }
+  result <- permutations_of(seq_len(n))
+  permutation_cache[[key]] <- result
+  result
+}
+
+#' Inverse permutations, row for row, of `permutations_lex(n)`
+#'
+#' Row `r` maps each element to its position in the `r`-th permutation:
+#' `inv[r, p[r, a]] == a`. Cached alongside the permutations because the
+#' exact refiner reads node ranks from it for every candidate at once.
+#'
+#' @param n A single positive whole number, validated by `permutations_lex()`.
+#' @return An integer matrix with the same shape as `permutations_lex(n)`.
+#' @noRd
+inverse_permutations_lex <- function(n) {
+  key <- paste0("inv", n)
+  cached <- permutation_cache[[key]]
+  if (!is.null(cached)) {
+    return(cached)
+  }
+  perms <- permutations_lex(n)
+  m <- nrow(perms)
+  inv <- matrix(0L, nrow = m, ncol = n)
+  inv[cbind(rep(seq_len(m), n), as.vector(perms))] <- rep(
+    seq_len(n),
+    each = m
+  )
+  permutation_cache[[key]] <- inv
+  inv
 }
 
 #' Recursive worker for permutations_lex()
@@ -179,13 +218,11 @@ count_crossings_bilayer <- function(left_order, right_order, edges_between) {
   left_pos <- match(edges$name, left_order)
   right_pos <- match(edges$to, right_order)
 
-  crossings <- 0L
-  for (a in seq_len(n - 1L)) {
-    b <- seq.int(a + 1L, n)
-    crossings <- crossings +
-      sum((left_pos[a] - left_pos[b]) * (right_pos[a] - right_pos[b]) < 0L)
-  }
-  crossings
+  left_diff <- outer(left_pos, left_pos, "-")
+  right_diff <- outer(right_pos, right_pos, "-")
+  # Every crossing pair appears twice in the full outer comparison, once in
+  # each order
+  sum(left_diff * right_diff < 0L) %/% 2L
 }
 
 #' One barycenter reordering of a layer against a fixed neighbor layer
@@ -196,12 +233,13 @@ count_crossings_bilayer <- function(left_order, right_order, edges_between) {
 #'
 #' @param layer Character vector: the layer to reorder.
 #' @param neighbor_layer Character vector: the fixed adjacent layer.
-#' @param directed Data frame of directed edges (`name`, `to`, no `NA`s).
-#' @param incoming If `TRUE`, neighbors are parents in `neighbor_layer`;
-#'   otherwise children.
+#' @param neighbors_of Named list mapping each node to its neighbors on the
+#'   relevant side (parents for a forward pass, children for a backward
+#'   pass), in edge row order. Neighbors outside `neighbor_layer` are
+#'   ignored.
 #' @return The reordered layer.
 #' @noRd
-barycenter_reorder <- function(layer, neighbor_layer, directed, incoming) {
+barycenter_reorder <- function(layer, neighbor_layer, neighbors_of) {
   if (length(layer) < 2L) {
     return(layer)
   }
@@ -210,12 +248,8 @@ barycenter_reorder <- function(layer, neighbor_layer, directed, incoming) {
   bary <- as.numeric(seq_along(layer))
 
   for (j in seq_along(layer)) {
-    node <- layer[[j]]
-    neighbors <- if (incoming) {
-      directed$name[directed$to == node & directed$name %in% neighbor_layer]
-    } else {
-      directed$to[directed$name == node & directed$to %in% neighbor_layer]
-    }
+    neighbors <- neighbors_of[[layer[[j]]]]
+    neighbors <- neighbors[neighbors %in% neighbor_layer]
     if (length(neighbors) > 0L) {
       bary[[j]] <- mean(neighbor_pos[neighbors])
     }
@@ -225,6 +259,10 @@ barycenter_reorder <- function(layer, neighbor_layer, directed, incoming) {
 }
 
 #' Initialize a layer ordering with forward and backward barycenter sweeps
+#'
+#' Sweeping stops early once a full forward-plus-backward sweep leaves every
+#' layer unchanged, since the sweep is a deterministic function of the
+#' ordering and further passes could not move anything.
 #'
 #' @param layer_nodes List of character vectors, one per layer.
 #' @param edges_df Data frame with `name` and `to` columns.
@@ -237,22 +275,27 @@ barycenter_init <- function(layer_nodes, edges_df, sweeps) {
     return(layer_nodes)
   }
 
+  parents_of <- split(directed$name, directed$to)
+  children_of <- split(directed$to, directed$name)
+
   for (s in seq_len(sweeps)) {
+    before <- layer_nodes
     for (i in seq.int(2L, length(layer_nodes))) {
       layer_nodes[[i]] <- barycenter_reorder(
         layer_nodes[[i]],
         layer_nodes[[i - 1L]],
-        directed,
-        incoming = TRUE
+        parents_of
       )
     }
     for (i in seq.int(length(layer_nodes) - 1L, 1L)) {
       layer_nodes[[i]] <- barycenter_reorder(
         layer_nodes[[i]],
         layer_nodes[[i + 1L]],
-        directed,
-        incoming = FALSE
+        children_of
       )
+    }
+    if (identical(layer_nodes, before)) {
+      break
     }
   }
 
@@ -383,76 +426,136 @@ order_layers <- function(
     }
   }
 
-  # Edges between each pair of adjacent layers; multi-layer edges belong to
-  # no boundary, which is exactly why augmentation matters
-  boundary_edges <- list()
+  # Edges between each pair of adjacent layers, filtered to nodes the
+  # ordering covers, as plain endpoint vectors; multi-layer edges belong to
+  # no boundary, which is exactly why augmentation matters. Layer node sets
+  # never change during refinement, so this filtering happens once.
+  boundary_data <- list()
   if (n_layers >= 2L) {
-    boundary_edges <- lapply(seq_len(n_layers - 1L), function(b) {
+    boundary_data <- lapply(seq_len(n_layers - 1L), function(b) {
       keep <- which(
         aug_assign[aug_edges$name] == b - 1L & aug_assign[aug_edges$to] == b
       )
-      aug_edges[keep, , drop = FALSE]
+      from <- aug_edges$name[keep]
+      to <- aug_edges$to[keep]
+      covered <- from %in% aug_layers[[b]] & to %in% aug_layers[[b + 1L]]
+      list(from = from[covered], to = to[covered])
     })
   }
 
-  # Objective for one layer's candidate ordering, neighbors held fixed
-  layer_objective <- function(layers, i, ordering) {
-    obj <- 0
+  # Crossing contributions for one layer against its fixed neighbors, as a
+  # k * k matrix in vector form: entry [s, t] (read at s + (t - 1) * k)
+  # counts the boundary edge pairs that cross whenever the s-th node of
+  # `current` is drawn before the t-th. A candidate ordering's crossing
+  # count is then the sum of entries over its ordered node pairs, which
+  # lets one matrix serve every permutation of the layer.
+  crossing_contributions <- function(i, current) {
+    k <- length(current)
+    contrib <- integer(k * k)
+    add_boundary <- function(contrib, own_idx, fixed_pos) {
+      n_e <- length(fixed_pos)
+      if (n_e < 2L) {
+        return(contrib)
+      }
+      # Ordered edge pairs whose fixed endpoints appear in descending
+      # position: those cross exactly when the own endpoints are drawn in
+      # ascending order
+      hit <- which(outer(fixed_pos, fixed_pos, ">"))
+      if (length(hit) == 0L) {
+        return(contrib)
+      }
+      e1 <- (hit - 1L) %% n_e + 1L
+      e2 <- (hit - 1L) %/% n_e + 1L
+      contrib +
+        tabulate(own_idx[e1] + (own_idx[e2] - 1L) * k, nbins = k * k)
+    }
     if (i > 1L) {
-      obj <- obj +
-        count_crossings_bilayer(
-          layers[[i - 1L]],
-          ordering,
-          boundary_edges[[i - 1L]]
-        )
+      bd <- boundary_data[[i - 1L]]
+      contrib <- add_boundary(
+        contrib,
+        match(bd$to, current),
+        match(bd$from, aug_layers[[i - 1L]])
+      )
     }
     if (i < n_layers) {
-      obj <- obj +
-        count_crossings_bilayer(
-          ordering,
-          layers[[i + 1L]],
-          boundary_edges[[i]]
-        )
+      bd <- boundary_data[[i]]
+      contrib <- add_boundary(
+        contrib,
+        match(bd$from, current),
+        match(bd$to, aug_layers[[i + 1L]])
+      )
     }
-    pairs <- bidi_by_layer[[i]]
-    if (!is.null(pairs)) {
-      ranks_u <- match(pairs$name, ordering)
-      ranks_v <- match(pairs$to, ordering)
-      obj <- obj + 0.5 * sum(abs(ranks_u - ranks_v) - 1L)
-    }
-    obj
+    contrib
   }
 
-  # Exact refinement: every permutation is scanned and only strict
-  # improvements are accepted, so among equal bests the permutation earliest
-  # in lexicographic order wins. The incumbent is the identity permutation,
-  # scanned first, so it keeps any tie at the current best.
-  refine_exact <- function(current, i, perms) {
-    best <- current
-    best_obj <- layer_objective(aug_layers, i, current)
-    for (r in seq_len(nrow(perms))) {
-      cand <- current[perms[r, ]]
-      obj <- layer_objective(aug_layers, i, cand)
-      if (obj < best_obj) {
-        best_obj <- obj
-        best <- cand
+  # Exact refinement: every permutation is scored and only a strict
+  # improvement is accepted, so among equal bests the permutation earliest
+  # in lexicographic order wins and the incumbent, the identity permutation
+  # in row one, keeps any tie at the current best
+  refine_exact <- function(current, i, perms, inv_perms) {
+    k <- length(current)
+    contrib <- crossing_contributions(i, current)
+    m <- nrow(perms)
+    crossings <- integer(m)
+    for (a in seq_len(k - 1L)) {
+      for (b in seq.int(a + 1L, k)) {
+        crossings <- crossings + contrib[perms[, a] + (perms[, b] - 1L) * k]
       }
     }
-    best
+    obj <- as.numeric(crossings)
+    pairs <- bidi_by_layer[[i]]
+    if (!is.null(pairs)) {
+      bidi_u <- match(pairs$name, current)
+      bidi_v <- match(pairs$to, current)
+      penalty <- integer(m)
+      for (p in seq_along(bidi_u)) {
+        penalty <- penalty +
+          (abs(inv_perms[, bidi_u[p]] - inv_perms[, bidi_v[p]]) - 1L)
+      }
+      obj <- obj + 0.5 * penalty
+    }
+    best <- which.min(obj)
+    if (obj[best] < obj[1L]) current[perms[best, ]] else current
   }
 
   # Greedy fallback for wide layers: adjacent transpositions in index order,
-  # strict improvements only
+  # strict improvements only. The objective sums contribution entries over
+  # the candidate's ordered node pairs plus the bidirected adjacency
+  # penalty, exact integer and half-integer arithmetic throughout, so the
+  # values match a direct per-candidate recount bit for bit.
   refine_greedy <- function(current, i) {
-    obj <- layer_objective(aug_layers, i, current)
+    k <- length(current)
+    contrib <- crossing_contributions(i, current)
+    pairs <- bidi_by_layer[[i]]
+    bidi_u <- integer(0)
+    bidi_v <- integer(0)
+    if (!is.null(pairs)) {
+      bidi_u <- match(pairs$name, current)
+      bidi_v <- match(pairs$to, current)
+    }
+    pair_a <- rep(seq_len(k - 1L), times = seq.int(k - 1L, 1L))
+    pair_b <- unlist(lapply(seq_len(k - 1L), function(a) seq.int(a + 1L, k)))
+
+    index_objective <- function(idx) {
+      obj <- sum(contrib[idx[pair_a] + (idx[pair_b] - 1L) * k])
+      if (length(bidi_u) > 0L) {
+        inv <- integer(k)
+        inv[idx] <- seq_len(k)
+        obj <- obj + 0.5 * sum(abs(inv[bidi_u] - inv[bidi_v]) - 1L)
+      }
+      obj
+    }
+
+    idx <- seq_len(k)
+    obj <- index_objective(idx)
     repeat {
       improved <- FALSE
-      for (j in seq_len(length(current) - 1L)) {
-        cand <- current
+      for (j in seq_len(k - 1L)) {
+        cand <- idx
         cand[c(j, j + 1L)] <- cand[c(j + 1L, j)]
-        cand_obj <- layer_objective(aug_layers, i, cand)
+        cand_obj <- index_objective(cand)
         if (cand_obj < obj) {
-          current <- cand
+          idx <- cand
           obj <- cand_obj
           improved <- TRUE
         }
@@ -461,7 +564,7 @@ order_layers <- function(
         break
       }
     }
-    current
+    current[idx]
   }
 
   aug_layers <- barycenter_init(aug_layers, aug_edges, sweeps)
@@ -470,6 +573,10 @@ order_layers <- function(
   layer_perms <- lapply(aug_layers, function(l) {
     k <- length(l)
     if (k >= 2L && k <= exact_max) permutations_lex(k) else NULL
+  })
+  layer_inv_perms <- lapply(aug_layers, function(l) {
+    k <- length(l)
+    if (k >= 2L && k <= exact_max) inverse_permutations_lex(k) else NULL
   })
 
   for (pass in seq_len(max_refine_passes)) {
@@ -485,7 +592,7 @@ order_layers <- function(
         next
       }
       new_order <- if (!is.null(layer_perms[[i]])) {
-        refine_exact(current, i, layer_perms[[i]])
+        refine_exact(current, i, layer_perms[[i]], layer_inv_perms[[i]])
       } else {
         refine_greedy(current, i)
       }
