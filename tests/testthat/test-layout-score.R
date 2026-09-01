@@ -66,6 +66,12 @@ test_that("dist_to_edge: vectorized over points", {
   expect_equal(dist_to_edge(px, py, 0, 0, 4, 0), c(3, 2, 5, 0))
 })
 
+test_that("dist_to_edge: zero-length segment returns plain point distance", {
+  expect_equal(dist_to_edge(3, 4, 0, 0, 0, 0), 5)
+  expect_equal(dist_to_edge(0, 0, 2, 2, 2, 2), sqrt(8))
+  expect_equal(dist_to_edge(c(3, 0), c(4, 0), 0, 0, 0, 0), c(5, 0))
+})
+
 # sample_curved_edge -----------------------------------------------------------
 
 test_that("sample_curved_edge: curvature 0 lies on the straight segment", {
@@ -475,5 +481,166 @@ test_that("canonical butterfly: standard layout is crossing- and overlap-free", 
   expect_identical(
     count_node_edge_overlaps(coords, edges, node_radius_data()),
     0L
+  )
+})
+
+# Terminal and isolated node rows (to = NA) ------------------------------------
+
+test_that("count_edge_crossings: rows with to = NA are ignored", {
+  coords <- data.frame(
+    name = c("a", "b", "c", "d"),
+    x = c(0, 1, 0, 1),
+    y = c(0, 1, 1, 0)
+  )
+  mixed <- data.frame(name = c("a", "c", "b"), to = c("b", "d", NA))
+  expect_identical(count_edge_crossings(coords, mixed), 1L)
+
+  all_na <- data.frame(name = c("a", "b", "c"), to = c(NA, NA, NA))
+  expect_identical(count_edge_crossings(coords, all_na), 0L)
+})
+
+test_that("count_node_edge_overlaps: rows with to = NA are ignored", {
+  coords <- data.frame(name = c("a", "b", "c"), x = c(0, 1, 2), y = c(0, 0, 0))
+
+  mixed <- data.frame(
+    name = c("a", "b", "a", "c"),
+    to = c("b", "c", "c", NA)
+  )
+  # a -> c still passes straight through b; the terminal row adds nothing
+  expect_identical(
+    count_node_edge_overlaps(coords, mixed, node_radius_data()),
+    1L
+  )
+
+  all_na <- data.frame(name = c("a", "b", "c"), to = c(NA, NA, NA))
+  expect_identical(
+    count_node_edge_overlaps(coords, all_na, node_radius_data()),
+    0L
+  )
+})
+
+test_that("count_node_edge_overlaps: curvature stays aligned across to = NA rows", {
+  coords <- data.frame(name = c("a", "b", "c"), x = c(0, 1, 2), y = c(0, 0, 0))
+
+  # the NA row sits between real edges, so dropping curvature values by
+  # position without the same mask would misalign a -> c with its curvature
+  edges <- data.frame(
+    name = c("a", "c", "b", "a"),
+    to = c("b", NA, "c", "c")
+  )
+  expect_identical(
+    count_node_edge_overlaps(
+      coords,
+      edges,
+      node_radius_data(),
+      curvature = c(0, 0.9, 0, 0.6)
+    ),
+    0L
+  )
+  expect_identical(
+    count_node_edge_overlaps(
+      coords,
+      edges,
+      node_radius_data(),
+      curvature = c(0, 0.9, 0, 0)
+    ),
+    1L
+  )
+})
+
+test_that("count_narrow_angles: rows with to = NA are ignored", {
+  coords <- data.frame(
+    name = c("o", "p", "q"),
+    x = c(0, 10, 10),
+    y = c(0, 0, 1)
+  )
+
+  edges <- data.frame(name = c("o", "o"), to = c("p", "q"))
+  expect_identical(count_narrow_angles(coords, edges), 1L)
+
+  mixed <- data.frame(name = c("o", "o", "p"), to = c("p", "q", NA))
+  expect_identical(count_narrow_angles(coords, mixed), 1L)
+
+  all_na <- data.frame(name = c("o", "p", "q"), to = c(NA, NA, NA))
+  expect_identical(count_narrow_angles(coords, all_na), 0L)
+})
+
+test_that("layout_stress: rows with to = NA are ignored", {
+  coords <- data.frame(name = c("a", "b", "c"), x = c(0, 1, 2), y = c(0, 0, 0))
+
+  mixed <- data.frame(name = c("a", "b", "c"), to = c("b", "c", NA))
+  expect_equal(layout_stress(coords, mixed), 0, tolerance = 1e-8)
+
+  all_na <- data.frame(name = c("a", "b", "c"), to = c(NA, NA, NA))
+  expect_equal(layout_stress(coords, all_na), 0)
+})
+
+test_that("score_layout: rows with to = NA are ignored", {
+  coords <- data.frame(name = c("a", "b", "c"), x = c(0, 1, 2), y = c(0, 0, 0))
+
+  mixed <- data.frame(name = c("a", "b", "c"), to = c("b", "c", NA))
+  score <- score_layout(coords, mixed)
+  expect_identical(score$crossings, 0L)
+  expect_identical(score$node_edge, 0L)
+  expect_identical(score$angular, 0L)
+  expect_equal(score$stress, 0, tolerance = 1e-8)
+  expect_equal(score$total, 0, tolerance = 1e-6)
+
+  all_na <- data.frame(name = c("a", "b", "c"), to = c(NA, NA, NA))
+  score_na <- score_layout(coords, all_na)
+  expect_identical(score_na$crossings, 0L)
+  expect_identical(score_na$node_edge, 0L)
+  expect_identical(score_na$angular, 0L)
+  expect_equal(score_na$stress, 0)
+  expect_equal(score_na$total, 0)
+})
+
+# curvature validation ---------------------------------------------------------
+
+test_that("count_node_edge_overlaps: curvature must have one value per edge row", {
+  coords <- data.frame(name = c("a", "b", "c"), x = c(0, 1, 2), y = c(0, 0, 0))
+  edges <- data.frame(name = c("a", "b", "a"), to = c("b", "c", "c"))
+
+  expect_error(
+    count_node_edge_overlaps(
+      coords,
+      edges,
+      node_radius_data(),
+      curvature = c(0, 0)
+    ),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    count_node_edge_overlaps(
+      coords,
+      edges,
+      node_radius_data(),
+      curvature = c(0, 0, 0, 0)
+    ),
+    class = "ggdag_type_error"
+  )
+
+  # rows with to = NA count toward the required length
+  with_na <- data.frame(
+    name = c("a", "b", "a", "c"),
+    to = c("b", "c", "c", NA)
+  )
+  expect_error(
+    count_node_edge_overlaps(
+      coords,
+      with_na,
+      node_radius_data(),
+      curvature = c(0, 0, 0)
+    ),
+    class = "ggdag_type_error"
+  )
+  expect_identical(
+    count_node_edge_overlaps(
+      coords,
+      with_na,
+      node_radius_data(),
+      curvature = c(0, 0, 0, 0)
+    ),
+    1L
   )
 })
