@@ -926,14 +926,10 @@ force_directed_y <- function(
 
 # Stage 4: Greedy post-correction ----------------------------------------------
 
-# Curvature of the arc a bidirected edge is drawn with, matching the default
-# curvature of the edge geoms.
-bidirected_arc_curvature <- 0.3
-
 #' Find nodes too close to drawn bidirected arcs
 #'
 #' Traces each bidirected edge as the arc it is drawn with (curvature
-#' `bidirected_arc_curvature`) and reports every node, other than the two
+#' `arc_curvature`) and reports every node, other than the two
 #' endpoints, whose center comes closer to the arc than `node_radius + 8`,
 #' mirroring the straight-line detection threshold in `find_overlaps()`.
 #' Unlike the straight-line check, the arc of a same-layer pair bows into
@@ -943,9 +939,16 @@ bidirected_arc_curvature <- 0.3
 #' @param positions List with `$x` and `$y` (named numeric vectors).
 #' @param bidirected Data frame of bidirected edges with `name` and `to`.
 #' @param node_radius Radius of each node circle.
+#' @param arc_curvature Curvature the drawn arcs are traced at, matching the
+#'   `curvature` option the edge geoms read.
 #' @return Data frame with columns: `edge_from`, `edge_to`, `node`, `dist`.
 #' @noRd
-find_arc_overlaps <- function(positions, bidirected, node_radius) {
+find_arc_overlaps <- function(
+  positions,
+  bidirected,
+  node_radius,
+  arc_curvature
+) {
   clearance <- node_radius + 8
   all_nodes <- names(positions$x)
 
@@ -965,7 +968,7 @@ find_arc_overlaps <- function(positions, bidirected, node_radius) {
       positions$y[[u]],
       positions$x[[v]],
       positions$y[[v]],
-      bidirected_arc_curvature
+      arc_curvature
     )
     for (w in setdiff(all_nodes, c(u, v))) {
       dist <- min(
@@ -1067,6 +1070,9 @@ find_overlaps <- function(positions, edges_df, layer_assign, node_radius = 26) {
 #' @param check_bidirected If `TRUE`, each pass also traces the arcs the
 #'   bidirected rows of `edges_df` are drawn with and applies the same
 #'   displacement correction to nodes the arcs pass through.
+#' @param arc_curvature Curvature the bidirected arcs are traced at. The
+#'   default reads the `curvature` option the edge geoms draw with, so the
+#'   correction clears the arcs as they will appear.
 #' @return Updated positions list.
 #' @noRd
 greedy_post_correction <- function(
@@ -1076,7 +1082,8 @@ greedy_post_correction <- function(
   node_radius = 26,
   min_spacing = 72,
   max_passes = 50L,
-  check_bidirected = FALSE
+  check_bidirected = FALSE,
+  arc_curvature = ggdag_option("curvature", 0.3)
 ) {
   target_clearance <- node_radius + 12
 
@@ -1093,7 +1100,12 @@ greedy_post_correction <- function(
 
   for (pass in seq_len(max_passes)) {
     overlaps <- find_overlaps(positions, directed, layer_assign, node_radius)
-    arc_overlaps <- find_arc_overlaps(positions, bidirected, node_radius)
+    arc_overlaps <- find_arc_overlaps(
+      positions,
+      bidirected,
+      node_radius,
+      arc_curvature
+    )
     if (nrow(overlaps) == 0 && nrow(arc_overlaps) == 0) {
       break
     }
@@ -1141,7 +1153,7 @@ greedy_post_correction <- function(
         positions$y[[u]],
         positions$x[[v]],
         positions$y[[v]],
-        bidirected_arc_curvature
+        arc_curvature
       )
       dists <- sqrt(
         (positions$x[[w]] - pts$x)^2 + (positions$y[[w]] - pts$y)^2
@@ -1341,6 +1353,10 @@ drop_tier_violations <- function(edges_df, layer_assign) {
 #'   proportion. Explicit values for those arguments override the scaled
 #'   defaults.
 #' @param node_radius Node circle radius for overlap detection.
+#' @param arc_curvature Curvature the drawn bidirected arcs are modeled at,
+#'   read from the `curvature` option once when the layout is computed so the
+#'   correction pass and the never-worse guard clear the arcs as the edge
+#'   geoms will draw them.
 #' @param layer_gap Horizontal distance between layers (internal).
 #' @param node_gap Initial vertical spacing between same-layer nodes.
 #' @param min_spacing Minimum Y gap enforced between same-layer nodes.
@@ -1363,6 +1379,7 @@ compute_time_ordered_layout <- function(
   force_y = TRUE,
   node_scale = 1,
   node_radius = 26 * node_scale,
+  arc_curvature = ggdag_option("curvature", 0.3),
   layer_gap = 180,
   node_gap = max(85, min_spacing + 13),
   min_spacing = 2 * node_radius + 20,
@@ -1610,7 +1627,8 @@ compute_time_ordered_layout <- function(
           node_radius = node_radius,
           min_spacing = min_spacing,
           max_passes = max_correction_passes,
-          check_bidirected = TRUE
+          check_bidirected = TRUE,
+          arc_curvature = arc_curvature
         )
       }
 
@@ -1626,7 +1644,8 @@ compute_time_ordered_layout <- function(
         even_result,
         median_result,
         edges_df,
-        node_radius
+        node_radius,
+        arc_curvature = arc_curvature
       )
     } else {
       # Skip force simulation — evenly space nodes within each layer
@@ -1675,14 +1694,38 @@ compute_time_ordered_layout <- function(
 #'
 #' Compares two stage 3/4 results computed on the same internal coordinate
 #' scale: fewer straight-line edge crossings wins, then fewer node-edge
-#' overlaps, then lower stress. Ties keep the first candidate.
+#' overlaps, then lower stress. Ties keep the first candidate. The overlap
+#' count traces bidirected rows as the arcs they are drawn with, so a
+#' candidate whose arcs clear the nodes beats one whose arcs pass through
+#' them even when the straight-line criteria tie.
 #'
 #' @param a,b Position lists with `$x` and `$y` (named numeric vectors).
-#' @param edges_df Data frame with `name` and `to` columns.
+#' @param edges_df Data frame with `name` and `to` columns; a `direction`
+#'   column marks the bidirected rows traced as arcs.
 #' @param node_radius Radius of each node circle.
+#' @param arc_curvature Curvature the bidirected arcs are traced at. The
+#'   default reads the `curvature` option the edge geoms draw with.
 #' @return Either `a` or `b`.
 #' @noRd
-better_positions <- function(a, b, edges_df, node_radius) {
+better_positions <- function(
+  a,
+  b,
+  edges_df,
+  node_radius,
+  arc_curvature = ggdag_option("curvature", 0.3)
+) {
+  if ("direction" %in% names(edges_df)) {
+    curvature <- ifelse(
+      !is.na(edges_df$to) &
+        !is.na(edges_df$direction) &
+        edges_df$direction == "<->",
+      arc_curvature,
+      0
+    )
+  } else {
+    curvature <- rep(0, nrow(edges_df))
+  }
+
   score <- function(positions) {
     coords <- data.frame(
       name = names(positions$x),
@@ -1692,7 +1735,12 @@ better_positions <- function(a, b, edges_df, node_radius) {
     )
     c(
       count_edge_crossings(coords, edges_df),
-      count_node_edge_overlaps(coords, edges_df, node_radius),
+      count_node_edge_overlaps(
+        coords,
+        edges_df,
+        node_radius,
+        curvature = curvature
+      ),
       layout_stress(coords, edges_df)
     )
   }
