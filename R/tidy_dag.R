@@ -398,19 +398,7 @@ as_tidy_dagitty.list <- function(
     )
   }
 
-  dag_edges <- if (length(x) == 1) {
-    # a single time point has no future to point at, so the nodes stand alone
-    tibble::tibble(name = as.character(x[[1]]), to = NA_character_)
-  } else {
-    purrr::map(
-      seq_len(length(x) - 1),
-      saturate_edges,
-      time_points = x
-    ) |>
-      dplyr::bind_rows()
-  }
-
-  dag_edges |>
+  time_points_to_edges(x) |>
     as_tidy_dagitty(
       exposure = exposure,
       outcome = outcome,
@@ -421,6 +409,35 @@ as_tidy_dagitty.list <- function(
       layout = layout,
       ...
     )
+}
+
+#' Complete a list of time points into a saturated edge list
+#'
+#' Each time point's nodes point at every node of every later time point. A
+#' single time point has no future to point at, so its nodes stand alone as
+#' node-only rows, and no time points at all give an empty edge list.
+#'
+#' @param time_points A list of character vectors, one per time point.
+#' @return A data frame with `name` and `to` columns.
+#' @noRd
+time_points_to_edges <- function(time_points) {
+  if (length(time_points) == 0) {
+    return(tibble::tibble(name = character(), to = character()))
+  }
+
+  if (length(time_points) == 1) {
+    return(tibble::tibble(
+      name = as.character(time_points[[1]]),
+      to = NA_character_
+    ))
+  }
+
+  purrr::map(
+    seq_len(length(time_points) - 1),
+    saturate_edges,
+    time_points = time_points
+  ) |>
+    dplyr::bind_rows()
 }
 
 saturate_edges <- function(.x, time_points) {

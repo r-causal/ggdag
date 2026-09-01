@@ -53,7 +53,9 @@ together with saturated DAG.
 Bidirected edges carry no time-ordering information, so \code{dag_saturate()}
 assigns time order from the directed edges alone and then passes the input's
 bidirected edges through to the saturated DAG unchanged. A saturated model
-therefore never implies an independence that the input denies.
+therefore never implies an independence that the input denies. A node with
+no edges at all carries no time-ordering information either, so it takes no
+part in the saturation and is kept as an isolated node.
 
 \code{dag_prune()} errors if \code{edges} is empty, and if it names an edge the DAG
 does not contain, including an edge written in the reverse direction. A node

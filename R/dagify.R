@@ -160,7 +160,8 @@ dagify <- function(
     } else if (is.function(coords)) {
       edge_df <- dgty |>
         get_dagitty_edges() |>
-        edges2df()
+        edges2df() |>
+        add_isolated_nodes(names(dgty))
       coord_result <- if ("..." %in% names(formals(coords))) {
         coords(
           edge_df,

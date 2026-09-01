@@ -10,7 +10,9 @@
 #' Bidirected edges carry no time-ordering information, so `dag_saturate()`
 #' assigns time order from the directed edges alone and then passes the input's
 #' bidirected edges through to the saturated DAG unchanged. A saturated model
-#' therefore never implies an independence that the input denies.
+#' therefore never implies an independence that the input denies. A node with
+#' no edges at all carries no time-ordering information either, so it takes no
+#' part in the saturation and is kept as an isolated node.
 #'
 #' `dag_prune()` errors if `edges` is empty, and if it names an edge the DAG
 #' does not contain, including an edge written in the reverse direction. A node
@@ -57,8 +59,11 @@ dag_saturate <- function(
   .dag <- pull_dag(.tdy_dag)
   edges_df <- .dag |>
     get_dagitty_edges() |>
-    edges2df() |>
-    add_isolated_nodes(names(.dag))
+    edges2df()
+
+  # a node with no edges at all says nothing about its time order, so it takes
+  # no part in the saturation and is added back as an isolated node below
+  edged_nodes <- intersect(names(.dag), all_node_names(edges_df))
 
   bidirected_edges <- edges_df |>
     dplyr::filter(!is.na(.data$to), .data$direction == "<->")
@@ -68,7 +73,7 @@ dag_saturate <- function(
   # added back to the saturated DAG below
   layer_assign <- edges_df |>
     dplyr::filter(is.na(.data$to) | .data$direction != "<->") |>
-    add_isolated_nodes(names(.dag)) |>
+    add_isolated_nodes(edged_nodes) |>
     longest_path_layers()
 
   df_time_order <- tibble::tibble(
@@ -82,6 +87,8 @@ dag_saturate <- function(
   .adjusted <- dagitty::adjustedNodes(.dag)
 
   saturated_dag <- split(df_time_order$name, df_time_order$order) |>
+    time_points_to_edges() |>
+    add_isolated_nodes(names(.dag)) |>
     as_tidy_dagitty(
       exposure = dagitty::exposures(.dag),
       outcome = dagitty::outcomes(.dag),
