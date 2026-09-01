@@ -459,6 +459,36 @@ test_that("the node_size option survives a dplyr-verb layout rebuild", {
   expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
 })
 
+test_that("exposure and outcome survive a dplyr-verb layout rebuild", {
+  # The exposure and the outcome start on the same layer here, so the direct
+  # path's layer-shift adjustment moves the outcome one layer later. A rebuild
+  # that drops the exposure and outcome skips the shift and draws them at the
+  # same time point.
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.layout = "time_ordered"))
+  dag <- dagify(x ~ z, y ~ z, exposure = "x", outcome = "y")
+
+  direct <- tidy_dagitty(dag, layout = "time_ordered")
+  rebuilt <- dplyr::select(direct, -x, -y, -xend, -yend)
+
+  expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
+})
+
+test_that("exposure and outcome survive a function-layout rebuild", {
+  # The closure from time_ordered_coords() accepts `...`, so the direct path
+  # hands it the DAG's exposure and outcome and the same layer-shift applies.
+  # A rebuild that calls the closure bare loses that awareness.
+  local_ggdag_option_state()
+  layout_fn <- time_ordered_coords()
+  withr::local_options(list(ggdag.layout = layout_fn))
+  dag <- dagify(x ~ z, y ~ z, exposure = "x", outcome = "y")
+
+  direct <- tidy_dagitty(dag, layout = layout_fn)
+  rebuilt <- dplyr::select(direct, -x, -y, -xend, -yend)
+
+  expect_equal(layout_node_coords(rebuilt), layout_node_coords(direct))
+})
+
 # Determinism ------------------------------------------------------------------
 
 test_that("every entry path is deterministic and leaves the RNG alone", {
