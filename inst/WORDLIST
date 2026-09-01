@@ -1,11 +1,12 @@
 AST
 Anscombe's
+Bidirected
 CES
 CMD
-CPDAGs
 Canonicalize
 Codecov
 Collapsibility
+Colour
 Confounder
 D'Agostino
 DAGitty
@@ -25,6 +26,7 @@ barycenter
 bb
 behaviour
 bidirected
+borderless
 cli
 collapsibility
 collider's
@@ -34,6 +36,7 @@ dagify
 dagitty
 de
 dendogram
+deterministically
 df
 dplyr
 edx
@@ -56,6 +59,7 @@ hjust
 independencies
 lineheight
 linetype
+linewidth
 magrittr
 millimetres
 mismeasure

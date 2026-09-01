@@ -549,6 +549,8 @@ geom_dag_text_repel <- function(
   )
 }
 
+geom_dag_text_repel <- dag_node_aware(geom_dag_text_repel)
+
 #' @rdname repel
 #' @export
 #'
@@ -673,6 +675,11 @@ geom_dag_label_repel <- function(
   )
 }
 
+geom_dag_label_repel <- dag_node_aware(
+  geom_dag_label_repel,
+  extra = "label.padding"
+)
+
 #' @rdname repel
 #' @export
 geom_dag_label_repel2 <- function(
@@ -695,6 +702,11 @@ geom_dag_label_repel2 <- function(
   )
 }
 
+geom_dag_label_repel2 <- dag_node_aware(
+  geom_dag_label_repel2,
+  extra = "label.padding"
+)
+
 #' @rdname repel
 #' @export
 geom_dag_text_repel2 <- function(
@@ -712,6 +724,8 @@ geom_dag_text_repel2 <- function(
     ...
   )
 }
+
+geom_dag_text_repel2 <- dag_node_aware(geom_dag_text_repel2)
 
 # ggrepel accepts either spelling of the segment colour, and so do these
 # wrappers. `segment.color` has a documented default here, so it can only give
@@ -1940,27 +1954,23 @@ geom_dag <- function(
       show.legend = FALSE
     )
 
-    # Add parameters that might be used by repel functions
-    # These will be ignored by geoms that don't use them
-    if (
-      identical(label_geom, geom_dag_label_repel) ||
-        identical(label_geom, geom_dag_label_repel2)
-    ) {
+    # A label geom tagged with dag_node_aware() places its labels around the
+    # drawn nodes and edges, so it is handed the node geometry parameters; a
+    # geom without the tag gets only the common parameters. The tag's extra
+    # names add the parameters only some of the tagged geoms take.
+    if (isTRUE(attr(label_geom, "dag_node_aware"))) {
       common_params$node_size <- sizes[["node"]]
       common_params$n_edge_points <- n_edge_points
       common_params$n_node_points <- n_node_points
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
-      common_params$label.padding <- 0.1
-    } else if (
-      identical(label_geom, geom_dag_text_repel) ||
-        identical(label_geom, geom_dag_text_repel2)
-    ) {
-      common_params$node_size <- sizes[["node"]]
-      common_params$n_edge_points <- n_edge_points
-      common_params$n_node_points <- n_node_points
-      common_params$box.padding <- sizes[["box_padding"]]
-      common_params$max.overlaps <- Inf
+      extra <- attr(label_geom, "dag_node_aware_extra")
+      if ("label.padding" %in% extra) {
+        common_params$label.padding <- 0.1
+      }
+      if ("edge_cap" %in% extra) {
+        common_params$edge_cap <- sizes[["cap"]]
+      }
     }
 
     # The label layer stays wrapped so that it can read the edge layers of the

@@ -496,24 +496,41 @@ generate_disc_points <- function(node_radius, n_node_points) {
   disc_points
 }
 
-# The radius ggrepel gives a node when it places a label's segment endpoint.
-# ggrepel converts `point.size` to centimetres as `point.size * .pt / .stroke /
-# 20`, while a pch-19 node of size `s` is drawn with a radius of `0.375 * s`
-# millimetres, so this is the `point.size` whose segment radius matches the
-# circle actually on the page.
-node_point_size <- function(node_size) {
-  node_size * 0.75 * .stroke / .pt
+# The radius of a drawn pch-19 node in millimetres: a node of size `s` covers
+# a disc of radius `0.375 * s` mm on the page, at every device size.
+node_radius_mm <- function(node_size) {
+  0.375 * node_size
 }
 
-# Positions along a straight edge, endpoints excluded.
-straight_edge_points <- function(edges, n_edge_points) {
-  t_vals <- seq(0, 1, length.out = n_edge_points + 2)[
-    -c(1, n_edge_points + 2)
-  ]
+# The radius ggrepel gives a node when it places a label's segment endpoint.
+# ggrepel converts `point.size` to centimetres as `point.size * .pt / .stroke /
+# 20`, so this is the `point.size` whose segment radius matches the circle
+# actually on the page.
+node_point_size <- function(node_size) {
+  node_radius_mm(node_size) * 2 * .stroke / .pt
+}
+
+# Positions along a straight edge, endpoints excluded unless asked for. Each
+# row of the result carries the `edge_id` of the edge it sits on.
+straight_edge_points <- function(
+  edges,
+  n_edge_points,
+  include_endpoints = FALSE
+) {
+  t_vals <- seq(0, 1, length.out = n_edge_points + 2)
+  if (!include_endpoints) {
+    t_vals <- t_vals[-c(1, n_edge_points + 2)]
+  }
   do.call(
     rbind,
     lapply(seq_len(nrow(edges)), function(i) {
       data.frame(
+        edge_id = edge_key(
+          edges$x[i],
+          edges$y[i],
+          edges$xend[i],
+          edges$yend[i]
+        ),
         x = edges$x[i] + t_vals * (edges$xend[i] - edges$x[i]),
         y = edges$y[i] + t_vals * (edges$yend[i] - edges$y[i]),
         PANEL = edges$PANEL[i],
@@ -535,8 +552,14 @@ edge_geometry_stat <- function(type) {
 
 # Positions along the path the edge layer draws for these edges. The layer's own
 # stat produces them, so the points sit on the curve the reader sees rather than
-# on the chord between the two nodes.
-drawn_edge_points <- function(geometry, panel, n_edge_points) {
+# on the chord between the two nodes. Each row of the result carries the
+# `edge_id` of the edge it traces.
+drawn_edge_points <- function(
+  geometry,
+  panel,
+  n_edge_points,
+  include_endpoints = FALSE
+) {
   stat <- edge_geometry_stat(geometry$type[[1]])
   n_drawn <- geometry$n[[1]]
   params <- list(
@@ -572,9 +595,14 @@ drawn_edge_points <- function(geometry, panel, n_edge_points) {
   # there, so every obstacle sits on a corner of the polyline the reader sees
   # rather than between two of them.
   path <- stat$compute_panel(control_points, NULL, n = n_drawn)
-  path <- path[path$index %in% thin_path_index(path$index, n_edge_points), ]
+  keep <- thin_path_index(path$index, n_edge_points, include_endpoints)
+  path <- path[path$index %in% keep, ]
 
+  # The key alone does not identify an edge: a fan draws two edges between the
+  # same pair of nodes, so the row index tells them apart.
+  key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
   data.frame(
+    edge_id = paste(key[path$group], path$group, sep = "\r"),
     x = path$x,
     y = path$y,
     PANEL = path$PANEL,
@@ -582,17 +610,21 @@ drawn_edge_points <- function(geometry, panel, n_edge_points) {
   )
 }
 
-# The positions along a drawn path, endpoints excluded, closest to `n` evenly
-# spaced ones.
-thin_path_index <- function(index, n) {
+# The positions along a drawn path, endpoints excluded unless asked for,
+# closest to `n` evenly spaced ones.
+thin_path_index <- function(index, n, include_endpoints = FALSE) {
   available <- sort(unique(index))
-  available <- available[available > 0 & available < 1]
+  if (!include_endpoints) {
+    available <- available[available > 0 & available < 1]
+  }
   if (length(available) == 0) {
     return(numeric())
   }
 
   wanted <- seq(0, 1, length.out = n + 2)
-  wanted <- wanted[-c(1, n + 2)]
+  if (!include_endpoints) {
+    wanted <- wanted[-c(1, n + 2)]
+  }
   unique(available[vapply(
     wanted,
     function(target) which.min(abs(available - target)),
@@ -608,33 +640,83 @@ node_key <- function(x, y, panel) {
   paste(x, y, panel, sep = "\r")
 }
 
-# Invisible points tracing each edge, used as obstacles in ggrepel's repulsion.
-# The rows of `edge_geometry` are the edges the plot's bent edge layers draw,
-# one row each; an edge no such layer claims is traced as a straight chord.
+# Positions along the curves a ggarrow curve layer draws, endpoints included.
+# Each row of `geometry` is one edge with its own curvature; a curvature of 0
+# is the straight chord.
+arrow_edge_points <- function(geometry, panel, n_edge_points) {
+  key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  do.call(
+    rbind,
+    lapply(seq_len(nrow(geometry)), function(i) {
+      curve <- sample_curved_edge(
+        geometry$x[i],
+        geometry$y[i],
+        geometry$xend[i],
+        geometry$yend[i],
+        curvature = geometry$curvature[i],
+        n = n_edge_points + 2
+      )
+      data.frame(
+        edge_id = paste(key[[i]], "arrow", i, sep = "\r"),
+        x = curve$x,
+        y = curve$y,
+        PANEL = panel,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+}
+
+# Invisible points tracing each edge, used as obstacles in ggrepel's repulsion
+# and by the automatic label stat. The rows of `edge_geometry` are the edges
+# the plot's bent edge layers draw, one row each; an edge no such layer claims
+# is traced as a straight chord. `trace_arrows` also traces the curves of
+# ggarrow curve layers, each at the curvature it is drawn with; without it
+# those edges are traced as chords, which is what ggrepel's repulsion has
+# always been given.
 repel_edge_points <- function(
   edges,
   n_edge_points,
   edge_geometry = NULL,
-  layout = NULL
+  layout = NULL,
+  include_endpoints = FALSE,
+  trace_arrows = FALSE
 ) {
   if (n_edge_points <= 0 || nrow(edges) == 0) {
     return(NULL)
   }
 
   edge_geometry <- rescale_edge_geometry(edge_geometry, layout)
-  drawn_keys <- if (is.null(edge_geometry)) {
-    character()
+  is_arrow <- if (is.null(edge_geometry)) {
+    logical()
   } else {
-    edge_key(
-      edge_geometry$x,
-      edge_geometry$y,
-      edge_geometry$xend,
-      edge_geometry$yend
-    )
+    edge_geometry$type == "ggarrow_curve"
+  }
+  arrow_geometry <- if (trace_arrows && any(is_arrow)) {
+    edge_geometry[is_arrow, , drop = FALSE]
+  } else {
+    NULL
+  }
+  if (any(is_arrow)) {
+    edge_geometry <- edge_geometry[!is_arrow, , drop = FALSE]
   }
 
+  geometry_keys <- function(geometry) {
+    if (is.null(geometry) || nrow(geometry) == 0) {
+      return(character())
+    }
+    edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  }
+  drawn_keys <- geometry_keys(edge_geometry)
+  arrow_keys <- geometry_keys(arrow_geometry)
+
   points <- list()
-  for (panel in unique(edges$PANEL)) {
+  panels <- unique(edges$PANEL)
+  for (panel_index in seq_along(panels)) {
+    # Subsetting rather than iterating keeps a factor PANEL a factor: a `for`
+    # over a factor walks its labels as strings, and a string PANEL breaks
+    # the by-position panel lookup at draw time.
+    panel <- panels[panel_index]
     panel_edges <- edges[edges$PANEL == panel, , drop = FALSE]
     keys <- edge_key(
       panel_edges$x,
@@ -643,32 +725,40 @@ repel_edge_points <- function(
       panel_edges$yend
     )
 
-    is_straight <- !keys %in% drawn_keys
+    is_straight <- !(keys %in% drawn_keys | keys %in% arrow_keys)
     if (any(is_straight)) {
       points[[length(points) + 1]] <- straight_edge_points(
         panel_edges[is_straight, , drop = FALSE],
-        n_edge_points
+        n_edge_points,
+        include_endpoints
       )
     }
 
-    if (all(is_straight)) {
-      next
+    if (any(keys %in% drawn_keys)) {
+      # Edges drawn by one layer are traced together: a fan places each edge
+      # according to how many others share its pair of nodes.
+      drawn <- edge_geometry[drawn_keys %in% keys, , drop = FALSE]
+      group <- paste(
+        drawn$type,
+        drawn$strength,
+        drawn$n,
+        drawn$fold,
+        drawn$flipped,
+        sep = "\r"
+      )
+      for (rows in split(seq_len(nrow(drawn)), group)) {
+        points[[length(points) + 1]] <- drawn_edge_points(
+          drawn[rows, , drop = FALSE],
+          panel,
+          n_edge_points,
+          include_endpoints
+        )
+      }
     }
 
-    # Edges drawn by one layer are traced together: a fan places each edge
-    # according to how many others share its pair of nodes.
-    drawn <- edge_geometry[drawn_keys %in% keys, , drop = FALSE]
-    group <- paste(
-      drawn$type,
-      drawn$strength,
-      drawn$n,
-      drawn$fold,
-      drawn$flipped,
-      sep = "\r"
-    )
-    for (rows in split(seq_len(nrow(drawn)), group)) {
-      points[[length(points) + 1]] <- drawn_edge_points(
-        drawn[rows, , drop = FALSE],
+    if (!is.null(arrow_geometry) && any(keys %in% arrow_keys)) {
+      points[[length(points) + 1]] <- arrow_edge_points(
+        arrow_geometry[arrow_keys %in% keys, , drop = FALSE],
         panel,
         n_edge_points
       )
@@ -885,6 +975,11 @@ StatDebugRepelPoints <- ggplot2::ggproto(
         params$edge_geometry,
         layout
       )
+      # The traced points carry the edge they sit on, which the drawn overlay
+      # has no use for; the node points below carry no such column.
+      if (!is.null(fake_points)) {
+        fake_points$edge_id <- NULL
+      }
     }
 
     nodes <- unique(data[, c("x", "y", "PANEL")])
@@ -933,6 +1028,17 @@ make_debug_repel_layer <- function(
       edge_geometry = edge_geometry
     )
   )
+}
+
+# Tags a label geom constructor so `geom_dag()` threads the node geometry
+# parameters (`node_size`, `n_edge_points`, `n_node_points`, `box.padding`,
+# and `max.overlaps`) to it. `extra` names further parameters the constructor
+# takes beyond those: "label.padding" for the boxed repel geoms and
+# "edge_cap" for the automatic label geoms.
+dag_node_aware <- function(f, extra = character()) {
+  attr(f, "dag_node_aware") <- TRUE
+  attr(f, "dag_node_aware_extra") <- extra
+  f
 }
 
 dag_layer <- function(
@@ -991,9 +1097,49 @@ plot_aware_layer <- function(layer, resolve) {
   )
 }
 
+# Whether an automatic label layer maps its labels to columns the data does
+# not hold. `geom_dag(use_labels = TRUE)` maps `label` whether or not the DAG
+# carries labels, and a DAG without them has no `label` column at all, so the
+# automatic label layer treats that mapping as "nothing to place" rather than
+# an error. The repel geoms are unaffected.
+auto_label_column_missing <- function(layer, plot) {
+  if (!inherits(layer$stat, "StatNodesLabelAuto")) {
+    return(FALSE)
+  }
+
+  label_quo <- layer$mapping$label
+  if (is.null(label_quo)) {
+    return(FALSE)
+  }
+
+  layer_data <- layer$data
+  if (is.null(layer_data) || inherits(layer_data, "waiver")) {
+    layer_data <- plot$data
+  } else if (is.function(layer_data)) {
+    plot_data <- plot$data
+    if (inherits(plot_data, "tidy_dagitty")) {
+      plot_data <- pull_dag_data(plot_data)
+    }
+    data_fn <- layer_data
+    layer_data <- tryCatch(data_fn(plot_data), error = function(e) NULL)
+  }
+  if (inherits(layer_data, "tidy_dagitty")) {
+    layer_data <- pull_dag_data(layer_data)
+  }
+  if (!is.data.frame(layer_data)) {
+    return(FALSE)
+  }
+
+  vars <- setdiff(all.vars(rlang::get_expr(label_quo)), ".data")
+  length(vars) > 0 && !all(vars %in% names(layer_data))
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
+  if (auto_label_column_missing(layer, plot)) {
+    return(plot)
+  }
   discover <- .subset2(object, "discover")
   discover_at_build <- character()
 
@@ -1082,7 +1228,8 @@ discover_edge_geometry <- function(plot) {
 
   specs <- list()
   for (existing in plot$layers) {
-    spec <- edge_layer_geometry(existing, plot_data)
+    spec <- edge_layer_geometry(existing, plot_data) %||%
+      arrow_layer_geometry(existing, plot_data)
     if (!is.null(spec)) {
       specs[[length(specs) + 1]] <- spec
     }
@@ -1160,6 +1307,62 @@ edge_layer_geometry <- function(layer, plot_data) {
     flipped = isTRUE(layer$stat_params$flipped),
     from = from,
     to = to,
+    curvature = NA_real_,
+    stringsAsFactors = FALSE
+  )
+}
+
+# Which edges a ggarrow curve layer draws, with the curvature each one is
+# drawn at. The straight ggarrow segment geom needs no spec: an edge no layer
+# claims is traced as a straight chord anyway.
+arrow_layer_geometry <- function(layer, plot_data) {
+  if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
+    return(NULL)
+  }
+
+  layer_data <- resolve_layer_data(layer, plot_data)
+  if (is.null(layer_data)) {
+    return(NULL)
+  }
+
+  layer_data <- layer_data[!is.na(layer_data$xend), , drop = FALSE]
+  if (nrow(layer_data) == 0) {
+    return(NULL)
+  }
+
+  # An edge with no per-edge value is drawn at the layer's scalar curvature,
+  # which is also what the geom falls back to for an NA.
+  fallback <- layer$geom_params$curvature %||% 0.3
+  curvature <- rep(fallback, nrow(layer_data))
+  mapped_curvature <- layer$mapping$edge_curvature
+  if (!is.null(mapped_curvature)) {
+    mapped <- tryCatch(
+      rlang::eval_tidy(mapped_curvature, data = layer_data),
+      error = function(e) NULL
+    )
+    if (is.numeric(mapped) && length(mapped) == nrow(layer_data)) {
+      curvature <- ifelse(is.na(mapped), fallback, mapped)
+    }
+  }
+
+  column <- function(name, default) {
+    if (name %in% names(layer_data)) layer_data[[name]] else default
+  }
+
+  data.frame(
+    x = layer_data$x,
+    y = layer_data$y,
+    xend = layer_data$xend,
+    yend = layer_data$yend,
+    circular = FALSE,
+    type = "ggarrow_curve",
+    strength = NA_real_,
+    n = 100,
+    fold = FALSE,
+    flipped = FALSE,
+    from = as.character(column("name", NA_character_)),
+    to = as.character(column("to", NA_character_)),
+    curvature = curvature,
     stringsAsFactors = FALSE
   )
 }
