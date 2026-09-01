@@ -34,6 +34,14 @@ filter.tidy_dagitty <- function(.data, ...) {
 
 #' @name dplyr
 #' @export
+#' @importFrom dplyr rename
+rename.tidy_dagitty <- function(.data, ...) {
+  update_dag_data(.data) <- dplyr::rename(pull_dag_data(.data), ...)
+  .data
+}
+
+#' @name dplyr
+#' @export
 #' @importFrom dplyr mutate
 mutate.tidy_dagitty <- function(.data, ...) {
   update_dag_data(.data) <- dplyr::mutate(pull_dag_data(.data), ...)

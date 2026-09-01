@@ -42,10 +42,22 @@
       
       
       [[3]]
-      mapping: label = ~.data$name 
+      $layer
       geom_dag_text: parse = FALSE, check_overlap = FALSE, na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 
+      
+      $discover
+      character(0)
+      
+      $default_label
+      [1] TRUE
+      
+      $debug
+      [1] FALSE
+      
+      attr(,"class")
+      [1] "dag_layer"
       
       [[4]]
       NULL
@@ -60,7 +72,7 @@
     Condition <lifecycle_warning_deprecated>
       Warning:
       The `stylized` argument of `geom_dag()` is deprecated as of ggdag 0.3.0.
-      i Please use the `stylized` argument instead.
+      i Please use the `use_stylized` argument instead.
     Output
       [[1]]
       geom_dag_point: na.rm = FALSE
@@ -90,10 +102,22 @@
       
       
       [[3]]
-      mapping: label = ~.data$name 
+      $layer
       geom_dag_text: parse = FALSE, check_overlap = FALSE, na.rm = FALSE
       stat_nodes: na.rm = FALSE
       position_identity 
+      
+      $discover
+      character(0)
+      
+      $default_label
+      [1] TRUE
+      
+      $debug
+      [1] FALSE
+      
+      attr(,"class")
+      [1] "dag_layer"
       
       [[4]]
       NULL

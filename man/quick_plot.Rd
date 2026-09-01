@@ -99,6 +99,9 @@ ggdag_m_bias(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -128,6 +131,9 @@ ggdag_butterfly_bias(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -155,6 +161,9 @@ ggdag_confounder_triangle(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -182,6 +191,9 @@ ggdag_collider_triangle(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -209,6 +221,9 @@ ggdag_mediation_triangle(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -236,6 +251,9 @@ ggdag_quartet_collider(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -261,6 +279,9 @@ ggdag_quartet_confounder(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -286,6 +307,9 @@ ggdag_quartet_mediator(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -313,6 +337,9 @@ ggdag_quartet_m_bias(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -344,6 +371,9 @@ ggdag_quartet_time_collider(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
   label = NULL
 )
@@ -351,11 +381,20 @@ ggdag_quartet_time_collider(
 \arguments{
 \item{x, y, a, b, m, z}{Character vector. Optional label. Default is \code{NULL}}
 
-\item{x_y_associated}{Logical. Are x and y associated? Default is \code{FALSE}.}
+\item{x_y_associated}{Logical. Are x and y associated? Default is \code{FALSE}
+for the bias-structure DAGs and for \code{quartet_mediator()}, and \code{TRUE} for
+\code{quartet_collider()}, \code{quartet_confounder()}, and \code{quartet_m_bias()},
+whose datasets have x and y associated by construction.
+\code{quartet_time_collider()} has no such argument.}
 
 \item{u1, u2}{Character vector. Optional label for unmeasured nodes, used in \code{quartet_m_bias()}. Default is \code{NULL}}
 
-\item{x0, x1, x2, x3, y1, y2, y3, z1, z2, z3}{Character vector. Optional labels for time-indexed nodes, used in \code{quartet_time_collider()}. Default is \code{NULL}}
+\item{x0, x1, x2, x3, y1, y2, y3, z1, z2, z3}{Character vector. Optional labels for
+time-indexed nodes, used in \code{quartet_time_collider()}. Default is \code{NULL}.
+The DAG holds six nodes, \code{x1}, \code{x2}, \code{y2}, \code{y3}, \code{z2}, and \code{z3}; \code{x0},
+\code{x3}, \code{y1}, and \code{z1} name none of them and are accepted only so that code
+written against the older signature still runs. Labels given for them are
+ignored.}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}
@@ -396,6 +435,23 @@ used is controlled by \code{label_geom}.}
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
+
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+a single, more compact legend. Default is \code{TRUE}.}
+
+\item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
+If \code{NULL} (the default), the glyph is chosen automatically based on the
+\code{unified_legend} setting. When provided, this overrides the automatic
+selection. Common options include \code{draw_key_dag_point},
+\code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}

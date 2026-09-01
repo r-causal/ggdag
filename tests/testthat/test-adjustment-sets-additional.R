@@ -13,21 +13,21 @@ test_that("control_for handles non-existent nodes", {
   )
 })
 
-test_that("ggdag_adjust with no adjustment variables", {
+test_that("ggdag_adjust requires an adjusting variable", {
   # DAG with no adjusted nodes
   dag <- dagify(y ~ x)
 
-  # Should work without adjustment variables
-  p1 <- ggdag_adjust(dag)
-  expect_s3_class(p1, "gg")
+  # A plot of no adjustment is meaningless, so each of these errors
+  expect_error(ggdag_adjust(dag), class = "ggdag_missing_error")
+  expect_error(ggdag_adjust(dag, var = NULL), class = "ggdag_missing_error")
+  expect_error(
+    ggdag_adjust(dag, var = character(0)),
+    class = "ggdag_missing_error"
+  )
 
-  # Test with var = NULL (no variables to highlight)
-  p2 <- ggdag_adjust(dag, var = NULL)
-  expect_s3_class(p2, "gg")
-
-  # Test with empty character vector
-  p3 <- ggdag_adjust(dag, var = character(0))
-  expect_s3_class(p3, "gg")
+  # a DAG that already carries adjusted nodes still plots
+  expect_s3_class(ggdag_adjust(control_for(dag, "x")), "gg")
+  expect_s3_class(ggdag_adjust(dag, var = "x"), "gg")
 })
 
 test_that("dag_adjustment_sets handles edge cases", {
@@ -169,7 +169,7 @@ test_that("is_collider and is_downstream_collider work correctly", {
   )
 })
 
-test_that("control_for works with tidyselect helpers", {
+test_that("control_for records every adjusted node in the dagitty object", {
   dag <- dagify(
     y ~ x + z1 + z2 + w,
     x ~ z1 + z2,
@@ -178,7 +178,7 @@ test_that("control_for works with tidyselect helpers", {
   )
   tidy_dag <- tidy_dagitty(dag)
 
-  # Control for variables starting with 'z'
+  # `control_for()` takes node names, not a tidyselect selection
   z_vars <- c("z1", "z2")
   result <- control_for(tidy_dag, z_vars)
   dag_controlled <- pull_dag(result)

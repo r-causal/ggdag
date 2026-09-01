@@ -112,3 +112,60 @@ test_that("layout = time_ordered_coords() works through ggdag()", {
   p <- ggdag(dag, layout = time_ordered_coords())
   expect_s3_class(p, "ggplot")
 })
+
+test_that("time_ordered_coords(): a missing time value errors", {
+  time_df <- data.frame(name = c("a", "b", "c"), time = c(1, NA, 2))
+  expect_error(
+    time_ordered_coords(time_df),
+    class = "ggdag_missing_error"
+  )
+  expect_ggdag_error(
+    time_ordered_coords(data.frame(name = c("a", "b"), time = c(1, NA)))
+  )
+})
+
+test_that("time_ordered_coords(): a character time column errors", {
+  time_df <- data.frame(
+    name = c("a", "b", "c"),
+    time = c("baseline", "6 months", "12 months")
+  )
+  expect_error(
+    time_ordered_coords(time_df),
+    class = "ggdag_type_error"
+  )
+  expect_ggdag_error(
+    time_ordered_coords(data.frame(name = "a", time = "baseline"))
+  )
+})
+
+test_that("time_ordered_coords(): a factor time column errors", {
+  time_df <- data.frame(
+    name = c("a", "b"),
+    time = factor(c("baseline", "follow-up"))
+  )
+  expect_error(
+    time_ordered_coords(time_df),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("time_ordered_coords(): default time points are one per period", {
+  vars <- list("a", c("b1", "b2"), c("c1", "c2", "c3"), "d")
+  coords <- time_ordered_coords(vars)
+  expect_equal(sort(unique(coords$x)), seq_along(vars))
+})
+
+test_that("time_ordered_coords(): time_points is one element per period", {
+  vars <- list("a", c("b1", "b2"), c("c1", "c2", "c3"), "d")
+  coords <- time_ordered_coords(vars, time_points = c(1, 2, 4, 8))
+  expect_equal(sort(unique(coords$x)), c(1, 2, 4, 8))
+})
+
+test_that("time_ordered_coords(): time_points with a data frame errors", {
+  time_df <- data.frame(name = c("a", "b", "c"), time = c(1, 2, 3))
+  expect_error(
+    time_ordered_coords(time_df, time_points = c(1, 2, 3)),
+    class = "ggdag_error"
+  )
+  expect_ggdag_error(time_ordered_coords(time_df, time_points = c(1, 2, 3)))
+})

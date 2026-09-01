@@ -18,10 +18,10 @@ Depends:
 Imports:
     cli (>= 3.0.0),
     dagitty,
-    dplyr,
+    dplyr (>= 1.1.1),
     forcats,
     ggarrow (>= 0.1.1.9000),
-    ggplot2 (>= 3.0.0),
+    ggplot2 (>= 3.5.0),
     ggraph (>= 2.0.0),
     ggrepel (>= 0.9.7),
     igraph,
@@ -43,11 +43,11 @@ Suggests:
     withr
 VignetteBuilder:
     knitr
+Remotes: 
+    teunbrand/ggarrow
+Config/roxygen2/version: 8.1.0
 Config/testthat/edition: 3
+Config/testthat/parallel: true
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
-Config/testthat/parallel: true
-Remotes:  
-    teunbrand/ggarrow

@@ -84,7 +84,11 @@ tidy_dagitty <- function(
   # them to generate_layout regardless of use_existing_coords.
   computed_coords <- FALSE
   if (is.function(layout)) {
-    edge_df <- edges2df(dag_edges)
+    # isolated nodes never appear in the edge list, so add them explicitly or
+    # the user's layout function will not position them
+    edge_df <- dag_edges |>
+      edges2df() |>
+      add_isolated_nodes(names(.dagitty))
     coords <- if ("..." %in% names(formals(layout))) {
       layout(
         edge_df,
@@ -110,12 +114,19 @@ tidy_dagitty <- function(
       time_ordered_coords <- tryCatch(
         dag_edges |>
           edges2df() |>
+          add_isolated_nodes(names(.dagitty)) |>
           compute_time_ordered_layout(
             exposure = dagitty::exposures(.dagitty),
             outcome = dagitty::outcomes(.dagitty)
           ) |>
           coords2list(),
         error = function(e) {
+          # The package's own errors describe a DAG or an argument the user
+          # can fix, such as a time pin no ordering can satisfy. Falling back
+          # would hide the problem and draw a layout the user did not ask for.
+          if (inherits(e, "ggdag_error")) {
+            rlang::cnd_signal(e)
+          }
           inform(c(
             "!" = "Could not compute time-ordered layout; falling back to default layout.",
             "i" = "Reason: {conditionMessage(e)}"
@@ -157,18 +168,27 @@ tidy_dagitty <- function(
     tidy_dag_edges_and_coords(coords_df)
 
   if (!is.null(curved_edges) && nrow(curved_edges) > 0) {
-    tidy_dag <- dplyr::left_join(
-      tidy_dag,
-      curved_edges[, c("name", "to", "edge_curvature")],
-      by = c("name", "to")
-    )
-    # Non-curved edges should be straight, not inherit geom scalar fallback
-    edge_rows <- !is.na(tidy_dag$to)
+    tidy_dag$edge_curvature <- match_edge_curvature(tidy_dag, curved_edges)
+    # Non-curved edges should be straight, not inherit geom scalar fallback.
+    # Bidirected edges are the exception: their edge layer arcs them by
+    # default, and a zero here would flatten them.
+    edge_rows <- !is.na(tidy_dag$to) & !is_bidirected_edge(tidy_dag)
     tidy_dag$edge_curvature[edge_rows & is.na(tidy_dag$edge_curvature)] <- 0
   }
 
   # Convert dagitty control points to edge_curvature (only when using
-  # dagitty's original coordinates, since control points are absolute)
+  # dagitty's original coordinates, since control points are absolute).
+  #
+  # An edge whose control point sits at exactly x = 0 arrives here without a
+  # control point at all: dagitty's DOT writer guards the edge position with
+  # `if (e.layout_pos_x)`, which is false for 0, so it omits the `pos`
+  # attribute and the control point is lost on the next round trip through the
+  # DAG string. Its vertex writer tests `void 0 !== e.layout_pos_x` and keeps
+  # a node at x = 0, so only edges are affected, and only in that one column.
+  # A DAG built in ggdag is unaffected: curvature set here travels in the
+  # `curved_edges` attribute, not in dagitty control points. The gap shows up
+  # for a DAG imported from DAGitty whose curve happens to be centered on
+  # x = 0, where the edge comes back straight.
   if (pass_coords && "edge_ctrl_x" %in% names(tidy_dag)) {
     ctrl_curvature <- ctrl_point_to_curvature(tidy_dag)
     if (!all(is.na(ctrl_curvature))) {
@@ -178,9 +198,12 @@ tidy_dagitty <- function(
       } else {
         tidy_dag$edge_curvature <- ctrl_curvature
       }
-      # Edges without control points should be straight (0), not NA,
-      # so the scalar curvature fallback doesn't curve them unexpectedly
-      tidy_dag$edge_curvature[is.na(tidy_dag$edge_curvature)] <- 0
+      # Edges without control points should be straight (0), not NA, so the
+      # scalar curvature fallback doesn't curve them unexpectedly. Bidirected
+      # edges keep the arc their edge layer draws them with.
+      straighten <- is.na(tidy_dag$edge_curvature) &
+        !is_bidirected_edge(tidy_dag)
+      tidy_dag$edge_curvature[straighten] <- 0
     }
   }
 
@@ -298,10 +321,6 @@ as_tidy_dagitty.data.frame <- function(
     dagitty::latents(.dagitty) <- latent
   }
 
-  if (!is.null(labels)) {
-    label(.dagitty) <- labels
-  }
-
   if ("adjusted" %in% names(tidy_dag)) {
     .adjusted <- dplyr::filter(tidy_dag, .data$adjusted == "adjusted") |>
       dplyr::pull(.data$name) |>
@@ -319,6 +338,12 @@ as_tidy_dagitty.data.frame <- function(
     dplyr::distinct(.data$name, .keep_all = TRUE)
 
   dagitty::coordinates(.dagitty) <- coords2list(all_node_coords)
+
+  # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
+  # so labels have to be set afterwards
+  if (!is.null(labels)) {
+    label(.dagitty) <- labels
+  }
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
 
@@ -346,12 +371,44 @@ as_tidy_dagitty.list <- function(
     set.seed(seed)
   }
 
-  dag_edges <- purrr::map(
-    seq_len(length(x) - 1),
-    saturate_edges,
-    time_points = x
-  ) |>
-    dplyr::bind_rows()
+  if (length(x) == 0) {
+    abort(
+      c(
+        "{.arg x} must contain at least one time point.",
+        "x" = "You supplied an empty list.",
+        "i" = "Each element of {.arg x} is a time point, and edges connect
+               consecutive time points."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  # character positions so cli pluralizes on how many are empty, not on the
+  # position of the single empty one
+  empty_time_points <- as.character(which(lengths(x) == 0))
+  if (length(empty_time_points) > 0) {
+    abort(
+      c(
+        "Every time point in {.arg x} must name at least one node.",
+        "x" = "Time point{?s} {empty_time_points} {?is/are} empty.",
+        "i" = "Each element of {.arg x} is a time point, and edges connect
+               consecutive time points."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  dag_edges <- if (length(x) == 1) {
+    # a single time point has no future to point at, so the nodes stand alone
+    tibble::tibble(name = as.character(x[[1]]), to = NA_character_)
+  } else {
+    purrr::map(
+      seq_len(length(x) - 1),
+      saturate_edges,
+      time_points = x
+    ) |>
+      dplyr::bind_rows()
+  }
 
   dag_edges |>
     as_tidy_dagitty(
@@ -471,11 +528,14 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
     nodes <- names(igraph::V(ig))
     coords$x <- coords$x[nodes]
     coords$y <- coords$y[nodes]
+    coords <- complete_coords(coords, ig, nodes, layout, ...)
+    # node names live in the `name` column; carrying them on the coordinate
+    # vectors as well leaves the columns named, unlike every other layout
     ggraph_layout <- ggraph_create_layout(
       ig,
       layout = "manual",
-      x = coords$x,
-      y = coords$y,
+      x = unname(coords$x),
+      y = unname(coords$y),
       ...
     )
   }
@@ -492,11 +552,55 @@ generate_layout <- function(.df, layout, vertices = NULL, coords = NULL, ...) {
   layout_df
 }
 
+#' Fill in coordinates for nodes the user did not supply
+#'
+#' Partial coordinates would otherwise reach `dagitty::coordinates<-` as `NA`,
+#' which fails in dagitty's JavaScript engine. Instead, run the requested layout
+#' for the whole graph and keep the positions the user did supply.
+#'
+#' @param coords A list with `x` and `y`, both named by node.
+#' @param ig The `igraph` object being laid out.
+#' @param nodes The node names, in `ig` order.
+#' @param layout The requested layout.
+#' @return `coords`, with no missing values.
+#' @noRd
+complete_coords <- function(coords, ig, nodes, layout, ...) {
+  missing_coords <- is.na(coords$x) | is.na(coords$y)
+  if (!any(missing_coords)) {
+    return(coords)
+  }
+
+  inform(c(
+    "!" = "Coordinates cover only some nodes; generating positions for the rest.",
+    "i" = "Nodes without coordinates: {paste(nodes[missing_coords], collapse = ', ')}"
+  ))
+
+  # a manual layout can't generate the missing positions, and "time_ordered" is
+  # resolved by ggdag rather than ggraph, so fall back for both
+  auto_layout <- if (
+    is.character(layout) && layout %nin% c("manual", "time_ordered")
+  ) {
+    layout
+  } else {
+    "nicely"
+  }
+
+  generated <- ggraph_create_layout(ig, layout = auto_layout, ...)
+  idx <- match(nodes[missing_coords], generated$name)
+  coords$x[missing_coords] <- generated$x[idx]
+  coords$y[missing_coords] <- generated$y[idx]
+
+  coords
+}
+
 check_verboten_layout <- function(layout) {
   if (!is.character(layout)) {
     return(invisible())
   }
-  if (layout %in% c("dendogram")) {
+  #  the misspelling stays blocked alongside the real ggraph layout name, which
+  #  positions a node once per branch and so duplicates any node with more than
+  #  one path into it
+  if (layout %in% c("dendogram", "dendrogram")) {
     abort(
       c(
         "Layout type {.val {layout}} is not supported in ggdag.",
@@ -699,13 +803,17 @@ tbl_sum.tidy_dagitty <- function(x, ...) {
     }
   }
 
-  # Paths
-  if (all(c("path", "set") %in% names(data))) {
-    dag <- pull_dag(x)
-    paths_obj <- dagitty::paths(dag)
+  # Paths. `dagitty::paths()` needs both endpoints, which the DAG does not carry
+  # when they were given to `dag_paths()` directly, and a summary line is never
+  # worth failing a print method over
+  if (
+    all(c("path", "set") %in% names(data)) && has_exposure(x) && has_outcome(x)
+  ) {
+    paths_obj <- tryCatch(dagitty::paths(dag), error = function(e) NULL)
 
     if (!is.null(paths_obj) && length(paths_obj$paths) > 0) {
-      open_paths <- paths_obj$paths[paths_obj$open]
+      # `dagitty` returns an empty description for a path it cannot print
+      open_paths <- paths_obj$paths[paths_obj$open & nzchar(paths_obj$paths)]
 
       if (length(open_paths) > 0) {
         # Format paths with curly braces
@@ -844,7 +952,26 @@ print.tidy_dagitty <- function(x, ...) {
 #' @rdname coordinates
 #' @name coordinates
 coords2df <- function(coord_list) {
-  coord_df <- purrr::map(coord_list, tibble::enframe) |>
+  coord_names <- names(coord_list)
+  if (!all(c("x", "y") %in% coord_names)) {
+    detail <- if (is.null(coord_names)) {
+      "The list you provided has no names."
+    } else {
+      "The list you provided is named {.val {coord_names}}."
+    }
+
+    abort(
+      c(
+        "{.arg coord_list} must be a list with elements named {.val x} and
+         {.val y}.",
+        "x" = detail
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  #  select by name: the elements of a named list can come in either order
+  coord_df <- purrr::map(coord_list[c("x", "y")], tibble::enframe) |>
     purrr::reduce(ggdag_left_join, by = "name")
   names(coord_df) <- c("name", "x", "y")
   coord_df

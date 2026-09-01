@@ -22,7 +22,7 @@
 #' ggdag(dag)
 #' ggdag(dag) + theme_dag()
 #'
-#' ggdag(dagitty::randomDAG(5, .5))
+#' ggdag(dagitty::randomDAG(5, 0.5))
 #'
 #' @seealso [ggdag_classic()]
 ggdag <- function(
@@ -30,6 +30,7 @@ ggdag <- function(
   ...,
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -44,6 +45,8 @@ ggdag <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  n_edge_points = NULL,
+  n_node_points = NULL,
   unified_legend = TRUE,
   key_glyph = NULL,
   text = NULL,
@@ -51,11 +54,18 @@ ggdag <- function(
   node = deprecated(),
   stylized = deprecated()
 ) {
+  # `geom_dag()` is always handed a value here, so the global option has to be
+  # resolved before the call rather than inside it
+  if (missing(edge_type)) {
+    edge_type <- ggdag_option("edge_type", "link_arc")
+  }
+
   if_not_tidy_daggity(.tdy_dag, ...) |>
     ggplot2::ggplot(aes_dag()) +
     geom_dag(
       size = size,
       edge_type = edge_type,
+      edge_engine = edge_engine,
       node_size = node_size,
       text_size = text_size,
       label_size = label_size,
@@ -70,6 +80,8 @@ ggdag <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      n_edge_points = n_edge_points,
+      n_node_points = n_node_points,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),
@@ -110,7 +122,7 @@ ggdag <- function(
 #' ggdag_classic(dag)
 #' ggdag_classic(dag) + theme_dag_blank()
 #'
-#' ggdag_classic(dagitty::randomDAG(5, .5))
+#' ggdag_classic(dagitty::randomDAG(5, 0.5))
 #'
 #' @seealso [ggdag()]
 ggdag_classic <- function(

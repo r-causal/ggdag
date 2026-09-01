@@ -22,7 +22,10 @@ expand_plot <- function(
 #' Minimalist DAG themes
 #'
 #' @inheritParams ggplot2::theme_minimal
-#' @param ... additional arguments passed to `theme()`
+#' @param ... additional arguments passed to `theme()`. A value given here
+#'   replaces the theme's own setting for that element. `complete` is the one
+#'   exception: the result takes its completeness from the base theme, so a
+#'   `complete` passed here has no effect.
 #'
 #' @export
 #'
@@ -37,16 +40,17 @@ theme_dag_blank <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      strip.text = ggplot2::element_text(
-        face = "bold",
-        margin = ggplot2::margin(5, 5, 5, 5)
+    dag_theme(
+      list(
+        strip.text = ggplot2::element_text(
+          face = "bold",
+          margin = ggplot2::margin(5, 5, 5, 5)
+        ),
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank(),
+        panel.grid = ggplot2::element_blank()
       ),
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      panel.grid = ggplot2::element_blank(),
-      ...,
-      complete = TRUE
+      ...
     )
 }
 
@@ -62,18 +66,22 @@ theme_dag_grid <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      ...,
-      complete = TRUE
+    dag_theme(
+      list(
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank()
+      ),
+      ...
     )
 }
 
 #' Simple grey themes for DAGs
 #'
 #' @inheritParams ggplot2::theme_grey
-#' @param ... additional arguments passed to `theme()`
+#' @param ... additional arguments passed to `theme()`. A value given here
+#'   replaces the theme's own setting for that element. `complete` is the one
+#'   exception: the result takes its completeness from the base theme, so a
+#'   `complete` passed here has no effect.
 #'
 #' @export
 #'
@@ -89,14 +97,15 @@ theme_dag_grey <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      axis.ticks = ggplot2::element_blank(),
-      panel.grid.major = ggplot2::element_line(colour = "grey92"),
-      panel.grid.minor = ggplot2::element_line(colour = "grey92"),
-      ...,
-      complete = TRUE
+    dag_theme(
+      list(
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank(),
+        axis.ticks = ggplot2::element_blank(),
+        panel.grid.major = ggplot2::element_line(colour = "grey92"),
+        panel.grid.minor = ggplot2::element_line(colour = "grey92")
+      ),
+      ...
     )
 }
 
@@ -111,18 +120,30 @@ theme_dag_grey_grid <- function(base_size = 12, base_family = "", ...) {
     base_size = base_size,
     base_family = base_family
   ) %+replace%
-    ggplot2::theme(
-      axis.text = ggplot2::element_blank(),
-      axis.title = ggplot2::element_blank(),
-      axis.ticks = ggplot2::element_blank(),
-      ...,
-      complete = TRUE
+    dag_theme(
+      list(
+        axis.text = ggplot2::element_blank(),
+        axis.title = ggplot2::element_blank(),
+        axis.ticks = ggplot2::element_blank()
+      ),
+      ...
     )
 }
 
 #' @rdname theme_dag_grey
 #' @export
 theme_dag_gray_grid <- theme_dag_grey_grid
+
+# The themes document that `...` reaches `theme()`. Naming the presets as
+# literal arguments alongside `...` would instead make R refuse a user value
+# for any element the theme sets, so the user's value replaces the preset by
+# name before the theme is built.
+dag_theme <- function(presets, ...) {
+  args <- c(presets, list(complete = TRUE))
+  dots <- list(...)
+  args[names(dots)] <- dots
+  do.call(ggplot2::theme, args)
+}
 
 #' Common scale adjustments for DAGs
 #'
@@ -162,21 +183,36 @@ scale_adjusted <- function(
   include_color = TRUE,
   include_alpha = FALSE
 ) {
+  # Guides that share an `order` still merge into a single legend, so the shape
+  # and colour scales stay together, as do the two alpha scales. Without an
+  # explicit order, ggplot2 breaks ties with a content hash of the guide, which
+  # is not stable across sessions for legends that have no title, and the
+  # legends swap places between otherwise identical plots.
   scales <- list(
-    ggplot2::scale_linetype_manual(name = NULL, values = "dashed"),
+    ggplot2::scale_linetype_manual(
+      name = NULL,
+      values = "dashed",
+      guide = ggplot2::guide_legend(order = 3)
+    ),
     ggplot2::scale_shape_manual(
       values = c("adjusted" = 15, "unadjusted" = 19),
-      limits = c("adjusted", "unadjusted")
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 1)
     ),
-    ggplot2::scale_color_discrete(limits = c("adjusted", "unadjusted")),
+    ggplot2::scale_color_discrete(
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 1)
+    ),
     ggplot2::scale_alpha_manual(
       values = c("adjusted" = 0.30, "unadjusted" = 1),
-      limits = c("adjusted", "unadjusted")
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 2)
     ),
     ggraph::scale_edge_alpha_manual(
       name = NULL,
       values = c("adjusted" = 0.30, "unadjusted" = 1),
-      limits = c("adjusted", "unadjusted")
+      limits = c("adjusted", "unadjusted"),
+      guide = ggplot2::guide_legend(order = 2)
     )
   )
 

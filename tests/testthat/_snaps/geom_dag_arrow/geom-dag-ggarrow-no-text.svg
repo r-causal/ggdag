@@ -29,9 +29,9 @@
 <circle cx='360.00' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='655.02' cy='524.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='64.98' cy='524.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<path d='M 639.73 492.83 L 638.43 497.07 L 373.25 88.72 L 372.35 89.30 L 371.46 89.89 L 636.63 498.24 L 632.22 497.70 L 642.67 505.57 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 343.41 97.81 L 344.71 102.05 L 347.65 89.30 L 337.21 97.17 L 341.61 96.63 L 76.44 504.99 L 77.33 505.57 L 78.23 506.15 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 632.34 524.59 L 620.05 520.12 L 622.90 523.52 L 87.66 523.52 L 87.66 525.66 L 622.90 525.67 L 620.05 529.06 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 640.95 498.14 L 640.20 500.59 L 372.89 88.96 L 372.35 89.30 L 371.81 89.65 L 639.12 501.29 L 636.57 500.98 L 642.67 505.57 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 345.18 94.29 L 345.93 96.74 L 347.65 89.30 L 341.55 93.90 L 344.10 93.58 L 76.79 505.22 L 77.33 505.57 L 77.87 505.92 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 632.34 524.59 L 625.17 521.98 L 626.82 523.95 L 87.66 523.95 L 87.66 525.23 L 626.82 525.24 L 625.17 527.20 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='171.33px' lengthAdjust='spacingAndGlyphs'>geom_dag ggarrow no text</text>

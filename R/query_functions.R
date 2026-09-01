@@ -60,14 +60,26 @@ query_adjustment_sets <- function(
   if (is.null(exposure)) {
     exposure <- dagitty::exposures(.dag)
     if (length(exposure) == 0) {
-      cli::cli_abort("No exposure variable found in DAG and none provided")
+      abort(
+        c(
+          "No exposure variable found in DAG and none provided.",
+          "i" = "Set {.arg exposure} in {.fun dagify}, or pass it directly."
+        ),
+        error_class = "ggdag_missing_error"
+      )
     }
   }
 
   if (is.null(outcome)) {
     outcome <- dagitty::outcomes(.dag)
     if (length(outcome) == 0) {
-      cli::cli_abort("No outcome variable found in DAG and none provided")
+      abort(
+        c(
+          "No outcome variable found in DAG and none provided.",
+          "i" = "Set {.arg outcome} in {.fun dagify}, or pass it directly."
+        ),
+        error_class = "ggdag_missing_error"
+      )
     }
   }
 
@@ -131,9 +143,16 @@ query_adjustment_sets <- function(
 #'   - `from`: Starting node
 #'   - `to`: Ending node
 #'   - `path`: Character string representation of the path
-#'   - `path_type`: Character classification as "backdoor" or "direct"
+#'   - `path_type`: Character classification as "direct" (a directed causal
+#'     path), "backdoor" (a path whose first edge points into `from`), or
+#'     "other" (any other path, such as one through a collider)
 #'   - `variables`: List column containing all variables in the path
 #'   - `open`: Logical indicating if the path is open
+#'
+#' @details
+#' When `from` or `to` has more than one element, paths are enumerated once for
+#' each ordered pair of endpoints and the results are stacked, so every row
+#' names the pair its path runs between.
 #'
 #' @export
 #' @examples
@@ -164,18 +183,97 @@ query_paths <- function(
   if (is.null(from)) {
     from <- dagitty::exposures(.dag)
     if (length(from) == 0) {
-      cli::cli_abort("No exposure variable found in DAG and no 'from' provided")
+      abort(
+        c(
+          "No exposure variable found in DAG and no {.arg from} provided.",
+          "i" = "Set {.arg exposure} in {.fun dagify}, or pass {.arg from} directly."
+        ),
+        error_class = "ggdag_missing_error"
+      )
     }
   }
 
   if (is.null(to)) {
     to <- dagitty::outcomes(.dag)
     if (length(to) == 0) {
-      cli::cli_abort("No outcome variable found in DAG and no 'to' provided")
+      abort(
+        c(
+          "No outcome variable found in DAG and no {.arg to} provided.",
+          "i" = "Set {.arg outcome} in {.fun dagify}, or pass {.arg to} directly."
+        ),
+        error_class = "ggdag_missing_error"
+      )
     }
   }
 
-  # Get paths
+  # `dagitty` prints paths only for a single source, so enumerate one ordered
+  # pair of endpoints at a time and stack the results. A node has no path to
+  # itself, and a repeated endpoint would enumerate the same pair twice
+  endpoint_pairs <- expand.grid(
+    from = unique(from),
+    to = unique(to),
+    stringsAsFactors = FALSE
+  )
+  endpoint_pairs <- endpoint_pairs[
+    endpoint_pairs$from != endpoint_pairs$to,
+    ,
+    drop = FALSE
+  ]
+
+  if (nrow(endpoint_pairs) == 0) {
+    return(empty_paths())
+  }
+
+  path_df <- purrr::pmap(
+    endpoint_pairs,
+    \(from, to) {
+      query_paths_pair(
+        .dag,
+        from = from,
+        to = to,
+        directed = directed,
+        limit = limit,
+        conditioned_on = conditioned_on
+      )
+    }
+  ) |>
+    purrr::list_rbind()
+
+  path_df$path_id <- seq_len(nrow(path_df))
+
+  path_df
+}
+
+#' The empty result of a path query
+#'
+#' @return A zero-row tibble in the shape `query_paths()` returns.
+#' @noRd
+empty_paths <- function() {
+  tibble::tibble(
+    path_id = integer(),
+    from = character(),
+    to = character(),
+    path = character(),
+    path_type = character(),
+    variables = list(),
+    open = logical()
+  )
+}
+
+#' Find the paths between one pair of endpoints
+#'
+#' @inheritParams query_paths
+#' @param from,to single node names.
+#' @return A tibble of paths, in the shape `query_paths()` returns.
+#' @noRd
+query_paths_pair <- function(
+  .dag,
+  from,
+  to,
+  directed,
+  limit,
+  conditioned_on
+) {
   paths_obj <- dagitty::paths(
     .dag,
     from = from,
@@ -186,15 +284,16 @@ query_paths <- function(
   )
 
   if (length(paths_obj$paths) == 0) {
-    return(tibble::tibble(
-      path_id = integer(),
-      from = character(),
-      to = character(),
-      path = character(),
-      path_type = character(),
-      variables = list(),
-      open = logical()
-    ))
+    return(empty_paths())
+  }
+
+  # `dagitty` returns an empty description for a path it cannot print
+  keep <- nzchar(paths_obj$paths)
+  paths <- paths_obj$paths[keep]
+  open <- paths_obj$open[keep]
+
+  if (length(paths) == 0) {
+    return(empty_paths())
   }
 
   # Get directed paths to classify path types (if not already directed)
@@ -210,38 +309,25 @@ query_paths <- function(
     directed_paths <- directed_paths_obj$paths
   } else {
     # If already directed, all paths are direct
-    directed_paths <- paths_obj$paths
+    directed_paths <- paths
   }
 
   # Extract variables from each path
-  variables_list <- purrr::map(paths_obj$paths, \(path_str) {
+  variables_list <- purrr::map(paths, \(path_str) {
     # Remove all arrow types and split on remaining spaces
     clean_path <- stringr::str_replace_all(path_str, " <->| ->| <-", " ")
     unique(stringr::str_trim(stringr::str_split(clean_path, "\\s+")[[1]]))
   })
 
-  # Classify paths as backdoor or direct
-  path_types <- ifelse(
-    paths_obj$paths %in% directed_paths,
-    "direct",
-    "backdoor"
+  tibble::tibble(
+    path_id = seq_along(paths),
+    from = from,
+    to = to,
+    path = paths,
+    path_type = classify_path_types(paths, directed_paths),
+    variables = variables_list,
+    open = open
   )
-
-  # Convert paths to tibble
-  path_df <- purrr::imap(paths_obj$paths, \(path, idx) {
-    tibble::tibble(
-      path_id = idx,
-      from = from,
-      to = to,
-      path = path,
-      path_type = path_types[idx],
-      variables = list(variables_list[[idx]]),
-      open = paths_obj$open[idx]
-    )
-  }) |>
-    purrr::list_rbind()
-
-  path_df
 }
 
 #' Query Instrumental Variables
@@ -253,7 +339,10 @@ query_paths <- function(
 #'   uses the exposure defined in the DAG.
 #' @param outcome Character vector of outcome variable names. If NULL,
 #'   uses the outcome defined in the DAG.
-#' @param conditioned_on Character vector of variables that must be conditioned on.
+#' @param conditioned_on Defunct. `dagitty::instrumentalVariables()` works out
+#'   the conditioning set an instrument requires on its own and reports it in
+#'   the `conditioning_set` and `conditioned_on` columns, so there is nothing
+#'   for this argument to do. Supplying it is an error.
 #'
 #' @return A tibble with columns:
 #'   - `instrument`: The instrumental variable
@@ -282,20 +371,46 @@ query_instrumental <- function(
 ) {
   .validate_query_input(.tdy_dag)
 
+  if (!is.null(conditioned_on)) {
+    abort(
+      c(
+        "{.arg conditioned_on} is defunct and must be {.code NULL}.",
+        "x" = "An instrument's conditioning set cannot be chosen: conditioning
+               on further variables can stop an instrument from being one.",
+        "i" = "{.fun dagitty::instrumentalVariables} works the set out itself
+               and reports it in the {.field conditioning_set} and
+               {.field conditioned_on} columns."
+      ),
+      error_class = "ggdag_defunct_error"
+    )
+  }
+
   .dag <- pull_dag(.tdy_dag)
 
   # Get exposure and outcome from DAG if not provided
   if (is.null(exposure)) {
     exposure <- dagitty::exposures(.dag)
     if (length(exposure) == 0) {
-      cli::cli_abort("No exposure variable found in DAG and none provided")
+      abort(
+        c(
+          "No exposure variable found in DAG and none provided.",
+          "i" = "Set {.arg exposure} in {.fun dagify}, or pass it directly."
+        ),
+        error_class = "ggdag_missing_error"
+      )
     }
   }
 
   if (is.null(outcome)) {
     outcome <- dagitty::outcomes(.dag)
     if (length(outcome) == 0) {
-      cli::cli_abort("No outcome variable found in DAG and none provided")
+      abort(
+        c(
+          "No outcome variable found in DAG and none provided.",
+          "i" = "Set {.arg outcome} in {.fun dagify}, or pass it directly."
+        ),
+        error_class = "ggdag_missing_error"
+      )
     }
   }
 
@@ -341,8 +456,8 @@ query_instrumental <- function(
 #' Test whether sets of variables are d-separated in a DAG given a conditioning set.
 #'
 #' @inheritParams dag_params
-#' @param from Character vector of nodes or a list of node sets.
-#' @param to Character vector of nodes or a list of node sets.
+#' @param from Character vector of node names.
+#' @param to Character vector of node names.
 #' @param conditioned_on Character vector of conditioning variables.
 #'
 #' @return A tibble with columns:
@@ -377,10 +492,22 @@ query_dseparated <- function(
 
   # Ensure from and to are character vectors
   if (!is.character(from)) {
-    cli::cli_abort("{.arg from} must be a character vector")
+    abort(
+      c(
+        "{.arg from} must be a character vector.",
+        "x" = "You provided a {.cls {class(from)}} object."
+      ),
+      error_class = "ggdag_type_error"
+    )
   }
   if (!is.character(to)) {
-    cli::cli_abort("{.arg to} must be a character vector")
+    abort(
+      c(
+        "{.arg to} must be a character vector.",
+        "x" = "You provided a {.cls {class(to)}} object."
+      ),
+      error_class = "ggdag_type_error"
+    )
   }
 
   # Test d-separation
@@ -450,15 +577,18 @@ query_dconnected <- function(
 
 #' Query Collider Nodes
 #'
-#' Identify all collider nodes in a DAG. A collider is a node with two or more
-#' parents.
+#' Identify all collider nodes in a DAG. A collider is a node that two or more
+#' edges point into. Bidirected edges count toward that total, so a node with
+#' one directed parent and one bidirected partner is a collider.
 #'
 #' @inheritParams dag_params
 #'
 #' @return A tibble with columns:
 #'   - `node`: The collider node
-#'   - `parent_set`: String representation of parent nodes
-#'   - `parents`: List column containing the parent nodes
+#'   - `parent_set`: String representation of the directed parents
+#'   - `parents`: List column containing the directed parents. A bidirected
+#'     partner contributes an arrowhead but is not a parent, so a collider
+#'     formed by bidirected edges can have fewer than two parents here.
 #'   - `is_activated`: Logical indicating if the collider is conditioned on
 #'
 #' @export
@@ -478,19 +608,20 @@ query_colliders <- function(.tdy_dag) {
   # Get all nodes
   all_nodes <- names(.dag)
 
-  # Find colliders by checking parents
+  # Find colliders by counting the arrowheads pointing into each node
+  counts <- arrowhead_counts(.dag)
   collider_info <- purrr::map(all_nodes, \(node) {
-    parents <- dagitty::parents(.dag, node)
-    if (length(parents) >= 2) {
-      tibble::tibble(
-        node = node,
-        parent_set = create_set_string(parents),
-        parents = list(parents),
-        is_activated = node %in% dagitty::adjustedNodes(.dag)
-      )
-    } else {
-      NULL
+    if (!has_multiple_arrowheads(counts, node)) {
+      return(NULL)
     }
+
+    parents <- as.character(dagitty::parents(.dag, node))
+    tibble::tibble(
+      node = node,
+      parent_set = create_set_string(parents),
+      parents = list(parents),
+      is_activated = node %in% dagitty::adjustedNodes(.dag)
+    )
   }) |>
     purrr::list_rbind()
 
@@ -579,27 +710,20 @@ query_parents <- function(.tdy_dag, .var = NULL) {
 
   .dag <- pull_dag(.tdy_dag)
 
-  # Get nodes to query
-  nodes <- if (is.null(.var)) {
-    names(.dag)
-  } else {
-    .var
-  }
+  nodes <- query_nodes(.tdy_dag, .var)
 
   # Get parents for each node
   purrr::map(nodes, \(node) {
-    parents <- dagitty::parents(.dag, node)
-    n_par <- length(parents)
-    parent_vars <- if (n_par == 0) NA_character_ else parents
+    parent_vars <- as.character(dagitty::parents(.dag, node))
 
     tibble::tibble(
       node = node,
       parent_set = create_set_string(parent_vars),
       parents = list(parent_vars),
-      n_parents = n_par
+      n_parents = length(parent_vars)
     )
   }) |>
-    purrr::list_rbind()
+    purrr::list_rbind(ptype = empty_parents())
 }
 
 #' Query Node Children
@@ -629,27 +753,20 @@ query_children <- function(.tdy_dag, .var = NULL) {
 
   .dag <- pull_dag(.tdy_dag)
 
-  # Get nodes to query
-  nodes <- if (is.null(.var)) {
-    names(.dag)
-  } else {
-    .var
-  }
+  nodes <- query_nodes(.tdy_dag, .var)
 
   # Get children for each node
   purrr::map(nodes, \(node) {
-    children <- dagitty::children(.dag, node)
-    n_child <- length(children)
-    child_vars <- if (n_child == 0) NA_character_ else children
+    child_vars <- as.character(dagitty::children(.dag, node))
 
     tibble::tibble(
       node = node,
       child_set = create_set_string(child_vars),
       children = list(child_vars),
-      n_children = n_child
+      n_children = length(child_vars)
     )
   }) |>
-    purrr::list_rbind()
+    purrr::list_rbind(ptype = empty_children())
 }
 
 #' Query Node Ancestors
@@ -679,29 +796,22 @@ query_ancestors <- function(.tdy_dag, .var = NULL) {
 
   .dag <- pull_dag(.tdy_dag)
 
-  # Get nodes to query
-  nodes <- if (is.null(.var)) {
-    names(.dag)
-  } else {
-    .var
-  }
+  nodes <- query_nodes(.tdy_dag, .var)
 
   # Get ancestors for each node
   purrr::map(nodes, \(node) {
-    ancestors <- dagitty::ancestors(.dag, node)
-    # Remove self from ancestors
-    ancestors <- setdiff(ancestors, node)
-    n_anc <- length(ancestors)
-    ancestor_vars <- if (n_anc == 0) NA_character_ else ancestors
+    ancestor_vars <- as.character(
+      dagitty::ancestors(.dag, node, proper = TRUE)
+    )
 
     tibble::tibble(
       node = node,
       ancestor_set = create_set_string(ancestor_vars),
       ancestors = list(ancestor_vars),
-      n_ancestors = n_anc
+      n_ancestors = length(ancestor_vars)
     )
   }) |>
-    purrr::list_rbind()
+    purrr::list_rbind(ptype = empty_ancestors())
 }
 
 #' Query Node Descendants
@@ -731,29 +841,22 @@ query_descendants <- function(.tdy_dag, .var = NULL) {
 
   .dag <- pull_dag(.tdy_dag)
 
-  # Get nodes to query
-  nodes <- if (is.null(.var)) {
-    names(.dag)
-  } else {
-    .var
-  }
+  nodes <- query_nodes(.tdy_dag, .var)
 
   # Get descendants for each node
   purrr::map(nodes, \(node) {
-    descendants <- dagitty::descendants(.dag, node)
-    # Remove self from descendants
-    descendants <- setdiff(descendants, node)
-    n_desc <- length(descendants)
-    descendant_vars <- if (n_desc == 0) NA_character_ else descendants
+    descendant_vars <- as.character(
+      dagitty::descendants(.dag, node, proper = TRUE)
+    )
 
     tibble::tibble(
       node = node,
       descendant_set = create_set_string(descendant_vars),
       descendants = list(descendant_vars),
-      n_descendants = n_desc
+      n_descendants = length(descendant_vars)
     )
   }) |>
-    purrr::list_rbind()
+    purrr::list_rbind(ptype = empty_descendants())
 }
 
 #' Query Markov Blanket
@@ -785,26 +888,20 @@ query_markov_blanket <- function(.tdy_dag, .var = NULL) {
 
   .dag <- pull_dag(.tdy_dag)
 
-  # Get nodes to query
-  nodes <- if (is.null(.var)) {
-    names(.dag)
-  } else {
-    .var
-  }
+  nodes <- query_nodes(.tdy_dag, .var)
 
   # Get Markov blanket for each node
   purrr::map(nodes, \(node) {
-    mb <- dagitty::markovBlanket(.dag, node)
-    blanket_vars <- if (length(mb) == 0) NA_character_ else mb
+    mb <- as.character(dagitty::markovBlanket(.dag, node))
 
     tibble::tibble(
       node = node,
-      blanket = create_set_string(blanket_vars),
-      blanket_vars = list(blanket_vars),
+      blanket = create_set_string(mb),
+      blanket_vars = list(mb),
       blanket_size = length(mb)
     )
   }) |>
-    purrr::list_rbind()
+    purrr::list_rbind(ptype = empty_markov_blanket())
 }
 
 #' Query Variable Status
@@ -842,12 +939,7 @@ query_status <- function(.tdy_dag, .var = NULL) {
   .outcomes <- dagitty::outcomes(.dag)
   .latents <- dagitty::latents(.dag)
 
-  # Get nodes to query
-  nodes <- if (is.null(.var)) {
-    names(.dag)
-  } else {
-    .var
-  }
+  nodes <- query_nodes(.tdy_dag, .var)
 
   # Create status for each node
   purrr::map(nodes, \(node) {
@@ -863,7 +955,79 @@ query_status <- function(.tdy_dag, .var = NULL) {
       status = status
     )
   }) |>
-    purrr::list_rbind()
+    purrr::list_rbind(ptype = empty_status())
+}
+
+#' The empty results of the node relationship queries
+#'
+#' A query given no nodes to ask about still has the documented columns, so
+#' that its result can be filtered or row-bound whether or not it has rows.
+#' Each is also the prototype the non-empty result is built to, which pins the
+#' column types.
+#'
+#' @return A zero-row tibble in the shape the matching query returns.
+#' @name empty_query_results
+#' @noRd
+empty_parents <- function() {
+  tibble::tibble(
+    node = character(),
+    parent_set = character(),
+    parents = list(),
+    n_parents = integer()
+  )
+}
+
+#' @rdname empty_query_results
+#' @noRd
+empty_children <- function() {
+  tibble::tibble(
+    node = character(),
+    child_set = character(),
+    children = list(),
+    n_children = integer()
+  )
+}
+
+#' @rdname empty_query_results
+#' @noRd
+empty_ancestors <- function() {
+  tibble::tibble(
+    node = character(),
+    ancestor_set = character(),
+    ancestors = list(),
+    n_ancestors = integer()
+  )
+}
+
+#' @rdname empty_query_results
+#' @noRd
+empty_descendants <- function() {
+  tibble::tibble(
+    node = character(),
+    descendant_set = character(),
+    descendants = list(),
+    n_descendants = integer()
+  )
+}
+
+#' @rdname empty_query_results
+#' @noRd
+empty_markov_blanket <- function() {
+  tibble::tibble(
+    node = character(),
+    blanket = character(),
+    blanket_vars = list(),
+    blanket_size = integer()
+  )
+}
+
+#' @rdname empty_query_results
+#' @noRd
+empty_status <- function() {
+  tibble::tibble(
+    name = character(),
+    status = character()
+  )
 }
 
 #' Internal helper functions
@@ -872,9 +1036,27 @@ query_status <- function(.tdy_dag, .var = NULL) {
   assert_dag_type(.tdy_dag, arg = arg_name)
 }
 
-#' @keywords internal
-.empty_set_as_list <- function() {
-  list(NA_character_)
+#' The nodes a query asks about
+#'
+#' Validating here rather than inside the loop over nodes keeps the error the
+#' one the rest of the package raises, instead of an internal dagitty error
+#' wrapped in purrr's indexing context. A node absent from the DAG is an error
+#' rather than a row of its own, which would be indistinguishable from a real
+#' node carrying no result.
+#'
+#' @param .tdy_dag A `tidy_dagitty` or `dagitty` object.
+#' @param .var A character vector of node names, or `NULL` for every node.
+#' @return A character vector of node names.
+#' @noRd
+query_nodes <- function(.tdy_dag, .var, call = rlang::caller_env()) {
+  if (is.null(.var)) {
+    return(names(pull_dag(.tdy_dag)))
+  }
+
+  validate_nodes_exist(.tdy_dag, .var, arg = ".var", call = call)
+
+  # a repeated node would otherwise get a row of its own for each mention
+  unique(as.character(.var))
 }
 
 #' @keywords internal

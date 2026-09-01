@@ -72,8 +72,6 @@ enforce_spacing <- function(positions, layers, min_spacing) {
 
 # Stage 1: Longest-path layer assignment ---------------------------------------
 
-#' Assign nodes to time layers
-#'
 #' Find all descendants of a node in a directed graph
 #'
 #' BFS from `node` following directed edges to find all reachable nodes.
@@ -105,60 +103,300 @@ find_descendants <- function(node, directed_edges) {
   visited
 }
 
+#' Split an edge data frame into directed and bidirected edges
+#'
+#' A bidirected edge constrains its two nodes to share a layer; only directed
+#' edges order one node before another.
+#'
+#' @param edges_df A data frame with columns `name` and `to`, optionally
+#'   `direction`.
+#' @return A list with `directed` and `bidirected` data frames.
+#' @noRd
+split_edge_types <- function(edges_df) {
+  if ("direction" %in% names(edges_df)) {
+    is_bidirected <- !is.na(edges_df$to) &
+      !is.na(edges_df$direction) &
+      edges_df$direction == "<->"
+  } else {
+    is_bidirected <- rep(FALSE, nrow(edges_df))
+  }
+
+  list(
+    directed = edges_df[!is.na(edges_df$to) & !is_bidirected, , drop = FALSE],
+    bidirected = edges_df[is_bidirected, , drop = FALSE]
+  )
+}
+
+#' Group nodes joined by bidirected edges
+#'
+#' Union-find over the bidirected edges, so a chain such as `a <-> b <-> c`
+#' becomes one group.
+#'
+#' @param bidirected Data frame of bidirected edges with `name` and `to`.
+#' @return A list of character vectors, one per group.
+#' @noRd
+bidirected_groups <- function(bidirected) {
+  groups <- list()
+  for (i in seq_len(nrow(bidirected))) {
+    u <- bidirected$name[i]
+    v <- bidirected$to[i]
+    u_grp <- which(vapply(groups, function(g) u %in% g, logical(1)))
+    v_grp <- which(vapply(groups, function(g) v %in% g, logical(1)))
+
+    if (length(u_grp) == 0 && length(v_grp) == 0) {
+      groups <- c(groups, list(c(u, v)))
+    } else if (length(u_grp) > 0 && length(v_grp) == 0) {
+      groups[[u_grp[1]]] <- c(groups[[u_grp[1]]], v)
+    } else if (length(u_grp) == 0 && length(v_grp) > 0) {
+      groups[[v_grp[1]]] <- c(groups[[v_grp[1]]], u)
+    } else if (u_grp[1] != v_grp[1]) {
+      groups[[u_grp[1]]] <- c(groups[[u_grp[1]]], groups[[v_grp[1]]])
+      groups <- groups[-v_grp[1]]
+    }
+  }
+
+  lapply(groups, unique)
+}
+
+#' Map each node to the representative of its bidirected group
+#'
+#' Nodes outside any group represent themselves, so the result condenses the
+#' graph: one entry per supernode.
+#'
+#' @param all_nodes Character vector of every node in the graph.
+#' @param groups List of bidirected groups.
+#' @return A named character vector mapping node name to representative.
+#' @noRd
+group_representatives <- function(all_nodes, groups) {
+  reps <- stats::setNames(all_nodes, all_nodes)
+  for (grp in groups) {
+    members <- grp[grp %in% all_nodes]
+    if (length(members) < 2) {
+      next
+    }
+    reps[members] <- members[[1]]
+  }
+
+  reps
+}
+
+#' Find the condensed nodes that lie on a cycle
+#'
+#' Condensing a bidirected group can create a cycle where the directed graph
+#' had none: a directed path between two members of a group becomes a
+#' self-loop, and two groups joined in both directions become a two-node
+#' cycle. Every cycle lies inside one strongly connected component, so a
+#' component holding more than one node, or a node with an edge to itself,
+#' names exactly the supernodes whose shared layer cannot hold. A supernode
+#' merely downstream of one of those is not itself on a cycle and keeps its
+#' group.
+#'
+#' @param reps Named character vector from `group_representatives()`.
+#' @param directed Data frame of directed edges with `name` and `to`.
+#' @return Character vector of representative names caught in a cycle.
+#' @noRd
+cyclic_supernodes <- function(reps, directed) {
+  supernodes <- unique(unname(reps))
+  if (length(supernodes) == 0 || nrow(directed) == 0) {
+    return(character(0))
+  }
+
+  src <- unname(reps[directed$name])
+  tgt <- unname(reps[directed$to])
+
+  # A directed edge between two members of one group condenses to a self-loop,
+  # which igraph does not count as a strongly connected component of its own
+  self_looped <- unique(src[src == tgt])
+
+  condensed <- igraph::graph_from_data_frame(
+    data.frame(from = src, to = tgt, stringsAsFactors = FALSE),
+    vertices = data.frame(name = supernodes, stringsAsFactors = FALSE)
+  )
+  components <- igraph::components(condensed, mode = "strong")
+  membership <- components$membership
+  on_cycle <- names(membership)[membership %in% which(components$csize >= 2L)]
+
+  unique(c(self_looped, on_cycle))
+}
+
+#' Drop the bidirected groups whose shared layer is impossible
+#'
+#' A bidirected edge asks its two nodes to share a time layer; a directed edge
+#' asks its source to come strictly earlier than its target. When the directed
+#' edges order two members of a group, the two demands contradict each other,
+#' and the same-layer demand is the one that gives way: keeping it would draw
+#' a directed edge backwards in time, which is the invariant the layout exists
+#' to guarantee. The arrow between the two nodes already shows the reader why
+#' they sit on different layers, and `x -> y` alongside `x <-> y` is common
+#' enough that saying so every time would make ordinary plots chatty, so the
+#' dropped constraint is not reported.
+#'
+#' When two groups order each other, as `a <-> b` and `c <-> d` do with
+#' `a -> c` and `d -> b`, either group alone could be kept. Both are dropped
+#' rather than picking one, since nothing in the DAG favors either choice and
+#' a silent arbitrary pick would be harder to read than the directed order.
+#'
+#' @param edges_df A data frame with columns `name` and `to`, optionally
+#'   `direction`.
+#' @return A list of the bidirected groups that can share a layer.
+#' @noRd
+resolve_bidirected_groups <- function(edges_df) {
+  parts <- split_edge_types(edges_df)
+  groups <- bidirected_groups(parts$bidirected)
+  if (length(groups) == 0) {
+    return(groups)
+  }
+
+  all_nodes <- unique(c(edges_df$name, edges_df$to))
+  all_nodes <- all_nodes[!is.na(all_nodes)]
+
+  repeat {
+    reps <- group_representatives(all_nodes, groups)
+    stuck <- cyclic_supernodes(reps, parts$directed)
+    if (length(stuck) == 0) {
+      break
+    }
+
+    impossible <- vapply(
+      groups,
+      function(grp) {
+        members <- grp[grp %in% all_nodes]
+        length(members) >= 2 && reps[[members[[1]]]] %in% stuck
+      },
+      logical(1)
+    )
+    if (!any(impossible)) {
+      break
+    }
+
+    groups <- groups[!impossible]
+  }
+
+  groups
+}
+
+#' Find a condensed node and everything upstream of it
+#'
+#' Used to report which pins pushed an unpinned node to the layer it holds.
+#'
+#' @param node Character scalar: a supernode representative.
+#' @param adj Condensed adjacency list (representative -> child
+#'   representatives).
+#' @param topo_order Character vector: a topological order of the condensed
+#'   graph.
+#' @return Character vector of representatives, including `node`.
+#' @noRd
+condensed_ancestors <- function(node, adj, topo_order) {
+  upstream <- stats::setNames(logical(length(topo_order)), topo_order)
+  upstream[[node]] <- TRUE
+
+  # Walking the order backwards visits every parent after its children, so one
+  # pass marks the whole ancestry
+  for (parent in rev(topo_order)) {
+    if (any(upstream[adj[[parent]]])) {
+      upstream[[parent]] <- TRUE
+    }
+  }
+
+  names(upstream)[upstream]
+}
+
+#' Collect the nodes that have to move with a shifted node
+#'
+#' A node's directed descendants follow it forward in time, and so does any
+#' node a bidirected edge ties to the same layer, together with that node's
+#' own descendants. Closing over both relations keeps the same-layer
+#' constraint intact through the exposure/outcome adjustment.
+#'
+#' @param node Character scalar: the node being shifted.
+#' @param directed_edges Data frame of directed edges with `name` and `to`.
+#' @param groups List of bidirected groups.
+#' @return Character vector of node names, including `node`.
+#' @noRd
+shift_closure <- function(node, directed_edges, groups) {
+  members <- unique(c(node, find_descendants(node, directed_edges)))
+
+  repeat {
+    added <- character(0)
+    for (grp in groups) {
+      if (any(grp %in% members)) {
+        added <- c(added, setdiff(grp, members))
+      }
+    }
+    added <- unique(added)
+    if (length(added) == 0) {
+      break
+    }
+    members <- unique(c(members, added))
+    for (partner in added) {
+      members <- unique(c(members, find_descendants(partner, directed_edges)))
+    }
+  }
+
+  members
+}
+
+#' Assign nodes to time layers
+#'
 #' Modified Kahn's algorithm (BFS topological sort) that tracks the longest
-#' incoming path to each node. With `sort_direction = "left"`, nodes are placed
-#' as far left (early) as possible: each node sits one layer after its latest
-#' parent. With `sort_direction = "right"` (default), nodes are then pushed
-#' rightward so each node sits one layer before its earliest child, placing
-#' nodes as close as possible to their descendants.
+#' incoming path to each node. Nodes joined by bidirected edges have to share
+#' a layer, so each group is condensed into a single supernode before the
+#' passes run and expanded again afterwards; laying out the condensed graph
+#' satisfies the same-layer constraint without moving anything after the fact,
+#' which is what let earlier versions place a node before its own parent.
+#'
+#' With `sort_direction = "left"`, nodes are placed as far left (early) as
+#' possible: each node sits one layer after its latest parent. With
+#' `sort_direction = "right"` (default), a backward pass over the reversed
+#' topological order then moves each node to one layer before its earliest
+#' child, placing nodes as close as possible to their descendants.
 #'
 #' @param edges_df A data frame with columns `name` (source) and `to` (target).
 #'   Rows with `to = NA` represent terminal or isolated nodes.
 #' @param sort_direction Either `"right"` (close to descendants, default) or
 #'   `"left"` (close to ancestors).
+#' @param fixed_time Named vector of 0-based layers to pin nodes to.
+#' @param groups Bidirected groups from `resolve_bidirected_groups()`. Computed
+#'   from `edges_df` when not supplied.
 #' @return A named integer vector mapping node names to 0-based layer indices.
 #' @noRd
 longest_path_layers <- function(
   edges_df,
   sort_direction = "right",
-  fixed_time = NULL
+  fixed_time = NULL,
+  groups = NULL
 ) {
   edges_df$name <- as.character(edges_df$name)
   edges_df$to <- as.character(edges_df$to)
   all_nodes <- unique(c(edges_df$name, edges_df$to))
   all_nodes <- all_nodes[!is.na(all_nodes)]
 
-  # Separate bidirected edges — these constrain same-layer, not parent→child
-  has_direction <- "direction" %in% names(edges_df)
-  if (has_direction) {
-    is_bidirected <- !is.na(edges_df$to) &
-      !is.na(edges_df$direction) &
-      edges_df$direction == "<->"
-    bidirected <- edges_df[is_bidirected, , drop = FALSE]
-    directed <- edges_df[!is.na(edges_df$to) & !is_bidirected, , drop = FALSE]
-  } else {
-    bidirected <- edges_df[integer(0), , drop = FALSE]
-    directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
-  }
+  directed <- split_edge_types(edges_df)$directed
+  groups <- groups %||% resolve_bidirected_groups(edges_df)
+  reps <- group_representatives(all_nodes, groups)
+  supernodes <- unique(unname(reps))
 
-  # Build adjacency list and in-degree
-  adj <- stats::setNames(vector("list", length(all_nodes)), all_nodes)
-  in_deg <- stats::setNames(integer(length(all_nodes)), all_nodes)
+  # Build condensed adjacency list and in-degree, one entry per supernode
+  adj <- stats::setNames(vector("list", length(supernodes)), supernodes)
+  in_deg <- stats::setNames(integer(length(supernodes)), supernodes)
 
   for (i in seq_len(nrow(directed))) {
-    src <- directed$name[i]
-    tgt <- directed$to[i]
+    src <- reps[[directed$name[i]]]
+    tgt <- reps[[directed$to[i]]]
     adj[[src]] <- c(adj[[src]], tgt)
     in_deg[[tgt]] <- in_deg[[tgt]] + 1L
   }
 
-  # Forward pass: longest path from roots (valid topo ordering for both modes)
-  dist <- stats::setNames(integer(length(all_nodes)), all_nodes)
+  # Forward pass: longest path from roots, i.e. the earliest layer each
+  # supernode can occupy. The dequeue order is a topological order.
+  dist <- stats::setNames(integer(length(supernodes)), supernodes)
   queue <- names(in_deg[in_deg == 0L])
+  topo_order <- character(0)
 
   while (length(queue) > 0) {
     node <- queue[1]
     queue <- queue[-1]
+    topo_order <- c(topo_order, node)
 
     for (child in adj[[node]]) {
       new_dist <- dist[[node]] + 1L
@@ -172,6 +410,9 @@ longest_path_layers <- function(
     }
   }
 
+  earliest <- dist
+  pinned_supernodes <- character(0)
+
   # Apply fixed_time pins
   if (!is.null(fixed_time) && length(fixed_time) > 0) {
     pin_names <- names(fixed_time)
@@ -180,144 +421,127 @@ longest_path_layers <- function(
     # Warn and drop unknown nodes
     unknown <- setdiff(pin_names, all_nodes)
     if (length(unknown) > 0) {
-      cli::cli_warn(
-        c(
-          "{.arg fixed_time} contains node{?s} not in the DAG: {.val {unknown}}.",
-          "i" = "These will be ignored."
-        ),
-        class = "ggdag_warning"
-      )
+      warn(c(
+        "{.arg fixed_time} contains node{?s} not in the DAG: {.val {unknown}}.",
+        "i" = "These will be ignored."
+      ))
       fixed_time <- fixed_time[pin_names %in% all_nodes]
       pin_names <- names(fixed_time)
     }
+  } else {
+    fixed_time <- NULL
+  }
 
-    if (length(fixed_time) > 0) {
-      # Validate: no directed edge has parent pinned >= child pinned
-      for (i in seq_len(nrow(directed))) {
-        src <- directed$name[i]
-        tgt <- directed$to[i]
-        if (src %in% pin_names && tgt %in% pin_names) {
-          if (fixed_time[[src]] >= fixed_time[[tgt]]) {
-            cli::cli_abort(
-              c(
-                "Pinned times violate DAG ordering.",
-                "x" = "{.val {src}} (time {fixed_time[[src]]}) must be before {.val {tgt}} (time {fixed_time[[tgt]]})."
-              ),
-              class = "ggdag_dag_error"
-            )
+  if (length(fixed_time) > 0) {
+    pin_supernodes <- stats::setNames(unname(reps[pin_names]), pin_names)
+    pinned_supernodes <- unique(unname(pin_supernodes))
+
+    # Members of one bidirected group share a layer, so their pins must agree
+    for (supernode in pinned_supernodes) {
+      grp_pinned <- pin_names[pin_supernodes == supernode]
+      pin_values <- unname(fixed_time[grp_pinned])
+      if (length(grp_pinned) >= 2 && length(unique(pin_values)) > 1) {
+        abort(
+          c(
+            "Conflicting {.arg fixed_time} values in bidirected group.",
+            "x" = "Nodes {.val {grp_pinned}} are connected by bidirected edges and must share the same layer,
+but are pinned to different times: {.val {pin_values + 1L}}."
+          ),
+          error_class = "ggdag_dag_error"
+        )
+      }
+    }
+
+    # A pin cannot come before the earliest layer a node's ancestors allow
+    for (nm in pin_names) {
+      floor_layer <- earliest[[pin_supernodes[[nm]]]]
+      if (fixed_time[[nm]] < floor_layer) {
+        abort(
+          c(
+            "Pinned time {fixed_time[[nm]] + 1L} for {.val {nm}} is too early.",
+            "x" = "{.val {nm}} has ancestors requiring at least time {floor_layer + 1L}."
+          ),
+          error_class = "ggdag_dag_error"
+        )
+      }
+    }
+
+    # Validate: no directed edge has parent pinned >= child pinned
+    for (i in seq_len(nrow(directed))) {
+      src <- directed$name[i]
+      tgt <- directed$to[i]
+      if (src %in% pin_names && tgt %in% pin_names) {
+        if (fixed_time[[src]] >= fixed_time[[tgt]]) {
+          abort(
+            c(
+              "Pinned times violate DAG ordering.",
+              "x" = "{.val {src}} (time {fixed_time[[src]] + 1L}) must be before {.val {tgt}} (time {fixed_time[[tgt]] + 1L})."
+            ),
+            error_class = "ggdag_dag_error"
+          )
+        }
+      }
+    }
+
+    # Override pinned supernodes
+    for (nm in pin_names) {
+      dist[[pin_supernodes[[nm]]]] <- fixed_time[[nm]]
+    }
+
+    # Re-propagate: ensure all non-pinned descendants respect ordering
+    for (node in topo_order) {
+      for (child in adj[[node]]) {
+        if (child %nin% pinned_supernodes) {
+          min_valid <- dist[[node]] + 1L
+          if (dist[[child]] < min_valid) {
+            dist[[child]] <- min_valid
           }
         }
       }
+    }
 
-      # Override pinned nodes
-      for (nm in pin_names) {
-        dist[[nm]] <- fixed_time[[nm]]
-      }
-
-      # Re-propagate: ensure all non-pinned descendants respect ordering
-      # Use topo order (process nodes with all parents already processed)
-      topo_in_deg <- stats::setNames(integer(length(all_nodes)), all_nodes)
-      for (i in seq_len(nrow(directed))) {
-        topo_in_deg[[directed$to[i]]] <- topo_in_deg[[directed$to[i]]] + 1L
-      }
-      topo_queue <- names(topo_in_deg[topo_in_deg == 0L])
-      while (length(topo_queue) > 0) {
-        node <- topo_queue[1]
-        topo_queue <- topo_queue[-1]
-        for (child in adj[[node]]) {
-          if (!(child %in% pin_names)) {
-            min_valid <- dist[[node]] + 1L
-            if (dist[[child]] < min_valid) {
-              dist[[child]] <- min_valid
-            }
-          }
-          topo_in_deg[[child]] <- topo_in_deg[[child]] - 1L
-          if (topo_in_deg[[child]] == 0L) {
-            topo_queue <- c(topo_queue, child)
-          }
+    # A pinned node the re-propagation could not move may now sit at or before
+    # one of its own ancestors. The nodes at the failing edge are often
+    # unpinned intermediates, so name the pins that put them there instead.
+    for (node in topo_order) {
+      for (child in adj[[node]]) {
+        if (dist[[child]] <= dist[[node]]) {
+          late_pins <- pin_names[pin_supernodes == child]
+          early_pins <- pin_names[
+            pin_supernodes %in% condensed_ancestors(node, adj, topo_order)
+          ]
+          abort(
+            c(
+              "Pinned times violate DAG ordering.",
+              "x" = "{.val {late_pins}} {?is/are} pinned to time {dist[[child]] + 1L}, but {.val {early_pins}} push{?es/} it to time {dist[[node]] + 2L} at the earliest.",
+              "i" = "Move {.val {late_pins}} later, or move {.val {early_pins}} earlier."
+            ),
+            error_class = "ggdag_dag_error"
+          )
         }
       }
     }
   }
 
-  pinned <- if (!is.null(fixed_time)) names(fixed_time) else character(0)
-
-  # For "right": backward pass pushing nodes toward their children
-  # Each node is set to min(child_layer) - 1, using the original (left-aligned)
-  # layers so updates don't cascade. Pinned nodes are never moved.
+  # For "right": backward pass pushing nodes toward their children. Walking the
+  # reversed topological order means every child already holds its final layer,
+  # so each node really does land one layer before its earliest child rather
+  # than being left behind by a child that moved after it. Pinned supernodes
+  # are never moved; sinks keep their forward layers, so the span is unchanged.
   if (identical(sort_direction, "right")) {
-    original <- dist
-    for (node in names(dist)) {
-      if (node %in% pinned) {
+    for (node in rev(topo_order)) {
+      if (node %in% pinned_supernodes) {
         next
       }
       children <- adj[[node]]
       if (length(children) > 0) {
-        min_child_layer <- min(original[children])
-        dist[[node]] <- min_child_layer - 1L
+        dist[[node]] <- min(dist[children]) - 1L
       }
     }
   }
 
-  # Enforce same-layer constraint for bidirected pairs
-  if (nrow(bidirected) > 0) {
-    # Build union-find groups of bidirected nodes
-    bidir_groups <- list()
-    for (i in seq_len(nrow(bidirected))) {
-      u <- bidirected$name[i]
-      v <- bidirected$to[i]
-      # Find which group each node belongs to
-      u_grp <- which(vapply(bidir_groups, function(g) u %in% g, logical(1)))
-      v_grp <- which(vapply(bidir_groups, function(g) v %in% g, logical(1)))
-
-      if (length(u_grp) == 0 && length(v_grp) == 0) {
-        bidir_groups <- c(bidir_groups, list(c(u, v)))
-      } else if (length(u_grp) > 0 && length(v_grp) == 0) {
-        bidir_groups[[u_grp[1]]] <- c(bidir_groups[[u_grp[1]]], v)
-      } else if (length(u_grp) == 0 && length(v_grp) > 0) {
-        bidir_groups[[v_grp[1]]] <- c(bidir_groups[[v_grp[1]]], u)
-      } else if (u_grp[1] != v_grp[1]) {
-        # Merge groups
-        bidir_groups[[u_grp[1]]] <- c(
-          bidir_groups[[u_grp[1]]],
-          bidir_groups[[v_grp[1]]]
-        )
-        bidir_groups <- bidir_groups[-v_grp[1]]
-      }
-    }
-
-    # Set all nodes in each group to the max layer in the group
-    for (grp in bidir_groups) {
-      grp_nodes <- unique(grp)
-      grp_nodes <- grp_nodes[grp_nodes %in% names(dist)]
-      if (length(grp_nodes) < 2) {
-        next
-      }
-
-      # Check for conflicting pins within the bidirected group
-      grp_pinned <- grp_nodes[grp_nodes %in% pinned]
-      if (length(grp_pinned) >= 2) {
-        pin_values <- dist[grp_pinned]
-        if (length(unique(pin_values)) > 1) {
-          cli::cli_abort(
-            c(
-              "Conflicting {.arg fixed_time} values in bidirected group.",
-              "x" = "Nodes {.val {grp_pinned}} are connected by bidirected edges and must share the same layer,
-but are pinned to different times: {.val {pin_values}}."
-            ),
-            class = "ggdag_dag_error"
-          )
-        }
-      }
-
-      max_layer <- max(dist[grp_nodes])
-      for (node in grp_nodes) {
-        dist[[node]] <- max_layer
-      }
-    }
-  }
-
-  dist
+  # Expand the supernodes back out: every member of a group shares its layer
+  stats::setNames(unname(dist[reps[all_nodes]]), all_nodes)
 }
 
 # Stage 2: Barycenter crossing minimization ------------------------------------
@@ -796,15 +1020,7 @@ compute_time_ordered_layout <- function(
   edges_df$to <- as.character(edges_df$to)
 
   # Filter out bidirected edges — only directed edges drive stages 2-4
-  has_direction <- "direction" %in% names(edges_df)
-  if (has_direction) {
-    is_bidir <- !is.na(edges_df$to) &
-      !is.na(edges_df$direction) &
-      edges_df$direction == "<->"
-    directed <- edges_df[!is.na(edges_df$to) & !is_bidir, , drop = FALSE]
-  } else {
-    directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
-  }
+  directed <- split_edge_types(edges_df)$directed
 
   # Validate fixed_time
   if (!is.null(fixed_time) && length(fixed_time) > 0) {
@@ -814,8 +1030,7 @@ compute_time_ordered_layout <- function(
         any(names(fixed_time) == "")
     ) {
       abort(
-        "{.arg fixed_time} must be a named vector (e.g. {.code c(x = 2, z = 3)}).",
-        error_class = "ggdag_error"
+        "{.arg fixed_time} must be a named vector (e.g. {.code c(x = 2, z = 3)})."
       )
     }
     if (
@@ -824,14 +1039,24 @@ compute_time_ordered_layout <- function(
         !all(is.finite(fixed_time))
     ) {
       abort(
-        "{.arg fixed_time} values must be finite numbers.",
-        error_class = "ggdag_error"
+        "{.arg fixed_time} values must be finite numbers."
       )
     }
     if (any(fixed_time < 1)) {
       abort(
-        "{.arg fixed_time} values must be >= 1 (time points are 1-based).",
-        error_class = "ggdag_error"
+        "{.arg fixed_time} values must be >= 1 (time points are 1-based)."
+      )
+    }
+    # A time point is a layer index, so a fractional pin has no meaning here.
+    # Truncating one silently would contradict the promise that a pinned time
+    # comes back unchanged, and rounding would guess at the user's intent.
+    if (any(fixed_time != round(fixed_time))) {
+      fractional <- names(fixed_time)[fixed_time != round(fixed_time)]
+      abort(
+        c(
+          "{.arg fixed_time} values must be whole numbers.",
+          "x" = "{.val {fractional}} {?is/are} pinned to a fractional time."
+        )
       )
     }
   }
@@ -845,11 +1070,15 @@ compute_time_ordered_layout <- function(
     )
   }
 
-  # Stage 1: Layer assignment (handles bidirected internally)
+  # Stage 1: Layer assignment (handles bidirected internally). Resolve the
+  # bidirected groups here so the exposure/outcome adjustment below sees the
+  # same groups the layering used, including any the layering had to drop.
+  groups <- resolve_bidirected_groups(edges_df)
   layer_assign <- longest_path_layers(
     edges_df,
     sort_direction = sort_direction,
-    fixed_time = internal_fixed_time
+    fixed_time = internal_fixed_time,
+    groups = groups
   )
 
   # Exposure/outcome same-layer adjustment
@@ -886,17 +1115,69 @@ compute_time_ordered_layout <- function(
             )
             next
           }
-          # Shift outcome and all descendants +1
-          descendants <- find_descendants(out_node, directed)
-          shift_nodes <- c(out_node, descendants)
-          for (nd in shift_nodes) {
-            if (nd %in% names(layer_assign) && !(nd %in% pinned)) {
-              layer_assign[[nd]] <- layer_assign[[nd]] + 1L
-            }
+          # Shift the outcome, its descendants, and anything the same-layer
+          # bidirected constraint ties to them, all by +1
+          shift_nodes <- shift_closure(out_node, directed, groups)
+          shift_nodes <- intersect(shift_nodes, names(layer_assign))
+
+          # The exposure travels with the outcome when a bidirected edge ties
+          # the two, or when the outcome is an ancestor of the exposure. The
+          # shift cannot separate them then, and applying it anyway moves the
+          # pair to a later time point for no reason, which shows once
+          # `fixed_time` fixes the layers to absolute time points.
+          if (exp_node %in% shift_nodes) {
+            cli::cli_inform(
+              c(
+                "Outcome {.val {out_node}} shares a layer with exposure
+{.val {exp_node}}, but was not shifted because the two move together.",
+                "i" = "Separate them with {.arg fixed_time}, or set
+{.code adjust_exposure_outcome = FALSE}."
+              ),
+              class = "ggdag_message"
+            )
+            next
           }
+
+          movable <- setdiff(shift_nodes, pinned)
+          blocked <- intersect(shift_nodes, pinned)
+
+          candidate <- layer_assign
+          candidate[movable] <- candidate[movable] + 1L
+          # Only the edges the shift touches can change: everything else keeps
+          # the layers it already had
+          touched <- directed$name %in%
+            shift_nodes |
+            directed$to %in% shift_nodes
+          advances <- all(
+            candidate[directed$name[touched]] < candidate[directed$to[touched]]
+          )
+          if (!advances) {
+            # Only a pinned member of the shifted set can hold a node back,
+            # and moving the rest would draw a cause and its effect at the
+            # same time point
+            cli::cli_inform(
+              c(
+                "Outcome {.val {out_node}} shares a layer with exposure
+{.val {exp_node}}, but was not shifted because {.val {blocked}} {?has/have} a
+{.arg fixed_time} pin.",
+                "i" = "Remove the pin or adjust it manually to separate them."
+              ),
+              class = "ggdag_message"
+            )
+            next
+          }
+          layer_assign <- candidate
         }
       }
     }
+  }
+
+  # Defense in depth: every stage below enumerates layers from 0 upward, so a
+  # negative layer would drop its node from the output entirely. Validation
+  # rules them out, and this shift is a no-op whenever the minimum is already
+  # 0, which is every case that reaches here.
+  if (length(layer_assign) > 0 && min(layer_assign) < 0L) {
+    layer_assign <- layer_assign - min(layer_assign)
   }
 
   # Stage 2: Build layer_nodes and barycenter sort
@@ -971,7 +1252,8 @@ compute_time_ordered_layout <- function(
     positions,
     layer_assign,
     direction,
-    fixed_time = fixed_time
+    fixed_time = fixed_time,
+    min_spacing = min_spacing
   )
 }
 
@@ -980,13 +1262,16 @@ compute_time_ordered_layout <- function(
 #' @param positions List with `$x` and `$y` (named numeric vectors).
 #' @param layer_assign Named integer vector (node -> 0-based layer).
 #' @param direction `"x"` or `"y"` — swap axes if `"y"`.
+#' @param min_spacing Minimum Y gap enforced between same-layer nodes, used as
+#'   the scale fallback when no layer holds more than one node.
 #' @return A tibble with `name`, `x`, `y`.
 #' @noRd
 normalize_positions <- function(
   positions,
   layer_assign,
   direction = "x",
-  fixed_time = NULL
+  fixed_time = NULL,
+  min_spacing = 72
 ) {
   node_names <- names(positions$x)
 
@@ -1033,8 +1318,19 @@ normalize_positions <- function(
     }
   }
 
-  if (length(all_gaps) > 0 && mean(all_gaps) > 0) {
-    scale_factor <- mean(all_gaps)
+  # When every layer holds a single node there are no gaps to measure. Fall
+  # back to the spacing the layout enforces between same-layer nodes, which is
+  # the same unit the measured gaps are drawn from. Without a fallback the
+  # coordinates stay in the layout's internal pixel space while x is spaced one
+  # unit per layer, and the resulting anisotropy distorts anything that reads
+  # the two axes together, such as the bow of arc edges.
+  scale_factor <- if (length(all_gaps) > 0 && mean(all_gaps) > 0) {
+    mean(all_gaps)
+  } else {
+    min_spacing
+  }
+
+  if (scale_factor > 0) {
     norm_y <- norm_y / scale_factor
   }
 

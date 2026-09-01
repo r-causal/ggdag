@@ -44,13 +44,13 @@
 <circle cx='376.34' cy='478.27' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='644.24' cy='304.55' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='376.34' cy='89.63' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='-82.06' y1='460.76' x2='90.75' y2='476.64' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='-82.06' y1='115.67' x2='90.84' y2='92.04' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='-41.70' y1='460.75' x2='358.59' y2='477.52' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='-41.70' y1='304.55' x2='626.46' y2='304.55' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='-41.70' y1='115.70' x2='358.61' y2='90.74' style='stroke-width: 1.07; stroke: #666666;' />
-<text x='-86.93' y='464.54' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>a</text>
-<text x='-86.93' y='119.50' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>b</text>
+<line x1='-82.43' y1='460.76' x2='77.17' y2='475.40' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='-82.43' y1='115.67' x2='77.33' y2='93.87' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='-41.70' y1='460.75' x2='344.96' y2='476.95' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='-41.70' y1='304.55' x2='612.83' y2='304.55' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='-41.70' y1='115.70' x2='345.00' y2='91.58' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='-87.30' y='464.54' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>a</text>
+<text x='-87.30' y='119.50' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>b</text>
 <text x='-46.26' y='464.54' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='-46.26' y='308.34' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='-46.26' y='119.50' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>

@@ -21,7 +21,7 @@ dag_prune(.tdy_dag, edges)
 \item{use_existing_coords}{Logical, indicating whether to use existing node
 coordinates.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
 for details. Alternatively, \code{"time_ordered"} will use
 \code{time_ordered_coords()} to algorithmically sort the graph by time. You can
 also pass the result of \code{time_ordered_coords()} directly: either the
@@ -32,9 +32,12 @@ returned when called with arguments.}
 
 \item{...}{optional arguments passed to \code{ggraph::create_layout()}}
 
-\item{edges}{A named character vector where the name is the starting node and
-the value is the end node, e.g. \code{c("x" = "y")} will remove the edge going
-from \code{x} to \code{y}.}
+\item{edges}{The edges to remove, in either of two forms. A named character
+vector where the name is the starting node and the value is the end node,
+e.g. \code{c("x" = "y")} removes the edge going from \code{x} to \code{y}. Or a data frame
+with a \code{name} and a \code{to} column, which says the same thing, and an optional
+\code{direction} column of \code{"->"}, \code{"<->"}, or \code{"--"}, which names one of the
+edges a pair of nodes holds.}
 }
 \value{
 A \code{tidy_dagitty} object
@@ -45,6 +48,21 @@ coordinates, saturates the DAG based on time ordering of the nodes. To create
 a saturated DAG from scratch, see \code{\link[=as_tidy_dagitty.list]{as_tidy_dagitty.list()}}. \code{dag_prune()}
 takes an existing DAG and removes edges. This is most useful when used
 together with saturated DAG.
+}
+\details{
+Bidirected edges carry no time-ordering information, so \code{dag_saturate()}
+assigns time order from the directed edges alone and then passes the input's
+bidirected edges through to the saturated DAG unchanged. A saturated model
+therefore never implies an independence that the input denies.
+
+\code{dag_prune()} errors if \code{edges} is empty, and if it names an edge the DAG
+does not contain, including an edge written in the reverse direction. A node
+whose every edge is pruned is kept as an isolated node.
+
+A pair of nodes can hold a directed edge and a bidirected edge at the same
+time, and endpoints alone name both of them. \code{dag_prune()} errors on such a
+pair rather than pruning both; name the direction as well, with the data
+frame form of \code{edges}, to prune one of them.
 }
 \examples{
 # Example usage:

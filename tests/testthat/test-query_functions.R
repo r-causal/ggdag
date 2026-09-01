@@ -51,10 +51,40 @@ test_that("query_adjustment_sets handles errors correctly", {
   dag <- dagify(y ~ x)
 
   # No exposure or outcome
-  expect_error(query_adjustment_sets(dag), "No exposure variable")
+  expect_error(
+    query_adjustment_sets(dag),
+    "No exposure variable",
+    class = "ggdag_error"
+  )
 
   dag2 <- dagify(y ~ x, exposure = "x")
-  expect_error(query_adjustment_sets(dag2), "No outcome variable")
+  expect_error(
+    query_adjustment_sets(dag2),
+    "No outcome variable",
+    class = "ggdag_error"
+  )
+})
+
+test_that("query_* endpoint and type guards raise classed errors", {
+  no_endpoints <- dagify(y ~ x)
+  exposure_only <- dagify(y ~ x, exposure = "x")
+
+  expect_error(query_paths(no_endpoints), class = "ggdag_error")
+  expect_error(query_paths(exposure_only), class = "ggdag_error")
+  expect_error(query_instrumental(no_endpoints), class = "ggdag_error")
+  expect_error(query_instrumental(exposure_only), class = "ggdag_error")
+  expect_error(
+    query_dseparated(no_endpoints, from = 1, to = "y"),
+    class = "ggdag_error"
+  )
+  expect_error(
+    query_dseparated(no_endpoints, from = "x", to = 1),
+    class = "ggdag_error"
+  )
+  expect_error(
+    query_dconnected(no_endpoints, from = list("x"), to = "y"),
+    class = "ggdag_error"
+  )
 })
 
 test_that("query_paths works correctly", {
@@ -285,6 +315,19 @@ test_that("query_colliders works correctly", {
   expect_setequal(result3$node, c("z", "w"))
 })
 
+test_that("query_colliders counts arrowheads from bidirected edges", {
+  # a -> m <-> b: two arrowheads point into m
+  parent_spouse <- dagify(m ~ a, m ~ ~b)
+  expect_equal(query_colliders(parent_spouse)$node, "m")
+
+  # a <-> m <-> b: two arrowheads, no directed parents at all
+  two_spouses <- dagify(m ~ ~a, m ~ ~b)
+  expect_equal(query_colliders(two_spouses)$node, "m")
+
+  # a single bidirected edge is one arrowhead, so not a collider
+  expect_equal(nrow(query_colliders(dagify(m ~ ~a))), 0)
+})
+
 test_that("query_exogenous works correctly", {
   dag <- dagify(
     y ~ x + z,
@@ -328,8 +371,8 @@ test_that("query_parents works correctly", {
   expect_equal(y_row$n_parents, 2)
 
   w_row <- result[result$node == "w", ]
-  expect_true(is.na(w_row$parent_set))
-  expect_true(is.na(w_row$parents[[1]][1]))
+  expect_equal(w_row$parent_set, "{}")
+  expect_equal(w_row$parents[[1]], character())
   expect_equal(w_row$n_parents, 0)
 
   # Query specific variable
@@ -354,8 +397,8 @@ test_that("query_children works correctly", {
   expect_equal(x_row$n_children, 2)
 
   y_row <- result[result$node == "y", ]
-  expect_true(is.na(y_row$child_set))
-  expect_true(is.na(y_row$children[[1]][1]))
+  expect_equal(y_row$child_set, "{}")
+  expect_equal(y_row$children[[1]], character())
   expect_equal(y_row$n_children, 0)
 })
 
@@ -376,8 +419,8 @@ test_that("query_ancestors works correctly", {
   expect_equal(y_row$n_ancestors, 3)
 
   w_row <- result[result$node == "w", ]
-  expect_true(is.na(w_row$ancestor_set))
-  expect_true(is.na(w_row$ancestors[[1]][1]))
+  expect_equal(w_row$ancestor_set, "{}")
+  expect_equal(w_row$ancestors[[1]], character())
   expect_equal(w_row$n_ancestors, 0)
 })
 
@@ -401,8 +444,8 @@ test_that("query_descendants works correctly", {
   expect_equal(w_row$n_descendants, 3)
 
   y_row <- result[result$node == "y", ]
-  expect_true(is.na(y_row$descendant_set))
-  expect_true(is.na(y_row$descendants[[1]][1]))
+  expect_equal(y_row$descendant_set, "{}")
+  expect_equal(y_row$descendants[[1]], character())
   expect_equal(y_row$n_descendants, 0)
 })
 
@@ -432,10 +475,6 @@ test_that("query_markov_blanket works correctly", {
 })
 
 test_that("helper functions work correctly", {
-  # Test .empty_set_as_list
-  empty <- .empty_set_as_list()
-  expect_equal(empty, list(NA_character_))
-
   # Test .dagitty_set_to_tibble
   set_list <- list(c("a", "b"), c("c"))
   result <- .dagitty_set_to_tibble(set_list)
@@ -514,4 +553,363 @@ test_that("query_status works correctly", {
   result4 <- query_status(dag3)
   expect_equal(sum(!is.na(result4$status)), 1)
   expect_equal(result4$status[result4$name == "x"], "exposure")
+})
+
+test_that("query_paths() labels collider paths as neither direct nor backdoor", {
+  # x -> z <- y starts with an arrow out of the exposure, so it is not a
+  # backdoor path, whether or not the collider is conditioned on
+  dag <- dagify(
+    y ~ x,
+    z ~ x + y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+  collider_path <- result[result$path == "x -> z <- y", ]
+  expect_equal(nrow(collider_path), 1)
+  expect_equal(collider_path$path_type, "other")
+  expect_false(collider_path$open)
+
+  conditioned <- query_paths(dag, conditioned_on = "z")
+  open_collider_path <- conditioned[conditioned$path == "x -> z <- y", ]
+  expect_equal(open_collider_path$path_type, "other")
+  expect_true(open_collider_path$open)
+
+  # a path that is neither causal nor backdoor but is not a pure collider path
+  mixed_dag <- dagify(
+    y ~ w,
+    m ~ x + w,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  mixed <- query_paths(mixed_dag, conditioned_on = "m")
+  expect_equal(
+    mixed$path_type[mixed$path == "x -> m <- w -> y"],
+    "other"
+  )
+
+  # true backdoor paths keep their classification
+  confounder_dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  confounded <- query_paths(confounder_dag)
+  expect_equal(
+    confounded$path_type[confounded$path == "x <- z -> y"],
+    "backdoor"
+  )
+  expect_equal(
+    confounded$path_type[confounded$path == "x -> y"],
+    "direct"
+  )
+})
+
+test_that("query_paths() returns one row per path with several exposures", {
+  dag <- dagify(
+    y ~ x1 + x2,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+
+  expect_equal(nrow(result), 2)
+  expect_setequal(result$path, c("x1 -> y", "x2 -> y"))
+  expect_true(all(nzchar(result$path)))
+  expect_equal(result$from[result$path == "x1 -> y"], "x1")
+  expect_equal(result$from[result$path == "x2 -> y"], "x2")
+  expect_equal(unique(result$to), "y")
+  expect_equal(result$path_id, 1:2)
+  expect_equal(lengths(result$variables), c(2L, 2L))
+})
+
+test_that("query_paths() returns one row per path with several outcomes", {
+  dag <- dagify(
+    y1 ~ x,
+    y2 ~ x,
+    exposure = "x",
+    outcome = c("y1", "y2")
+  )
+
+  result <- query_paths(dag)
+
+  expect_equal(nrow(result), 2)
+  expect_setequal(result$path, c("x -> y1", "x -> y2"))
+  expect_equal(result$to[result$path == "x -> y1"], "y1")
+  expect_equal(result$to[result$path == "x -> y2"], "y2")
+  expect_equal(unique(result$from), "x")
+  expect_equal(result$path_id, 1:2)
+})
+
+test_that("query_paths() is unchanged for a single exposure and outcome", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  result <- query_paths(dag)
+
+  expect_equal(nrow(result), 2)
+  expect_equal(result$path_id, 1:2)
+  expect_equal(unique(result$from), "x")
+  expect_equal(unique(result$to), "y")
+  expect_setequal(result$path, c("x -> y", "x <- z -> y"))
+})
+
+test_that("query_paths() skips self-pairs when from and to overlap", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  result <- query_paths(dag, from = c("x", "y"), to = c("y", "x"))
+
+  expect_equal(nrow(result), 2)
+  expect_false(any(result$from == result$to))
+  expect_setequal(paste(result$from, result$to), c("x y", "y x"))
+  expect_setequal(result$path, c("x -> y", "y <- x"))
+  expect_equal(result$path_id, 1:2)
+})
+
+test_that("query_paths() returns no rows when every pair is a self-pair", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  result <- query_paths(dag, from = "x", to = "x")
+
+  expect_equal(nrow(result), 0)
+  expect_named(
+    result,
+    c("path_id", "from", "to", "path", "path_type", "variables", "open")
+  )
+})
+
+test_that("query_paths() deduplicates repeated endpoints", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+  single <- query_paths(dag, from = "x", to = "y")
+
+  expect_equal(query_paths(dag, from = c("x", "x"), to = "y"), single)
+  expect_equal(query_paths(dag, from = "x", to = c("y", "y")), single)
+  expect_equal(query_paths(dag, from = c("x", "x"), to = c("y", "y")), single)
+})
+
+test_that("query_* functions validate that nodes exist", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  expect_error(
+    query_parents(dag, .var = "yy"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    query_children(dag, .var = "yy"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    query_ancestors(dag, .var = "yy"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    query_descendants(dag, .var = "yy"),
+    class = "ggdag_missing_nodes_error"
+  )
+  expect_error(
+    query_markov_blanket(dag, .var = "yy"),
+    class = "ggdag_missing_nodes_error"
+  )
+
+  # a vector naming one missing node errors on that node
+  expect_error(
+    query_parents(dag, .var = c("x", "yy")),
+    class = "ggdag_missing_nodes_error"
+  )
+})
+
+test_that("query_status() errors rather than fabricating a row", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  expect_error(
+    query_status(dag, .var = "exposre"),
+    class = "ggdag_missing_nodes_error"
+  )
+
+  # existing nodes are unaffected
+  expect_equal(query_status(dag, .var = "x")$status, "exposure")
+})
+
+test_that("query_instrumental() rejects the defunct conditioned_on argument", {
+  dag <- dagify(
+    y ~ x + u,
+    x ~ z + u,
+    exposure = "x",
+    outcome = "y",
+    latent = "u"
+  )
+
+  expect_error(
+    query_instrumental(dag, conditioned_on = "z"),
+    class = "ggdag_error"
+  )
+  expect_error(
+    query_instrumental(dag, conditioned_on = "not_a_node_at_all"),
+    class = "ggdag_error"
+  )
+
+  # dagitty still computes the conditioning sets itself
+  conditional <- dagify(
+    y ~ x + u + w,
+    x ~ z + u + w,
+    z ~ w,
+    exposure = "x",
+    outcome = "y",
+    latent = "u"
+  )
+  result <- query_instrumental(conditional)
+  expect_equal(result$instrument, "z")
+  expect_equal(result$conditioning_set, "{w}")
+  expect_equal(result$conditioned_on[[1]], "w")
+})
+
+test_that("query_* functions represent an empty set the same way", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  # the convention query_adjustment_sets() already uses
+  adjustment <- query_adjustment_sets(dag)
+  expect_equal(adjustment$set, "{}")
+  expect_length(adjustment$variables[[1]], 0)
+
+  # `z` is isolated, so every relationship query has an empty set for it
+  isolated <- dagitty::dagitty("dag { x -> y ; z }")
+  relationship_queries <- list(
+    list(query_parents(isolated), "parent_set", "parents", "n_parents"),
+    list(query_children(isolated), "child_set", "children", "n_children"),
+    list(
+      query_ancestors(isolated),
+      "ancestor_set",
+      "ancestors",
+      "n_ancestors"
+    ),
+    list(
+      query_descendants(isolated),
+      "descendant_set",
+      "descendants",
+      "n_descendants"
+    ),
+    list(
+      query_markov_blanket(isolated),
+      "blanket",
+      "blanket_vars",
+      "blanket_size"
+    )
+  )
+
+  for (query in relationship_queries) {
+    result <- query[[1]]
+    set_col <- query[[2]]
+    list_col <- query[[3]]
+    count_col <- query[[4]]
+
+    # the list column and the count column agree in every row
+    expect_equal(
+      lengths(result[[list_col]]),
+      as.integer(result[[count_col]])
+    )
+    # an empty set renders as "{}", never as NA
+    expect_false(anyNA(result[[set_col]]))
+    expect_equal(
+      result[[set_col]][result[[count_col]] == 0],
+      rep("{}", sum(result[[count_col]] == 0))
+    )
+  }
+})
+
+test_that("query_colliders() agrees with the collider predicate", {
+  # a -> m <-> b: m is a collider through one parent and one bidirected partner
+  dag <- dagify(m ~ a, m ~ ~b, y ~ m)
+  nodes <- unique(pull_dag_data(tidy_dagitty(dag))$name)
+  predicate_colliders <- nodes[purrr::map_lgl(
+    nodes,
+    \(.x) is_collider(dag, .x, downstream = FALSE)
+  )]
+
+  expect_setequal(query_colliders(dag)$node, predicate_colliders)
+  expect_equal(query_colliders(dag)$parents[[1]], "a")
+})
+
+test_that("query_* functions keep their schema when asked about no nodes", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+
+  empty_schemas <- list(
+    list(query_parents(dag, .var = character(0)), query_parents(dag)),
+    list(query_children(dag, .var = character(0)), query_children(dag)),
+    list(query_ancestors(dag, .var = character(0)), query_ancestors(dag)),
+    list(query_descendants(dag, .var = character(0)), query_descendants(dag)),
+    list(
+      query_markov_blanket(dag, .var = character(0)),
+      query_markov_blanket(dag)
+    ),
+    list(query_status(dag, .var = character(0)), query_status(dag))
+  )
+
+  for (schema in empty_schemas) {
+    empty <- schema[[1]]
+    populated <- schema[[2]]
+
+    expect_equal(nrow(empty), 0)
+    expect_named(empty, names(populated))
+    expect_equal(
+      purrr::map_chr(empty, typeof),
+      purrr::map_chr(populated, typeof)
+    )
+    # the two results row-bind, which a zero-column frame would not
+    expect_equal(nrow(dplyr::bind_rows(empty, populated)), nrow(populated))
+  }
+})
+
+test_that("query_* functions ask about a repeated node once", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_equal(
+    query_parents(dag, .var = c("y", "y", "x")),
+    query_parents(dag, .var = c("y", "x"))
+  )
+  expect_equal(nrow(query_status(dag, .var = c("x", "x"))), 1)
+})
+
+test_that("query_* conditions are informative", {
+  dag <- dagify(y ~ x, exposure = "x", outcome = "y")
+  no_endpoints <- dagify(y ~ x)
+  exposure_only <- dagify(y ~ x, exposure = "x")
+
+  expect_ggdag_error(query_adjustment_sets(no_endpoints))
+  expect_ggdag_error(query_adjustment_sets(exposure_only))
+  expect_ggdag_error(query_paths(no_endpoints))
+  expect_ggdag_error(query_paths(exposure_only))
+  expect_ggdag_error(query_instrumental(no_endpoints))
+  expect_ggdag_error(query_instrumental(exposure_only))
+  expect_ggdag_error(query_dseparated(no_endpoints, from = 1, to = "y"))
+  expect_ggdag_error(query_dseparated(no_endpoints, from = "x", to = 1))
+  expect_ggdag_error(query_instrumental(dag, conditioned_on = "z"))
+  expect_ggdag_error(query_parents(dag, .var = "yy"))
+  expect_ggdag_error(query_markov_blanket(dag, .var = "yy"))
+  expect_ggdag_error(query_status(dag, .var = "exposre"))
+})
+
+test_that("query_dseparated() and query_dconnected() reject list input", {
+  dag <- dagify(y ~ x + z, x ~ w, z ~ w)
+
+  expect_error(
+    query_dseparated(dag, from = list("x"), to = "z"),
+    "must be a character vector"
+  )
+  expect_error(
+    query_dseparated(dag, from = "x", to = list("z")),
+    "must be a character vector"
+  )
+  expect_error(
+    query_dconnected(dag, from = list("x"), to = "z"),
+    "must be a character vector"
+  )
 })

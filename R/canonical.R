@@ -7,7 +7,9 @@
 #'
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`
-#' @param ... additional arguments passed to `tidy_dagitty()`
+#' @param ... additional arguments passed to `tidy_dagitty()`, which lays out
+#'   the canonical DAG. `use_existing_coords` is not among them: the latent
+#'   variables that the canonical form introduces have no coordinates to reuse.
 #' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` that includes L or a `ggplot`
@@ -24,9 +26,34 @@
 #' @rdname canonicalize
 #' @name Canonicalize DAGs
 node_canonical <- function(.dag, ...) {
+  # the canonical graph is laid out from scratch, so a caller asking to keep
+  # the coordinates of the input would be asking for coordinates that the nodes
+  # dagitty adds do not have
+  if ("use_existing_coords" %in% ...names()) {
+    abort(
+      c(
+        "{.arg use_existing_coords} cannot be set here.",
+        "x" = "The canonical form adds latent variables that have no \\
+               coordinates of their own.",
+        "i" = "Lay the canonical DAG out with {.arg layout} or {.arg coords}."
+      ),
+      error_class = "ggdag_dots_error"
+    )
+  }
+
   .dag <- if_not_tidy_daggity(.dag)
-  dagitty::canonicalize(pull_dag(.dag))$g |>
-    tidy_dagitty(..., use_existing_coords = FALSE)
+  canonical_dag <- dagitty::canonicalize(pull_dag(.dag))$g
+
+  # dagitty builds the canonical graph from scratch, so carry the labels of the
+  # input DAG over to the nodes that survive; the latent variables it
+  # introduces have no label of their own
+  labels <- label(.dag)
+  canonical_dag <- set_node_labels(
+    canonical_dag,
+    labels[names(labels) %in% names(canonical_dag)]
+  )
+
+  tidy_dagitty(canonical_dag, ..., use_existing_coords = FALSE)
 }
 
 #' @rdname canonicalize
@@ -34,37 +61,58 @@ node_canonical <- function(.dag, ...) {
 ggdag_canonical <- function(
   .tdy_dag,
   ...,
-  edge_type = ggdag_option("edge_type", "link_arc"),
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
   text_col = ggdag_option("text_col", "white"),
-  label_col = ggdag_option("label_col", text_col),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option("edge_cap", 8),
+  arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
-  use_labels = ggdag_option("use_labels", NULL),
+  use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
-  label = NULL,
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
+  label = NULL,
   node = deprecated(),
   stylized = deprecated()
 ) {
-  if_not_tidy_daggity(.tdy_dag, ...) |>
-    node_canonical() |>
+  if (missing(edge_type)) {
+    edge_type <- ggdag_option("edge_type", "link_arc")
+  }
+
+  # `node_canonical()` lays the canonical DAG out, so that is where `...`
+  # belongs; laying out the input first would only throw the coordinates away
+  node_canonical(.tdy_dag, ...) |>
     ggdag(
+      size = size,
       node_size = node_size,
       text_size = text_size,
       label_size = label_size,
       edge_type = edge_type,
       text_col = text_col,
       label_col = label_col,
+      edge_width = edge_width,
+      edge_cap = edge_cap,
+      arrow_length = arrow_length,
       use_edges = use_edges,
       use_nodes = use_nodes,
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
-      label_geom = label_geom
+      label_geom = label_geom,
+      unified_legend = unified_legend,
+      key_glyph = key_glyph,
+      text = !!rlang::enquo(text),
+      label = !!rlang::enquo(label),
+      node = node,
+      stylized = stylized
     )
 }

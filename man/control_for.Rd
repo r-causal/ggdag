@@ -31,7 +31,9 @@ ggdag_adjust(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -42,7 +44,8 @@ ggdag_adjust(
 \arguments{
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{var}{a character vector, the variable(s) to adjust for.}
+\item{var}{the variable(s) to adjust for. This can be a character vector of
+variable names or a list of the form \code{list(c(...))}.}
 
 \item{as_factor}{Logical. Should the column be a factor?}
 
@@ -90,11 +93,22 @@ used is controlled by \code{label_geom}.}
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
 
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+a single, more compact legend. Default is \code{TRUE}.}
+
 \item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
 If \code{NULL} (the default), the glyph is chosen automatically based on the
 \code{unified_legend} setting. When provided, this overrides the automatic
 selection. Common options include \code{draw_key_dag_point},
 \code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
@@ -107,7 +121,10 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 
 \item{collider_lines}{logical. Should the plot show paths activated by
-adjusting for a collider?}
+adjusting for a collider? These paths are drawn as dashed ggraph curves
+whatever \code{edge_engine} is in use: they mark an association rather than an
+edge of the DAG, so they stay visibly apart from the arrows the engine
+draws.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{adjusted} column for adjusted
@@ -116,6 +133,16 @@ variables, as well as any biasing paths that arise, or a \code{ggplot}
 \description{
 Adjust for variables and activate any biasing paths that result
 }
+\section{Edge layers of the composite plotters}{
+
+The plotters that color or fade edges by an analysis column build their edge
+layers themselves, and which layers they build is settled from the DAG they
+are called with: a DAG with no bidirected edge is given no bidirected edge
+layer. Replacing the data of the returned plot afterwards, with ggplot2's
+\verb{\%+\%}, does not bring a layer back, so a plot built for one DAG is not a
+template for another.
+}
+
 \examples{
 dag <- dagify(m ~ a + b, x ~ a, y ~ b)
 

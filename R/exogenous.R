@@ -1,8 +1,8 @@
 #' Find Exogenous Variables
 #'
-#' `node_exogenous` tags exogenous variables given an exposure and
-#' outcome. `ggdag_exogenous` plots all exogenous variables. See
-#' [dagitty::exogenousVariables()] for details.
+#' `node_exogenous` tags exogenous variables, the variables with no directed
+#' arrows pointing at them. `ggdag_exogenous` plots all exogenous variables.
+#' See [dagitty::exogenousVariables()] for details.
 #'
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
 #'   `dagitty`

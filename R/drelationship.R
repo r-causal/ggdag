@@ -27,14 +27,12 @@
 #'
 #' dag |>
 #'   node_dseparated("x", "y") |>
-#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+#'   ggplot(aes(x = x, y = y, xend = xend, yend = yend,
 #'              col = d_relationship)) +
 #'   geom_dag_edges() +
-#'   geom_dag_collider_edges() +
 #'   geom_dag_node() +
 #'   geom_dag_text(col = "white") +
-#'   theme_dag() +
-#'   scale_adjusted(include_color = FALSE)
+#'   theme_dag()
 #'
 #' dag |>
 #'   node_dconnected("x", "y", controlling_for = "m") |>
@@ -68,65 +66,13 @@ node_dconnected <- function(
   as_factor = TRUE,
   ...
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
-
-  if (is.null(from)) {
-    from <- dagitty::exposures(pull_dag(.tdy_dag))
-  }
-  if (is.null(to)) {
-    to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  }
-  if (is_empty_or_null(from) || is_empty_or_null(to)) {
-    abort(
-      c(
-        "Both {.arg from} and {.arg to} must be set.",
-        "i" = "Set {.arg from} to specify the starting variable.",
-        "i" = "Set {.arg to} to specify the ending variable."
-      ),
-      error_class = "ggdag_missing_error"
-    )
-  }
-
-  if (!is.null(controlling_for)) {
-    .tdy_dag <- control_for(.tdy_dag, controlling_for)
-  } else {
-    controlling_for <- c()
-  }
-
-  .dconnected <- dagitty::dconnected(
-    pull_dag(.tdy_dag),
-    from,
-    to,
-    controlling_for
+  label_d_relationship(
+    if_not_tidy_daggity(.tdy_dag, ...),
+    from = from,
+    to = to,
+    controlling_for = controlling_for,
+    as_factor = as_factor
   )
-
-  .from <- from
-  .to <- to
-
-  .tdy_dag <- dplyr::mutate(
-    .tdy_dag,
-    d_relationship = ifelse(
-      .data$name %in% c(.from, .to) & .dconnected,
-      "d-connected",
-      ifelse(
-        .data$name %in% c(.from, .to) & !.dconnected,
-        "d-separated",
-        NA
-      )
-    )
-  )
-  if (as_factor) {
-    .tdy_dag <- mutate(
-      .tdy_dag,
-      d_relationship = factor(
-        .data$d_relationship,
-        levels = c("d-connected", "d-separated"),
-        exclude = NA
-      )
-    )
-  }
-
-  .tdy_dag
 }
 
 #' @rdname d_relationship
@@ -136,68 +82,16 @@ node_dseparated <- function(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
-
-  if (is.null(from)) {
-    from <- dagitty::exposures(pull_dag(.tdy_dag))
-  }
-  if (is.null(to)) {
-    to <- dagitty::outcomes(pull_dag(.tdy_dag))
-  }
-  if (is_empty_or_null(from) || is_empty_or_null(to)) {
-    abort(
-      c(
-        "Both {.arg from} and {.arg to} must be set.",
-        "i" = "Set {.arg from} to specify the starting variable.",
-        "i" = "Set {.arg to} to specify the ending variable."
-      ),
-      error_class = "ggdag_missing_error"
-    )
-  }
-
-  if (!is.null(controlling_for)) {
-    .tdy_dag <- control_for(.tdy_dag, controlling_for)
-  } else {
-    .tdy_dag <- .tdy_dag |>
-      dplyr::mutate(collider_line = FALSE, adjusted = "unadjusted")
-    controlling_for <- c()
-  }
-
-  .dseparated <- dagitty::dseparated(
-    pull_dag(.tdy_dag),
-    from,
-    to,
-    controlling_for
+  label_d_relationship(
+    if_not_tidy_daggity(.tdy_dag, ...),
+    from = from,
+    to = to,
+    controlling_for = controlling_for,
+    as_factor = as_factor
   )
-
-  .from <- from
-  .to <- to
-
-  .tdy_dag <- dplyr::mutate(
-    .tdy_dag,
-    d_relationship = ifelse(
-      .data$name %in% c(.from, .to) & !.dseparated,
-      "d-connected",
-      ifelse(
-        .data$name %in% c(.from, .to) & .dseparated,
-        "d-separated",
-        NA
-      )
-    )
-  )
-  if (as_factor) {
-    .tdy_dag <- dplyr::mutate(
-      .tdy_dag,
-      d_relationship = factor(
-        .data$d_relationship,
-        levels = c("d-connected", "d-separated"),
-        exclude = NA
-      )
-    )
-  }
-  .tdy_dag
 }
 
 #' @rdname d_relationship
@@ -207,10 +101,38 @@ node_drelationship <- function(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 ) {
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  label_d_relationship(
+    if_not_tidy_daggity(.tdy_dag, ...),
+    from = from,
+    to = to,
+    controlling_for = controlling_for,
+    as_factor = as_factor
+  )
+}
 
+#' Resolve and validate the endpoints and conditioning set of a d-relationship
+#'
+#' `from` and `to` fall back to the DAG's exposures and outcomes. The
+#' conditioning set is flattened before validation so that the documented
+#' `list(c(...))` format reaches both the validator and dagitty as node names.
+#'
+#' @param .tdy_dag A `tidy_dagitty` object.
+#' @param from,to Character vectors of node names, or `NULL`.
+#' @param controlling_for A character vector, a list of character vectors, or
+#'   `NULL`.
+#' @param call The environment to report errors from.
+#' @return A list with elements `from`, `to`, and `controlling_for`.
+#' @noRd
+prepare_d_relationship <- function(
+  .tdy_dag,
+  from,
+  to,
+  controlling_for,
+  call = rlang::caller_env()
+) {
   if (is.null(from)) {
     from <- dagitty::exposures(pull_dag(.tdy_dag))
   }
@@ -224,30 +146,81 @@ node_drelationship <- function(
         "i" = "Set {.arg from} to specify the starting variable.",
         "i" = "Set {.arg to} to specify the ending variable."
       ),
-      error_class = "ggdag_missing_error"
+      error_class = "ggdag_missing_error",
+      call = call
     )
   }
 
+  validate_nodes_exist(
+    .tdy_dag,
+    c(from, to),
+    arg = c("from", "to"),
+    call = call
+  )
+
+  controlling_for <- flatten_node_names(controlling_for)
   if (!is.null(controlling_for)) {
-    .tdy_dag <- control_for(.tdy_dag, controlling_for)
+    validate_nodes_exist(
+      .tdy_dag,
+      controlling_for,
+      arg = "controlling_for",
+      call = call
+    )
   }
 
-  .dseparated <- dagitty::dseparated(
-    pull_dag(.tdy_dag),
-    from,
-    to,
-    controlling_for
+  list(from = from, to = to, controlling_for = controlling_for)
+}
+
+#' Label each endpoint with its own d-relationship
+#'
+#' `dagitty::dconnected()` answers a set-level question: whether any node of
+#' `from` is d-connected to any node of `to`. Each endpoint is therefore checked
+#' against the opposite set on its own, so that a node d-separated from
+#' everything it is compared with is labeled as such even when its neighbors in
+#' the same set are not.
+#'
+#' @inheritParams prepare_d_relationship
+#' @param as_factor Logical. Should the column be a factor?
+#' @return A `tidy_dagitty` with a `d_relationship` column.
+#' @noRd
+label_d_relationship <- function(
+  .tdy_dag,
+  from,
+  to,
+  controlling_for,
+  as_factor,
+  call = rlang::caller_env()
+) {
+  args <- prepare_d_relationship(
+    .tdy_dag,
+    from = from,
+    to = to,
+    controlling_for = controlling_for,
+    call = call
   )
-  .from <- from
-  .to <- to
+
+  if (!is.null(args$controlling_for)) {
+    .tdy_dag <- control_for(.tdy_dag, args$controlling_for)
+  }
+
+  endpoints <- unique(c(args$from, args$to))
+  connected <- purrr::map_lgl(endpoints, function(.node) {
+    others <- if (.node %in% args$from) args$to else args$from
+    dagitty::dconnected(
+      pull_dag(.tdy_dag),
+      .node,
+      others,
+      args$controlling_for
+    )
+  })
+  labels <- ifelse(connected, "d-connected", "d-separated")
+  names(labels) <- endpoints
+
   .tdy_dag <- dplyr::mutate(
     .tdy_dag,
-    d_relationship = dplyr::case_when(
-      .data$name %in% c(.from, .to) & !.dseparated ~ "d-connected",
-      .data$name %in% c(.from, .to) & .dseparated ~ "d-separated",
-      TRUE ~ NA_character_
-    )
+    d_relationship = unname(labels[as.character(.data$name)])
   )
+
   if (as_factor) {
     .tdy_dag <- dplyr::mutate(
       .tdy_dag,
@@ -258,6 +231,7 @@ node_drelationship <- function(
       )
     )
   }
+
   .tdy_dag
 }
 
@@ -293,13 +267,13 @@ ggdag_drelationship <- function(
   stylized = deprecated(),
   collider_lines = TRUE
 ) {
-  df <- if_not_tidy_daggity(.tdy_dag) |>
-    node_drelationship(
-      from = from,
-      to = to,
-      controlling_for = controlling_for,
-      ...
-    )
+  df <- node_drelationship(
+    .tdy_dag,
+    from = from,
+    to = to,
+    controlling_for = controlling_for,
+    ...
+  )
 
   has_adjusted <- "adjusted" %in% names(pull_dag_data(df))
   if (has_adjusted) {

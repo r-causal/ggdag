@@ -2,10 +2,8 @@
 
     Code
       expr
-    Condition <purrr_error_indexed>
-      Error in `map()`:
-      i In index: 1.
-      Caused by error in `dagify()`:
+    Condition <ggdag_dag_error>
+      Error in `dagify()`:
       ! Self-loops are not allowed in DAGs.
       x Variable "x" cannot depend on itself.
       i Remove the self-referencing formula.

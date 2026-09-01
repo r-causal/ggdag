@@ -22,10 +22,11 @@
 #' @name Instrumental Variables
 node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
   .dag <- if_not_tidy_daggity(.dag, ...)
+  endpoints <- resolve_single_endpoints(pull_dag(.dag), exposure, outcome)
   instrumental_vars <- dagitty::instrumentalVariables(
     pull_dag(.dag),
-    exposure = exposure,
-    outcome = outcome
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome
   )
 
   i_vars <- purrr::map(instrumental_vars, "I")
@@ -64,6 +65,19 @@ node_instrumental <- function(.dag, exposure = NULL, outcome = NULL, ...) {
     }
   )
 
+  # only a conditional instrument goes through `control_for()`, so a DAG with
+  # both kinds of instrument stacks frames that carry `adjusted` onto frames
+  # that do not. The unconditional instruments adjust for nothing
+  if ("adjusted" %in% names(pull_dag_data(.dag))) {
+    .dag <- dplyr::mutate(
+      .dag,
+      adjusted = factor(
+        dplyr::coalesce(as.character(.data$adjusted), "unadjusted"),
+        levels = c("adjusted", "unadjusted")
+      )
+    )
+  }
+
   .dag
 }
 
@@ -99,8 +113,15 @@ ggdag_instrumental <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
-  .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
-    node_instrumental(exposure = exposure, outcome = outcome, ...)
+  # `node_instrumental()` does the tidying so that `...` reaches
+  # `tidy_dagitty()`; tidying here first would leave the dots with nothing to
+  # act on
+  .tdy_dag <- node_instrumental(
+    .tdy_dag,
+    exposure = exposure,
+    outcome = outcome,
+    ...
+  )
   has_instrumental <- !all(is.na((pull_dag_data(.tdy_dag)$instrumental)))
   has_adjusted <- "adjusted" %in% names(pull_dag_data(.tdy_dag))
   mapping <- aes_dag()

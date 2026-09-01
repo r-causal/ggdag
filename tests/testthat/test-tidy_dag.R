@@ -41,7 +41,7 @@ test_that("circular column is present only when needed", {
 })
 
 test_that("nodes without edges are captured correctly", {
-  # Use "nicely" layout; time_ordered can't handle isolated nodes
+  # pin the layout so the node order does not depend on the global option
   .dagitty <- dagitty::dagitty(
     "dag {
   x -> y
@@ -130,6 +130,24 @@ test_that("list is correctly converted to a saturated, time-ordered DAG", {
 test_that("Forbidden layouts error", {
   expect_ggdag_error(
     tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendogram")
+  )
+})
+
+test_that("the real dendrogram layout is forbidden too", {
+  expect_error(
+    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendrogram"),
+    class = "ggdag_error"
+  )
+  expect_ggdag_error(
+    tidy_dagitty(dagify(y ~ x + z, x ~ z), layout = "dendrogram")
+  )
+})
+
+test_that("as_tidy_dagitty() forbids the dendrogram layout", {
+  edges_df <- data.frame(name = c("x", "z", "z"), to = c("y", "x", "y"))
+  expect_error(
+    as_tidy_dagitty(edges_df, layout = "dendrogram"),
+    class = "ggdag_error"
   )
 })
 
@@ -264,6 +282,23 @@ test_that("coordinate conversion functions work forward and backwards", {
   expect_equal(coords, coords2list(coord_df))
 })
 
+test_that("coords2df() reads the list names rather than the element order", {
+  coords <- list(y = c(A = 10, B = 20), x = c(A = 1, B = 2))
+  coord_df <- coords2df(coords)
+
+  expect_equal(coord_df$x[coord_df$name == "A"], 1)
+  expect_equal(coord_df$y[coord_df$name == "A"], 10)
+  expect_equal(coord_df$x[coord_df$name == "B"], 2)
+  expect_equal(coord_df$y[coord_df$name == "B"], 20)
+})
+
+test_that("coords2df() errors when the list is not named x and y", {
+  unnamed <- list(c(A = 1, B = 2), c(A = 10, B = 20))
+
+  expect_error(coords2df(unnamed), class = "ggdag_type_error")
+  expect_ggdag_error(coords2df(unnamed))
+})
+
 test_that("tidy_dagitty warns about cyclic graphs", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
@@ -323,4 +358,360 @@ test_that("tidy_dagitty warns about cyclic graphs", {
     ),
     class = "ggdag_failed_to_close_backdoor_warning"
   )
+})
+
+test_that("as_tidy_dagitty() keeps isolated nodes in the data and the DAG", {
+  df <- data.frame(name = c("a", "b", "c"), to = c("b", NA, NA))
+  tidy_dag <- as_tidy_dagitty(df, seed = 42)
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_setequal(unique(dag_data$name), c("a", "b", "c"))
+  expect_setequal(names(pull_dag(tidy_dag)), c("a", "b", "c"))
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+})
+
+test_that("visual: as_tidy_dagitty() renders isolated nodes", {
+  withr::local_seed(1234)
+  tidy_dag <- as_tidy_dagitty(
+    data.frame(name = c("a", "b", "c"), to = c("b", NA, NA)),
+    seed = 42
+  )
+  # never record a baseline that is missing the isolated node
+  skip_if_not(setequal(unique(pull_dag_data(tidy_dag)$name), c("a", "b", "c")))
+  expect_doppelganger("as_tidy_dagitty renders isolated nodes", ggdag(tidy_dag))
+})
+
+test_that("as_tidy_dagitty() keeps node names with spaces intact", {
+  df <- data.frame(name = c("my var", "y"), to = c("y", NA))
+  tidy_dag <- as_tidy_dagitty(df, seed = 42)
+
+  expect_setequal(names(pull_dag(tidy_dag)), c("my var", "y"))
+  expect_setequal(unique(pull_dag_data(tidy_dag)$name), c("my var", "y"))
+})
+
+test_that("as_tidy_dagitty() regenerates coordinates when only x and y are given", {
+  df <- data.frame(
+    name = c("c", "c", "x", "y"),
+    to = c("x", "y", "y", NA),
+    x = c(0, 0, 1, 2),
+    y = c(1, 1, 0, 0)
+  )
+
+  expect_no_error(tidy_dag <- as_tidy_dagitty(df, seed = 1234))
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_true(all(c("x", "y", "xend", "yend") %in% names(dag_data)))
+  expect_false(any(c("xendend", "yendend") %in% names(dag_data)))
+
+  node_coords <- dplyr::distinct(dag_data, name, x, y)
+  edges <- dplyr::filter(dag_data, !is.na(to))
+  expect_equal(edges$xend, node_coords$x[match(edges$to, node_coords$name)])
+  expect_equal(edges$yend, node_coords$y[match(edges$to, node_coords$name)])
+})
+
+test_that("as_tidy_dagitty() accepts coords as a data frame", {
+  edges_df <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y"))
+  coords_df <- data.frame(
+    name = c("c", "x", "y"),
+    x = c(0, 1, 2),
+    y = c(0, 1, 0)
+  )
+
+  from_df <- as_tidy_dagitty(edges_df, coords = coords_df, seed = 1234)
+  from_list <- as_tidy_dagitty(
+    edges_df,
+    coords = coords2list(coords_df),
+    seed = 1234
+  )
+
+  expect_equal(pull_dag_data(from_df), pull_dag_data(from_list))
+
+  node_coords <- pull_dag_data(from_df) |>
+    dplyr::distinct(name, x, y) |>
+    dplyr::arrange(name)
+  expect_equal(node_coords$x, c(0, 1, 2))
+  expect_equal(node_coords$y, c(0, 1, 0))
+})
+
+test_that("tidy_dagitty() completes coordinates that cover only some nodes", {
+  withr::local_seed(1234)
+  # `z` has no coordinates
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+
+  expect_message(tidy_dag <- tidy_dagitty(dag))
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("x", "y", "z"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+  # nodes with user coordinates keep the positions they were given
+  expect_equal(node_coords$x[node_coords$name == "x"], 0)
+  expect_equal(node_coords$y[node_coords$name == "x"], 0)
+  expect_equal(node_coords$x[node_coords$name == "y"], 1)
+  expect_equal(node_coords$y[node_coords$name == "y"], 0)
+})
+
+test_that("tidy_dagitty() informs on misspelled coordinate names", {
+  withr::local_seed(1234)
+  # `Y` is a typo for `y`, so `y` has no coordinates
+  dag <- dagify(y ~ x, coords = list(x = c(x = 0, Y = 1), y = c(x = 0, Y = 0)))
+
+  expect_message(tidy_dag <- tidy_dagitty(dag))
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("x", "y"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+})
+
+test_that("visual: partial coordinates are completed by the layout", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+  tidy_dag <- suppressMessages(tidy_dagitty(dag))
+  # never record a baseline that still carries missing coordinates
+  skip_if_not(!anyNA(pull_dag_data(tidy_dag)$x))
+  expect_doppelganger(
+    "partial coordinates completed by layout",
+    ggdag(tidy_dag)
+  )
+})
+
+test_that("as_tidy_dagitty() completes partial coordinates under time_ordered", {
+  withr::local_seed(1234)
+  edges <- data.frame(name = c("a", "b", "c"), to = c("b", "c", NA))
+  # `c` has no coordinates
+  partial_coords <- list(x = c(a = 0, b = 1), y = c(a = 0, b = 1))
+
+  expect_message(
+    tidy_dag <- as_tidy_dagitty(
+      edges,
+      coords = partial_coords,
+      layout = "time_ordered"
+    )
+  )
+
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("a", "b", "c"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+  # nodes with user coordinates keep the positions they were given
+  expect_equal(node_coords$x[node_coords$name == "a"], 0)
+  expect_equal(node_coords$y[node_coords$name == "a"], 0)
+  expect_equal(node_coords$x[node_coords$name == "b"], 1)
+  expect_equal(node_coords$y[node_coords$name == "b"], 1)
+})
+
+test_that("as_tidy_dagitty() completes partial coordinates under the layout option", {
+  withr::local_seed(1234)
+  withr::local_options(ggdag.layout = "time_ordered")
+  edges <- data.frame(name = c("a", "b", "c"), to = c("b", "c", NA))
+  partial_coords <- list(x = c(a = 0, b = 1), y = c(a = 0, b = 1))
+
+  expect_message(tidy_dag <- as_tidy_dagitty(edges, coords = partial_coords))
+
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("a", "b", "c"))
+  expect_false(anyNA(node_coords$x))
+  expect_false(anyNA(node_coords$y))
+  expect_equal(node_coords$x[node_coords$name == "a"], 0)
+  expect_equal(node_coords$y[node_coords$name == "a"], 0)
+  expect_equal(node_coords$x[node_coords$name == "b"], 1)
+  expect_equal(node_coords$y[node_coords$name == "b"], 1)
+})
+
+test_that("tidy_dagitty() gives layout functions the isolated nodes", {
+  withr::local_seed(1234)
+  # deterministic layout: nodes laid out left to right in alphabetical order
+  seq_layout <- function(.edges) {
+    nodes <- sort(unique(c(.edges$name, .edges$to)))
+    nodes <- nodes[!is.na(nodes)]
+    tibble::tibble(name = nodes, x = seq_along(nodes), y = 0)
+  }
+
+  # `z` takes part in no edge
+  dag <- dagitty::dagitty("dag { x -> y \n z }")
+
+  expect_no_message(
+    tidy_dag <- tidy_dagitty(
+      dag,
+      layout = seq_layout,
+      use_existing_coords = FALSE
+    )
+  )
+
+  node_coords <- pull_dag_data(tidy_dag) |>
+    dplyr::distinct(name, x, y)
+
+  expect_setequal(node_coords$name, c("x", "y", "z"))
+  # every position comes from `seq_layout()`, isolated nodes included
+  expect_equal(node_coords$x[node_coords$name == "x"], 1)
+  expect_equal(node_coords$x[node_coords$name == "y"], 2)
+  expect_equal(node_coords$x[node_coords$name == "z"], 3)
+  expect_equal(node_coords$y, c(0, 0, 0))
+})
+
+test_that("as_tidy_dagitty() keeps the labels it is given", {
+  labels <- c("c" = "confounder", "x" = "exposure", "y" = "outcome")
+  from_df <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
+    as_tidy_dagitty(labels = labels, seed = 1234)
+
+  expect_true(has_labels(pull_dag(from_df)))
+  expect_equal(label(pull_dag(from_df)), labels)
+
+  dag_data <- pull_dag_data(from_df)
+  expect_true("label" %in% names(dag_data))
+  expect_equal(unique(dag_data$label[dag_data$name == "c"]), "confounder")
+  expect_equal(unique(dag_data$label[dag_data$name == "x"]), "exposure")
+
+  from_list <- as_tidy_dagitty(
+    list("x", "y"),
+    labels = c("x" = "exposure", "y" = "outcome"),
+    seed = 1234
+  )
+  expect_equal(
+    label(pull_dag(from_list)),
+    c("x" = "exposure", "y" = "outcome")
+  )
+  expect_true("label" %in% names(pull_dag_data(from_list)))
+})
+
+test_that("visual: as_tidy_dagitty() renders supplied labels", {
+  withr::local_seed(1234)
+  tidy_dag <- data.frame(name = c("c", "c", "x"), to = c("x", "y", "y")) |>
+    as_tidy_dagitty(
+      labels = c("c" = "confounder", "x" = "exposure", "y" = "outcome"),
+      seed = 1234
+    )
+  # never record a baseline from a DAG that dropped its labels
+  skip_if_not("label" %in% names(pull_dag_data(tidy_dag)))
+  expect_doppelganger(
+    "as_tidy_dagitty renders supplied labels",
+    ggdag(tidy_dag, use_labels = TRUE)
+  )
+})
+
+test_that("as_tidy_dagitty() builds a node-only DAG from a single time point", {
+  tidy_dag <- as_tidy_dagitty(list(c("a", "b", "c")), seed = 42)
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_s3_class(tidy_dag, "tidy_dagitty")
+  expect_setequal(unique(dag_data$name), c("a", "b", "c"))
+  expect_setequal(names(pull_dag(tidy_dag)), c("a", "b", "c"))
+  expect_true(all(is.na(dag_data$to)))
+  expect_equal(n_edges(tidy_dag), 0)
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+})
+
+test_that("as_tidy_dagitty() errors informatively on an empty list", {
+  expect_error(as_tidy_dagitty(list()), class = "ggdag_type_error")
+})
+
+test_that("as_tidy_dagitty() empty list error message", {
+  # never record a baseline from the pre-fix base R error
+  skip_if_not(inherits(
+    tryCatch(as_tidy_dagitty(list()), error = identity),
+    "ggdag_type_error"
+  ))
+
+  expect_ggdag_error(as_tidy_dagitty(list()))
+})
+
+test_that("as_tidy_dagitty() errors informatively on empty time points", {
+  expect_error(
+    as_tidy_dagitty(list(character(0))),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    as_tidy_dagitty(list("a", character(0))),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("as_tidy_dagitty() empty time point error message", {
+  # never record a baseline from the pre-fix compile_dag_from_df() error
+  skip_if_not(inherits(
+    tryCatch(as_tidy_dagitty(list(character(0))), error = identity),
+    "ggdag_type_error"
+  ))
+
+  expect_ggdag_error(as_tidy_dagitty(list(character(0))))
+  expect_ggdag_error(as_tidy_dagitty(list("a", character(0))))
+})
+
+test_that("as_tidy_dagitty() rejects unsupported direction values", {
+  expect_error(
+    as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = "<-"),
+      seed = 1234
+    ),
+    class = "ggdag_dag_error"
+  )
+  expect_error(
+    as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = "=>"),
+      seed = 1234
+    ),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("as_tidy_dagitty() direction error message", {
+  # never record a baseline from the pre-fix silent coercion
+  skip_if_not(inherits(
+    tryCatch(
+      as_tidy_dagitty(
+        data.frame(name = "a", to = "b", direction = "<-"),
+        seed = 1234
+      ),
+      error = identity
+    ),
+    "ggdag_dag_error"
+  ))
+
+  expect_ggdag_error(
+    as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = "<-"),
+      seed = 1234
+    )
+  )
+})
+
+test_that("as_tidy_dagitty() keeps supported direction values in sync", {
+  purrr::walk(c("->", "<->", "--"), \(.direction) {
+    tidy_dag <- as_tidy_dagitty(
+      data.frame(name = "a", to = "b", direction = .direction),
+      seed = 1234
+    )
+    dag_data <- pull_dag_data(tidy_dag)
+
+    expect_equal(
+      as.character(dag_data$direction[dag_data$name == "a"]),
+      .direction
+    )
+    expect_equal(n_edges(tidy_dag), 1)
+    expect_equal(n_edges(tidy_dag), nrow(dagitty::edges(pull_dag(tidy_dag))))
+  })
+
+  # node-only rows carry no direction and must stay acceptable
+  node_only <- as_tidy_dagitty(
+    data.frame(name = c("a", "b", "c"), to = c("b", NA, NA)),
+    seed = 1234
+  )
+  expect_equal(n_edges(node_only), 1)
 })

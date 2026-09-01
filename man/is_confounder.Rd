@@ -22,6 +22,14 @@ Logical. Is the variable a confounder?
 \description{
 Assess if a variable confounds a relationship
 }
+\details{
+A confounder is a common cause of \code{x} and \code{y}. \code{z} therefore has to reach
+\code{x} by a directed path that does not run through \code{y}, and reach \code{y} by a
+directed path that does not run through \code{x}. Being a descendant of \code{z} is
+not enough: descent is transitive through \code{x}, so every upstream cause of the
+exposure, such as an instrument, would qualify even though it opens no
+backdoor path.
+}
 \examples{
 dag <- dagify(y ~ z, x ~ z)
 

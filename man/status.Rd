@@ -85,7 +85,7 @@ and \code{geom_dag_text_repel2}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
@@ -106,7 +106,7 @@ Detects variable status given a DAG (exposure, outcome, latent). See
 \code{\link[dagitty:VariableStatus]{dagitty::VariableStatus()}} for details.
 }
 \details{
-\code{node_collider} tags variable status and \code{ggdag_collider} plots all
+\code{node_status} tags variable status and \code{ggdag_status} plots all
 variable statuses.
 }
 \examples{

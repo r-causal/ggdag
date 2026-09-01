@@ -2,6 +2,7 @@
 
 S3method("$",dag_arrow_layer)
 S3method("$",dag_edge_layer)
+S3method("$",dag_layer)
 S3method("label<-",dagitty)
 S3method("label<-",tidy_dagitty)
 S3method("update_dag<-",tidy_dagitty)
@@ -40,6 +41,7 @@ S3method(pull_dag,tidy_dagitty)
 S3method(pull_dag_data,dagitty)
 S3method(pull_dag_data,default)
 S3method(pull_dag_data,tidy_dagitty)
+S3method(rename,tidy_dagitty)
 S3method(right_join,tidy_dagitty)
 S3method(select,tidy_dagitty)
 S3method(semi_join,tidy_dagitty)
@@ -224,53 +226,65 @@ export(tidy_dagitty)
 export(time_ordered_coords)
 export(update_dag)
 import(ggplot2)
-importFrom(dplyr,anti_join)
-importFrom(dplyr,arrange)
-importFrom(dplyr,arrange_)
-importFrom(dplyr,as.tbl)
-importFrom(dplyr,as_tibble)
-importFrom(dplyr,distinct)
-importFrom(dplyr,filter)
-importFrom(dplyr,filter_)
-importFrom(dplyr,full_join)
-importFrom(dplyr,group_by)
-importFrom(dplyr,inner_join)
-importFrom(dplyr,left_join)
-importFrom(dplyr,mutate)
-importFrom(dplyr,mutate_)
-importFrom(dplyr,right_join)
-importFrom(dplyr,select)
-importFrom(dplyr,select_)
-importFrom(dplyr,semi_join)
-importFrom(dplyr,slice)
-importFrom(dplyr,slice_)
-importFrom(dplyr,summarise)
-importFrom(dplyr,summarise_)
-importFrom(dplyr,tbl_df)
-importFrom(dplyr,transmute)
-importFrom(dplyr,ungroup)
-importFrom(ggplot2,"%+replace%")
-importFrom(ggplot2,.pt)
-importFrom(ggplot2,.stroke)
-importFrom(ggplot2,aes)
-importFrom(ggplot2,alpha)
-importFrom(ggplot2,fortify)
-importFrom(ggplot2,ggplot)
-importFrom(grid,arrow)
-importFrom(grid,gpar)
-importFrom(grid,grobTree)
-importFrom(grid,pointsGrob)
-importFrom(grid,segmentsGrob)
-importFrom(grid,unit)
-importFrom(lifecycle,deprecate_soft)
-importFrom(lifecycle,deprecate_warn)
-importFrom(lifecycle,deprecated)
-importFrom(lifecycle,is_present)
-importFrom(magrittr,"%$%")
-importFrom(magrittr,"%>%")
-importFrom(pillar,tbl_format_footer)
-importFrom(pillar,tbl_sum)
+importFrom(dplyr,
+  anti_join,
+  arrange,
+  arrange_,
+  as.tbl,
+  as_tibble,
+  distinct,
+  filter,
+  filter_,
+  full_join,
+  group_by,
+  inner_join,
+  left_join,
+  mutate,
+  mutate_,
+  rename,
+  right_join,
+  select,
+  select_,
+  semi_join,
+  slice,
+  slice_,
+  summarise,
+  summarise_,
+  tbl_df,
+  transmute,
+  ungroup
+)
+importFrom(ggplot2,
+  "%+replace%",
+  .pt,
+  .stroke,
+  aes,
+  alpha,
+  fortify,
+  ggplot
+)
+importFrom(grid,
+  arrow,
+  gpar,
+  grobTree,
+  pointsGrob,
+  segmentsGrob,
+  unit
+)
+importFrom(lifecycle,
+  deprecate_soft,
+  deprecate_warn,
+  deprecated,
+  is_present
+)
+importFrom(magrittr,
+  "%$%",
+  "%>%"
+)
+importFrom(pillar,
+  tbl_format_footer,
+  tbl_sum
+)
 importFrom(purrr,"%||%")
 importFrom(stats,setNames)
 importFrom(tidygraph,as_tbl_graph)
-importFrom(utils,packageVersion)

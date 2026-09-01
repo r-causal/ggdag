@@ -4,7 +4,9 @@
 #' `tidy_dagitty` or `dagitty`
 #'
 #' @param x an object of either class `tidy_dagitty` or `dagitty`
-#' @param value a character vector
+#' @param value a named character vector, where the names are nodes in the
+#'   DAG (a name that matches no node is an error), or `NULL` to remove
+#'   labels
 #' @inheritParams dag_params
 #'
 #' @return `label` returns the label attribute of x
@@ -25,6 +27,8 @@
 #' @rdname label
 #' @export
 `label<-.dagitty` <- function(x, value) {
+  validate_labels(value)
+  validate_label_nodes_exist(x, value)
   attr(x, "labels") <- value
   x
 }
@@ -32,10 +36,16 @@
 #' @rdname label
 #' @export
 `label<-.tidy_dagitty` <- function(x, value) {
+  validate_labels(value)
+  validate_label_nodes_exist(x, value)
   attr(x$dag, "labels") <- value
 
   if (!is.null(pull_dag_data(x)[["label"]])) {
     x <- dplyr::select(x, -label)
+  }
+
+  if (is.null(value)) {
+    return(x)
   }
 
   dplyr::left_join(
@@ -45,7 +55,85 @@
   )
 }
 
-#' @param labels a character vector
+#' Check that labels are usable
+#'
+#' Labels are joined to the DAG data by node name, so every label must carry the
+#' name of the node it belongs to, and no node may be named twice. `NULL` is
+#' allowed and clears any labels.
+#'
+#' @param value The labels being assigned.
+#' @param arg The argument name to report.
+#' @param call The calling environment, for the error message.
+#' @return `value`, invisibly.
+#' @noRd
+validate_labels <- function(
+  value,
+  arg = "labels",
+  call = rlang::caller_env()
+) {
+  if (is.null(value)) {
+    return(invisible(value))
+  }
+
+  node_names <- names(value)
+  is_fully_named <- is.character(value) &&
+    length(value) > 0 &&
+    !is.null(node_names) &&
+    !anyNA(node_names) &&
+    all(node_names != "")
+
+  if (!is_fully_named) {
+    abort(
+      c(
+        "{.arg {arg}} must be a named character vector.",
+        "x" = "Each label must be named for the node it belongs to.",
+        "i" = 'For example: {.code c(x = "Exposure", y = "Outcome")}.'
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  duplicate_names <- unique(node_names[duplicated(node_names)])
+  if (length(duplicate_names) > 0) {
+    abort(
+      c(
+        "{.arg {arg}} must name each node at most once.",
+        "x" = "Duplicated node name{?s}: {.val {duplicate_names}}.",
+        "i" = "Labels are joined to the DAG data by name, so a repeated name
+               would give a node more than one row."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  invisible(value)
+}
+
+#' Check that every label names a node in the DAG
+#'
+#' A label whose name matches no node is always a typo or a stale DAG edit;
+#' silently dropping it is how misspelled names go unnoticed, so it errors
+#' instead. Internal reattachment of saved labels to a rebuilt DAG goes
+#' through `set_node_labels()`, which subsets rather than errors.
+#'
+#' @param x A `dagitty` or `tidy_dagitty` object.
+#' @param value The labels being assigned, already shape-validated.
+#' @return `value`, invisibly.
+#' @noRd
+validate_label_nodes_exist <- function(x, value, call = rlang::caller_env()) {
+  if (is.null(value)) {
+    return(invisible(value))
+  }
+
+  validate_nodes_exist(x, names(value), arg = "labels", call = call)
+
+  invisible(value)
+}
+
+#' @param labels a named character vector, where the names are node names, or
+#'   `NULL` to reuse the labels already attached to the DAG
 #'
 #' @rdname label
 #' @export
@@ -70,11 +158,46 @@ dag_label <- function(.tdy_dag, labels = NULL) {
 #' @rdname label
 #' @export
 label <- function(.tdy_dag) {
-  attr(.tdy_dag, "labels")
+  attr(labelled_component(.tdy_dag), "labels")
 }
 
 #' @rdname label
 #' @export
 has_labels <- function(.tdy_dag) {
-  !is.null(attr(.tdy_dag, "labels"))
+  !is.null(label(.tdy_dag))
+}
+
+#' Label a DAG only when there is something to label with
+#'
+#' `c()` drops `NULL` arguments but keeps zero-length vectors, dropping their
+#' names in the process. A caller whose label lookup came back empty therefore
+#' produces an unnamed, zero-length vector, which carries no information and
+#' must be treated like no labels at all.
+#'
+#' This reattaches labels saved from an earlier DAG, and the new DAG may hold
+#' fewer nodes — rebuilding from filtered data drops rows — so labels whose
+#' node is gone are quietly left off rather than run through the strict
+#' unknown-name check in `label<-`.
+#'
+#' @param .dag A `dagitty` object.
+#' @param labels A character vector of labels, possibly empty.
+#' @return `.dag`, labelled if `labels` has any elements.
+#' @noRd
+set_node_labels <- function(.dag, labels) {
+  labels <- labels[names(labels) %in% names(.dag)]
+
+  if (length(labels) > 0) {
+    label(.dag) <- labels
+  }
+
+  .dag
+}
+
+# labels live on the `dagitty` component, so look there for tidy DAGs
+labelled_component <- function(.tdy_dag) {
+  if (is.tidy_dagitty(.tdy_dag)) {
+    pull_dag(.tdy_dag)
+  } else {
+    .tdy_dag
+  }
 }

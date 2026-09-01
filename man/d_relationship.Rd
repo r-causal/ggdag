@@ -24,7 +24,8 @@ node_dseparated(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 )
 
 node_drelationship(
@@ -32,7 +33,8 @@ node_drelationship(
   from = NULL,
   to = NULL,
   controlling_for = NULL,
-  as_factor = TRUE
+  as_factor = TRUE,
+  ...
 )
 
 ggdag_drelationship(
@@ -188,7 +190,7 @@ and \code{geom_dag_text_repel2}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 
 \item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
 If \code{NULL} (the default), the glyph is chosen automatically based on the
@@ -207,7 +209,9 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 
 \item{collider_lines}{Logical. Should paths opened by conditioning on
-colliders be shown?}
+colliders be shown? These paths are drawn as dashed ggraph curves whatever
+\code{edge_engine} is in use: they mark an association rather than an edge of
+the DAG, so they stay visibly apart from the arrows the engine draws.}
 }
 \value{
 a \code{tidy_dagitty} with a \code{d_relationship} column for
@@ -220,7 +224,7 @@ functions label variables as d-connected or d-separated. The
 \verb{ggdag_d*()} functions plot the results. The \verb{*_dconnected()},
 \verb{*_dseparated()}, and \verb{*_drelationship()} functions essentially
 produce the same output and are just different ways of thinking about the
-relationship. See \code{\link[dagitty:dconnected]{dagitty::dseparated()}} for details.
+relationship. See \code{\link[dagitty:dseparated]{dagitty::dseparated()}} for details.
 }
 \examples{
 library(ggplot2)
@@ -230,14 +234,12 @@ dag |> ggdag_drelationship("x", "y", controlling_for = "m")
 
 dag |>
   node_dseparated("x", "y") |>
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend, shape = adjusted,
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend,
              col = d_relationship)) +
   geom_dag_edges() +
-  geom_dag_collider_edges() +
   geom_dag_node() +
   geom_dag_text(col = "white") +
-  theme_dag() +
-  scale_adjusted(include_color = FALSE)
+  theme_dag()
 
 dag |>
   node_dconnected("x", "y", controlling_for = "m") |>

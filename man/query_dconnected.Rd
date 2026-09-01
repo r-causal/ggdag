@@ -9,9 +9,9 @@ query_dconnected(.tdy_dag, from, to, conditioned_on = NULL)
 \arguments{
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{from}{Character vector of nodes or a list of node sets.}
+\item{from}{Character vector of node names.}
 
-\item{to}{Character vector of nodes or a list of node sets.}
+\item{to}{Character vector of node names.}
 
 \item{conditioned_on}{Character vector of conditioning variables.}
 }

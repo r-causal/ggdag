@@ -46,6 +46,56 @@ test_that("prep_dag_data handles various inputs", {
   expect_equal(result_coords$y, c(0, 0, 1))
 })
 
+test_that("prep_dag_data leaves direction NA on rows with no edge", {
+  # terminal node `y` has no outgoing edge
+  df <- data.frame(name = c("z", "x", "y"), to = c("x", "y", NA))
+  tidy_dag <- as_tidy_dagitty(df, seed = 1)
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_s3_class(dag_data$direction, "factor")
+  expect_equal(levels(dag_data$direction), c("->", "<->", "--"))
+  expect_true(is.na(dag_data$direction[dag_data$name == "y"]))
+  expect_equal(sum(!is.na(dag_data$direction)), 2)
+  expect_equal(n_edges(tidy_dag), 2)
+})
+
+test_that("prep_dag_data stamps direction when coordinates are supplied", {
+  df <- data.frame(
+    name = c("x", "y"),
+    to = c("y", NA),
+    x = c(0, 1),
+    y = c(0, 0),
+    xend = c(1, NA),
+    yend = c(0, NA)
+  )
+  tidy_dag <- as_tidy_dagitty(df)
+  dag_data <- pull_dag_data(tidy_dag)
+
+  expect_s3_class(dag_data$direction, "factor")
+  expect_equal(levels(dag_data$direction), c("->", "<->", "--"))
+  expect_true(is.na(dag_data$direction[dag_data$name == "y"]))
+  expect_equal(n_edges(tidy_dag), 1)
+})
+
+test_that("prep_dag_data regenerates coordinates when only some are missing", {
+  # node-level coordinates without edge endpoints
+  df <- data.frame(
+    name = c("c", "c", "x", "y"),
+    to = c("x", "y", "y", NA),
+    x = c(0, 0, 1, 2),
+    y = c(1, 1, 0, 0)
+  )
+
+  result <- prep_dag_data(df)
+  expect_true(all(c("x", "y", "xend", "yend") %in% names(result)))
+  expect_false(any(c("xendend", "yendend") %in% names(result)))
+
+  node_coords <- dplyr::distinct(result, name, x, y)
+  edges <- dplyr::filter(result, !is.na(to))
+  expect_equal(edges$xend, node_coords$x[match(edges$to, node_coords$name)])
+  expect_equal(edges$yend, node_coords$y[match(edges$to, node_coords$name)])
+})
+
 test_that("compile_dag_from_df creates valid dagitty objects", {
   # Simple DAG
   df <- data.frame(
@@ -57,17 +107,14 @@ test_that("compile_dag_from_df creates valid dagitty objects", {
   expect_s3_class(dag, "dagitty")
   expect_equal(dagitty::graphType(dag), "dag")
 
-  # DAG with isolated nodes - isolated nodes might not be included
+  # DAG with isolated nodes - isolated nodes are kept in the compiled DAG
   df_isolated <- data.frame(
     name = c("x", "y", "isolated"),
     to = c("y", NA, NA)
   )
 
   dag_isolated <- compile_dag_from_df(df_isolated)
-  nodes <- names(dag_isolated)
-  # Isolated nodes may or may not be included depending on implementation
-  expect_true("x" %in% nodes)
-  expect_true("y" %in% nodes)
+  expect_setequal(names(dag_isolated), c("x", "y", "isolated"))
 
   # Empty data frame (no edges) causes error
   df_empty <- data.frame(
@@ -76,8 +123,21 @@ test_that("compile_dag_from_df creates valid dagitty objects", {
     stringsAsFactors = FALSE
   )
 
-  # Empty data frame causes error
-  expect_error(compile_dag_from_df(df_empty))
+  # Empty data frame causes an informative ggdag error
+  expect_error(compile_dag_from_df(df_empty), class = "ggdag_error")
+})
+
+test_that("compile_dag_from_df quotes node names", {
+  # unquoted dagitty identifiers cannot contain spaces
+  spaced <- data.frame(name = c("my var", "y"), to = c("y", NA))
+  expect_setequal(names(compile_dag_from_df(spaced)), c("my var", "y"))
+
+  accented <- data.frame(name = c("café", "y"), to = c("y", NA))
+  expect_setequal(names(compile_dag_from_df(accented)), c("café", "y"))
+
+  # ordinary names are unaffected
+  ordinary <- data.frame(name = c("x", "z", "z"), to = c("y", "x", "y"))
+  expect_setequal(names(compile_dag_from_df(ordinary)), c("x", "y", "z"))
 })
 
 test_that("return_status extracts correct status values", {

@@ -29,10 +29,12 @@
 #' ggdag_adjustment_set(dag)
 #'
 #' ggdag_adjustment_set(
-#'   dagitty::randomDAG(10, .5),
+#'   dagitty::randomDAG(10, 0.5),
 #'   exposure = "x3",
 #'   outcome = "x5"
 #' )
+#'
+#' @inheritSection composite_edge_layers Edge layers of the composite plotters
 #'
 #' @rdname adjustment_sets
 #' @name Covariate Adjustment Sets
@@ -43,10 +45,11 @@ dag_adjustment_sets <- function(
   ...
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag)
+  endpoints <- resolve_endpoints(pull_dag(.tdy_dag), exposure, outcome)
   sets <- dagitty::adjustmentSets(
     pull_dag(.tdy_dag),
-    exposure = exposure,
-    outcome = outcome,
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome,
     ...
   )
   is_empty_set <- purrr::is_empty(sets)
@@ -114,6 +117,8 @@ ggdag_adjustment_set <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
+  key_glyph = draw_key_dag_point,
   label = NULL,
   text = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -154,9 +159,11 @@ ggdag_adjustment_set <- function(
       arrow_fins <- ggdag_option("arrow_fins", NULL)
 
       blocked_colour <- if (shadow) "grey80" else "#FFFFFF00"
+      edge_mapping <- with_edge_curvature(NULL, p$data)
 
       p <- p +
-        geom_dag_arrows(
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
           data_directed = function(x) {
             dplyr::filter(x, is.na(.data$blocked), .data$direction == "->")
           },
@@ -166,10 +173,13 @@ ggdag_adjustment_set <- function(
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           colour = "black",
           show.legend = FALSE
         ) +
-        geom_dag_arrows(
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
           data_directed = function(x) {
             dplyr::filter(x, !is.na(.data$blocked), .data$direction == "->")
           },
@@ -179,22 +189,32 @@ ggdag_adjustment_set <- function(
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
           colour = blocked_colour,
           show.legend = FALSE
         )
     } else {
-      if (shadow) {
-        vals <- c("blocked by\nadjustment" = "grey80")
-        p <- p +
-          geom_dag_edges(ggplot2::aes(edge_colour = .data$blocked))
+      warn_if_curvature_ignored(p$data)
+
+      vals <- if (shadow) {
+        c("blocked by\nadjustment" = "grey80")
       } else {
-        vals <- c("blocked by\nadjustment" = "#FFFFFF00")
-        p <- p +
-          geom_dag_edges(
-            ggplot2::aes(edge_colour = .data$blocked),
-            show.legend = FALSE
-          )
+        c("blocked by\nadjustment" = "#FFFFFF00")
       }
+
+      p <- p +
+        drop_empty_edge_layers(
+          quick_plot_dag_edges(
+            ggplot2::aes(edge_colour = .data$blocked),
+            edge_cap = edge_cap,
+            edge_width = edge_width,
+            arrow_length = arrow_length,
+            size = size,
+            show.legend = if (shadow) NA else FALSE
+          ),
+          pull_dag_data(.tdy_dag)
+        )
 
       p <- p +
         ggraph::scale_edge_colour_manual(
@@ -218,13 +238,15 @@ ggdag_adjustment_set <- function(
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      edge_engine = edge_engine,
       use_edges = FALSE,
       use_nodes = use_nodes,
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
-      key_glyph = draw_key_dag_point,
+      unified_legend = unified_legend,
+      key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),
       node = node,
@@ -242,6 +264,14 @@ ggdag_adjustment_set <- function(
 #' @param direct logical. Only consider direct confounding? Default is
 #'   `FALSE`
 #'
+#' @details
+#' A confounder is a common cause of `x` and `y`. `z` therefore has to reach
+#' `x` by a directed path that does not run through `y`, and reach `y` by a
+#' directed path that does not run through `x`. Being a descendant of `z` is
+#' not enough: descent is transitive through `x`, so every upstream cause of the
+#' exposure, such as an instrument, would qualify even though it opens no
+#' backdoor path.
+#'
 #' @return Logical. Is the variable a confounder?
 #' @export
 #'
@@ -256,21 +286,57 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
   dag <- pull_dag(.tdy_dag)
 
   if (direct) {
-    z_descendants <- dagitty::children(dag, z)
-  } else {
-    z_descendants <- dagitty::descendants(dag, z)[-1]
+    return(all(c(x, y) %in% dagitty::children(dag, z)))
   }
-  all(c(x, y) %in% z_descendants)
+
+  reaches_avoiding(dag, z, x, .avoid = y) &&
+    reaches_avoiding(dag, z, y, .avoid = x)
+}
+
+#' Does a directed path run from one set of variables to another?
+#'
+#' Only directed edges are followed: a bidirected edge marks an unmeasured
+#' common cause rather than causation out of `.from`. Nodes in `.avoid` are
+#' removed from the graph, so a path that only reaches its target through one
+#' of them does not count. `.from` is excluded from the reachable set, so a
+#' variable never reaches itself.
+#'
+#' @param .dag A `dagitty` object.
+#' @param .from,.targets,.avoid Character vectors of node names.
+#' @return Logical.
+#' @noRd
+reaches_avoiding <- function(.dag, .from, .targets, .avoid) {
+  .edges <- dagitty::edges(.dag)
+  from_node <- as.character(.edges$v)
+  to_node <- as.character(.edges$w)
+  keep <- as.character(.edges$e) == "->" &
+    !(from_node %in% .avoid) &
+    !(to_node %in% .avoid)
+  from_node <- from_node[keep]
+  to_node <- to_node[keep]
+
+  visited <- character(0)
+  frontier <- setdiff(.from, .avoid)
+  while (length(frontier) > 0) {
+    visited <- union(visited, frontier)
+    frontier <- setdiff(to_node[from_node %in% frontier], visited)
+  }
+
+  all(.targets %in% setdiff(visited, .from))
 }
 
 #' Adjust for variables and activate any biasing paths that result
 #'
 #' @inheritParams dag_params
-#' @param var a character vector, the variable(s) to adjust for.
+#' @param var the variable(s) to adjust for. This can be a character vector of
+#'   variable names or a list of the form `list(c(...))`.
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams geom_dag
 #' @param collider_lines logical. Should the plot show paths activated by
-#'   adjusting for a collider?
+#'   adjusting for a collider? These paths are drawn as dashed ggraph curves
+#'   whatever `edge_engine` is in use: they mark an association rather than an
+#'   edge of the DAG, so they stay visibly apart from the arrows the engine
+#'   draws.
 #' @inheritParams dag_params
 #' @param activate_colliders logical. Include colliders activated by adjustment?
 #'
@@ -284,6 +350,8 @@ is_confounder <- function(.tdy_dag, z, x, y, direct = FALSE) {
 #' control_for(dag, var = "m")
 #' ggdag_adjust(dag, var = "m")
 #'
+#' @inheritSection composite_edge_layers Edge layers of the composite plotters
+#'
 #' @rdname control_for
 #' @name Adjust for variables
 control_for <- function(
@@ -294,6 +362,7 @@ control_for <- function(
   ...
 ) {
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
+  var <- flatten_node_names(var)
   validate_nodes_exist(.tdy_dag, var, arg = "var")
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
@@ -340,7 +409,9 @@ ggdag_adjust <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
@@ -350,12 +421,16 @@ ggdag_adjust <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
+  edge_type <- check_edge_type(edge_type)
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
-  if (!is.null(var)) {
+  if (!is_empty_or_null(var)) {
     .tdy_dag <- .tdy_dag |> control_for(var)
   } else {
+    # `dagitty::adjustedNodes()` reports an unadjusted DAG as an empty list
+    # rather than as `NULL`
     var <- dagitty::adjustedNodes(pull_dag(.tdy_dag))
-    if (is.null(var)) {
+    if (is_empty_or_null(var)) {
       abort(
         c(
           "An adjusting variable needs to be set.",
@@ -375,12 +450,44 @@ ggdag_adjust <- function(
     expand_plot(expand_y = expansion(c(0.2, 0.2)))
 
   if (use_edges) {
-    p <- p +
-      geom_dag_edges(
-        ggplot2::aes(edge_alpha = .data$adjusted),
-        start_cap = ggraph::circle(edge_cap, "mm"),
-        end_cap = ggraph::circle(edge_cap, "mm")
+    if (identical(edge_engine, "ggarrow")) {
+      rlang::check_installed(
+        "ggarrow",
+        reason = "to use edge_engine = \"ggarrow\"."
       )
+
+      p <- p +
+        quick_plot_arrow_edges(
+          mapping = with_edge_curvature(
+            ggplot2::aes(alpha = .data$adjusted),
+            p$data
+          ),
+          data_directed = filter_direction("->"),
+          data_bidirected = filter_direction("<->"),
+          arrow_head = ggdag_option("arrow_head", NULL) %||%
+            ggarrow::arrow_head_wings(),
+          arrow_fins = ggdag_option("arrow_fins", NULL),
+          resect = edge_cap * size,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
+          show.legend = FALSE
+        )
+    } else {
+      warn_if_curvature_ignored(p$data)
+
+      p <- p +
+        drop_empty_edge_layers(
+          quick_plot_dag_edges(
+            ggplot2::aes(edge_alpha = .data$adjusted),
+            edge_type = edge_type,
+            edge_cap = edge_cap,
+            edge_width = edge_width,
+            arrow_length = arrow_length,
+            size = size
+          ),
+          pull_dag_data(.tdy_dag)
+        )
+    }
 
     if (collider_lines) {
       p <- p + geom_dag_collider_edges()
@@ -399,12 +506,14 @@ ggdag_adjust <- function(
       edge_width = edge_width,
       edge_cap = edge_cap,
       arrow_length = arrow_length,
+      edge_engine = edge_engine,
       use_edges = FALSE,
       use_nodes = use_nodes,
       use_stylized = use_stylized,
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),
       label = !!rlang::enquo(label),

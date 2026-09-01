@@ -4,6 +4,7 @@
 \alias{dplyr}
 \alias{select.tidy_dagitty}
 \alias{filter.tidy_dagitty}
+\alias{rename.tidy_dagitty}
 \alias{mutate.tidy_dagitty}
 \alias{summarise.tidy_dagitty}
 \alias{arrange.tidy_dagitty}
@@ -29,6 +30,8 @@
 \method{select}{tidy_dagitty}(.data, ...)
 
 \method{filter}{tidy_dagitty}(.data, ...)
+
+\method{rename}{tidy_dagitty}(.data, ...)
 
 \method{mutate}{tidy_dagitty}(.data, ...)
 

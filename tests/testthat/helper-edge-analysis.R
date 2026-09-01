@@ -21,7 +21,19 @@ is_edge_layer <- function(layer) {
     "GeomEdgeLink"
   )
 
-  geom_class %in% c(ggdag_edge_geoms, ggraph_edge_geoms)
+  # ggarrow edge geoms, drawn by the ggarrow engine
+  ggarrow_edge_geoms <- c("GeomDAGArrow", "GeomDAGArrowCurve")
+
+  matched <- geom_class %in%
+    c(ggdag_edge_geoms, ggraph_edge_geoms, ggarrow_edge_geoms)
+
+  matched || inherits(layer$geom, "GeomArrow")
+}
+
+# Edges in a ggarrow layer are one row each and share a single group, so the
+# group count every other edge layer is measured by would report one.
+is_row_counted_edge_layer <- function(layer) {
+  inherits(layer$stat, "StatDAGArrowEdges")
 }
 
 # Count edge layers in a plot
@@ -44,7 +56,9 @@ count_total_edges <- function(plot) {
   for (i in edge_layer_indices) {
     layer_data <- built_plot$data[[i]]
 
-    if (nrow(layer_data) > 0 && "group" %in% names(layer_data)) {
+    if (nrow(layer_data) > 0 && is_row_counted_edge_layer(plot$layers[[i]])) {
+      total_edges <- total_edges + nrow(layer_data)
+    } else if (nrow(layer_data) > 0 && "group" %in% names(layer_data)) {
       if ("PANEL" %in% names(layer_data)) {
         # For faceted plots: count unique group-panel combinations
         group_panel_combos <- layer_data |>
@@ -83,8 +97,11 @@ detect_duplicate_edges <- function(plot) {
       nrow(layer_data) > 0 &&
         all(c("x", "y", "xend", "yend") %in% names(layer_data))
     ) {
+      if (!"PANEL" %in% names(layer_data)) {
+        layer_data$PANEL <- factor(1)
+      }
       layer_data |>
-        dplyr::select(x, y, xend, yend) |>
+        dplyr::select(x, y, xend, yend, PANEL) |>
         dplyr::mutate(layer = i)
     }
   })
@@ -97,15 +114,16 @@ detect_duplicate_edges <- function(plot) {
     ))
   }
 
-  # Create edge identifiers (normalize direction)
+  # Create edge identifiers (normalize direction). The same edge drawn in two
+  # facets is two edges, not a duplicate, so the panel is part of the identity.
   all_edges <- all_edges |>
     dplyr::mutate(
       edge_id = purrr::pmap_chr(
-        list(x, y, xend, yend),
-        function(x1, y1, x2, y2) {
+        list(x, y, xend, yend, PANEL),
+        function(x1, y1, x2, y2, panel) {
           # Normalize edge direction for comparison
           coords <- sort(c(paste0(x1, ",", y1), paste0(x2, ",", y2)))
-          paste0(coords[1], "->", coords[2])
+          paste0(panel, ": ", coords[1], "->", coords[2])
         }
       )
     )
@@ -130,63 +148,4 @@ analyze_plot_edges <- function(plot) {
     duplicates = detect_duplicate_edges(plot),
     has_edge_layers = count_edge_layers(plot) > 0
   )
-}
-
-# For debugging - print layer information
-inspect_plot_layers <- function(plot) {
-  layer_info <- purrr::map_df(seq_along(plot$layers), function(i) {
-    layer <- plot$layers[[i]]
-    data.frame(
-      layer_num = i,
-      geom_class = class(layer$geom)[1],
-      stat_class = class(layer$stat)[1],
-      is_edge = is_edge_layer(layer),
-      data_rows = if (is.null(layer$data)) 0 else nrow(layer$data)
-    )
-  })
-
-  print(layer_info)
-  invisible(layer_info)
-}
-
-# Test the helpers with the bug
-test_equivalent_class_bug <- function() {
-  cat("Testing ggdag_equivalent_class bug with use_edges parameter\n")
-
-  # Create a DAG with reversible edges
-  dag <- dagify(y ~ x + z, x ~ z)
-
-  # Test with use_edges = TRUE (should have edges)
-  cat("\n--- Testing use_edges = TRUE ---\n")
-  p1 <- ggdag_equivalent_class(dag, use_edges = TRUE)
-  analysis1 <- analyze_plot_edges(p1)
-  cat("Edge layers:", analysis1$edge_layers, "\n")
-  cat("Total edges:", analysis1$total_edges, "\n")
-  cat("Has edge layers:", analysis1$has_edge_layers, "\n")
-
-  # Test with use_edges = FALSE (should have NO edges, but currently has edges due to bug)
-  cat("\n--- Testing use_edges = FALSE ---\n")
-  p2 <- ggdag_equivalent_class(dag, use_edges = FALSE)
-  analysis2 <- analyze_plot_edges(p2)
-  cat("Edge layers:", analysis2$edge_layers, "\n")
-  cat("Total edges:", analysis2$total_edges, "\n")
-  cat("Has edge layers:", analysis2$has_edge_layers, "\n")
-
-  # Check for duplicates
-  cat("\n--- Checking for duplicate edges ---\n")
-  cat("Duplicates in use_edges=TRUE:", analysis1$duplicates$duplicates, "\n")
-  cat("Duplicates in use_edges=FALSE:", analysis2$duplicates$duplicates, "\n")
-
-  # The bug is confirmed if use_edges = FALSE still has edge layers
-  if (analysis2$has_edge_layers) {
-    cat(
-      "\n*** BUG CONFIRMED: use_edges = FALSE still has",
-      analysis2$edge_layers,
-      "edge layers! ***\n"
-    )
-  } else {
-    cat("\n--- No bug detected: use_edges = FALSE correctly has no edges ---\n")
-  }
-
-  invisible(list(with_edges = analysis1, without_edges = analysis2))
 }

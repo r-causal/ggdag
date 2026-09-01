@@ -60,7 +60,121 @@ test_that("resection defaults respect ggdag.edge_cap option", {
   skip_if_not_installed("ggarrow")
 
   withr::local_options(ggdag.edge_cap = 12)
-  expect_equal(ggdag_option("edge_cap", 8), 12)
+
+  # with no resection set anywhere, both ends fall back to the option
+  expect_equal(
+    inject_dag_resect(list(head = NULL, fins = NULL), data.frame()),
+    list(head = 12, fins = 12)
+  )
+
+  # a resection the user asked for is left alone
+  expect_equal(
+    inject_dag_resect(list(head = 3, fins = 3), data.frame()),
+    list(head = 3, fins = 3)
+  )
+})
+
+test_that("an explicit resect = 0 turns auto-resection off", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_cap = 12)
+
+  # 0 is a resection a user can ask for, not a marker for "nothing was set"
+  expect_equal(
+    inject_dag_resect(list(head = 0, fins = 0), data.frame()),
+    list(head = 0, fins = 0)
+  )
+})
+
+test_that("resect = 0 and resect = 0L resect the same amount", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x, coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0)))
+  base <- ggplot(dag, aes(x = x, y = y, xend = xend, yend = yend))
+
+  double_zero <- (base + geom_dag_arrow(resect = 0))$layers[[1]]
+  integer_zero <- (base + geom_dag_arrow(resect = 0L))$layers[[1]]
+
+  effective <- function(layer) {
+    inject_dag_resect(layer$geom_params$resect, data.frame())
+  }
+
+  expect_equal(effective(double_zero), list(head = 0, fins = 0))
+  expect_equal(effective(double_zero), effective(integer_zero))
+})
+
+test_that("auto-resection fills only the ends the user left unset", {
+  skip_if_not_installed("ggarrow")
+
+  withr::local_options(ggdag.edge_cap = 12)
+
+  # the documented behaviour is per end: an end the user named keeps its
+  # value, the other end still picks up the automatic one
+  expect_equal(
+    inject_dag_resect(list(head = 4, fins = NULL), data.frame()),
+    list(head = 4, fins = 12)
+  )
+  expect_equal(
+    inject_dag_resect(list(head = NULL, fins = 4), data.frame()),
+    list(head = 12, fins = 4)
+  )
+
+  # and naming one end alone leaves the other unset on the layer
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow(resect_head = 4)
+
+  expect_equal(p$layers[[1]]$geom_params$resect, list(head = 4, fins = NULL))
+})
+
+test_that("arrows resect to the node layer whichever order they arrive in", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_cap = 8)
+
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+
+  built_resect <- function(plot) {
+    built <- ggplot2::ggplot_build(plot)
+    for (layer in built$plot$layers) {
+      if (grepl("^GeomDAGArrow", class(layer$geom)[1])) {
+        return(layer$computed_geom_params$resect)
+      }
+    }
+    NULL
+  }
+
+  nodes_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    geom_dag_arrow()
+  # the order the layer-by-layer examples use; the resection must still follow
+  # the node size rather than the 8mm option
+  arrows_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_arrow() +
+    geom_dag_point(size = 32)
+
+  expect_equal(built_resect(nodes_first)$head, 16)
+  expect_equal(built_resect(arrows_first)$head, 16)
+
+  # a plot with no node layer at all still falls back to the option
+  no_nodes <- ggplot(tidy_dag, aes_dag()) + geom_dag_arrow()
+  expect_null(built_resect(no_nodes)$head)
+  expect_equal(
+    inject_dag_resect(built_resect(no_nodes), data.frame()),
+    list(head = 8, fins = 8)
+  )
+})
+
+test_that("geom_dag_arrow() explicit zero resection snapshot", {
+  skip_if_not_installed("ggarrow")
+
+  p <- test_dag |>
+    ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow(resect = 0) +
+    geom_dag_point() +
+    geom_dag_text() +
+    theme_dag()
+
+  expect_doppelganger("geom_dag_arrow explicit zero resection", p)
 })
 
 test_that("custom arrow ornaments work", {
@@ -523,7 +637,7 @@ test_that("geom_dag_ggarrow_edges link_arc uses geom_dag_arrow_arc for directed"
 
   layers <- geom_dag_ggarrow_edges(
     edge_type = "link_arc",
-    sizes = list(cap = 8),
+    sizes = c(cap = 8, edge = 0.6, arrow = 5),
     show.legend = NA
   )
 
@@ -1857,4 +1971,158 @@ test_that("geom_dag_arrow_arc() errors on non-numeric edge_curvature", {
     geom_dag_arrow_arc(aes(edge_curvature = edge_curvature))
 
   expect_error(ggplotGrob(p), "edge_curvature")
+})
+
+test_that("geom_dag_arrow_arc() non-numeric error carries the ggdag classes", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x,
+    coords = list(x = c(x = 1, y = 2), y = c(x = 0, y = 0))
+  )
+  td <- tidy_dagitty(dag)
+  dat <- pull_dag_data(td)
+  dat$edge_curvature <- ifelse(is.na(dat$to), NA, "high")
+
+  p <- ggplot(dat, aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature))
+
+  # ggplot2 wraps draw-time errors, so the ggdag condition is the parent
+  err <- tryCatch(ggplotGrob(p), error = function(e) e)
+  expect_s3_class(err$parent, "ggdag_type_error")
+  expect_s3_class(err$parent, "ggdag_error")
+})
+
+# -- ggarrow edges honour the size arguments geom_dag() documents -------------
+
+ggarrow_edge_layers <- function(plot) {
+  keep <- vapply(
+    plot$layers,
+    function(l) grepl("^GeomDAGArrow", class(l$geom)[1]),
+    logical(1)
+  )
+  which(keep)
+}
+
+test_that("the ggarrow engine honours edge_width and the size multiplier", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  edge_linewidth <- function(...) {
+    p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow", ...)
+    built <- ggplot2::ggplot_build(p)
+    widths <- unlist(lapply(ggarrow_edge_layers(p), function(i) {
+      d <- built$data[[i]]
+      if (nrow(d) == 0) NULL else unique(d$linewidth)
+    }))
+    unique(widths)
+  }
+
+  # the documented default edge width, the same one the ggraph engine uses
+  expect_equal(edge_linewidth(), 0.6)
+  expect_equal(edge_linewidth(edge_width = 3), 3)
+  # `size` scales every element, edges included
+  expect_equal(edge_linewidth(size = 3), 1.8)
+})
+
+test_that("the ggarrow engine honours arrow_length", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  arrow_length_of <- function(...) {
+    p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow", ...)
+    p$layers[[ggarrow_edge_layers(p)[1]]]$geom_params$length
+  }
+
+  # a bare number means multiples of the shaft width to ggarrow, so the
+  # length has to travel as an absolute unit to mean points
+  expect_equal(arrow_length_of()$head, grid::unit(5, "pt"))
+  expect_equal(arrow_length_of(arrow_length = 12)$head, grid::unit(12, "pt"))
+  expect_equal(arrow_length_of(size = 2)$head, grid::unit(10, "pt"))
+})
+
+test_that("geom_dag() ggarrow custom edge width snapshot", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(y ~ x + z, x ~ z)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_width = 2, arrow_length = 10) +
+    theme_dag()
+
+  expect_doppelganger("geom_dag ggarrow wide edges", p)
+})
+
+# -- bidirected edges keep their arc when another edge is curved --------------
+
+bidirected_arc_curvature <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  for (i in seq_along(plot$layers)) {
+    if (!inherits(plot$layers[[i]]$geom, "GeomDAGArrowCurve")) {
+      next
+    }
+    d <- built$data[[i]]
+    # the u <-> v edge is the only edge drawn at y == 1
+    if (nrow(d) > 0 && all(d$y == 1) && all(d$yend == 1)) {
+      if (!"edge_curvature" %in% names(d)) {
+        return(NA_real_)
+      }
+      return(d$edge_curvature)
+    }
+  }
+  NULL
+}
+
+test_that("curving one edge leaves bidirected edges on their own arc", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  coords <- list(
+    x = c(a = 0, b = 1, u = 0, v = 1),
+    y = c(a = 0, b = 0, u = 1, v = 1)
+  )
+  dag <- dagify(b ~ a, u ~ ~v, coords = coords)
+
+  # with nothing curved, the bidirected layer's own curvature draws the arc
+  expect_true(all(is.na(bidirected_arc_curvature(ggdag(dag)))))
+
+  # curving the unrelated a -> b edge must not straighten u <-> v: a data
+  # value of 0 would override the layer's curvature
+  curved <- curve_edge(dag, "a", "b", 0.5)
+  expect_true(all(is.na(bidirected_arc_curvature(ggdag(curved)))))
+})
+
+test_that("ggdag() ggarrow curved directed edge with bidirected arc snapshot", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  coords <- list(
+    x = c(a = 0, b = 1, u = 0, v = 1),
+    y = c(a = 0, b = 0, u = 1, v = 1)
+  )
+  dag <- dagify(b ~ a, u ~ ~v, coords = coords)
+  p <- ggdag(curve_edge(dag, "a", "b", 0.5))
+
+  expect_doppelganger("ggdag ggarrow curved edge keeps bidirected arc", p)
+})
+
+# -- a stored arrow layer must not carry one plot's answers to the next -------
+
+test_that("one stored arrow layer reads each plot it joins", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+  arrow_layer <- geom_dag_arrow()
+
+  with_nodes <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    arrow_layer
+  without_nodes <- ggplot(tidy_dag, aes_dag()) + arrow_layer
+
+  expect_equal(with_nodes$layers[[2]]$geom_params$resect$head, 16)
+  # the second plot has no node layer, so nothing is discovered there
+  expect_null(without_nodes$layers[[1]]$geom_params$resect$head)
+  # and the stored layer is still the blank one that was created
+  expect_null(arrow_layer$layer$geom_params$resect$head)
 })

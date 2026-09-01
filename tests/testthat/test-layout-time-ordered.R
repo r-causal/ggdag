@@ -224,24 +224,18 @@ test_that("fixed_time: pin pushes descendants forward", {
     stringsAsFactors = FALSE
   )
   result <- longest_path_layers(edges_df, fixed_time = c(C = 3L))
-  expect_equal(result[["A"]], 0L)
+  # under the default "right" sort A sits one layer before its earliest child,
+  # and the pin puts both of its children at layer 3
+  expect_equal(result[["A"]], 2L)
   expect_equal(result[["C"]], 3L)
   # D must be after both B and C
   expect_gt(result[["D"]], result[["B"]])
   expect_gt(result[["D"]], result[["C"]])
 })
 
-test_that("fixed_time: pin node earlier than default is respected", {
-  # A→B→C→D, pin D to layer 2 (default would be 3)
-  # This is valid if no parent is at or after layer 2
-  # B is at 1, C is at 2 — but D pinned to 2 would violate C→D ordering
-
-  # Actually, C default is 2 and D pinned to 2 means parent==child layer → error
-  # Instead: pin C to layer 1 (default is 2)
-  # A is 0, B is 1, C pinned to 1 violates B→C since B is also at 1
-  # Use a case where pinning earlier is valid:
-  # A→C, B→C, A→B; pin B to layer 0 would violate A→B
-  # Valid case: fan A→B, A→C, A→D; pin B to layer 5 (later than default 1)
+test_that("fixed_time: pin node later than default is respected", {
+  # fan A→B, A→C, A→D; B's default layer is 1, so pinning it to 5 is a
+  # later-than-default pin
   edges_df <- data.frame(
     name = c("A", "A", "A", "B", "C", "D"),
     to = c("B", "C", "D", NA, NA, NA),
@@ -251,6 +245,28 @@ test_that("fixed_time: pin node earlier than default is respected", {
   expect_equal(result[["B"]], 5L)
   # A stays at 0, C and D unaffected (still 1 since they're leaves)
   expect_equal(result[["A"]], 0L)
+})
+
+test_that("fixed_time: pin node earlier than default is respected", {
+  # c→b, b→z and the spine x0→x1→x2→z. Under the default "right" sort, b is
+  # pushed to layer 2 to sit beside z; its earliest feasible layer is 1, so
+  # pinning b there is an earlier-than-default pin and must be honored.
+  edges_df <- data.frame(
+    name = c("c", "b", "x0", "x1", "x2", "z"),
+    to = c("b", "z", "x1", "x2", "z", NA),
+    stringsAsFactors = FALSE
+  )
+  default_layers <- longest_path_layers(edges_df, sort_direction = "right")
+  expect_equal(unname(default_layers[["b"]]), 2L)
+
+  pinned_layers <- longest_path_layers(
+    edges_df,
+    sort_direction = "right",
+    fixed_time = c(b = 1L)
+  )
+  expect_equal(unname(pinned_layers[["b"]]), 1L)
+  expect_lt(unname(pinned_layers[["c"]]), unname(pinned_layers[["b"]]))
+  expect_gt(unname(pinned_layers[["z"]]), unname(pinned_layers[["b"]]))
 })
 
 test_that("fixed_time: unknown node warns and is dropped", {
@@ -782,6 +798,25 @@ test_that("compute_time_ordered_layout: two node DAG", {
   edges_df <- make_edges_df(c("A", "B"))
   result <- compute_time_ordered_layout(edges_df)
   expect_equal(nrow(result), 2)
+})
+
+test_that("compute_time_ordered_layout: y is scaled with one node per layer", {
+  # x, y, and m each sit alone in a time point, so there are no same-layer
+  # gaps to normalize against. y must still come back on the same scale as the
+  # unit-spaced layers rather than in the layout's internal pixel space.
+  edges_df <- make_edges_df(c("x", "m"), c("x", "y"), c("y", "m"))
+  result <- compute_time_ordered_layout(edges_df)
+
+  expect_equal(sort(unique(result$x)), c(1, 2, 3))
+  expect_lt(diff(range(result$y)), 2 * diff(range(result$x)))
+})
+
+test_that("compute_time_ordered_layout: direction y scales the time-free axis", {
+  edges_df <- make_edges_df(c("x", "m"), c("x", "y"), c("y", "m"))
+  result <- compute_time_ordered_layout(edges_df, direction = "y")
+
+  expect_equal(sort(unique(result$y)), c(1, 2, 3))
+  expect_lt(diff(range(result$x)), 2 * diff(range(result$y)))
 })
 
 # Test all 22 spec DAGs produce 0 overlaps
@@ -2558,15 +2593,30 @@ test_that("visual: fixed_time separates same-layer siblings", {
 
 test_that("visual: fixed_time creates gap for known timing", {
   withr::local_seed(1234)
-  # User knows smoking happens well before cancer in a confounding DAG.
-  # Without pin: smoking and cancer are adjacent. Pin cancer=4 to show delay.
-  p <- dagify(
+  # The user knows cancer follows tar only after a long delay. Pinning cancer
+  # to 4 buys a gap only when the unpinned nodes stay at their earliest times:
+  # the default rightward auto-sort pushes smoking and tar along with the pin,
+  # so the layers come out adjacent again and no delay is drawn.
+  dag <- dagify(
     cancer ~ smoking + tar,
     tar ~ smoking,
-    coords = time_ordered_coords(fixed_time = c(cancer = 4))
-  ) |>
-    ggdag()
-  expect_doppelganger("time-ordered-fixed-time-timing-gap", p)
+    coords = time_ordered_coords(
+      fixed_time = c(cancer = 4),
+      auto_sort_direction = "left"
+    )
+  )
+
+  layer_of <- function(.name) {
+    dag_data <- pull_dag_data(tidy_dagitty(dag))
+    unique(dag_data$x[dag_data$name == .name])
+  }
+
+  expect_equal(layer_of("smoking"), 1)
+  expect_equal(layer_of("tar"), 2)
+  # the pin leaves an empty layer between tar and cancer
+  expect_equal(layer_of("cancer"), 4)
+
+  expect_doppelganger("time-ordered-fixed-time-timing-gap", ggdag(dag))
 })
 
 test_that("visual: fixed_time with multiple pins", {
@@ -2735,4 +2785,491 @@ test_that("visual: force_y = TRUE (default) with same DAG", {
   ) |>
     ggdag()
   expect_doppelganger("time-ordered-force-y-true", p)
+})
+
+test_that("time-ordered layout covers isolated nodes", {
+  withr::local_seed(1234)
+  dag <- dagitty::dagitty("dag{x -> y; z}")
+
+  expect_no_message(
+    tidy_dag <- tidy_dagitty(dag, layout = "time_ordered")
+  )
+
+  dag_data <- pull_dag_data(tidy_dag)
+  expect_setequal(unique(dag_data$name), c("x", "y", "z"))
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+
+  node_x <- function(.name) unique(dag_data$x[dag_data$name == .name])
+  # isolated nodes have no parents, so they sit in the first time point
+  expect_equal(node_x("z"), node_x("x"))
+  expect_gt(node_x("y"), node_x("x"))
+})
+
+test_that("time-ordered layout covers single-node DAGs", {
+  withr::local_seed(1234)
+  dag <- dagitty::dagitty("dag{x}")
+
+  expect_no_message(
+    tidy_dag <- tidy_dagitty(dag, layout = "time_ordered")
+  )
+
+  dag_data <- pull_dag_data(tidy_dag)
+  expect_equal(dag_data$name, "x")
+  expect_false(anyNA(dag_data$x))
+  expect_false(anyNA(dag_data$y))
+})
+
+test_that("visual: time-ordered layout with an isolated node", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(
+    dagitty::dagitty("dag{x -> y; z}"),
+    layout = "time_ordered"
+  )
+  dag_data <- pull_dag_data(tidy_dag)
+  # never record a baseline from a layout that fell back to the default
+  skip_if_not(
+    setequal(unique(dag_data$name), c("x", "y", "z")) &&
+      identical(
+        unique(dag_data$x[dag_data$name == "z"]),
+        unique(dag_data$x[dag_data$name == "x"])
+      )
+  )
+  expect_doppelganger("time-ordered layout with isolated node", ggdag(tidy_dag))
+})
+
+# Directed-edge order under bidirected groups ----------------------------------
+
+# Helper: assert every directed edge in a tidy_dagitty points forward in time
+expect_forward_directed_edges <- function(td) {
+  dag_data <- pull_dag_data(td)
+  directed <- dag_data[
+    !is.na(dag_data$to) & as.character(dag_data$direction) == "->",
+    ,
+    drop = FALSE
+  ]
+  backwards <- directed[directed$xend <= directed$x, , drop = FALSE]
+  # named so a failure reports which edges fail to advance in time
+  not_forward <- paste0(
+    backwards$name,
+    "->",
+    backwards$to,
+    recycle0 = TRUE
+  )
+  expect_equal(not_forward, character(0))
+}
+
+test_that("longest_path_layers: bidirected pair on a directed path keeps order", {
+  # x -> m -> y, x -> y, x <-> y: forcing the bidirected pair onto one layer
+  # would put the exposure after its own mediator
+  edges_df <- make_edges_df_with_direction(
+    c("x", "m"),
+    c("x", "y"),
+    c("m", "y"),
+    bidirected = c("x", "y")
+  )
+  layers <- longest_path_layers(edges_df)
+  expect_lt(unname(layers[["x"]]), unname(layers[["m"]]))
+  expect_lt(unname(layers[["m"]]), unname(layers[["y"]]))
+})
+
+test_that("bidirected pair on a directed path draws no backwards edges", {
+  td <- dagify(y ~ x + m, m ~ x, x ~ ~y) |>
+    tidy_dagitty(layout = "time_ordered")
+  expect_forward_directed_edges(td)
+
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_lt(node_x("x"), node_x("m"))
+  expect_lt(node_x("m"), node_x("y"))
+})
+
+test_that("longest_path_layers: merged bidirected group pushes its children", {
+  # z -> w1, w1 <-> w2, w2 -> y: raising w2 to w1's layer must move y too
+  edges_df <- make_edges_df_with_direction(
+    c("z", "w1"),
+    c("w2", "y"),
+    bidirected = c("w1", "w2")
+  )
+  layers <- longest_path_layers(edges_df)
+  expect_equal(unname(layers[["w1"]]), unname(layers[["w2"]]))
+  expect_gt(unname(layers[["y"]]), unname(layers[["w2"]]))
+})
+
+test_that("visual: bidirected pair joined by a directed path", {
+  withr::local_seed(1234)
+  td <- dagify(y ~ x + m, m ~ x, x ~ ~y) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  # never record a baseline from a layout that still draws edges backwards
+  skip_if_not(node_x("x") < node_x("m") && node_x("m") < node_x("y"))
+  expect_doppelganger("time-ordered-bidirected-directed-path", ggdag(td))
+})
+
+test_that("a bidirected group downstream of an impossible one still holds", {
+  # a <-> b cannot share a layer because a -> b -> c, but c <-> d sits
+  # downstream of that and is perfectly satisfiable
+  td <- dagify(b ~ a, c ~ b, a ~ ~b, c ~ ~d) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("c"), node_x("d"))
+  expect_lt(node_x("a"), node_x("b"))
+})
+
+test_that("a bidirected chain downstream of an impossible group still holds", {
+  td <- dagify(b ~ a, c ~ b, a ~ ~b, c ~ ~d, d ~ ~e) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("c"), node_x("d"))
+  expect_equal(node_x("d"), node_x("e"))
+  expect_lt(node_x("a"), node_x("b"))
+})
+
+test_that("two bidirected groups that order each other are both dropped", {
+  # a <-> b and c <-> d with a -> c and d -> b: keeping either group would
+  # order the other backwards, and nothing favors one over the other
+  td <- dagify(c ~ a, b ~ d, a ~ ~b, c ~ ~d) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_false(node_x("a") == node_x("b"))
+  expect_false(node_x("c") == node_x("d"))
+  expect_forward_directed_edges(td)
+})
+
+# Infeasible fixed_time pins ---------------------------------------------------
+
+test_that("compute_time_ordered_layout: pin before a node's ancestors errors", {
+  # a -> b -> c: c cannot sit at time 1, it has two ancestors
+  edges_df <- make_edges_df(c("a", "b"), c("b", "c"))
+  expect_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(c = 1)),
+    class = "ggdag_dag_error"
+  )
+  expect_ggdag_error(compute_time_ordered_layout(
+    edges_df,
+    fixed_time = c(c = 1)
+  ))
+})
+
+test_that("compute_time_ordered_layout: pin before one ancestor errors", {
+  edges_df <- make_edges_df(c("a", "b"), c("b", "c"))
+  expect_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(b = 1)),
+    class = "ggdag_dag_error"
+  )
+  expect_ggdag_error(compute_time_ordered_layout(
+    edges_df,
+    fixed_time = c(b = 1)
+  ))
+})
+
+test_that("longest_path_layers: infeasible pin never produces negative layers", {
+  edges_df <- make_edges_df(c("a", "b"), c("b", "c"))
+  expect_error(
+    longest_path_layers(
+      edges_df,
+      sort_direction = "right",
+      fixed_time = c(c = 0L)
+    ),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("compute_time_ordered_layout: pins squeezing a node out name the pins", {
+  # a -> b -> c with a pinned to 3 and c to 4 leaves no layer for b. Both
+  # nodes at the failing edge are the pins themselves once b is pushed, so the
+  # message must name them rather than b.
+  edges_df <- make_edges_df(c("a", "b"), c("b", "c"))
+  expect_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(a = 3, c = 4)),
+    class = "ggdag_dag_error"
+  )
+  expect_ggdag_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(a = 3, c = 4))
+  )
+})
+
+test_that("compute_time_ordered_layout: feasible pins keep every node", {
+  edges_df <- make_edges_df(c("a", "b"), c("b", "c"))
+  late <- compute_time_ordered_layout(edges_df, fixed_time = c(c = 5))
+  expect_setequal(late$name, c("a", "b", "c"))
+  expect_equal(late$x[late$name == "c"], 5)
+
+  middle <- compute_time_ordered_layout(edges_df, fixed_time = c(b = 2))
+  expect_setequal(middle$name, c("a", "b", "c"))
+  expect_equal(middle$x[middle$name == "b"], 2)
+  expect_lt(middle$x[middle$name == "a"], middle$x[middle$name == "b"])
+  expect_gt(middle$x[middle$name == "c"], middle$x[middle$name == "b"])
+})
+
+test_that("dagify(): an infeasible pin errors instead of dropping a node", {
+  expect_error(
+    dagify(b ~ a, c ~ b, coords = time_ordered_coords(fixed_time = c(c = 1))),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("as_tidy_dagitty(): an infeasible pin errors instead of dropping a node", {
+  edges <- data.frame(
+    name = c("a", "b", "c"),
+    to = c("b", "c", NA),
+    stringsAsFactors = FALSE
+  )
+  expect_error(
+    as_tidy_dagitty(
+      edges,
+      layout = time_ordered_coords(fixed_time = c(c = 1))
+    ),
+    class = "ggdag_dag_error"
+  )
+})
+
+# Non-integer fixed_time -------------------------------------------------------
+
+test_that("compute_time_ordered_layout: non-integer fixed_time errors", {
+  edges_df <- make_edges_df(c("x", "m"), c("m", "y"), c("x", "y"))
+  expect_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(m = 3.7)),
+    class = "ggdag_error"
+  )
+  expect_ggdag_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(m = 3.7))
+  )
+})
+
+test_that("compute_time_ordered_layout: whole-number doubles are still pins", {
+  edges_df <- make_edges_df(c("x", "m"), c("m", "y"), c("x", "y"))
+  result <- compute_time_ordered_layout(edges_df, fixed_time = c(m = 3))
+  expect_equal(result$x[result$name == "m"], 3)
+})
+
+# sort_direction = "right" cascades --------------------------------------------
+
+test_that("longest_path_layers: right pass places nodes one layer before child", {
+  # a -> b -> z and the spine p0 -> p1 -> p2 -> p3 -> z
+  edges_df <- make_edges_df(
+    c("a", "b"),
+    c("b", "z"),
+    c("p0", "p1"),
+    c("p1", "p2"),
+    c("p2", "p3"),
+    c("p3", "z")
+  )
+  result <- longest_path_layers(edges_df, sort_direction = "right")
+  expect_equal(unname(result[["b"]]), unname(result[["z"]]) - 1L)
+  expect_equal(unname(result[["a"]]), unname(result[["b"]]) - 1L)
+})
+
+test_that("time-ordered layout places a node next to its only child", {
+  td <- dagify(b ~ a, z ~ b + p3, p1 ~ p0, p2 ~ p1, p3 ~ p2) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("b") - node_x("a"), 1)
+  expect_equal(node_x("a"), 3)
+  expect_equal(node_x("b"), 4)
+})
+
+test_that("visual: right sort pulls a lone ancestor toward its child", {
+  withr::local_seed(1234)
+  td <- dagify(b ~ a, z ~ b + p3, p1 ~ p0, p2 ~ p1, p3 ~ p2) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  # never record a baseline while `a` is still stranded at the far left
+  skip_if_not(node_x("b") - node_x("a") == 1)
+  expect_doppelganger("time-ordered-right-cascade", ggdag(td))
+})
+
+# Single fixed_time pin inside a bidirected group ------------------------------
+
+test_that("longest_path_layers: a single feasible pin holds its bidirected group", {
+  # c -> b -> z, x0 -> x1 -> x2 -> z, a <-> b; pin a to internal layer 1
+  edges_df <- make_edges_df_with_direction(
+    c("c", "b"),
+    c("b", "z"),
+    c("x0", "x1"),
+    c("x1", "x2"),
+    c("x2", "z"),
+    bidirected = c("a", "b")
+  )
+  result <- longest_path_layers(edges_df, fixed_time = c(a = 1L))
+  expect_equal(unname(result[["a"]]), 1L)
+  expect_equal(unname(result[["b"]]), 1L)
+})
+
+test_that("time_ordered_coords(): a single feasible pin survives its group", {
+  dag <- dagify(
+    b ~ c,
+    z ~ b + x2,
+    x1 ~ x0,
+    x2 ~ x1,
+    a ~ ~b,
+    coords = time_ordered_coords(fixed_time = c(a = 2))
+  )
+  coords <- get_node_coords(tidy_dagitty(dag))
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("a"), 2)
+  expect_equal(node_x("b"), 2)
+})
+
+test_that("compute_time_ordered_layout: an infeasible pin in a group errors", {
+  # a <-> b with c -> b: the group cannot sit at time 1, b has a parent
+  edges_df <- make_edges_df_with_direction(
+    c("c", "b"),
+    c("b", "z"),
+    bidirected = c("a", "b")
+  )
+  expect_error(
+    compute_time_ordered_layout(edges_df, fixed_time = c(a = 1)),
+    class = "ggdag_dag_error"
+  )
+})
+
+test_that("visual: single pin inside a bidirected group", {
+  withr::local_seed(1234)
+  td <- tidy_dagitty(dagify(
+    b ~ c,
+    z ~ b + x2,
+    x1 ~ x0,
+    x2 ~ x1,
+    a ~ ~b,
+    coords = time_ordered_coords(fixed_time = c(a = 2))
+  ))
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  # never record a baseline from a layout that ignored the pin
+  skip_if_not(node_x("a") == 2 && node_x("b") == 2)
+  expect_doppelganger("time-ordered-bidirected-single-pin", ggdag(td))
+})
+
+# Exposure/outcome shift versus pinned descendants -----------------------------
+
+test_that("exposure/outcome shift: pinned child blocks the shift with a message", {
+  # z -> x, z -> y, y -> d with d pinned at its natural time
+  edges_df <- make_edges_df(c("z", "x"), c("z", "y"), c("y", "d"))
+  expect_message(
+    result <- compute_time_ordered_layout(
+      edges_df,
+      exposure = "x",
+      outcome = "y",
+      fixed_time = c(d = 3)
+    ),
+    class = "ggdag_message"
+  )
+  expect_lt(result$x[result$name == "y"], result$x[result$name == "d"])
+})
+
+test_that("exposure/outcome shift: unpinned descendant still shifts", {
+  edges_df <- make_edges_df(c("z", "x"), c("z", "y"), c("y", "d"))
+  result <- compute_time_ordered_layout(
+    edges_df,
+    exposure = "x",
+    outcome = "y"
+  )
+  expect_equal(result$x[result$name == "y"], 3)
+  expect_equal(result$x[result$name == "d"], 4)
+})
+
+test_that("visual: exposure/outcome shift blocked by a pinned child", {
+  withr::local_seed(1234)
+  expect_message(
+    dag <- dagify(
+      x ~ z,
+      y ~ z,
+      d ~ y,
+      exposure = "x",
+      outcome = "y",
+      coords = time_ordered_coords(fixed_time = c(d = 3))
+    ),
+    class = "ggdag_message"
+  )
+  td <- tidy_dagitty(dag)
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  # never record a baseline that draws a cause and its effect at one time
+  skip_if_not(node_x("y") < node_x("d"))
+  expect_doppelganger("time-ordered-exp-out-pinned-child", ggdag(td))
+})
+
+# Exposure/outcome shift versus bidirected groups ------------------------------
+
+test_that("exposure/outcome shift: a bidirected pair moves together", {
+  # z -> x, z -> y, z -> w, y <-> w
+  edges_df <- make_edges_df_with_direction(
+    c("z", "x"),
+    c("z", "y"),
+    c("z", "w"),
+    bidirected = c("y", "w")
+  )
+  result <- compute_time_ordered_layout(
+    edges_df,
+    exposure = "x",
+    outcome = "y"
+  )
+  node_x <- function(.name) result$x[result$name == .name]
+  expect_equal(node_x("y"), node_x("w"))
+  expect_gt(node_x("y"), node_x("x"))
+})
+
+test_that("tidy_dagitty(): the shift keeps a bidirected pair on one layer", {
+  td <- dagify(
+    x ~ z,
+    y ~ z,
+    w ~ z,
+    y ~ ~w,
+    exposure = "x",
+    outcome = "y"
+  ) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("y"), node_x("w"))
+  expect_gt(node_x("y"), node_x("x"))
+})
+
+test_that("exposure/outcome shift: an exposure that moves too blocks the shift", {
+  # x <-> y ties the exposure to the outcome, so shifting the outcome carries
+  # the exposure along and separates nothing. The pin on z fixes the layers to
+  # absolute time points, which is where a pointless shift would show.
+  expect_message(
+    dag <- dagify(
+      x ~ z,
+      y ~ z,
+      w ~ z,
+      x ~ ~y,
+      exposure = "x",
+      outcome = "y",
+      coords = time_ordered_coords(fixed_time = c(z = 1))
+    ),
+    class = "ggdag_message"
+  )
+  coords <- get_node_coords(tidy_dagitty(dag))
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  expect_equal(node_x("x"), node_x("y"))
+  # the pair is not pushed past its unrelated sibling
+  expect_equal(node_x("x"), node_x("w"))
+  expect_equal(node_x("z"), 1)
+})
+
+test_that("visual: exposure/outcome shift with a bidirected outcome", {
+  withr::local_seed(1234)
+  td <- dagify(
+    x ~ z,
+    y ~ z,
+    w ~ z,
+    y ~ ~w,
+    exposure = "x",
+    outcome = "y"
+  ) |>
+    tidy_dagitty(layout = "time_ordered")
+  coords <- get_node_coords(td)
+  node_x <- function(.name) unname(coords$x[coords$name == .name])
+  # never record a baseline with the bidirected pair split across layers
+  skip_if_not(node_x("y") == node_x("w"))
+  expect_doppelganger("time-ordered-exp-out-bidirected", ggdag(td))
 })

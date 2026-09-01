@@ -12,7 +12,9 @@
 #' dag("{x m} -> y")
 #'
 dag <- function(...) {
-  dag_string <- paste(..., sep = "; ")
+  #  `c()` flattens both call styles, so a single character vector collapses the
+  #  same way several separate arguments do
+  dag_string <- paste(c(...), collapse = "; ")
   dagitty::dagitty(paste0("dag{", dag_string, "}"))
 }
 
@@ -26,6 +28,16 @@ dag2 <- dag
 #' translated to `y <- {x z}`, as well as using a double tilde (`~~`) to
 #' graph bidirected variables, e.g. `x1 ~~ x2` is translated to `x1
 #' <-> x2`.
+#'
+#' A single formula can mix the two: `y ~ x + ~z` gives `x -> y` and `y <-> z`.
+#' R's parser lets a unary `~` take in the rest of the right-hand side, so
+#' every term after the tilde is bidirected: `y ~ x + ~z + w` gives `x -> y`,
+#' `y <-> z`, and `y <-> w`, and `y ~ ~x + z` leaves both `x` and `z`
+#' bidirected. Parentheses limit how far the tilde reaches, so
+#' `y ~ x + (~z) + w` gives `x -> y`, `y <-> z`, and `w -> y`.
+#'
+#' A term that is a call contributes one edge for each variable it mentions, so
+#' both `y ~ f(x, z)` and `y ~ x:z` give `x -> y` and `z -> y`.
 #'
 #' @param ... formulas, which are converted to `dagitty` syntax
 #' @param exposure a character vector for the exposure (must be a variable name
@@ -46,8 +58,8 @@ dag2 <- dag
 #' dagify(y ~ x + z, x ~ z)
 #'
 #' coords <- list(
-#'   x = c(A = 1, B = 2, D = 3, C = 3, F = 3, E = 4, G = 5, H = 5, I = 5),
-#'   y = c(A = 0, B = 0, D = 1, C = 0, F = -1, E = 0, G = 1, H = 0, I = -1)
+#'   x = c(A = 1, B = 2, D = 3, C = 3, J = 3, E = 4, G = 5, H = 5, I = 5),
+#'   y = c(A = 0, B = 0, D = 1, C = 0, J = -1, E = 0, G = 1, H = 0, I = -1)
 #' )
 #'
 #' dag <- dagify(
@@ -57,8 +69,8 @@ dag2 <- dag
 #'   H ~ ~I,
 #'   D ~ B,
 #'   C ~ B,
-#'   I ~ C + F,
-#'   F ~ B,
+#'   I ~ C + J,
+#'   J ~ B,
 #'   B ~ A,
 #'   H ~ E,
 #'   C ~ E + G,
@@ -120,7 +132,14 @@ dagify <- function(
     )
   }
 
-  dag_txt <- purrr::map_chr(fmlas, formula2char)
+  # `vapply()` rather than `purrr::map_chr()` so that a formula ggdag cannot
+  # write out raises its own condition rather than an indexing wrapper's
+  dag_txt <- vapply(
+    fmlas,
+    formula2char,
+    character(1),
+    call = rlang::current_env()
+  )
   dag_txt <- paste(dag_txt, collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))()
   dgty <- dagitty::dagitty(dag_txt)
@@ -171,6 +190,28 @@ dagify <- function(
   dgty
 }
 
+validate_dag_formula_type <- function(fmla, call = rlang::caller_env()) {
+  if (rlang::is_formula(fmla, lhs = TRUE)) {
+    return(invisible(TRUE))
+  }
+
+  detail <- if (rlang::is_formula(fmla)) {
+    "{.code {deparse(fmla)}} has no left-hand side."
+  } else {
+    "You provided {.obj_type_friendly {fmla}}."
+  }
+
+  abort(
+    c(
+      "Each argument to {.fun dagify} must be a two-sided formula.",
+      "x" = detail,
+      "i" = "For example: {.code dagify(y ~ x + z, x ~ z)}."
+    ),
+    error_class = "ggdag_type_error",
+    call = call
+  )
+}
+
 validate_dag_formula <- function(fmla, call = rlang::caller_env()) {
   vars <- all.vars(fmla, unique = FALSE)
 
@@ -202,8 +243,17 @@ validate_dag_inputs <- function(
   latent = NULL,
   call = rlang::caller_env()
 ) {
-  # Validate each formula
-  purrr::walk(fmlas, \(f) validate_dag_formula(f, call = call))
+  # Every argument must be a two-sided formula before anything indexes into it.
+  # A plain loop keeps the condition itself at the top of the chain, rather than
+  # under a purrr indexing wrapper.
+  for (fmla in fmlas) {
+    validate_dag_formula_type(fmla, call = call)
+  }
+
+  # Validate each formula, in a plain loop for the same reason
+  for (fmla in fmlas) {
+    validate_dag_formula(fmla, call = call)
+  }
 
   # Check that exposure and outcome are different
   if (!is.null(exposure) && !is.null(outcome)) {
@@ -294,18 +344,21 @@ validate_dag_inputs <- function(
 #'   in one direction, negative in the other. Default is `0.3`.
 #'
 #' @section Curvature sign convention:
-#' The curvature value is passed directly to the active edge rendering engine.
-#' The **ggraph** engine (default) and **ggarrow** engine interpret the sign
-#' differently:
+#' Per-edge curvature is drawn by the **ggarrow** edge engine only. Set it with
+#' `edge_engine = "ggarrow"` on [geom_dag()] and the `ggdag_*()` quick plots, or
+#' globally with `ggdag_options_set(edge_engine = "ggarrow")`; the default
+#' **ggraph** engine draws every edge with the curvature of its own edge type
+#' and warns when it is handed a per-edge value it cannot draw.
 #'
-#' - **ggraph**: positive curvature curves *above* (to the left of) a
-#'   left-to-right edge.
-#' - **ggarrow** / **grid**: positive curvature curves *below* (to the right
-#'   of) a left-to-right edge, following `grid::curveGrob()` convention.
+#' ggarrow follows the `grid::curveGrob()` convention, so positive curvature
+#' curves *below* (to the right of) a left-to-right edge and negative curvature
+#' curves *above* it. ggdag passes the value through untouched.
 #'
-#' This means the same `curvature` value will render as a mirror image
-#' depending on the engine. ggdag does not negate or transform the value;
-#' each engine uses its native convention.
+#' A bidirected edge has no direction of its own, so ggdag draws it from the
+#' endpoint dagitty stores first. Naming its endpoints the other way round,
+#' as in `curve_edge(dag, "y", "x", 0.5)` for an edge stored as `x <-> y`,
+#' curves the edge to the same side of the page: the sign is flipped to match
+#' the direction the edge is drawn in.
 #'
 #' @return This function is not intended to be called directly. It is detected
 #'   in the formula AST by [dagify()].
@@ -372,7 +425,13 @@ curve_edge.dagitty <- function(.dag, from, to, curvature = 0.3) {
       error_class = "ggdag_dag_error"
     )
   }
+  validate_edges_exist(.dag, from, to)
 
+  # Curvature is kept in an attribute of its own rather than written to the
+  # DAG as a dagitty edge control point. Besides being a relative measure
+  # rather than an absolute coordinate, a control point at x = 0 does not
+  # survive dagitty's DOT writer (see `ctrl_point_to_curvature()` in
+  # R/tidy_dag.R), so a curve set here would silently straighten.
   curved_edges <- attr(.dag, "curved_edges") %||%
     tibble::tibble(
       name = character(),
@@ -380,8 +439,18 @@ curve_edge.dagitty <- function(.dag, from, to, curvature = 0.3) {
       edge_curvature = numeric()
     )
 
+  # An edge keeps one record, so that curving it a second time replaces the
+  # first curvature rather than sitting behind it. A bidirected edge has no
+  # direction, so its record may have been written with the endpoints the other
+  # way round, and the record is rewritten in the orientation named here.
   existing <- curved_edges$name == from & curved_edges$to == to
+  if (!any(existing) && is_undirected_pair(.dag, from, to)) {
+    existing <- curved_edges$name == to & curved_edges$to == from
+  }
+
   if (any(existing)) {
+    curved_edges$name[existing] <- from
+    curved_edges$to[existing] <- to
     curved_edges$edge_curvature[existing] <- curvature
   } else {
     curved_edges <- dplyr::bind_rows(
@@ -401,13 +470,14 @@ curve_edge.tidy_dagitty <- function(.dag, from, to, curvature = 0.3) {
   update_dag(.dag) <- dag
 
   dag_data <- pull_dag_data(.dag)
-  if ("edge_curvature" %nin% names(dag_data)) {
-    dag_data$edge_curvature <- NA_real_
-  }
-  edge_match <- dag_data$name == from & dag_data$to == to & !is.na(dag_data$to)
-  dag_data$edge_curvature[edge_match] <- curvature
-  # Non-curved edges should be 0 when any curvature is set
-  edge_rows <- !is.na(dag_data$to)
+  dag_data$edge_curvature <- NULL
+  dag_data$edge_curvature <- match_edge_curvature(
+    dag_data,
+    attr(dag, "curved_edges")
+  )
+  # Non-curved edges should be 0 when any curvature is set, except bidirected
+  # ones, which keep the arc their edge layer draws them with
+  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
   dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
@@ -476,6 +546,9 @@ set_curve_edges.dagitty <- function(.dag, edges) {
       error_class = "ggdag_dag_error"
     )
   }
+  keys <- edge_keys(.dag)
+  validate_edges_exist(.dag, edges$from, edges$to, keys = keys)
+  validate_edges_distinct(.dag, edges$from, edges$to, keys = keys)
 
   curved_edges <- tibble::tibble(
     name = edges$from,
@@ -496,19 +569,225 @@ set_curve_edges.tidy_dagitty <- function(.dag, edges) {
   curved_edges <- attr(dag, "curved_edges")
   dag_data <- pull_dag_data(.dag)
 
-  # Remove existing edge_curvature and re-join
+  # Remove existing edge_curvature and re-match
   dag_data$edge_curvature <- NULL
-  dag_data <- dplyr::left_join(
-    dag_data,
-    curved_edges[, c("name", "to", "edge_curvature")],
-    by = c("name", "to")
-  )
-  # Non-curved edges should be 0
-  edge_rows <- !is.na(dag_data$to)
+  dag_data$edge_curvature <- match_edge_curvature(dag_data, curved_edges)
+  # Non-curved edges should be 0, except bidirected ones, which keep the arc
+  # their edge layer draws them with
+  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
   dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
   .dag
+}
+
+#' Match recorded curvatures to the edge rows of a tidy DAG
+#'
+#' A bidirected edge is stored by dagitty in the order it was written, which is
+#' not always the order the curvature was recorded in: `dagify()` records a
+#' `curved()` term as (parent, child), and a user calling [curve_edge()] may
+#' name either endpoint first. Matching a bidirected edge in both orientations
+#' keeps the curvature the user asked for. Curvature is measured relative to the
+#' direction the edge is drawn in, so a match found the other way round has its
+#' sign flipped and the arc keeps the side of the page it was asked for.
+#'
+#' @param dag_data The data of a `tidy_dagitty`.
+#' @param curved_edges A tibble of `name`, `to`, and `edge_curvature`.
+#' @return A numeric vector, one value per row of `dag_data`, `NA` where no
+#'   curvature was recorded.
+#' @noRd
+match_edge_curvature <- function(dag_data, curved_edges) {
+  recorded <- edge_pair_key(curved_edges$name, curved_edges$to)
+  curvature <- curved_edges$edge_curvature[
+    match(edge_pair_key(dag_data$name, dag_data$to), recorded)
+  ]
+
+  swapped <- match(edge_pair_key(dag_data$to, dag_data$name), recorded)
+  reversed <- is_bidirected_edge(dag_data) & is.na(curvature) & !is.na(swapped)
+  curvature[reversed] <- -curved_edges$edge_curvature[swapped[reversed]]
+
+  curvature
+}
+
+edge_pair_key <- function(from, to) {
+  ifelse(is.na(from) | is.na(to), NA_character_, paste(from, to, sep = "\r"))
+}
+
+# Rows holding a bidirected edge. Bidirected edges keep whatever curvature they
+# were given rather than being flattened with the directed ones, so that the
+# arc an edge layer draws them with survives another edge being curved.
+is_bidirected_edge <- function(dag_data) {
+  !is.na(dag_data$to) &
+    !is.na(dag_data$direction) &
+    dag_data$direction == "<->"
+}
+
+#' Does a pair of node names name a bidirected or undirected edge?
+#'
+#' Such an edge has no direction of its own, so either orientation of its
+#' endpoints names it, and a curvature recorded for one orientation is a
+#' curvature for the other.
+#'
+#' @param .dag A `dagitty` object.
+#' @param from,to Length-one character vectors of node names.
+#' @return A length-one logical vector.
+#' @noRd
+is_undirected_pair <- function(.dag, from, to) {
+  .edges <- dagitty::edges(.dag)
+  if (nrow(.edges) == 0) {
+    return(FALSE)
+  }
+
+  any(
+    .edges$e %in%
+      c("<->", "--") &
+      ((.edges$v == from & .edges$w == to) |
+        (.edges$v == to & .edges$w == from))
+  )
+}
+
+#' Check that every requested edge is actually in the DAG
+#'
+#' Curvature is stored per edge, so a pair of node names that names no edge
+#' would set the curvature of nothing while still flattening every other edge to
+#' zero curvature. Bidirected and undirected edges have no direction, so either
+#' orientation of one names the same edge.
+#'
+#' @param .dag A `dagitty` object.
+#' @param from,to Character vectors of node names, paired element by element.
+#' @param call The calling environment, for the error message.
+#' @param keys The edge keys of `.dag`, from `edge_keys()`.
+#' @return `TRUE`, invisibly.
+#' @noRd
+validate_edges_exist <- function(
+  .dag,
+  from,
+  to,
+  call = rlang::caller_env(),
+  keys = edge_keys(.dag)
+) {
+  from <- as.character(from)
+  to <- as.character(to)
+
+  # the DAG's edges are read once here rather than once per pair, so that a
+  # large `edges` data frame does not turn into a scan per row
+  directed <- edge_pair_key(from, to) %in% keys$directed
+  symmetric <- edge_pair_key(pmin(from, to), pmax(from, to)) %in%
+    keys$undirected
+
+  found <- directed | symmetric
+  if (all(found)) {
+    return(invisible(TRUE))
+  }
+
+  missing_edges <- paste(from[!found], "->", to[!found])
+  abort(
+    c(
+      "{length(missing_edges)} edge{?s} not found in the DAG.",
+      "x" = "Missing: {.val {missing_edges}}",
+      "i" = "Did you swap {.arg from} and {.arg to}?"
+    ),
+    error_class = "ggdag_dag_error",
+    call = call
+  )
+}
+
+#' One key per edge of a DAG
+#'
+#' Both kinds of key come from a single read of the DAG's edges, since asking
+#' dagitty for them costs a call into its JavaScript engine and the two
+#' validators that consult them run back to back.
+#'
+#' A directed edge is named in its own direction only, so its endpoints go into
+#' its key in the order the DAG holds them. A bidirected or undirected edge has
+#' no direction of its own, so its endpoints go into its key in a fixed order
+#' and a pair named either way round is looked up under the same key.
+#'
+#' @param .dag A `dagitty` object.
+#' @return A list of the `directed` and `undirected` keys, both character and
+#'   empty when the DAG has no edge of that kind.
+#' @noRd
+edge_keys <- function(.dag) {
+  .edges <- dagitty::edges(.dag)
+  # dagitty returns a zero-column data frame for a DAG with no edges
+  if (nrow(.edges) == 0 || ncol(.edges) == 0) {
+    return(list(directed = character(), undirected = character()))
+  }
+
+  v <- as.character(.edges$v)
+  w <- as.character(.edges$w)
+  directed <- .edges$e == "->"
+  symmetric <- .edges$e %in% c("<->", "--")
+
+  list(
+    directed = keys_or_empty(v[directed], w[directed]),
+    undirected = keys_or_empty(
+      pmin(v[symmetric], w[symmetric]),
+      pmax(v[symmetric], w[symmetric])
+    )
+  )
+}
+
+#' @rdname edge_keys
+#' @noRd
+keys_or_empty <- function(from, to) {
+  if (length(from) == 0) {
+    return(character())
+  }
+
+  edge_pair_key(from, to)
+}
+
+#' Check that no edge is named twice
+#'
+#' An edge keeps one curvature, so a data frame that names the same edge twice
+#' asks for two. A bidirected or undirected edge has no direction of its own, so
+#' the two orientations of one name the same edge.
+#'
+#' @param .dag A `dagitty` object.
+#' @param from,to Character vectors of node names, paired element by element.
+#' @param call The calling environment, for the error message.
+#' @param keys The edge keys of `.dag`, from `edge_keys()`.
+#' @return `TRUE`, invisibly.
+#' @noRd
+validate_edges_distinct <- function(
+  .dag,
+  from,
+  to,
+  call = rlang::caller_env(),
+  keys = edge_keys(.dag)
+) {
+  from <- as.character(from)
+  to <- as.character(to)
+
+  # the DAG's edges are read once here rather than once per pair, so that a
+  # large `edges` data frame does not turn into a scan per row
+  either_way <- edge_pair_key(pmin(from, to), pmax(from, to))
+  is_undirected <- either_way %in% keys$undirected
+
+  row_keys <- ifelse(is_undirected, either_way, edge_pair_key(from, to))
+  repeated_rows <- duplicated(row_keys)
+  if (!any(repeated_rows)) {
+    return(invisible(TRUE))
+  }
+
+  named <- ifelse(
+    is_undirected,
+    paste(pmin(from, to), "<->", pmax(from, to)),
+    paste(from, "->", to)
+  )
+  repeated <- unique(named[repeated_rows])
+
+  abort(
+    c(
+      "{length(repeated)} edge{?s} named more than once in {.arg edges}.",
+      "x" = "Repeated: {.val {repeated}}",
+      "i" = "An edge takes one curvature, and a bidirected edge is the same \\
+             edge whichever way round it is named."
+    ),
+    error_class = "ggdag_dag_error",
+    call = call
+  )
 }
 
 #' Extract curved edge specifications from formula list
@@ -523,7 +802,9 @@ set_curve_edges.tidy_dagitty <- function(.dag, edges) {
 extract_curved_edges <- function(fmlas) {
   rows <- list()
   for (fmla in fmlas) {
-    lhs <- as.character.default(fmla)[[2]]
+    # the node names, not the deparsed left-hand side: a backticked name
+    # deparses with its backticks, and the DAG holds the bare name
+    lhs <- dag_term_names(fmla[[2]])
     rhs <- fmla[[3]]
     curved_calls <- find_curved_calls(rhs)
     for (cc in curved_calls) {
@@ -549,6 +830,37 @@ extract_curved_edges <- function(fmlas) {
   dplyr::bind_rows(rows)
 }
 
+#' Name the function a call invokes
+#'
+#' A call head is not always a symbol: `ggdag::curved(m, 0.5)` has a `::` call
+#' as its head, and `as.character()` on that returns three elements, which is a
+#' hard error in `if ()`. Namespace-qualified `curved()` names the same
+#' function, so it resolves to `"curved"`; any other non-symbol head resolves to
+#' the empty string, which matches nothing.
+#'
+#' @param expr A call.
+#' @return A length-one character vector.
+#' @noRd
+call_fn_name <- function(expr) {
+  fn <- expr[[1]]
+
+  if (is.name(fn)) {
+    return(as.character(fn))
+  }
+
+  is_ggdag_qualified <- is.call(fn) &&
+    length(fn) == 3 &&
+    identical(fn[[1]], quote(`::`)) &&
+    identical(fn[[2]], quote(ggdag)) &&
+    is.name(fn[[3]])
+
+  if (is_ggdag_qualified) {
+    return(as.character(fn[[3]]))
+  }
+
+  ""
+}
+
 #' Recursively find curved() calls in a formula expression
 #' @noRd
 find_curved_calls <- function(expr) {
@@ -556,7 +868,7 @@ find_curved_calls <- function(expr) {
     return(list())
   }
 
-  fn_name <- as.character(expr[[1]])
+  fn_name <- call_fn_name(expr)
 
   if (fn_name == "curved") {
     var_name <- as.character(expr[[2]])
@@ -572,7 +884,7 @@ find_curved_calls <- function(expr) {
       ) {
         -raw[[2]]
       } else {
-        cli::cli_abort(
+        abort(
           c(
             "{.arg curvature} in {.fn curved} must be a numeric literal.",
             "i" = "Example: {.code curved(x, 0.5)} or {.code curved(x, -0.3)}"
@@ -615,7 +927,7 @@ strip_curved_expr <- function(expr) {
     return(expr)
   }
 
-  fn_name <- as.character(expr[[1]])
+  fn_name <- call_fn_name(expr)
   if (fn_name == "curved") {
     return(expr[[2]])
   }
@@ -628,6 +940,9 @@ strip_curved_expr <- function(expr) {
 }
 
 get_dagitty_edges <- function(.dag) {
+  # `edge_ctrl_x` is never exactly 0: dagitty drops an edge control point at
+  # that coordinate when it writes the DAG out (see `ctrl_point_to_curvature()`
+  # in R/tidy_dag.R).
   .edges <- dagitty::edges(.dag)
 
   # Handle empty edges (DAG with no edges)
@@ -652,12 +967,38 @@ get_dagitty_edges <- function(.dag) {
 }
 
 edges2df <- function(.edges) {
-  no_outgoing_edges <- unique(.edges$to[!(.edges$to %in% .edges$name)])
+  # a DAG with no edges at all can arrive with an all-`NA` logical `to` column,
+  # which would otherwise make the node-only rows below logical as well
+  .to <- as.character(.edges$to)
+  no_outgoing_edges <- unique(.to[!(.to %in% .edges$name)])
+  no_outgoing_edges <- no_outgoing_edges[!is.na(no_outgoing_edges)]
   dplyr::bind_rows(
     .edges,
     tibble::tibble(
       name = no_outgoing_edges,
       to = rep(NA_character_, length(no_outgoing_edges))
     )
+  )
+}
+
+#' Add node-only rows for nodes that take part in no edge
+#'
+#' The time-ordering pipeline works from an edge list, which never mentions
+#' isolated nodes. Adding them as `to = NA` rows is how the rest of the pipeline
+#' already represents nodes without outgoing edges.
+#'
+#' @param .edges_df A data frame with `name` and `to` columns.
+#' @param .nodes A character vector of every node in the DAG.
+#' @return `.edges_df`, with a row added for each node it did not mention.
+#' @noRd
+add_isolated_nodes <- function(.edges_df, .nodes) {
+  isolated <- setdiff(.nodes, all_node_names(.edges_df))
+  if (length(isolated) == 0) {
+    return(.edges_df)
+  }
+
+  dplyr::bind_rows(
+    .edges_df,
+    tibble::tibble(name = isolated, to = rep(NA_character_, length(isolated)))
   )
 }

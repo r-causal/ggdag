@@ -11,7 +11,7 @@
 node_equivalent_dags(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "auto"),
+  layout = ggdag_option("layout", "nicely"),
   ...
 )
 
@@ -36,13 +36,14 @@ ggdag_equivalent_dags(
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
   unified_legend = TRUE,
   key_glyph = NULL,
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
   node = deprecated(),
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = ggdag_option("layout", "auto"))
+node_equivalent_class(.dag, layout = ggdag_option("layout", "nicely"), ...)
 
 ggdag_equivalent_class(
   .tdy_dag,
@@ -76,7 +77,7 @@ ggdag_equivalent_class(
 
 \item{n}{maximal number of returned graphs.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
 for details. Alternatively, \code{"time_ordered"} will use
 \code{time_ordered_coords()} to algorithmically sort the graph by time. You can
 also pass the result of \code{time_ordered_coords()} directly: either the
@@ -130,13 +131,19 @@ and \code{geom_dag_text_repel2}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 
 \item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
 If \code{NULL} (the default), the glyph is chosen automatically based on the
 \code{unified_legend} setting. When provided, this overrides the automatic
 selection. Common options include \code{draw_key_dag_point},
 \code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
+\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
@@ -147,12 +154,6 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{node}{Deprecated.}
 
 \item{stylized}{Deprecated.}
-
-\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
-(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
-\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
-customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
-\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 }
 \value{
 a \code{tidy_dagitty} with at least one DAG, including a \code{dag}
@@ -160,14 +161,32 @@ column to identify graph set for equivalent DAGs or a \code{reversable}
 column for equivalent classes, or a \code{ggplot}
 }
 \description{
-Returns a set of complete partially directed acyclic graphs (CPDAGs) given an
-input DAG. CPDAGs are Markov equivalent to the input graph. See
-\code{\link[dagitty:EquivalentModels]{dagitty::equivalentDAGs()}} for details.
+Analyze the Markov equivalence class of an input DAG: the DAGs that encode
+the same conditional independencies as the input graph. See
+\code{\link[dagitty:equivalentDAGs]{dagitty::equivalentDAGs()}} and \code{\link[dagitty:equivalenceClass]{dagitty::equivalenceClass()}} for details.
 \code{node_equivalent_dags()} returns a set of DAGs, while
 \code{node_equivalent_class()} tags reversable edges.
 \code{ggdag_equivalent_dags()} plots all equivalent DAGs, while
 \code{ggdag_equivalent_class()} plots all reversable edges as undirected.
 }
+\details{
+\code{node_equivalent_dags()} restores columns that the input \code{tidy_dagitty}
+carries beyond the standard ones, such as \code{label} or \code{status}, by joining
+them back on node name. Only node-level columns survive: a column whose
+value varies across the edges of a node cannot be matched to the edges of
+the equivalent DAGs, so the value of its first edge is used for every row of
+that node.
+}
+\section{Edge layers of the composite plotters}{
+
+The plotters that color or fade edges by an analysis column build their edge
+layers themselves, and which layers they build is settled from the DAG they
+are called with: a DAG with no bidirected edge is given no bidirected edge
+layer. Replacing the data of the returned plot afterwards, with ggplot2's
+\verb{\%+\%}, does not bring a layer back, so a plot built for one DAG is not a
+template for another.
+}
+
 \examples{
 g_ex <- dagify(y ~ x + z, x ~ z)
 

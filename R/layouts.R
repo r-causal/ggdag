@@ -11,8 +11,10 @@
 #' @param .vars A list of character vectors, where each vector represents a
 #'   single time period. Alternatively, a data frame where the first column is
 #'   the variable name and the second column is the time period.
-#' @param time_points A vector of time points. Default is `NULL`, which creates
-#'   a sequence from 1 to the number of variables.
+#' @param time_points A vector of time points, one element per time period in
+#'   `.vars`. Default is `NULL`, which creates a sequence from 1 to the number
+#'   of time periods (the length of `.vars`). A data frame carries its own time
+#'   points in its second column, so supplying both is an error.
 #' @param direction A character string indicating the axis along which the
 #'   variables should be time-ordered. Either "x" or "y". Default is "x".
 #' @param auto_sort_direction If `.vars` is `NULL`: nodes will be placed as far
@@ -22,7 +24,10 @@
 #' @param fixed_time A named numeric vector pinning specific nodes to time
 #'   points (e.g., `c(x = 3, z = 1)`). Only used in auto mode (`.vars =
 #'   NULL`). Other nodes are placed automatically while respecting these
-#'   constraints. Pinned times are 1-based and preserved in the output.
+#'   constraints. Pinned times are 1-based and preserved in the output, so
+#'   they must be whole numbers of at least 1. A pin that no ordering can
+#'   satisfy, such as a time earlier than the node's own ancestors allow, is
+#'   an error.
 #' @param adjust_exposure_outcome If `TRUE` (default), automatically shift the
 #'   outcome forward by one time point when it shares a layer with the
 #'   exposure. All descendants of the outcome are also shifted. Only applies in
@@ -109,8 +114,39 @@ time_ordered_coords <- function(
 
   if (is.data.frame(.vars)) {
     stopifnot(ncol(.vars) >= 2)
-    time_points <- sort(unique(.vars[[2]]))
-    .vars <- split(.vars[[1]], .vars[[2]])
+    if (!is.null(time_points)) {
+      abort(
+        c(
+          "{.arg time_points} cannot be used with a data frame.",
+          "i" = "The second column of {.arg .vars} already gives the time point of each variable."
+        )
+      )
+    }
+
+    times <- .vars[[2]]
+    if (anyNA(times)) {
+      missing_time <- .vars[[1]][is.na(times)]
+      abort(
+        c(
+          "Every variable needs a time point.",
+          "x" = "Time is missing for: {.val {missing_time}}."
+        ),
+        error_class = "ggdag_missing_error"
+      )
+    }
+    if (!is.numeric(times)) {
+      abort(
+        c(
+          "The time column of {.arg .vars} must be numeric.",
+          "x" = "It is {.cls {class(times)}}.",
+          "i" = "Text time labels sort alphabetically rather than in time order; convert them to numeric time points first."
+        ),
+        error_class = "ggdag_type_error"
+      )
+    }
+
+    time_points <- sort(unique(times))
+    .vars <- split(.vars[[1]], times)
   }
 
   purrr::map2_dfr(

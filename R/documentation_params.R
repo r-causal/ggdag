@@ -27,8 +27,24 @@ NULL
 #'   character vector of variable names, a list of the form `list(c(...))`, or
 #'   `NULL`. When `NULL`, no control is applied. Default is `NULL`.
 #' @param collider_lines Logical. Should paths opened by conditioning on
-#'   colliders be shown?
+#'   colliders be shown? These paths are drawn as dashed ggraph curves whatever
+#'   `edge_engine` is in use: they mark an association rather than an edge of
+#'   the DAG, so they stay visibly apart from the arrows the engine draws.
 #'
 #' @name path_params
+#' @keywords internal
+NULL
+
+#' Edge layers of the composite plotters
+#'
+#' @section Edge layers of the composite plotters:
+#' The plotters that color or fade edges by an analysis column build their edge
+#' layers themselves, and which layers they build is settled from the DAG they
+#' are called with: a DAG with no bidirected edge is given no bidirected edge
+#' layer. Replacing the data of the returned plot afterwards, with ggplot2's
+#' `%+%`, does not bring a layer back, so a plot built for one DAG is not a
+#' template for another.
+#'
+#' @name composite_edge_layers
 #' @keywords internal
 NULL

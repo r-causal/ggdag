@@ -41,11 +41,23 @@ is_acyclic <- function(.dag) {
 #' @export
 is_adjustment_set <- function(.dag, Z, exposure = NULL, outcome = NULL) {
   .dag <- pull_dag(.dag)
-  dagitty::isAdjustmentSet(.dag, Z, exposure = exposure, outcome = outcome)
+  endpoints <- resolve_endpoints(.dag, exposure, outcome)
+  dagitty::isAdjustmentSet(
+    .dag,
+    Z,
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome
+  )
 }
 
 # Helper function to handle from/to/controlling_for arguments
-.prepare_d_separation_args <- function(.dag, from, to, controlling_for) {
+.prepare_d_separation_args <- function(
+  .dag,
+  from,
+  to,
+  controlling_for,
+  call = rlang::caller_env()
+) {
   # Handle NULL values for from/to using exposure/outcome
   if (is.null(from)) {
     from <- dagitty::exposures(.dag)
@@ -61,15 +73,27 @@ is_adjustment_set <- function(.dag, Z, exposure = NULL, outcome = NULL) {
         "i" = "Set {.arg from} to specify the starting variable.",
         "i" = "Set {.arg to} to specify the ending variable."
       ),
-      error_class = "ggdag_missing_error"
+      error_class = "ggdag_missing_error",
+      call = call
     )
   }
 
-  # Convert controlling_for to appropriate format for dagitty
+  validate_nodes_exist(.dag, c(from, to), arg = c("from", "to"), call = call)
+
+  # dagitty checks each element of `Z` on its own, so a list element holding
+  # more than one name must be flattened first
+  controlling_for <- flatten_node_names(controlling_for)
+  if (!is.null(controlling_for)) {
+    validate_nodes_exist(
+      .dag,
+      controlling_for,
+      arg = "controlling_for",
+      call = call
+    )
+  }
+
   Z <- if (is.null(controlling_for)) {
     list()
-  } else if (is.list(controlling_for)) {
-    controlling_for
   } else {
     as.list(controlling_for)
   }
@@ -147,18 +171,21 @@ is_instrumental <- function(.dag, .var, exposure = NULL, outcome = NULL) {
   .dag <- pull_dag(.dag)
   validate_nodes_exist(.dag, .var, arg = ".var")
 
+  endpoints <- resolve_single_endpoints(.dag, exposure, outcome)
+
   ivs <- dagitty::instrumentalVariables(
     .dag,
-    exposure = exposure,
-    outcome = outcome
+    exposure = endpoints$exposure,
+    outcome = endpoints$outcome
   )
   if (length(ivs) == 0) {
     return(FALSE)
   }
 
-  # instrumentalVariables returns a list with potentially complex structure
-  # Check if .var appears anywhere in the results
-  purrr::some(ivs, \(iv) .var %in% unlist(iv))
+  # each result names the instrument in `I` and, for an instrument that holds
+  # only conditionally, its conditioning set in `Z`. A conditioning variable
+  # is required for the instrument to work, not an instrument itself
+  purrr::some(ivs, \(iv) .var %in% iv$I)
 }
 
 #' @rdname is_node_properties

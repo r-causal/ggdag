@@ -49,11 +49,26 @@ test_that("formula2char converts formulas to character correctly", {
   # Multiple predictors
   expect_equal(formula2char(y ~ x + z), "y <- {x z}")
 
-  # Bidirectional relationship
-  expect_equal(formula2char(y ~ x + ~z), "y <-> {x z}")
-
   # Only bidirectional
   expect_equal(formula2char(y ~ ~x), "y <-> {x}")
+})
+
+test_that("formula2char keeps directed and bidirected terms apart", {
+  # `y ~ x + ~z` parses as x + (~z): x -> y stays directed, only z is
+  # bidirected. Assert on the parsed DAG so the test does not depend on how
+  # the dagitty string is spelled.
+  parsed <- dagitty::dagitty(paste0("dag {", formula2char(y ~ x + ~z), "}"))
+  parsed_edges <- dagitty::edges(parsed)
+
+  expect_setequal(
+    paste(parsed_edges$v, parsed_edges$e, parsed_edges$w),
+    c("x -> y", "y <-> z")
+  )
+})
+
+test_that("formula2char quotes names dagitty cannot parse bare", {
+  parsed <- dagitty::dagitty(paste0("dag {", formula2char(y ~ `my var`), "}"))
+  expect_setequal(names(parsed), c("y", "my var"))
 })
 
 test_that("edge_type_switch returns correct geom functions", {
@@ -213,32 +228,6 @@ test_that("collider_paths returns correct paths", {
   expect_true(all(grepl("<->", paths)))
 })
 
-test_that("expansion returns correct expansion function", {
-  # Should return a scale expansion
-  exp <- expansion(mult = 0.1)
-  expect_true(inherits(exp, "numeric") || inherits(exp, "expansion"))
-
-  # Test with different arguments
-  exp2 <- expansion(mult = c(0.1, 0.2))
-  expect_true(inherits(exp2, "numeric") || inherits(exp2, "expansion"))
-})
-
-test_that("ggplot2_version returns a package version", {
-  version <- ggplot2_version()
-  expect_s3_class(version, "package_version")
-  # Check it has major.minor.patch structure
-  expect_true(length(version) >= 1)
-  expect_true(is.integer(unclass(version)[[1]]))
-})
-
-test_that("dplyr_version returns a package version", {
-  version <- dplyr_version()
-  expect_s3_class(version, "package_version")
-  # Check it has major.minor.patch structure
-  expect_true(length(version) >= 1)
-  expect_true(is.integer(unclass(version)[[1]]))
-})
-
 test_that("ggname adds name to grob", {
   # Create a simple grob
   grob <- grid::circleGrob()
@@ -299,6 +288,28 @@ test_that("check_arg_stylized handles deprecated stylized argument", {
     "deprecated"
   )
   expect_true(result)
+})
+
+test_that("the deprecation warnings name the argument that replaces the old one", {
+  skip_if_not_installed("lifecycle")
+  withr::local_options(lifecycle_verbosity = "warning")
+
+  expect_warning(
+    check_arg_stylized(
+      stylized = TRUE,
+      use_stylized = FALSE,
+      what = "geom_dag"
+    ),
+    "use_stylized"
+  )
+  expect_warning(
+    check_arg_node(
+      node = "x",
+      use_nodes = "y",
+      what = "geom_dag"
+    ),
+    "use_nodes"
+  )
 })
 
 test_that("ggraph_create_layout creates layout without graph attribute", {

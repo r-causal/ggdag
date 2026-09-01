@@ -25,7 +25,6 @@
 #'   - shape
 #'   - size
 #'   - stroke
-#'   - filter
 #'
 #'   `geom_dag_node` also accepts:
 #'
@@ -161,17 +160,12 @@ geom_dag_text <- function(
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) {
-    mapping <- ggplot2::aes(label = .data$name)
-  }
-  if (is.null(mapping$label)) {
-    mapping$label <- rlang::expr(.data$name)
-  }
+  stat_to_use <- if (identical(stat, "identity")) StatNodes else stat
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodes,
+    stat = stat_to_use,
     geom = GeomDagText,
     position = position,
     show.legend = show.legend,
@@ -183,6 +177,8 @@ geom_dag_text <- function(
       ...
     )
   )
+
+  dag_layer(layer, default_label = TRUE)
 }
 
 #' Node text labels
@@ -234,7 +230,6 @@ geom_dag_label <- function(
   parse = FALSE,
   nudge_x = 0,
   nudge_y = 0,
-  check_overlap = FALSE,
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -249,17 +244,12 @@ geom_dag_label <- function(
     position <- ggplot2::position_nudge(nudge_x, nudge_y)
   }
 
-  if (is.null(mapping)) {
-    mapping <- ggplot2::aes(label = .data$name)
-  }
-  if (is.null(mapping$label)) {
-    mapping$label <- rlang::expr(.data$name)
-  }
+  stat_to_use <- if (identical(stat, "identity")) StatNodes else stat
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
-    stat = StatNodes,
+    stat = stat_to_use,
     geom = ggplot2::GeomLabel,
     position = position,
     show.legend = show.legend,
@@ -270,6 +260,8 @@ geom_dag_label <- function(
       ...
     )
   )
+
+  dag_layer(layer, default_label = TRUE)
 }
 
 #' Repulsive textual annotations
@@ -290,18 +282,21 @@ geom_dag_label <- function(
 #'   Default is 0 (no border). Set to a positive value to show borders.
 #' @param node_size The size of the DAG nodes, used to compute the
 #'   `point.size` aesthetic so that labels repel from the node boundary
-#'   rather than the node center. Defaults to `NULL`, which auto-discovers the
-#'   size from a node layer (`geom_dag_node()` or `geom_dag_point()`) already
-#'   added to the plot. Falls back to 16 if no node layer is found.
+#'   rather than the node center, and to size the skeleton discs described
+#'   under Details. Defaults to `NULL`, which auto-discovers the size from a
+#'   node layer (`geom_dag_node()` or `geom_dag_point()`) already added to the
+#'   plot. Falls back to 16 if no node layer is found.
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge. These "fake" points participate in ggrepel's repulsion calculation
 #'   so that labels avoid overlapping edges. Defaults to `NULL`, which uses
 #'   the `StatNodesRepel` default of 50. Set to 0 to disable edge-aware
 #'   repulsion.
-#' @param n_node_points Number of invisible points to place around each node's
-#'   perimeter. These skeleton points help ggrepel push labels away from node
-#'   boundaries. Defaults to `NULL`, which uses the `StatNodesRepel` default
-#'   of 12. Set to 0 to disable node skeleton repulsion.
+#' @param n_node_points Target number of invisible points filling the disc
+#'   that covers each node: a center point plus four concentric rings. Each
+#'   ring holds at least six points, so every value from 1 to 16 gives the
+#'   same 25 points per node and the parameter only starts to take effect
+#'   above 16. Defaults to `NULL`, which uses the `StatNodesRepel` default of
+#'   12. Set to 0 to disable node skeleton repulsion.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -311,6 +306,24 @@ geom_dag_label <- function(
 #' [ggrepel::geom_label_repel()] that use the custom `StatNodesRepel`
 #' for better handling of DAG data. All arguments available in ggrepel
 #' functions are supported.
+#'
+#' Labels are kept off nodes and edges by two mechanisms. The `point.size`
+#' aesthetic, computed from `node_size`, is converted by ggrepel at draw time
+#' and so describes the same circle at every device size. The invisible points
+#' along edges and the disc filling each node, on the other hand, are placed in
+#' data units: the disc radius is `node_size` times the average spread of the
+#' nodes divided by 400 (the same divisor sizes the debug overlay described in
+#' [ggdag_options_set()]). Because the panel converts data units to
+#' millimetres at drawing time, that disc is congruent with the drawn node only
+#' on a panel about 180 mm wide. On a narrower device the disc is smaller than
+#' the node it stands for and a label may come to rest on the node; on a wider
+#' one it is larger and labels are pushed further away than they need to be.
+#' Set `n_node_points = 0` to rely on `point.size` alone.
+#'
+#' Points along an edge trace the path that edge is drawn along, including the
+#' arc of a bidirected edge and of [geom_dag_edges_arc()]. Edges drawn by
+#' [geom_dag_edges_diagonal()], [geom_dag_edges_fan()], and the ggarrow engine
+#' are traced along the straight line between their nodes.
 #'
 #' Additional segment parameters can be passed through `...`, including:
 #' - `segment.linetype`: Line style
@@ -455,10 +468,10 @@ geom_dag_text_repel <- function(
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
-  segment.colour <- dots[["segment.colour"]]
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
-  stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+  stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
+  uses_repel_stat <- inherits(stat_to_use, "StatNodesRepel")
 
   # If nudge_x or nudge_y are provided and position is "identity",
   # convert to position_nudge_repel for proper behavior
@@ -478,7 +491,11 @@ geom_dag_text_repel <- function(
     box.padding = box.padding,
     point.padding = point.padding,
     min.segment.length = min.segment.length,
-    segment.colour = segment.color %||% segment.colour,
+    segment.colour = resolve_segment_colour(
+      segment.color,
+      dots,
+      missing(segment.color)
+    ),
     segment.size = segment.size,
     fontface = fontface,
     arrow = arrow,
@@ -504,6 +521,12 @@ geom_dag_text_repel <- function(
   # Add any additional parameters from dots
   params <- c(params, dots[!names(dots) %in% names(params)])
 
+  # The skeleton parameters configure `StatNodesRepel`; another stat would
+  # only report them as unknown.
+  if (!uses_repel_stat) {
+    params[c("node_size", "n_edge_points", "n_node_points")] <- NULL
+  }
+
   layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -515,7 +538,15 @@ geom_dag_text_repel <- function(
     params = params
   )
 
-  dag_layer(layer, discover = "node_size")
+  dag_layer(
+    layer,
+    discover = if (uses_repel_stat) {
+      c("node_size", "edge_geometry")
+    } else {
+      character()
+    },
+    debug = uses_repel_stat
+  )
 }
 
 #' @rdname repel
@@ -559,10 +590,10 @@ geom_dag_label_repel <- function(
   inherit.aes = TRUE
 ) {
   dots <- rlang::list2(...)
-  segment.colour <- dots[["segment.colour"]]
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
-  stat_to_use <- if (stat == "identity") StatNodesRepel else stat
+  stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
+  uses_repel_stat <- inherits(stat_to_use, "StatNodesRepel")
 
   # If nudge_x or nudge_y are provided and position is "identity",
   # convert to position_nudge_repel for proper behavior
@@ -584,7 +615,11 @@ geom_dag_label_repel <- function(
     label.r = label.r,
     label.size = label.size,
     min.segment.length = min.segment.length,
-    segment.colour = segment.color %||% segment.colour,
+    segment.colour = resolve_segment_colour(
+      segment.color,
+      dots,
+      missing(segment.color)
+    ),
     segment.size = segment.size,
     arrow = arrow,
     na.rm = na.rm,
@@ -610,6 +645,12 @@ geom_dag_label_repel <- function(
   # Add any additional parameters from dots
   params <- c(params, dots[!names(dots) %in% names(params)])
 
+  # The skeleton parameters configure `StatNodesRepel`; another stat would
+  # only report them as unknown.
+  if (!uses_repel_stat) {
+    params[c("node_size", "n_edge_points", "n_node_points")] <- NULL
+  }
+
   layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -621,7 +662,15 @@ geom_dag_label_repel <- function(
     params = params
   )
 
-  dag_layer(layer, discover = "node_size")
+  dag_layer(
+    layer,
+    discover = if (uses_repel_stat) {
+      c("node_size", "edge_geometry")
+    } else {
+      character()
+    },
+    debug = uses_repel_stat
+  )
 }
 
 #' @rdname repel
@@ -664,6 +713,17 @@ geom_dag_text_repel2 <- function(
   )
 }
 
+# ggrepel accepts either spelling of the segment colour, and so do these
+# wrappers. `segment.color` has a documented default here, so it can only give
+# way to the British spelling when the caller left it alone.
+resolve_segment_colour <- function(segment.color, dots, color_missing) {
+  if (color_missing) {
+    dots[["segment.colour"]] %||% segment.color
+  } else {
+    segment.color
+  }
+}
+
 filter_direction <- function(.direction) {
   function(x) {
     x <- dplyr::filter(x, .data$direction == .direction)
@@ -673,6 +733,113 @@ filter_direction <- function(.direction) {
 
     x
   }
+}
+
+# The cap an edge layer leaves at each of its ends, as an aesthetic on the
+# mapping the layer is built with, so that the automatic cap discovery in
+# `ggplot_add.dag_edge_layer()` leaves the size the caller asked for alone.
+with_edge_caps <- function(mapping, cap) {
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes()
+  }
+
+  cap_quo <- rlang::new_quosure(
+    rlang::expr(ggraph::circle(!!cap, "mm")),
+    env = rlang::base_env()
+  )
+  mapping$start_cap <- cap_quo
+  mapping$end_cap <- cap_quo
+
+  mapping
+}
+
+# The edge types a plotter can draw. A composite plotter that builds its own
+# edge layers checks the type it is given here, before it settles which engine
+# to draw with: `quick_plot_dag_edges()` checks the type on the ggraph branch,
+# but the ggarrow branch never reaches it.
+check_edge_type <- function(edge_type) {
+  match.arg(edge_type, c("link_arc", "link", "arc", "diagonal"))
+}
+
+# The ggraph edge layers a quick plotter builds for itself, sized the way
+# `geom_dag()` sizes the ones it builds: every measure scales with `size`, and
+# the arrowhead length arrives in points. The edge type is checked here, the one
+# place every composite plotter passes it through, because `edge_type_switch()`
+# answers an unknown type with `NULL`.
+quick_plot_dag_edges <- function(
+  mapping = NULL,
+  edge_type = "link_arc",
+  edge_cap,
+  edge_width,
+  arrow_length,
+  size,
+  data = NULL,
+  data_directed = filter_direction("->"),
+  data_bidirected = filter_direction("<->"),
+  show.legend = NA,
+  ...
+) {
+  edge_type <- match.arg(
+    edge_type,
+    c("link_arc", "link", "arc", "diagonal")
+  )
+  mapping <- with_edge_caps(mapping, edge_cap * size)
+  arrow_size <- grid::unit(arrow_length * size, "pt")
+
+  if (identical(edge_type, "link_arc")) {
+    return(geom_dag_edges(
+      mapping,
+      data_directed = data_directed,
+      data_bidirected = data_bidirected,
+      edge_width = edge_width * size,
+      arrow_directed = grid::arrow(length = arrow_size, type = "closed"),
+      arrow_bidirected = grid::arrow(
+        length = arrow_size,
+        ends = "both",
+        type = "closed"
+      ),
+      show.legend = show.legend,
+      ...
+    ))
+  }
+
+  edge_type_switch(edge_type)(
+    mapping,
+    data = data,
+    edge_width = edge_width * size,
+    arrow = grid::arrow(length = arrow_size, type = "closed"),
+    show.legend = show.legend,
+    ...
+  )
+}
+
+# `geom_dag_edges()` builds a layer for directed edges and one for bidirected
+# edges, and most DAGs have edges of only one kind. A ggraph edge layer with no
+# rows builds to a data frame with no columns at all, which loses the caps,
+# widths, and arrowheads the layer was handed, so keep only the layers that
+# have an edge to draw.
+drop_empty_edge_layers <- function(layers, dag_data) {
+  if (inherits(layers, "dag_edge_layer")) {
+    layers <- list(layers)
+  }
+
+  purrr::keep(layers, \(layer) nrow(edge_layer_data(layer, dag_data)) > 0)
+}
+
+# The rows a layer draws, whether it was handed them outright, handed a
+# function to pick them with, or left to inherit them from the plot.
+edge_layer_data <- function(layer, dag_data) {
+  layer_data <- layer$data
+
+  if (is.function(layer_data)) {
+    return(layer_data(dag_data))
+  }
+
+  if (is.null(layer_data) || inherits(layer_data, "waiver")) {
+    return(dag_data)
+  }
+
+  layer_data
 }
 
 # Helper function to expand edge aesthetics
@@ -718,8 +885,10 @@ expand_edge_aes <- function(mapping) {
 #'   created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
 #'   call to a position adjustment function.
-#' @param na.rm If FALSE (the default), removes missing values with a warning.
-#'   If TRUE silently removes missing values
+#' @param na.rm If `TRUE`, the default, missing values are removed silently. A
+#'   node with no outgoing edge has a missing edge end, so the edge layers drop
+#'   those rows rather than warning about them. If `FALSE`, missing values are
+#'   removed with a warning.
 #' @param show.legend logical. Should this layer be included in the legends? NA,
 #'   the default, includes if any aesthetics are mapped. FALSE never includes,
 #'   and TRUE always includes. It can also be a named logical vector to finely
@@ -841,8 +1010,10 @@ geom_dag_edges <- function(
 #' @param arrow specification for arrow heads, as created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
 #'   call to a position adjustment function.
-#' @param na.rm If FALSE (the default), removes missing values with a warning.
-#'   If TRUE silently removes missing values
+#' @param na.rm If `TRUE`, the default, missing values are removed silently. A
+#'   node with no outgoing edge has a missing edge end, so the edge layers drop
+#'   those rows rather than warning about them. If `FALSE`, missing values are
+#'   removed with a warning.
 #' @param show.legend logical. Should this layer be included in the legends? NA,
 #'   the default, includes if any aesthetics are mapped. FALSE never includes,
 #'   and TRUE always includes. It can also be a named logical vector to finely
@@ -1217,14 +1388,9 @@ geom_dag_collider_edges <- function(
     ncp = ncp,
     lineend = lineend,
     na.rm = na.rm,
+    linewidth = linewidth,
     ...
   )
-
-  if (ggplot2_version() >= "3.3.6.9000") {
-    params$linewidth <- linewidth
-  } else {
-    params$size <- linewidth
-  }
 
   ggplot2::layer(
     data = data,
@@ -1274,11 +1440,90 @@ aes_dag <- function(...) {
   default_aes
 }
 
+# Layer data for an edge layer that also filters by edge direction. The user's
+# data, whether a function or a data frame, is applied first and the direction
+# filter narrows what it returns.
+compose_edge_data <- function(user_data, dir_filter) {
+  if (is.null(user_data)) {
+    return(dir_filter)
+  }
+  if (is.function(user_data)) {
+    return(function(x) dir_filter(user_data(x)))
+  }
+  dir_filter(user_data)
+}
+
+# `geom_dag()` gives its ggarrow edge layers the per-edge curvature aesthetic
+# through `ggplot_add.geom_dag_layers()`. The quick plotters that build edge
+# layers of their own, to colour or fade them by an analysis column, add it
+# here instead.
+with_edge_curvature <- function(mapping, dag_data) {
+  if ("edge_curvature" %nin% names(dag_data)) {
+    return(mapping)
+  }
+
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes()
+  }
+  mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
+  mapping
+}
+
+# The ggarrow edge layers a quick plotter builds for itself. Directed edges go
+# through the arc geom at zero curvature, which draws them straight but leaves
+# room for a per-edge curvature value to bend them.
+quick_plot_arrow_edges <- function(
+  mapping = NULL,
+  data_directed,
+  data_bidirected,
+  arrow_head,
+  arrow_fins,
+  resect,
+  linewidth,
+  length,
+  show.legend = NA,
+  ...
+) {
+  list(
+    geom_dag_arrow_arc(
+      mapping = mapping,
+      data = data_directed,
+      curvature = 0,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      resect = resect,
+      linewidth = linewidth,
+      length = length,
+      show.legend = show.legend,
+      ...
+    ),
+    geom_dag_arrow_arc(
+      mapping = mapping,
+      data = data_bidirected,
+      curvature = ggdag_option("curvature", 0.3),
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
+      resect = resect,
+      linewidth = linewidth,
+      length = length,
+      show.legend = show.legend,
+      ...
+    )
+  )
+}
+
+# ggarrow reads a bare arrow length as a multiple of the shaft width, so the
+# length ggdag documents in points has to travel as an absolute unit.
+arrow_length_unit <- function(arrow_length) {
+  grid::unit(arrow_length, "pt")
+}
+
 # Build ggarrow edge layers for geom_dag()
 geom_dag_ggarrow_edges <- function(
   edge_type,
   sizes,
-  show.legend = NA
+  show.legend = NA,
+  data = NULL
 ) {
   rlang::check_installed(
     "ggarrow",
@@ -1291,6 +1536,8 @@ geom_dag_ggarrow_edges <- function(
   arrow_mid <- ggdag_option("arrow_mid", NULL)
   curvature <- ggdag_option("curvature", 0.3)
   resect <- sizes[["cap"]]
+  linewidth <- sizes[["edge"]]
+  arrow_length <- arrow_length_unit(sizes[["arrow"]])
 
   dag_mapping <- aes_dag()
 
@@ -1299,74 +1546,89 @@ geom_dag_ggarrow_edges <- function(
     "link_arc" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("->"),
+        data = compose_edge_data(data, filter_direction("->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
         curvature = 0,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       ),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("<->"),
+        data = compose_edge_data(data, filter_direction("<->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       )
     ),
     "link" = geom_dag_arrow(
       mapping = dag_mapping,
+      data = data,
       arrow_head = arrow_head,
       arrow_fins = arrow_fins,
       arrow_mid = arrow_mid,
       resect = resect,
+      linewidth = linewidth,
+      length = arrow_length,
       show.legend = show.legend
     ),
     "arc" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("->"),
+        data = compose_edge_data(data, filter_direction("->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       ),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("<->"),
+        data = compose_edge_data(data, filter_direction("<->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       )
     ),
     "diagonal" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("->"),
+        data = compose_edge_data(data, filter_direction("->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       ),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = filter_direction("<->"),
+        data = compose_edge_data(data, filter_direction("<->")),
         arrow_head = arrow_head,
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
         resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
         show.legend = show.legend
       )
     )
@@ -1418,14 +1680,17 @@ geom_dag_ggarrow_edges <- function(
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge for label repulsion. Passed to repel label geoms. Defaults to `NULL`
 #'   (uses `StatNodesRepel` default of 50). Set to 0 to disable.
-#' @param n_node_points Number of invisible skeleton points to place around each
-#'   node's perimeter for label repulsion. Passed to repel label geoms.
+#' @param n_node_points Target number of invisible skeleton points filling the
+#'   disc that covers each node for label repulsion: a center point plus four
+#'   concentric rings, each holding at least six points, so every value from 1
+#'   to 16 gives the same 25 points per node. Passed to repel label geoms.
 #'   Defaults to `NULL` (uses `StatNodesRepel` default of 12). Set to 0 to
-#'   disable.
+#'   disable. The disc is measured in data units, so it matches the drawn node
+#'   only on a panel about 180 mm wide; see [geom_dag_label_repel()].
 #' @param unified_legend A logical value. When `TRUE` and both `use_edges` and
 #'   `use_nodes` are `TRUE`, creates a unified legend entry showing both nodes
 #'   and edges in a single key, and hides the separate edge legend. This creates
-#'   cleaner, more compact legends. Default is `TRUE`.
+#'   a single, more compact legend. Default is `TRUE`.
 #' @param key_glyph A function to use for drawing the legend key glyph for nodes.
 #'   If `NULL` (the default), the glyph is chosen automatically based on the
 #'   `unified_legend` setting. When provided, this overrides the automatic
@@ -1501,6 +1766,7 @@ geom_dag <- function(
 ) {
   use_nodes <- check_arg_node(node, use_nodes)
   use_stylized <- check_arg_stylized(stylized, use_stylized)
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
   sizes <- c(
     cap = edge_cap,
@@ -1522,13 +1788,12 @@ geom_dag <- function(
     }
     edge_type <- match.arg(edge_type)
 
-    edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
-
     if (identical(edge_engine, "ggarrow")) {
       edge_geom <- geom_dag_ggarrow_edges(
         edge_type = edge_type,
         sizes = sizes,
-        show.legend = edge_show_legend
+        show.legend = edge_show_legend,
+        data = data
       )
     } else {
       if (edge_type == "link_arc") {
@@ -1537,6 +1802,8 @@ geom_dag <- function(
             start_cap = ggraph::circle(sizes[["cap"]], "mm"),
             end_cap = ggraph::circle(sizes[["cap"]], "mm")
           ),
+          data_directed = compose_edge_data(data, filter_direction("->")),
+          data_bidirected = compose_edge_data(data, filter_direction("<->")),
           edge_width = sizes[["edge"]],
           arrow_directed = grid::arrow(
             length = grid::unit(sizes[["arrow"]], "pt"),
@@ -1579,6 +1846,10 @@ geom_dag <- function(
     } else {
       draw_key_dag_point
     }
+
+    # the key draws the ornament this plot's edges are drawn with, which the
+    # argument settles even when the global option says otherwise
+    node_key_glyph <- dag_key_glyph(node_key_glyph, edge_engine)
 
     if (isTRUE(use_stylized)) {
       node_geom <- geom_dag_node(
@@ -1627,7 +1898,7 @@ geom_dag <- function(
       mapping = mapping,
       data = data,
       col = text_col,
-      size = text_size
+      size = sizes[["text"]]
     )
   } else {
     text_geom <- NULL
@@ -1692,32 +1963,12 @@ geom_dag <- function(
       common_params$max.overlaps <- Inf
     }
 
+    # The label layer stays wrapped so that it can read the edge layers of the
+    # plot it is added to; `node_size` is already threaded here, so the wrapper
+    # leaves it alone.
     label_geom_result <- do.call(label_geom, common_params)
-    # Unwrap dag_layer since geom_dag() already threads node_size explicitly
-    if (inherits(label_geom_result, "dag_layer")) {
-      label_geom_result <- label_geom_result$layer
-    }
   } else {
     label_geom_result <- NULL
-  }
-
-  # Inject debug layer when option is set and a repel label geom is used
-  debug_geom <- NULL
-  if (
-    isTRUE(getOption("ggdag.debug_repel_points")) &&
-      !is.null(label_geom_result)
-  ) {
-    is_repel <- identical(label_geom, geom_dag_label_repel) ||
-      identical(label_geom, geom_dag_label_repel2) ||
-      identical(label_geom, geom_dag_text_repel) ||
-      identical(label_geom, geom_dag_text_repel2)
-    if (is_repel) {
-      debug_geom <- make_debug_repel_layer(
-        node_size = common_params$node_size,
-        n_edge_points = common_params$n_edge_points,
-        n_node_points = common_params$n_node_points
-      )
-    }
   }
 
   result <- list(
@@ -1727,52 +1978,101 @@ geom_dag <- function(
     label_geom_result
   )
 
-  if (!is.null(debug_geom)) {
-    result <- c(result, list(debug_geom))
-  }
-
   structure(result, class = "geom_dag_layers")
 }
 
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.geom_dag_layers <- function(object, plot, ...) {
-  # Check if plot data has edge_curvature column
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
     plot_data <- pull_dag_data(plot_data)
   }
   has_curvature <- "edge_curvature" %in% names(plot_data)
+  wants_curve <- wants_edge_curvature(plot_data)
+  curvature_ignored <- FALSE
 
+  for (item in flatten_dag_layers(object)) {
+    if (has_curvature && inherits(item, "dag_arrow_layer")) {
+      item <- inject_edge_curvature(item)
+    }
+    if (wants_curve && inherits(item, "dag_edge_layer")) {
+      curvature_ignored <- TRUE
+    }
+    plot <- ggplot2::ggplot_add(item, plot, ...)
+  }
+
+  if (curvature_ignored) {
+    warn_ignored_edge_curvature()
+  }
+
+  plot
+}
+
+# `geom_dag()` hands back a list that can hold further lists, because an edge
+# type such as `link_arc` needs a layer per edge direction. The wrapped layer
+# classes are lists too, so they are the leaves of the walk rather than
+# something to iterate into: routing them through `ggplot_add()` themselves is
+# what gives them their caps and their discovered node size.
+flatten_dag_layers <- function(object) {
+  leaves <- list()
   for (item in object) {
     if (is.null(item)) {
       next
     }
-
-    # Inject edge_curvature mapping into ggarrow edge layers
-    if (has_curvature && inherits(item, "dag_arrow_layer")) {
-      item$layer$mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
-    }
-
-    # Lists of layers (e.g., link_arc returns two geom_dag_arrow_arc layers)
-    if (
-      is.list(item) &&
-        !inherits(item, "ggproto") &&
-        !inherits(item, "dag_arrow_layer")
-    ) {
-      for (sub_item in item) {
-        if (has_curvature && inherits(sub_item, "dag_arrow_layer")) {
-          sub_item$layer$mapping$edge_curvature <- rlang::quo(
-            .data$edge_curvature
-          )
-        }
-        plot <- ggplot2::ggplot_add(sub_item, plot, ...)
-      }
+    is_branch <- is.list(item) &&
+      !inherits(item, "ggproto") &&
+      !inherits(item, "dag_arrow_layer") &&
+      !inherits(item, "dag_edge_layer") &&
+      !inherits(item, "dag_layer")
+    if (is_branch) {
+      leaves <- c(leaves, flatten_dag_layers(item))
     } else {
-      plot <- ggplot2::ggplot_add(item, plot, ...)
+      leaves <- c(leaves, list(item))
     }
   }
+  leaves
+}
 
-  plot
+# A layer is an environment, so the mapping goes onto a copy: the caller may be
+# holding the layer this one was built from.
+inject_edge_curvature <- function(item) {
+  layer <- clone_layer(.subset2(item, "layer"))
+  layer$mapping$edge_curvature <- rlang::quo(.data$edge_curvature)
+  dag_arrow_layer(layer)
+}
+
+# Whether the data behind a plot asks for a curvature on some individual edge.
+# A column of zeros is the shape `tidy_dagitty()` leaves behind once any edge
+# has been curved and then uncurved, and asks for nothing.
+wants_edge_curvature <- function(dag_data) {
+  "edge_curvature" %in%
+    names(dag_data) &&
+    any(dag_data$edge_curvature != 0, na.rm = TRUE)
+}
+
+# Report a per-edge curvature that the ggraph edge layers about to be added
+# cannot draw. Called by each function that builds ggraph edge layers of its
+# own, so that the plotters which pass `use_edges = FALSE` to `geom_dag()` are
+# as loud about it as `geom_dag()` itself.
+warn_if_curvature_ignored <- function(dag_data) {
+  if (wants_edge_curvature(dag_data)) {
+    warn_ignored_edge_curvature()
+  }
+  invisible(NULL)
+}
+
+# The ggraph edge geoms draw each edge with the curvature of their own edge
+# type and have nowhere to put a per-edge value, so a curvature the plot asked
+# for would otherwise disappear without a word.
+warn_ignored_edge_curvature <- function() {
+  warn(
+    c(
+      "Per-edge curvature is drawn by the ggarrow edge engine only.",
+      "x" = "The {.val ggraph} engine is drawing these edges, so the {.field edge_curvature} values are ignored.",
+      "i" = 'Set {.code edge_engine = "ggarrow"}, or {.code ggdag_options_set(edge_engine = "ggarrow")}, to draw them.'
+    ),
+    warning_class = "ggdag_edge_curvature_warning"
+  )
 }
 
 is_quo_logical <- function(x) {

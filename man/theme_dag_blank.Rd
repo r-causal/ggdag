@@ -17,7 +17,10 @@ theme_dag_grid(base_size = 12, base_family = "", ...)
 
 \item{base_family}{base font family}
 
-\item{...}{additional arguments passed to \code{theme()}}
+\item{...}{additional arguments passed to \code{theme()}. A value given here
+replaces the theme's own setting for that element. \code{complete} is the one
+exception: the result takes its completeness from the base theme, so a
+\code{complete} passed here has no effect.}
 }
 \description{
 Minimalist DAG themes

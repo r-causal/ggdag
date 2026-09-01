@@ -612,3 +612,423 @@ test_that("edge_backdoor() correctly classifies edges appearing on both paths", 
     dplyr::pull(path_type)
   expect_equal(v4_to_v2, "backdoor")
 })
+
+test_that("dag_paths() marks the exposure once when a path leaves it", {
+  # Both open paths (x -> y and x -> m -> y) leave x through one of its two
+  # children, so no path needs a synthetic exposure node row.
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  base_rows <- nrow(pull_dag_data(tidy_dagitty(dag)))
+  path_data <- pull_dag_data(dag_paths(dag))
+
+  rows_per_set <- dplyr::count(path_data, set)
+  expect_equal(nrow(rows_per_set), 2)
+  expect_equal(rows_per_set$n, rep(base_rows, 2))
+
+  exposure_rows <- path_data |>
+    dplyr::filter(name == "x", path == "open path") |>
+    dplyr::count(set)
+  expect_equal(exposure_rows$n, rep(1L, 2))
+})
+
+test_that("dag_paths() marks the outcome once when it is an edge source", {
+  # Conditioning on m opens the collider path x -> m <- y, on which the outcome
+  # is the source of an edge, so it already has a marked row.
+  dag <- dagify(
+    m ~ x + y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  base_rows <- nrow(pull_dag_data(tidy_dagitty(dag)))
+  path_data <- pull_dag_data(dag_paths(dag, adjust_for = "m"))
+
+  expect_equal(dplyr::n_distinct(path_data$set), 1)
+  expect_equal(nrow(path_data), base_rows)
+
+  outcome_rows <- path_data |>
+    dplyr::filter(name == "y", path == "open path")
+  expect_equal(nrow(outcome_rows), 1)
+  expect_equal(outcome_rows$to, "m")
+})
+
+test_that("dag_paths() keeps parallel directed and bidirected edges distinct", {
+  # dagitty enumerates x -> y and x <-> y as two separate open paths
+  dag <- dagify(
+    y ~ x,
+    x ~ ~y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  path_data <- pull_dag_data(dag_paths(dag))
+  marked_edges <- path_data |>
+    dplyr::filter(!is.na(path), !is.na(to))
+
+  expect_equal(nrow(marked_edges), 2)
+  expect_equal(dplyr::count(marked_edges, set)$n, rep(1L, 2))
+
+  direct_edges <- dplyr::filter(marked_edges, path_type == "direct")
+  expect_equal(as.character(direct_edges$direction), "->")
+
+  backdoor_edges <- dplyr::filter(marked_edges, path_type == "backdoor")
+  expect_equal(as.character(backdoor_edges$direction), "<->")
+})
+
+test_that("edge_backdoor() classifies parallel edges independently", {
+  dag <- dagify(
+    y ~ x,
+    x ~ ~y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  edge_data <- pull_dag_data(edge_backdoor(dag)) |>
+    dplyr::filter(!is.na(to))
+
+  directed_edge <- dplyr::filter(edge_data, direction == "->")
+  expect_equal(directed_edge$path_type, "direct")
+
+  bidirected_edge <- dplyr::filter(edge_data, direction == "<->")
+  expect_equal(bidirected_edge$path_type, "backdoor")
+
+  expect_false(any(edge_data$path_type == "both", na.rm = TRUE))
+})
+
+test_that("dag_paths() errors informatively without endpoints", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(dag_paths(dag), class = "ggdag_missing_error")
+  expect_ggdag_error(dag_paths(dag))
+})
+
+test_that("dag_paths() respects the directed argument", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  path_data <- pull_dag_data(dag_paths(dag, directed = TRUE))
+  marked <- dplyr::filter(path_data, !is.na(path))
+
+  expect_equal(unique(marked$set), "1")
+  expect_equal(unique(marked$path_type), "direct")
+
+  built <- ggplot2::ggplot_build(ggdag_paths(dag, directed = TRUE))
+  expect_equal(nrow(built$layout$layout), 1)
+})
+
+test_that("path functions error on DAGs with several exposures or outcomes", {
+  multi_exposure <- dagify(
+    y ~ x1 + x2,
+    x1 ~ z,
+    x2 ~ z,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+
+  expect_error(dag_paths(multi_exposure), class = "ggdag_error")
+  expect_error(ggdag_paths(multi_exposure), class = "ggdag_error")
+  expect_error(edge_backdoor(multi_exposure), class = "ggdag_error")
+
+  multi_outcome <- dagify(
+    y1 ~ x,
+    y2 ~ x,
+    exposure = "x",
+    outcome = c("y1", "y2")
+  )
+
+  expect_error(dag_paths(multi_outcome), class = "ggdag_error")
+  expect_error(edge_backdoor(multi_outcome), class = "ggdag_error")
+})
+
+test_that("dag_paths() labels collider paths as neither direct nor backdoor", {
+  dag <- dagify(
+    y ~ x,
+    z ~ x + y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  path_data <- pull_dag_data(dag_paths(dag, adjust_for = "z"))
+  path_types <- path_data |>
+    dplyr::filter(path == "open path") |>
+    dplyr::distinct(set, path_type)
+
+  expect_equal(path_types$path_type[path_types$set == "1"], "direct")
+  expect_equal(path_types$path_type[path_types$set == "2"], "other")
+  expect_false(any(path_types$path_type == "backdoor"))
+})
+
+test_that("edge_backdoor() labels collider path edges as other", {
+  dag <- dagify(
+    y ~ x,
+    z ~ x + y,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  edge_data <- pull_dag_data(edge_backdoor(dag, adjust_for = "z"))
+
+  expect_equal(
+    dplyr::filter(edge_data, name == "x", to == "y")$path_type,
+    "direct"
+  )
+  expect_equal(
+    dplyr::filter(edge_data, name == "x", to == "z")$path_type,
+    "other"
+  )
+  expect_equal(
+    dplyr::filter(edge_data, name == "y", to == "z")$path_type,
+    "other"
+  )
+  expect_false(any(edge_data$path_type == "backdoor", na.rm = TRUE))
+})
+
+test_that("edge_backdoor() still labels true backdoor edges as backdoor", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  edge_data <- pull_dag_data(edge_backdoor(dag))
+
+  expect_equal(
+    dplyr::filter(edge_data, name == "z", to == "x")$path_type,
+    "backdoor"
+  )
+  expect_equal(
+    dplyr::filter(edge_data, name == "z", to == "y")$path_type,
+    "backdoor"
+  )
+  expect_equal(
+    dplyr::filter(edge_data, name == "x", to == "y")$path_type,
+    "direct"
+  )
+})
+
+test_that("dag_paths() is idempotent", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+
+  once <- dag_paths(dag)
+  twice <- dag_paths(once)
+
+  expect_equal(pull_dag_data(twice), pull_dag_data(once))
+})
+
+test_that("ggdag_paths() draws only causal paths when directed = TRUE", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, y = 2, z = 1),
+      y = c(x = 0, y = 0, z = 1)
+    )
+  )
+
+  expect_doppelganger(
+    "ggdag_paths() with directed paths only",
+    ggdag_paths(dag, directed = TRUE)
+  )
+})
+
+test_that("ggdag_paths() draws collider paths with their own path type", {
+  dag <- dagify(
+    y ~ x,
+    z ~ x + y,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, y = 2, z = 1),
+      y = c(x = 0, y = 0, z = 1)
+    )
+  )
+
+  expect_doppelganger(
+    "ggdag_paths() with an open collider path",
+    ggdag_paths(dag, adjust_for = "z")
+  )
+})
+
+test_that("ggdag_paths() draws parallel edges on their own paths", {
+  dag <- dagify(
+    y ~ x,
+    x ~ ~y,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, y = 2),
+      y = c(x = 0, y = 0)
+    )
+  )
+
+  expect_doppelganger(
+    "ggdag_paths() with parallel directed and bidirected edges",
+    ggdag_paths(dag)
+  )
+})
+
+test_that("ggdag_paths() draws one node per variable on causal paths", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, m = 1, y = 2),
+      y = c(x = 0, m = 1, y = 0)
+    )
+  )
+
+  expect_doppelganger("ggdag_paths() with a mediator", ggdag_paths(dag))
+})
+
+test_that("ggdag_paths() sizes the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_paths(
+    dag,
+    from = "x",
+    to = "y",
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_paths() honors edge_type in the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  stats <- layer_stat_classes(
+    ggdag_paths(dag, from = "x", to = "y", edge_type = "arc")
+  )
+
+  expect_true("StatEdgeArc" %in% stats)
+  expect_false("StatEdgeLink" %in% stats)
+})
+
+test_that("ggdag_paths_fan() sizes the edge layer it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_paths_fan(
+    dag,
+    from = "x",
+    to = "y",
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_paths_fan() accepts edge_engine and key_glyph", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_s3_class(
+    ggdag_paths_fan(dag, from = "x", to = "y", key_glyph = draw_key_dag_point),
+    "gg"
+  )
+
+  skip_if_not_installed("ggarrow")
+  p <- ggdag_paths_fan(dag, from = "x", to = "y", edge_engine = "ggarrow")
+  expect_s3_class(p, "gg")
+  expect_true(uses_ggarrow_edges(p))
+})
+
+test_that("ggdag_paths() draws the edge sizes it is given", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_doppelganger(
+    "ggdag_paths() with wide capped edges",
+    ggdag_paths(dag, from = "x", to = "y", edge_cap = 16, edge_width = 2)
+  )
+})
+
+test_that("ggdag_paths() rejects an edge type it cannot draw", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  # `edge_type_switch()` answers an unknown type with `NULL`, which would
+  # otherwise surface as "attempt to apply non-function"
+  expect_error(
+    ggdag_paths(dag, from = "x", to = "y", edge_type = "bogus"),
+    "should be one of"
+  )
+  expect_s3_class(
+    ggdag_paths(dag, from = "x", to = "y", edge_type = "diagonal"),
+    "gg"
+  )
+})
+
+test_that("ggdag_paths() draws each variable once per panel", {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, m = 1, y = 2),
+      y = c(x = 0, m = 1, y = 0)
+    )
+  )
+
+  node_data <- built_node_data(ggdag_paths(dag))
+
+  expect_gt(nrow(node_data), 0)
+  expect_false(anyDuplicated(node_data[, c("x", "y", "PANEL")]) > 0)
+
+  # the exposure lies on every open path, so it is never drawn in the shadow
+  # color, whichever order its rows arrive in
+  exposure_nodes <- node_data[node_data$x == 0 & node_data$y == 0, ]
+  expect_equal(nrow(exposure_nodes), dplyr::n_distinct(node_data$PANEL))
+  expect_false(any(exposure_nodes$colour == "grey80"))
+})
+
+test_that("ggdag_paths() rejects an edge type it cannot draw on either engine", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_error(
+    ggdag_paths(
+      dag,
+      from = "x",
+      to = "y",
+      edge_type = "bogus",
+      edge_engine = "ggarrow"
+    ),
+    "should be one of"
+  )
+  expect_s3_class(
+    ggdag_paths(
+      dag,
+      from = "x",
+      to = "y",
+      edge_type = "diagonal",
+      edge_engine = "ggarrow"
+    ),
+    "gg"
+  )
+})

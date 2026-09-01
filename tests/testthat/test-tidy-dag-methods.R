@@ -68,12 +68,7 @@ test_that("print method works correctly", {
   # DAG with collider paths
   dag4 <- dagify(m ~ x + y, y ~ x)
   tidy_dag4 <- tidy_dagitty(dag4)
-  tidy_dag4 <- activate_collider_paths(
-    tidy_dag4,
-    from = "x",
-    to = "y",
-    adjust_for = "m"
-  )
+  tidy_dag4 <- activate_collider_paths(tidy_dag4, adjust_for = "m")
 
   output4 <- capture.output(print(tidy_dag4))
   expect_true(any(grepl("Paths opened by conditioning", output4)))
@@ -104,12 +99,7 @@ test_that("tidy_dagitty print output snapshots", {
   # DAG with collider paths
   dag4 <- dagify(m ~ x + y, y ~ x)
   tidy_dag4 <- tidy_dagitty(dag4, seed = 123, layout = "time_ordered")
-  tidy_dag4 <- activate_collider_paths(
-    tidy_dag4,
-    from = "x",
-    to = "y",
-    adjust_for = "m"
-  )
+  tidy_dag4 <- activate_collider_paths(tidy_dag4, adjust_for = "m")
 
   expect_snapshot(tidy_dag4)
 
@@ -231,8 +221,24 @@ test_that("edge case: DAG with no edges", {
   result <- as_tidy_dagitty(dag_df)
   expect_s3_class(result, "tidy_dagitty")
   expect_equal(n_edges(result), 0)
-  # Isolated nodes without edges are dropped
-  expect_equal(n_nodes(result), 0)
+  # Isolated nodes are preserved in the data and the DAG
+  expect_equal(n_nodes(result), 3)
+  expect_setequal(names(pull_dag(result)), c("a", "b", "c"))
+})
+
+test_that("edge case: node-only DAG with a logical `to` column", {
+  # `to = NA` recycles to a logical column, which the time-ordered layout used
+  # to carry into the node-only rows it builds
+  withr::local_options(ggdag.layout = "time_ordered")
+  dag_df <- data.frame(name = c("a", "b", "c"), to = NA)
+  expect_type(dag_df$to, "logical")
+
+  result <- as_tidy_dagitty(dag_df)
+  expect_s3_class(result, "tidy_dagitty")
+  expect_equal(n_edges(result), 0)
+  expect_equal(n_nodes(result), 3)
+  expect_setequal(names(pull_dag(result)), c("a", "b", "c"))
+  expect_type(pull_dag_data(result)$to, "character")
 })
 
 test_that("tidy_dagitty with use_existing_coords = FALSE", {
@@ -257,7 +263,6 @@ test_that("tidy_dagitty with use_existing_coords = FALSE", {
 test_that("dag_adjustment_sets print output snapshots", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
-  withr::local_options(ggdag.layout = "time_ordered")
 
   # Simple DAG with one adjustment set
   dag1 <- dagify(
@@ -294,7 +299,6 @@ test_that("dag_adjustment_sets print output snapshots", {
 test_that("dag_paths print output snapshots", {
   # Skip on CI due to platform-dependent RNG differences in layout coordinates
   skip_on_ci()
-  withr::local_options(ggdag.layout = "time_ordered")
 
   # Simple DAG with paths
   dag1 <- dagify(
@@ -324,4 +328,37 @@ test_that("dag_paths print output snapshots", {
   paths3 <- dag_paths(dag3, from = "x", to = "y", seed = 123)
 
   expect_snapshot(paths3)
+})
+
+test_that("dag_paths() results print without exposure or outcome set", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  paths <- dag_paths(dag, from = "x", to = "y")
+
+  expect_no_error(capture.output(print(paths)))
+})
+
+test_that("dag_paths() print omits paths dagitty cannot describe", {
+  dag <- dagify(
+    y ~ x1 + x2,
+    x1 ~ z,
+    x2 ~ z,
+    exposure = c("x1", "x2"),
+    outcome = "y"
+  )
+  paths <- dag_paths(dag, from = "x1", to = "y")
+
+  output <- capture.output(print(paths))
+  paths_line <- grep("Paths:", output, value = TRUE)
+
+  expect_length(paths_line, 1)
+  expect_false(grepl("{}", paths_line, fixed = TRUE))
+
+  # the count must match the paths actually listed
+  claimed <- as.integer(sub(
+    "^.*Paths: ([0-9]+) open path.*$",
+    "\\1",
+    paths_line
+  ))
+  listed <- regmatches(paths_line, gregexpr("\\{[^}]*\\}", paths_line))[[1]]
+  expect_equal(claimed, length(listed))
 })

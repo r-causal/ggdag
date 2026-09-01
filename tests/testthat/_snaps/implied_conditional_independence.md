@@ -7,6 +7,16 @@
       ! `.tdy_dag` must be a <tidy_dagitty> or <dagitty> object.
       i You provided a <character> object.
 
+# the missing independence column is reported clearly
+
+    Code
+      expr
+    Condition <ggdag_columns_error>
+      Error in `ggdag_conditional_independence()`:
+      ! Required columns are missing from the data.
+      x Missing columns: independence
+      i Available columns: estimate, p.value, 2.5%, and 97.5%
+
 # `test_conditional_independence()` works
 
     Code

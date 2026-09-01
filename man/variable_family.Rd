@@ -193,7 +193,15 @@ ggdag_adjacent(
 \arguments{
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 
-\item{.var}{a character vector, the variable to be assessed (must by in DAG)}
+\item{.var}{a character vector, the variable(s) to be assessed (must be in
+the DAG). When more than one variable is given, the relation is assessed
+against the set as a whole. \code{node_parents()}, \code{node_children()}, and
+\code{node_adjacent()} label a queried variable that is also a relative of
+another queried variable with the relation rather than as a queried
+variable. \code{node_ancestors()}, \code{node_descendants()}, and
+\code{node_markov_blanket()} instead drop every queried variable from the
+relation set, so a queried variable always carries the queried-set label
+and only variables outside the queried set carry the relation label.}
 
 \item{as_factor}{Logical. Should the column be a factor?}
 
@@ -243,7 +251,7 @@ and \code{geom_dag_text_repel2}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
@@ -265,7 +273,7 @@ by the variable, respectively. Ancestors and descendants are those nodes that
 are on the path to or descend from the variable. The \verb{node_*()}
 functions label variables depending on their relationship. The
 \verb{ggdag_*()} functions plot the results. See
-\link[dagitty:AncestralRelations]{dagitty::children} for details.
+\link[dagitty:children]{dagitty::children} for details.
 }
 \examples{
 library(ggplot2)

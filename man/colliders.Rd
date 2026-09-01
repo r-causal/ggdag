@@ -86,7 +86,7 @@ and \code{geom_dag_text_repel2}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
@@ -99,13 +99,13 @@ If \code{use_labels = TRUE}, the default is to use \code{label}.}
 \item{stylized}{Deprecated.}
 }
 \value{
-a \code{tidy_dagitty} with a \code{collider} column for
+a \code{tidy_dagitty} with a \code{colliders} column for
 colliders or a \code{ggplot}
 }
 \description{
 Detects any colliders given a DAG.
 \code{node_collider} tags colliders and \code{ggdag_collider} plots all
-exogenous variables.
+colliders.
 }
 \examples{
 dag <- dagify(m ~ x + y, y ~ x)

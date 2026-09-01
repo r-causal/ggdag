@@ -402,6 +402,69 @@ test_that("is_confounder works with tidy_dagitty objects", {
   expect_true(is_confounder(dag, "z", "x", "y"))
 })
 
+test_that("is_confounder() requires a cause of both variables", {
+  # z is an upstream cause of x only; it reaches y through x, so it opens no
+  # backdoor path and is not a confounder
+  expect_false(is_confounder(dagify(y ~ x, x ~ z), "z", "x", "y"))
+
+  # x causes y only through the mediator m, so x does not confound m and y
+  expect_false(is_confounder(dagify(m ~ x, y ~ m), "x", "m", "y"))
+
+  # z reaches x only through y
+  expect_false(is_confounder(dagify(y ~ z, x ~ y), "z", "x", "y"))
+
+  # a bidirected edge is not a causal path out of z
+  expect_false(is_confounder(dagify(y ~ x, x ~ ~z), "z", "x", "y"))
+
+  # regression: genuine forks are still confounders
+  expect_true(is_confounder(dagify(y ~ x + z, x ~ z), "z", "x", "y"))
+  expect_true(is_confounder(dagify(x ~ z, y ~ z, z ~ w), "w", "x", "y"))
+
+  # direct = TRUE is unchanged
+  fork <- dagify(y ~ x + z, x ~ z, z ~ w)
+  expect_true(is_confounder(fork, "z", "x", "y", direct = TRUE))
+  expect_false(is_confounder(fork, "w", "x", "y", direct = TRUE))
+})
+
+test_that("adjustment set functions require exposure and outcome", {
+  no_endpoints <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    dag_adjustment_sets(no_endpoints),
+    class = "ggdag_missing_error"
+  )
+  expect_error(
+    ggdag_adjustment_set(no_endpoints),
+    class = "ggdag_missing_error"
+  )
+
+  # endpoints set in the DAG, or supplied as arguments, still work
+  with_endpoints <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y"
+  )
+  expect_s3_class(dag_adjustment_sets(with_endpoints), "tidy_dagitty")
+  expect_s3_class(
+    dag_adjustment_sets(no_endpoints, exposure = "x", outcome = "y"),
+    "tidy_dagitty"
+  )
+  expect_s3_class(
+    ggdag_adjustment_set(no_endpoints, exposure = "x", outcome = "y"),
+    "gg"
+  )
+})
+
+test_that("adjustment set guards are informative", {
+  no_endpoints <- dagify(y ~ x + z, x ~ z)
+
+  expect_ggdag_error(dag_adjustment_sets(no_endpoints))
+  expect_ggdag_error(ggdag_adjustment_set(no_endpoints))
+  expect_ggdag_error(ggdag_adjust(dagify(y ~ x)))
+  expect_ggdag_error(ggdag_adjust(dagify(y ~ x), var = character(0)))
+})
+
 # Unit tests for control_for
 test_that("control_for updates DAG with adjusted variables", {
   dag <- dagify(
@@ -476,8 +539,10 @@ test_that("ggdag_adjust works with different parameters", {
   expect_s3_class(p2, "ggplot")
 
   # Test with empty adjustment (no variables)
-  p3 <- ggdag_adjust(dag, var = character(0))
-  expect_s3_class(p3, "ggplot")
+  expect_error(
+    ggdag_adjust(dag, var = character(0)),
+    class = "ggdag_missing_error"
+  )
 })
 
 test_that("ggdag_adjust handles node styling", {
@@ -515,4 +580,107 @@ test_that("extract_sets processes adjustment sets correctly", {
   expect_equal(extracted[[1]], c("a", "b"))
   expect_equal(extracted[[2]], "c")
   expect_equal(extracted[[3]], "(Backdoor Paths Unconditionally Closed)")
+})
+
+test_that("ggdag_adjustment_set() sizes the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_adjustment_set(
+    dag,
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_adjustment_set() honors the proportional edge_cap option", {
+  withr::local_options(ggdag.edge_cap = 4)
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  # the adjustment set functions scale the option by 10/8
+  expect_equal(edge_cap_radii(ggdag_adjustment_set(dag)), 5)
+})
+
+test_that("ggdag_adjust() sizes the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  p <- ggdag_adjust(
+    dag,
+    var = "z",
+    size = 2,
+    edge_cap = 3,
+    edge_width = 2,
+    arrow_length = 20
+  )
+
+  expect_equal(edge_cap_radii(p), 6)
+  expect_equal(edge_widths(p), 4)
+  expect_equal(edge_arrow_lengths(p), 40)
+})
+
+test_that("ggdag_adjust() honors edge_type in the edge layers it builds itself", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  stats <- layer_stat_classes(ggdag_adjust(dag, var = "z", edge_type = "arc"))
+
+  expect_true("StatEdgeArc" %in% stats)
+  expect_false("StatEdgeLink" %in% stats)
+})
+
+test_that("ggdag_adjustment_set() and ggdag_adjust() accept unified_legend", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_s3_class(ggdag_adjustment_set(dag, unified_legend = FALSE), "gg")
+  expect_s3_class(ggdag_adjust(dag, var = "z", unified_legend = FALSE), "gg")
+})
+
+test_that("ggdag_adjustment_set() accepts key_glyph", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_s3_class(
+    ggdag_adjustment_set(dag, key_glyph = draw_key_dag_point),
+    "gg"
+  )
+})
+
+test_that("ggdag_adjustment_set() draws the edge sizes it is given", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  expect_doppelganger(
+    "ggdag_adjustment_set() with wide capped edges",
+    ggdag_adjustment_set(dag, edge_cap = 16, edge_width = 2)
+  )
+})
+
+test_that("ggdag_adjust() rejects an edge type it cannot draw", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    ggdag_adjust(dag, var = "z", edge_type = "bogus"),
+    "should be one of"
+  )
+  expect_s3_class(ggdag_adjust(dag, var = "z", edge_type = "diagonal"), "gg")
+})
+
+test_that("ggdag_adjust() rejects an edge type it cannot draw on either engine", {
+  dag <- dagify(y ~ x + z, x ~ z)
+
+  expect_error(
+    ggdag_adjust(dag, var = "z", edge_type = "bogus", edge_engine = "ggarrow"),
+    "should be one of"
+  )
+  expect_s3_class(
+    ggdag_adjust(
+      dag,
+      var = "z",
+      edge_type = "diagonal",
+      edge_engine = "ggarrow"
+    ),
+    "gg"
+  )
 })

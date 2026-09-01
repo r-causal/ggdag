@@ -83,7 +83,7 @@ and \code{geom_dag_text_repel2}.}
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
 and edges in a single key, and hides the separate edge legend. This creates
-cleaner, more compact legends. Default is \code{TRUE}.}
+a single, more compact legend. Default is \code{TRUE}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
@@ -100,9 +100,9 @@ a \code{tidy_dagitty} with an \code{exogenous} column for
 exogenous variables or a \code{ggplot}
 }
 \description{
-\code{node_exogenous} tags exogenous variables given an exposure and
-outcome. \code{ggdag_exogenous} plots all exogenous variables. See
-\code{\link[dagitty:exogenousVariables]{dagitty::exogenousVariables()}} for details.
+\code{node_exogenous} tags exogenous variables, the variables with no directed
+arrows pointing at them. \code{ggdag_exogenous} plots all exogenous variables.
+See \code{\link[dagitty:exogenousVariables]{dagitty::exogenousVariables()}} for details.
 }
 \examples{
 dag <- dagify(y ~ x1 + x2 + x3, b ~ x1 + x2)

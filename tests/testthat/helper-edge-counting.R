@@ -72,94 +72,6 @@ count_edges_in_open_paths <- function(dag, from, to, limit = 100) {
   edges_count
 }
 
-#' Count reversible edges in a DAG (for equivalent class)
-#' @param dag A dagitty or tidy_dagitty object
-#' @return Number of edges that can be reversed
-count_reversible_edges <- function(dag) {
-  if (inherits(dag, "tidy_dagitty")) {
-    dag <- pull_dag(dag)
-  }
-
-  # Get all equivalent DAGs
-  equiv_dags <- dagitty::equivalentDAGs(dag, n = 100)
-
-  if (length(equiv_dags) <= 1) {
-    return(0) # No reversible edges if only one equivalent DAG
-  }
-
-  # Compare edge orientations across equivalent DAGs
-  original_edges <- dagitty::edges(dag)
-  reversible_count <- 0
-
-  # For each edge in original DAG, check if it appears reversed in any equivalent DAG
-  for (i in seq_len(nrow(original_edges))) {
-    edge <- original_edges[i, ]
-    is_reversible <- FALSE
-
-    for (equiv_dag in equiv_dags) {
-      equiv_edges <- dagitty::edges(equiv_dag)
-      # Check if edge exists in reverse direction
-      if (any(equiv_edges$v == edge$w & equiv_edges$w == edge$v)) {
-        is_reversible <- TRUE
-        break
-      }
-    }
-
-    if (is_reversible) {
-      reversible_count <- reversible_count + 1
-    }
-  }
-
-  reversible_count
-}
-
-#' Count nodes with a specific status
-#' @param dag A tidy_dagitty object with node status
-#' @param status Character, the status to count (e.g., "exposure", "outcome", "latent")
-#' @return Number of nodes with the specified status
-count_nodes_with_status <- function(dag, status) {
-  if (!inherits(dag, "tidy_dagitty")) {
-    dag <- tidy_dagitty(dag)
-  }
-
-  dag_data <- pull_dag_data(dag)
-  sum(dag_data$status == status, na.rm = TRUE)
-}
-
-#' Count instrumental variables
-#' @param dag A dagitty or tidy_dagitty object
-#' @param exposure Character, name of exposure variable
-#' @param outcome Character, name of outcome variable
-#' @return Number of instrumental variables
-count_instrumental_variables <- function(dag, exposure = NULL, outcome = NULL) {
-  if (inherits(dag, "tidy_dagitty")) {
-    dag <- pull_dag(dag)
-  }
-
-  # If not specified, try to get from DAG
-  if (is.null(exposure)) {
-    exposure <- dagitty::exposures(dag)
-  }
-  if (is.null(outcome)) {
-    outcome <- dagitty::outcomes(dag)
-  }
-
-  ivs <- dagitty::instrumentalVariables(
-    dag,
-    exposure = exposure,
-    outcome = outcome
-  )
-
-  # Count unique instrumental variables
-  if (length(ivs) == 0) {
-    return(0)
-  }
-
-  # Extract IV names from the list structure
-  iv_names <- unique(unlist(lapply(ivs, function(x) x$Z)))
-  length(iv_names)
-}
-
 #' Count collider nodes
 #' @param dag A dagitty or tidy_dagitty object
 #' @return Number of collider nodes
@@ -183,14 +95,6 @@ count_colliders <- function(dag) {
   collider_count
 }
 
-#' Calculate expected edge-panel combinations for faceted plots
-#' @param n_edges Number of edges in the DAG
-#' @param n_facets Number of facets/panels in the plot
-#' @return Expected number of edge-panel combinations
-calculate_edge_panel_combinations <- function(n_edges, n_facets) {
-  n_edges * n_facets
-}
-
 #' Helper to verify edge counts match expectations
 #' @param plot A ggplot object
 #' @param expected_edges Expected number of edges
@@ -211,4 +115,52 @@ expect_edge_count <- function(plot, expected_edges, test_name = NULL) {
   }
 
   testthat::expect_equal(analysis$total_edges, expected_edges, info = info_msg)
+}
+
+#' Count the edges that survive edge capping and reach the device
+#'
+#' `count_total_edges()` counts edge groups in the built plot data, which is
+#' before ggraph trims each path back to the node caps. An edge whose whole
+#' path is consumed by the caps still appears in the built data but never
+#' draws, so the only way to see it is to render the plot and walk the forced
+#' grob tree.
+#'
+#' @param plot A ggplot object
+#' @param width,height Device size in inches
+#' @return Number of edges actually drawn
+count_drawn_edges <- function(plot, width = 10, height = 8) {
+  path <- tempfile(fileext = ".pdf")
+  grDevices::pdf(path, width = width, height = height)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(path)
+    },
+    add = TRUE
+  )
+
+  print(plot)
+  grid::grid.force()
+
+  grob_names <- unique(grep(
+    "cappedpathgrob",
+    grid::grid.ls(print = FALSE)$name,
+    value = TRUE
+  ))
+
+  drawn <- vapply(
+    grob_names,
+    function(nm) {
+      children <- grid::grid.get(nm)$children
+      if (length(children) == 0) {
+        return(0L)
+      }
+
+      child <- children[[1]]
+      if (inherits(child, "zeroGrob")) 0L else length(unique(child$id))
+    },
+    integer(1)
+  )
+
+  sum(drawn)
 }

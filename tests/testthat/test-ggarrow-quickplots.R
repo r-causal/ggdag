@@ -1,11 +1,18 @@
 # Tests for ggarrow engine support in ggdag_* quick-plot functions
-# Covers bd-1gc.21 (engine-aware edges) and bd-nf6 (legend key glyphs)
 
 coords_confounder <- tibble::tribble(
-  ~name , ~x , ~y ,
-  "x"   ,  0 ,  0 ,
-  "y"   ,  2 ,  0 ,
-  "z"   ,  1 ,  1
+  ~name ,
+  ~x    ,
+  ~y    ,
+  "x"   ,
+      0 ,
+      0 ,
+  "y"   ,
+      2 ,
+      0 ,
+  "z"   ,
+      1 ,
+      1
 )
 
 confounder_dag <- dagify(
@@ -210,4 +217,158 @@ test_that("draw_key_dag_combined uses grid::arrow when engine is ggraph", {
     )
   )
   expect_false(any(grepl("arrow_path", child_classes)))
+})
+
+# Per-edge curvature in the ggarrow quick plots ------------------------------
+
+curved_confounder_dag <- function() {
+  curve_edge(confounder_dag, from = "x", to = "y", curvature = 0.6)
+}
+
+# the curvature each drawn edge ends up with, keyed by the edge it belongs to;
+# an edge layer that never sees the column contributes nothing
+arrow_edge_curvature <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  wanted <- c("x", "y", "xend", "yend", "edge_curvature")
+  rows <- list()
+  for (i in seq_along(plot$layers)) {
+    if (!grepl("^GeomDAGArrow", class(plot$layers[[i]]$geom)[1])) {
+      next
+    }
+    d <- built$data[[i]]
+    if (nrow(d) == 0 || !all(wanted %in% names(d))) {
+      next
+    }
+    rows[[length(rows) + 1]] <- d[, wanted]
+  }
+  if (length(rows) == 0) {
+    empty <- as.data.frame(stats::setNames(
+      rep(list(numeric()), length(wanted)),
+      wanted
+    ))
+    return(empty)
+  }
+  unique(do.call(rbind, rows))
+}
+
+test_that("ggdag_paths() draws per-edge curvature with the ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  p <- ggdag_paths(curved_confounder_dag(), from = "x", to = "y")
+  drawn <- arrow_edge_curvature(p)
+
+  expect_gt(nrow(drawn), 0)
+  # the x -> y edge was curved; the two z edges were not
+  x_to_y <- drawn[drawn$x == 0 & drawn$xend == 2, ]
+  expect_equal(unique(x_to_y$edge_curvature), 0.6)
+  expect_setequal(unique(drawn$edge_curvature), c(0, 0.6))
+})
+
+test_that("ggdag_adjustment_set() draws per-edge curvature with the ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  p <- ggdag_adjustment_set(curved_confounder_dag())
+  drawn <- arrow_edge_curvature(p)
+
+  expect_gt(nrow(drawn), 0)
+  x_to_y <- drawn[drawn$x == 0 & drawn$xend == 2, ]
+  expect_equal(unique(x_to_y$edge_curvature), 0.6)
+})
+
+test_that("ggdag_paths() ggarrow curved edge snapshot", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  p <- ggdag_paths(curved_confounder_dag(), from = "x", to = "y")
+  expect_doppelganger("ggdag_paths ggarrow curved edge", p)
+})
+
+# The remaining ggdag_* plotters that build their own edges -------------------
+
+test_that("ggdag_adjust() draws ggarrow edges when the engine asks for them", {
+  skip_if_not_installed("ggarrow")
+
+  arrow_layers <- function(p) {
+    sum(vapply(
+      p$layers,
+      function(l) grepl("^GeomDAGArrow", class(l$geom)[1]),
+      logical(1)
+    ))
+  }
+
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+  expect_gt(arrow_layers(ggdag_adjust(confounder_dag, "z")), 0)
+})
+
+test_that("ggdag_adjust() takes edge_engine directly", {
+  skip_if_not_installed("ggarrow")
+
+  p <- ggdag_adjust(confounder_dag, "z", edge_engine = "ggarrow")
+  expect_s3_class(p, "ggplot")
+  expect_gt(
+    sum(vapply(
+      p$layers,
+      function(l) grepl("^GeomDAGArrow", class(l$geom)[1]),
+      logical(1)
+    )),
+    0
+  )
+})
+
+test_that("ggdag_equivalent_dags() takes edge_engine directly", {
+  skip_if_not_installed("ggarrow")
+
+  p <- ggdag_equivalent_dags(
+    dagify(y ~ x + z, x ~ z),
+    edge_engine = "ggarrow"
+  )
+  expect_s3_class(p, "ggplot")
+  expect_gt(
+    sum(vapply(
+      p$layers,
+      function(l) grepl("^GeomDAGArrow", class(l$geom)[1]),
+      logical(1)
+    )),
+    0
+  )
+})
+
+# Legend glyphs follow the engine the plot was asked for ----------------------
+
+guide_grob_classes <- function(plot) {
+  gtable <- ggplot2::ggplotGrob(plot)
+  classes <- character()
+  collect <- function(grob) {
+    classes <<- c(classes, class(grob)[1])
+    if (!is.null(grob$children)) {
+      invisible(lapply(grob$children, collect))
+    }
+    if (!is.null(grob$grobs)) {
+      invisible(lapply(grob$grobs, collect))
+    }
+  }
+  for (i in grep("guide-box", gtable$layout$name)) {
+    collect(gtable$grobs[[i]])
+  }
+  unique(classes)
+}
+
+test_that("legend glyphs follow an edge_engine given as an argument", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  # the plot draws ggarrow edges because the argument says so, so its key
+  # has to draw a ggarrow ornament rather than a grid segment
+  p <- ggdag_paths(
+    confounder_dag,
+    from = "x",
+    to = "y",
+    edge_engine = "ggarrow"
+  )
+  classes <- guide_grob_classes(p)
+
+  expect_true(any(grepl("arrow_path", classes)))
+  expect_false(any(grepl("^segments", classes)))
 })

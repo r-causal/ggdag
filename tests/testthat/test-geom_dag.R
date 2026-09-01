@@ -1046,3 +1046,613 @@ test_that("geom_dag_node (stylized) also triggers auto-sync", {
 
   expect_doppelganger("auto-sync-with-stylized-node", p_stylized)
 })
+
+test_that("geom_dag_edges_fan() leaves unrelated edges straight", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    z ~ a,
+    w ~ b,
+    coords = list(
+      x = c(a = 0, b = 0, z = 1, w = 1),
+      y = c(a = 0, b = 1, z = 0, w = 1)
+    )
+  )
+
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges_fan() +
+    geom_dag_text()
+
+  expect_doppelganger("geom_dag_edges_fan() with no parallel edges", p)
+})
+
+test_that("repel geoms honour the British spelling of segment.colour", {
+  segment_colour <- function(layer) {
+    if (inherits(layer, "dag_layer")) {
+      layer <- layer$layer
+    }
+    layer$aes_params$segment.colour
+  }
+
+  expect_equal(
+    segment_colour(geom_dag_label_repel(
+      aes(label = label),
+      segment.colour = "red"
+    )),
+    "red"
+  )
+  expect_equal(
+    segment_colour(geom_dag_text_repel(
+      aes(label = name),
+      segment.colour = "red"
+    )),
+    "red"
+  )
+  expect_equal(
+    segment_colour(geom_dag_label_repel2(
+      aes(label = label),
+      segment.colour = "red"
+    )),
+    "red"
+  )
+
+  # the American spelling still works, and wins when both are supplied
+  expect_equal(
+    segment_colour(geom_dag_label_repel(
+      aes(label = label),
+      segment.color = "blue"
+    )),
+    "blue"
+  )
+  expect_equal(
+    segment_colour(geom_dag_label_repel(
+      aes(label = label),
+      segment.color = "blue",
+      segment.colour = "red"
+    )),
+    "blue"
+  )
+
+  # the documented defaults are unchanged when neither spelling is given
+  expect_equal(
+    segment_colour(geom_dag_label_repel(aes(label = label))),
+    "grey50"
+  )
+  expect_equal(
+    segment_colour(geom_dag_text_repel(aes(label = name))),
+    "#666666"
+  )
+})
+
+test_that("geom_dag_text() and geom_dag_label() use a supplied stat", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x))
+  layer_stat <- function(layer) {
+    p <- ggplot(tidy_dag, aes_dag()) + layer
+    p$layers[[1]]$stat
+  }
+
+  # the default maps to StatNodes, as it always has
+  expect_s3_class(layer_stat(geom_dag_text()), "StatNodes")
+  expect_s3_class(layer_stat(geom_dag_text(stat = "identity")), "StatNodes")
+  expect_s3_class(layer_stat(geom_dag_label()), "StatNodes")
+  expect_s3_class(layer_stat(geom_dag_label(stat = "identity")), "StatNodes")
+
+  # a supplied stat is used, as a string or as a ggproto object
+  expect_s3_class(layer_stat(geom_dag_text(stat = "unique")), "StatUnique")
+  expect_s3_class(
+    layer_stat(geom_dag_text(stat = ggplot2::StatUnique)),
+    "StatUnique"
+  )
+  expect_s3_class(layer_stat(geom_dag_label(stat = "unique")), "StatUnique")
+  expect_s3_class(
+    layer_stat(geom_dag_label(stat = ggplot2::StatUnique)),
+    "StatUnique"
+  )
+})
+
+test_that("geom_dag_label() does not silently swallow check_overlap", {
+  # GeomLabel does not support check_overlap, so a user who supplies it
+  # should hear about it rather than have it quietly dropped
+  expect_warning(geom_dag_label(check_overlap = TRUE), "check_overlap")
+
+  # geom_dag_text() supports it and passes it on
+  expect_true(geom_dag_text(check_overlap = TRUE)$geom_params$check_overlap)
+})
+
+test_that("geom_dag_text()/geom_dag_label() honour an inherited label", {
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x,
+    labels = c(x = "Exposure", y = "Outcome")
+  ))
+
+  labels_drawn <- function(layer) {
+    p <- ggplot(tidy_dag, aes_dag(label = label)) + layer
+    unique(ggplot2::layer_data(p, 1)$label)
+  }
+
+  expect_setequal(labels_drawn(geom_dag_text()), c("Exposure", "Outcome"))
+  expect_setequal(labels_drawn(geom_dag_label()), c("Exposure", "Outcome"))
+
+  # a layer-level mapping still wins over the plot-level one
+  expect_setequal(labels_drawn(geom_dag_text(aes(label = name))), c("x", "y"))
+
+  # and node names remain the default when nothing maps label
+  p_default <- ggplot(tidy_dag, aes_dag()) + geom_dag_text()
+  expect_setequal(unique(ggplot2::layer_data(p_default, 1)$label), c("x", "y"))
+})
+
+test_that("one stored text layer serves plots with different mappings", {
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x,
+    labels = c(x = "Exposure", y = "Outcome")
+  ))
+
+  text_layer <- geom_dag_text()
+
+  # the first plot maps no label, so the layer falls back to node names there
+  p_names <- ggplot(tidy_dag, aes_dag()) + text_layer
+  expect_setequal(unique(ggplot2::layer_data(p_names, 1)$label), c("x", "y"))
+
+  # adding the same object to a plot that does map label must not replay the
+  # fallback the first plot needed
+  p_labels <- ggplot(tidy_dag, aes_dag(label = label)) + text_layer
+  expect_setequal(
+    unique(ggplot2::layer_data(p_labels, 1)$label),
+    c("Exposure", "Outcome")
+  )
+
+  # and the stored layer itself is unchanged
+  expect_null(text_layer$layer$mapping$label)
+})
+
+test_that("inherited label mappings look right", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x,
+    labels = c(x = "Exposure", y = "Outcome")
+  ))
+
+  p <- ggplot(tidy_dag, aes_dag(label = label)) +
+    geom_dag_point() +
+    geom_dag_edges() +
+    geom_dag_label()
+
+  expect_doppelganger("geom_dag_label() with inherited label mapping", p)
+})
+
+# Number of edges actually drawn across a plot's DAG edge layers. ggraph edge
+# geoms interpolate each edge into many rows sharing a group; ggarrow edge
+# geoms keep one row per edge.
+count_drawn_dag_edges <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  total <- 0
+  for (i in seq_along(plot$layers)) {
+    geom_class <- class(plot$layers[[i]]$geom)[1]
+    if (!grepl("^GeomDAGEdge|^GeomDAGArrow", geom_class)) {
+      next
+    }
+    layer_rows <- built$data[[i]]
+    if (nrow(layer_rows) == 0) {
+      next
+    }
+    total <- total +
+      if (grepl("Arrow", geom_class)) {
+        nrow(layer_rows)
+      } else {
+        length(unique(layer_rows$group))
+      }
+  }
+  total
+}
+
+test_that("geom_dag(data = ) filters edges for every edge type and engine", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  keep_zx <- function(.data) {
+    dplyr::filter(.data, .data$name == "z" & .data$to == "x")
+  }
+
+  filtered <- function(...) {
+    count_drawn_dag_edges(
+      ggplot(dag, aes_dag()) + geom_dag(data = keep_zx, use_text = FALSE, ...)
+    )
+  }
+  unfiltered <- function(...) {
+    count_drawn_dag_edges(
+      ggplot(dag, aes_dag()) + geom_dag(use_text = FALSE, ...)
+    )
+  }
+
+  # the whole DAG has three directed edges
+  expect_equal(unfiltered(), 3)
+  expect_equal(unfiltered(edge_type = "link"), 3)
+  expect_equal(unfiltered(edge_engine = "ggarrow"), 3)
+  expect_equal(unfiltered(edge_engine = "ggarrow", edge_type = "link"), 3)
+
+  # supplying data keeps only the z -> x edge, whatever draws it
+  expect_equal(filtered(edge_type = "link"), 1)
+  expect_equal(filtered(), 1)
+  expect_equal(filtered(edge_engine = "ggarrow"), 1)
+  expect_equal(filtered(edge_engine = "ggarrow", edge_type = "link"), 1)
+})
+
+test_that("geom_dag(data = ) accepts a data frame as well as a function", {
+  dag <- dagify(y ~ x + z, x ~ z)
+  edge_data <- dplyr::filter(
+    pull_dag_data(tidy_dagitty(dag)),
+    .data$name == "z" & !is.na(.data$to) & .data$to == "x"
+  )
+
+  p <- ggplot(dag, aes_dag()) + geom_dag(data = edge_data, use_text = FALSE)
+  expect_equal(count_drawn_dag_edges(p), 1)
+})
+
+test_that("geom_dag(data = ) looks right with the default edge type", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    coords = list(x = c(x = 1, y = 2, z = 0), y = c(x = 0, y = 0, z = 1))
+  )
+  keep_zx <- function(.data) {
+    dplyr::filter(.data, .data$name == "z" & .data$to == "x")
+  }
+
+  p <- ggplot(dag, aes_dag()) + geom_dag(data = keep_zx)
+  expect_doppelganger("geom_dag() with filtered edge data", p)
+})
+
+test_that("repel geoms accept a Stat ggproto object", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x))
+  layer_stat <- function(layer) {
+    if (is.null(layer)) {
+      return(NULL)
+    }
+    p <- ggplot(tidy_dag, aes_dag()) + layer
+    p$layers[[1]]$stat
+  }
+
+  identity_layer <- function(repel_geom) {
+    tryCatch(
+      repel_geom(aes(label = name), stat = ggplot2::StatIdentity),
+      error = function(e) NULL
+    )
+  }
+
+  expect_no_error(
+    geom_dag_text_repel(aes(label = name), stat = ggplot2::StatIdentity)
+  )
+  expect_no_error(
+    geom_dag_label_repel(aes(label = name), stat = ggplot2::StatIdentity)
+  )
+
+  text_layer <- identity_layer(geom_dag_text_repel)
+  label_layer <- identity_layer(geom_dag_label_repel)
+  expect_s3_class(layer_stat(text_layer), "StatIdentity")
+  expect_s3_class(layer_stat(label_layer), "StatIdentity")
+
+  # the default still selects the DAG-aware stat
+  expect_s3_class(
+    layer_stat(geom_dag_text_repel(aes(label = name))),
+    "StatNodesRepel"
+  )
+  expect_s3_class(
+    layer_stat(geom_dag_label_repel(aes(label = name))),
+    "StatNodesRepel"
+  )
+})
+
+test_that("repelled labels avoid drawn bidirected arcs", {
+  withr::local_seed(1234)
+  g <- dagify(
+    y ~ x,
+    m ~ ~x,
+    coords = list(x = c(x = 0, y = 2, m = 1), y = c(x = 0, y = 0, m = 1.5))
+  )
+
+  p <- ggplot(tidy_dagitty(g), aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel(aes(label = name), seed = 1234)
+
+  expect_doppelganger("repel labels around a bidirected arc", p)
+})
+
+# -- per-edge curvature and the ggraph engine ---------------------------------
+
+curved_chain_dag <- function() {
+  dagify(
+    y ~ x + curved(m, 0.5),
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+}
+
+test_that("per-edge curvature under the ggraph engine is signalled, not dropped", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  # the ggraph edge layers cannot draw a per-edge curve, so a request for one
+  # has to be reported rather than silently discarded
+  expect_warning(
+    ggdag(curved_chain_dag()),
+    class = "ggdag_edge_curvature_warning"
+  )
+})
+
+test_that("a DAG with no curved edge draws quietly under the ggraph engine", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 1, m = 2, y = 3), y = c(x = 0, m = 0, y = 0))
+  )
+
+  expect_no_warning(ggdag(dag))
+  # a curvature column that is all zeros is not a request for a curve either
+  expect_no_warning(ggdag(curve_edge(tidy_dagitty(dag), "x", "m", 0)))
+})
+
+test_that("the ggarrow engine draws per-edge curvature without complaint", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  expect_no_warning(ggdag(curved_chain_dag()))
+})
+
+# The quick plotters below build their own edge layers so that they can colour
+# or fade edges by an analysis column, and pass `use_edges = FALSE` on to
+# `geom_dag()`. They have to report an ignored curvature themselves.
+
+curved_analysis_dag <- function() {
+  dag <- dagify(
+    x ~ z,
+    y ~ x + z,
+    exposure = "x",
+    outcome = "y",
+    coords = list(x = c(x = 0, y = 2, z = 1), y = c(x = 0, y = 0, z = 1))
+  )
+  curve_edge(dag, from = "x", to = "y", curvature = 0.6)
+}
+
+curved_plotters <- list(
+  ggdag_paths = function(dag) ggdag_paths(dag, from = "x", to = "y"),
+  ggdag_adjustment_set = function(dag) ggdag_adjustment_set(dag),
+  ggdag_adjust = function(dag) ggdag_adjust(dag, "z"),
+  ggdag_equivalent_class = function(dag) ggdag_equivalent_class(dag)
+)
+
+for (plotter_name in names(curved_plotters)) {
+  local({
+    plotter <- curved_plotters[[plotter_name]]
+
+    test_that(
+      paste0(plotter_name, "() reports a curvature the ggraph engine drops"),
+      {
+        withr::local_options(ggdag.edge_engine = "ggraph")
+
+        expect_warning(
+          plotter(curved_analysis_dag()),
+          class = "ggdag_edge_curvature_warning"
+        )
+      }
+    )
+
+    test_that(
+      paste0(plotter_name, "() draws that curvature quietly under ggarrow"),
+      {
+        skip_if_not_installed("ggarrow")
+        withr::local_options(ggdag.edge_engine = "ggarrow")
+
+        expect_no_warning(plotter(curved_analysis_dag()))
+      }
+    )
+  })
+}
+
+# -- edge caps sync to the node layer in either layer order -------------------
+
+built_edge_cap <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  for (i in seq_along(plot$layers)) {
+    if (!inherits(plot$layers[[i]]$geom, "GeomDAGEdgePath")) {
+      next
+    }
+    caps <- built$data[[i]]$start_cap
+    if (is.null(caps)) {
+      return(NA_real_)
+    }
+    # a ggraph circle geometry stores its diameter as `width`
+    return(unique(vapply(
+      caps,
+      function(cap) unclass(cap)$width / 2,
+      numeric(1)
+    )))
+  }
+  NA_real_
+}
+
+test_that("edge caps sync to the node layer whichever order the layers arrive", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+
+  nodes_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 24) +
+    geom_dag_edges_link()
+  edges_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_edges_link() +
+    geom_dag_point(size = 24)
+
+  expect_equal(built_edge_cap(nodes_first), 12)
+  # the order every layer-by-layer example uses; the caps must still sync
+  expect_equal(built_edge_cap(edges_first), 12)
+})
+
+test_that("an edge layer inside a geom_dag() layer list still syncs its caps", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+
+  # geom_dag() hands back a bare list of layers; an edge layer arriving that
+  # way has to go through the same cap injection as a standalone one
+  p <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    structure(list(geom_dag_edges_link()), class = "geom_dag_layers")
+
+  edge_layer <- p$layers[[2]]
+  expect_false(is.null(edge_layer$mapping$start_cap))
+  cap <- rlang::eval_tidy(edge_layer$mapping$start_cap)
+  expect_equal(unclass(cap)$width / 2, 16)
+})
+
+test_that("one stored edge layer reads each plot it joins", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x, z ~ x))
+  edge_layer <- geom_dag_edges_link()
+
+  with_nodes <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 32) +
+    edge_layer
+  without_nodes <- ggplot(tidy_dag, aes_dag()) + edge_layer
+
+  cap <- rlang::eval_tidy(with_nodes$layers[[2]]$mapping$start_cap)
+  expect_equal(unclass(cap)$width / 2, 16)
+
+  # the second plot has no node layer, so its caps stay at the geom default
+  expect_null(without_nodes$layers[[1]]$mapping$start_cap)
+  # and the stored layer is still the blank one that was created
+  expect_null(edge_layer$layer$mapping$start_cap)
+})
+
+# -- repel obstacles follow the geometry each edge is drawn with --------------
+
+repel_obstacle_points <- function(plot) {
+  stats <- vapply(plot$layers, function(l) class(l$stat)[1], character(1))
+  index <- which(stats == "StatNodesRepel")[1]
+  layer_rows <- ggplot2::layer_data(plot, index)
+  layer_rows[
+    layer_rows$label == "" & layer_rows[["point.size"]] == 0,
+    c("x", "y")
+  ]
+}
+
+repel_plot <- function(tidy_dag, edge_layer) {
+  ggplot(tidy_dag, aes_dag()) +
+    edge_layer +
+    geom_dag_point() +
+    geom_dag_label_repel(
+      aes(label = name),
+      seed = 1234,
+      n_edge_points = 5,
+      n_node_points = 0
+    )
+}
+
+# how far each obstacle sits from the nearest point of the drawn edge path
+distance_to_drawn_edges <- function(plot, obstacles) {
+  drawn <- ggplot2::layer_data(plot, 1)
+  vapply(
+    seq_len(nrow(obstacles)),
+    function(i) {
+      min(sqrt(
+        (drawn$x - obstacles$x[i])^2 + (drawn$y - obstacles$y[i])^2
+      ))
+    },
+    numeric(1)
+  )
+}
+
+test_that("repelled labels avoid drawn diagonal edges", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    b ~ a,
+    c ~ b,
+    coords = list(x = c(a = 0, b = 1, c = 2), y = c(a = 0, b = 1, c = 0))
+  ))
+
+  p <- repel_plot(tidy_dag, geom_dag_edges_diagonal())
+  obstacles <- repel_obstacle_points(p)
+
+  expect_gt(nrow(obstacles), 0)
+  expect_lt(max(distance_to_drawn_edges(p, obstacles)), 0.01)
+})
+
+test_that("repelled labels avoid drawn fan edges", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    b ~ a,
+    b ~ ~a,
+    coords = list(x = c(a = 0, b = 2), y = c(a = 0, b = 0))
+  ))
+
+  p <- repel_plot(tidy_dag, geom_dag_edges_fan(spread = 2))
+  obstacles <- repel_obstacle_points(p)
+
+  # the two parallel edges fan out either side of the straight chord, so
+  # obstacles pinned to the chord protect neither of them
+  expect_gt(nrow(obstacles), 0)
+  expect_gt(max(abs(obstacles$y)), 0.1)
+  expect_lt(max(distance_to_drawn_edges(p, obstacles)), 0.01)
+})
+
+test_that("repel obstacles follow arcs through a transformed position scale", {
+  withr::local_seed(1234)
+  tidy_dag <- tidy_dagitty(dagify(
+    b ~ a,
+    c ~ b,
+    coords = list(x = c(a = 1, b = 10, c = 100), y = c(a = 0, b = 0, c = 0))
+  ))
+
+  p <- repel_plot(tidy_dag, geom_dag_edges_arc(curvature = 0.6)) +
+    scale_x_log10()
+  obstacles <- repel_obstacle_points(p)
+
+  # the arc bulges away from the chord; matching stat coordinates against the
+  # untransformed data must not send the obstacles back onto the chord
+  expect_gt(nrow(obstacles), 0)
+  expect_gt(max(abs(obstacles$y)), 0.1)
+})
+
+test_that("geom_dag(size) scales node text along with everything else", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(size = 2, node_size = 16, text_size = 4)
+
+  node_layer <- layers_by_geom(p, "GeomDagPoint")[[1]]
+  text_layer <- layers_by_geom(p, "GeomDagText")[[1]]
+
+  expect_equal(node_layer$aes_params$size, 32)
+  expect_equal(text_layer$aes_params$size, 8)
+})
+
+test_that("geom_dag(size) leaves text unscaled at size 1", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  p <- ggplot(dag, aes_dag()) + geom_dag(text_size = 4)
+  text_layer <- layers_by_geom(p, "GeomDagText")[[1]]
+
+  expect_equal(text_layer$aes_params$size, 4)
+})
+
+test_that("geom_dag(size) scales text in the rendered plot", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_doppelganger(
+    "geom_dag() at size 2 scales its text",
+    ggplot(dag, aes_dag()) + geom_dag(size = 2)
+  )
+})
+
+test_that("the edge geoms silently drop missing values by default", {
+  edge_geoms <- list(
+    geom_dag_edges = geom_dag_edges,
+    geom_dag_edges_link = geom_dag_edges_link,
+    geom_dag_edges_arc = geom_dag_edges_arc,
+    geom_dag_edges_diagonal = geom_dag_edges_diagonal,
+    geom_dag_edges_fan = geom_dag_edges_fan
+  )
+
+  # a terminal node's row carries a missing `xend`, so the edge layers drop
+  # missing values without a warning; the documentation says so
+  for (edge_geom in edge_geoms) {
+    expect_true(formals(edge_geom)$na.rm)
+  }
+
+  expect_false(formals(geom_dag_collider_edges)$na.rm)
+})

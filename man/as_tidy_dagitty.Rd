@@ -44,7 +44,7 @@ as_tidy_dagitty(x, ...)
 
 \item{seed}{a numeric seed for reproducible layout generation}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:ggraph]{ggraph::create_layout()}}
+\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
 for details. Alternatively, \code{"time_ordered"} will use
 \code{time_ordered_coords()} to algorithmically sort the graph by time. You can
 also pass the result of \code{time_ordered_coords()} directly: either the

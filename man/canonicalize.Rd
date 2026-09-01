@@ -11,20 +11,26 @@ node_canonical(.dag, ...)
 ggdag_canonical(
   .tdy_dag,
   ...,
-  edge_type = ggdag_option("edge_type", "link_arc"),
+  size = 1,
+  edge_type = c("link_arc", "link", "arc", "diagonal"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
   text_col = ggdag_option("text_col", "white"),
-  label_col = ggdag_option("label_col", text_col),
+  label_col = ggdag_option("label_col", "black"),
+  edge_width = ggdag_option("edge_width", 0.6),
+  edge_cap = ggdag_option("edge_cap", 8),
+  arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
-  use_labels = ggdag_option("use_labels", NULL),
+  use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
-  label = NULL,
+  unified_legend = TRUE,
+  key_glyph = NULL,
   text = NULL,
+  label = NULL,
   node = deprecated(),
   stylized = deprecated()
 )
@@ -33,7 +39,12 @@ ggdag_canonical(
 \item{.dag, .tdy_dag}{input graph, an object of class \code{tidy_dagitty} or
 \code{dagitty}}
 
-\item{...}{additional arguments passed to \code{tidy_dagitty()}}
+\item{...}{additional arguments passed to \code{tidy_dagitty()}, which lays out
+the canonical DAG. \code{use_existing_coords} is not among them: the latent
+variables that the canonical form introduces have no coordinates to reuse.}
+
+\item{size}{A numeric value scaling the size of all elements in the DAG. This
+allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
 "diagonal".}
@@ -47,6 +58,13 @@ ggdag_canonical(
 \item{text_col}{The color of the text.}
 
 \item{label_col}{The color of the labels.}
+
+\item{edge_width}{The width of the edges.}
+
+\item{edge_cap}{The size of edge caps (the distance between the arrowheads
+and the node borders).}
+
+\item{arrow_length}{The length of arrows on edges.}
 
 \item{use_edges}{A logical value. Include a \verb{geom_dag_edges*()} function? If
 \code{TRUE}, which is determined by \code{edge_type}.}
@@ -65,11 +83,22 @@ used is controlled by \code{label_geom}.}
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
 
-\item{label}{The bare name of a column to use for labels.
-If \code{use_labels = TRUE}, the default is to use \code{label}.}
+\item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
+\code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
+and edges in a single key, and hides the separate edge legend. This creates
+a single, more compact legend. Default is \code{TRUE}.}
+
+\item{key_glyph}{A function to use for drawing the legend key glyph for nodes.
+If \code{NULL} (the default), the glyph is chosen automatically based on the
+\code{unified_legend} setting. When provided, this overrides the automatic
+selection. Common options include \code{draw_key_dag_point},
+\code{draw_key_dag_combined}, and \code{draw_key_dag_collider}.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}
+
+\item{label}{The bare name of a column to use for labels.
+If \code{use_labels = TRUE}, the default is to use \code{label}.}
 
 \item{node}{Deprecated.}
 

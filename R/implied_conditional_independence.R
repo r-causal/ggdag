@@ -37,26 +37,48 @@ query_conditional_independence <- function(
     max.results = max.results
   )
 
-  ici |>
-    purrr::imap(
-      \(.x, .y) {
-        cond_vars <- if (rlang::is_empty(.x$Z)) {
-          NA_character_
-        } else {
-          .x$Z
-        }
+  # `dagitty` names the independencies of a `"missing.edge"` query and leaves
+  # those of an `"all.pairs"` query unnamed, and `purrr::imap()` indexes by
+  # name where there is one. Dropping the names makes `set` the integer
+  # position for every query type, so that two results can be row-bound
+  ici <- unname(ici)
 
-        tibble::tibble(
-          set = .y,
-          a = .x$X,
-          b = .x$Y,
-          conditioning_set = create_set_string(cond_vars),
-          conditioned_on = list(cond_vars)
-        )
-      }
-    ) |>
-    purrr::list_rbind() |>
+  purrr::imap(
+    ici,
+    \(.x, .y) {
+      cond_vars <- as.character(.x$Z)
+
+      tibble::tibble(
+        set = .y,
+        a = .x$X,
+        b = .x$Y,
+        conditioning_set = create_set_string(cond_vars),
+        conditioned_on = list(cond_vars)
+      )
+    }
+  ) |>
+    purrr::list_rbind(ptype = empty_conditional_independencies()) |>
     tibble::as_tibble()
+}
+
+#' The empty result of a conditional independence query
+#'
+#' A DAG that implies no conditional independencies still has the documented
+#' columns, so that a result can be filtered or row-bound whether or not it
+#' has rows. `set` is an integer because it comes from `purrr::imap()`'s
+#' position along the list, which is unnamed by the time it gets there.
+#'
+#' @return A zero-row tibble in the shape
+#'   `query_conditional_independence()` returns.
+#' @noRd
+empty_conditional_independencies <- function() {
+  tibble::tibble(
+    set = integer(),
+    a = character(),
+    b = character(),
+    conditioning_set = character(),
+    conditioned_on = list()
+  )
 }
 
 #' @rdname query_conditional_independence
@@ -152,6 +174,10 @@ ggdag_conditional_independence <- function(
       error_class = "ggdag_missing_error"
     )
   }
+  # `dagitty::localTests()` keeps the independence statements in the row names,
+  # so its raw output arrives here without the column they are read from
+  assert_columns_exist(.test_result, "independence")
+
   estimate <- names(.test_result)[[2]]
   upper_ci <- names(.test_result)[[ncol(.test_result)]]
   lower_ci <- names(.test_result)[[ncol(.test_result) - 1]]

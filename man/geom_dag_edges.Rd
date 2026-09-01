@@ -44,8 +44,10 @@ created by arrow()}
 \item{position}{Position adjustment, either as a string, or the result of a
 call to a position adjustment function.}
 
-\item{na.rm}{If FALSE (the default), removes missing values with a warning.
-If TRUE silently removes missing values}
+\item{na.rm}{If \code{TRUE}, the default, missing values are removed silently. A
+node with no outgoing edge has a missing edge end, so the edge layers drop
+those rows rather than warning about them. If \code{FALSE}, missing values are
+removed with a warning.}
 
 \item{show.legend}{logical. Should this layer be included in the legends? NA,
 the default, includes if any aesthetics are mapped. FALSE never includes,

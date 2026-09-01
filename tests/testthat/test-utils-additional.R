@@ -73,8 +73,14 @@ test_that("has_labels works with edge cases", {
   dag2 <- dagify(y ~ x)
   expect_false(has_labels(dag2))
 
-  # DAG with NA labels
-  dag3 <- dagify(y ~ x, labels = c(x = NA, y = NA))
+  # logical NA labels are not character labels
+  expect_error(
+    dagify(y ~ x, labels = c(x = NA, y = NA)),
+    class = "ggdag_type_error"
+  )
+
+  # missing character labels are still labels
+  dag3 <- dagify(y ~ x, labels = c(x = NA_character_, y = NA_character_))
   expect_true(has_labels(dag3))
 
   # DAG with partial labels
@@ -101,15 +107,33 @@ test_that("update_dag works correctly", {
   dag <- dagify(y ~ x + z, x ~ z)
   tidy_dag <- tidy_dagitty(dag)
 
-  # Update the DAG
+  # Update the DAG: only the replacement form installs a new DAG
   new_dag <- dagify(y ~ x)
-  updated <- update_dag(tidy_dag, new_dag)
+  update_dag(tidy_dag) <- new_dag
 
-  # Check that it returns a tidy_dagitty with the new dag
-  expect_s3_class(updated, "tidy_dagitty")
-  # The internal structure might be more complex
+  # Check that it returns a tidy_dagitty holding the new DAG's edges
+  expect_s3_class(tidy_dag, "tidy_dagitty")
   expect_equal(
-    names(dagitty::edges(pull_dag(updated))),
-    names(dagitty::edges(new_dag))
+    dagitty::edges(pull_dag(tidy_dag))[, c("v", "w")],
+    dagitty::edges(new_dag)[, c("v", "w")]
   )
+})
+
+test_that("update_dag() rejects a positionally supplied DAG", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  new_dag <- dagify(y ~ x)
+
+  expect_error(update_dag(tidy_dag, new_dag), class = "ggdag_type_error")
+})
+
+test_that("update_dag() positional argument message", {
+  tidy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  new_dag <- dagify(y ~ x)
+  # never record a baseline from the silent no-op
+  skip_if_not(inherits(
+    tryCatch(update_dag(tidy_dag, new_dag), error = identity),
+    "ggdag_type_error"
+  ))
+
+  expect_ggdag_error(update_dag(tidy_dag, new_dag))
 })

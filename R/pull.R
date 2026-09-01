@@ -25,7 +25,9 @@
 #' dag_data <- pull_dag_data(tidy_dagitty_obj)
 #'
 #' tidy_dagitty_obj |>
-#'   dplyr::mutate(name = toupper(name)) |>
+#'   # rename both endpoints of every edge, or the recompiled DAG will hold a
+#'   # mix of the old and new names
+#'   dplyr::mutate(name = toupper(name), to = toupper(to)) |>
 #'   # recreate the DAG component
 #'   update_dag()
 #'
@@ -113,32 +115,39 @@ prep_dag_data <- function(
     assert_columns_exist(value, c("name", "to"), call = call)
   }
 
-  if (is.null(coords)) {
-    if (is.function(layout)) {
-      coords <- value |>
-        edges2df() |>
-        layout() |>
-        coords2list()
-    } else if (is.data.frame(layout)) {
-      coords <- coords2list(layout)
-    } else if (identical(layout, "time_ordered")) {
-      coords <- value |>
-        edges2df() |>
-        compute_time_ordered_layout() |>
-        coords2list()
-    }
+  check_verboten_layout(layout)
+
+  validate_direction(value, call = call)
+
+  # the layout work below reorders and reshapes columns, which grouping would
+  # interfere with, so set it aside and restore it at the end
+  groups <- dplyr::group_vars(value)
+  value <- dplyr::ungroup(value)
+
+  if (is.data.frame(coords)) {
+    coords <- coords2list(coords)
   }
 
   if ("direction" %nin% names(value)) {
-    value$direction <- "->"
+    # rows with no edge are node-only rows, not directed edges
+    value$direction <- ifelse(is.na(value$to), NA_character_, "->")
   }
 
   if (any(c("x", "y", "xend", "yend") %nin% names(value))) {
+    # a partial set of coordinate columns can't be reconciled with a freshly
+    # generated layout, so drop them and regenerate all four consistently
+    value <- dplyr::select(value, -dplyr::any_of(c("x", "y", "xend", "yend")))
+
+    if (is.null(coords)) {
+      coords <- layout_coordinates(value, layout)
+    }
+
     coords_df <- value |>
       dplyr::select("name", "to") |>
       dplyr::filter(!is.na(.data$name), !is.na(.data$to)) |>
       generate_layout(
         layout = layout,
+        vertices = all_node_names(value),
         coords = coords,
         ...
       )
@@ -147,12 +156,91 @@ prep_dag_data <- function(
       tidy_dag_edges_and_coords(coords_df)
   }
 
+  if (!is.factor(value$direction)) {
+    value$direction <- factor(
+      value$direction,
+      levels = c("->", "<->", "--"),
+      exclude = NA
+    )
+  }
+
   # Remove circular column if all values are FALSE (issue #119)
   if ("circular" %in% names(value) && !any(value$circular)) {
     value$circular <- NULL
   }
 
-  dplyr::as_tibble(value)
+  value <- dplyr::as_tibble(value)
+  groups <- intersect(groups, names(value))
+
+  if (length(groups) > 0) {
+    value <- dplyr::group_by(value, !!!rlang::syms(groups))
+  }
+
+  value
+}
+
+#' Work out the coordinates a layout specification asks for
+#'
+#' Only the layouts ggdag resolves itself are computed here; the rest are left
+#' to `generate_layout()`, which passes them to ggraph. The result is thrown
+#' away unless a coordinate column is missing, so it is computed at the point
+#' of use rather than for every call: a layout is expensive, and the
+#' time-ordered one reports on its own work.
+#'
+#' @param value A data frame of edges.
+#' @param layout A layout name, data frame, or function.
+#' @return A list of `x` and `y`, or `NULL` if ggraph is to lay the DAG out.
+#' @noRd
+layout_coordinates <- function(value, layout) {
+  if (is.function(layout)) {
+    return(coords2list(layout(edges2df(value))))
+  }
+
+  if (is.data.frame(layout)) {
+    return(coords2list(layout))
+  }
+
+  if (identical(layout, "time_ordered")) {
+    return(coords2list(compute_time_ordered_layout(edges2df(value))))
+  }
+
+  NULL
+}
+
+#' Check that edge directions are ones ggdag understands
+#'
+#' The tidy data and the `dagitty` component are built from the same `direction`
+#' column, so an unrecognized value would leave the two out of step: the data
+#' would record no edge while the DAG contains one.
+#'
+#' @param value A data frame that may have a `direction` column.
+#' @param call The calling environment, for the error message.
+#' @return `value`, invisibly.
+#' @noRd
+validate_direction <- function(value, call = rlang::caller_env()) {
+  if ("direction" %nin% names(value)) {
+    return(invisible(value))
+  }
+
+  directions <- as.character(value$direction)
+  unsupported <- setdiff(
+    unique(directions[!is.na(directions)]),
+    c("->", "<->", "--")
+  )
+
+  if (length(unsupported) > 0) {
+    abort(
+      c(
+        "{.field direction} must be one of {.val {c('->', '<->', '--')}}.",
+        "x" = "Unsupported values: {.val {unsupported}}.",
+        "i" = "To reverse an edge, swap the {.field name} and {.field to} values."
+      ),
+      error_class = "ggdag_dag_error",
+      call = call
+    )
+  }
+
+  invisible(value)
 }
 
 #' @export
@@ -170,6 +258,17 @@ update_dag <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag.tidy_dagitty` <- function(x, ...) {
+  if (...length() > 0) {
+    abort(
+      c(
+        "{.fun update_dag} takes no other arguments.",
+        "x" = "It rebuilds the {.cls dagitty} component from {.arg x}'s own data.",
+        "i" = "To install a different DAG, use {.code update_dag(x) <- value}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
   update_dag(x) <- recompile_dag(x)
   x
 }
@@ -225,29 +324,56 @@ recompile_dag <- function(.dag) {
     select("name", "x", "y") |>
     coords2list()
 
-  new_dag
+  # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
+  # so labels have to be set afterwards
+  set_node_labels(new_dag, label(pull_dag(.dag)))
 }
 
-compile_dag_from_df <- function(.df) {
-  if ("direction" %nin% names(.df)) {
-    .df$direction <- "<-"
+compile_dag_from_df <- function(.df, call = rlang::caller_env()) {
+  if (nrow(.df) == 0) {
+    abort(
+      c(
+        "Can't compile a {.cls dagitty} object from an empty data frame.",
+        "i" = "{.arg .df} needs at least one row naming a node."
+      ),
+      error_class = "ggdag_dag_error",
+      call = call
+    )
   }
 
-  .df |>
+  check_representable_names(all_node_names(.df), call = call)
+
+  if ("direction" %nin% names(.df)) {
+    .df$direction <- "->"
+  }
+
+  edge_rows <- .df |>
     dplyr::filter(!is.na(.data$to)) |>
-    dplyr::mutate(
-      direction = as.character(.data$direction),
-      direction = ifelse(.data$direction == "<-", "->", .data$direction)
-    ) |>
+    dplyr::mutate(direction = as.character(.data$direction))
+
+  edge_formulas <- edge_rows |>
     dplyr::group_by(.data$name, .data$direction) |>
     dplyr::summarise(
-      to_formula = paste("{", paste(.data$to, collapse = " "), "}"),
+      to_formula = paste(
+        "{",
+        paste(quote_dagitty_name(.data$to), collapse = " "),
+        "}"
+      ),
       .groups = "drop"
     ) |>
     dplyr::transmute(
-      dag_formula = paste(.data$name, .data$direction, .data$to_formula)
+      dag_formula = paste(
+        quote_dagitty_name(.data$name),
+        .data$direction,
+        .data$to_formula
+      )
     ) |>
-    dplyr::pull() |>
+    dplyr::pull()
+
+  # nodes with no edges are only kept if they get their own bare statement
+  isolated <- setdiff(all_node_names(.df), c(edge_rows$name, edge_rows$to))
+
+  c(edge_formulas, quote_dagitty_name(isolated)) |>
     paste(collapse = "; ") |>
     (\(x) paste("dag {", x, "}"))() |>
     dagitty::dagitty()

@@ -3,7 +3,7 @@
 #' Detects variable status given a DAG (exposure, outcome, latent). See
 #' [dagitty::VariableStatus()] for details.
 #'
-#' `node_collider` tags variable status and `ggdag_collider` plots all
+#' `node_status` tags variable status and `ggdag_status` plots all
 #' variable statuses.
 #'
 #' @param .dag,.tdy_dag input graph, an object of class `tidy_dagitty` or
@@ -86,8 +86,9 @@ ggdag_status <- function(
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
 
-  p <- if_not_tidy_daggity(.tdy_dag) |>
-    node_status(...) |>
+  # `node_status()` does the tidying so that `...` reaches `tidy_dagitty()`;
+  # tidying here first would leave the dots with nothing to act on
+  p <- node_status(.tdy_dag, ...) |>
     ggplot2::ggplot(aes_dag(color = .data$status)) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("exposure", "outcome", "latent"))
