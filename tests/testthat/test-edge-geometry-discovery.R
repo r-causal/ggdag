@@ -219,7 +219,7 @@ test_that("the routing spec carries the parameters the edges are routed with", {
   # layer axis is inferred unless the layout knows which way its layers run
   expect_true(all(is.na(routed$route_clearance)))
   expect_true(all(is.na(routed$route_sep)))
-  expect_true(all(routed$route_layer_axis == "auto"))
+  expect_equal(routed$route_layer_axis, rep("auto", nrow(routed)))
 
   # what the geom is given reaches the spec as it is, so the label engine
   # routes with the numbers the edges were drawn with

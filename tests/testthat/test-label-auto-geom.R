@@ -234,7 +234,7 @@ test_that("auto stat edge rows carry the spec a routed edge is routed with", {
   expect_true(all(routed$route_style == "spline"))
   expect_true(all(is.na(routed$route_clearance)))
   expect_true(all(is.na(routed$route_sep)))
-  expect_true(all(routed$route_layer_axis == "auto"))
+  expect_equal(routed$route_layer_axis, rep("auto", nrow(routed)))
 
   # the bidirected edge is drawn as an arc in data space, so it is traced
   # rather than routed and carries no spec

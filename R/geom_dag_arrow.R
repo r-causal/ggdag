@@ -280,15 +280,18 @@ geom_dag_routed_arrow_geom <- function() {
 
         start_keys <- routed_position_keys(starts$x, starts$y)
         end_keys <- routed_position_keys(ends$x, ends$y)
-        keys <- c(start_keys, end_keys)
-        node_names <- unique(keys)
-        first_seen <- match(node_names, keys)
-        nodes <- data.frame(
-          name = node_names,
-          x = c(starts$x, ends$x)[first_seen],
-          y = c(starts$y, ends$y)[first_seen],
-          stringsAsFactors = FALSE
-        )
+
+        # the obstacle nodes come from the helper the automatic label stat
+        # collects its own from, so the two layers hand the router the same
+        # node set in the same order
+        panel <- data.frame(x = starts$x, y = starts$y)
+        panel$xend <- NA_real_
+        panel$yend <- NA_real_
+        panel$xend[has_end] <- ends$x
+        panel$yend[has_end] <- ends$y
+        nodes <- panel_node_centers(panel)
+        nodes$name <- routed_position_keys(nodes$x, nodes$y)
+        nodes <- nodes[c("name", "x", "y")]
 
         drawn <- if ("draw" %in% names(data)) {
           !is.na(data$draw) & data$draw
@@ -498,6 +501,34 @@ routed_cap_mm <- function(edges, resect) {
     return(0)
   }
   max(cap)
+}
+
+# The same millimetres, computed from a routed layer before it is drawn, so
+# that the routing spec the label engine is given names the cap the edges are
+# drawn with. The layer's own parameters are read the way `draw_panel()` reads
+# them, including a `resect_head` mapped per edge.
+routed_layer_cap_mm <- function(layer, layer_data) {
+  mapped <- layer$mapping$resect_head
+  head <- if (!is.null(mapped)) {
+    tryCatch(
+      rlang::eval_tidy(mapped, data = layer_data),
+      error = function(e) NULL
+    )
+  } else if ("resect_head" %in% names(layer_data)) {
+    layer_data$resect_head
+  } else {
+    NULL
+  }
+  if (!is.numeric(head)) {
+    head <- NULL
+  }
+
+  edges <- list(resect_head = head)
+  resect <- inject_dag_resect(
+    layer$geom_params$resect %||% list(head = NULL, fins = NULL),
+    edges
+  )
+  routed_cap_mm(edges, resect)
 }
 
 # A value that may already be a unit, as a unit of `units`.

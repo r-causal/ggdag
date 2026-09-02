@@ -161,6 +161,7 @@ label_edge_input <- function(tree, scene) {
     "route_layer_axis",
     NA_character_
   )
+  edges$route_cap <- column_or_na(edges, "route_cap", NA_real_)
   unname(split(edges, factor(edges$edge_id, levels = unique(edges$edge_id))))
 }
 
@@ -174,14 +175,18 @@ label_route_spec <- function(tree, edge) {
     value <- if (length(found) > 0) params[[found[[1]]]] else from_edge[[1]]
     if (length(value) == 0) NA else value
   }
+  axis_or_auto <- function(value) {
+    if (length(value) == 0 || is.na(value)) "auto" else value
+  }
   list(
     style = pick(c("route", "route_style"), edge$route_style),
     clearance = pick(c("clearance", "route_clearance"), edge$route_clearance),
     sep = pick(c("edge_sep", "route_sep"), edge$route_sep),
-    layer_axis = pick(
+    cap = pick(c("route_cap"), edge$route_cap),
+    layer_axis = axis_or_auto(pick(
       c("layer_axis", "route_layer_axis"),
       edge$route_layer_axis
-    )
+    ))
   )
 }
 
@@ -273,7 +278,7 @@ route_label_edge <- function(tree, scene, edge) {
       stringsAsFactors = FALSE
     ),
     bounds = c(0, 0, scene$width, scene$height),
-    cap = tree$params$edge_cap %||% 8,
+    cap = if (is.na(spec$cap)) tree$params$edge_cap %||% 8 else spec$cap,
     mode = spec$style,
     opts = route_opts(
       r_ref = radius,
@@ -589,8 +594,8 @@ test_that("the label grob routes the edge the arrow grob drew", {
   label_path <- route_label_edge(label_tree, scene, blocked)
   drawn_path <- drawn_path_for(routed_tree, blocked)
 
-  # the sentinels keep a missing routing spec a failed expectation rather
-  # than an error, so the reason a red test is red stays legible
+  # the sentinels stand in for a path the grob could not produce, so a
+  # missing routing spec reads as a failed expectation rather than an error
   deviation <- if (is.null(label_path)) {
     -Inf
   } else {
@@ -694,4 +699,59 @@ test_that("without a routed layer the label grob's edges stay chords", {
     chord_y <- c(edge$y[[1]], edge$y[[last]])
     expect_lt(max(polyline_dist(edge$x, edge$y, chord_x, chord_y)), 1e-8)
   }
+})
+
+test_that("the cap the layer draws with is the cap the label grob routes with", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # One cap, read from one place. This layer resects its arrowheads by 12 mm
+  # rather than by the node cap, and the router keeps that many millimetres of
+  # straight arm at each end so the head still arrives radially. A label grob
+  # routing with any other number would model a line the reader never sees.
+  p <- ggplot(tidy_dagitty(collinear_mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows(resect = 12) +
+    geom_dag_point() +
+    geom_dag_label_auto(aes(label = label))
+
+  scene <- forced_panel_scene(p, "dag_routed_edges|dag_labels_auto")
+  routed_tree <- scene_gtree(scene, "dag_routed_edges")
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+
+  edges <- label_edge_input(label_tree, scene)
+  routed <- edges[vapply(
+    edges,
+    function(edge) !is.na(edge$route_style[[1]]),
+    logical(1)
+  )]
+  expect_length(routed, 3)
+
+  # the resect the layer draws with, not the node cap the label engine trims
+  # its obstacles by, is what the spec carries
+  for (edge in routed) {
+    expect_equal(as.numeric(label_route_spec(label_tree, edge)$cap), 12)
+  }
+
+  lengths <- vapply(
+    routed,
+    function(edge) {
+      last <- nrow(edge)
+      sqrt(
+        (edge$x[[last]] - edge$x[[1]])^2 + (edge$y[[last]] - edge$y[[1]])^2
+      )
+    },
+    numeric(1)
+  )
+  blocked <- routed[[which.max(lengths)]]
+
+  label_path <- route_label_edge(label_tree, scene, blocked)
+  drawn_path <- drawn_path_for(routed_tree, blocked)
+
+  parity <- if (is.null(label_path) || is.null(drawn_path)) {
+    Inf
+  } else {
+    hausdorff_mm(trim_by_cap(label_path, 12), trim_by_cap(drawn_path, 12))
+  }
+
+  expect_lt(parity, 0.5)
 })

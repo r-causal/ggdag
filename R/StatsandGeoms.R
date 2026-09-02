@@ -719,6 +719,68 @@ curve_edge_points <- function(
   )
 }
 
+# Every node centre of one panel, once each, in the order the drawn scene
+# builds them. An edge row names the node it starts at and the node it ends
+# at, so the starts come first and each centre is taken where it first
+# appears. The routed edge grob and the automatic label stat both collect
+# their obstacle nodes here, which is what makes the node set the router is
+# given identical for the two layers. Centres are compared on the same
+# rounded key the routed grob names its nodes with, so a position that
+# reaches the two layers through different arithmetic still counts once.
+panel_node_centers <- function(data) {
+  centers <- data.frame(x = data$x, y = data$y)
+  if (all(c("xend", "yend") %in% names(data))) {
+    has_end <- !is.na(data$xend) & !is.na(data$yend)
+    centers <- rbind(
+      centers,
+      data.frame(x = data$xend[has_end], y = data$yend[has_end])
+    )
+  }
+  keys <- routed_position_keys(centers$x, centers$y)
+  centers <- centers[!duplicated(keys), , drop = FALSE]
+  rownames(centers) <- NULL
+  centers
+}
+
+# `n` positions along the polyline through (`x`, `y`) in order, evenly spaced
+# by arc length, with the polyline's own vertices kept as well when
+# `keep_vertices` is `TRUE`. The first and last rows are exactly the
+# polyline's endpoints. A path a corner belongs to is sampled with its
+# corners, so an obstacle sits on every turn the reader sees; a path already
+# sampled finely enough, as the router's output is, is thinned to exactly `n`
+# points instead.
+sample_polyline <- function(x, y, n, keep_vertices = TRUE) {
+  seg_len <- sqrt(diff(x)^2 + diff(y)^2)
+  cum_len <- cumsum(c(0, seg_len))
+  total <- cum_len[[length(cum_len)]]
+  if (total == 0) {
+    return(data.frame(x = rep(x[[1]], n), y = rep(y[[1]], n)))
+  }
+
+  positions <- seq(0, total, length.out = n)
+  if (keep_vertices) {
+    positions <- sort(unique(c(positions, cum_len)))
+  }
+  segment <- findInterval(positions, cum_len, rightmost.closed = TRUE)
+  # A zero-length segment, from two vertices stacked at one position, has no
+  # interior to interpolate over.
+  t_vals <- ifelse(
+    seg_len[segment] == 0,
+    0,
+    (positions - cum_len[segment]) / seg_len[segment]
+  )
+  sampled <- data.frame(
+    x = x[segment] + t_vals * (x[segment + 1] - x[segment]),
+    y = y[segment] + t_vals * (y[segment + 1] - y[segment])
+  )
+  last <- nrow(sampled)
+  sampled$x[[1]] <- x[[1]]
+  sampled$y[[1]] <- y[[1]]
+  sampled$x[[last]] <- x[[length(x)]]
+  sampled$y[[last]] <- y[[length(y)]]
+  sampled
+}
+
 # Invisible points tracing each edge, used as obstacles in ggrepel's repulsion
 # and by the automatic label stat. The rows of `edge_geometry` are the edges
 # the plot's bent edge layers draw, one row each; an edge no such layer
@@ -746,17 +808,41 @@ repel_edge_points <- function(
     edge_geometry$type
   }
   is_arrow <- geometry_type == "ggarrow_curve"
-  # A routed edge is drawn by a path the router decides in millimetres at
-  # draw time, which is geometry no data-space tracer can follow, so it is
-  # traced as its chord here, as every edge was before routing existed.
   is_routed <- geometry_type == "routed"
   arrow_geometry <- if (trace_arrows && any(is_arrow)) {
     edge_geometry[is_arrow, , drop = FALSE]
   } else {
     NULL
   }
+
+  # A routed edge whose curvature the user never set is drawn along a path
+  # the router decides in millimetres at draw time. The automatic label
+  # engine calls that same router, so it is handed the chord endpoints and
+  # the spec the edge is routed with and rebuilds the path itself; every
+  # other consumer repels in data space with no draw-time hook, so it is
+  # handed the plain chord, which is what repulsion was given before routing
+  # existed. A curvature the user did set is never rerouted, so the edge is
+  # traced as that arc, and an explicit zero as its chord.
+  routed_geometry <- NULL
+  curved_geometry <- NULL
+  if (trace_arrows && any(is_routed)) {
+    routed <- edge_geometry[is_routed, , drop = FALSE]
+    curvature <- spec_column(routed, "curvature", NA_real_)
+    routed_geometry <- routed[is.na(curvature), , drop = FALSE]
+    curved_geometry <- routed[!is.na(curvature), , drop = FALSE]
+    if (nrow(curved_geometry) > 0) {
+      curved_geometry$type <- "curve"
+      curved_geometry$strength <- curvature[!is.na(curvature)]
+    }
+  }
   if (any(is_arrow | is_routed)) {
     edge_geometry <- edge_geometry[!(is_arrow | is_routed), , drop = FALSE]
+  }
+  if (!is.null(curved_geometry) && nrow(curved_geometry) > 0) {
+    edge_geometry <- rbind(
+      edge_geometry,
+      curved_geometry[, names(edge_geometry), drop = FALSE]
+    )
   }
 
   geometry_keys <- function(geometry) {
@@ -767,6 +853,7 @@ repel_edge_points <- function(
   }
   drawn_keys <- geometry_keys(edge_geometry)
   arrow_keys <- geometry_keys(arrow_geometry)
+  routed_keys <- geometry_keys(routed_geometry)
 
   points <- list()
   panels <- unique(edges$PANEL)
@@ -783,7 +870,7 @@ repel_edge_points <- function(
       panel_edges$yend
     )
 
-    is_straight <- !(keys %in% c(drawn_keys, arrow_keys))
+    is_straight <- !(keys %in% c(drawn_keys, arrow_keys, routed_keys))
     if (any(is_straight)) {
       points[[length(points) + 1]] <- straight_edge_points(
         panel_edges[is_straight, , drop = FALSE],
@@ -828,6 +915,13 @@ repel_edge_points <- function(
         n_edge_points
       )
     }
+
+    if (!is.null(routed_geometry) && any(keys %in% routed_keys)) {
+      points[[length(points) + 1]] <- routed_chord_points(
+        routed_geometry[routed_keys %in% keys, , drop = FALSE],
+        panel
+      )
+    }
   }
 
   points <- points[!vapply(points, is.null, logical(1))]
@@ -835,6 +929,83 @@ repel_edge_points <- function(
     return(NULL)
   }
 
+  bind_edge_points(points)
+}
+
+# The routing spec a routed edge carries to the automatic label engine, which
+# rebuilds the drawn path from it at draw time, with the value each column
+# holds for an edge no routed layer draws.
+route_spec_blanks <- list(
+  route_style = NA_character_,
+  route_clearance = NA_real_,
+  route_sep = NA_real_,
+  route_layer_axis = NA_character_,
+  route_cap = NA_real_,
+  curvature = NA_real_
+)
+
+route_spec_columns <- names(route_spec_blanks)
+
+# A column of a discovered spec, or the default repeated to its height when
+# the spec does not carry that column.
+spec_column <- function(spec, name, default) {
+  if (name %in% names(spec)) {
+    return(spec[[name]])
+  }
+  rep(default, nrow(spec))
+}
+
+# The two chord endpoints of each routed edge, tagged with how the edge is
+# routed. Where the edge goes is decided in millimetres at draw time, so the
+# label stat carries the spec instead of a path.
+routed_chord_points <- function(geometry, panel) {
+  key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  rows <- seq_len(nrow(geometry))
+  data.frame(
+    edge_id = rep(paste(key, "routed", rows, sep = "\r"), each = 2),
+    x = as.vector(rbind(geometry$x, geometry$xend)),
+    y = as.vector(rbind(geometry$y, geometry$yend)),
+    PANEL = panel,
+    route_style = rep(
+      spec_column(geometry, "route_style", NA_character_),
+      each = 2
+    ),
+    route_clearance = rep(
+      spec_column(geometry, "route_clearance", NA_real_),
+      each = 2
+    ),
+    route_sep = rep(spec_column(geometry, "route_sep", NA_real_), each = 2),
+    route_layer_axis = rep(
+      spec_column(geometry, "route_layer_axis", NA_character_),
+      each = 2
+    ),
+    route_cap = rep(spec_column(geometry, "route_cap", NA_real_), each = 2),
+    curvature = NA_real_,
+    stringsAsFactors = FALSE
+  )
+}
+
+# One data frame of traced points from the pieces each tracer returned. Only
+# the routed pieces carry a routing spec, so the others are filled with NA
+# and the columns line up.
+bind_edge_points <- function(points) {
+  tagged <- vapply(
+    points,
+    function(piece) any(route_spec_columns %in% names(piece)),
+    logical(1)
+  )
+  if (!any(tagged)) {
+    return(do.call(rbind, points))
+  }
+
+  points <- lapply(points, function(piece) {
+    for (name in route_spec_columns) {
+      if (!name %in% names(piece)) {
+        piece[[name]] <- rep(route_spec_blanks[[name]], nrow(piece))
+      }
+    }
+    piece[, c("edge_id", "x", "y", "PANEL", route_spec_columns), drop = FALSE]
+  })
   do.call(rbind, points)
 }
 
@@ -1501,6 +1672,8 @@ routed_layer_geometry <- function(layer, plot_data) {
     route_style = layer$geom_params$route %||% "spline",
     route_clearance = layer$geom_params$clearance %||% NA_real_,
     route_sep = layer$geom_params$edge_sep %||% NA_real_,
+    route_layer_axis = layer$geom_params$layer_axis %||% "auto",
+    route_cap = routed_layer_cap_mm(layer, layer_data),
     stringsAsFactors = FALSE
   )
 }

@@ -848,8 +848,20 @@ StatNodesLabelAuto <- ggplot2::ggproto(
     has_edges <- all(c("xend", "yend") %in% names(data))
 
     # Every node in the layer is an obstacle, whether or not it carries a
-    # label.
-    all_nodes <- unique(data[, c("x", "y", "PANEL")])
+    # label, and a node an edge only arrives at is one too. The routed edge
+    # grob collects its obstacles from the same helper, so the router is
+    # given one node set however the panel is drawn.
+    panels <- unique(data$PANEL)
+    all_nodes <- do.call(
+      rbind,
+      lapply(seq_along(panels), function(i) {
+        centers <- panel_node_centers(
+          data[data$PANEL == panels[i], , drop = FALSE]
+        )
+        centers$PANEL <- panels[i]
+        centers
+      })
+    )
 
     edge_rows <- NULL
     if (has_edges) {
@@ -866,6 +878,9 @@ StatNodesLabelAuto <- ggplot2::ggproto(
         trace_arrows = TRUE
       )
       if (!is.null(edge_points)) {
+        # A routed edge arrives as the two endpoints of its chord and the
+        # spec it is routed with; the geom rebuilds its path at draw time,
+        # where the millimetres the router works in are known.
         edge_rows <- data.frame(
           ggdag_role = "edge",
           label = "",
@@ -875,6 +890,13 @@ StatNodesLabelAuto <- ggplot2::ggproto(
           PANEL = edge_points$PANEL,
           stringsAsFactors = FALSE
         )
+        for (name in route_spec_columns) {
+          edge_rows[[name]] <- spec_column(
+            edge_points,
+            name,
+            route_spec_blanks[[name]]
+          )
+        }
       }
     }
 
@@ -926,6 +948,7 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     coord,
     gap = 2,
     edge_cap = NULL,
+    n_edge_points = NULL,
     label.padding = grid::unit(0.25, "lines"),
     label.r = grid::unit(0.15, "lines"),
     label.size = NA,
@@ -955,10 +978,18 @@ GeomDagLabelAuto <- ggplot2::ggproto(
       nodes$node_size <- 16
     }
     nodes$node_size[is.na(nodes$node_size)] <- 16
+    node_size <- if (nrow(nodes) > 0) nodes$node_size[[1]] else 16
 
     edges <- coords[coords$ggdag_role == "edge", , drop = FALSE]
     if (!"edge_id" %in% names(edges)) {
       edges$edge_id <- character(nrow(edges))
+    }
+    # A routed edge arrives as its chord and the spec it is routed with, so
+    # the spec travels to draw time with it.
+    for (name in route_spec_columns) {
+      if (!name %in% names(edges)) {
+        edges[[name]] <- rep(route_spec_blanks[[name]], nrow(edges))
+      }
     }
 
     # Positions stay in the panel's native units here; makeContent() converts
@@ -967,11 +998,16 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     grid::gTree(
       labels = labels,
       nodes = nodes[, c("x", "y", "node_size"), drop = FALSE],
-      edges = edges[, c("edge_id", "x", "y"), drop = FALSE],
+      edges = edges[,
+        c("edge_id", "x", "y", route_spec_columns),
+        drop = FALSE
+      ],
       params = list(
         boxed = isTRUE(self$boxed),
         gap = gap,
         edge_cap = edge_cap %||% ggdag_option("edge_cap", 8),
+        node_size = node_size,
+        n_edge_points = n_edge_points %||% 20,
         label.padding = label.padding,
         label.r = label.r,
         label.size = label.size,
@@ -1087,15 +1123,20 @@ makeContent.dag_labels_auto <- function(x) {
     y = mm_y(x$nodes$y),
     radius = node_radius_mm(x$nodes$node_size)
   )
-  edge_input <- shorten_edge_tails(
-    data.frame(
-      edge_id = x$edges$edge_id,
-      x = mm_x(x$edges$x),
-      y = mm_y(x$edges$y),
-      stringsAsFactors = FALSE
-    ),
-    par$edge_cap
+  edges_mm <- data.frame(
+    edge_id = x$edges$edge_id,
+    x = mm_x(x$edges$x),
+    y = mm_y(x$edges$y),
+    stringsAsFactors = FALSE
   )
+  edges_mm <- route_label_obstacles(
+    edges_mm,
+    x$edges,
+    node_input,
+    par,
+    c(0, 0, panel_width, panel_height)
+  )
+  edge_input <- shorten_edge_tails(edges_mm, par$edge_cap)
 
   placed <- place_dag_labels(
     label_input,
@@ -1165,6 +1206,134 @@ makeContent.dag_labels_auto <- function(x) {
   }
 
   grid::setChildren(x, do.call(grid::gList, c(leaders, boxes, texts)))
+}
+
+#' Rebuild the drawn path of every routed edge, in millimetres
+#'
+#' A routed edge reaches the label grob as the two endpoints of its chord and
+#' the spec the layer routes it with, because where it goes is decided in
+#' millimetres at draw time. This calls the same pure router the arrows are
+#' drawn with, on the same node discs, panel bounds, cap, and options, and
+#' thins each path to the resolution the other edges are traced at. Edges no
+#' routed layer draws are returned untouched.
+#'
+#' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
+#' @param spec The routing columns of the same rows, as the stat carried them.
+#' @param nodes Node centres in millimetres with their `radius`.
+#' @param par The gTree parameters, carrying `node_size`, `n_edge_points`, and
+#'   `edge_cap`.
+#' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
+#' @return `edges`, with each routed edge's two rows replaced by its path.
+#' @noRd
+route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
+  tagged <- !is.na(spec$route_style)
+  if (!any(tagged)) {
+    return(edges)
+  }
+
+  ids <- unique(edges$edge_id[tagged])
+  first <- match(ids, edges$edge_id)
+  last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
+  chords <- data.frame(
+    edge_id = ids,
+    x = edges$x[first],
+    y = edges$y[first],
+    xend = edges$x[last],
+    yend = edges$y[last],
+    style = spec$route_style[first],
+    clearance = spec$route_clearance[first],
+    sep = spec$route_sep[first],
+    layer_axis = spec$route_layer_axis[first],
+    cap = spec$route_cap[first],
+    stringsAsFactors = FALSE
+  )
+
+  # The router names its nodes by position, so an endpoint identifies the
+  # node it belongs to whichever layer measured it.
+  router_nodes <- data.frame(
+    name = routed_position_keys(nodes$x, nodes$y),
+    x = nodes$x,
+    y = nodes$y,
+    r = nodes$radius,
+    stringsAsFactors = FALSE
+  )
+  nearest <- function(px, py) {
+    vapply(
+      seq_along(px),
+      function(i) {
+        distance <- (router_nodes$x - px[[i]])^2 + (router_nodes$y - py[[i]])^2
+        router_nodes$name[[which.min(distance)]]
+      },
+      character(1)
+    )
+  }
+  chords$from <- nearest(chords$x, chords$y)
+  chords$to <- nearest(chords$xend, chords$yend)
+
+  radius <- node_radius_mm(par$node_size)
+  n_points <- (par$n_edge_points %||% 20) + 2
+
+  paths <- vector("list", nrow(chords))
+  groups <- paste(
+    chords$style,
+    chords$clearance,
+    chords$sep,
+    chords$layer_axis,
+    chords$cap,
+    sep = "\r"
+  )
+  for (rows in split(seq_len(nrow(chords)), groups)) {
+    settings <- chords[rows[[1]], , drop = FALSE]
+    routed <- route_edges_mm(
+      nodes = router_nodes,
+      edges = data.frame(
+        from = chords$from[rows],
+        to = chords$to[rows],
+        curvature = NA_real_,
+        stringsAsFactors = FALSE
+      ),
+      bounds = bounds,
+      cap = if (is.na(settings$cap)) par$edge_cap else settings$cap,
+      mode = settings$style,
+      opts = route_opts(
+        r_ref = radius,
+        m = if (is.na(settings$clearance)) NULL else settings$clearance,
+        sep_e = if (is.na(settings$sep)) NULL else settings$sep,
+        layer_axis = if (is.na(settings$layer_axis)) {
+          "auto"
+        } else {
+          settings$layer_axis
+        }
+      )
+    )
+    paths[rows] <- routed$paths
+  }
+
+  # The router samples at half a millimetre, so its own vertices carry no
+  # information a thinning would lose: an obstacle every `n_points` along
+  # the path is what every other traced edge contributes.
+  routed_rows <- do.call(
+    rbind,
+    lapply(seq_len(nrow(chords)), function(i) {
+      sampled <- sample_polyline(
+        paths[[i]]$x,
+        paths[[i]]$y,
+        n_points,
+        keep_vertices = FALSE
+      )
+      data.frame(
+        edge_id = chords$edge_id[[i]],
+        x = sampled$x,
+        y = sampled$y,
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+
+  rbind(
+    edges[!tagged, c("edge_id", "x", "y"), drop = FALSE],
+    routed_rows
+  )
 }
 
 #' Leader line from a node disc to its label box
