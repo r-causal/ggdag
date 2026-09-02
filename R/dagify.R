@@ -969,12 +969,13 @@ get_dagitty_edges <- function(.dag) {
 
 edges2df <- function(.edges) {
   # a DAG with no edges at all can arrive with an all-`NA` logical `to` column,
-  # which would otherwise make the node-only rows below logical as well
+  # which cannot bind to the character `to` of the node-only rows below, so the
+  # edge frame is coerced before the two are combined
   .to <- as.character(.edges$to)
   no_outgoing_edges <- unique(.to[!(.to %in% .edges$name)])
   no_outgoing_edges <- no_outgoing_edges[!is.na(no_outgoing_edges)]
   dplyr::bind_rows(
-    .edges,
+    dplyr::mutate(.edges, to = .to),
     tibble::tibble(
       name = no_outgoing_edges,
       to = rep(NA_character_, length(no_outgoing_edges))
