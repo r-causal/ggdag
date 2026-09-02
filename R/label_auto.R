@@ -843,7 +843,7 @@ StatNodesLabelAuto <- ggplot2::ggproto(
     "edge_geometry"
   ),
   compute_layer = function(data, params, layout) {
-    node_size <- params$node_size %||% 16
+    node_size <- params$node_size %||% ggdag_option("node_size", 16)
     n_edge_points <- params$n_edge_points %||% 20
     has_edges <- all(c("xend", "yend") %in% names(data))
 
@@ -974,11 +974,15 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     }
 
     nodes <- coords[coords$ggdag_role == "node", , drop = FALSE]
+    # the router routes around the discs the plot draws, so an unknown node
+    # size falls back to the option the node layers are drawn at, which is
+    # the fallback the routed edge grob takes as well
+    default_size <- ggdag_option("node_size", 16)
     if (!"node_size" %in% names(nodes)) {
-      nodes$node_size <- 16
+      nodes$node_size <- default_size
     }
-    nodes$node_size[is.na(nodes$node_size)] <- 16
-    node_size <- if (nrow(nodes) > 0) nodes$node_size[[1]] else 16
+    nodes$node_size[is.na(nodes$node_size)] <- default_size
+    node_size <- if (nrow(nodes) > 0) nodes$node_size[[1]] else default_size
 
     edges <- coords[coords$ggdag_role == "edge", , drop = FALSE]
     if (!"edge_id" %in% names(edges)) {
@@ -1230,23 +1234,37 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   if (!any(tagged)) {
     return(edges)
   }
+  fixed <- !is.na(spec$route_fixed) & spec$route_fixed
 
-  ids <- unique(edges$edge_id[tagged])
-  first <- match(ids, edges$edge_id)
-  last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
-  chords <- data.frame(
-    edge_id = ids,
-    x = edges$x[first],
-    y = edges$y[first],
-    xend = edges$x[last],
-    yend = edges$y[last],
-    style = spec$route_style[first],
-    clearance = spec$route_clearance[first],
-    sep = spec$route_sep[first],
-    layer_axis = spec$route_layer_axis[first],
-    cap = spec$route_cap[first],
-    stringsAsFactors = FALSE
-  )
+  # One row per edge, from the first and last of the points it was traced
+  # with. A routed edge is traced as its chord, so those two points are the
+  # node centres; an edge the user pinned is traced as the path it is drawn
+  # along, whose ends are the same centres.
+  chord_rows <- function(mask) {
+    if (!any(mask)) {
+      return(NULL)
+    }
+    ids <- unique(edges$edge_id[mask])
+    first <- match(ids, edges$edge_id)
+    last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
+    data.frame(
+      edge_id = ids,
+      x = edges$x[first],
+      y = edges$y[first],
+      xend = edges$x[last],
+      yend = edges$y[last],
+      style = spec$route_style[first],
+      clearance = spec$route_clearance[first],
+      sep = spec$route_sep[first],
+      layer_axis = spec$route_layer_axis[first],
+      cap = spec$route_cap[first],
+      curvature = spec$curvature[first],
+      stringsAsFactors = FALSE
+    )
+  }
+
+  chords <- chord_rows(tagged)
+  pinned <- chord_rows(fixed)
 
   # The router names its nodes by position, so an endpoint identifies the
   # node it belongs to whichever layer measured it.
@@ -1267,8 +1285,43 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       character(1)
     )
   }
-  chords$from <- nearest(chords$x, chords$y)
-  chords$to <- nearest(chords$xend, chords$yend)
+  name_ends <- function(edge) {
+    if (is.null(edge)) {
+      return(edge)
+    }
+    edge$from <- nearest(edge$x, edge$y)
+    edge$to <- nearest(edge$xend, edge$yend)
+    edge
+  }
+  chords <- name_ends(chords)
+  pinned <- name_ends(pinned)
+
+  # An edge the user curved is drawn as that arc, sampled in millimetres by
+  # the drawn grob, and an explicit zero is drawn as the chord. Neither is
+  # rerouted, but the router prices every detour against them, so it is
+  # shown them exactly as the drawn grob shows them.
+  pinned_input <- NULL
+  if (!is.null(pinned)) {
+    pinned_input <- data.frame(
+      from = pinned$from,
+      to = pinned$to,
+      curvature = pinned$curvature,
+      stringsAsFactors = FALSE
+    )
+    pinned_input$fixed_path <- lapply(seq_len(nrow(pinned)), function(i) {
+      if (pinned$curvature[[i]] == 0) {
+        return(NULL)
+      }
+      sample_curved_edge(
+        pinned$x[[i]],
+        pinned$y[[i]],
+        pinned$xend[[i]],
+        pinned$yend[[i]],
+        curvature = pinned$curvature[[i]],
+        n = routed_fixed_path_n
+      )
+    })
+  }
 
   radius <- node_radius_mm(par$node_size)
   n_points <- (par$n_edge_points %||% 20) + 2
@@ -1284,14 +1337,19 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   )
   for (rows in split(seq_len(nrow(chords)), groups)) {
     settings <- chords[rows[[1]], , drop = FALSE]
+    edge_input <- data.frame(
+      from = chords$from[rows],
+      to = chords$to[rows],
+      curvature = NA_real_,
+      stringsAsFactors = FALSE
+    )
+    if (!is.null(pinned_input)) {
+      edge_input$fixed_path <- vector("list", nrow(edge_input))
+      edge_input <- rbind(edge_input, pinned_input)
+    }
     routed <- route_edges_mm(
       nodes = router_nodes,
-      edges = data.frame(
-        from = chords$from[rows],
-        to = chords$to[rows],
-        curvature = NA_real_,
-        stringsAsFactors = FALSE
-      ),
+      edges = edge_input,
       bounds = bounds,
       cap = if (is.na(settings$cap)) par$edge_cap else settings$cap,
       mode = settings$style,
@@ -1306,7 +1364,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
         }
       )
     )
-    paths[rows] <- routed$paths
+    paths[rows] <- routed$paths[seq_along(rows)]
   }
 
   # The router samples at half a millimetre, so its own vertices carry no

@@ -140,6 +140,141 @@ forced_panel_scene <- function(plot, pattern, width = 7, height = 5) {
   list(grobs = grobs, width = panel_width, height = panel_height)
 }
 
+# The same scene, one entry per panel of a faceted plot. Each panel measures
+# its own viewport, so a grob's positions convert to the millimetres that
+# panel drew them in, and the label boxes are read while the device that drew
+# them is still open, because a closed device leaves nothing to measure in.
+forced_panel_scenes <- function(plot, pattern, width = 7, height = 5) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  grid::grid.newpage()
+  grid::grid.draw(gtable)
+  grid::grid.force()
+
+  paths <- grid::grid.grep(pattern, grep = TRUE, global = TRUE)
+  paths <- vapply(paths, as.character, character(1))
+  matched <- paths[grepl(pattern, sub(".*::", "", paths))]
+  viewports <- vapply(
+    strsplit(matched, "::", fixed = TRUE),
+    `[[`,
+    character(1),
+    2L
+  )
+
+  panels <- split(matched, factor(viewports, levels = unique(viewports)))
+  lapply(panels, function(group) {
+    viewport <- strsplit(group[[1]], "::", fixed = TRUE)[[1]][[2]]
+    grid::seekViewport(viewport)
+    panel_width <- grid::convertWidth(grid::unit(1, "npc"), "mm", TRUE)
+    panel_height <- grid::convertHeight(grid::unit(1, "npc"), "mm", TRUE)
+    grid::upViewport(0)
+
+    grobs <- lapply(group, grid::grid.get)
+    names(grobs) <- group
+    list(
+      grobs = grobs,
+      boxes = do.call(c, lapply(grobs, forced_label_boxes)),
+      width = panel_width,
+      height = panel_height
+    )
+  })
+}
+
+# The label boxes of a forced `dag_labels_auto` gTree, in millimetres. Forcing
+# turns each box into a polygon whose geometry moves to the viewport
+# `makeContext.roundrect()` attaches; the engine placed the box in absolute
+# millimetres, so that is what the viewport holds.
+forced_label_boxes <- function(grob) {
+  children <- grob$children
+  if (!inherits(grob, "dag_labels_auto") || length(children) == 0) {
+    return(list())
+  }
+  names <- vapply(children, function(child) child$name %||% "", character(1))
+  lapply(unname(children[grepl("roundrect", names)]), function(box) {
+    center_x <- grid::convertX(box$vp$x, "mm", TRUE)
+    center_y <- grid::convertY(box$vp$y, "mm", TRUE)
+    width <- grid::convertWidth(box$vp$width, "mm", TRUE)
+    height <- grid::convertHeight(box$vp$height, "mm", TRUE)
+    c(
+      xmin = center_x - width / 2,
+      xmax = center_x + width / 2,
+      ymin = center_y - height / 2,
+      ymax = center_y + height / 2
+    )
+  })
+}
+
+# The obstacle polylines the label grob places against, recovered by handing
+# its own inputs to the routine it calls at draw time. The realised polyline
+# is not kept on the gTree, so this is the same call, from the same grob.
+label_routed_obstacles <- function(tree, scene) {
+  edges_mm <- data.frame(
+    edge_id = tree$edges$edge_id,
+    x = tree$edges$x * scene$width,
+    y = tree$edges$y * scene$height,
+    stringsAsFactors = FALSE
+  )
+  nodes_mm <- data.frame(
+    x = tree$nodes$x * scene$width,
+    y = tree$nodes$y * scene$height,
+    radius = node_radius_mm(tree$nodes$node_size)
+  )
+  routed <- route_label_obstacles(
+    edges_mm,
+    tree$edges,
+    nodes_mm,
+    tree$params,
+    c(0, 0, scene$width, scene$height)
+  )
+  unname(split(
+    routed,
+    factor(routed$edge_id, levels = unique(routed$edge_id))
+  ))
+}
+
+# The straight-line length between a polyline's two ends.
+span_mm <- function(path) {
+  last <- nrow(path)
+  sqrt((path$x[[last]] - path$x[[1]])^2 + (path$y[[last]] - path$y[[1]])^2)
+}
+
+# The polyline resampled at `spacing` millimetres, so a box a segment passes
+# through is caught by a point inside it.
+densify_mm_polyline <- function(path, spacing = 0.5) {
+  x <- path$x
+  y <- path$y
+  dense_x <- x[[1]]
+  dense_y <- y[[1]]
+  for (i in seq_len(length(x) - 1)) {
+    dx <- x[[i + 1]] - x[[i]]
+    dy <- y[[i + 1]] - y[[i]]
+    steps <- max(1, ceiling(sqrt(dx^2 + dy^2) / spacing))
+    fraction <- seq_len(steps) / steps
+    dense_x <- c(dense_x, x[[i]] + fraction * dx)
+    dense_y <- c(dense_y, y[[i]] + fraction * dy)
+  }
+  data.frame(x = dense_x, y = dense_y)
+}
+
+# Does any point of `path` fall inside `box`?
+path_meets_box <- function(path, box) {
+  any(
+    path$x >= box[["xmin"]] &
+      path$x <= box[["xmax"]] &
+      path$y >= box[["ymin"]] &
+      path$y <= box[["ymax"]]
+  )
+}
+
 # The one forced gTree of `scene` whose name says it was drawn by `cl`.
 scene_gtree <- function(scene, cl) {
   trees <- scene$grobs[grepl(cl, names(scene$grobs))]
@@ -754,4 +889,211 @@ test_that("the cap the layer draws with is the cap the label grob routes with", 
   }
 
   expect_lt(parity, 0.5)
+})
+
+# Panels and pinned edges ------------------------------------------------------
+
+test_that("each panel routes the edges that panel draws, once each", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  # The routing spec is discovered from the layer's data, which holds every
+  # panel at once, so a chord several panels share is matched by each of them
+  # once per panel that draws it. The router reads a repeated chord as a
+  # bundle of parallel edges and spreads the copies apart, so the label
+  # engine's obstacle would be a fan of detours where one line is drawn.
+  p <- ggdag_equivalent_dags(
+    collinear_mediator_dag(),
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  scenes <- forced_panel_scenes(
+    p,
+    "dag_routed_edges|dag_labels_auto",
+    width = 10,
+    height = 6
+  )
+  expect_length(scenes, 6)
+
+  for (scene in scenes) {
+    routed_tree <- scene_gtree(scene, "dag_routed_edges")
+    label_tree <- scene_gtree(scene, "dag_labels_auto")
+
+    # the panel draws three edges, so the stat carries three routed edges and
+    # the two chord endpoints of each
+    spec <- label_tree$edges[!is.na(label_tree$edges$route_style), ]
+    expect_equal(nrow(spec), 6)
+    expect_length(unique(spec$edge_id), 3)
+
+    obstacles <- label_routed_obstacles(label_tree, scene)
+    expect_length(obstacles, 3)
+
+    spans <- vapply(obstacles, span_mm, numeric(1))
+    by_span <- order(spans)
+
+    # the mediator blocks only the long chord, so the two short edges come
+    # back as the chords they are drawn as
+    for (edge in obstacles[by_span[1:2]]) {
+      last <- nrow(edge)
+      chord_x <- c(edge$x[[1]], edge$x[[last]])
+      chord_y <- c(edge$y[[1]], edge$y[[last]])
+      expect_lt(
+        max(polyline_dist(edge$x, edge$y, chord_x, chord_y)),
+        1e-6
+      )
+    }
+
+    # and the blocked one is the detour this panel's arrow grob drew, not a
+    # member of a bundle the repetition invented
+    blocked <- obstacles[[by_span[[3]]]]
+    drawn <- drawn_path_for(routed_tree, blocked)
+    expect_gte(mid_chord_deviation(blocked), 6)
+    expect_lt(hausdorff_mm(blocked, drawn), 0.5)
+  }
+})
+
+test_that("an edge the user pinned is shown to the router as it is drawn", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # The router prices a detour by what it would cross and how crowded each
+  # side already is, so an edge it never reroutes still decides which way the
+  # edges it does reroute go. The label engine has to hand it the same set of
+  # edges the drawn grob does: an arc the user set at the curvature it is
+  # drawn at, and an edge pinned straight by an explicit zero as a chord.
+  coords <- list(
+    x = c(x = 0, m = 1, y = 2, z = 1),
+    y = c(x = 0, m = 0, y = 0, z = 2)
+  )
+
+  for (curvature in c(-0.3, 0.3, 0)) {
+    dag <- dagify(
+      y ~ x + m,
+      m ~ x,
+      z ~ x,
+      labels = c(x = "Exposure", m = "Mediator", y = "Outcome", z = "Other"),
+      coords = coords
+    )
+    p <- ggdag(
+      curve_edge(tidy_dagitty(dag), "x", "z", curvature),
+      edge_engine = "ggarrow",
+      edge_route = "spline",
+      use_labels = TRUE,
+      label_geom = geom_dag_label_auto
+    )
+
+    scene <- forced_panel_scenes(p, "dag_routed_edges|dag_labels_auto")[[1]]
+    routed_tree <- scene_gtree(scene, "dag_routed_edges")
+    label_tree <- scene_gtree(scene, "dag_labels_auto")
+
+    # the pinned edge reaches the grob as the path it is drawn along, tagged
+    # with the curvature it is drawn at rather than with a routing spec
+    pinned <- label_tree$edges[
+      !is.na(label_tree$edges$route_fixed) & label_tree$edges$route_fixed,
+    ]
+    expect_length(unique(pinned$edge_id), 1)
+    expect_true(all(is.na(pinned$route_style)))
+    expect_equal(unique(pinned$curvature), curvature)
+
+    obstacles <- label_routed_obstacles(label_tree, scene)
+    blocked <- obstacles[[which.max(vapply(obstacles, span_mm, numeric(1)))]]
+    drawn <- drawn_path_for(routed_tree, blocked)
+
+    expect_gte(mid_chord_deviation(blocked), 6)
+    expect_lt(hausdorff_mm(blocked, drawn), 0.5)
+  }
+})
+
+# Visual -----------------------------------------------------------------------
+
+test_that("label-auto visuals: labels keep off the routed detours", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  dag <- dagify(
+    b ~ a,
+    c ~ b,
+    d ~ c + b,
+    e ~ d + a,
+    labels = c(
+      a = "Baseline",
+      b = "Adherence",
+      c = "Dose",
+      d = "Response",
+      e = "Outcome"
+    ),
+    coords = list(
+      x = c(a = 0, b = 1, c = 2, d = 3, e = 4),
+      y = c(a = 0, b = 0, c = 0, d = 0, e = 0)
+    )
+  )
+  p <- ggdag(
+    dag,
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  ) +
+    theme_dag()
+
+  # A baseline is only worth keeping if the picture is right, so the placement
+  # is measured before it is drawn: no label box may sit on a path the router
+  # drew, over the part of that path the label engine treats as an obstacle.
+  scene <- forced_panel_scenes(
+    p,
+    "dag_routed_edges|dag_labels_auto",
+    width = 10,
+    height = 8
+  )[[1]]
+  routed_tree <- scene_gtree(scene, "dag_routed_edges")
+  drawn <- unlist(
+    lapply(find_arrow_paths(routed_tree), arrow_grob_paths),
+    recursive = FALSE
+  )
+  cap <- scene_gtree(scene, "dag_labels_auto")$params$edge_cap
+  stopifnot(length(scene$boxes) == 5, length(drawn) == 6)
+  for (box in scene$boxes) {
+    for (path in drawn) {
+      stopifnot(
+        !path_meets_box(
+          trim_by_cap(densify_mm_polyline(path), cap),
+          box
+        )
+      )
+    }
+  }
+
+  expect_doppelganger("label-auto-routed-skip-chain", p)
+})
+
+test_that("an unset node size falls back to the option in both grobs", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  local_ggdag_option_state()
+  ggdag_options_set(node_size = 24)
+
+  # There is no node layer to discover a size from, so both grobs fall back,
+  # and they have to fall back to the same number: the router clears the
+  # discs the plot would draw, and a label engine routing around a smaller
+  # disc than the arrows did would model a line that is not there.
+  p <- ggplot(tidy_dagitty(collinear_mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_label_auto(aes(label = label))
+
+  scene <- forced_panel_scenes(p, "dag_routed_edges|dag_labels_auto")[[1]]
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+  routed_tree <- scene_gtree(scene, "dag_routed_edges")
+
+  expect_equal(label_tree$params$node_size, 24)
+  expect_equal(routed_tree$params$node_size, 24)
+
+  obstacles <- label_routed_obstacles(label_tree, scene)
+  blocked <- obstacles[[which.max(vapply(obstacles, span_mm, numeric(1)))]]
+  expect_lt(
+    hausdorff_mm(blocked, drawn_path_for(routed_tree, blocked)),
+    0.5
+  )
 })

@@ -822,27 +822,19 @@ repel_edge_points <- function(
   # other consumer repels in data space with no draw-time hook, so it is
   # handed the plain chord, which is what repulsion was given before routing
   # existed. A curvature the user did set is never rerouted, so the edge is
-  # traced as that arc, and an explicit zero as its chord.
+  # traced as that arc, and an explicit zero as its chord, but the router is
+  # still shown where those edges go, because it prices every other edge's
+  # detour against them.
   routed_geometry <- NULL
-  curved_geometry <- NULL
+  fixed_geometry <- NULL
   if (trace_arrows && any(is_routed)) {
-    routed <- edge_geometry[is_routed, , drop = FALSE]
+    routed <- dedupe_routed_geometry(edge_geometry[is_routed, , drop = FALSE])
     curvature <- spec_column(routed, "curvature", NA_real_)
     routed_geometry <- routed[is.na(curvature), , drop = FALSE]
-    curved_geometry <- routed[!is.na(curvature), , drop = FALSE]
-    if (nrow(curved_geometry) > 0) {
-      curved_geometry$type <- "curve"
-      curved_geometry$strength <- curvature[!is.na(curvature)]
-    }
+    fixed_geometry <- routed[!is.na(curvature), , drop = FALSE]
   }
   if (any(is_arrow | is_routed)) {
     edge_geometry <- edge_geometry[!(is_arrow | is_routed), , drop = FALSE]
-  }
-  if (!is.null(curved_geometry) && nrow(curved_geometry) > 0) {
-    edge_geometry <- rbind(
-      edge_geometry,
-      curved_geometry[, names(edge_geometry), drop = FALSE]
-    )
   }
 
   geometry_keys <- function(geometry) {
@@ -854,6 +846,7 @@ repel_edge_points <- function(
   drawn_keys <- geometry_keys(edge_geometry)
   arrow_keys <- geometry_keys(arrow_geometry)
   routed_keys <- geometry_keys(routed_geometry)
+  fixed_keys <- geometry_keys(fixed_geometry)
 
   points <- list()
   panels <- unique(edges$PANEL)
@@ -870,7 +863,8 @@ repel_edge_points <- function(
       panel_edges$yend
     )
 
-    is_straight <- !(keys %in% c(drawn_keys, arrow_keys, routed_keys))
+    is_straight <- !(keys %in%
+      c(drawn_keys, arrow_keys, routed_keys, fixed_keys))
     if (any(is_straight)) {
       points[[length(points) + 1]] <- straight_edge_points(
         panel_edges[is_straight, , drop = FALSE],
@@ -922,6 +916,15 @@ repel_edge_points <- function(
         panel
       )
     }
+
+    if (!is.null(fixed_geometry) && any(keys %in% fixed_keys)) {
+      points[[length(points) + 1]] <- routed_fixed_points(
+        fixed_geometry[fixed_keys %in% keys, , drop = FALSE],
+        panel,
+        n_edge_points,
+        include_endpoints
+      )
+    }
   }
 
   points <- points[!vapply(points, is.null, logical(1))]
@@ -941,6 +944,7 @@ route_spec_blanks <- list(
   route_sep = NA_real_,
   route_layer_axis = NA_character_,
   route_cap = NA_real_,
+  route_fixed = NA,
   curvature = NA_real_
 )
 
@@ -953,6 +957,34 @@ spec_column <- function(spec, name, default) {
     return(spec[[name]])
   }
   rep(default, nrow(spec))
+}
+
+# One spec row per edge a routed layer draws in a panel. The spec is built
+# from the layer's data before it is split into panels, so a chord several
+# panels share is matched by each of those panels once for every panel that
+# draws it. A routed layer draws at most one directed edge between an ordered
+# pair of nodes, so rows alike in every field are copies of one edge rather
+# than parallel edges, and the router spreads a bundle of copies apart if it
+# is handed them.
+dedupe_routed_geometry <- function(geometry) {
+  if (nrow(geometry) == 0) {
+    return(geometry)
+  }
+  fields <- c(
+    "from",
+    "to",
+    "route_style",
+    "route_clearance",
+    "route_sep",
+    "route_layer_axis",
+    "route_cap",
+    "curvature"
+  )
+  key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  for (field in fields) {
+    key <- paste(key, spec_column(geometry, field, NA), sep = "\r")
+  }
+  geometry[!duplicated(key), , drop = FALSE]
 }
 
 # The two chord endpoints of each routed edge, tagged with how the edge is
@@ -980,8 +1012,49 @@ routed_chord_points <- function(geometry, panel) {
       each = 2
     ),
     route_cap = rep(spec_column(geometry, "route_cap", NA_real_), each = 2),
+    route_fixed = FALSE,
     curvature = NA_real_,
     stringsAsFactors = FALSE
+  )
+}
+
+# Positions along the arcs a routed layer draws for the edges whose curvature
+# the user set, and along the chords of the edges pinned straight by an
+# explicit zero. Neither is ever rerouted, so each is traced exactly as a
+# curve layer's edges are; the rows carry the curvature they are drawn at so
+# that the label grob can show the router where they go, which is what the
+# drawn grob does.
+routed_fixed_points <- function(
+  geometry,
+  panel,
+  n_edge_points,
+  include_endpoints
+) {
+  key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  do.call(
+    rbind,
+    lapply(seq_len(nrow(geometry)), function(i) {
+      curve <- sample_curved_edge(
+        geometry$x[i],
+        geometry$y[i],
+        geometry$xend[i],
+        geometry$yend[i],
+        curvature = geometry$curvature[i],
+        n = n_edge_points + 2
+      )
+      if (!include_endpoints) {
+        curve <- curve[-c(1, nrow(curve)), , drop = FALSE]
+      }
+      data.frame(
+        edge_id = paste(key[[i]], "fixed", i, sep = "\r"),
+        x = curve$x,
+        y = curve$y,
+        PANEL = panel,
+        route_fixed = TRUE,
+        curvature = geometry$curvature[[i]],
+        stringsAsFactors = FALSE
+      )
+    })
   )
 }
 

@@ -339,6 +339,11 @@ geom_dag_routed_arrow_geom <- function() {
   the$GeomDAGRoutedArrow
 }
 
+# How finely an arc the user set is sampled before the router is shown where
+# it goes. The label engine builds the same path from the same millimetres,
+# so both grobs price their detours against one polyline.
+routed_fixed_path_n <- 32
+
 # A node's identity within one panel, from the position it is drawn at. The
 # endpoints of an edge are the coordinates of the nodes it runs between, so
 # the same node reaches the router under one name however many edges mention
@@ -423,7 +428,7 @@ makeContent.dag_routed_edges <- function(x) {
         end_x[[i]],
         end_y[[i]],
         curvature = curvature[[i]],
-        n = 32
+        n = routed_fixed_path_n
       )
     })
   }
