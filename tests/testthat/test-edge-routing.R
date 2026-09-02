@@ -1,19 +1,34 @@
-# Tests for visibility-graph edge routing. The routing engine in
-# R/route_edges.R takes each straight edge that a node blocks, builds a local
-# visibility graph over the edge endpoints and the tangent points on expanded
-# obstacle circles (radius 1.5 * node_radius, giving the drawn node a
-# 0.5 * node_radius clearance margin), finds the shortest path with Dijkstra,
-# and smooths the corners with two iterations of Chaikin corner cutting.
-# StatDAGRoutedEdge turns edge rows (x, y, xend, yend) into waypoint rows in
-# the long format the label obstacle machinery already consumes (edge_id, x,
-# y, seq), and geom_dag_routed_arrows() renders each waypoint path as a
-# multi-point ggarrow arrow. The auto_route option (default FALSE) swaps the
-# routed geom into the packaged ggarrow edge rendering.
+# Tests for the draw-time routed edge layer and the `edge_route` option.
 #
-# Everything here is deterministic: the engine consumes no randomness, and an
-# on-chord obstruction breaks the up/down tie by detouring below, mirroring
-# the auto_curve tie rule (a node on the chord counts as sitting above it, so
-# the edge goes below).
+# `GeomDAGRoutedArrow` is a plain ggplot2 geom. Its `draw_panel()` transforms
+# the panel's node centres and edge endpoints to npc and returns a
+# `dag_routed_edges` gTree; the gTree's `makeContent()` method converts those
+# to millimetres, calls the pure router `route_edges_mm()`, and builds the
+# arrows with `ggarrow::grob_arrow()` in millimetres. No geometry is decided
+# in data space, so the panel aspect ratio never shears a detour and the
+# picture re-routes when the plot is resized.
+#
+# The layer's data are the plain plot rows carrying a logical `.ggdag_draw`
+# column that marks the rows the layer draws, mapped to the `draw` aesthetic,
+# so scales and legends see exactly what every other DAG layer sees. The
+# `edge_route` option ("straight", "spline", or "orthogonal") swaps the routed
+# layer into `geom_dag()` and the quick plots under the ggarrow edge engine;
+# the ggraph engine cannot route and says so.
+#
+# Geometry is therefore asserted on the drawn picture: the plot is rendered to
+# an off-screen device, the grob tree is forced, and the realised arrow paths
+# are read back in millimetres. The constants follow the router's own: the
+# default node size 16 draws a disc of radius 6 mm and the default clearance
+# margin is 3 mm, so a routed path clears an obstacle by 9 mm less the 0.1 mm
+# verification tolerance.
+#
+# The `edge_route` validation test lives here rather than in test-options.R so
+# that `_snaps/options.md` stays as it is; it asserts on the condition class
+# and message directly rather than recording a snapshot.
+
+r_node <- node_radius_mm(16)
+r_full <- r_node + 3
+verify_tol <- 0.1
 
 # Helpers ----------------------------------------------------------------------
 
@@ -21,11 +36,11 @@
 point_segment_dist <- function(px, py, x, y, xend, yend) {
   dx <- xend - x
   dy <- yend - y
-  len2 <- dx^2 + dy^2
-  t <- if (len2 == 0) {
+  len_sq <- dx^2 + dy^2
+  t <- if (len_sq == 0) {
     rep(0, length(px))
   } else {
-    pmin(pmax(((px - x) * dx + (py - y) * dy) / len2, 0), 1)
+    pmin(1, pmax(0, ((px - x) * dx + (py - y) * dy) / len_sq))
   }
   sqrt((px - (x + t * dx))^2 + (py - (y + t * dy))^2)
 }
@@ -33,102 +48,30 @@ point_segment_dist <- function(px, py, x, y, xend, yend) {
 # Distance from each point to the nearest segment of the polyline through
 # (poly_x, poly_y) in order.
 polyline_dist <- function(px, py, poly_x, poly_y) {
-  seg_dists <- vapply(
-    seq_len(length(poly_x) - 1),
-    function(s) {
+  segments <- seq_len(length(poly_x) - 1)
+  distances <- vapply(
+    segments,
+    function(i) {
       point_segment_dist(
         px,
         py,
-        poly_x[s],
-        poly_y[s],
-        poly_x[s + 1],
-        poly_y[s + 1]
+        poly_x[i],
+        poly_y[i],
+        poly_x[i + 1],
+        poly_y[i + 1]
       )
     },
     numeric(length(px))
   )
-  apply(matrix(seg_dists, nrow = length(px)), 1, min)
-}
-
-# The tangent point on the circle (cx, cy, radius) touched by the tangent
-# line from the external point (px, py), on the requested side of the x axis.
-# Closed form: the tangent segment has length sqrt(d^2 - radius^2) where d is
-# the distance from the point to the center, and leaves the point at the
-# angle toward the center plus or minus asin(radius / d).
-tangent_point <- function(px, py, cx, cy, radius, side = c("below", "above")) {
-  side <- match.arg(side)
-  dx <- cx - px
-  dy <- cy - py
-  d <- sqrt(dx^2 + dy^2)
-  angle <- atan2(dy, dx)
-  half <- asin(radius / d)
-  reach <- sqrt(d^2 - radius^2)
-  candidates <- rbind(
-    c(px + reach * cos(angle + half), py + reach * sin(angle + half)),
-    c(px + reach * cos(angle - half), py + reach * sin(angle - half))
-  )
-  pick <- if (side == "below") {
-    which.min(candidates[, 2])
-  } else {
-    which.max(candidates[, 2])
+  if (is.null(dim(distances))) {
+    return(min(distances))
   }
-  candidates[pick, ]
+  apply(distances, 1, min)
 }
 
-# Reference implementation of the pinned smoothing law: each interior corner
-# is replaced by the points one quarter before and one quarter after it along
-# its adjacent segments, and the endpoints are kept.
-chaikin_reference <- function(x, y, iterations) {
-  pts <- cbind(x, y)
-  for (k in seq_len(iterations)) {
-    n <- nrow(pts)
-    if (n <= 2) {
-      break
-    }
-    rows <- list(pts[1, , drop = FALSE])
-    for (i in 2:(n - 1)) {
-      rows[[length(rows) + 1]] <- rbind(
-        pts[i - 1, ] + 0.75 * (pts[i, ] - pts[i - 1, ]),
-        pts[i, ] + 0.25 * (pts[i + 1, ] - pts[i, ])
-      )
-    }
-    rows[[length(rows) + 1]] <- pts[n, , drop = FALSE]
-    pts <- do.call(rbind, rows)
-  }
-  data.frame(x = pts[, 1], y = pts[, 2])
-}
-
-# Build a minimal tidy_dagitty data tibble from a node table and an edge
-# list, mirroring the fixture builder in test-route_edges.R: one row per edge
-# plus one terminal row (to = NA) for each node with no outgoing edge.
-make_dag_data <- function(coords, edges) {
-  direction <- edges$direction
-  if (is.null(direction)) {
-    direction <- rep("->", nrow(edges))
-  }
-  edge_rows <- tibble::tibble(
-    name = edges$name,
-    x = as.numeric(coords$x[match(edges$name, coords$name)]),
-    y = as.numeric(coords$y[match(edges$name, coords$name)]),
-    direction = factor(direction, levels = c("->", "<->", "--")),
-    to = edges$to,
-    xend = as.numeric(coords$x[match(edges$to, coords$name)]),
-    yend = as.numeric(coords$y[match(edges$to, coords$name)])
-  )
-  terminal <- setdiff(coords$name, edges$name)
-  terminal_rows <- tibble::tibble(
-    name = terminal,
-    x = as.numeric(coords$x[match(terminal, coords$name)]),
-    y = as.numeric(coords$y[match(terminal, coords$name)]),
-    direction = factor(NA, levels = c("->", "<->", "--")),
-    to = NA_character_,
-    xend = NA_real_,
-    yend = NA_real_
-  )
-  dplyr::bind_rows(edge_rows, terminal_rows)
-}
-
-# The mediation triangle with the mediator dead on the x -> y chord.
+# The mediation triangle with the mediator dead on the x -> y chord. Every
+# node sits at y = 0, so the panel's y range is degenerate: this is the scene
+# where a data-space router bows an edge entirely out of the panel.
 mediator_dag <- function() {
   dagify(
     y ~ x + m,
@@ -137,282 +80,9 @@ mediator_dag <- function() {
   )
 }
 
-# The indices of the layers drawn by the routing stat.
-routed_layer_index <- function(plot) {
-  which(vapply(
-    plot$layers,
-    function(layer) inherits(layer$stat, "StatDAGRoutedEdge"),
-    logical(1)
-  ))
-}
-
-# The waypoints of the edge whose endpoints are (x, y) and (xend, yend),
-# ordered by seq, from a routed layer's built data.
-edge_waypoints <- function(layer_df, x, y, xend, yend) {
-  for (rows in split(layer_df, layer_df$edge_id)) {
-    rows <- rows[order(rows$seq), , drop = FALSE]
-    n <- nrow(rows)
-    if (
-      abs(rows$x[1] - x) < 1e-8 &&
-        abs(rows$y[1] - y) < 1e-8 &&
-        abs(rows$x[n] - xend) < 1e-8 &&
-        abs(rows$y[n] - yend) < 1e-8
-    ) {
-      return(rows)
-    }
-  }
-  NULL
-}
-
-# Distance from each point to the modeled quadratic Bezier arc, by dense
-# sampling; the sampling spacing bounds the error well below the tolerances
-# used here.
-bezier_dist <- function(px, py, x, y, xend, yend, curvature) {
-  arc <- sample_curved_edge(x, y, xend, yend, curvature = curvature, n = 1000)
-  vapply(
-    seq_along(px),
-    function(i) min(sqrt((arc$x - px[i])^2 + (arc$y - py[i])^2)),
-    numeric(1)
-  )
-}
-
-# chaikin_smooth ---------------------------------------------------------------
-
-test_that("chaikin_smooth: a straight two-point path is returned unchanged", {
-  res <- chaikin_smooth(c(0, 2), c(0, 1), iterations = 2)
-  expect_s3_class(res, "data.frame")
-  expect_named(res, c("x", "y"))
-  expect_equal(res$x, c(0, 2))
-  expect_equal(res$y, c(0, 1))
-
-  # there is no corner to cut however often the smoothing runs
-  res <- chaikin_smooth(c(0, 2), c(0, 1), iterations = 5)
-  expect_equal(res$x, c(0, 2))
-  expect_equal(res$y, c(0, 1))
-})
-
-test_that("chaikin_smooth: one iteration cuts a corner at the quarter points", {
-  # the right-angle corner at (1, 0) is replaced by the point one quarter
-  # before it along (0,0) -> (1,0) and the point one quarter after it along
-  # (1,0) -> (1,1); the endpoints are kept
-  res <- chaikin_smooth(c(0, 1, 1), c(0, 0, 1), iterations = 1)
-  expect_equal(res$x, c(0, 0.75, 1, 1))
-  expect_equal(res$y, c(0, 0, 0.25, 1))
-})
-
-test_that("chaikin_smooth: each iteration turns n points into 2n - 2", {
-  # every interior corner becomes two cut points and the endpoints survive,
-  # so 3 points become 4, then 6, then 10
-  x <- c(0, 1, 2)
-  y <- c(0, 1, 0)
-  expect_identical(nrow(chaikin_smooth(x, y, iterations = 1)), 4L)
-  expect_identical(nrow(chaikin_smooth(x, y, iterations = 2)), 6L)
-  expect_identical(nrow(chaikin_smooth(x, y, iterations = 3)), 10L)
-
-  two <- chaikin_smooth(x, y, iterations = 2)
-  expect_equal(two$x[c(1, nrow(two))], c(0, 2))
-  expect_equal(two$y[c(1, nrow(two))], c(0, 0))
-  expect_equal(two, chaikin_reference(x, y, iterations = 2))
-})
-
-test_that("chaikin_smooth: the default is two iterations", {
-  x <- c(0, 1, 2)
-  y <- c(0, 1, 0)
-  res <- chaikin_smooth(x, y)
-  expect_equal(res, chaikin_smooth(x, y, iterations = 2))
-  expect_false(nrow(res) == nrow(chaikin_smooth(x, y, iterations = 1)))
-})
-
-# route_edge_waypoints: unblocked edges ----------------------------------------
-
-test_that("route_edge_waypoints: an unblocked edge is the straight two-point path", {
-  r <- node_radius_data()
-
-  # no obstacle nodes at all
-  res <- route_edge_waypoints(0, 0, 2, 0, numeric(), numeric(), node_radius = r)
-  expect_s3_class(res, "data.frame")
-  expect_named(res, c("x", "y"))
-  expect_identical(nrow(res), 2L)
-  expect_equal(res$x, c(0, 2))
-  expect_equal(res$y, c(0, 0))
-
-  # a node well away from the corridor changes nothing
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 1, node_radius = r)
-  expect_identical(nrow(res), 2L)
-  expect_equal(res$x, c(0, 2))
-  expect_equal(res$y, c(0, 0))
-
-  # a zero-length edge cannot be routed and must come back as its two
-  # stacked endpoints without error
-  res <- route_edge_waypoints(0, 0, 0, 0, 1, 0, node_radius = r)
-  expect_identical(nrow(res), 2L)
-})
-
-test_that("route_edge_waypoints: the corridor is 1.5 node radii wide", {
-  r <- node_radius_data()
-
-  # a node just outside the expanded obstacle radius does not block the edge
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 1.5 * r + 1e-9, node_radius = r)
-  expect_identical(nrow(res), 2L)
-
-  # a node just inside it does
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 1.5 * r - 0.01, node_radius = r)
-  expect_gt(nrow(res), 2L)
-})
-
-# route_edge_waypoints: single on-chord obstacle -------------------------------
-
-test_that("route_edge_waypoints: an on-chord obstacle produces the tangent path, smoothed", {
-  r <- node_radius_data()
-  r_exp <- 1.5 * r
-
-  # Derivation for the edge (0,0) -> (2,0) blocked by a node at (1,0), with
-  # the expanded obstacle circle at radius R = 1.5 * r = 0.2167. The chord
-  # runs through the circle, so the straight path is blocked:
-  expect_lt(dist_to_edge(1, 0, 0, 0, 2, 0), r_exp)
-
-  # The visibility path must visit tangent points from both endpoints. Each
-  # endpoint is at distance 1 from the center, so its tangent points sit at
-  # (0.9531, +/- 0.2115) and (1.0469, +/- 0.2115). The shortcut straight from
-  # (0,0) to the far tangent point passes within 0.198 of the center, inside
-  # the expanded circle, so no three-point path exists:
-  t_start <- tangent_point(0, 0, 1, 0, r_exp, "below")
-  t_end <- tangent_point(2, 0, 1, 0, r_exp, "below")
-  expect_lt(dist_to_edge(1, 0, 0, 0, t_end[1], t_end[2]), r_exp)
-
-  # The raw shortest path is therefore start, both lower tangent points, end
-  # (the up and down paths tie by symmetry, and the tie rule picks below,
-  # mirroring auto_curve). Two Chaikin iterations turn its 4 points into
-  # 2 * 4 - 2 = 6 and then 2 * 6 - 2 = 10.
-  expected <- chaikin_reference(
-    c(0, t_start[1], t_end[1], 2),
-    c(0, t_start[2], t_end[2], 0),
-    iterations = 2
-  )
-
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 0, node_radius = r)
-  expect_identical(nrow(res), 10L)
-  expect_equal(res$x, expected$x, tolerance = 1e-6)
-  expect_equal(res$y, expected$y, tolerance = 1e-6)
-})
-
-test_that("route_edge_waypoints: the smoothed path keeps its clearance", {
-  r <- node_radius_data()
-  r_exp <- 1.5 * r
-
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 0, node_radius = r)
-
-  # endpoints are exactly the edge endpoints
-  expect_equal(c(res$x[1], res$y[1]), c(0, 0))
-  expect_equal(c(res$x[nrow(res)], res$y[nrow(res)]), c(2, 0))
-
-  # The deepest point of the detour is the tangent offset R * sqrt(1 - R^2)
-  # (tangent points from an endpoint at distance 1), and corner cutting never
-  # pushes the path further out than that.
-  y_star <- r_exp * sqrt(1 - r_exp^2)
-  expect_equal(max(abs(res$y)), y_star, tolerance = 1e-6)
-
-  # The chords between tangent points and the corner cuts dip slightly inside
-  # the expanded circle, but the clearance margin absorbs them: the polyline
-  # stays at least 1.4 node radii from the obstacle center (measured 1.457 on
-  # this fixture), well clear of the drawn node at 1 radius.
-  expect_gt(min(polyline_dist(1, 0, res$x, res$y)), 1.4 * r)
-  expect_lt(min(polyline_dist(1, 0, res$x, res$y)), r_exp)
-})
-
-# route_edge_waypoints: side selection -----------------------------------------
-
-test_that("route_edge_waypoints: the detour goes around the shorter side", {
-  r <- node_radius_data()
-
-  # A node at (1, 0.06) blocks the chord mostly from above: the below detour
-  # only has to clear the 0.157 of the expanded circle that protrudes below
-  # the chord, while the above detour must clear 0.277. The tangent-path
-  # lengths are 2.024 below versus 2.075 above, so Dijkstra goes below.
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 0.06, node_radius = r)
-  expect_gt(nrow(res), 2L)
-  interior <- res[-c(1, nrow(res)), , drop = FALSE]
-  expect_true(all(interior$y < 0))
-  expect_gt(min(polyline_dist(1, 0.06, res$x, res$y)), r)
-
-  # the mirrored fixture routes the mirrored path
-  mirrored <- route_edge_waypoints(0, 0, 2, 0, 1, -0.06, node_radius = r)
-  expect_equal(mirrored$x, res$x, tolerance = 1e-8)
-  expect_equal(mirrored$y, -res$y, tolerance = 1e-8)
-})
-
-# route_edge_waypoints: obstacles on both sides --------------------------------
-
-test_that("route_edge_waypoints: opposite blockers force an S-shaped weave", {
-  r <- node_radius_data()
-
-  # The edge (0,0) -> (4,0) is blocked by (1, 0.1) and (3, -0.1). Weaving
-  # below the first and above the second is length 4.027 against 4.066 for a
-  # detour around both on either single side (checked against a brute-force
-  # shortest path over densely sampled obstacle boundaries), so the shortest
-  # route is the S shape.
-  res <- route_edge_waypoints(
-    0,
-    0,
-    4,
-    0,
-    c(1, 3),
-    c(0.1, -0.1),
-    node_radius = r
-  )
-  expect_gt(nrow(res), 2L)
-  expect_equal(c(res$x[1], res$y[1]), c(0, 0))
-  expect_equal(c(res$x[nrow(res)], res$y[nrow(res)]), c(4, 0))
-
-  # the path clears both drawn nodes
-  expect_gt(min(polyline_dist(1, 0.1, res$x, res$y)), r)
-  expect_gt(min(polyline_dist(3, -0.1, res$x, res$y)), r)
-
-  # and weaves: below the chord near the first blocker, above it near the
-  # second. Clearing (1, 0.1) from below puts the path at y < -0.04 there,
-  # so 0.02 leaves a comfortable margin.
-  sampled <- sample_polyline(res$x, res$y, 400)
-  expect_lt(sampled$y[which.min(abs(sampled$x - 1))], -0.02)
-  expect_gt(sampled$y[which.min(abs(sampled$x - 3))], 0.02)
-})
-
-# route_edge_waypoints: defaults and determinism -------------------------------
-
-test_that("route_edge_waypoints: node_radius defaults to node_radius_data()", {
-  res <- route_edge_waypoints(0, 0, 2, 0, 1, 0)
-  explicit <- route_edge_waypoints(
-    0,
-    0,
-    2,
-    0,
-    1,
-    0,
-    node_radius = node_radius_data()
-  )
-  expect_identical(res, explicit)
-})
-
-test_that("route_edge_waypoints: deterministic and consumes no randomness", {
-  invisible(stats::runif(1))
-  seed_before <- get(".Random.seed", envir = globalenv())
-
-  first <- route_edge_waypoints(0, 0, 4, 0, c(1, 3), c(0.1, -0.1))
-  second <- route_edge_waypoints(0, 0, 4, 0, c(1, 3), c(0.1, -0.1))
-  expect_identical(first, second)
-  expect_identical(get(".Random.seed", envir = globalenv()), seed_before)
-})
-
-# StatDAGRoutedEdge and geom_dag_routed_arrows ---------------------------------
-
-test_that("StatDAGRoutedEdge is a ggplot2 stat", {
-  expect_true(inherits(StatDAGRoutedEdge, "ggproto"))
-  expect_true(inherits(StatDAGRoutedEdge, "Stat"))
-})
-
-test_that("geom_dag_routed_arrows: routed directed edges plus an arc for bidirected ones", {
-  skip_if_not_installed("ggarrow")
-
-  dag <- dagify(
+# The same triangle with a latent common cause drawn as a bidirected arc.
+latent_mediator_dag <- function() {
+  dagify(
     y ~ x + m,
     m ~ x,
     u ~ ~v,
@@ -421,229 +91,647 @@ test_that("geom_dag_routed_arrows: routed directed edges plus an arc for bidirec
       y = c(x = 0, m = 0, y = 0, u = 2, v = 2)
     )
   )
-  p <- ggplot(tidy_dagitty(dag), aes_dag()) +
+}
+
+# Three mediation triangles stacked well apart, so that each row of the scene
+# can carry a curvature rule of its own.
+stacked_triangles_dag <- function() {
+  dagify(
+    y1 ~ x1 + m1,
+    m1 ~ x1,
+    y2 ~ x2 + m2,
+    m2 ~ x2,
+    y3 ~ x3 + m3,
+    m3 ~ x3,
+    coords = list(
+      x = c(
+        x1 = 0,
+        m1 = 1,
+        y1 = 2,
+        x2 = 0,
+        m2 = 1,
+        y2 = 2,
+        x3 = 0,
+        m3 = 1,
+        y3 = 2
+      ),
+      y = c(
+        x1 = 0,
+        m1 = 0,
+        y1 = 0,
+        x2 = 5,
+        m2 = 5,
+        y2 = 5,
+        x3 = 10,
+        m3 = 10,
+        y3 = 10
+      )
+    )
+  )
+}
+
+# The positions of the layers `plot` draws routed edges with.
+routed_layer_index <- function(plot) {
+  which(vapply(
+    plot$layers,
+    function(layer) inherits(layer$geom, "GeomDAGRoutedArrow"),
+    logical(1)
+  ))
+}
+
+# The one layer `plot` draws routed edges with, or NULL when it has none.
+routed_layer_of <- function(plot) {
+  idx <- routed_layer_index(plot)
+  if (length(idx) != 1) {
+    return(NULL)
+  }
+  plot$layers[[idx]]
+}
+
+# Evaluate `code` with an off-screen device open, so that grid unit
+# conversions have a device to measure against and no file is left behind.
+with_offscreen_device <- function(code, width = 7, height = 5) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+  force(code)
+}
+
+# Draw `plot` to `file` on an off-screen raster device, so that
+# `makeContent()` runs with the panel viewport in place. The device is closed
+# on the way out whether or not the drawing succeeds, so the file is complete
+# when this returns and no device is left behind when it is not.
+render_offscreen <- function(plot, file, width = 7, height = 5) {
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  print(plot)
+  invisible(NULL)
+}
+
+# Draw `plot` off screen, discarding the picture.
+draw_offscreen <- function(plot, width = 7, height = 5) {
+  file <- tempfile(fileext = ".png")
+  on.exit(unlink(file), add = TRUE)
+  render_offscreen(plot, file, width = width, height = height)
+  invisible(NULL)
+}
+
+# The bytes of `plot` rendered to a PNG.
+render_bytes <- function(plot, width = 7, height = 5) {
+  file <- tempfile(fileext = ".png")
+  on.exit(unlink(file), add = TRUE)
+  render_offscreen(plot, file, width = width, height = height)
+  readBin(file, "raw", file.size(file))
+}
+
+# The panel a forced grob was drawn in, read from its grob path. The gtable
+# names each panel's grob tree `panel-<i>`, where `i` is the panel index.
+grob_panel <- function(path) {
+  matched <- regmatches(path, regexpr("panel-[0-9]+\\.", path))
+  if (length(matched) == 0) {
+    return(NA_integer_)
+  }
+  as.integer(sub("panel-([0-9]+)\\.", "\\1", matched))
+}
+
+# Render `plot` off screen, force the grob tree so that every `makeContent()`
+# method has run and its children are on the display list, and return the
+# forced grobs whose own name matches `pattern`, ordered by panel and named by
+# their full grob path.
+force_panel_grobs <- function(plot, pattern, width = 7, height = 5) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  grid::grid.newpage()
+  grid::grid.draw(gtable)
+  grid::grid.force()
+
+  paths <- grid::grid.grep(pattern, grep = TRUE, global = TRUE)
+  paths <- vapply(paths, as.character, character(1))
+  own_name <- sub(".*::", "", paths)
+  matched <- paths[grepl(pattern, own_name)]
+
+  grobs <- lapply(matched, grid::grid.get)
+  names(grobs) <- matched
+  grobs[order(vapply(matched, grob_panel, integer(1)))]
+}
+
+# The children of a forced gTree that draw with class `cl`.
+find_grob_class <- function(gtree, cl) {
+  children <- gtree$children
+  if (length(children) == 0) {
+    return(list())
+  }
+  unname(children[vapply(children, inherits, logical(1), what = cl)])
+}
+
+# The single `dag_routed_edges` gTree of a one-panel plot.
+routed_gtree <- function(plot, ...) {
+  gtrees <- force_panel_grobs(plot, "dag_routed_edges", ...)
+  testthat::expect_length(gtrees, 1)
+  gtrees[[1]]
+}
+
+# The drawn detour of the collinear mediator scene, read back from a forced
+# `dag_routed_edges` gTree: the routed x -> y path and the mediator's centre,
+# both in millimetres.
+mediator_detour <- function(gtree) {
+  arrows <- find_grob_class(gtree, "arrow_path")
+  testthat::expect_length(arrows, 1)
+  paths <- arrow_grob_paths(arrows[[1]])
+  keys <- path_grid_keys(paths)
+  short <- paths[[which(keys == "c1r1->c2r1")]]
+  list(
+    routed = paths[[which(keys == "c1r1->c3r1")]],
+    centre = c(x = short$x[[2]], y = short$y[[2]])
+  )
+}
+
+# A grid unit read back in millimetres. The routed grob is built in
+# millimetres, so the conversion is the identity and does not depend on the
+# device it is measured on.
+unit_mm <- function(value, axis = c("x", "y")) {
+  axis <- match.arg(axis)
+  if (!grid::is.unit(value)) {
+    return(as.numeric(value))
+  }
+  convert <- if (axis == "x") grid::convertX else grid::convertY
+  with_offscreen_device(convert(value, "mm", valueOnly = TRUE))
+}
+
+# The edge index of every point of an `arrow_path` grob. ggarrow stores the
+# `id` vector run-length encoded.
+arrow_grob_ids <- function(grob) {
+  ids <- grob$id_rle
+  if (inherits(ids, "rle")) {
+    return(inverse.rle(ids))
+  }
+  fields <- unclass(ids)
+  rep(fields$group, fields$length)
+}
+
+# The drawn paths of an `arrow_path` grob, one data frame of millimetres per
+# edge, in the order the grob draws them.
+arrow_grob_paths <- function(grob) {
+  ids <- arrow_grob_ids(grob)
+  points <- data.frame(x = unit_mm(grob$x, "x"), y = unit_mm(grob$y, "y"))
+  unname(split(points, factor(ids, levels = unique(ids))))
+}
+
+# Name each drawn path by the grid position of its endpoints, columns
+# numbered left to right and rows bottom to top: "c1r1->c3r1" is the edge from
+# the leftmost to the rightmost node of the bottom row. The fixtures here
+# place their nodes on such a grid, so this identifies an edge without
+# depending on the order the layer happens to draw in.
+path_grid_keys <- function(paths) {
+  ends <- function(column, at_end) {
+    values <- vapply(
+      paths,
+      function(path) {
+        path[[column]][if (at_end) nrow(path) else 1]
+      },
+      numeric(1)
+    )
+    round(values, 6)
+  }
+  x_from <- ends("x", FALSE)
+  y_from <- ends("y", FALSE)
+  x_to <- ends("x", TRUE)
+  y_to <- ends("y", TRUE)
+
+  columns <- sort(unique(c(x_from, x_to)))
+  rows <- sort(unique(c(y_from, y_to)))
+  paste0(
+    "c",
+    match(x_from, columns),
+    "r",
+    match(y_from, rows),
+    "->c",
+    match(x_to, columns),
+    "r",
+    match(y_to, rows)
+  )
+}
+
+# The curvature a `curve_arrow` grob was built with.
+curve_grob_curvature <- function(grob) {
+  grob$curve$curvature %||% grob$curvature
+}
+
+# The label boxes of a forced `dag_labels_auto` gTree, in millimetres. Forcing
+# the tree runs `makeContent.roundrect()` on every box, which returns a
+# polygon, so the boxes are found by name rather than by class. Their geometry
+# is in the viewport `makeContext.roundrect()` attaches: the label engine
+# passes no viewport of its own, so the box is centred on the viewport and its
+# extent is the viewport's, in the millimetres the engine placed it in.
+label_boxes_mm <- function(gtree) {
+  children <- gtree$children
+  if (length(children) == 0) {
+    return(list())
+  }
+  names <- vapply(children, function(child) child$name %||% "", character(1))
+  lapply(unname(children[grepl("roundrect", names)]), function(box) {
+    center_x <- unit_mm(box$vp$x, "x")
+    center_y <- unit_mm(box$vp$y, "y")
+    width <- unit_mm(box$vp$width, "x")
+    height <- unit_mm(box$vp$height, "y")
+    c(
+      xmin = center_x - width / 2,
+      xmax = center_x + width / 2,
+      ymin = center_y - height / 2,
+      ymax = center_y + height / 2
+    )
+  })
+}
+
+# The polyline resampled at `spacing` millimetres, so that a box crossed by a
+# segment is caught by a point inside it.
+densify_polyline <- function(x, y, spacing = 0.5) {
+  dense_x <- x[1]
+  dense_y <- y[1]
+  for (i in seq_len(length(x) - 1)) {
+    dx <- x[i + 1] - x[i]
+    dy <- y[i + 1] - y[i]
+    steps <- max(1, ceiling(sqrt(dx^2 + dy^2) / spacing))
+    fraction <- seq_len(steps) / steps
+    dense_x <- c(dense_x, x[i] + fraction * dx)
+    dense_y <- c(dense_y, y[i] + fraction * dy)
+  }
+  data.frame(x = dense_x, y = dense_y)
+}
+
+# Do any of `points` fall inside `box`?
+points_in_box <- function(points, box) {
+  any(
+    points$x >= box[["xmin"]] &
+      points$x <= box[["xmax"]] &
+      points$y >= box[["ymin"]] &
+      points$y <= box[["ymax"]]
+  )
+}
+
+# How many edges each panel of `plot` draws routed arrows for.
+routed_ids_per_panel <- function(plot, ...) {
+  gtrees <- force_panel_grobs(plot, "dag_routed_edges", ...)
+  vapply(
+    gtrees,
+    function(gtree) {
+      arrows <- find_grob_class(gtree, "arrow_path")
+      if (length(arrows) == 0) {
+        return(0L)
+      }
+      length(unique(arrow_grob_ids(arrows[[1]])))
+    },
+    integer(1)
+  )
+}
+
+# The layer anatomy --------------------------------------------------------------
+
+test_that("geom_dag_routed_arrows(): the layer draws the plot rows and marks the directed ones", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(latent_mediator_dag())
+  p <- ggplot(tidy_dag, aes_dag()) +
     geom_dag_routed_arrows() +
     geom_dag_point()
 
-  # one routed layer for the directed edges, one curve layer for the
-  # bidirected pair, and both draw with the ggarrow engine
-  idx <- routed_layer_index(p)
-  expect_length(idx, 1)
+  layer <- routed_layer_of(p)
+  expect_false(is.null(layer))
   expect_identical(count_geom_layers(p, "GeomDAGArrowCurve"), 1L)
-  expect_true(inherits(p$layers[[idx]]$geom, "GeomArrow"))
   expect_true(uses_ggarrow_edges(p))
 
-  # one arrowhead at the path end and none at the start by default
-  arrow <- p$layers[[idx]]$geom_params$arrow
+  # every decision is made at draw time, so the layer computes nothing before
+  # then and inherits the plot's DAG mapping like any other layer
+  expect_true(inherits(layer$stat, "StatIdentity"))
+  expect_true(layer$inherit.aes)
+  expect_false(is.null(layer$mapping$draw))
+
+  # the layer data are the plain plot rows: the router needs every node of the
+  # panel as an obstacle, and the scales must see the rows they always saw
+  expect_true(is.function(layer$data))
+  plot_data <- pull_dag_data(tidy_dag)
+  resolved <- layer$data(plot_data)
+  expect_identical(nrow(resolved), nrow(plot_data))
+  expect_contains(
+    names(resolved),
+    c("name", "x", "y", "xend", "yend", ".ggdag_draw")
+  )
+  expect_true(is.logical(resolved$.ggdag_draw))
+
+  # and `.ggdag_draw` marks exactly the directed edges: node rows and the
+  # bidirected pair, which the arc layer draws, are carried but not drawn
+  directed <- !is.na(plot_data$to) &
+    as.character(plot_data$direction) == "->"
+  expect_identical(resolved$.ggdag_draw, directed)
+  expect_identical(sum(resolved$.ggdag_draw), 3L)
+
+  # one arrowhead at the end of the path and none at the start, by default
+  arrow <- layer$geom_params$arrow
   expect_false(is.null(arrow$head))
   expect_null(arrow$fins)
-
-  # the routed layer carries exactly the three directed edges; the
-  # bidirected pair stays on the arc layer
-  built <- ggplot2::layer_data(p, idx)
-  expect_length(unique(built$edge_id), 3)
-  expect_null(edge_waypoints(built, 0, 2, 2, 2))
 })
 
-test_that("StatDAGRoutedEdge emits waypoint long format matching the engine", {
+test_that("geom_dag_routed_arrows(): the signature routes in device units", {
   skip_if_not_installed("ggarrow")
-  r <- node_radius_data()
 
+  arg_names <- names(formals(geom_dag_routed_arrows))
+  expect_contains(arg_names, c("route", "clearance", "edge_sep", "layer_axis"))
+
+  # the routing radius is the drawn node size in millimetres now, so there is
+  # no data-space radius left to set
+  expect_false("node_radius" %in% arg_names)
+
+  # `route` and `layer_axis` may be written as a single default or as the full
+  # set of choices for `match.arg()`; either way the first value is the default
+  route <- eval(formals(geom_dag_routed_arrows)$route)
+  expect_identical(route[[1]], "spline")
+  expect_contains(route, "orthogonal")
+  expect_identical(
+    eval(formals(geom_dag_routed_arrows)$layer_axis)[[1]],
+    "auto"
+  )
+
+  # clearance and edge separation are millimetre overrides of the router's own
+  # defaults, so they are unset unless the user says otherwise
+  expect_null(eval(formals(geom_dag_routed_arrows)$clearance))
+  expect_null(eval(formals(geom_dag_routed_arrows)$edge_sep))
+})
+
+test_that("geom_dag_routed_arrows(): the routing mode reaches the layer", {
+  skip_if_not_installed("ggarrow")
+
+  # only the parameter is pinned here: drawing an orthogonal route is the
+  # router's own round, and until then the mode errors when it is drawn
   p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
-    geom_dag_routed_arrows() +
+    geom_dag_routed_arrows(route = "orthogonal") +
     geom_dag_point()
-  idx <- routed_layer_index(p)
-  expect_length(idx, 1)
-  built <- ggplot2::layer_data(p, idx)
 
-  expect_contains(names(built), c("edge_id", "x", "y", "seq"))
-  groups <- split(built, built$edge_id)
-  expect_length(groups, 3)
-
-  # the blocked x -> y edge carries the full routed path the engine computes
-  blocked <- edge_waypoints(built, 0, 0, 2, 0)
-  expect_false(is.null(blocked))
-  expect_identical(nrow(blocked), 10L)
-  expect_equal(blocked$seq, seq_len(10))
-  engine <- route_edge_waypoints(0, 0, 2, 0, 1, 0, node_radius = r)
-  expect_equal(blocked$x, engine$x, tolerance = 1e-8)
-  expect_equal(blocked$y, engine$y, tolerance = 1e-8)
-  expect_gt(min(polyline_dist(1, 0, blocked$x, blocked$y)), r)
-
-  # the unblocked edges are two-point straight paths
-  for (ends in list(c(0, 0, 1, 0), c(1, 0, 2, 0))) {
-    straight <- edge_waypoints(built, ends[1], ends[2], ends[3], ends[4])
-    expect_false(is.null(straight))
-    expect_identical(nrow(straight), 2L)
-    expect_equal(straight$seq, c(1, 2))
-  }
-
-  # each edge is one drawing group of its own, so the paths render separately
-  group_of <- vapply(groups, function(g) g$group[[1]], numeric(1))
-  expect_length(unique(group_of), 3)
-  for (g in groups) {
-    expect_length(unique(g$group), 1)
-  }
+  expect_identical(routed_layer_of(p)$geom_params$route, "orthogonal")
 })
 
-test_that("geom_dag_routed_arrows: node_radius widens the corridor", {
-  skip_if_not_installed("ggarrow")
-
-  # m sits 0.3 from the chord, outside the default corridor of
-  # 1.5 * 0.144 = 0.217, so nothing routes by default
-  dag <- dagify(
-    y ~ x + m,
-    m ~ x,
-    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 0.3, y = 0))
-  )
-  td <- tidy_dagitty(dag)
-
-  p <- ggplot(td, aes_dag()) + geom_dag_routed_arrows() + geom_dag_point()
-  built <- ggplot2::layer_data(p, routed_layer_index(p))
-  expect_true(all(table(built$edge_id) == 2))
-
-  # widening the radius pulls m into the corridor and routes around it with
-  # the wider clearance
-  p <- ggplot(td, aes_dag()) +
-    geom_dag_routed_arrows(node_radius = 0.4) +
-    geom_dag_point()
-  built <- ggplot2::layer_data(p, routed_layer_index(p))
-  blocked <- edge_waypoints(built, 0, 0, 2, 0)
-  expect_false(is.null(blocked))
-  expect_gt(nrow(blocked), 2L)
-  expect_gt(min(polyline_dist(1, 0.3, blocked$x, blocked$y)), 0.4)
-})
-
-test_that("geom_dag_routed_arrows: explicit edge curvature is never rerouted", {
-  skip_if_not_installed("ggarrow")
-
-  # three stacked mediation triangles, each with its mediator dead on the
-  # x -> y chord; only the first leaves its curvature unset
-  coords <- data.frame(
-    name = c("x1", "m1", "y1", "x2", "m2", "y2", "x3", "m3", "y3"),
-    x = rep(c(0, 1, 2), 3),
-    y = rep(c(0, 5, 10), each = 3)
-  )
-  edges <- data.frame(
-    name = c("x1", "m1", "x1", "x2", "m2", "x2", "x3", "m3", "x3"),
-    to = c("m1", "y1", "y1", "m2", "y2", "y2", "m3", "y3", "y3")
-  )
-  data <- make_dag_data(coords, edges)
-  data$edge_curvature <- NA_real_
-  data$edge_curvature[data$name == "x2" & data$to == "y2"] <- 0.4
-  data$edge_curvature[data$name == "x2" & data$to == "m2"] <- 0
-  data$edge_curvature[data$name == "m2"] <- 0
-  data$edge_curvature[data$name == "x3" | data$name == "m3"] <- 0
-
-  p <- ggplot(data, aes_dag(edge_curvature = edge_curvature)) +
-    geom_dag_routed_arrows() +
-    geom_dag_point()
-  built <- ggplot2::layer_data(p, routed_layer_index(p))
-
-  # every directed edge is drawn; none is dropped for carrying a curvature
-  expect_length(unique(built$edge_id), 9)
-
-  # unset curvature: the blocked edge routes around its mediator
-  routed <- edge_waypoints(built, 0, 0, 2, 0)
-  expect_gt(nrow(routed), 2L)
-  expect_gt(
-    min(polyline_dist(1, 0, routed$x, routed$y)),
-    node_radius_data()
-  )
-
-  # a numeric curvature wins: the edge follows the user's arc, not a detour
-  curved <- edge_waypoints(built, 0, 5, 2, 5)
-  expect_gt(nrow(curved), 2L)
-  expect_lt(max(bezier_dist(curved$x, curved$y, 0, 5, 2, 5, 0.4)), 0.01)
-
-  # an explicit zero wins too: the edge stays straight through its mediator
-  straight <- edge_waypoints(built, 0, 10, 2, 10)
-  expect_identical(nrow(straight), 2L)
-})
-
-test_that("geom_dag_routed_arrows: curve_edge() curvature survives routing", {
-  skip_if_not_installed("ggarrow")
-
-  dag <- curve_edge(mediator_dag(), "x", "y", 0.45)
-  p <- ggplot(tidy_dagitty(dag), aes_dag(edge_curvature = edge_curvature)) +
-    geom_dag_routed_arrows() +
-    geom_dag_point()
-  built <- ggplot2::layer_data(p, routed_layer_index(p))
-
-  # the curved edge follows the user's arc
-  curved <- edge_waypoints(built, 0, 0, 2, 0)
-  expect_gt(nrow(curved), 2L)
-  expect_lt(max(bezier_dist(curved$x, curved$y, 0, 0, 2, 0, 0.45)), 0.01)
-
-  # curve_edge() pins the other edges to zero, which counts as set: they are
-  # drawn as straight two-point paths
-  expect_identical(nrow(edge_waypoints(built, 0, 0, 1, 0)), 2L)
-  expect_identical(nrow(edge_waypoints(built, 1, 0, 2, 0)), 2L)
-})
-
-test_that("StatDAGRoutedEdge: deterministic and consumes no randomness", {
-  skip_if_not_installed("ggarrow")
-
-  build_waypoints <- function() {
-    p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
-      geom_dag_routed_arrows() +
-      geom_dag_point()
-    ggplot2::layer_data(p, routed_layer_index(p))
-  }
-
-  invisible(stats::runif(1))
-  seed_before <- get(".Random.seed", envir = globalenv())
-
-  expect_identical(build_waypoints(), build_waypoints())
-  expect_identical(get(".Random.seed", envir = globalenv()), seed_before)
-})
-
-test_that("geom_dag_routed_arrows: resects to the node size like the other arrow geoms", {
+test_that("geom_dag_routed_arrows(): resects to the node size and routes around it", {
   skip_if_not_installed("ggarrow")
 
   p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
     geom_dag_point() +
     geom_dag_routed_arrows()
 
-  idx <- routed_layer_index(p)
-  resect <- p$layers[[idx]]$geom_params$resect
-  expect_equal(resect$head, node_size_to_cap(16))
-  expect_equal(resect$fins, node_size_to_cap(16))
+  layer <- routed_layer_of(p)
+  expect_equal(layer$geom_params$resect$head, node_size_to_cap(16))
+  expect_equal(layer$geom_params$resect$fins, node_size_to_cap(16))
+
+  # the same discovery gives the router the radius of the discs it must clear
+  expect_equal(layer$geom_params$node_size, 16)
+
+  # a bigger node moves both
+  bigger <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
+    geom_dag_point(size = 24) +
+    geom_dag_routed_arrows()
+
+  bigger_layer <- routed_layer_of(bigger)
+  expect_equal(bigger_layer$geom_params$resect$head, node_size_to_cap(24))
+  expect_equal(bigger_layer$geom_params$resect$fins, node_size_to_cap(24))
+  expect_equal(bigger_layer$geom_params$node_size, 24)
 })
 
-# Edge geometry discovery ------------------------------------------------------
+# The drawn grob -----------------------------------------------------------------
 
-test_that("a routed arrows layer is discovered as routed waypoints", {
+test_that("the routed layer draws one arrow path grob in millimetres", {
   skip_if_not_installed("ggarrow")
-  r <- node_radius_data()
+  skip_if_not_installed("ragg")
 
   p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+
+  gtree <- routed_gtree(p)
+  arrows <- find_grob_class(gtree, "arrow_path")
+  expect_length(arrows, 1)
+  expect_length(find_grob_class(gtree, "curve_arrow"), 0)
+
+  # the drawn geometry is in millimetres, the units the router decides in
+  expect_true(all(grid::unitType(arrows[[1]]$x) == "mm"))
+  expect_true(all(grid::unitType(arrows[[1]]$y) == "mm"))
+
+  # one id per directed edge, and the ids are the edges of the DAG
+  paths <- arrow_grob_paths(arrows[[1]])
+  expect_length(paths, 3)
+  keys <- path_grid_keys(paths)
+  expect_setequal(keys, c("c1r1->c2r1", "c2r1->c3r1", "c1r1->c3r1"))
+
+  # the two unblocked edges are drawn as two-point chords
+  expect_identical(nrow(paths[[which(keys == "c1r1->c2r1")]]), 2L)
+  expect_identical(nrow(paths[[which(keys == "c2r1->c3r1")]]), 2L)
+
+  # the x -> y edge has the mediator on its chord, so it is routed
+  routed <- paths[[which(keys == "c1r1->c3r1")]]
+  expect_gt(nrow(routed), 2)
+
+  # paths run centre to centre and are unclipped: the arrow grob resects them
+  short <- paths[[which(keys == "c1r1->c2r1")]]
+  expect_equal(routed$x[[1]], short$x[[1]])
+  expect_equal(routed$y[[1]], short$y[[1]])
+
+  # and the detour clears the mediator disc by the full clearance margin
+  mediator_x <- short$x[[2]]
+  mediator_y <- short$y[[2]]
+  expect_gte(
+    min(polyline_dist(mediator_x, mediator_y, routed$x, routed$y)),
+    r_full - verify_tol
+  )
+})
+
+test_that("curvature the user set is drawn as an arrow curve and never rerouted", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # three mediation triangles, each with its mediator dead on the x -> y
+  # chord: the bottom row leaves its curvature unset, the middle row asks for
+  # an arc of 0.4, and the top row pins its long edge straight
+  tidy_dag <- tidy_dagitty(stacked_triangles_dag()) |>
+    dplyr::mutate(
+      edge_curvature = dplyr::case_when(
+        name == "x2" & to == "y2" ~ 0.4,
+        name == "x3" & to == "y3" ~ 0,
+        .default = NA_real_
+      )
+    )
+
+  p <- ggplot(tidy_dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+
+  gtree <- routed_gtree(p)
+  arrows <- find_grob_class(gtree, "arrow_path")
+  expect_length(arrows, 1)
+
+  # the arc is drawn by a curve grob of its own, so it is pixel for pixel the
+  # arc the un-routed layer would draw; every other edge is an arrow path
+  paths <- arrow_grob_paths(arrows[[1]])
+  keys <- path_grid_keys(paths)
+  expect_setequal(
+    keys,
+    c(
+      "c1r1->c2r1",
+      "c2r1->c3r1",
+      "c1r1->c3r1",
+      "c1r2->c2r2",
+      "c2r2->c3r2",
+      "c1r3->c2r3",
+      "c2r3->c3r3",
+      "c1r3->c3r3"
+    )
+  )
+
+  # unset curvature routes around the mediator
+  expect_gt(nrow(paths[[which(keys == "c1r1->c3r1")]]), 2)
+
+  # an explicit zero wins: the edge stays straight through its mediator
+  expect_identical(nrow(paths[[which(keys == "c1r3->c3r3")]]), 2L)
+
+  # and the short edges, which nothing blocks, are chords
+  short_keys <- grepl("c1r[0-9]->c2r[0-9]|c2r[0-9]->c3r[0-9]", keys)
+  expect_true(all(vapply(paths[short_keys], nrow, integer(1)) == 2L))
+
+  curves <- find_grob_class(gtree, "curve_arrow")
+  expect_length(curves, 1)
+  expect_equal(curve_grob_curvature(curves[[1]]), 0.4)
+
+  # the arc starts where its own edge starts, not where a detour would
+  middle_row <- paths[[which(keys == "c1r2->c2r2")]]
+  expect_equal(unit_mm(curves[[1]]$curve$x1, "x")[[1]], middle_row$x[[1]])
+  expect_equal(unit_mm(curves[[1]]$curve$y1, "y")[[1]], middle_row$y[[1]])
+})
+
+test_that("clearance widens the corridor the drawn path keeps", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows(clearance = 4) +
+    geom_dag_point()
+
+  expect_equal(routed_layer_of(p)$geom_params$clearance, 4)
+
+  drawn <- mediator_detour(routed_gtree(p))
+
+  # the clearance is millimetres of daylight beyond the disc, so the drawn
+  # path stays at least the node radius plus the clearance from the centre
+  expect_gte(
+    min(polyline_dist(
+      drawn$centre[["x"]],
+      drawn$centre[["y"]],
+      drawn$routed$x,
+      drawn$routed$y
+    )),
+    r_node + 4 - verify_tol
+  )
+})
+
+test_that("routing is deterministic, redone at each size, and uses no randomness", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  withr::local_preserve_seed()
+  p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+
+  invisible(stats::runif(1))
+  seed_before <- get(".Random.seed", envir = globalenv())
+
+  expect_identical(render_bytes(p), render_bytes(p))
+  expect_identical(get(".Random.seed", envir = globalenv()), seed_before)
+
+  # the routing is redone every time the plot is drawn, so a device of another
+  # shape gets a detour of its own that clears the mediator just the same
+  for (size in list(c(4, 3), c(10, 6))) {
+    drawn <- mediator_detour(
+      routed_gtree(p, width = size[[1]], height = size[[2]])
+    )
+    expect_gt(nrow(drawn$routed), 2)
+    expect_gte(
+      min(polyline_dist(
+        drawn$centre[["x"]],
+        drawn$centre[["y"]],
+        drawn$routed$x,
+        drawn$routed$y
+      )),
+      r_full - verify_tol
+    )
+  }
+})
+
+test_that("routed edges warn under a non-linear coordinate system", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # the router works in the millimetres of a linear panel; a coordinate system
+  # that bends the panel cannot be routed, and the picture says so rather than
+  # drawing a detour that means nothing
+  p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point() +
+    coord_polar()
+
+  expect_warning(draw_offscreen(p), class = "ggdag_routed_coord_warning")
+})
+
+# Edge geometry discovery --------------------------------------------------------
+
+test_that("a routed arrows layer is discovered as a routing spec", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(mediator_dag())
+  p <- ggplot(tidy_dag, aes_dag()) +
     geom_dag_routed_arrows() +
     geom_dag_point()
 
   geometry <- discover_edge_geometry(p)
   expect_false(is.null(geometry))
   routed <- geometry[geometry$type == "routed", , drop = FALSE]
-  expect_contains(names(routed), c("edge_id", "x", "y", "seq"))
 
-  # the discovered waypoints are the ones the stat draws: 10 for the routed
-  # x -> y edge and 2 for each straight edge
-  built <- ggplot2::layer_data(p, routed_layer_index(p))
-  expect_identical(nrow(routed), nrow(built))
-  expect_length(unique(routed$edge_id), 3)
+  # the spec is one wide row per drawn edge, the same shape the arc and link
+  # types are discovered with, plus how the edge is routed. Waypoints are not
+  # communicated: both grobs call the same pure router on the same inputs.
+  expect_identical(nrow(routed), 3L)
+  expect_contains(
+    names(routed),
+    c("x", "y", "xend", "yend", "route_style", "route_clearance", "route_sep")
+  )
+  expect_true(all(routed$route_style == "spline"))
 
-  counts <- sort(as.integer(table(routed$edge_id)))
-  expect_identical(counts, c(2L, 2L, 10L))
+  # clearance and separation are the router's defaults unless the geom sets
+  # them, and the spec says so rather than guessing a number
+  expect_true(all(is.na(routed$route_clearance)))
+  expect_true(all(is.na(routed$route_sep)))
 
-  blocked_id <- names(which(table(routed$edge_id) == 10))
-  blocked <- routed[routed$edge_id == blocked_id, , drop = FALSE]
-  blocked <- blocked[order(blocked$seq), , drop = FALSE]
-  expect_gt(min(polyline_dist(1, 0, blocked$x, blocked$y)), r)
+  edges <- pull_dag_data(tidy_dag)
+  edges <- edges[!is.na(edges$to), , drop = FALSE]
+  expect_setequal(
+    paste(routed$x, routed$y, routed$xend, routed$yend),
+    paste(edges$x, edges$y, edges$xend, edges$yend)
+  )
 })
 
-test_that("automatic labels treat the routed path as the edge obstacle", {
+test_that("automatic labels keep clear of the routed path", {
   skip_if_not_installed("ggarrow")
-  r <- node_radius_data()
+  skip_if_not_installed("ragg")
 
   dag <- dagify(
     y ~ x + m,
@@ -656,84 +744,94 @@ test_that("automatic labels treat the routed path as the edge obstacle", {
     geom_dag_point() +
     geom_dag_label_auto(aes(label = label))
 
-  waypoints <- ggplot2::layer_data(p, routed_layer_index(p))
-  blocked <- edge_waypoints(waypoints, 0, 0, 2, 0)
-  expect_gt(nrow(blocked), 2L)
+  # both grobs are read from the same drawing, so the label engine's obstacles
+  # are the millimetres the arrows were actually drawn in
+  grobs <- force_panel_grobs(p, "dag_routed_edges|dag_labels_auto")
+  routed_trees <- grobs[grepl("dag_routed_edges", names(grobs))]
+  label_trees <- grobs[grepl("dag_labels_auto", names(grobs))]
+  expect_length(routed_trees, 1)
+  expect_length(label_trees, 1)
 
-  label_idx <- which(vapply(
-    p$layers,
-    function(layer) inherits(layer$stat, "StatNodesLabelAuto"),
-    logical(1)
-  ))
-  expect_length(label_idx, 1)
-  built <- ggplot2::layer_data(p, label_idx)
-  edge_rows <- built[built$ggdag_role == "edge", , drop = FALSE]
-  expect_gt(nrow(edge_rows), 0)
+  drawn <- mediator_detour(routed_trees[[1]])
+  expect_gt(nrow(drawn$routed), 2)
 
-  # every straight edge here lies on the y = 0 line, so any off-chord
-  # obstacle point can only come from tracing the routed detour, and it must
-  # sit on the drawn polyline, clear of the mediator
-  detour <- edge_rows[abs(edge_rows$y) > 1e-6, , drop = FALSE]
-  expect_gt(nrow(detour), 0)
-  expect_gt(max(abs(detour$y)), 0.15)
-  expect_lt(
-    max(polyline_dist(detour$x, detour$y, blocked$x, blocked$y)),
-    1e-6
+  boxes <- label_boxes_mm(label_trees[[1]])
+  expect_length(boxes, 3)
+
+  # the label engine shortens every edge by the node cap before it treats the
+  # edge as an obstacle, so the millimetres the arrowhead is resected out of
+  # are not part of the drawn edge either
+  cap <- node_size_to_cap(16)
+  points <- densify_polyline(drawn$routed$x, drawn$routed$y)
+  last <- nrow(drawn$routed)
+  to_ends <- pmin(
+    sqrt(
+      (points$x - drawn$routed$x[[1]])^2 + (points$y - drawn$routed$y[[1]])^2
+    ),
+    sqrt(
+      (points$x - drawn$routed$x[[last]])^2 +
+        (points$y - drawn$routed$y[[last]])^2
+    )
   )
-  expect_gt(min(sqrt((detour$x - 1)^2 + detour$y^2)), r)
+  points <- points[to_ends > cap, , drop = FALSE]
+  expect_gt(nrow(points), 0)
+
+  for (box in boxes) {
+    expect_false(points_in_box(points, box))
+  }
 })
 
-# auto_route option ------------------------------------------------------------
+# The edge_route option ----------------------------------------------------------
 
-test_that("auto_route option is registered, defaults to FALSE, and round-trips", {
+test_that("edge_route option is registered, defaults to straight, and round-trips", {
   local_ggdag_option_state()
 
-  expect_true("auto_route" %in% names(ggdag_defaults))
-  expect_identical(ggdag_defaults$auto_route, FALSE)
-  expect_false(ggdag_option("auto_route", FALSE))
+  expect_true("edge_route" %in% names(ggdag_defaults))
+  expect_identical(ggdag_defaults$edge_route, "straight")
+  expect_identical(ggdag_option("edge_route", "straight"), "straight")
 
-  ggdag_options_set(auto_route = TRUE)
-  expect_true(ggdag_option("auto_route", FALSE))
+  ggdag_options_set(edge_route = "spline")
+  expect_identical(ggdag_option("edge_route", "straight"), "spline")
+
+  ggdag_options_set(edge_route = "orthogonal")
+  expect_identical(ggdag_option("edge_route", "straight"), "orthogonal")
 })
 
-test_that("auto_route option rejects non-logical values with a typed error", {
+test_that("edge_route option rejects anything but its three modes", {
   local_ggdag_option_state()
-  expect_true("auto_route" %in% names(ggdag_defaults))
+  # the registration has to exist before the message is asserted on, or the
+  # unknown-option error would stand in for the validation message
+  expect_true("edge_route" %in% names(ggdag_defaults))
 
   expect_error(
-    ggdag_options_set(auto_route = "yes"),
-    class = "ggdag_type_error"
+    ggdag_options_set(edge_route = "bogus"),
+    class = "ggdag_type_error",
+    regexp = '"straight", "spline", and "orthogonal"'
   )
-  expect_error(ggdag_options_set(auto_route = 1), class = "ggdag_type_error")
-  expect_error(ggdag_options_set(auto_route = NA), class = "ggdag_type_error")
   expect_error(
-    ggdag_options_set(auto_route = c(TRUE, FALSE)),
+    ggdag_options_set(edge_route = NA),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_options_set(edge_route = TRUE),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_options_set(edge_route = c("spline", "straight")),
     class = "ggdag_type_error"
   )
 })
 
-test_that("auto_route option validation errors are informative", {
-  local_ggdag_option_state()
-  # the registration must exist before any snapshot is recorded: without it,
-  # the unknown-option error would be captured in place of the validation
-  # message
-  stopifnot("auto_route" %in% names(ggdag_defaults))
+# edge_route in the packaged edge rendering --------------------------------------
 
-  expect_ggdag_error(ggdag_options_set(auto_route = "yes"))
-  expect_ggdag_error(ggdag_options_set(auto_route = 1))
-  expect_ggdag_error(ggdag_options_set(auto_route = NA))
-})
-
-# auto_route in the packaged edge rendering ------------------------------------
-
-test_that("auto_route off by default: the packaged ggarrow edges stay straight", {
+test_that("edge_route is straight by default: the packaged ggarrow edges stay chords", {
   skip_if_not_installed("ggarrow")
   local_ggdag_option_state()
-  expect_true("auto_route" %in% names(ggdag_defaults))
+  expect_identical(ggdag_defaults$edge_route, "straight")
   ggdag_options_set(edge_engine = "ggarrow")
 
   p <- ggdag(tidy_dagitty(mediator_dag()))
-  expect_length(routed_layer_index(p), 0)
+  expect_null(routed_layer_of(p))
 
   # the blocked edge is drawn as the straight chord by the curve layer
   curve_idx <- which(vapply(
@@ -747,276 +845,150 @@ test_that("auto_route off by default: the packaged ggarrow edges stay straight",
   expect_identical(sum(drawn$x == 0 & drawn$xend == 2), 1L)
 })
 
-test_that("auto_route on: ggdag() swaps in the routed geom for directed edges", {
+test_that("edge_route = 'spline': the routed geom draws the link and link_arc types", {
   skip_if_not_installed("ggarrow")
   local_ggdag_option_state()
-  ggdag_options_set(edge_engine = "ggarrow", auto_route = TRUE)
-  r <- node_radius_data()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
 
-  p <- ggdag(tidy_dagitty(mediator_dag()))
+  tidy_dag <- tidy_dagitty(mediator_dag())
 
-  idx <- routed_layer_index(p)
-  expect_length(idx, 1)
-  built <- ggplot2::layer_data(p, idx)
-  blocked <- edge_waypoints(built, 0, 0, 2, 0)
-  expect_false(is.null(blocked))
-  expect_gt(nrow(blocked), 2L)
-  expect_gt(min(polyline_dist(1, 0, blocked$x, blocked$y)), r)
+  link_arc <- ggdag(tidy_dag)
+  expect_false(is.null(routed_layer_of(link_arc)))
 
-  # no curve layer draws the directed edges as well: this DAG has no
-  # bidirected edges, so every remaining ggarrow curve layer builds empty
-  curve_idx <- which(vapply(
-    p$layers,
-    function(layer) inherits(layer$geom, "GeomDAGArrowCurve"),
-    logical(1)
-  ))
-  curve_rows <- vapply(
-    curve_idx,
-    function(i) nrow(ggplot2::layer_data(p, i)),
-    integer(1)
-  )
-  expect_identical(sum(curve_rows), 0L)
+  # `link` draws every edge with one layer, and that layer routes too
+  link <- ggdag(tidy_dag, edge_type = "link")
+  expect_false(is.null(routed_layer_of(link)))
+
+  # `geom_dag()` builds the same layer as the quick plotter
+  assembled <- ggplot(tidy_dag, aes_dag()) + geom_dag()
+  routed <- routed_layer_of(assembled)
+  expect_false(is.null(routed))
+
+  # and it draws the three directed edges of this DAG
+  built <- ggplot2::layer_data(assembled, routed_layer_index(assembled))
+  expect_identical(sum(built$draw & !is.na(built$xend)), 3L)
 })
 
-# Faceting ---------------------------------------------------------------------
+test_that("edge_route is a silent no-op for the arc and diagonal edge types", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
 
-test_that("route_dag_edges: waypoints carry the edge row columns without endpoints", {
-  coords <- data.frame(name = c("x", "m", "y"), x = c(0, 1, 2), y = c(0, 0, 0))
-  edges <- data.frame(name = c("x", "m", "x"), to = c("m", "y", "y"))
-  data <- make_dag_data(coords, edges)
-  data$dag <- 1L
-  data$label <- paste("node", data$name)
-  edge_rows <- data[!is.na(data$to), , drop = FALSE]
-  # stale waypoint columns on the input must not survive into the output
-  edge_rows$edge_id <- "stale"
-  edge_rows$seq <- 99L
+  # these two bend every edge already, so there is nothing for the router to
+  # do and nothing worth telling the user about
+  for (edge_type in c("arc", "diagonal")) {
+    expect_no_warning({
+      p <- ggdag(tidy_dagitty(mediator_dag()), edge_type = edge_type)
+    })
+    expect_null(routed_layer_of(p))
+  }
+})
 
-  res <- route_dag_edges(edge_rows, data)
+test_that("the ggraph engine says that edge routing is ignored", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggraph", edge_route = "spline")
 
-  # the waypoint columns come first, then everything of the edge row except
-  # its endpoints, which must stay absent: their absence is how a routed layer
-  # is told apart from one that draws chords or arcs
-  expect_identical(names(res)[1:4], c("edge_id", "x", "y", "seq"))
-  expect_contains(names(res), c("name", "to", "direction", "dag", "label"))
-  expect_false(any(c("xend", "yend") %in% names(res)))
-  expect_false(any(res$edge_id == "stale"))
+  tidy_dag <- tidy_dagitty(mediator_dag())
 
-  # every waypoint of an edge carries that edge's own row values
-  for (i in seq_len(nrow(edge_rows))) {
-    rows <- res[res$name == edge_rows$name[i] & res$to == edge_rows$to[i], ]
-    expect_gte(nrow(rows), 2L)
-    expect_equal(rows$seq, seq_len(nrow(rows)))
-    expect_true(all(rows$dag == 1L))
-    expect_true(all(rows$label == edge_rows$label[i]))
-    expect_true(all(as.character(rows$direction) == "->"))
-    expect_length(unique(rows$edge_id), 1)
+  expect_warning(ggdag(tidy_dag), class = "ggdag_edge_route_warning")
+  expect_warning(
+    ggplot(tidy_dag, aes_dag()) + geom_dag(),
+    class = "ggdag_edge_route_warning"
+  )
+
+  # once per plot, however many layers the plot builds
+  warned <- testthat::capture_warnings(ggdag(tidy_dag))
+  expect_length(warned, 1)
+  expect_match(warned, "ggarrow")
+})
+
+test_that("the routed layer trains the scales on the nodes, as the straight one does", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow")
+
+  panel_ranges <- function(route) {
+    ggdag_options_set(edge_route = route)
+    built <- ggplot2::ggplot_build(ggdag(tidy_dagitty(mediator_dag())))
+    built$layout$panel_params[[1]][c("x.range", "y.range")]
   }
 
-  # the blocked x -> y edge keeps its full routed path
-  blocked <- res[res$name == "x" & res$to == "y", ]
-  expect_identical(nrow(blocked), 10L)
-  expect_equal(c(blocked$x[1], blocked$y[1]), c(0, 0))
-  expect_equal(c(blocked$x[10], blocked$y[10]), c(2, 0))
+  # every node of this DAG sits at y = 0, so a layer that trained the scales
+  # on routed geometry rather than on the nodes would blow the y range open
+  expect_identical(panel_ranges("spline"), panel_ranges("straight"))
 })
 
-test_that("geom_dag_routed_arrows: a faceted plot draws each panel's own edges", {
+test_that("the routed layer adds no legend keys", {
   skip_if_not_installed("ggarrow")
-  r <- node_radius_data()
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow")
 
-  # two panels over the same node positions: panel a is the mediation
-  # triangle with its blocked x -> y chord, panel b drops that chord, so the
+  key_labels <- function(route) {
+    ggdag_options_set(edge_route = route)
+    p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag(colour = name)) +
+      geom_dag()
+    ggplot2::get_guide_data(p, "colour")$.label
+  }
+
+  # the layer carries the plot rows and no others, so a discrete scale gains
+  # no key for rows that exist only to be routed around
+  straight <- key_labels("straight")
+  spline <- key_labels("spline")
+  expect_identical(spline, straight)
+  expect_false(anyNA(spline))
+  expect_setequal(spline, c("m", "x", "y"))
+})
+
+# Faceting -----------------------------------------------------------------------
+
+test_that("a faceted plot routes each panel's own edges", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # two panels over the same node positions: one is the mediation triangle
+  # with its blocked x -> y chord, the other is the chain without it, so the
   # panels have different edge counts and a layer that leaks edges across
   # panels cannot match both
-  coords <- data.frame(name = c("x", "m", "y"), x = c(0, 1, 2), y = c(0, 0, 0))
-  panel_a <- make_dag_data(
-    coords,
-    data.frame(name = c("x", "m", "x"), to = c("m", "y", "y"))
-  )
-  panel_a$panel <- "a"
-  panel_b <- make_dag_data(
-    coords,
-    data.frame(name = c("x", "m"), to = c("m", "y"))
-  )
-  panel_b$panel <- "b"
-  data <- dplyr::bind_rows(panel_a, panel_b)
+  coords <- list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 0, y = 0))
+  triangle <- pull_dag_data(tidy_dagitty(mediator_dag()))
+  triangle$panel <- "mediation"
+  chain <- pull_dag_data(tidy_dagitty(dagify(y ~ m, m ~ x, coords = coords)))
+  chain$panel <- "chain"
+  data <- dplyr::bind_rows(chain, triangle)
 
   p <- ggplot(data, aes_dag()) +
     geom_dag_routed_arrows() +
     geom_dag_point() +
     facet_wrap(~panel)
-  idx <- routed_layer_index(p)
-  expect_length(idx, 1)
-  built <- ggplot2::ggplot_build(p)$data[[idx]]
 
-  per_panel <- tapply(built$edge_id, built$PANEL, function(v) {
-    length(unique(v))
-  })
-  expect_identical(as.integer(per_panel), c(3L, 2L))
-  expect_length(unique(built$edge_id), 5)
+  built <- ggplot2::ggplot_build(p)$data[[routed_layer_index(p)]]
+  drawn <- built[built$draw & !is.na(built$xend), , drop = FALSE]
+  expect_identical(as.integer(table(drawn$PANEL)), c(2L, 3L))
 
-  # the blocked chord routes in panel a and does not exist in panel b
-  in_a <- built[built$PANEL == 1, , drop = FALSE]
-  in_b <- built[built$PANEL == 2, , drop = FALSE]
-  blocked <- edge_waypoints(in_a, 0, 0, 2, 0)
-  expect_false(is.null(blocked))
-  expect_gt(nrow(blocked), 2L)
-  expect_gt(min(polyline_dist(1, 0, blocked$x, blocked$y)), r)
-  expect_null(edge_waypoints(in_b, 0, 0, 2, 0))
+  # the node rows travel with the panel as obstacles without being drawn
+  expect_false(all(built$draw))
 
-  # the layer is still discovered as routed waypoints
-  geometry <- discover_edge_geometry(p)
-  expect_false(is.null(geometry))
-  routed <- geometry[geometry$type == "routed", , drop = FALSE]
-  expect_length(unique(routed$edge_id), 5)
+  # and each panel draws exactly its own edges
+  expect_identical(unname(routed_ids_per_panel(p)), c(2L, 3L))
 })
 
-test_that("auto_route on: ggdag_equivalent_dags() routes each equivalent DAG in its own panel", {
+test_that("edge_route = 'spline': ggdag_equivalent_dags() routes each panel", {
   skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
   local_ggdag_option_state()
-  ggdag_options_set(edge_engine = "ggarrow", auto_route = TRUE)
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
 
-  p <- ggdag_equivalent_dags(dagify(y ~ x + z, x ~ z))
-  idx <- routed_layer_index(p)
-  expect_length(idx, 1)
-  built <- ggplot2::ggplot_build(p)
-
-  # six equivalent DAGs, each with exactly its own three edges
-  expect_identical(nrow(built$layout$layout), 6L)
-  layer_df <- built$data[[idx]]
-  per_panel <- tapply(layer_df$edge_id, layer_df$PANEL, function(v) {
-    length(unique(v))
-  })
-  expect_length(per_panel, 6)
-  expect_true(all(per_panel == 3))
-  expect_length(unique(layer_df$edge_id), 18)
-})
-
-# Visual baselines -------------------------------------------------------------
-
-test_that("vdiffr: routed arrows detour around a mediator", {
-  skip_if_not_installed("ggarrow")
-  r <- node_radius_data()
-
-  p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
-    geom_dag_routed_arrows() +
-    geom_dag_point() +
-    geom_dag_text() +
-    theme_dag()
-
-  # the routed layer must exist and clear the mediator before a baseline is
-  # recorded: a snapshot of the unrouted plot would pin the wrong picture
-  idx <- routed_layer_index(p)
-  stopifnot(length(idx) == 1)
-  blocked <- edge_waypoints(ggplot2::layer_data(p, idx), 0, 0, 2, 0)
-  stopifnot(
-    !is.null(blocked),
-    nrow(blocked) > 2,
-    min(polyline_dist(1, 0, blocked$x, blocked$y)) > r
-  )
-
-  expect_doppelganger("routed arrows detour around a mediator", p)
-})
-
-test_that("vdiffr: routed arrows weave between opposite blockers", {
-  skip_if_not_installed("ggarrow")
-  r <- node_radius_data()
-
-  coords <- data.frame(
-    name = c("x", "a", "b", "y"),
-    x = c(0, 1, 3, 4),
-    y = c(0, 0.1, -0.1, 0)
-  )
-  edges <- data.frame(name = c("x", "a"), to = c("y", "b"))
-  data <- make_dag_data(coords, edges)
-
-  p <- ggplot(data, aes_dag()) +
-    geom_dag_routed_arrows() +
-    geom_dag_point() +
-    theme_dag()
-
-  # the weave must clear both blockers before a baseline is recorded
-  path <- route_edge_waypoints(0, 0, 4, 0, c(1, 3), c(0.1, -0.1))
-  stopifnot(
-    nrow(path) > 2,
-    min(polyline_dist(1, 0.1, path$x, path$y)) > r,
-    min(polyline_dist(3, -0.1, path$x, path$y)) > r
-  )
-
-  expect_doppelganger("routed arrows weave between opposite blockers", p)
-})
-
-test_that("vdiffr: auto route reroutes the packaged edges", {
-  skip_if_not_installed("ggarrow")
-  local_ggdag_option_state()
-  ggdag_options_set(edge_engine = "ggarrow", auto_route = TRUE)
-  r <- node_radius_data()
-
-  p <- ggdag(tidy_dagitty(mediator_dag()))
-
-  idx <- routed_layer_index(p)
-  stopifnot(length(idx) == 1)
-  blocked <- edge_waypoints(ggplot2::layer_data(p, idx), 0, 0, 2, 0)
-  stopifnot(
-    !is.null(blocked),
-    nrow(blocked) > 2,
-    min(polyline_dist(1, 0, blocked$x, blocked$y)) > r
-  )
-
-  expect_doppelganger("auto route reroutes the packaged edges", p)
-})
-
-test_that("vdiffr: auto route off draws the straight edge", {
-  skip_if_not_installed("ggarrow")
-  local_ggdag_option_state()
-  # the option must exist before this baseline is recorded, so that the
-  # comparison picture is the settled default rather than an accident of the
-  # option being unimplemented
-  stopifnot(
-    "auto_route" %in% names(ggdag_defaults),
-    identical(ggdag_defaults$auto_route, FALSE)
-  )
-  ggdag_options_set(edge_engine = "ggarrow")
-
-  p <- ggdag(tidy_dagitty(mediator_dag()))
-  stopifnot(length(routed_layer_index(p)) == 0)
-
-  expect_doppelganger("auto route off draws the straight edge", p)
-})
-
-test_that("vdiffr: auto route facets each equivalent DAG's own edges", {
-  skip_if_not_installed("ggarrow")
-  local_ggdag_option_state()
-  ggdag_options_set(edge_engine = "ggarrow", auto_route = TRUE)
-  r <- node_radius_data()
-
-  # the equivalence class of the mediation triangle keeps the mediator on the
-  # x -- y chord in every panel, so each panel routes one edge of its own
   p <- ggdag_equivalent_dags(mediator_dag())
+  expect_false(is.null(routed_layer_of(p)))
 
-  # never record a baseline while the panels share their edges
-  idx <- routed_layer_index(p)
-  stopifnot(length(idx) == 1)
   built <- ggplot2::ggplot_build(p)
-  layer_df <- built$data[[idx]]
-  per_panel <- tapply(layer_df$edge_id, layer_df$PANEL, function(v) {
-    length(unique(v))
-  })
-  stopifnot(
-    nrow(built$layout$layout) == 6,
-    length(per_panel) == 6,
-    all(per_panel == 3)
-  )
-  for (panel in split(layer_df, layer_df$PANEL)) {
-    chord <- edge_waypoints(panel, 0, 0, 2, 0)
-    if (is.null(chord)) {
-      chord <- edge_waypoints(panel, 2, 0, 0, 0)
-    }
-    stopifnot(
-      !is.null(chord),
-      nrow(chord) > 2,
-      min(polyline_dist(1, 0, chord$x, chord$y)) > r
-    )
-  }
+  expect_identical(nrow(built$layout$layout), 6L)
 
-  expect_doppelganger("auto route facets each equivalent DAG's own edges", p)
+  layer_df <- built$data[[routed_layer_index(p)]]
+  drawn <- layer_df[layer_df$draw & !is.na(layer_df$xend), , drop = FALSE]
+  expect_identical(as.integer(table(drawn$PANEL)), rep(3L, 6))
+
+  # every equivalent DAG has the same three edges, drawn in its own panel
+  expect_identical(unname(routed_ids_per_panel(p)), rep(3L, 6))
 })
