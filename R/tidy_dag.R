@@ -155,13 +155,11 @@ tidy_dagitty <- function(
   tidy_dag <- dag_edges |>
     tidy_dag_edges_and_coords(coords_df)
 
+  # An edge the user has not curved keeps an `NA` curvature, which the arc
+  # geom draws as a chord and the routed geom is free to route around a node.
+  # Only an explicit `0` pins an edge straight through whatever sits on it.
   if (!is.null(curved_edges) && nrow(curved_edges) > 0) {
     tidy_dag$edge_curvature <- match_edge_curvature(tidy_dag, curved_edges)
-    # Non-curved edges should be straight, not inherit geom scalar fallback.
-    # Bidirected edges are the exception: their edge layer arcs them by
-    # default, and a zero here would flatten them.
-    edge_rows <- !is.na(tidy_dag$to) & !is_bidirected_edge(tidy_dag)
-    tidy_dag$edge_curvature[edge_rows & is.na(tidy_dag$edge_curvature)] <- 0
   }
 
   # Convert dagitty control points to edge_curvature (only when using
@@ -186,12 +184,6 @@ tidy_dagitty <- function(
       } else {
         tidy_dag$edge_curvature <- ctrl_curvature
       }
-      # Edges without control points should be straight (0), not NA, so the
-      # scalar curvature fallback doesn't curve them unexpectedly. Bidirected
-      # edges keep the arc their edge layer draws them with.
-      straighten <- is.na(tidy_dag$edge_curvature) &
-        !is_bidirected_edge(tidy_dag)
-      tidy_dag$edge_curvature[straighten] <- 0
     }
   }
 
@@ -208,10 +200,6 @@ tidy_dagitty <- function(
   # Restore curved_edges attr stripped by dagitty::coordinates<-
   if (!is.null(curved_edges)) {
     attr(.dagitty, "curved_edges") <- curved_edges
-  }
-
-  if (isTRUE(ggdag_option("auto_curve", FALSE))) {
-    tidy_dag <- auto_curve_edges(tidy_dag)
   }
 
   new_tidy_dagitty(tidy_dag, .dagitty)

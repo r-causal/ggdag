@@ -259,10 +259,11 @@ test_that("ggdag_paths() draws per-edge curvature with the ggarrow engine", {
   drawn <- arrow_edge_curvature(p)
 
   expect_gt(nrow(drawn), 0)
-  # the x -> y edge was curved; the two z edges were not
+  # the x -> y edge was curved; the two z edges were not, so they carry no
+  # curvature of their own and their layer draws them as chords
   x_to_y <- drawn[drawn$x == 0 & drawn$xend == 2, ]
   expect_equal(unique(x_to_y$edge_curvature), 0.6)
-  expect_setequal(unique(drawn$edge_curvature), c(0, 0.6))
+  expect_setequal(unique(drawn$edge_curvature), c(NA, 0.6))
 })
 
 test_that("ggdag_adjustment_set() draws per-edge curvature with the ggarrow engine", {

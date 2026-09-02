@@ -553,9 +553,8 @@ edge_geometry_stat <- function(type) {
 # Positions along the path the edge layer draws for these edges. The layer's own
 # stat produces them, so the points sit on the curve the reader sees rather than
 # on the chord between the two nodes. Each row of the result carries the
-# `edge_id` of the edge it traces. Two of the types carry their own tracer: a
-# "curve" row is the quadratic Bezier arc drawn at that row's strength, and
-# "routed" rows are waypoints joined into a polyline per edge.
+# `edge_id` of the edge it traces. One of the types carries its own tracer: a
+# "curve" row is the quadratic Bezier arc drawn at that row's strength.
 drawn_edge_points <- function(
   geometry,
   panel,
@@ -570,15 +569,6 @@ drawn_edge_points <- function(
       include_endpoints
     ))
   }
-  if (identical(geometry$type[[1]], "routed")) {
-    return(routed_edge_points(
-      geometry,
-      panel,
-      n_edge_points,
-      include_endpoints
-    ))
-  }
-
   stat <- edge_geometry_stat(geometry$type[[1]])
   n_drawn <- geometry$n[[1]]
   params <- list(
@@ -688,8 +678,9 @@ arrow_edge_points <- function(geometry, panel, n_edge_points) {
 
 # Positions along the arcs a per-edge-curvature layer draws. Each row of
 # `geometry` is one edge whose `strength` is the curvature it is drawn at, so
-# every row is traced at its own value; a strength of 0 traces the straight
-# chord, leaving the same obstacles a chord trace would.
+# every row is traced at its own value; a strength of 0, or a strength the
+# user never set, traces the straight chord, leaving the same obstacles a
+# chord trace would.
 curve_edge_points <- function(
   geometry,
   panel,
@@ -697,6 +688,8 @@ curve_edge_points <- function(
   include_endpoints = FALSE
 ) {
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  strength <- geometry$strength
+  strength[is.na(strength)] <- 0
   do.call(
     rbind,
     lapply(seq_len(nrow(geometry)), function(i) {
@@ -705,7 +698,7 @@ curve_edge_points <- function(
         geometry$y[i],
         geometry$xend[i],
         geometry$yend[i],
-        curvature = geometry$strength[i],
+        curvature = strength[i],
         n = n_edge_points + 2
       )
       if (!include_endpoints) {
@@ -726,66 +719,10 @@ curve_edge_points <- function(
   )
 }
 
-# Positions along the polylines a routing layer draws. The rows of `geometry`
-# are waypoints in long format; each edge is the polyline through its
-# waypoints in `seq` order, sampled evenly by arc length with every interior
-# waypoint kept, so each corner stays an obstacle at any resolution.
-routed_edge_points <- function(
-  geometry,
-  panel,
-  n_edge_points,
-  include_endpoints = FALSE
-) {
-  do.call(
-    rbind,
-    lapply(split(seq_len(nrow(geometry)), geometry$edge_id), function(rows) {
-      waypoints <- geometry[rows[order(geometry$seq[rows])], , drop = FALSE]
-      path <- sample_polyline(waypoints$x, waypoints$y, n_edge_points + 2)
-      if (!include_endpoints) {
-        path <- path[-c(1, nrow(path)), , drop = FALSE]
-      }
-      data.frame(
-        edge_id = waypoints$edge_id[[1]],
-        x = path$x,
-        y = path$y,
-        PANEL = panel,
-        stringsAsFactors = FALSE
-      )
-    })
-  )
-}
-
-# `n` positions evenly spaced by arc length along the polyline through
-# (`x`, `y`) in order, plus the waypoints themselves, sorted from start to
-# end. The first and last rows are exactly the polyline's endpoints.
-sample_polyline <- function(x, y, n) {
-  seg_len <- sqrt(diff(x)^2 + diff(y)^2)
-  cum_len <- cumsum(c(0, seg_len))
-  total <- cum_len[[length(cum_len)]]
-  if (total == 0) {
-    return(data.frame(x = rep(x[[1]], n), y = rep(y[[1]], n)))
-  }
-
-  positions <- sort(unique(c(seq(0, total, length.out = n), cum_len)))
-  segment <- findInterval(positions, cum_len, rightmost.closed = TRUE)
-  # A zero-length segment, from two waypoints stacked at one position, has no
-  # interior to interpolate over.
-  t_vals <- ifelse(
-    seg_len[segment] == 0,
-    0,
-    (positions - cum_len[segment]) / seg_len[segment]
-  )
-  data.frame(
-    x = x[segment] + t_vals * (x[segment + 1] - x[segment]),
-    y = y[segment] + t_vals * (y[segment + 1] - y[segment])
-  )
-}
-
 # Invisible points tracing each edge, used as obstacles in ggrepel's repulsion
 # and by the automatic label stat. The rows of `edge_geometry` are the edges
-# the plot's bent edge layers draw, one row each ("routed" edges arrive as one
-# row per waypoint instead); an edge no such layer claims is traced as a
-# straight chord. `trace_arrows` also traces the curves of scalar-curvature
+# the plot's bent edge layers draw, one row each; an edge no such layer
+# claims is traced as a straight chord. `trace_arrows` also traces the curves of scalar-curvature
 # ggarrow curve layers, each at the curvature it is drawn with; without it
 # those edges are traced as chords, which is what ggrepel's repulsion has
 # always been given. A "curve" spec, from a layer that maps `edge_curvature`,
@@ -809,14 +746,12 @@ repel_edge_points <- function(
     edge_geometry$type
   }
   is_arrow <- geometry_type == "ggarrow_curve"
+  # A routed edge is drawn by a path the router decides in millimetres at
+  # draw time, which is geometry no data-space tracer can follow, so it is
+  # traced as its chord here, as every edge was before routing existed.
   is_routed <- geometry_type == "routed"
   arrow_geometry <- if (trace_arrows && any(is_arrow)) {
     edge_geometry[is_arrow, , drop = FALSE]
-  } else {
-    NULL
-  }
-  routed_geometry <- if (any(is_routed)) {
-    edge_geometry[is_routed, , drop = FALSE]
   } else {
     NULL
   }
@@ -832,7 +767,6 @@ repel_edge_points <- function(
   }
   drawn_keys <- geometry_keys(edge_geometry)
   arrow_keys <- geometry_keys(arrow_geometry)
-  routed_ends <- routed_terminal_keys(routed_geometry)
 
   points <- list()
   panels <- unique(edges$PANEL)
@@ -849,7 +783,7 @@ repel_edge_points <- function(
       panel_edges$yend
     )
 
-    is_straight <- !(keys %in% c(drawn_keys, arrow_keys, routed_ends$key))
+    is_straight <- !(keys %in% c(drawn_keys, arrow_keys))
     if (any(is_straight)) {
       points[[length(points) + 1]] <- straight_edge_points(
         panel_edges[is_straight, , drop = FALSE],
@@ -894,16 +828,6 @@ repel_edge_points <- function(
         n_edge_points
       )
     }
-
-    if (!is.null(routed_geometry) && any(keys %in% routed_ends$key)) {
-      claimed <- routed_ends$edge_id[routed_ends$key %in% keys]
-      points[[length(points) + 1]] <- drawn_edge_points(
-        routed_geometry[routed_geometry$edge_id %in% claimed, , drop = FALSE],
-        panel,
-        n_edge_points,
-        include_endpoints
-      )
-    }
   }
 
   points <- points[!vapply(points, is.null, logical(1))]
@@ -914,42 +838,9 @@ repel_edge_points <- function(
   do.call(rbind, points)
 }
 
-# The chord key of each routed edge: its endpoints are its first and last
-# waypoints in `seq` order, which is how an edge on the plot claims the spec.
-routed_terminal_keys <- function(geometry) {
-  if (is.null(geometry) || nrow(geometry) == 0) {
-    return(data.frame(
-      edge_id = character(),
-      key = character(),
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  do.call(
-    rbind,
-    lapply(split(seq_len(nrow(geometry)), geometry$edge_id), function(rows) {
-      ordered <- rows[order(geometry$seq[rows])]
-      first <- ordered[[1]]
-      last <- ordered[[length(ordered)]]
-      data.frame(
-        edge_id = geometry$edge_id[[first]],
-        key = edge_key(
-          geometry$x[[first]],
-          geometry$y[[first]],
-          geometry$x[[last]],
-          geometry$y[[last]]
-        ),
-        stringsAsFactors = FALSE
-      )
-    })
-  )
-}
-
 # A transforming position scale, `scale_x_log10()` say, moves the data before
 # any stat sees it, so edge endpoints read from the plot data have to make the
 # same trip before they can be matched against the rows this stat is given.
-# A spec made only of routed waypoints has no `xend`/`yend` columns; its
-# waypoint positions still travel through `x` and `y`.
 rescale_edge_geometry <- function(edge_geometry, layout) {
   if (is.null(edge_geometry) || is.null(layout)) {
     return(edge_geometry)
@@ -1419,9 +1310,8 @@ discover_edge_geometry <- function(plot) {
 
   # Kept row for row: two edges drawn between the same pair of nodes are two
   # rows, and a fan spreads them apart only because there are two of them.
-  # The types do not share a shape: routed waypoints carry `edge_id` and
-  # `seq` where the arc types carry endpoints, so the columns one type lacks
-  # are filled with NA.
+  # Every type is one wide row per edge; the routing columns the other
+  # builders do not fill are NA.
   dplyr::bind_rows(specs)
 }
 
@@ -1515,26 +1405,38 @@ arrow_layer_geometry <- function(layer, plot_data) {
     return(NULL)
   }
 
-  # An edge with no per-edge value is drawn at the layer's scalar curvature,
-  # which is also what the geom falls back to for an NA.
+  # A layer whose per-edge column holds nothing but NA draws every edge at its
+  # scalar curvature, and one that carries a value anywhere draws the rest at
+  # whatever its `unset` parameter says an unset edge means: a chord for a
+  # directed layer, the layer's own curvature for a bidirected one. The geom
+  # decides it the same way, so the trace follows the picture.
   fallback <- layer$geom_params$curvature %||% 0.3
+  unset <- if (identical(layer$geom_params$unset, "curvature")) {
+    fallback
+  } else {
+    0
+  }
   curvature <- rep(fallback, nrow(layer_data))
   mapped_curvature <- layer$mapping$edge_curvature
+  per_edge <- FALSE
   if (!is.null(mapped_curvature)) {
     mapped <- tryCatch(
       rlang::eval_tidy(mapped_curvature, data = layer_data),
       error = function(e) NULL
     )
-    if (is.numeric(mapped) && length(mapped) == nrow(layer_data)) {
-      curvature <- ifelse(is.na(mapped), fallback, mapped)
+    if (
+      is.numeric(mapped) &&
+        length(mapped) == nrow(layer_data) &&
+        !all(is.na(mapped))
+    ) {
+      per_edge <- TRUE
+      curvature <- ifelse(is.na(mapped), unset, mapped)
     }
   }
 
   column <- function(name, default) {
     if (name %in% names(layer_data)) layer_data[[name]] else default
   }
-
-  per_edge <- !is.null(mapped_curvature)
   data.frame(
     x = layer_data$x,
     y = layer_data$y,
@@ -1553,31 +1455,52 @@ arrow_layer_geometry <- function(layer, plot_data) {
   )
 }
 
-# Which routed edges a waypoint layer draws, if any. A routing layer carries
-# its edges in long format, one row per waypoint with `edge_id`, `x`, `y`,
-# and `seq` columns; each edge is the polyline through its waypoints in `seq`
-# order. The endpoint columns of the wide formats must be absent: a layer
-# that carries `xend`/`yend` draws chords or arcs, not waypoints, even when
-# the four waypoint columns happen to be present too.
+# Which edges a routed arrows layer draws, if any. The layer is recognised by
+# its geom, and its data are the plot rows with `.ggdag_draw` marking the ones
+# it draws. Waypoints are not communicated: both the edge grob and the label
+# grob call the same pure router on the same inputs at draw time, so the spec
+# says how the edges are routed rather than where they go.
 routed_layer_geometry <- function(layer, plot_data) {
-  layer_data <- resolve_layer_data(
-    layer,
-    plot_data,
-    required = c("edge_id", "x", "y", "seq")
-  )
-  if (is.null(layer_data)) {
-    return(NULL)
-  }
-  if (any(c("xend", "yend") %in% names(layer_data))) {
+  if (!inherits(layer$geom, "GeomDAGRoutedArrow")) {
     return(NULL)
   }
 
+  layer_data <- resolve_layer_data(layer, plot_data)
+  if (is.null(layer_data)) {
+    return(NULL)
+  }
+
+  drawn <- if (".ggdag_draw" %in% names(layer_data)) {
+    !is.na(layer_data$.ggdag_draw) & layer_data$.ggdag_draw
+  } else {
+    rep(TRUE, nrow(layer_data))
+  }
+  layer_data <- layer_data[drawn & !is.na(layer_data$xend), , drop = FALSE]
+  if (nrow(layer_data) == 0) {
+    return(NULL)
+  }
+
+  column <- function(name, default) {
+    if (name %in% names(layer_data)) layer_data[[name]] else default
+  }
+
   data.frame(
-    edge_id = as.character(layer_data$edge_id),
     x = layer_data$x,
     y = layer_data$y,
-    seq = layer_data$seq,
+    xend = layer_data$xend,
+    yend = layer_data$yend,
+    circular = FALSE,
     type = "routed",
+    strength = NA_real_,
+    n = 100,
+    fold = FALSE,
+    flipped = FALSE,
+    from = as.character(column("name", NA_character_)),
+    to = as.character(column("to", NA_character_)),
+    curvature = as.numeric(column("edge_curvature", NA_real_)),
+    route_style = layer$geom_params$route %||% "spline",
+    route_clearance = layer$geom_params$clearance %||% NA_real_,
+    route_sep = layer$geom_params$edge_sep %||% NA_real_,
     stringsAsFactors = FALSE
   )
 }

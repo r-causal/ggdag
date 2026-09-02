@@ -337,7 +337,7 @@ ggdag_equivalent_class <- function(
           limits = c("FALSE", "TRUE")
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       edge_layers <- c(
         quick_plot_dag_edges(

@@ -1510,7 +1510,9 @@ quick_plot_arrow_edges <- function(
   show.legend = NA,
   ...
 ) {
-  list(
+  edge_route <- ggdag_option("edge_route", "straight")
+
+  directed <- if (identical(edge_route, "straight")) {
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_directed,
@@ -1522,11 +1524,31 @@ quick_plot_arrow_edges <- function(
       length = length,
       show.legend = show.legend,
       ...
-    ),
+    )
+  } else {
+    routed_directed_layer(
+      mapping = mapping,
+      data_directed = data_directed,
+      edge_route = edge_route,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = NULL,
+      arrow_length = length,
+      resect = resect,
+      linewidth = linewidth,
+      node_size = NULL,
+      show.legend = show.legend,
+      ...
+    )
+  }
+
+  list(
+    directed,
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_bidirected,
       curvature = ggdag_option("curvature", 0.3),
+      unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
       resect = resect,
@@ -1544,12 +1566,60 @@ arrow_length_unit <- function(arrow_length) {
   grid::unit(arrow_length, "pt")
 }
 
+# The routed directed edge layer the packaged edge rendering swaps in when
+# `edge_route` names a routing mode. It draws the same edges the straight
+# layer would, with the same ornaments, resection, and width, and decides its
+# geometry in millimetres at draw time.
+routed_directed_layer <- function(
+  mapping,
+  data_directed,
+  edge_route,
+  arrow_head,
+  arrow_fins,
+  arrow_mid,
+  arrow_length,
+  resect,
+  linewidth,
+  node_size,
+  show.legend,
+  ...
+) {
+  dag_routed_arrow_layer(
+    mapping = mapping,
+    data_directed = data_directed,
+    route = edge_route,
+    node_size = node_size,
+    arrow_head = arrow_head,
+    arrow_fins = arrow_fins,
+    arrow_mid = arrow_mid,
+    length = list(
+      head = arrow_length,
+      fins = arrow_length,
+      mid = arrow_length
+    ),
+    justify = 0,
+    force_arrow = FALSE,
+    mid_place = 0.5,
+    resect_head = resect,
+    resect_fins = resect,
+    lineend = "butt",
+    linejoin = "round",
+    linemitre = 10,
+    position = "identity",
+    na.rm = TRUE,
+    show.legend = show.legend,
+    linewidth = linewidth,
+    ...
+  )
+}
+
 # Build ggarrow edge layers for geom_dag()
 geom_dag_ggarrow_edges <- function(
   edge_type,
   sizes,
   show.legend = NA,
-  data = NULL
+  data = NULL,
+  edge_route = ggdag_option("edge_route", "straight")
 ) {
   rlang::check_installed(
     "ggarrow",
@@ -1567,39 +1637,29 @@ geom_dag_ggarrow_edges <- function(
 
   dag_mapping <- aes_dag()
 
-  # Under auto_route, the straight directed layer of the default edge type is
-  # swapped for the routed layer, which detours a blocked edge around the
-  # node on its path; the bidirected edges stay on their arc layer.
-  link_arc_directed <- function() {
-    if (isTRUE(ggdag_option("auto_route", FALSE))) {
-      dag_routed_arrow_layer(
-        data_directed = compose_edge_data(data, filter_direction("->")),
-        node_radius = node_radius_data(),
+  # Under `edge_route`, the straight directed layer is swapped for the routed
+  # layer, which detours a blocked edge around the node on its path; the
+  # bidirected edges stay on their arc layer.
+  routed <- !identical(edge_route, "straight")
+  directed_layer <- function(data_fn) {
+    if (routed) {
+      routed_directed_layer(
+        mapping = dag_mapping,
+        data_directed = data_fn,
+        edge_route = edge_route,
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
-        length = list(
-          head = arrow_length,
-          fins = arrow_length,
-          mid = arrow_length
-        ),
-        justify = 0,
-        force_arrow = FALSE,
-        mid_place = 0.5,
-        resect_head = resect,
-        resect_fins = resect,
-        lineend = "butt",
-        linejoin = "round",
-        linemitre = 10,
-        position = "identity",
-        na.rm = TRUE,
-        show.legend = show.legend,
-        linewidth = linewidth
+        arrow_length = arrow_length,
+        resect = resect,
+        linewidth = linewidth,
+        node_size = sizes[["node"]],
+        show.legend = show.legend
       )
     } else {
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = compose_edge_data(data, filter_direction("->")),
+        data = data_fn,
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1615,7 +1675,7 @@ geom_dag_ggarrow_edges <- function(
   switch(
     edge_type,
     "link_arc" = list(
-      link_arc_directed(),
+      directed_layer(compose_edge_data(data, filter_direction("->"))),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
         data = compose_edge_data(data, filter_direction("<->")),
@@ -1623,23 +1683,40 @@ geom_dag_ggarrow_edges <- function(
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
+        unset = "curvature",
         resect = resect,
         linewidth = linewidth,
         length = arrow_length,
         show.legend = show.legend
       )
     ),
-    "link" = geom_dag_arrow(
-      mapping = dag_mapping,
-      data = data,
-      arrow_head = arrow_head,
-      arrow_fins = arrow_fins,
-      arrow_mid = arrow_mid,
-      resect = resect,
-      linewidth = linewidth,
-      length = arrow_length,
-      show.legend = show.legend
-    ),
+    "link" = if (routed) {
+      routed_directed_layer(
+        mapping = dag_mapping,
+        data_directed = data,
+        edge_route = edge_route,
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        arrow_length = arrow_length,
+        resect = resect,
+        linewidth = linewidth,
+        node_size = sizes[["node"]],
+        show.legend = show.legend
+      )
+    } else {
+      geom_dag_arrow(
+        mapping = dag_mapping,
+        data = data,
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
+        show.legend = show.legend
+      )
+    },
     "arc" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
@@ -1660,6 +1737,7 @@ geom_dag_ggarrow_edges <- function(
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
+        unset = "curvature",
         resect = resect,
         linewidth = linewidth,
         length = arrow_length,
@@ -1686,6 +1764,7 @@ geom_dag_ggarrow_edges <- function(
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
+        unset = "curvature",
         resect = resect,
         linewidth = linewidth,
         length = arrow_length,
@@ -1711,12 +1790,19 @@ geom_dag_ggarrow_edges <- function(
 #' @param size A numeric value scaling the size of all elements in the DAG. This
 #'   allows you to change the scale of the DAG without changing the proportions.
 #' @param edge_type The type of edge, one of "link_arc", "link", "arc",
-#'   "diagonal".
+#'   "diagonal". `edge_route` applies to `"link_arc"` and `"link"` only:
+#'   `"arc"` and `"diagonal"` bend every edge already, so they ignore it.
 #' @param edge_engine The engine used to draw edges. Either `"ggraph"`
 #'   (default) or `"ggarrow"`. When `"ggarrow"`, edges are drawn using
 #'   [ggarrow][ggarrow::ggarrow-package] geoms, which support additional
 #'   customization via the `arrow_head`, `arrow_fins`, `arrow_mid`, and
 #'   `curvature` global options (see [ggdag_options_set()]).
+#' @param edge_route How the ggarrow engine draws directed edges, one of
+#'   `"straight"` (the default), `"spline"`, or `"orthogonal"`. A routing mode
+#'   detours an edge whose path a node blocks around that node, deciding the
+#'   geometry in the units of the device when the plot is drawn.
+#'   `"orthogonal"` is not yet available and errors when the plot is drawn.
+#'   The ggraph engine cannot route and warns when asked to.
 #' @param node_size The size of the nodes.
 #' @param text_size The size of the text.
 #' @param label_size The size of the labels.
@@ -1801,6 +1887,7 @@ geom_dag <- function(
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -1853,7 +1940,8 @@ geom_dag <- function(
         edge_type = edge_type,
         sizes = sizes,
         show.legend = edge_show_legend,
-        data = data
+        data = data,
+        edge_route = edge_route
       )
     } else {
       if (edge_type == "link_arc") {
@@ -2031,7 +2119,24 @@ geom_dag <- function(
     label_geom_result
   )
 
-  structure(result, class = "geom_dag_layers")
+  # `edge_route` is a ggarrow feature; the ggraph engine has nowhere to put a
+  # detour, so the layers carry the value they could not draw and
+  # `ggplot_add()` says so once for the whole plot.
+  ignored_route <- if (
+    isTRUE(use_edges) &&
+      identical(edge_engine, "ggraph") &&
+      !identical(edge_route, "straight")
+  ) {
+    edge_route
+  } else {
+    NULL
+  }
+
+  structure(
+    result,
+    class = "geom_dag_layers",
+    ignored_edge_route = ignored_route
+  )
 }
 
 #' @exportS3Method ggplot2::ggplot_add
@@ -2045,12 +2150,7 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   curvature_ignored <- FALSE
 
   for (item in flatten_dag_layers(object)) {
-    # The routed layer reads `edge_curvature` from the plot data by column
-    # name: its own data is the long waypoint format, which the aesthetic
-    # could not evaluate on.
-    is_routed <- inherits(item, "dag_arrow_layer") &&
-      inherits(item$stat, "StatDAGRoutedEdge")
-    if (has_curvature && inherits(item, "dag_arrow_layer") && !is_routed) {
+    if (has_curvature && inherits(item, "dag_arrow_layer")) {
       item <- inject_edge_curvature(item)
     }
     if (wants_curve && inherits(item, "dag_edge_layer")) {
@@ -2061,6 +2161,11 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
 
   if (curvature_ignored) {
     warn_ignored_edge_curvature()
+  }
+
+  ignored_route <- attr(object, "ignored_edge_route")
+  if (!is.null(ignored_route)) {
+    warn_ignored_edge_route(ignored_route)
   }
 
   plot
@@ -2108,15 +2213,34 @@ wants_edge_curvature <- function(dag_data) {
     any(dag_data$edge_curvature != 0, na.rm = TRUE)
 }
 
-# Report a per-edge curvature that the ggraph edge layers about to be added
-# cannot draw. Called by each function that builds ggraph edge layers of its
-# own, so that the plotters which pass `use_edges = FALSE` to `geom_dag()` are
-# as loud about it as `geom_dag()` itself.
-warn_if_curvature_ignored <- function(dag_data) {
+# Report the per-edge curvature and the edge routing that the ggraph edge
+# layers about to be added cannot draw. Called by each function that builds
+# ggraph edge layers of its own, so that the plotters which pass
+# `use_edges = FALSE` to `geom_dag()` are as loud about the two ggarrow-only
+# features as `geom_dag()` itself.
+warn_if_ggarrow_only_ignored <- function(dag_data) {
   if (wants_edge_curvature(dag_data)) {
     warn_ignored_edge_curvature()
   }
+  edge_route <- ggdag_option("edge_route", "straight")
+  if (!identical(edge_route, "straight")) {
+    warn_ignored_edge_route(edge_route)
+  }
   invisible(NULL)
+}
+
+# The ggraph edge geoms draw each edge along the path of their own edge type
+# and have no draw-time hook to route one, so a routing the plot asked for
+# would otherwise disappear without a word.
+warn_ignored_edge_route <- function(edge_route) {
+  warn(
+    c(
+      "Edge routing is drawn by the ggarrow edge engine only.",
+      "x" = "The {.val ggraph} engine is drawing these edges, so the {.field edge_route} value {.val {edge_route}} is ignored.",
+      "i" = 'Set {.code edge_engine = "ggarrow"}, or {.code ggdag_options_set(edge_engine = "ggarrow")}, to draw them.'
+    ),
+    warning_class = "ggdag_edge_route_warning"
+  )
 }
 
 # The ggraph edge geoms draw each edge with the curvature of their own edge

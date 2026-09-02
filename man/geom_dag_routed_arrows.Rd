@@ -8,7 +8,11 @@ geom_dag_routed_arrows(
   mapping = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
-  node_radius = node_radius_data(),
+  route = c("spline", "orthogonal"),
+  clearance = NULL,
+  edge_sep = NULL,
+  layer_axis = c("auto", "x", "y"),
+  node_size = NULL,
   curvature = 0.3,
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
@@ -29,22 +33,38 @@ geom_dag_routed_arrows(
   position = "identity",
   na.rm = TRUE,
   show.legend = NA,
+  inherit.aes = TRUE,
   ...
 )
 }
 \arguments{
 \item{mapping}{Set of aesthetic mappings created by \code{\link[ggplot2:aes]{ggplot2::aes()}},
-applied to the bidirected arc layer.}
+applied to both the routed layer and the bidirected arc layer.}
 
 \item{data_directed, data_bidirected}{The data to be displayed for directed
 and bidirected edges respectively. By default, these filter the plot
 data by edge direction.}
 
-\item{node_radius}{Drawn node radius in data units, the scale on which the
-routing works: an edge is blocked when a node sits strictly within
-1.5 node radii of its straight path, and the routed path clears the
-obstacle by the same expanded radius. Defaults to the radius the
-default-size node is drawn at.}
+\item{route}{How to route a blocked edge: \code{"spline"} (the default) draws
+a smooth curve around the obstacle. \code{"orthogonal"}, which draws
+axis-aligned segments with rounded corners, is not yet available and
+errors when the plot is drawn.}
+
+\item{clearance}{The daylight in millimetres a routed path keeps beyond
+the node discs, or \code{NULL} (the default) for the router's own margin,
+half a node radius with a floor of 1.2 mm.}
+
+\item{edge_sep}{The gap in millimetres between two routed paths sharing a
+detour, or \code{NULL} (the default) for the router's own separation.}
+
+\item{layer_axis}{The axis the layout's layers run along, one of \code{"auto"}
+(the default), \code{"x"}, or \code{"y"}. Routing sends a detour along the
+within-layer axis, so a layout laid out down the panel rather than
+across it is routed correctly by naming its axis.}
+
+\item{node_size}{The size of the drawn nodes, in the units
+\code{\link[=geom_dag_point]{geom_dag_point()}} takes, giving the router the radius of the discs it
+clears. \code{NULL}, the default, takes it from the plot's node layer.}
 
 \item{curvature}{A numeric value giving the amount of curvature. Negative
 values produce left-hand curves, positive values produce right-hand curves,
@@ -93,6 +113,9 @@ call to a position adjustment function.}
 
 \item{show.legend}{Logical. Should this layer be included in the legends?}
 
+\item{inherit.aes}{If \code{FALSE}, overrides the default aesthetics rather than
+combining with them.}
+
 \item{...}{Other arguments passed on to the layer.}
 }
 \value{
@@ -100,26 +123,33 @@ A list of \code{\link[ggplot2:layer]{ggplot2::layer()}} objects that can be adde
 }
 \description{
 \code{geom_dag_routed_arrows()} draws DAG edges with the ggarrow engine,
-routing every directed edge whose straight path a node blocks around that
-node. Each blocked edge takes the shortest path through a visibility graph
-built over the tangent points of the obstacle circles, expanded to
-1.5 node radii so the drawn path keeps a clearance margin of half a node
-radius, and the corners are smoothed with two passes of Chaikin corner
-cutting. Unblocked edges stay straight, bidirected edges are drawn as arcs
-by the same curve geom \code{\link[=geom_dag_arrows]{geom_dag_arrows()}} uses, and the routing is
-deterministic: the same DAG always draws the same paths.
+routing every directed edge whose path a node blocks around that node.
+The routing happens when the plot is drawn, in the millimetres of the
+device, so the detour clears the drawn node discs whatever the shape of
+the panel and the picture re-routes when the plot is resized. Unblocked
+edges stay straight, bidirected edges are drawn as arcs by the same curve
+geom \code{\link[=geom_dag_arrows]{geom_dag_arrows()}} uses, and the routing is deterministic: the same
+DAG at the same size always draws the same paths.
 }
 \details{
 Curvature the user set is never rerouted. When the data carries an
 \code{edge_curvature} column, from \code{\link[=curved]{curved()}}, \code{\link[=curve_edge]{curve_edge()}}, or your own
-code, an edge with a numeric curvature follows that arc, an explicit 0
-stays straight through whatever sits on its chord, and only edges whose
-curvature is unset (\code{NA}) are candidates for routing.
+code, an edge with a numeric curvature is drawn as that arc, an explicit
+\code{0} stays straight through whatever sits on its chord, and only edges
+whose curvature is unset (\code{NA}) are candidates for routing. An arc the
+user set still counts as an obstacle the other edges route around.
 
-The routed layer computes its waypoints from the layer data, so it does
-not inherit the plot's aesthetic mapping; the \code{mapping} argument applies
-to the bidirected arc layer. Edges are resected to the plot's node size
-exactly as in \code{\link[=geom_dag_arrow]{geom_dag_arrow()}}.
+The layer carries every row of the plot data, so the router can treat
+every drawn node as an obstacle, and draws the rows \code{data_directed}
+selects. Edge rows of a data frame you supply that are not among the plot
+rows are drawn as well, and their endpoints join the obstacles. Scales and
+legends therefore see exactly what the other DAG layers see. Edges are
+resected to the plot's node size exactly as in \code{\link[=geom_dag_arrow]{geom_dag_arrow()}}, and the
+same node size gives the router the radius of the discs it must clear.
+
+A routed path is stroked at one width along its length, so
+\code{linewidth_head} and \code{linewidth_fins} taper only the arcs drawn for
+curvature the user set.
 }
 \examples{
 library(ggplot2)
@@ -140,7 +170,7 @@ dag |>
 }
 \seealso{
 \code{\link[=geom_dag_arrow]{geom_dag_arrow()}}, \code{\link[=geom_dag_arrows]{geom_dag_arrows()}}, and \code{\link[=geom_dag_edges]{geom_dag_edges()}}
-for the other edge geoms, and the \code{auto_route} option in
+for the other edge geoms, and the \code{edge_route} option in
 \code{\link[=ggdag_options_set]{ggdag_options_set()}} to swap routed edges into \code{geom_dag()} and the
 quick plotting functions.
 }

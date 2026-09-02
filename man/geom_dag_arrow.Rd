@@ -38,6 +38,7 @@ geom_dag_arrow_arc(
   curvature = 0.3,
   angle = 90,
   ncp = 5,
+  unset = c("chord", "curvature"),
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
   arrow_mid = NULL,
@@ -149,6 +150,13 @@ control points of the curve.}
 \item{ncp}{The number of control points used to draw the curve. More control
 points creates a smoother curve.}
 
+\item{unset}{What an edge whose \code{edge_curvature} is unset (\code{NA}) is drawn
+as, once some other edge of the layer carries a value. \code{"chord"} (the
+default) draws it straight, which is what a directed layer wants:
+curving one edge does not bend the others. \code{"curvature"} draws it at the
+layer's own \code{curvature}, which is what a bidirected layer wants: curving
+one bidirected edge does not flatten the rest.}
+
 \item{data_directed, data_bidirected}{The data to be displayed for directed
 and bidirected edges respectively. By default, these filter the plot data
 by edge direction.}
@@ -175,9 +183,13 @@ ggraph-based edge geoms, these use ggarrow's native parameter names
 aesthetic. Map a numeric column to \code{aes(edge_curvature = ...)} to give each
 edge its own curvature value. Edges with \code{edge_curvature = 0} are drawn as
 straight lines; positive values curve right, negative values curve left.
-Any \code{NA} values fall back to the scalar \code{curvature} parameter. This is
-useful in time-ordered DAGs where some edges need to curve around
-intermediate nodes while adjacent edges stay straight.
+Once any edge carries a value, the edges left unset (\code{NA}) are drawn as
+straight lines too, unless \code{unset = "curvature"} asks for the layer's own
+\code{curvature} instead, as the bidirected layers of \code{\link[=geom_dag_arrows]{geom_dag_arrows()}} and
+\code{\link[=geom_dag]{geom_dag()}} do. The scalar \code{curvature} parameter is also the layer's
+value for the case where no edge carries one. This is useful in
+time-ordered DAGs where some edges need to curve around intermediate nodes
+while adjacent edges stay straight.
 }
 
 \subsection{Auto-resection}{

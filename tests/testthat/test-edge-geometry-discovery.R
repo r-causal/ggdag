@@ -7,10 +7,11 @@
 #   as the quadratic Bezier arc `sample_curved_edge()` models for that row's
 #   curvature. Unlike "ggarrow_curve", these edges are traced for every
 #   consumer of `repel_edge_points()`, not only when arrows are asked for.
-# * "routed": a layer whose data is waypoint long format, one row per
-#   waypoint with `edge_id`, `x`, `y`, and `seq` columns. The edge is traced
-#   as the polyline through its waypoints in `seq` order; the first and last
-#   waypoints of an edge are its endpoints.
+# * "routed": a layer drawing with `GeomDAGRoutedArrow`, whose path is
+#   decided in millimetres when the plot is drawn. The spec is one wide row
+#   per drawn edge carrying how the edge is routed, `route_style`,
+#   `route_clearance`, and `route_sep`, rather than where it goes; the
+#   obstacle tracers follow its chord.
 
 # Distance from each point to a single segment, clamped at the ends.
 point_segment_dist <- function(px, py, x, y, xend, yend) {
@@ -45,45 +46,6 @@ polyline_dist <- function(px, py, poly_x, poly_y) {
   apply(matrix(seg_dists, nrow = length(px)), 1, min)
 }
 
-# Arc-length position of each point along the polyline, taken at the segment
-# the point is closest to; used to check that a trace follows waypoint order.
-polyline_position <- function(px, py, poly_x, poly_y) {
-  seg_len <- sqrt(diff(poly_x)^2 + diff(poly_y)^2)
-  cum_start <- cumsum(c(0, seg_len))
-  vapply(
-    seq_along(px),
-    function(i) {
-      best <- Inf
-      best_pos <- 0
-      for (s in seq_along(seg_len)) {
-        dx <- poly_x[s + 1] - poly_x[s]
-        dy <- poly_y[s + 1] - poly_y[s]
-        len2 <- dx^2 + dy^2
-        t <- if (len2 == 0) {
-          0
-        } else {
-          min(
-            max(
-              ((px[i] - poly_x[s]) * dx + (py[i] - poly_y[s]) * dy) / len2,
-              0
-            ),
-            1
-          )
-        }
-        d <- sqrt(
-          (px[i] - (poly_x[s] + t * dx))^2 + (py[i] - (poly_y[s] + t * dy))^2
-        )
-        if (d < best) {
-          best <- d
-          best_pos <- cum_start[s] + t * seg_len[s]
-        }
-      }
-      best_pos
-    },
-    numeric(1)
-  )
-}
-
 # Distance from each point to the modeled quadratic Bezier arc, by dense
 # sampling; the sampling spacing bounds the error well below the tolerances
 # used here.
@@ -113,19 +75,6 @@ base_dag <- function() {
 curved_edge_dag <- function() {
   base_dag() |>
     curve_edge("x", "y", 0.3)
-}
-
-# Waypoints in the long format a routing layer carries: one row per waypoint,
-# ordered by `seq` within `edge_id`. The x_y edge detours through (1, 0.8);
-# the x_m edge runs straight between its endpoints.
-routed_waypoints <- function() {
-  data.frame(
-    edge_id = c("x_y", "x_y", "x_y", "x_m", "x_m"),
-    x = c(0, 1, 2, 0, 1),
-    y = c(0, 0.8, 0, 0, 1),
-    seq = c(1L, 2L, 3L, 1L, 2L),
-    stringsAsFactors = FALSE
-  )
 }
 
 # One row of discovered geometry for a curve-type edge, in the shape
@@ -191,43 +140,43 @@ test_that("a scalar-curvature ggarrow layer keeps the ggarrow_curve type", {
 
 # Discovery: type "routed" -------------------------------------------------
 
-test_that("a waypoint layer is discovered as routed with its waypoints", {
-  waypoints <- routed_waypoints()
-  p <- ggplot(base_dag(), aes_dag()) +
-    ggplot2::geom_path(
-      data = waypoints,
-      aes(x, y, group = edge_id),
-      inherit.aes = FALSE
-    ) +
+test_that("a routed arrows layer is discovered as a routing spec", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- base_dag()
+  p <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_routed_arrows() +
     geom_dag_point()
 
   geometry <- discover_edge_geometry(p)
   expect_false(is.null(geometry))
   routed <- geometry[geometry$type == "routed", , drop = FALSE]
-  expect_equal(nrow(routed), nrow(waypoints))
-  expect_contains(names(routed), c("edge_id", "x", "y", "seq"))
 
-  routed <- routed[order(routed$edge_id, routed$seq), , drop = FALSE]
-  waypoints <- waypoints[
-    order(waypoints$edge_id, waypoints$seq),
-    ,
-    drop = FALSE
-  ]
-  expect_equal(routed$edge_id, waypoints$edge_id)
-  expect_equal(routed$seq, waypoints$seq)
-  expect_equal(routed$x, waypoints$x)
-  expect_equal(routed$y, waypoints$y)
+  # one wide row per drawn edge, the shape every other type is discovered
+  # with, plus how the edges are routed
+  expect_equal(nrow(routed), 2)
+  expect_contains(
+    names(routed),
+    c("x", "y", "xend", "yend", "route_style", "route_clearance", "route_sep")
+  )
+  expect_true(all(routed$route_style == "spline"))
+  expect_true(all(is.na(routed$route_clearance)))
+  expect_true(all(is.na(routed$route_sep)))
+
+  edges <- pull_dag_data(tidy_dag)
+  edges <- edges[!is.na(edges$to), , drop = FALSE]
+  expect_setequal(
+    paste(routed$x, routed$y, routed$xend, routed$yend),
+    paste(edges$x, edges$y, edges$xend, edges$yend)
+  )
 })
 
 test_that("routed and bent edge layers are discovered together", {
-  waypoints <- routed_waypoints()
+  skip_if_not_installed("ggarrow")
+
   p <- ggplot(base_dag(), aes_dag()) +
     geom_dag_edges_arc(curvature = 0.4) +
-    ggplot2::geom_path(
-      data = waypoints,
-      aes(x, y, group = edge_id),
-      inherit.aes = FALSE
-    ) +
+    geom_dag_routed_arrows() +
     geom_dag_point()
 
   geometry <- discover_edge_geometry(p)
@@ -238,7 +187,10 @@ test_that("routed and bent edge layers are discovered together", {
   expect_equal(unique(arc$strength), 0.4)
 
   routed <- geometry[geometry$type == "routed", , drop = FALSE]
-  expect_equal(nrow(routed), nrow(waypoints))
+  expect_equal(nrow(routed), 2)
+
+  # the arc rows fill the routing columns with NA, so the specs stack
+  expect_true(all(is.na(arc$route_style)))
 })
 
 # Tracing: type "curve" ----------------------------------------------------
@@ -303,64 +255,6 @@ test_that("a curve row with zero strength traces the straight chord", {
   expect_equal(traced$y, expected$y)
 })
 
-# Tracing: type "routed" ---------------------------------------------------
-
-test_that("drawn_edge_points traces routed waypoints in seq order", {
-  waypoints <- routed_waypoints()
-  # row order deliberately shuffled; `seq` alone carries the drawing order
-  geometry <- waypoints[c(3, 1, 5, 2, 4), , drop = FALSE]
-  geometry$type <- "routed"
-
-  traced <- drawn_edge_points(geometry, 1L, 24, include_endpoints = TRUE)
-  expect_equal(unique(traced$PANEL), 1L)
-
-  groups <- split(traced, traced$edge_id)
-  expect_length(groups, 2)
-
-  ends_at <- function(g, x, y) {
-    abs(g$x[nrow(g)] - x) < 1e-8 && abs(g$y[nrow(g)] - y) < 1e-8
-  }
-  xy_group <- groups[[which(vapply(groups, ends_at, logical(1), x = 2, y = 0))]]
-  xm_group <- groups[[which(vapply(groups, ends_at, logical(1), x = 1, y = 1))]]
-
-  # each edge starts at its first waypoint and stays on its own polyline
-  expect_equal(c(xy_group$x[1], xy_group$y[1]), c(0, 0))
-  expect_lt(
-    max(polyline_dist(xy_group$x, xy_group$y, c(0, 1, 2), c(0, 0.8, 0))),
-    1e-8
-  )
-  expect_lt(
-    max(polyline_dist(xm_group$x, xm_group$y, c(0, 1), c(0, 1))),
-    1e-8
-  )
-
-  # the trace follows the waypoints in seq order and passes the detour corner
-  positions <- polyline_position(
-    xy_group$x,
-    xy_group$y,
-    c(0, 1, 2),
-    c(0, 0.8, 0)
-  )
-  expect_true(all(diff(positions) >= -1e-8))
-  expect_lt(min(sqrt((xy_group$x - 1)^2 + (xy_group$y - 0.8)^2)), 0.15)
-})
-
-test_that("drawn_edge_points excludes routed endpoints unless asked", {
-  geometry <- routed_waypoints()
-  geometry$type <- "routed"
-
-  traced <- drawn_edge_points(geometry, 1L, 12, include_endpoints = FALSE)
-  terminals <- data.frame(x = c(0, 2, 1), y = c(0, 0, 1))
-  for (i in seq_len(nrow(terminals))) {
-    expect_gt(
-      min(sqrt(
-        (traced$x - terminals$x[i])^2 + (traced$y - terminals$y[i])^2
-      )),
-      1e-6
-    )
-  }
-})
-
 # Obstacle assembly --------------------------------------------------------
 
 test_that("repel_edge_points traces curve specs for every consumer", {
@@ -392,16 +286,28 @@ test_that("repel_edge_points traces curve specs for every consumer", {
   expect_true(any(d_chord < 1e-8))
 })
 
-test_that("repel_edge_points traces routed specs through their waypoints", {
-  # an edge matches a routed spec when its endpoints are the spec's first and
-  # last waypoints in seq order
+test_that("repel_edge_points traces a routed spec along its chord", {
+  # the drawn detour is decided in millimetres at draw time, so a data-space
+  # tracer follows the chord, which is what every consumer saw before
+  # routing existed
   edges <- data.frame(x = 0, y = 0, xend = 2, yend = 0, PANEL = 1L)
   geometry <- data.frame(
-    edge_id = "x_y",
-    x = c(0, 1, 2),
-    y = c(0, 0.8, 0),
-    seq = 1:3,
+    x = 0,
+    y = 0,
+    xend = 2,
+    yend = 0,
+    circular = FALSE,
     type = "routed",
+    strength = NA_real_,
+    n = 100,
+    fold = FALSE,
+    flipped = FALSE,
+    from = "x",
+    to = "y",
+    curvature = NA_real_,
+    route_style = "spline",
+    route_clearance = NA_real_,
+    route_sep = NA_real_,
     stringsAsFactors = FALSE
   )
 
@@ -413,11 +319,9 @@ test_that("repel_edge_points traces routed specs through their waypoints", {
     include_endpoints = TRUE
   )
 
-  expect_gt(max(points$y), 0.5)
-  expect_lt(
-    max(polyline_dist(points$x, points$y, c(0, 1, 2), c(0, 0.8, 0))),
-    1e-8
-  )
+  expect_gt(nrow(points), 0)
+  expect_equal(max(abs(points$y)), 0)
+  expect_lt(max(polyline_dist(points$x, points$y, c(0, 2), c(0, 0))), 1e-8)
 })
 
 # End to end ----------------------------------------------------------------
@@ -451,26 +355,17 @@ test_that("StatNodesRepel receives arc obstacles from per-edge curvature", {
   }
 })
 
-test_that("StatNodesLabelAuto receives routed obstacles from a waypoint layer", {
+test_that("StatNodesLabelAuto receives edge obstacles from a routed layer", {
+  skip_if_not_installed("ggarrow")
+
   dag <- dagify(
     y ~ x,
     m ~ x,
     labels = c(x = "Exposure", m = "Mediator", y = "Outcome"),
     coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
   )
-  waypoints <- data.frame(
-    edge_id = "x_y",
-    x = c(0, 1, 2),
-    y = c(0, 0.8, 0),
-    seq = 1:3,
-    stringsAsFactors = FALSE
-  )
   p <- ggplot(dag, aes_dag()) +
-    ggplot2::geom_path(
-      data = waypoints,
-      aes(x, y, group = edge_id),
-      inherit.aes = FALSE
-    ) +
+    geom_dag_routed_arrows() +
     geom_dag_point() +
     geom_dag_label_auto(aes(label = label))
 
@@ -482,18 +377,11 @@ test_that("StatNodesLabelAuto receives routed obstacles from a waypoint layer", 
   expect_gt(nrow(edge_rows), 0)
   expect_length(unique(edge_rows$edge_id), 2)
 
-  # points strictly between the x -> y chord and the x -> m chord exist only
-  # if the detour polyline was traced, and they sit on it
-  detour <- edge_rows[
-    edge_rows$y > 0.3 & (edge_rows$x - edge_rows$y) > 0.05,
-    ,
-    drop = FALSE
-  ]
-  expect_gt(nrow(detour), 0)
-  if (nrow(detour) > 0) {
-    expect_lt(
-      max(polyline_dist(detour$x, detour$y, c(0, 1, 2), c(0, 0.8, 0))),
-      1e-6
-    )
-  }
+  # the routed layer's edges reach the stat as their chords: the detour is
+  # decided in the millimetres of the device when the plot is drawn
+  on_chords <- pmin(
+    polyline_dist(edge_rows$x, edge_rows$y, c(0, 2), c(0, 0)),
+    polyline_dist(edge_rows$x, edge_rows$y, c(0, 1), c(0, 1))
+  )
+  expect_lt(max(on_chords), 1e-8)
 })

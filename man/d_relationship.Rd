@@ -148,7 +148,8 @@ character vector of variable names, a list of the form \code{list(c(...))}, or
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
-"diagonal".}
+"diagonal". \code{edge_route} applies to \code{"link_arc"} and \code{"link"} only:
+\code{"arc"} and \code{"diagonal"} bend every edge already, so they ignore it.}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}

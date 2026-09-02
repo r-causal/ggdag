@@ -556,7 +556,7 @@ test_that("edge_curvature column gives each edge its own curvature", {
   expect_doppelganger("geom_dag_arrow_arc mixed edge_curvature", p)
 })
 
-test_that("NA edge_curvature falls back to curvature param", {
+test_that("an unset edge_curvature is drawn as a chord beside a mapped value", {
   skip_if_not_installed("ggarrow")
 
   add_partial_curvature <- function(x) {
@@ -579,6 +579,17 @@ test_that("NA edge_curvature falls back to curvature param", {
     geom_dag_text() +
     theme_dag()
 
+  # once one edge carries a value, the edges left unset are the ones the user
+  # chose not to bend, so they are chords whatever the layer's scalar says
+  grob <- ggplot2::layer_grob(p, 1)[[1]]
+  curvatures <- vapply(
+    grob$children,
+    function(child) child$curve$curvature,
+    numeric(1)
+  )
+  expect_setequal(unname(curvatures), c(-0.8, 0))
+
+  # the baseline keeps the name it was recorded under
   expect_doppelganger("geom_dag_arrow_arc NA fallback curvature", p)
 })
 
@@ -2091,6 +2102,88 @@ test_that("curving one edge leaves bidirected edges on their own arc", {
   # value of 0 would override the layer's curvature
   curved <- curve_edge(dag, "a", "b", 0.5)
   expect_true(all(is.na(bidirected_arc_curvature(ggdag(curved)))))
+})
+
+# The curvature each arc the bidirected layer of `plot` draws is built with.
+# `GeomDAGArrowCurve` draws one arc grob per distinct curvature, so this is
+# the set of arcs the reader sees on that layer.
+drawn_bidirected_curvatures <- function(plot) {
+  for (i in seq_along(plot$layers)) {
+    layer <- plot$layers[[i]]
+    if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
+      next
+    }
+    if (!identical(layer$geom_params$unset, "curvature")) {
+      next
+    }
+    grob <- ggplot2::layer_grob(plot, i)[[1]]
+    if (inherits(grob, "curve_arrow")) {
+      return(grob$curve$curvature)
+    }
+    return(unname(vapply(
+      grob$children,
+      function(child) child$curve$curvature,
+      numeric(1)
+    )))
+  }
+  NULL
+}
+
+test_that("curving one bidirected edge leaves the others on their arc", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  dag <- dagify(
+    u ~ ~v,
+    s ~ ~t,
+    b ~ a,
+    coords = list(
+      x = c(a = 0, b = 1, u = 0, v = 1, s = 0, t = 1),
+      y = c(a = 0, b = 0, u = 1, v = 1, s = 2, t = 2)
+    )
+  )
+  tidy_dag <- curve_edge(tidy_dagitty(dag), "u", "v", 0.6)
+
+  # an arc is how a bidirected edge is read, so the sibling the user never
+  # touched keeps the layer's own curvature rather than flattening to a chord
+  expect_setequal(drawn_bidirected_curvatures(ggdag(tidy_dag)), c(0.3, 0.6))
+
+  p <- ggplot(tidy_dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_arrows()
+  expect_setequal(drawn_bidirected_curvatures(p), c(0.3, 0.6))
+
+  routed <- ggplot(tidy_dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_routed_arrows()
+  expect_setequal(drawn_bidirected_curvatures(routed), c(0.3, 0.6))
+})
+
+test_that("a control point on one bidirected edge leaves the others on their arc", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  dag <- dagitty::dagitty(
+    'dag {
+      bb="-1,-1,3,3"
+      u [pos="0.000,1.000"]
+      v [pos="2.000,1.000"]
+      s [pos="0.000,2.000"]
+      t [pos="2.000,2.000"]
+      u <-> v [pos="1.000,1.800"]
+      s <-> t
+    }'
+  )
+  tidy_dag <- tidy_dagitty(dag)
+
+  edges <- pull_dag_data(tidy_dag)
+  from_control <- edges$edge_curvature[edges$name == "u" & !is.na(edges$to)]
+  expect_false(is.na(from_control))
+
+  # the edge with a control point follows it; the one without keeps the
+  # layer's curvature
+  expect_setequal(
+    drawn_bidirected_curvatures(ggdag(tidy_dag)),
+    c(from_control, 0.3)
+  )
 })
 
 test_that("ggdag() ggarrow curved directed edge with bidirected arc snapshot", {

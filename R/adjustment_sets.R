@@ -195,7 +195,7 @@ ggdag_adjustment_set <- function(
           show.legend = FALSE
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       vals <- if (shadow) {
         c("blocked by\nadjustment" = "grey80")
@@ -473,7 +473,7 @@ ggdag_adjust <- function(
           show.legend = FALSE
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       p <- p +
         drop_empty_edge_layers(

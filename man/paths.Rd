@@ -116,7 +116,8 @@ if they are part of the path.}
 allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
-"diagonal".}
+"diagonal". \code{edge_route} applies to \code{"link_arc"} and \code{"link"} only:
+\code{"arc"} and \code{"diagonal"} bend every edge already, so they ignore it.}
 
 \item{node_size}{The size of the nodes.}
 

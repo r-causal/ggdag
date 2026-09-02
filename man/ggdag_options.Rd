@@ -66,26 +66,18 @@ Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjus
 \code{\link[=ggdag_drelationship]{ggdag_drelationship()}}) maintain a proportional offset. If you set
 \code{ggdag.edge_cap} to a custom value, these functions scale it by \code{10/8}.
 
-\code{auto_curve} is a safety net for layouts where a node sits on or near the
-straight path of an edge. When it is \code{TRUE}, \code{\link[=tidy_dagitty]{tidy_dagitty()}} checks every
-straight directed edge against the other nodes of the DAG and writes a
-per-edge curvature that routes each blocked edge around them, bowing away
-from the side where the intruding nodes sit. Curvature you set yourself,
+\code{edge_route} chooses how the ggarrow engine draws directed edges.
+\code{"straight"}, the default, draws chords. \code{"spline"} routes each directed
+edge whose path a node blocks around that node with a smooth curve.
+\code{"orthogonal"}, which routes with axis-aligned segments and rounded
+corners, is not yet available and errors when the plot is drawn.
+Routing happens when the plot is drawn, in the units of the device, so the
+same DAG re-routes when the plot is resized. Curvature you set yourself,
 through \code{\link[=curved]{curved()}}, \code{\link[=curve_edge]{curve_edge()}}, or DAGitty control points, is never
-overridden, and bidirected edges keep the arc their edge layer draws them
-with. The written curvature is drawn by the ggarrow edge engine, so pair it
-with \code{edge_engine = "ggarrow"} to see the routed edges.
-
-\code{auto_route} swaps routed edges into the packaged ggarrow edge rendering.
-When it is \code{TRUE} and \code{edge_engine = "ggarrow"}, \code{\link[=geom_dag]{geom_dag()}} and the
-plots built on it, such as \code{\link[=ggdag]{ggdag()}}, draw their directed edges with the
-routed layer of \code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}} under the default
-\code{edge_type = "link_arc"}, so an edge whose straight path a node blocks
-detours around that node instead of running underneath it. Bidirected
-edges keep the arc their edge layer draws them with, unblocked edges stay
-straight, and curvature you set yourself is never rerouted. The option
-only affects the ggarrow engine, so pair it with
-\code{edge_engine = "ggarrow"}.
+rerouted, and bidirected edges keep the arc their edge layer draws them
+with. The option applies to the ggarrow engine with
+\code{edge_type = "link_arc"} or \code{"link"}; it is a no-op for \code{"arc"} and
+\code{"diagonal"}, which already bend every edge.
 
 \code{debug_repel_points} is a diagnostic rather than an appearance setting. When
 it is \code{TRUE}, every repelling label geom (see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}) adds

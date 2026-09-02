@@ -361,6 +361,14 @@ validate_dag_inputs <- function(
 #' curves the edge to the same side of the page: the sign is flipped to match
 #' the direction the edge is drawn in.
 #'
+#' Curving one edge leaves the others alone. An edge you do not curve keeps an
+#' unset (`NA`) curvature rather than a zero, and each layer decides what that
+#' means: a directed layer draws it as a chord, and a bidirected layer draws
+#' it at the layer's own curvature, so it keeps the arc a bidirected edge is
+#' read by. An unset curvature is also the one a routed edge is free to detour
+#' around a node in its way; an explicit `0` pins an edge straight through
+#' whatever sits on it. See the `edge_route` option in [ggdag_options_set()].
+#'
 #' @return This function is not intended to be called directly. It is detected
 #'   in the formula AST by [dagify()].
 #'
@@ -476,10 +484,6 @@ curve_edge.tidy_dagitty <- function(.dag, from, to, curvature = 0.3) {
     dag_data,
     attr(dag, "curved_edges")
   )
-  # Non-curved edges should be 0 when any curvature is set, except bidirected
-  # ones, which keep the arc their edge layer draws them with
-  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
-  dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
   .dag
@@ -573,10 +577,6 @@ set_curve_edges.tidy_dagitty <- function(.dag, edges) {
   # Remove existing edge_curvature and re-match
   dag_data$edge_curvature <- NULL
   dag_data$edge_curvature <- match_edge_curvature(dag_data, curved_edges)
-  # Non-curved edges should be 0, except bidirected ones, which keep the arc
-  # their edge layer draws them with
-  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
-  dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
   .dag

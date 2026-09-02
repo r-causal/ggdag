@@ -409,7 +409,7 @@ ggdag_paths <- function(
           limits = c("direct", "backdoor", "other")
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       p <- p +
         drop_empty_edge_layers(

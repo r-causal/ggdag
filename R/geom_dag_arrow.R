@@ -15,21 +15,6 @@ StatDAGArrowEdges <- ggplot2::ggproto(
   optional_aes = "edge_curvature"
 )
 
-# Stat: draw routed edge waypoints, one path per edge ------------------------
-
-# The layer's data function has already turned the edge rows into waypoint
-# long format with `route_dag_edges()`, so the stat only settles the drawing
-# order: each edge is one group, from the discrete `edge_id` aesthetic, and
-# its waypoints are drawn in `seq` order.
-StatDAGRoutedEdge <- ggplot2::ggproto(
-  "StatDAGRoutedEdge",
-  ggplot2::Stat,
-  compute_panel = function(data, scales) {
-    data[order(data$group, data$seq), , drop = FALSE]
-  },
-  required_aes = c("x", "y", "edge_id", "seq")
-)
-
 # Lazy ggproto factories -----------------------------------------------------
 
 geom_dag_arrow_geom <- function() {
@@ -139,7 +124,8 @@ geom_dag_arrow_curve_geom <- function() {
         curvature = 0.5,
         angle = 90,
         ncp = 5,
-        sep = 0
+        sep = 0,
+        unset = "chord"
       ) {
         resect <- inject_dag_resect(resect, data)
 
@@ -180,8 +166,18 @@ geom_dag_arrow_curve_geom <- function() {
           )
         }
 
-        # Replace NA edge_curvature with scalar fallback
-        data$edge_curvature[is.na(data$edge_curvature)] <- curvature
+        # What an unset row means is the layer's to say. A directed layer
+        # draws it as a chord, so curving one edge does not bend the others.
+        # A bidirected layer draws it at the layer's own curvature, because
+        # the arc is how a bidirected edge is read and curving one of them
+        # must not flatten the rest.
+        data$edge_curvature[is.na(data$edge_curvature)] <- if (
+          identical(unset, "curvature")
+        ) {
+          curvature
+        } else {
+          0
+        }
 
         # Split by curvature value and render each group separately
         curvature_groups <- split(data, data$edge_curvature)
@@ -203,7 +199,24 @@ geom_dag_routed_arrow_geom <- function() {
   if (is.null(the$GeomDAGRoutedArrow)) {
     the$GeomDAGRoutedArrow <- ggplot2::ggproto(
       "GeomDAGRoutedArrow",
-      ggarrow::GeomArrow,
+      ggplot2::Geom,
+      required_aes = c("x", "y"),
+      optional_aes = c(
+        "xend",
+        "yend",
+        "edge_curvature",
+        "draw",
+        "linewidth_head",
+        "linewidth_fins",
+        "arrow_head",
+        "arrow_fins",
+        "arrow_mid",
+        "resect_head",
+        "resect_fins"
+      ),
+      # the layer carries every node of the panel so that the router can
+      # treat them all as obstacles, and a node row has no `xend`
+      non_missing_aes = character(),
       default_aes = ggplot2::aes(
         colour = "black",
         linewidth = 1,
@@ -219,15 +232,17 @@ geom_dag_routed_arrow_geom <- function() {
         stroke_colour = NA,
         stroke_width = 0.25
       ),
+      draw_key = ggarrow::draw_key_arrow,
       draw_panel = function(
         self,
         data,
         panel_params,
         coord,
-        linejoin = "round",
-        linemitre = 10,
-        lineend = "butt",
-        na.rm = FALSE,
+        route = "spline",
+        clearance = NULL,
+        edge_sep = NULL,
+        layer_axis = "auto",
+        node_size = NULL,
         arrow = list(
           head = ggarrow::arrow_head_wings(),
           fins = NULL,
@@ -238,30 +253,370 @@ geom_dag_routed_arrow_geom <- function() {
         force_arrow = FALSE,
         mid_place = 0.5,
         resect = list(head = NULL, fins = NULL),
-        sep = 0
+        lineend = "butt",
+        linejoin = "round",
+        linemitre = 10,
+        na.rm = FALSE
       ) {
+        if (!coord$is_linear()) {
+          warn(
+            c(
+              "Routed edges are drawn in linear coordinates only.",
+              "x" = "This coordinate system bends the panel, so the detours it draws would mean nothing.",
+              "i" = "Use {.fn ggplot2::coord_cartesian} or {.fn ggplot2::coord_fixed} to route these edges."
+            ),
+            warning_class = "ggdag_routed_coord_warning"
+          )
+        }
+
         resect <- inject_dag_resect(resect, data)
-        ggplot2::ggproto_parent(ggarrow::GeomArrow, self)$draw_panel(
-          data = data,
-          panel_params = panel_params,
-          coord = coord,
-          linejoin = linejoin,
-          linemitre = linemitre,
-          lineend = lineend,
-          na.rm = na.rm,
-          arrow = arrow,
-          length = length,
-          justify = justify,
-          force_arrow = force_arrow,
-          mid_place = mid_place,
-          resect = resect,
-          sep = sep
+
+        starts <- coord$transform(data[c("x", "y")], panel_params)
+        has_end <- !is.na(data$xend) & !is.na(data$yend)
+        ends <- coord$transform(
+          data.frame(x = data$xend[has_end], y = data$yend[has_end]),
+          panel_params
         )
-      },
-      draw_key = ggarrow::draw_key_arrow
+
+        start_keys <- routed_position_keys(starts$x, starts$y)
+        end_keys <- routed_position_keys(ends$x, ends$y)
+        keys <- c(start_keys, end_keys)
+        node_names <- unique(keys)
+        first_seen <- match(node_names, keys)
+        nodes <- data.frame(
+          name = node_names,
+          x = c(starts$x, ends$x)[first_seen],
+          y = c(starts$y, ends$y)[first_seen],
+          stringsAsFactors = FALSE
+        )
+
+        drawn <- if ("draw" %in% names(data)) {
+          !is.na(data$draw) & data$draw
+        } else {
+          rep(TRUE, nrow(data))
+        }
+        keep <- which(has_end & drawn)
+        if (length(keep) == 0) {
+          return(ggplot2::zeroGrob())
+        }
+
+        end_index <- match(keep, which(has_end))
+        edges <- data[keep, , drop = FALSE]
+        edges$x <- starts$x[keep]
+        edges$y <- starts$y[keep]
+        edges$xend <- ends$x[end_index]
+        edges$yend <- ends$y[end_index]
+        edges$.ggdag_from <- start_keys[keep]
+        edges$.ggdag_to <- end_keys[end_index]
+
+        grid::gTree(
+          nodes = nodes,
+          edges = edges,
+          params = list(
+            route = route,
+            clearance = clearance,
+            edge_sep = edge_sep,
+            layer_axis = layer_axis,
+            node_size = node_size %||% ggdag_option("node_size", 16),
+            arrow = arrow,
+            length = length,
+            justify = justify,
+            force_arrow = force_arrow,
+            mid_place = mid_place,
+            resect = resect,
+            lineend = lineend,
+            linejoin = linejoin,
+            linemitre = linemitre
+          ),
+          cl = "dag_routed_edges"
+        )
+      }
     )
   }
   the$GeomDAGRoutedArrow
+}
+
+# A node's identity within one panel, from the position it is drawn at. The
+# endpoints of an edge are the coordinates of the nodes it runs between, so
+# the same node reaches the router under one name however many edges mention
+# it.
+routed_position_keys <- function(x, y) {
+  paste(sprintf("%.12g", x), sprintf("%.12g", y))
+}
+
+#' Route and draw the edges of one panel
+#'
+#' Runs at draw time, inside the panel viewport, where positions in npc
+#' convert to true millimetres: it calls `route_edges_mm()` on the node discs
+#' and edge chords of the panel and emits the routed paths as one ggarrow
+#' arrow grob, plus one curve grob per curvature the user set.
+#'
+#' @param x A `dag_routed_edges` gTree built by
+#'   `GeomDAGRoutedArrow$draw_panel()`.
+#' @return `x`, with children set to the drawn grobs.
+#' @exportS3Method grid::makeContent
+#' @noRd
+makeContent.dag_routed_edges <- function(x) {
+  nodes <- x$nodes
+  edges <- x$edges
+  par <- x$params
+
+  mm_x <- function(value) {
+    if (length(value) == 0) {
+      return(numeric())
+    }
+    grid::convertX(grid::unit(value, "npc"), "mm", valueOnly = TRUE)
+  }
+  mm_y <- function(value) {
+    if (length(value) == 0) {
+      return(numeric())
+    }
+    grid::convertY(grid::unit(value, "npc"), "mm", valueOnly = TRUE)
+  }
+  panel_width <- grid::convertWidth(
+    grid::unit(1, "npc"),
+    "mm",
+    valueOnly = TRUE
+  )
+  panel_height <- grid::convertHeight(
+    grid::unit(1, "npc"),
+    "mm",
+    valueOnly = TRUE
+  )
+
+  radius <- node_radius_mm(par$node_size)
+  nodes_mm <- data.frame(
+    name = nodes$name,
+    x = mm_x(nodes$x),
+    y = mm_y(nodes$y),
+    r = radius,
+    stringsAsFactors = FALSE
+  )
+
+  start_x <- mm_x(edges$x)
+  start_y <- mm_y(edges$y)
+  end_x <- mm_x(edges$xend)
+  end_y <- mm_y(edges$yend)
+
+  curvature <- routed_edge_curvature(edges)
+  is_arc <- !is.na(curvature) & curvature != 0
+
+  edge_input <- data.frame(
+    from = edges$.ggdag_from,
+    to = edges$.ggdag_to,
+    curvature = curvature,
+    stringsAsFactors = FALSE
+  )
+  # an arc the user asked for is never rerouted, but the router still has to
+  # see where it goes, so it arrives as a placed obstacle rather than a chord
+  if (any(is_arc)) {
+    edge_input$fixed_path <- lapply(seq_len(nrow(edge_input)), function(i) {
+      if (!is_arc[[i]]) {
+        return(NULL)
+      }
+      sample_curved_edge(
+        start_x[[i]],
+        start_y[[i]],
+        end_x[[i]],
+        end_y[[i]],
+        curvature = curvature[[i]],
+        n = 32
+      )
+    })
+  }
+
+  routed <- route_edges_mm(
+    nodes = nodes_mm,
+    edges = edge_input,
+    bounds = c(0, 0, panel_width, panel_height),
+    cap = routed_cap_mm(edges, par$resect),
+    mode = par$route,
+    opts = route_opts(
+      r_ref = radius,
+      m = par$clearance,
+      sep_e = par$edge_sep,
+      layer_axis = par$layer_axis %||% "auto"
+    )
+  )
+
+  children <- list()
+  paths <- which(!is_arc)
+  if (length(paths) > 0) {
+    children <- c(
+      children,
+      list(routed_arrow_grob(
+        edges[paths, , drop = FALSE],
+        routed$paths[paths],
+        par
+      ))
+    )
+  }
+  for (group in split(which(is_arc), curvature[is_arc])) {
+    children <- c(
+      children,
+      list(routed_curve_grob(
+        edges[group, , drop = FALSE],
+        start_x[group],
+        start_y[group],
+        end_x[group],
+        end_y[group],
+        curvature[[group[[1]]]],
+        par
+      ))
+    )
+  }
+
+  children <- children[!vapply(children, is.null, logical(1))]
+  grid::setChildren(x, do.call(grid::gList, children))
+}
+
+# The curvature each drawn edge asks for: `NA` to route, `0` to stay straight
+# through whatever sits on the chord, and any other number to follow that arc.
+routed_edge_curvature <- function(edges) {
+  if (!"edge_curvature" %in% names(edges)) {
+    return(rep(NA_real_, nrow(edges)))
+  }
+  curvature <- edges$edge_curvature
+  if (!is.numeric(curvature)) {
+    abort(
+      "{.field edge_curvature} must be numeric, not {.cls {class(curvature)}}.",
+      error_class = "ggdag_type_error"
+    )
+  }
+  as.numeric(curvature)
+}
+
+# The millimetres the arrow grob resects at the head end, which the router
+# keeps as a straight arm into each node so the arrowhead arrives radially. A
+# `resect_head` mapped per edge overrides the layer parameter, so the longest
+# of the drawn values is the arm every edge needs.
+routed_cap_mm <- function(edges, resect) {
+  cap <- edges$resect_head %||% resect$head %||% ggdag_option("edge_cap", 8)
+  cap <- suppressWarnings(as.numeric(cap))
+  cap <- cap[is.finite(cap)]
+  if (length(cap) == 0) {
+    return(0)
+  }
+  max(cap)
+}
+
+# A value that may already be a unit, as a unit of `units`.
+routed_unit <- function(value, units) {
+  if (grid::is.unit(value)) value else grid::unit(value, units)
+}
+
+# The routed and straight paths of a panel as one ggarrow arrow grob. This is
+# `ggarrow::GeomArrow$draw_panel()` with the panel's native units replaced by
+# the millimetres the router works in: per-edge colour, alpha, width, line
+# type, ornaments, and resection reach ggarrow exactly as they always do.
+routed_arrow_grob <- function(edges, paths, par) {
+  n_points <- vapply(paths, nrow, integer(1))
+  drawable <- n_points >= 2
+  edges <- edges[drawable, , drop = FALSE]
+  paths <- paths[drawable]
+  n_points <- n_points[drawable]
+  if (nrow(edges) == 0) {
+    return(NULL)
+  }
+
+  id <- rep(seq_along(paths), n_points)
+  width <- grid::unit(rep(edges$linewidth, n_points) * .pt / .stroke, "mm")
+  last <- cumsum(n_points)
+  first <- c(1L, last[-length(last)] + 1L)
+
+  length_head <- par$length$head
+  if (!grid::is.unit(length_head)) {
+    length_head <- (length_head %||% 4) * width[last]
+  }
+  length_fins <- par$length$fins
+  if (!grid::is.unit(length_fins)) {
+    length_fins <- (length_fins %||% 4) * width[first]
+  }
+
+  ggarrow::grob_arrow(
+    x = grid::unit(unlist(lapply(paths, function(p) p$x)), "mm"),
+    y = grid::unit(unlist(lapply(paths, function(p) p$y)), "mm"),
+    id = id,
+    arrow_head = edges$arrow_head %||% par$arrow$head,
+    arrow_fins = edges$arrow_fins %||% par$arrow$fins,
+    arrow_mid = edges$arrow_mid %||% par$arrow$mid,
+    length_head = length_head,
+    length_fins = length_fins,
+    length_mid = par$length$mid %||% 4,
+    justify = par$justify,
+    force_arrow = par$force_arrow,
+    mid_place = par$mid_place,
+    shaft_width = width,
+    resect_head = routed_unit(edges$resect_head %||% par$resect$head, "mm"),
+    resect_fins = routed_unit(edges$resect_fins %||% par$resect$fins, "mm"),
+    gp = grid::gpar(
+      col = edges$stroke_colour,
+      fill = alpha(edges$colour, edges$alpha),
+      lty = edges$linetype,
+      lwd = edges$stroke_width * .pt,
+      linejoin = par$linejoin,
+      linemitre = par$linemitre,
+      lineend = par$lineend
+    )
+  )
+}
+
+# The edges of one curvature as an ggarrow curve grob, so that an arc the user
+# set is drawn exactly as the un-routed arc layer draws it.
+routed_curve_grob <- function(edges, x, y, xend, yend, curvature, par) {
+  head_width <- grid::unit(
+    (edges$linewidth_head %||% edges$linewidth) * .pt / .stroke,
+    "mm"
+  )
+  fins_width <- grid::unit(
+    (edges$linewidth_fins %||% edges$linewidth) * .pt / .stroke,
+    "mm"
+  )
+
+  length_head <- par$length$head
+  if (!grid::is.unit(length_head)) {
+    length_head <- (length_head %||% 4) * head_width
+  }
+  length_fins <- par$length$fins
+  if (!grid::is.unit(length_fins)) {
+    length_fins <- (length_fins %||% 4) * fins_width
+  }
+
+  ggarrow::grob_arrow_curve(
+    grid::unit(x, "mm"),
+    grid::unit(y, "mm"),
+    grid::unit(xend, "mm"),
+    grid::unit(yend, "mm"),
+    curvature = curvature,
+    angle = 90,
+    ncp = 5,
+    square = FALSE,
+    squareShape = 1,
+    inflect = FALSE,
+    open = TRUE,
+    arrow_head = edges$arrow_head %||% par$arrow$head,
+    arrow_fins = edges$arrow_fins %||% par$arrow$fins,
+    arrow_mid = edges$arrow_mid %||% par$arrow$mid,
+    length_head = length_head,
+    length_fins = length_fins,
+    length_mid = par$length$mid %||% 4,
+    justify = par$justify,
+    force_arrow = par$force_arrow,
+    mid_place = par$mid_place,
+    width_head = head_width,
+    width_fins = fins_width,
+    resect_head = routed_unit(edges$resect_head %||% par$resect$head, "mm"),
+    resect_fins = routed_unit(edges$resect_fins %||% par$resect$fins, "mm"),
+    gp = grid::gpar(
+      col = edges$stroke_colour,
+      fill = alpha(edges$colour, edges$alpha),
+      lty = edges$linetype,
+      lwd = edges$stroke_width * .pt,
+      linejoin = par$linejoin,
+      linemitre = par$linemitre,
+      lineend = par$lineend
+    )
+  )
 }
 
 # Helper: inject DAG resection defaults ---------------------------------------
@@ -308,7 +663,12 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
     c(is.null(resect$head), is.null(resect$fins))
   ]
 
-  if (length(needs_resect) > 0) {
+  # A routed layer clears the drawn node discs, so it needs the node size
+  # itself and not only the cap derived from it.
+  needs_node_size <- inherits(layer$geom, "GeomDAGRoutedArrow") &&
+    is.null(layer$geom_params$node_size)
+
+  if (length(needs_resect) > 0 || needs_node_size) {
     discovered <- discover_node_size(plot)
     if (!is.null(discovered)) {
       cap_mm <- node_size_to_cap(discovered)
@@ -316,10 +676,14 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
         layer$geom_params$resect[[end]] <- cap_mm
       }
       needs_resect <- character()
+      if (needs_node_size) {
+        layer$geom_params$node_size <- discovered
+        needs_node_size <- FALSE
+      }
     }
   }
 
-  if (length(needs_resect) > 0) {
+  if (length(needs_resect) > 0 || needs_node_size) {
     # No node layer is on the plot yet, which is the order the layer-by-layer
     # examples use. A node layer added after this one is in view once the plot
     # is built, so the resection is settled there instead.
@@ -335,6 +699,9 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
         resect[[end]] <- cap_mm
       }
       self$geom_params$resect <- resect
+      if (needs_node_size) {
+        self$geom_params$node_size <- discovered
+      }
     })
   }
 
@@ -363,9 +730,13 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
 #' aesthetic. Map a numeric column to `aes(edge_curvature = ...)` to give each
 #' edge its own curvature value. Edges with `edge_curvature = 0` are drawn as
 #' straight lines; positive values curve right, negative values curve left.
-#' Any `NA` values fall back to the scalar `curvature` parameter. This is
-#' useful in time-ordered DAGs where some edges need to curve around
-#' intermediate nodes while adjacent edges stay straight.
+#' Once any edge carries a value, the edges left unset (`NA`) are drawn as
+#' straight lines too, unless `unset = "curvature"` asks for the layer's own
+#' `curvature` instead, as the bidirected layers of [geom_dag_arrows()] and
+#' [geom_dag()] do. The scalar `curvature` parameter is also the layer's
+#' value for the case where no edge carries one. This is useful in
+#' time-ordered DAGs where some edges need to curve around intermediate nodes
+#' while adjacent edges stay straight.
 #'
 #' ## Auto-resection
 #'
@@ -551,6 +922,12 @@ geom_dag_arrow <- function(
 #'   control points of the curve.
 #' @param ncp The number of control points used to draw the curve. More control
 #'   points creates a smoother curve.
+#' @param unset What an edge whose `edge_curvature` is unset (`NA`) is drawn
+#'   as, once some other edge of the layer carries a value. `"chord"` (the
+#'   default) draws it straight, which is what a directed layer wants:
+#'   curving one edge does not bend the others. `"curvature"` draws it at the
+#'   layer's own `curvature`, which is what a bidirected layer wants: curving
+#'   one bidirected edge does not flatten the rest.
 #'
 #' @export
 #' @rdname geom_dag_arrow
@@ -560,6 +937,7 @@ geom_dag_arrow_arc <- function(
   curvature = 0.3,
   angle = 90,
   ncp = 5,
+  unset = c("chord", "curvature"),
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
   arrow_mid = NULL,
@@ -584,6 +962,8 @@ geom_dag_arrow_arc <- function(
 ) {
   rlang::check_installed("ggarrow", reason = "to use `geom_dag_arrow_arc()`.")
 
+  unset <- match.arg(unset)
+
   resect_head <- resect_head %||% resect
   resect_fins <- resect_fins %||% resect
 
@@ -605,6 +985,7 @@ geom_dag_arrow_arc <- function(
       curvature = curvature,
       angle = angle,
       ncp = ncp,
+      unset = unset,
       arrow = list(head = arrow_head, fins = arrow_fins, mid = arrow_mid),
       length = length,
       justify = justify,
@@ -670,6 +1051,7 @@ geom_dag_arrows <- function(
       mapping = mapping,
       data = data_bidirected,
       curvature = curvature,
+      unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = bidirected_fins,
       arrow_mid = arrow_mid,
@@ -687,34 +1069,68 @@ geom_dag_arrows <- function(
 
 # Constructor: geom_dag_routed_arrows() ----------------------------------------
 
-# Layer data for the routed edge layer: the directed edge rows, routed into
-# waypoint long format. The obstacle node positions come from the plot data,
-# so the routed paths clear every drawn node, not only the ones the edge rows
-# mention.
-routed_waypoint_data <- function(data_directed, node_radius) {
+# Layer data for the routed edge layer: the plain plot rows, with a logical
+# `.ggdag_draw` column marking the rows this layer draws. The router needs
+# every node of the panel as an obstacle, including the ones that only
+# bidirected edges touch, and the scales must see the rows every other DAG
+# layer sees, so the layer carries the whole frame and draws part of it.
+routed_edge_data <- function(data_directed) {
   force(data_directed)
-  force(node_radius)
   function(plot_data) {
     if (inherits(plot_data, "tidy_dagitty")) {
       plot_data <- pull_dag_data(plot_data)
     }
-    edges <- if (is.function(data_directed)) {
+    drawn <- if (is.function(data_directed)) {
       data_directed(plot_data)
     } else {
       data_directed %||% plot_data
     }
-    route_dag_edges(edges, plot_data, node_radius)
+    row_key <- function(df, columns) {
+      do.call(paste, c(as.list(df[columns]), sep = "\r"))
+    }
+    shared <- intersect(names(plot_data), names(drawn))
+    if (length(shared) == 0 || nrow(drawn) == 0) {
+      plot_data$.ggdag_draw <- rep(FALSE, nrow(plot_data))
+      return(plot_data)
+    }
+
+    plot_keys <- row_key(plot_data, shared)
+    drawn_keys <- row_key(drawn, shared)
+    plot_data$.ggdag_draw <- plot_keys %in% drawn_keys
+
+    # A caller may hand the layer edges of its own, positioned wherever it
+    # likes; those rows are not among the plot's, so they are appended rather
+    # than matched. They are drawn, and their endpoints join the obstacles.
+    extra <- drawn[!(drawn_keys %in% plot_keys), , drop = FALSE]
+    if (nrow(extra) == 0) {
+      return(plot_data)
+    }
+    extra$.ggdag_draw <- TRUE
+    dplyr::bind_rows(plot_data, extra)
   }
 }
 
-# The routed edge layer itself. The waypoint frame has no `xend`/`yend`
-# columns, so a plot-level `aes_dag()` mapping cannot evaluate on it: the
-# layer maps its own waypoint columns and never inherits, and an
-# `edge_curvature` column on the plot data is read by name in
-# `route_dag_edges()` instead of through the mapping.
+# The `draw` aesthetic tells the routed geom which of its rows to draw. The
+# rest are the panel's obstacles.
+with_routed_draw <- function(mapping) {
+  if (is.null(mapping)) {
+    mapping <- ggplot2::aes()
+  }
+  mapping$draw <- rlang::quo(.data$.ggdag_draw)
+  mapping
+}
+
+# The routed edge layer itself. Its data are the plot rows, so it inherits the
+# plot's DAG mapping like any other layer; every geometric decision is made in
+# millimetres at draw time.
 dag_routed_arrow_layer <- function(
-  data_directed,
-  node_radius,
+  mapping = NULL,
+  data_directed = NULL,
+  route = "spline",
+  clearance = NULL,
+  edge_sep = NULL,
+  layer_axis = "auto",
+  node_size = NULL,
   arrow_head,
   arrow_fins,
   arrow_mid,
@@ -730,22 +1146,23 @@ dag_routed_arrow_layer <- function(
   position,
   na.rm,
   show.legend,
+  inherit.aes = TRUE,
   ...
 ) {
   dag_arrow_layer(ggplot2::layer(
-    data = routed_waypoint_data(data_directed, node_radius),
-    mapping = ggplot2::aes(
-      x = .data$x,
-      y = .data$y,
-      edge_id = .data$edge_id,
-      seq = .data$seq
-    ),
-    stat = StatDAGRoutedEdge,
+    data = routed_edge_data(data_directed),
+    mapping = with_routed_draw(mapping),
+    stat = ggplot2::StatIdentity,
     geom = geom_dag_routed_arrow_geom(),
     position = position,
     show.legend = show.legend,
-    inherit.aes = FALSE,
+    inherit.aes = inherit.aes,
     params = rlang::list2(
+      route = route,
+      clearance = clearance,
+      edge_sep = edge_sep,
+      layer_axis = layer_axis,
+      node_size = node_size,
       arrow = list(head = arrow_head, fins = arrow_fins, mid = arrow_mid),
       length = length,
       justify = justify,
@@ -764,38 +1181,56 @@ dag_routed_arrow_layer <- function(
 #' Routed DAG edges that detour around nodes
 #'
 #' `geom_dag_routed_arrows()` draws DAG edges with the ggarrow engine,
-#' routing every directed edge whose straight path a node blocks around that
-#' node. Each blocked edge takes the shortest path through a visibility graph
-#' built over the tangent points of the obstacle circles, expanded to
-#' 1.5 node radii so the drawn path keeps a clearance margin of half a node
-#' radius, and the corners are smoothed with two passes of Chaikin corner
-#' cutting. Unblocked edges stay straight, bidirected edges are drawn as arcs
-#' by the same curve geom [geom_dag_arrows()] uses, and the routing is
-#' deterministic: the same DAG always draws the same paths.
+#' routing every directed edge whose path a node blocks around that node.
+#' The routing happens when the plot is drawn, in the millimetres of the
+#' device, so the detour clears the drawn node discs whatever the shape of
+#' the panel and the picture re-routes when the plot is resized. Unblocked
+#' edges stay straight, bidirected edges are drawn as arcs by the same curve
+#' geom [geom_dag_arrows()] uses, and the routing is deterministic: the same
+#' DAG at the same size always draws the same paths.
 #'
 #' Curvature the user set is never rerouted. When the data carries an
 #' `edge_curvature` column, from [curved()], [curve_edge()], or your own
-#' code, an edge with a numeric curvature follows that arc, an explicit 0
-#' stays straight through whatever sits on its chord, and only edges whose
-#' curvature is unset (`NA`) are candidates for routing.
+#' code, an edge with a numeric curvature is drawn as that arc, an explicit
+#' `0` stays straight through whatever sits on its chord, and only edges
+#' whose curvature is unset (`NA`) are candidates for routing. An arc the
+#' user set still counts as an obstacle the other edges route around.
 #'
-#' The routed layer computes its waypoints from the layer data, so it does
-#' not inherit the plot's aesthetic mapping; the `mapping` argument applies
-#' to the bidirected arc layer. Edges are resected to the plot's node size
-#' exactly as in [geom_dag_arrow()].
+#' The layer carries every row of the plot data, so the router can treat
+#' every drawn node as an obstacle, and draws the rows `data_directed`
+#' selects. Edge rows of a data frame you supply that are not among the plot
+#' rows are drawn as well, and their endpoints join the obstacles. Scales and
+#' legends therefore see exactly what the other DAG layers see. Edges are
+#' resected to the plot's node size exactly as in [geom_dag_arrow()], and the
+#' same node size gives the router the radius of the discs it must clear.
+#'
+#' A routed path is stroked at one width along its length, so
+#' `linewidth_head` and `linewidth_fins` taper only the arcs drawn for
+#' curvature the user set.
 #'
 #' @inheritParams geom_dag_arrow
 #' @inheritParams geom_dag_arrow_arc
 #' @param mapping Set of aesthetic mappings created by [ggplot2::aes()],
-#'   applied to the bidirected arc layer.
+#'   applied to both the routed layer and the bidirected arc layer.
 #' @param data_directed,data_bidirected The data to be displayed for directed
 #'   and bidirected edges respectively. By default, these filter the plot
 #'   data by edge direction.
-#' @param node_radius Drawn node radius in data units, the scale on which the
-#'   routing works: an edge is blocked when a node sits strictly within
-#'   1.5 node radii of its straight path, and the routed path clears the
-#'   obstacle by the same expanded radius. Defaults to the radius the
-#'   default-size node is drawn at.
+#' @param route How to route a blocked edge: `"spline"` (the default) draws
+#'   a smooth curve around the obstacle. `"orthogonal"`, which draws
+#'   axis-aligned segments with rounded corners, is not yet available and
+#'   errors when the plot is drawn.
+#' @param clearance The daylight in millimetres a routed path keeps beyond
+#'   the node discs, or `NULL` (the default) for the router's own margin,
+#'   half a node radius with a floor of 1.2 mm.
+#' @param edge_sep The gap in millimetres between two routed paths sharing a
+#'   detour, or `NULL` (the default) for the router's own separation.
+#' @param layer_axis The axis the layout's layers run along, one of `"auto"`
+#'   (the default), `"x"`, or `"y"`. Routing sends a detour along the
+#'   within-layer axis, so a layout laid out down the panel rather than
+#'   across it is routed correctly by naming its axis.
+#' @param node_size The size of the drawn nodes, in the units
+#'   [geom_dag_point()] takes, giving the router the radius of the discs it
+#'   clears. `NULL`, the default, takes it from the plot's node layer.
 #'
 #' @return A list of [ggplot2::layer()] objects that can be added to a plot.
 #'
@@ -816,7 +1251,7 @@ dag_routed_arrow_layer <- function(
 #'   theme_dag()
 #'
 #' @seealso [geom_dag_arrow()], [geom_dag_arrows()], and [geom_dag_edges()]
-#'   for the other edge geoms, and the `auto_route` option in
+#'   for the other edge geoms, and the `edge_route` option in
 #'   [ggdag_options_set()] to swap routed edges into `geom_dag()` and the
 #'   quick plotting functions.
 #'
@@ -825,7 +1260,11 @@ geom_dag_routed_arrows <- function(
   mapping = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
-  node_radius = node_radius_data(),
+  route = c("spline", "orthogonal"),
+  clearance = NULL,
+  edge_sep = NULL,
+  layer_axis = c("auto", "x", "y"),
+  node_size = NULL,
   curvature = 0.3,
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
@@ -846,12 +1285,16 @@ geom_dag_routed_arrows <- function(
   position = "identity",
   na.rm = TRUE,
   show.legend = NA,
+  inherit.aes = TRUE,
   ...
 ) {
   rlang::check_installed(
     "ggarrow",
     reason = "to use `geom_dag_routed_arrows()`."
   )
+
+  route <- match.arg(route)
+  layer_axis <- match.arg(layer_axis)
 
   resect_head <- resect_head %||% resect
   resect_fins <- resect_fins %||% resect
@@ -867,8 +1310,13 @@ geom_dag_routed_arrows <- function(
 
   list(
     dag_routed_arrow_layer(
+      mapping = mapping,
       data_directed = data_directed,
-      node_radius = node_radius,
+      route = route,
+      clearance = clearance,
+      edge_sep = edge_sep,
+      layer_axis = layer_axis,
+      node_size = node_size,
       arrow_head = arrow_head,
       arrow_fins = arrow_fins,
       arrow_mid = arrow_mid,
@@ -884,12 +1332,14 @@ geom_dag_routed_arrows <- function(
       position = position,
       na.rm = na.rm,
       show.legend = show.legend,
+      inherit.aes = inherit.aes,
       ...
     ),
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_bidirected,
       curvature = curvature,
+      unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = bidirected_fins,
       arrow_mid = arrow_mid,
@@ -909,6 +1359,7 @@ geom_dag_routed_arrows <- function(
       position = position,
       na.rm = na.rm,
       show.legend = show.legend,
+      inherit.aes = inherit.aes,
       ...
     )
   )

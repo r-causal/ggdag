@@ -38,6 +38,14 @@ endpoint dagitty stores first. Naming its endpoints the other way round,
 as in \code{curve_edge(dag, "y", "x", 0.5)} for an edge stored as \verb{x <-> y},
 curves the edge to the same side of the page: the sign is flipped to match
 the direction the edge is drawn in.
+
+Curving one edge leaves the others alone. An edge you do not curve keeps an
+unset (\code{NA}) curvature rather than a zero, and each layer decides what that
+means: a directed layer draws it as a chord, and a bidirected layer draws
+it at the layer's own curvature, so it keeps the arc a bidirected edge is
+read by. An unset curvature is also the one a routed edge is free to detour
+around a node in its way; an explicit \code{0} pins an edge straight through
+whatever sits on it. See the \code{edge_route} option in \code{\link[=ggdag_options_set]{ggdag_options_set()}}.
 }
 
 \examples{

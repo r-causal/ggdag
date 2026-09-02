@@ -17,26 +17,18 @@
 #' [ggdag_drelationship()]) maintain a proportional offset. If you set
 #' `ggdag.edge_cap` to a custom value, these functions scale it by `10/8`.
 #'
-#' `auto_curve` is a safety net for layouts where a node sits on or near the
-#' straight path of an edge. When it is `TRUE`, [tidy_dagitty()] checks every
-#' straight directed edge against the other nodes of the DAG and writes a
-#' per-edge curvature that routes each blocked edge around them, bowing away
-#' from the side where the intruding nodes sit. Curvature you set yourself,
+#' `edge_route` chooses how the ggarrow engine draws directed edges.
+#' `"straight"`, the default, draws chords. `"spline"` routes each directed
+#' edge whose path a node blocks around that node with a smooth curve.
+#' `"orthogonal"`, which routes with axis-aligned segments and rounded
+#' corners, is not yet available and errors when the plot is drawn.
+#' Routing happens when the plot is drawn, in the units of the device, so the
+#' same DAG re-routes when the plot is resized. Curvature you set yourself,
 #' through [curved()], [curve_edge()], or DAGitty control points, is never
-#' overridden, and bidirected edges keep the arc their edge layer draws them
-#' with. The written curvature is drawn by the ggarrow edge engine, so pair it
-#' with `edge_engine = "ggarrow"` to see the routed edges.
-#'
-#' `auto_route` swaps routed edges into the packaged ggarrow edge rendering.
-#' When it is `TRUE` and `edge_engine = "ggarrow"`, [geom_dag()] and the
-#' plots built on it, such as [ggdag()], draw their directed edges with the
-#' routed layer of [geom_dag_routed_arrows()] under the default
-#' `edge_type = "link_arc"`, so an edge whose straight path a node blocks
-#' detours around that node instead of running underneath it. Bidirected
-#' edges keep the arc their edge layer draws them with, unblocked edges stay
-#' straight, and curvature you set yourself is never rerouted. The option
-#' only affects the ggarrow engine, so pair it with
-#' `edge_engine = "ggarrow"`.
+#' rerouted, and bidirected edges keep the arc their edge layer draws them
+#' with. The option applies to the ggarrow engine with
+#' `edge_type = "link_arc"` or `"link"`; it is a no-op for `"arc"` and
+#' `"diagonal"`, which already bend every edge.
 #'
 #' `debug_repel_points` is a diagnostic rather than an appearance setting. When
 #' it is `TRUE`, every repelling label geom (see [geom_dag_label_repel()]) adds
@@ -97,8 +89,7 @@ ggdag_defaults <- list(
   arrow_head = NULL,
   arrow_fins = NULL,
   arrow_mid = NULL,
-  auto_curve = FALSE,
-  auto_route = FALSE,
+  edge_route = "straight",
   curvature = 0.3,
   debug_repel_points = FALSE
 )
@@ -217,8 +208,6 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
     "use_stylized",
     "use_text",
     "use_labels",
-    "auto_curve",
-    "auto_route",
     "debug_repel_points"
   )
   character_opts <- c("text_col", "label_col")
@@ -316,6 +305,20 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
         c(
           "{.arg edge_engine} must be one of {.val {valid_engines}}.",
           "x" = "You provided {.val {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "edge_route") {
+    valid_routes <- c("straight", "spline", "orthogonal")
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% valid_routes
+    ) {
+      abort(
+        c(
+          "{.arg edge_route} must be one of {.val {valid_routes}}.",
+          "x" = "You provided {.obj_type_friendly {value}}."
         ),
         error_class = "ggdag_type_error",
         call = call
