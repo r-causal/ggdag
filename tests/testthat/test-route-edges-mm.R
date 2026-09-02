@@ -4,8 +4,11 @@
 # a blocked edge gets one waypoint per crossed layer (or a single bow around
 # the obstacle), the waypoint chain is reduced to one arch by a convex hull,
 # and the result is drawn as a centripetal Catmull-Rom spline with end
-# tangents clamped toward the chord. Every expectation is a numeric predicate
-# on the returned geometry; there are no snapshots.
+# tangents clamped toward the chord. Orthogonal mode instead draws every edge
+# as axis-aligned runs: E/W ports with one vertical slot per crossed gap, or
+# S/N ports with a channel past a stack, with corners rounded by a quadratic
+# Bezier. Every expectation is a numeric predicate on the returned geometry;
+# there are no snapshots.
 #
 # Coordinates are in mm throughout. The layer axis is x and "above" (side +1)
 # means larger y. The default node size 16 draws a disc of radius r = 6 mm,
@@ -17,6 +20,15 @@ r_default <- 6
 r_full <- 9
 r_soft <- 7.2
 verify_tol <- 0.1
+
+# Orthogonal constants at r = 6: the corner radius rc = clamp(0.35 r, 0.8,
+# 2.5) = 2.1, the default edge cap of 8 mm, the stub r + cap + rc = 16.1 that
+# keeps the resected arrowhead on a straight run, and the slot separation
+# sep_e = max(0.6 r, 1.5) = 3.6.
+cap_default <- 8
+rc_default <- 2.1
+stub_default <- r_default + cap_default + rc_default
+sep_e_default <- 3.6
 
 # Scene construction ------------------------------------------------------------
 
@@ -366,6 +378,238 @@ expect_exact_endpoints <- function(path, from, to) {
   expect_identical(c(path$x[n], path$y[n]), to)
 }
 
+# Orthogonal geometry ----------------------------------------------------------
+
+# Drop consecutive duplicate points so that zero-length segments do not
+# break the run detection below.
+dedupe_path <- function(path, tol = 1e-9) {
+  keep <- c(TRUE, abs(diff(path$x)) >= tol | abs(diff(path$y)) >= tol)
+  path[keep, , drop = FALSE]
+}
+
+# Distance from each point of `pts` to the nearest segment of `poly`.
+point_polyline_dist <- function(pts, poly) {
+  n <- nrow(poly)
+  if (n == 1) {
+    return(sqrt((pts$x - poly$x)^2 + (pts$y - poly$y)^2))
+  }
+  d <- vapply(
+    seq_len(n - 1),
+    function(i) {
+      dist_to_edge(
+        pts$x,
+        pts$y,
+        poly$x[i],
+        poly$y[i],
+        poly$x[i + 1],
+        poly$y[i + 1]
+      )
+    },
+    numeric(nrow(pts))
+  )
+  d <- matrix(d, nrow = nrow(pts))
+  apply(d, 1, min)
+}
+
+# Axis of each segment: "h" horizontal, "v" vertical, "o" oblique.
+segment_axes <- function(path, tol = 1e-6) {
+  dx <- diff(path$x)
+  dy <- diff(path$y)
+  ifelse(abs(dy) < tol, "h", ifelse(abs(dx) < tol, "v", "o"))
+}
+
+# Maximal runs of consecutive axis-aligned segments along one axis. `from`
+# and `to` index the deduplicated path, `length` is the run's arc length,
+# `coord` its constant coordinate (y of a horizontal run, x of a vertical
+# one), and `lo`, `hi` bound its varying coordinate.
+straight_runs <- function(path, tol = 1e-6) {
+  path <- dedupe_path(path)
+  axis <- segment_axes(path, tol)
+  seg_len <- sqrt(diff(path$x)^2 + diff(path$y)^2)
+  r <- rle(axis)
+  end <- cumsum(r$lengths)
+  start <- end - r$lengths + 1L
+  keep <- which(r$values != "o")
+  runs <- lapply(keep, function(k) {
+    idx <- start[k]:(end[k] + 1L)
+    horizontal <- r$values[k] == "h"
+    varying <- if (horizontal) path$x[idx] else path$y[idx]
+    data.frame(
+      axis = r$values[k],
+      from = start[k],
+      to = end[k] + 1L,
+      length = sum(seg_len[start[k]:end[k]]),
+      coord = if (horizontal) path$y[start[k]] else path$x[start[k]],
+      lo = min(varying),
+      hi = max(varying),
+      stringsAsFactors = FALSE
+    )
+  })
+  if (length(runs) == 0) {
+    return(data.frame(
+      axis = character(),
+      from = integer(),
+      to = integer(),
+      length = numeric(),
+      coord = numeric(),
+      lo = numeric(),
+      hi = numeric(),
+      stringsAsFactors = FALSE
+    ))
+  }
+  do.call(rbind, runs)
+}
+
+# Points of a sampled path that lie inside a rounded corner, that is within
+# `radius` of one of the bend points. The quadratic Bezier through P, B, Q
+# stays inside the triangle P B Q, so every corner sample is within rr <= rc
+# of its bend B.
+corner_points <- function(path, bends, radius) {
+  if (nrow(bends) == 0) {
+    return(rep(FALSE, nrow(path)))
+  }
+  d <- sqrt(outer(path$x, bends$x, "-")^2 + outer(path$y, bends$y, "-")^2)
+  apply(d, 1, min) <= radius
+}
+
+# Distinct x values of the vertical runs of a path strictly inside the gap
+# (x_left, x_right); the S/N stubs sit at the layer x and are excluded.
+slot_xs <- function(path, gap, tol = 1e-6) {
+  runs <- straight_runs(path, tol)
+  inside <- runs$axis == "v" &
+    runs$coord > gap[1] + tol &
+    runs$coord < gap[2] - tol
+  unique(round(runs$coord[inside], 9))
+}
+
+# Every segment whose endpoints both lie outside the rounded corners is
+# axis-aligned.
+expect_orthogonal_outside_corners <- function(
+  path,
+  bends,
+  rc,
+  tol = 1e-6,
+  label = NULL
+) {
+  path <- dedupe_path(path)
+  near <- corner_points(path, bends, rc + tol)
+  axis <- segment_axes(path, tol)
+  outside <- !near[-length(near)] & !near[-1]
+  expect_true(all(axis[outside] != "o"), label = label)
+}
+
+# The orthogonal predicates for a whole scene: exact endpoints; straight
+# edges only where the endpoints share a y; axis-aligned runs outside the
+# corners; a first and last straight run of at least cap + rc (always for
+# the hand-checked fixtures, otherwise only when clearance is reported, since
+# a gap too narrow for its band falls back to midpoint slots); R clearance
+# from every non-endpoint node when clearance is reported; and slot x values
+# within a gap that differ by at least sep_e, both as a set and for any two
+# segments from different source ports whose y extents overlap.
+expect_orthogonal_scene <- function(
+  scene,
+  res,
+  stub_always = TRUE,
+  prefix = ""
+) {
+  layers <- infer_layers(scene$nodes, r_default)
+  gaps <- if (layers$n > 1) {
+    cbind(layers$x[-layers$n], layers$x[-1])
+  } else {
+    matrix(numeric(0), 0, 2)
+  }
+  labels <- edge_labels(scene$edges)
+  slots <- list()
+
+  for (i in seq_len(nrow(scene$edges))) {
+    label <- paste0(prefix, labels[i])
+    ends <- edge_endpoints(scene, i)
+    path <- res$paths[[i]]
+    expect_exact_endpoints(path, ends$from, ends$to)
+
+    if (res$meta$mode[i] == "straight") {
+      expect_false(res$meta$routed[i], label = label)
+      expect_identical(nrow(path), 2L, label = label)
+      expect_lt(abs(ends$from[2] - ends$to[2]), 1e-3, label = label)
+      next
+    }
+
+    expect_equal(res$meta$mode[i], "orthogonal", label = label)
+    expect_true(res$meta$routed[i], label = label)
+    bends <- res$waypoints[[i]]
+    expect_gte(nrow(bends), 2L, label = label)
+    expect_equal(res$meta$n_waypoints[i], nrow(bends), label = label)
+    expect_true(all(is.na(bends$layer)), label = label)
+    expect_orthogonal_outside_corners(path, bends, rc_default, label = label)
+
+    runs <- straight_runs(path)
+    expect_gte(nrow(runs), 2L, label = label)
+    expect_equal(runs$from[1], 1, label = label)
+    expect_equal(runs$to[nrow(runs)], nrow(dedupe_path(path)), label = label)
+    if (stub_always || res$meta$clearance_ok[i]) {
+      floor <- cap_default + rc_default - 1e-9
+      expect_gte(runs$length[1], floor, label = label)
+      expect_gte(runs$length[nrow(runs)], floor, label = label)
+    }
+    if (res$meta$clearance_ok[i]) {
+      expect_gte(
+        path_min_clearance(scene, i, path),
+        r_full - verify_tol,
+        label = label
+      )
+    }
+
+    # the canonical source of a segment is the left endpoint
+    left <- if (ends$from[1] <= ends$to[1]) {
+      scene$edges$from[i]
+    } else {
+      scene$edges$to[i]
+    }
+    vertical <- runs[runs$axis == "v", , drop = FALSE]
+    for (g in seq_len(nrow(gaps))) {
+      inside <- vertical$coord > gaps[g, 1] + 1e-6 &
+        vertical$coord < gaps[g, 2] - 1e-6
+      if (any(inside)) {
+        slots[[length(slots) + 1]] <- data.frame(
+          gap = g,
+          left = left,
+          x = vertical$coord[inside],
+          lo = vertical$lo[inside],
+          hi = vertical$hi[inside],
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+
+  if (length(slots) == 0) {
+    return(invisible())
+  }
+  slots <- do.call(rbind, slots)
+  for (g in unique(slots$gap)) {
+    s <- slots[slots$gap == g, , drop = FALSE]
+    gap_label <- paste0(prefix, "gap ", g, " slots")
+    xs <- sort(unique(round(s$x, 9)))
+    if (length(xs) > 1) {
+      expect_true(all(diff(xs) >= sep_e_default - 1e-9), label = gap_label)
+    }
+    n <- nrow(s)
+    for (a in seq_len(n - 1)) {
+      for (b in (a + 1):n) {
+        overlap <- min(s$hi[a], s$hi[b]) - max(s$lo[a], s$lo[b])
+        if (s$left[a] != s$left[b] && overlap > 1e-6) {
+          expect_gte(
+            abs(s$x[a] - s$x[b]),
+            sep_e_default - 1e-9,
+            label = gap_label
+          )
+        }
+      }
+    }
+  }
+  invisible()
+}
+
 # Constants ----------------------------------------------------------------------
 
 test_that("route_opts() derives the design constants from the reference radius", {
@@ -413,6 +657,20 @@ test_that("route_opts() scales with the radius above the floors", {
   expect_equal(opts$R_soft, 13.2)
   expect_equal(opts$sep_e, 7.2)
   expect_equal(opts$sep_m, 12)
+})
+
+test_that("route_opts() derives the corner radius and defaults to rounded corners", {
+  opts <- route_opts(6)
+  expect_true(all(c("corners", "rc") %in% names(opts)))
+  expect_equal(opts$corners, "rounded")
+  # rc = clamp(0.35 r, 0.8, 2.5): 0.35 * 6 = 2.1 lies inside the clamp
+  expect_equal(opts$rc, 2.1)
+  # 0.35 * 2 = 0.7 is lifted to the 0.8 mm floor
+  expect_equal(route_opts(2)$rc, 0.8)
+  # 0.35 * 10 = 3.5 is cut to the 2.5 mm ceiling
+  expect_equal(route_opts(10)$rc, 2.5)
+  expect_equal(route_opts(6, corners = "sharp")$corners, "sharp")
+  expect_error(route_opts(6, corners = "bevel"))
 })
 
 # Output structure ------------------------------------------------------------
@@ -469,10 +727,6 @@ test_that("route_edges_mm() rejects an unknown mode with a typed error naming th
   expect_match(msg, "spline")
   expect_match(msg, "orthogonal")
   expect_match(msg, "straight")
-})
-
-test_that("orthogonal routing is not yet implemented", {
-  skip("orthogonal routing is not yet implemented")
 })
 
 # Fixture 1: mediator -----------------------------------------------------------
@@ -1315,6 +1569,535 @@ test_that("continuity: sliding m through the obstruction threshold never pops th
   expect_identical(nrow(paths[[1]]), 2L)
   expect_identical(nrow(paths[[6]]), 2L)
   expect_gt(nrow(paths[[length(paths)]]), 2L)
+})
+
+# Fixture: orthogonal ------------------------------------------------------------
+
+# Orthogonal mode draws every edge orthogonally whether or not its chord is
+# blocked. A chord whose endpoints share a y is the straight chord. Every
+# other edge leaves through a port and follows axis-aligned runs: an E port
+# (S$x + r, S$y) and a W port (T$x - r, T$y) with one vertical run in each
+# crossed gap at an assigned slot x, or, for a spanning edge whose endpoints
+# are alone in (or the extreme of) their layers, S/N ports and a channel run
+# past the crossed stack at extreme_y +/- R. Within a gap the slots are spread
+# evenly over the band [x_L + stub, x_R - stub]. The default corners are
+# rounded with a quadratic Bezier of radius rc; "sharp" keeps the bends, which
+# makes coordinates exact.
+ortho <- function(scene, corners = NULL, ...) {
+  opts <- if (is.null(corners)) {
+    route_opts(r_default)
+  } else {
+    route_opts(r_default, corners = corners)
+  }
+  route_scene(scene, mode = "orthogonal", opts = opts, ...)
+}
+
+edge_index <- function(scene, label) {
+  match(label, edge_labels(scene$edges))
+}
+
+# The worked trace of the fan. Gap 1 (x 20 to 80) has the band [36.1, 63.9],
+# whose single slot sits at 36.1 + 27.8 / 2 = 50; gap 2 (80 to 140) has the
+# band [96.1, 123.9] and its single slot at 110. a->e spans both gaps with a
+# and e alone in their layers, so it takes S ports and the channel below the
+# middle stack at 25 - 9 = 16. The polylines below omit the ports, which are
+# collinear with the centres and the first bends.
+fan_sharp_polylines <- list(
+  "a->b" = pt(c(20, 50, 50, 80), c(55, 55, 85, 85)),
+  "a->d" = pt(c(20, 50, 50, 80), c(55, 55, 25, 25)),
+  "b->e" = pt(c(80, 110, 110, 140), c(85, 85, 55, 55)),
+  "a->e" = pt(c(20, 20, 140, 140), c(55, 16, 16, 55))
+)
+fan_straight <- c("a->c", "c->e")
+
+test_that("orthogonal fan: sharp corners reproduce the worked trace exactly", {
+  scene <- fan_scene()
+  res <- ortho(scene, corners = "sharp")
+
+  for (lab in fan_straight) {
+    i <- edge_index(scene, lab)
+    ends <- edge_endpoints(scene, i)
+    expect_false(res$meta$routed[i])
+    expect_equal(res$meta$mode[i], "straight")
+    expect_equal(res$meta$n_waypoints[i], 0)
+    expect_identical(nrow(res$waypoints[[i]]), 0L)
+    expect_true(is.na(res$meta$side[i]))
+    expect_straight_path(res$paths[[i]], ends$from, ends$to)
+  }
+
+  for (lab in names(fan_sharp_polylines)) {
+    i <- edge_index(scene, lab)
+    ends <- edge_endpoints(scene, i)
+    poly <- fan_sharp_polylines[[lab]]
+    path <- res$paths[[i]]
+
+    expect_true(res$meta$routed[i], label = lab)
+    expect_equal(res$meta$mode[i], "orthogonal", label = lab)
+    expect_true(res$meta$clearance_ok[i], label = lab)
+    expect_true(is.na(res$meta$sagitta_ratio[i]), label = lab)
+    expect_true(is.na(res$meta$sagitta_capped[i]), label = lab)
+    expect_true(all(is.na(res$meta$waypoint_layers[[i]])), label = lab)
+    expect_exact_endpoints(path, ends$from, ends$to)
+    expect_lt(polyline_hausdorff(path, poly), 1e-6, label = lab)
+    # a sharp path is axis-aligned everywhere
+    expect_true(all(segment_axes(dedupe_path(path)) != "o"), label = lab)
+
+    # the two bends are the interior vertices of the polyline
+    bends <- res$waypoints[[i]]
+    expect_equal(res$meta$n_waypoints[i], 2, label = lab)
+    expect_identical(nrow(bends), 2L, label = lab)
+    expect_equal(bends$x, poly$x[2:3], tolerance = 1e-6, label = lab)
+    expect_equal(bends$y, poly$y[2:3], tolerance = 1e-6, label = lab)
+    expect_true(all(is.na(bends$layer)), label = lab)
+  }
+
+  # only the channel edge reports a side: below, away from the crowded fan
+  # (b lies above the chord at both a and e, d below at a only)
+  expect_equal(res$meta$side[edge_index(scene, "a->e")], -1)
+  expect_true(all(is.na(res$meta$side[-edge_index(scene, "a->e")])))
+})
+
+test_that("orthogonal fan: rounded corners stay within rc of each bend and turn gently", {
+  scene <- fan_scene()
+  res <- ortho(scene)
+  sharp <- ortho(scene, corners = "sharp")
+
+  for (lab in fan_straight) {
+    i <- edge_index(scene, lab)
+    ends <- edge_endpoints(scene, i)
+    expect_straight_path(res$paths[[i]], ends$from, ends$to)
+  }
+
+  for (lab in names(fan_sharp_polylines)) {
+    i <- edge_index(scene, lab)
+    ends <- edge_endpoints(scene, i)
+    path <- res$paths[[i]]
+    bends <- res$waypoints[[i]]
+
+    expect_equal(res$meta$mode[i], "orthogonal", label = lab)
+    expect_equal(bends$x, sharp$waypoints[[i]]$x, label = lab)
+    expect_equal(bends$y, sharp$waypoints[[i]]$y, label = lab)
+    expect_exact_endpoints(path, ends$from, ends$to)
+
+    # every sample lies on the sharp polyline or inside a corner span, and
+    # each corner span lies within rc of its bend
+    d <- point_polyline_dist(path, sharp$paths[[i]])
+    near <- corner_points(path, bends, rc_default + 1e-6)
+    expect_true(all(d <= 1e-6 | near), label = lab)
+    expect_true(any(near), label = lab)
+    # the corner is really cut: the path never reaches the bend itself (the
+    # quadratic's closest approach to a right-angle bend is 0.354 rc = 0.74)
+    for (k in seq_len(nrow(bends))) {
+      expect_gt(
+        path_min_dist(path, c(bends$x[k], bends$y[k])),
+        0.5,
+        label = lab
+      )
+    }
+    expect_orthogonal_outside_corners(path, bends, rc_default, label = lab)
+    # the corner must turn less than 12 degrees per sample; at uniform t a
+    # quadratic Bezier through a right angle needs at least 11 samples for
+    # that (8 samples peak at 15.9 degrees), so the sample count is not pinned
+    expect_lt(max(abs(turning_angles(path))), 12, label = lab)
+  }
+
+  # at the (50, 55) corner of a->b the curve is tangent to the runs at
+  # P = (50 - 2.1, 55) and Q = (50, 55 + 2.1)
+  ab <- res$paths[[edge_index(scene, "a->b")]]
+  expect_lt(point_polyline_dist(pt(47.9, 55), ab), 0.05)
+  expect_lt(point_polyline_dist(pt(50, 57.1), ab), 0.05)
+})
+
+test_that("orthogonal predicates hold on the fan, four-layer, and mediator fixtures", {
+  for (make in list(fan_scene, four_layer_scene, mediator_scene)) {
+    scene <- make()
+    res <- ortho(scene)
+    expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  }
+})
+
+test_that("orthogonal four-layer: p->t takes the channel above the stacks at y = 99", {
+  scene <- four_layer_scene()
+  res <- ortho(scene)
+  i <- edge_index(scene, "p->t")
+  path <- res$paths[[i]]
+  ends <- edge_endpoints(scene, i)
+
+  expect_true(res$meta$routed[i])
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_true(res$meta$clearance_ok[i])
+  # above: 90 + 9 = 99, below: 20 - 9 = 11, both displace the chord by 44;
+  # q1 and s1 lie above the chord and q2 and s3 below, so congestion ties
+  # too and the tie goes above
+  expect_equal(res$meta$side[i], 1)
+  expect_equal(res$meta$n_waypoints[i], 2)
+  wp <- res$waypoints[[i]]
+  expect_equal(wp$x, c(20, 140), tolerance = 1e-6)
+  expect_equal(wp$y, c(99, 99), tolerance = 1e-6)
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  runs <- straight_runs(path)
+  channel <- runs[which.max(runs$length), ]
+  expect_equal(channel$axis, "h")
+  expect_equal(channel$coord, 99, tolerance = 1e-6)
+  # up the N stub, across, and down: x never decreases
+  expect_true(all(diff(dedupe_path(path)$x) >= -1e-9))
+  expect_true(all(path$y >= 55 - 1e-9))
+  expect_gte(path_min_dist(path, node_xy(scene, "s1")), r_full - verify_tol)
+  expect_gte(path_min_clearance(scene, i, path), r_full - verify_tol)
+
+  # the short edges are all orthogonal, with s2->t the only straight chord
+  for (j in setdiff(seq_len(nrow(scene$edges)), i)) {
+    lab <- edge_labels(scene$edges)[j]
+    if (lab == "s2->t") {
+      expect_equal(res$meta$mode[j], "straight", label = lab)
+    } else {
+      expect_equal(res$meta$mode[j], "orthogonal", label = lab)
+      expect_true(is.na(res$meta$side[j]), label = lab)
+    }
+  }
+})
+
+test_that("orthogonal mediator: the collinear scene keeps x->m and m->y straight and channels x->y above", {
+  scene <- mediator_scene()
+  res <- ortho(scene)
+
+  for (lab in c("x->m", "m->y")) {
+    i <- edge_index(scene, lab)
+    ends <- edge_endpoints(scene, i)
+    expect_false(res$meta$routed[i], label = lab)
+    expect_equal(res$meta$mode[i], "straight", label = lab)
+    expect_straight_path(res$paths[[i]], ends$from, ends$to)
+  }
+
+  i <- edge_index(scene, "x->y")
+  path <- res$paths[[i]]
+  ends <- edge_endpoints(scene, i)
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_true(res$meta$clearance_ok[i])
+  # both channels displace equally and nothing is congested: the tie goes up
+  expect_equal(res$meta$side[i], 1)
+  expect_equal(res$meta$n_waypoints[i], 2)
+  wp <- res$waypoints[[i]]
+  expect_equal(wp$x, c(7.3, 152.7), tolerance = 1e-6)
+  expect_equal(wp$y[1], wp$y[2], tolerance = 1e-6)
+  # the channel clears m by R (y >= 55 + 9 = 64) and, because x and y sit at
+  # the same y as m, must reach further than that to leave a straight stub
+  # of cap + rc after the corner is rounded
+  expect_gte(wp$y[1], 64 - 1e-9)
+  runs <- straight_runs(path)
+  expect_gte(runs$length[1], cap_default + rc_default - 1e-9)
+  expect_gte(runs$length[nrow(runs)], cap_default + rc_default - 1e-9)
+  expect_true(all(path$y >= 55 - 1e-9))
+  expect_gte(path_min_dist(path, node_xy(scene, "m")), r_full - verify_tol)
+})
+
+test_that("orthogonal mediator: a displaced m gets one slot per gap and the channel runs away from it", {
+  # m sits 20 mm above the chord, so x->m and m->y climb and descend through
+  # their gaps while x->y takes the channel below
+  scene <- mediator_scene(m_y = 75)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  # gap 1 band [7.3 + 16.1, 80 - 16.1] = [23.4, 63.9] has its single slot at
+  # the midpoint 43.65; gap 2 band [96.1, 136.6] at 116.35
+  i <- edge_index(scene, "x->m")
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_equal(slot_xs(res$paths[[i]], c(7.3, 80)), 43.65, tolerance = 1e-6)
+  expect_equal(res$meta$n_waypoints[i], 2)
+  expect_equal(res$waypoints[[i]]$x, c(43.65, 43.65), tolerance = 1e-6)
+  expect_equal(res$waypoints[[i]]$y, c(55, 75), tolerance = 1e-6)
+
+  j <- edge_index(scene, "m->y")
+  expect_equal(res$meta$mode[j], "orthogonal")
+  expect_equal(slot_xs(res$paths[[j]], c(80, 152.7)), 116.35, tolerance = 1e-6)
+  expect_equal(res$waypoints[[j]]$x, c(116.35, 116.35), tolerance = 1e-6)
+  expect_equal(res$waypoints[[j]]$y, c(75, 55), tolerance = 1e-6)
+
+  k <- edge_index(scene, "x->y")
+  path <- res$paths[[k]]
+  expect_equal(res$meta$mode[k], "orthogonal")
+  expect_equal(res$meta$side[k], -1)
+  expect_equal(res$meta$n_waypoints[k], 2)
+  wp <- res$waypoints[[k]]
+  expect_equal(wp$x, c(7.3, 152.7), tolerance = 1e-6)
+  expect_equal(wp$y[1], wp$y[2], tolerance = 1e-6)
+  # the S ports and the channel lie on the same side of the endpoints, so
+  # the path never rises above the chord
+  expect_true(all(path$y <= 55 + 1e-9))
+  expect_lte(wp$y[1], 75 - r_full + 1e-9)
+  expect_gte(path_min_dist(path, node_xy(scene, "m")), r_full - verify_tol)
+})
+
+test_that("orthogonal fan: edges sharing a source port share one vertical segment", {
+  scene <- fan_scene()
+  res <- ortho(scene)
+  # a->b, a->c, a->d leave a's E port together and form one hyperedge
+  # segment over the union interval [25, 85]; the single slot of gap 1 is
+  # 36.1 + (63.9 - 36.1) / 2 = 50
+  ab <- slot_xs(res$paths[[edge_index(scene, "a->b")]], c(20, 80))
+  ad <- slot_xs(res$paths[[edge_index(scene, "a->d")]], c(20, 80))
+  expect_length(ab, 1)
+  expect_length(ad, 1)
+  expect_equal(ab, ad)
+  expect_equal(ab, 50, tolerance = 1e-6)
+})
+
+test_that("orthogonal fan: edges entering the same port share their last run", {
+  scene <- fan_scene()
+  res <- ortho(scene)
+  be <- res$paths[[edge_index(scene, "b->e")]]
+  ce <- res$paths[[edge_index(scene, "c->e")]]
+
+  # b->e turns down at x = 110 onto y = 55 and runs into e's W port along
+  # the chord of c->e, so one arrowhead is visible
+  tail <- be[be$x > 110 + rc_default + 1e-6, , drop = FALSE]
+  expect_gt(nrow(tail), 0)
+  expect_true(all(abs(tail$y - 55) < 1e-6))
+  expect_lt(max(point_polyline_dist(tail, ce)), 1e-6)
+  runs <- straight_runs(be)
+  last <- runs[nrow(runs), ]
+  expect_equal(last$axis, "h")
+  expect_equal(last$coord, 55, tolerance = 1e-6)
+  # from the tangent point at 110 + 2.1 to the centre of e at 140
+  expect_gte(last$length, 30 - rc_default - 1e-6)
+})
+
+# Two layers 40 mm apart leave a band [20 + 16.1, 60 - 16.1] = [36.1, 43.9]
+# of 7.8 mm. Four staircase edges pairwise overlap in y, so they need four
+# slots: an even spread would put them 7.8 / 5 = 1.56 mm apart, closer than
+# sep_e, so the slots fall back to the gap midpoint 40 spaced by 3.6.
+narrow_band_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"),
+      c(20, 20, 20, 20, 60, 60, 60, 60),
+      c(20, 35, 50, 65, 50, 65, 80, 95)
+    ),
+    edges = mm_edges(c("a1", "a2", "a3", "a4"), c("b1", "b2", "b3", "b4")),
+    bounds = c(0, 0, 80, 110)
+  )
+}
+
+test_that("orthogonal: a band too narrow for its slots centres them on the gap midpoint", {
+  scene <- narrow_band_scene()
+  # the call itself must not error
+  res <- ortho(scene)
+
+  expect_true(all(res$meta$routed))
+  expect_true(all(res$meta$mode == "orthogonal"))
+  expect_false(any(res$meta$clearance_ok))
+  for (i in seq_len(nrow(scene$edges))) {
+    ends <- edge_endpoints(scene, i)
+    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+    expect_orthogonal_outside_corners(
+      res$paths[[i]],
+      res$waypoints[[i]],
+      rc_default
+    )
+  }
+
+  xs <- vapply(
+    res$paths,
+    function(path) {
+      x <- slot_xs(path, c(20, 60))
+      expect_length(x, 1)
+      x
+    },
+    numeric(1)
+  )
+  # 40 + (-1.5, -0.5, 0.5, 1.5) * 3.6
+  expect_equal(sort(xs), c(34.6, 38.2, 41.8, 45.4), tolerance = 1e-6)
+  # A staircase nests without crossings when the higher edge runs further
+  # left: with a1->b1 left of a2->b2, a2's run at y = 35 would cross a1's
+  # vertical and a1's run at y = 50 would cross a2's, so a2 goes left of a1,
+  # a3 left of a2, and a4 left of a3.
+  expect_equal(xs, c(45.4, 41.8, 38.2, 34.6), tolerance = 1e-6)
+})
+
+test_that("orthogonal: layers along y are transposed in and the result transposed back", {
+  base <- fan_scene()
+  ref <- ortho(base)
+  rotated <- base
+  rotated$nodes <- swap_xy(base$nodes)
+  rotated$bounds <- base$bounds[c(2, 1, 4, 3)]
+  # both axes of the rotated fan have exact clusters, so the layer axis is
+  # named rather than inferred
+  res <- route_scene(
+    rotated,
+    mode = "orthogonal",
+    opts = route_opts(r_default, layer_axis = "y")
+  )
+
+  expect_identical(res$meta$routed, ref$meta$routed)
+  expect_identical(res$meta$mode, ref$meta$mode)
+  # side is reported in the canonical orientation
+  expect_identical(res$meta$side, ref$meta$side)
+  expect_identical(res$meta$n_waypoints, ref$meta$n_waypoints)
+
+  for (i in seq_along(ref$paths)) {
+    ends <- edge_endpoints(rotated, i)
+    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+    expect_lt(polyline_hausdorff(swap_xy(res$paths[[i]]), ref$paths[[i]]), 1e-6)
+    expect_equal(res$waypoints[[i]]$x, ref$waypoints[[i]]$y, tolerance = 1e-9)
+    expect_equal(res$waypoints[[i]]$y, ref$waypoints[[i]]$x, tolerance = 1e-9)
+  }
+})
+
+test_that("orthogonal: a reversed edge returns the reversed polyline of its forward twin", {
+  ref <- ortho(fan_scene())
+  scene <- fan_scene()
+  scene$edges <- mm_edges(
+    c("a", "a", "a", "b", "c", "e"),
+    c("b", "c", "d", "e", "e", "a")
+  )
+  res <- ortho(scene)
+  ends <- edge_endpoints(scene, 6)
+
+  expect_true(res$meta$routed[6])
+  expect_equal(res$meta$mode[6], "orthogonal")
+  expect_identical(res$meta$side[6], ref$meta$side[6])
+  expect_identical(res$meta$n_waypoints[6], ref$meta$n_waypoints[6])
+  expect_exact_endpoints(res$paths[[6]], ends$from, ends$to)
+  expect_lt(polyline_hausdorff(res$paths[[6]], ref$paths[[6]]), 1e-6)
+  expect_equal(sort(res$waypoints[[6]]$x), sort(ref$waypoints[[6]]$x))
+  expect_equal(sort(res$waypoints[[6]]$y), sort(ref$waypoints[[6]]$y))
+
+  for (i in 1:5) {
+    expect_identical(res$paths[[i]], ref$paths[[i]])
+  }
+})
+
+expect_orthogonal_order_invariant <- function(scene, prefix) {
+  res <- ortho(scene)
+  expect_identical(ortho(scene), res)
+
+  # reverse the node rows and rotate the edge rows
+  n_edges <- nrow(scene$edges)
+  edge_perm <- c(seq_len(n_edges)[-1], 1L)
+  shuffled <- scene
+  shuffled$nodes <- scene$nodes[rev(seq_len(nrow(scene$nodes))), ]
+  shuffled$edges <- scene$edges[edge_perm, ]
+  rownames(shuffled$nodes) <- NULL
+  rownames(shuffled$edges) <- NULL
+  res2 <- ortho(shuffled)
+
+  keys <- edge_labels(scene$edges)
+  keys2 <- edge_labels(shuffled$edges)
+  for (i in seq_len(n_edges)) {
+    j <- match(keys[i], keys2)
+    label <- paste(prefix, keys[i])
+    expect_identical(res2$paths[[j]], res$paths[[i]], label = label)
+    expect_identical(res2$waypoints[[j]], res$waypoints[[i]], label = label)
+    expect_identical(res2$meta$side[j], res$meta$side[i], label = label)
+    expect_identical(res2$meta$mode[j], res$meta$mode[i], label = label)
+    expect_identical(
+      res2$meta$clearance_ok[j],
+      res$meta$clearance_ok[i],
+      label = label
+    )
+  }
+}
+
+test_that("orthogonal: routing is deterministic and invariant to row order", {
+  expect_orthogonal_order_invariant(fan_scene(), "fan")
+  expect_orthogonal_order_invariant(four_layer_scene(), "four-layer")
+})
+
+test_that("orthogonal: bends scale exactly with k while rc stays inside its clamp", {
+  # rc = clamp(0.35 r k, 0.8, 2.5) scales with k only for 0.35 * 6 k in
+  # [0.8, 2.5], that is k in [0.381, 1.19]; k = 3 would hit the ceiling and
+  # is excluded
+  for (make in list(fan_scene, four_layer_scene)) {
+    base <- make()
+    ref <- route_scene(base, cap = 8, mode = "orthogonal")
+
+    for (k in c(0.5, 1)) {
+      res <- route_scene(scale_scene(base, k), cap = 8 * k, mode = "orthogonal")
+      expect_identical(res$meta$routed, ref$meta$routed)
+      expect_identical(res$meta$side, ref$meta$side)
+      expect_identical(res$meta$mode, ref$meta$mode)
+      expect_identical(res$meta$n_waypoints, ref$meta$n_waypoints)
+
+      for (i in seq_along(ref$paths)) {
+        expect_equal(
+          res$waypoints[[i]]$x / k,
+          ref$waypoints[[i]]$x,
+          tolerance = 1e-9
+        )
+        expect_equal(
+          res$waypoints[[i]]$y / k,
+          ref$waypoints[[i]]$y,
+          tolerance = 1e-9
+        )
+        scaled <- pt(res$paths[[i]]$x / k, res$paths[[i]]$y / k)
+        expect_lt(polyline_hausdorff(scaled, ref$paths[[i]]), 1e-6)
+      }
+    }
+  }
+})
+
+test_that("spline and straight mode ignore the corners option", {
+  scene <- fan_scene()
+  sharp <- route_opts(r_default, corners = "sharp")
+  expect_identical(route_scene(scene, opts = sharp), route_scene(scene))
+  expect_identical(
+    route_scene(scene, mode = "straight", opts = sharp),
+    route_scene(scene, mode = "straight")
+  )
+})
+
+test_that("orthogonal: parallel duplicate edges are spread sep_m apart with fixed endpoints", {
+  scene <- fan_scene()
+  scene$edges <- rbind(scene$edges, mm_edges("a", "b"))
+  res <- ortho(scene, corners = "sharp")
+  from <- node_xy(scene, "a")
+  to <- node_xy(scene, "b")
+  dup <- c(1L, 7L)
+
+  for (i in dup) {
+    ends <- edge_endpoints(scene, i)
+    expect_true(res$meta$routed[i])
+    expect_equal(res$meta$mode[i], "orthogonal")
+    expect_gte(nrow(res$paths[[i]]), 4)
+    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+  }
+  # the upper bend of a->b lies 13.4 mm left of its chord; the two copies
+  # are translated sep_m = 6 mm apart and stay on that side
+  apex <- vapply(
+    res$paths[dup],
+    function(path) max(chord_offset(path, from, to)),
+    numeric(1)
+  )
+  expect_equal(abs(diff(apex)), 6, tolerance = 0.05)
+  expect_true(all(apex > 0))
+  expect_gt(polyline_hausdorff(res$paths[[1]], res$paths[[7]]), 1)
+})
+
+test_that("canonical DAGs: orthogonal mode is axis-aligned with exact endpoints and separated slots", {
+  n_orthogonal <- 0L
+  for (panel in canonical_panels) {
+    for (nm in names(canonical_dag_specs)) {
+      scene <- canonical_scene(nm, panel)
+      # the call itself must not error
+      res <- ortho(scene)
+      expect_length(res$paths, nrow(scene$edges))
+      prefix <- sprintf("%s at %d x %d: ", nm, panel[1], panel[2])
+      # gaps narrower than 2 stub fall back to midpoint slots and report
+      # clearance_ok = FALSE, so the stub and clearance checks are gated
+      expect_orthogonal_scene(scene, res, stub_always = FALSE, prefix = prefix)
+
+      for (i in seq_len(nrow(scene$edges))) {
+        ends <- edge_endpoints(scene, i)
+        label <- paste0(prefix, edge_labels(scene$edges)[i])
+        if (abs(ends$from[2] - ends$to[2]) >= 1e-3) {
+          expect_equal(res$meta$mode[i], "orthogonal", label = label)
+        }
+      }
+      n_orthogonal <- n_orthogonal + sum(res$meta$mode == "orthogonal")
+    }
+  }
+  expect_gt(n_orthogonal, 0)
 })
 
 # Helper: infer_layers -----------------------------------------------------------
