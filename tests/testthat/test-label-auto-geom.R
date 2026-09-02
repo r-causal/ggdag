@@ -184,6 +184,70 @@ test_that("auto stat edge rows follow a drawn curved edge", {
   expect_lt(min(edge_rows$y), -0.3)
 })
 
+test_that("auto stat edge rows carry the spec a routed edge is routed with", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    u ~ ~v,
+    labels = c(
+      x = "Exposure",
+      m = "Mediator",
+      y = "Outcome",
+      u = "Latent",
+      v = "Latent cause"
+    ),
+    coords = list(
+      x = c(x = 0, m = 1, y = 2, u = 0, v = 2),
+      y = c(x = 0, m = 0, y = 0, u = 2, v = 2)
+    )
+  )
+  p <- ggdag(
+    dag,
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  stat_data <- auto_stat_data(p)
+  edge_rows <- stat_data[stat_data$ggdag_role == "edge", , drop = FALSE]
+  expect_contains(
+    names(edge_rows),
+    c("route_style", "route_clearance", "route_sep", "route_layer_axis")
+  )
+
+  style <- if ("route_style" %in% names(edge_rows)) {
+    edge_rows$route_style
+  } else {
+    rep(NA_character_, nrow(edge_rows))
+  }
+
+  # A routed edge is drawn along a path decided in millimetres at draw time,
+  # so it reaches the stat as its two chord endpoints carrying how it is
+  # routed. The geom routes it again from that spec, with the same router the
+  # arrows are drawn with.
+  routed <- edge_rows[!is.na(style), , drop = FALSE]
+  expect_equal(nrow(routed), 6)
+  expect_length(unique(routed$edge_id), 3)
+  expect_true(all(routed$route_style == "spline"))
+  expect_true(all(is.na(routed$route_clearance)))
+  expect_true(all(is.na(routed$route_sep)))
+  expect_true(all(routed$route_layer_axis == "auto"))
+
+  # the bidirected edge is drawn as an arc in data space, so it is traced
+  # rather than routed and carries no spec
+  arc <- edge_rows[is.na(style), , drop = FALSE]
+  expect_length(unique(arc$edge_id), 1)
+  expect_gt(nrow(arc), 2)
+
+  # the node rows still carry the size of the discs the router routes around
+  node_rows <- stat_data[stat_data$ggdag_role == "node", , drop = FALSE]
+  expect_contains(names(node_rows), "node_size")
+  expect_equal(unique(node_rows$node_size), 16)
+})
+
 test_that("the auto constructors return debug-enabled discovering dag layers", {
   constructors <- list(geom_dag_label_auto, geom_dag_text_auto)
   for (constructor in constructors) {

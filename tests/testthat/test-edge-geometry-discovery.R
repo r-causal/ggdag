@@ -10,8 +10,9 @@
 # * "routed": a layer drawing with `GeomDAGRoutedArrow`, whose path is
 #   decided in millimetres when the plot is drawn. The spec is one wide row
 #   per drawn edge carrying how the edge is routed, `route_style`,
-#   `route_clearance`, and `route_sep`, rather than where it goes; the
-#   obstacle tracers follow its chord.
+#   `route_clearance`, `route_sep`, and `route_layer_axis`, rather than where
+#   it goes; the ggrepel obstacle tracers follow its chord, and the automatic
+#   label engine routes it again at draw time from that spec.
 
 # Distance from each point to a single segment, clamped at the ends.
 point_segment_dist <- function(px, py, x, y, xend, yend) {
@@ -191,6 +192,55 @@ test_that("routed and bent edge layers are discovered together", {
 
   # the arc rows fill the routing columns with NA, so the specs stack
   expect_true(all(is.na(arc$route_style)))
+})
+
+test_that("the routing spec carries the parameters the edges are routed with", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  mediator <- dagify(
+    y ~ x + m,
+    m ~ x,
+    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 0, y = 0))
+  )
+  spec <- discover_edge_geometry(ggdag(tidy_dagitty(mediator)))
+  routed <- spec[spec$type == "routed", , drop = FALSE]
+
+  expect_equal(nrow(routed), 3)
+  expect_contains(
+    names(routed),
+    c("route_style", "route_clearance", "route_sep", "route_layer_axis")
+  )
+  expect_true(all(routed$route_style == "spline"))
+
+  # the clearance and the separation are the router's own defaults unless the
+  # geom sets them, and the spec says so rather than guessing a number; the
+  # layer axis is inferred unless the layout knows which way its layers run
+  expect_true(all(is.na(routed$route_clearance)))
+  expect_true(all(is.na(routed$route_sep)))
+  expect_true(all(routed$route_layer_axis == "auto"))
+
+  # what the geom is given reaches the spec as it is, so the label engine
+  # routes with the numbers the edges were drawn with
+  p <- ggplot(base_dag(), aes_dag()) +
+    geom_dag_edges_arc(curvature = 0.4) +
+    geom_dag_routed_arrows(clearance = 4, edge_sep = 2, layer_axis = "y") +
+    geom_dag_point()
+  geometry <- discover_edge_geometry(p)
+  expect_contains(names(geometry), "route_layer_axis")
+
+  given <- geometry[geometry$type == "routed", , drop = FALSE]
+  expect_equal(given$route_clearance, c(4, 4))
+  expect_equal(given$route_sep, c(2, 2))
+  expect_equal(given$route_layer_axis, c("y", "y"))
+
+  # a layer of any other type fills every routing column with NA
+  arc <- geometry[geometry$type == "arc", , drop = FALSE]
+  expect_true(all(is.na(arc$route_style)))
+  expect_true(all(is.na(arc$route_clearance)))
+  expect_true(all(is.na(arc$route_sep)))
+  expect_true(all(is.na(arc$route_layer_axis)))
 })
 
 # Tracing: type "curve" ----------------------------------------------------
