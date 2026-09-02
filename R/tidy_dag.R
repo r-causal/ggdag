@@ -210,6 +210,10 @@ tidy_dagitty <- function(
     attr(.dagitty, "curved_edges") <- curved_edges
   }
 
+  if (isTRUE(ggdag_option("auto_curve", FALSE))) {
+    tidy_dag <- auto_curve_edges(tidy_dag)
+  }
+
   new_tidy_dagitty(tidy_dag, .dagitty)
 }
 

@@ -20,6 +20,7 @@ test_that("ggdag_defaults contains all expected options", {
     "arrow_head",
     "arrow_fins",
     "arrow_mid",
+    "auto_curve",
     "curvature",
     "debug_repel_points"
   )

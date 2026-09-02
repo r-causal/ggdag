@@ -17,6 +17,16 @@
 #' [ggdag_drelationship()]) maintain a proportional offset. If you set
 #' `ggdag.edge_cap` to a custom value, these functions scale it by `10/8`.
 #'
+#' `auto_curve` is a safety net for layouts where a node sits on or near the
+#' straight path of an edge. When it is `TRUE`, [tidy_dagitty()] checks every
+#' straight directed edge against the other nodes of the DAG and writes a
+#' per-edge curvature that routes each blocked edge around them, bowing away
+#' from the side where the intruding nodes sit. Curvature you set yourself,
+#' through [curved()], [curve_edge()], or DAGitty control points, is never
+#' overridden, and bidirected edges keep the arc their edge layer draws them
+#' with. The written curvature is drawn by the ggarrow edge engine, so pair it
+#' with `edge_engine = "ggarrow"` to see the routed edges.
+#'
 #' `debug_repel_points` is a diagnostic rather than an appearance setting. When
 #' it is `TRUE`, every repelling label geom (see [geom_dag_label_repel()]) adds
 #' a layer of purple points showing the invisible geometry that labels are
@@ -76,6 +86,7 @@ ggdag_defaults <- list(
   arrow_head = NULL,
   arrow_fins = NULL,
   arrow_mid = NULL,
+  auto_curve = FALSE,
   curvature = 0.3,
   debug_repel_points = FALSE
 )
@@ -194,6 +205,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
     "use_stylized",
     "use_text",
     "use_labels",
+    "auto_curve",
     "debug_repel_points"
   )
   character_opts <- c("text_col", "label_col")

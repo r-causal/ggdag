@@ -66,6 +66,16 @@ Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjus
 \code{\link[=ggdag_drelationship]{ggdag_drelationship()}}) maintain a proportional offset. If you set
 \code{ggdag.edge_cap} to a custom value, these functions scale it by \code{10/8}.
 
+\code{auto_curve} is a safety net for layouts where a node sits on or near the
+straight path of an edge. When it is \code{TRUE}, \code{\link[=tidy_dagitty]{tidy_dagitty()}} checks every
+straight directed edge against the other nodes of the DAG and writes a
+per-edge curvature that routes each blocked edge around them, bowing away
+from the side where the intruding nodes sit. Curvature you set yourself,
+through \code{\link[=curved]{curved()}}, \code{\link[=curve_edge]{curve_edge()}}, or DAGitty control points, is never
+overridden, and bidirected edges keep the arc their edge layer draws them
+with. The written curvature is drawn by the ggarrow edge engine, so pair it
+with \code{edge_engine = "ggarrow"} to see the routed edges.
+
 \code{debug_repel_points} is a diagnostic rather than an appearance setting. When
 it is \code{TRUE}, every repelling label geom (see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}) adds
 a layer of purple points showing the invisible geometry that labels are
