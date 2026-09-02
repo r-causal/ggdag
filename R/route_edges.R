@@ -17,7 +17,10 @@
 #
 # Orthogonal mode shares the orientation, the layers, the side cost, and the
 # parallel-edge spreading, but draws every edge as axis-aligned runs whether
-# or not a node blocks its chord. A spanning edge between the extreme nodes
+# or not a node blocks its chord. Chords that are already axis-aligned stay
+# straight: vertical chords, horizontal chords between adjacent layers,
+# horizontal spanning chords that no crossed disc blocks, and chords between
+# two nodes of one layer. A spanning edge between the extreme nodes
 # of their layers leaves through the S or N port and follows a channel past
 # the crossed stacks; every other edge leaves through the E port and enters
 # through the W port, with one vertical run per crossed gap. Within a gap the
@@ -113,8 +116,10 @@ route_opts <- function(
 #'   with one vertical run per crossed gap at an assigned slot, or, for a
 #'   spanning edge between the extreme nodes of their layers, S and N ports
 #'   with a channel run past the crossed stacks. Corners are rounded unless
-#'   `opts$corners` is `"sharp"`. A vertical chord, and a horizontal chord
-#'   between adjacent layers, is already orthogonal and stays straight.
+#'   `opts$corners` is `"sharp"`. A chord that is already axis-aligned stays
+#'   straight: a vertical chord, a horizontal chord between adjacent layers,
+#'   or a horizontal spanning chord that no crossed disc blocks; so does a
+#'   chord between two nodes of one layer.
 #' @param opts Constants from `route_opts()`.
 #' @return A list with `paths` (one `data.frame(x, y)` per edge, in input
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
@@ -1351,9 +1356,13 @@ parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
 
 #' Route a canonically oriented scene with axis-aligned runs
 #'
-#' Every routable edge is drawn orthogonally whether or not a node blocks
-#' its chord. A vertical chord, and a horizontal chord between adjacent
-#' layers, is its own orthogonal drawing and stays a two-row straight path.
+#' Every routable edge that needs a bend to be axis-aligned is drawn
+#' orthogonally whether or not a node blocks its chord. A chord that is
+#' already axis-aligned stays a two-row straight path: a vertical chord, a
+#' horizontal chord between adjacent layers, and a horizontal spanning chord
+#' that no disc in a crossed layer comes within `R` of. A chord between two
+#' nodes of one layer stays straight as well, since the layer has no gap to
+#' route it through.
 #' A spanning edge whose endpoints are both the extreme node of their layer
 #' on one side (or alone in it) leaves through the S or N port and follows a
 #' channel `R` beyond the crossed stacks and at least a stub beyond both
@@ -1424,9 +1433,25 @@ route_orthogonal_scene <- function(
   shift <- grp$shift
   extra <- grp$extra
 
+  # a chord needs a bend when it is oblique and leaves its layer, or when it
+  # is horizontal, spans a layer, and a disc in a crossed layer blocks it; a
+  # horizontal chord that hits nothing is already axis-aligned
+  bent <- routable & span >= 1 & !vertical & !(horizontal & span <= 1)
+  level <- which(bent & horizontal)
+  if (length(level) > 0) {
+    hits <- find_blocked_edges(
+      nodes,
+      df_cols(from = nodes$name[a[level]], to = nodes$name[b[level]]),
+      nodes$r + opts$m_min,
+      R_node
+    )
+    bent[level[!seq_along(level) %in% hits$edge]] <- FALSE
+  }
   kind <- rep("straight", n_edges)
-  kind[routable & !vertical & !(horizontal & span <= 1)] <- "ew"
-  kind[routable & kind == "straight" & shift != 0] <- "detour"
+  kind[bent] <- "ew"
+  kind[
+    routable & kind == "straight" & (horizontal | vertical) & shift != 0
+  ] <- "detour"
 
   # channels of spanning edges, shortest first so that a longer edge nests
   # outside the channels already placed, priced against the chords of the

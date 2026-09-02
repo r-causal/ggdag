@@ -2090,7 +2090,9 @@ test_that("orthogonal mediator: the collinear scene keeps x->m and m->y straight
 
 test_that("orthogonal mediator: a displaced m gets one slot per gap and the channel runs away from it", {
   # m sits 20 mm above the chord, so x->m and m->y climb and descend through
-  # their gaps while x->y takes the channel below
+  # their gaps. The horizontal chord x->y clears m by more than R, so it is
+  # already axis-aligned and stays straight: only a chord that needs a bend
+  # to be axis-aligned is drawn orthogonally.
   scene <- mediator_scene(m_y = 75)
   res <- ortho(scene)
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
@@ -2111,8 +2113,27 @@ test_that("orthogonal mediator: a displaced m gets one slot per gap and the chan
   expect_equal(res$waypoints[[j]]$y, c(75, 55), tolerance = 1e-6)
 
   k <- edge_index(scene, "x->y")
+  ends <- edge_endpoints(scene, k)
+  expect_gte(chord_min_clearance(scene, k), r_full)
+  expect_equal(res$meta$mode[k], "straight")
+  expect_false(res$meta$routed[k])
+  expect_true(is.na(res$meta$side[k]))
+  expect_equal(res$meta$n_waypoints[k], 0)
+  expect_straight_path(res$paths[[k]], ends$from, ends$to)
+})
+
+test_that("orthogonal mediator: a horizontal chord that a displaced m blocks takes the channel away from it", {
+  # m sits 8 mm above the chord, inside R = 9, so the straight chord is
+  # blocked and x->y takes the channel below, away from m
+  scene <- mediator_scene(m_y = 63)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  k <- edge_index(scene, "x->y")
   path <- res$paths[[k]]
+  expect_lt(chord_min_clearance(scene, k), r_full)
   expect_equal(res$meta$mode[k], "orthogonal")
+  expect_true(res$meta$routed[k])
   expect_equal(res$meta$side[k], -1)
   expect_equal(res$meta$n_waypoints[k], 2)
   wp <- res$waypoints[[k]]
@@ -2121,8 +2142,17 @@ test_that("orthogonal mediator: a displaced m gets one slot per gap and the chan
   # the S ports and the channel lie on the same side of the endpoints, so
   # the path never rises above the chord
   expect_true(all(path$y <= 55 + 1e-9))
-  expect_lte(wp$y[1], 75 - r_full + 1e-9)
+  expect_lte(wp$y[1], 63 - r_full + 1e-9)
   expect_gte(path_min_dist(path, node_xy(scene, "m")), r_full - verify_tol)
+  runs <- straight_runs(path)
+  expect_gte(runs$length[1], cap_default + rc_default - 1e-9)
+  expect_gte(runs$length[nrow(runs)], cap_default + rc_default - 1e-9)
+
+  for (lab in c("x->m", "m->y")) {
+    i <- edge_index(scene, lab)
+    expect_equal(res$meta$mode[i], "orthogonal", label = lab)
+    expect_equal(res$meta$n_waypoints[i], 2, label = lab)
+  }
 })
 
 test_that("orthogonal fan: edges sharing a source port share one vertical segment", {
@@ -2213,6 +2243,97 @@ test_that("orthogonal: a vertical chord within one layer stays a straight chord"
   # the oblique edge into v is drawn orthogonally as usual
   expect_equal(res$meta$mode[2], "orthogonal")
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
+})
+
+# Two nodes 3 mm apart in x fall into one layer (tol_layer = 6), so a chord
+# between them spans no gap and has nothing to route through: it stays the
+# straight chord even though it is oblique. The layer axis is named because
+# the y values are exact clusters and the x values are not.
+same_layer_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("a", "b", "c", "d"),
+      c(20, 23, 80, 80),
+      c(50, 80, 60, 20)
+    ),
+    edges = mm_edges(c("a", "a", "b"), c("b", "c", "d")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+# The orthogonal scene predicates on every edge but the same-layer chord,
+# which is straight without being horizontal or vertical.
+expect_orthogonal_scene_without <- function(scene, res, drop) {
+  keep <- setdiff(seq_len(nrow(scene$edges)), drop)
+  sub <- scene
+  sub$edges <- scene$edges[keep, , drop = FALSE]
+  rownames(sub$edges) <- NULL
+  res_sub <- list(
+    paths = res$paths[keep],
+    meta = res$meta[keep, , drop = FALSE],
+    waypoints = res$waypoints[keep]
+  )
+  expect_orthogonal_scene(sub, res_sub, stub_always = TRUE)
+}
+
+test_that("orthogonal: an oblique chord between two nodes of one layer stays straight", {
+  scene <- same_layer_scene()
+  layers <- infer_layers(scene$nodes, r_default)
+  expect_equal(layers$id[1:2], c(1, 1))
+  # the call itself must not error
+  res <- route_scene(
+    scene,
+    mode = "orthogonal",
+    opts = route_opts(r_default, layer_axis = "x")
+  )
+
+  i <- edge_index(scene, "a->b")
+  ends <- edge_endpoints(scene, i)
+  expect_false(res$meta$routed[i])
+  expect_equal(res$meta$mode[i], "straight")
+  expect_true(is.na(res$meta$side[i]))
+  expect_equal(res$meta$n_waypoints[i], 0)
+  expect_identical(nrow(res$waypoints[[i]]), 0L)
+  expect_straight_path(res$paths[[i]], ends$from, ends$to)
+
+  for (lab in c("a->c", "b->d")) {
+    j <- edge_index(scene, lab)
+    expect_equal(res$meta$mode[j], "orthogonal", label = lab)
+    expect_equal(res$meta$n_waypoints[j], 2, label = lab)
+  }
+  expect_orthogonal_scene_without(scene, res, i)
+})
+
+test_that("orthogonal: a same-layer chord in the last layer stays straight like one in the first", {
+  scene <- list(
+    nodes = mm_nodes(
+      c("c", "d", "a", "b"),
+      c(20, 20, 80, 83),
+      c(60, 20, 50, 80)
+    ),
+    edges = mm_edges(c("c", "d", "a"), c("a", "b", "b")),
+    bounds = c(0, 0, 160, 110)
+  )
+  res <- route_scene(
+    scene,
+    mode = "orthogonal",
+    opts = route_opts(r_default, layer_axis = "x")
+  )
+
+  i <- edge_index(scene, "a->b")
+  ends <- edge_endpoints(scene, i)
+  expect_false(res$meta$routed[i])
+  expect_equal(res$meta$mode[i], "straight")
+  expect_true(is.na(res$meta$side[i]))
+  expect_equal(res$meta$n_waypoints[i], 0)
+  expect_straight_path(res$paths[[i]], ends$from, ends$to)
+
+  for (lab in c("c->a", "d->b")) {
+    j <- edge_index(scene, lab)
+    expect_equal(res$meta$mode[j], "orthogonal", label = lab)
+    expect_equal(res$meta$n_waypoints[j], 2, label = lab)
+  }
+  expect_orthogonal_scene_without(scene, res, i)
 })
 
 test_that("orthogonal fan: edges entering the same port share their last run", {
