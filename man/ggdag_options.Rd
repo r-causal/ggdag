@@ -76,6 +76,17 @@ overridden, and bidirected edges keep the arc their edge layer draws them
 with. The written curvature is drawn by the ggarrow edge engine, so pair it
 with \code{edge_engine = "ggarrow"} to see the routed edges.
 
+\code{auto_route} swaps routed edges into the packaged ggarrow edge rendering.
+When it is \code{TRUE} and \code{edge_engine = "ggarrow"}, \code{\link[=geom_dag]{geom_dag()}} and the
+plots built on it, such as \code{\link[=ggdag]{ggdag()}}, draw their directed edges with the
+routed layer of \code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}} under the default
+\code{edge_type = "link_arc"}, so an edge whose straight path a node blocks
+detours around that node instead of running underneath it. Bidirected
+edges keep the arc their edge layer draws them with, unblocked edges stay
+straight, and curvature you set yourself is never rerouted. The option
+only affects the ggarrow engine, so pair it with
+\code{edge_engine = "ggarrow"}.
+
 \code{debug_repel_points} is a diagnostic rather than an appearance setting. When
 it is \code{TRUE}, every repelling label geom (see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}) adds
 a layer of purple points showing the invisible geometry that labels are

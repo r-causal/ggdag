@@ -1567,9 +1567,36 @@ geom_dag_ggarrow_edges <- function(
 
   dag_mapping <- aes_dag()
 
-  switch(
-    edge_type,
-    "link_arc" = list(
+  # Under auto_route, the straight directed layer of the default edge type is
+  # swapped for the routed layer, which detours a blocked edge around the
+  # node on its path; the bidirected edges stay on their arc layer.
+  link_arc_directed <- function() {
+    if (isTRUE(ggdag_option("auto_route", FALSE))) {
+      dag_routed_arrow_layer(
+        data_directed = compose_edge_data(data, filter_direction("->")),
+        node_radius = node_radius_data(),
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        length = list(
+          head = arrow_length,
+          fins = arrow_length,
+          mid = arrow_length
+        ),
+        justify = 0,
+        force_arrow = FALSE,
+        mid_place = 0.5,
+        resect_head = resect,
+        resect_fins = resect,
+        lineend = "butt",
+        linejoin = "round",
+        linemitre = 10,
+        position = "identity",
+        na.rm = TRUE,
+        show.legend = show.legend,
+        linewidth = linewidth
+      )
+    } else {
       geom_dag_arrow_arc(
         mapping = dag_mapping,
         data = compose_edge_data(data, filter_direction("->")),
@@ -1581,7 +1608,14 @@ geom_dag_ggarrow_edges <- function(
         linewidth = linewidth,
         length = arrow_length,
         show.legend = show.legend
-      ),
+      )
+    }
+  }
+
+  switch(
+    edge_type,
+    "link_arc" = list(
+      link_arc_directed(),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
         data = compose_edge_data(data, filter_direction("<->")),
@@ -2011,7 +2045,12 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   curvature_ignored <- FALSE
 
   for (item in flatten_dag_layers(object)) {
-    if (has_curvature && inherits(item, "dag_arrow_layer")) {
+    # The routed layer reads `edge_curvature` from the plot data by column
+    # name: its own data is the long waypoint format, which the aesthetic
+    # could not evaluate on.
+    is_routed <- inherits(item, "dag_arrow_layer") &&
+      inherits(item$stat, "StatDAGRoutedEdge")
+    if (has_curvature && inherits(item, "dag_arrow_layer") && !is_routed) {
       item <- inject_edge_curvature(item)
     }
     if (wants_curve && inherits(item, "dag_edge_layer")) {

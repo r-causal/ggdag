@@ -15,6 +15,21 @@ StatDAGArrowEdges <- ggplot2::ggproto(
   optional_aes = "edge_curvature"
 )
 
+# Stat: draw routed edge waypoints, one path per edge ------------------------
+
+# The layer's data function has already turned the edge rows into waypoint
+# long format with `route_dag_edges()`, so the stat only settles the drawing
+# order: each edge is one group, from the discrete `edge_id` aesthetic, and
+# its waypoints are drawn in `seq` order.
+StatDAGRoutedEdge <- ggplot2::ggproto(
+  "StatDAGRoutedEdge",
+  ggplot2::Stat,
+  compute_panel = function(data, scales) {
+    data[order(data$group, data$seq), , drop = FALSE]
+  },
+  required_aes = c("x", "y", "edge_id", "seq")
+)
+
 # Lazy ggproto factories -----------------------------------------------------
 
 geom_dag_arrow_geom <- function() {
@@ -182,6 +197,71 @@ geom_dag_arrow_curve_geom <- function() {
     )
   }
   the$GeomDAGArrowCurve
+}
+
+geom_dag_routed_arrow_geom <- function() {
+  if (is.null(the$GeomDAGRoutedArrow)) {
+    the$GeomDAGRoutedArrow <- ggplot2::ggproto(
+      "GeomDAGRoutedArrow",
+      ggarrow::GeomArrow,
+      default_aes = ggplot2::aes(
+        colour = "black",
+        linewidth = 1,
+        linewidth_head = NULL,
+        linewidth_fins = NULL,
+        linetype = 1,
+        alpha = NA,
+        arrow_head = NULL,
+        arrow_fins = NULL,
+        arrow_mid = NULL,
+        resect_head = NULL,
+        resect_fins = NULL,
+        stroke_colour = NA,
+        stroke_width = 0.25
+      ),
+      draw_panel = function(
+        self,
+        data,
+        panel_params,
+        coord,
+        linejoin = "round",
+        linemitre = 10,
+        lineend = "butt",
+        na.rm = FALSE,
+        arrow = list(
+          head = ggarrow::arrow_head_wings(),
+          fins = NULL,
+          mid = NULL
+        ),
+        length = list(head = 4, fins = 4, mid = 4),
+        justify = 0,
+        force_arrow = FALSE,
+        mid_place = 0.5,
+        resect = list(head = NULL, fins = NULL),
+        sep = 0
+      ) {
+        resect <- inject_dag_resect(resect, data)
+        ggplot2::ggproto_parent(ggarrow::GeomArrow, self)$draw_panel(
+          data = data,
+          panel_params = panel_params,
+          coord = coord,
+          linejoin = linejoin,
+          linemitre = linemitre,
+          lineend = lineend,
+          na.rm = na.rm,
+          arrow = arrow,
+          length = length,
+          justify = justify,
+          force_arrow = force_arrow,
+          mid_place = mid_place,
+          resect = resect,
+          sep = sep
+        )
+      },
+      draw_key = ggarrow::draw_key_arrow
+    )
+  }
+  the$GeomDAGRoutedArrow
 }
 
 # Helper: inject DAG resection defaults ---------------------------------------
@@ -600,6 +680,235 @@ geom_dag_arrows <- function(
       na.rm = na.rm,
       show.legend = show.legend,
       inherit.aes = inherit.aes,
+      ...
+    )
+  )
+}
+
+# Constructor: geom_dag_routed_arrows() ----------------------------------------
+
+# Layer data for the routed edge layer: the directed edge rows, routed into
+# waypoint long format. The obstacle node positions come from the plot data,
+# so the routed paths clear every drawn node, not only the ones the edge rows
+# mention.
+routed_waypoint_data <- function(data_directed, node_radius) {
+  force(data_directed)
+  force(node_radius)
+  function(plot_data) {
+    if (inherits(plot_data, "tidy_dagitty")) {
+      plot_data <- pull_dag_data(plot_data)
+    }
+    edges <- if (is.function(data_directed)) {
+      data_directed(plot_data)
+    } else {
+      data_directed %||% plot_data
+    }
+    route_dag_edges(edges, plot_data, node_radius)
+  }
+}
+
+# The routed edge layer itself. The waypoint frame has no `xend`/`yend`
+# columns, so a plot-level `aes_dag()` mapping cannot evaluate on it: the
+# layer maps its own waypoint columns and never inherits, and an
+# `edge_curvature` column on the plot data is read by name in
+# `route_dag_edges()` instead of through the mapping.
+dag_routed_arrow_layer <- function(
+  data_directed,
+  node_radius,
+  arrow_head,
+  arrow_fins,
+  arrow_mid,
+  length,
+  justify,
+  force_arrow,
+  mid_place,
+  resect_head,
+  resect_fins,
+  lineend,
+  linejoin,
+  linemitre,
+  position,
+  na.rm,
+  show.legend,
+  ...
+) {
+  dag_arrow_layer(ggplot2::layer(
+    data = routed_waypoint_data(data_directed, node_radius),
+    mapping = ggplot2::aes(
+      x = .data$x,
+      y = .data$y,
+      edge_id = .data$edge_id,
+      seq = .data$seq
+    ),
+    stat = StatDAGRoutedEdge,
+    geom = geom_dag_routed_arrow_geom(),
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = FALSE,
+    params = rlang::list2(
+      arrow = list(head = arrow_head, fins = arrow_fins, mid = arrow_mid),
+      length = length,
+      justify = justify,
+      force_arrow = force_arrow,
+      mid_place = mid_place,
+      resect = list(head = resect_head, fins = resect_fins),
+      lineend = lineend,
+      linejoin = linejoin,
+      linemitre = linemitre,
+      na.rm = na.rm,
+      ...
+    )
+  ))
+}
+
+#' Routed DAG edges that detour around nodes
+#'
+#' `geom_dag_routed_arrows()` draws DAG edges with the ggarrow engine,
+#' routing every directed edge whose straight path a node blocks around that
+#' node. Each blocked edge takes the shortest path through a visibility graph
+#' built over the tangent points of the obstacle circles, expanded to
+#' 1.5 node radii so the drawn path keeps a clearance margin of half a node
+#' radius, and the corners are smoothed with two passes of Chaikin corner
+#' cutting. Unblocked edges stay straight, bidirected edges are drawn as arcs
+#' by the same curve geom [geom_dag_arrows()] uses, and the routing is
+#' deterministic: the same DAG always draws the same paths.
+#'
+#' Curvature the user set is never rerouted. When the data carries an
+#' `edge_curvature` column, from [curved()], [curve_edge()], or your own
+#' code, an edge with a numeric curvature follows that arc, an explicit 0
+#' stays straight through whatever sits on its chord, and only edges whose
+#' curvature is unset (`NA`) are candidates for routing.
+#'
+#' The routed layer computes its waypoints from the layer data, so it does
+#' not inherit the plot's aesthetic mapping; the `mapping` argument applies
+#' to the bidirected arc layer. Edges are resected to the plot's node size
+#' exactly as in [geom_dag_arrow()].
+#'
+#' @inheritParams geom_dag_arrow
+#' @inheritParams geom_dag_arrow_arc
+#' @param mapping Set of aesthetic mappings created by [ggplot2::aes()],
+#'   applied to the bidirected arc layer.
+#' @param data_directed,data_bidirected The data to be displayed for directed
+#'   and bidirected edges respectively. By default, these filter the plot
+#'   data by edge direction.
+#' @param node_radius Drawn node radius in data units, the scale on which the
+#'   routing works: an edge is blocked when a node sits strictly within
+#'   1.5 node radii of its straight path, and the routed path clears the
+#'   obstacle by the same expanded radius. Defaults to the radius the
+#'   default-size node is drawn at.
+#'
+#' @return A list of [ggplot2::layer()] objects that can be added to a plot.
+#'
+#' @examples
+#' library(ggplot2)
+#' dag <- dagify(
+#'   y ~ x + m,
+#'   m ~ x,
+#'   coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 0, y = 0))
+#' )
+#'
+#' # the x -> y edge detours around the mediator sitting on its path
+#' dag |>
+#'   ggplot(aes_dag()) +
+#'   geom_dag_routed_arrows() +
+#'   geom_dag_point() +
+#'   geom_dag_text() +
+#'   theme_dag()
+#'
+#' @seealso [geom_dag_arrow()], [geom_dag_arrows()], and [geom_dag_edges()]
+#'   for the other edge geoms, and the `auto_route` option in
+#'   [ggdag_options_set()] to swap routed edges into `geom_dag()` and the
+#'   quick plotting functions.
+#'
+#' @export
+geom_dag_routed_arrows <- function(
+  mapping = NULL,
+  data_directed = filter_direction("->"),
+  data_bidirected = filter_direction("<->"),
+  node_radius = node_radius_data(),
+  curvature = 0.3,
+  arrow_head = ggarrow::arrow_head_wings(),
+  arrow_fins = NULL,
+  arrow_mid = NULL,
+  length = 4,
+  length_head = NULL,
+  length_fins = NULL,
+  length_mid = NULL,
+  justify = 0,
+  force_arrow = FALSE,
+  mid_place = 0.5,
+  resect = NULL,
+  resect_head = NULL,
+  resect_fins = NULL,
+  lineend = "butt",
+  linejoin = "round",
+  linemitre = 10,
+  position = "identity",
+  na.rm = TRUE,
+  show.legend = NA,
+  ...
+) {
+  rlang::check_installed(
+    "ggarrow",
+    reason = "to use `geom_dag_routed_arrows()`."
+  )
+
+  resect_head <- resect_head %||% resect
+  resect_fins <- resect_fins %||% resect
+
+  arrow_length <- list(
+    head = length_head %||% length,
+    fins = length_fins %||% length,
+    mid = length_mid %||% length
+  )
+
+  # Bidirected edges default to wings on both ends
+  bidirected_fins <- arrow_fins %||% ggarrow::arrow_head_wings()
+
+  list(
+    dag_routed_arrow_layer(
+      data_directed = data_directed,
+      node_radius = node_radius,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = arrow_mid,
+      length = arrow_length,
+      justify = justify,
+      force_arrow = force_arrow,
+      mid_place = mid_place,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
+      lineend = lineend,
+      linejoin = linejoin,
+      linemitre = linemitre,
+      position = position,
+      na.rm = na.rm,
+      show.legend = show.legend,
+      ...
+    ),
+    geom_dag_arrow_arc(
+      mapping = mapping,
+      data = data_bidirected,
+      curvature = curvature,
+      arrow_head = arrow_head,
+      arrow_fins = bidirected_fins,
+      arrow_mid = arrow_mid,
+      length = length,
+      length_head = length_head,
+      length_fins = length_fins,
+      length_mid = length_mid,
+      justify = justify,
+      force_arrow = force_arrow,
+      mid_place = mid_place,
+      resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
+      lineend = lineend,
+      linejoin = linejoin,
+      linemitre = linemitre,
+      position = position,
+      na.rm = na.rm,
+      show.legend = show.legend,
       ...
     )
   )

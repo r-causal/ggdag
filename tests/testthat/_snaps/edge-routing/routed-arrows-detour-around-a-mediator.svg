@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='708.04' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
+<path d='M 337.32 70.29 L 325.03 65.81 L 327.88 69.21 L 87.66 69.22 L 87.66 71.35 L 327.88 71.36 L 325.03 74.76 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 363.60 525.65 L 363.73 525.62 L 363.86 525.58 L 363.98 525.52 L 364.10 525.45 L 364.20 525.36 L 364.29 525.26 L 387.09 496.83 L 425.73 440.00 L 497.77 326.40 L 639.03 98.16 L 640.42 102.37 L 643.08 89.57 L 632.81 97.66 L 637.20 97.03 L 495.96 325.27 L 423.95 438.82 L 385.37 495.56 L 362.95 523.52 L 357.05 523.52 L 334.63 495.56 L 296.05 438.82 L 224.04 325.27 L 77.82 89.01 L 76.92 89.57 L 76.01 90.13 L 222.23 326.40 L 294.27 440.00 L 332.91 496.83 L 355.71 525.26 L 355.80 525.36 L 355.90 525.45 L 356.02 525.52 L 356.14 525.58 L 356.27 525.62 L 356.40 525.65 L 356.54 525.66 L 363.46 525.66 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 632.34 70.29 L 620.05 65.81 L 622.90 69.21 L 382.68 69.22 L 382.68 71.35 L 622.90 71.36 L 620.05 74.76 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<circle cx='360.00' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='64.98' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<text x='360.00' y='74.20' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.49px' lengthAdjust='spacingAndGlyphs'>m</text>
+<text x='64.98' y='74.20' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='655.02' y='74.20' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>y</text>
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='253.77px' lengthAdjust='spacingAndGlyphs'>routed arrows detour around a mediator</text>
+</g>
+</svg>

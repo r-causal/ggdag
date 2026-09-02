@@ -4,6 +4,7 @@ Bidirected
 CES
 CMD
 Canonicalize
+Chaikin
 Codecov
 Collapsibility
 Colour
@@ -69,6 +70,7 @@ parentless
 plotmath
 pos
 pts
+resected
 reversable
 roxygen
 tbl
@@ -87,5 +89,6 @@ unstyled
 varicella
 vdiffr
 vjust
+waypoints
 xend
 yend

@@ -27,6 +27,17 @@
 #' with. The written curvature is drawn by the ggarrow edge engine, so pair it
 #' with `edge_engine = "ggarrow"` to see the routed edges.
 #'
+#' `auto_route` swaps routed edges into the packaged ggarrow edge rendering.
+#' When it is `TRUE` and `edge_engine = "ggarrow"`, [geom_dag()] and the
+#' plots built on it, such as [ggdag()], draw their directed edges with the
+#' routed layer of [geom_dag_routed_arrows()] under the default
+#' `edge_type = "link_arc"`, so an edge whose straight path a node blocks
+#' detours around that node instead of running underneath it. Bidirected
+#' edges keep the arc their edge layer draws them with, unblocked edges stay
+#' straight, and curvature you set yourself is never rerouted. The option
+#' only affects the ggarrow engine, so pair it with
+#' `edge_engine = "ggarrow"`.
+#'
 #' `debug_repel_points` is a diagnostic rather than an appearance setting. When
 #' it is `TRUE`, every repelling label geom (see [geom_dag_label_repel()]) adds
 #' a layer of purple points showing the invisible geometry that labels are
@@ -87,6 +98,7 @@ ggdag_defaults <- list(
   arrow_fins = NULL,
   arrow_mid = NULL,
   auto_curve = FALSE,
+  auto_route = FALSE,
   curvature = 0.3,
   debug_repel_points = FALSE
 )
@@ -206,6 +218,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
     "use_text",
     "use_labels",
     "auto_curve",
+    "auto_route",
     "debug_repel_points"
   )
   character_opts <- c("text_col", "label_col")
