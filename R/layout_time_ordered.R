@@ -992,6 +992,80 @@ find_arc_overlaps <- function(
   overlaps
 }
 
+#' Find nodes too close to the drawn arcs of spanning directed edges
+#'
+#' Traces each directed edge that spans two or more layers as the arc the
+#' `arc` and `diagonal` edge types draw it with. The edge geoms draw
+#' positive curvature on the left of travel, the mirror side of
+#' `sample_curved_edge()`'s convention, so the trace negates the curvature
+#' to follow the drawn side. Reports every node on a strictly intermediate
+#' layer whose center comes closer to the arc than `node_radius + 8`,
+#' mirroring the straight-line detection threshold in `find_overlaps()`.
+#'
+#' @param positions List with `$x` and `$y` (named numeric vectors).
+#' @param spanning Data frame of directed edges spanning two or more layers,
+#'   with `name` and `to`.
+#' @param layer_assign Named integer vector (node -> 0-based layer).
+#' @param node_radius Radius of each node circle.
+#' @param arc_curvature Curvature the edge geoms draw the arcs with.
+#' @return Data frame with columns: `edge_from`, `edge_to`, `node`, `dist`.
+#' @noRd
+find_spanning_arc_overlaps <- function(
+  positions,
+  spanning,
+  layer_assign,
+  node_radius,
+  arc_curvature
+) {
+  clearance <- node_radius + 8
+  all_nodes <- names(positions$x)
+
+  overlaps <- data.frame(
+    edge_from = character(0),
+    edge_to = character(0),
+    node = character(0),
+    dist = numeric(0),
+    stringsAsFactors = FALSE
+  )
+
+  for (i in seq_len(nrow(spanning))) {
+    u <- spanning$name[i]
+    v <- spanning$to[i]
+    lo <- min(layer_assign[[u]], layer_assign[[v]])
+    hi <- max(layer_assign[[u]], layer_assign[[v]])
+    pts <- sample_curved_edge(
+      positions$x[[u]],
+      positions$y[[u]],
+      positions$x[[v]],
+      positions$y[[v]],
+      -arc_curvature
+    )
+    for (w in setdiff(all_nodes, c(u, v))) {
+      w_layer <- layer_assign[[w]]
+      if (w_layer <= lo || w_layer >= hi) {
+        next
+      }
+      dist <- min(
+        sqrt((positions$x[[w]] - pts$x)^2 + (positions$y[[w]] - pts$y)^2)
+      )
+      if (dist < clearance) {
+        overlaps <- rbind(
+          overlaps,
+          data.frame(
+            edge_from = u,
+            edge_to = v,
+            node = w,
+            dist = dist,
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+    }
+  }
+
+  overlaps
+}
+
 #' Find node-edge overlaps
 #'
 #' @param positions List with `$x` and `$y` (named numeric vectors).
@@ -1073,6 +1147,11 @@ find_overlaps <- function(positions, edges_df, layer_assign, node_radius = 26) {
 #' @param arc_curvature Curvature the bidirected arcs are traced at. The
 #'   default reads the `curvature` option the edge geoms draw with, so the
 #'   correction clears the arcs as they will appear.
+#' @param spanning_arcs If `TRUE`, directed edges spanning two or more layers
+#'   are also traced as the arcs the `arc` and `diagonal` edge types draw
+#'   them with, on the drawn side of travel, and an intermediate node the
+#'   arc passes through is displaced outward on the side of the straight
+#'   chord it already occupies.
 #' @return Updated positions list.
 #' @noRd
 greedy_post_correction <- function(
@@ -1083,7 +1162,8 @@ greedy_post_correction <- function(
   min_spacing = 72,
   max_passes = 50L,
   check_bidirected = FALSE,
-  arc_curvature = ggdag_option("curvature", 0.3)
+  arc_curvature = ggdag_option("curvature", 0.3),
+  spanning_arcs = FALSE
 ) {
   target_clearance <- node_radius + 12
 
@@ -1093,6 +1173,15 @@ greedy_post_correction <- function(
     parts$bidirected
   } else {
     parts$bidirected[0, , drop = FALSE]
+  }
+  spanning <- if (isTRUE(spanning_arcs)) {
+    spans <- abs(
+      layer_assign[directed$to] - layer_assign[directed$name]
+    ) >=
+      2
+    directed[spans, , drop = FALSE]
+  } else {
+    directed[0, , drop = FALSE]
   }
 
   # Enforce spacing first
@@ -1106,7 +1195,18 @@ greedy_post_correction <- function(
       node_radius,
       arc_curvature
     )
-    if (nrow(overlaps) == 0 && nrow(arc_overlaps) == 0) {
+    spanning_overlaps <- find_spanning_arc_overlaps(
+      positions,
+      spanning,
+      layer_assign,
+      node_radius,
+      arc_curvature
+    )
+    if (
+      nrow(overlaps) == 0 &&
+        nrow(arc_overlaps) == 0 &&
+        nrow(spanning_overlaps) == 0
+    ) {
       break
     }
 
@@ -1172,6 +1272,43 @@ greedy_post_correction <- function(
       positions$y[[u]] <- positions$y[[u]] -
         direction * needed * 0.45 * (1 - t_safe)
       positions$y[[v]] <- positions$y[[v]] - direction * needed * 0.45 * t_safe
+    }
+
+    for (oi in seq_len(nrow(spanning_overlaps))) {
+      u <- spanning_overlaps$edge_from[oi]
+      v <- spanning_overlaps$edge_to[oi]
+      w <- spanning_overlaps$node[oi]
+
+      # Recompute against the current arc — earlier fixes may have moved
+      # nodes. The trace negates the curvature to follow the side the edge
+      # geoms draw; see find_spanning_arc_overlaps().
+      pts <- sample_curved_edge(
+        positions$x[[u]],
+        positions$y[[u]],
+        positions$x[[v]],
+        positions$y[[v]],
+        -arc_curvature
+      )
+      dists <- sqrt(
+        (positions$x[[w]] - pts$x)^2 + (positions$y[[w]] - pts$y)^2
+      )
+      if (min(dists) >= target_clearance) {
+        next
+      }
+
+      # Displace the node outward on the side of the straight chord it
+      # already occupies, past the arc's extent near the node's x, so one
+      # move clears the whole bow rather than chasing its nearest point.
+      chord_y <- positions$y[[u]] +
+        (positions$x[[w]] - positions$x[[u]]) /
+          (positions$x[[v]] - positions$x[[u]]) *
+          (positions$y[[v]] - positions$y[[u]])
+      side <- if (positions$y[[w]] >= chord_y) 1 else -1
+      near <- which(
+        abs(pts$x - positions$x[[w]]) < 2 * node_radius + 24
+      )
+      arc_extent <- if (side > 0) max(pts$y[near]) else min(pts$y[near])
+      positions$y[[w]] <- arc_extent + side * target_clearance
     }
 
     # Re-enforce spacing
@@ -1320,6 +1457,84 @@ drop_tier_violations <- function(edges_df, layer_assign) {
   edges_df[!violating, , drop = FALSE]
 }
 
+#' Keep a user's spread grid unless optimizing strictly improves on it
+#'
+#' Under `fixed_layers`, the spread grid is the user's own arrangement:
+#' tiers on the time axis, tier-mates spread evenly in the order they were
+#' listed. The optimized layout replaces that grid only when it strictly
+#' improves straight-line edge crossings, or ties crossings and strictly
+#' improves node-edge overlaps; otherwise the grid comes back exactly as
+#' `time_ordered_coords(optimize = FALSE)` would return it. Both layouts
+#' are scored on the internal pixel scale, one layer gap per axis unit.
+#'
+#' @param coords Optimized layout tibble with `name`, `x`, `y` in data
+#'   units.
+#' @param layer_assign Named integer vector (node -> 0-based layer), in the
+#'   order the user listed the nodes.
+#' @param edges_df Data frame with `name` and `to` columns.
+#' @param node_radius Node circle radius in internal pixels.
+#' @param time_points Optional numeric vector of axis positions, one per
+#'   tier in ascending tier order.
+#' @param direction `"x"` or `"y"`.
+#' @param layer_gap Internal pixel distance one axis unit maps to.
+#' @param curvature Per-row trace curvature for `edges_df`, from
+#'   `edge_trace_curvature()`.
+#' @return Either `coords` or the spread grid tibble.
+#' @noRd
+prefer_spread_grid <- function(
+  coords,
+  layer_assign,
+  edges_df,
+  node_radius,
+  time_points,
+  direction,
+  layer_gap,
+  curvature
+) {
+  layers <- sort(unique(layer_assign))
+  axis_points <- if (!is.null(time_points) && length(time_points) > 0) {
+    as.numeric(time_points)
+  } else {
+    seq_along(layers)
+  }
+  tiers <- lapply(layers, function(l) names(layer_assign)[layer_assign == l])
+  grid <- purrr::map2_dfr(
+    axis_points,
+    tiers,
+    spread_coords,
+    direction = direction
+  )
+
+  score <- function(layout) {
+    scaled <- data.frame(
+      name = layout$name,
+      x = layout$x * layer_gap,
+      y = layout$y * layer_gap,
+      stringsAsFactors = FALSE
+    )
+    c(
+      count_edge_crossings(scaled, edges_df),
+      count_node_edge_overlaps(
+        scaled,
+        edges_df,
+        node_radius,
+        curvature = curvature
+      )
+    )
+  }
+
+  optimized <- score(coords)
+  spread <- score(grid)
+  if (
+    optimized[[1]] < spread[[1]] ||
+      (optimized[[1]] == spread[[1]] && optimized[[2]] < spread[[2]])
+  ) {
+    coords
+  } else {
+    grid
+  }
+}
+
 # Orchestrator -----------------------------------------------------------------
 
 #' Compute overlap-free time-ordered layout
@@ -1357,6 +1572,12 @@ drop_tier_violations <- function(edges_df, layer_assign) {
 #'   read from the `curvature` option once when the layout is computed so the
 #'   correction pass and the never-worse guard clear the arcs as the edge
 #'   geoms will draw them.
+#' @param edge_type The edge type the DAG will be drawn with, read from the
+#'   `edge_type` option once when the layout is computed. Under `"arc"` and
+#'   `"diagonal"`, directed edges spanning two or more layers are drawn
+#'   curved, so the correction pass and the never-worse guard trace them as
+#'   the arcs they are drawn with, on the drawn side of travel; every other
+#'   edge type draws them straight and the chord checks apply unchanged.
 #' @param layer_gap Horizontal distance between layers (internal).
 #' @param node_gap Initial vertical spacing between same-layer nodes.
 #' @param min_spacing Minimum Y gap enforced between same-layer nodes.
@@ -1380,6 +1601,7 @@ compute_time_ordered_layout <- function(
   node_scale = 1,
   node_radius = 26 * node_scale,
   arc_curvature = ggdag_option("curvature", 0.3),
+  edge_type = ggdag_option("edge_type", "link_arc"),
   layer_gap = 180,
   node_gap = max(85, min_spacing + 13),
   min_spacing = 2 * node_radius + 20,
@@ -1390,6 +1612,11 @@ compute_time_ordered_layout <- function(
 ) {
   edges_df$name <- as.character(edges_df$name)
   edges_df$to <- as.character(edges_df$to)
+
+  # The arc and diagonal edge types draw every directed edge curved, so a
+  # spanning edge bows away from its straight chord and the geometry stages
+  # must clear the arc as drawn rather than the chord.
+  spanning_arcs <- any(edge_type %in% c("arc", "diagonal"))
 
   # Filter out bidirected edges — only directed edges drive stages 2-4
   directed <- split_edge_types(edges_df)$directed
@@ -1628,7 +1855,8 @@ compute_time_ordered_layout <- function(
           min_spacing = min_spacing,
           max_passes = max_correction_passes,
           check_bidirected = TRUE,
-          arc_curvature = arc_curvature
+          arc_curvature = arc_curvature,
+          spanning_arcs = spanning_arcs
         )
       }
 
@@ -1645,8 +1873,42 @@ compute_time_ordered_layout <- function(
         median_result,
         edges_df,
         node_radius,
-        arc_curvature = arc_curvature
+        arc_curvature = arc_curvature,
+        layer_assign = layer_assign,
+        spanning_arcs = spanning_arcs
       )
+
+      # Symmetry override: a mirror-symmetric DAG reads best drawn as a
+      # symmetric figure, so the even-spacing candidate is kept over a
+      # median candidate that untangles one or two more crossings, provided
+      # the even candidate is itself mirror-symmetric and free of
+      # straight-line node-edge overlaps. A median win with no crossing
+      # advantage, on overlaps or stress alone, stands: overriding it would
+      # trade real clearance for symmetry the crossings never paid for.
+      if (!identical(positions, even_result)) {
+        even_coords <- data.frame(
+          name = names(even_result$x),
+          x = unname(even_result$x),
+          y = unname(even_result$y),
+          stringsAsFactors = FALSE
+        )
+        median_coords <- data.frame(
+          name = names(median_result$x),
+          x = unname(median_result$x),
+          y = unname(median_result$y),
+          stringsAsFactors = FALSE
+        )
+        crossing_gap <- count_edge_crossings(even_coords, edges_df) -
+          count_edge_crossings(median_coords, edges_df)
+        if (
+          (crossing_gap == 1L || crossing_gap == 2L) &&
+            count_node_edge_overlaps(even_coords, edges_df, node_radius) ==
+              0L &&
+            mirror_symmetric_positions(even_result)
+        ) {
+          positions <- even_result
+        }
+      }
     } else {
       # Skip force simulation — evenly space nodes within each layer
       all_nodes <- unlist(layer_nodes)
@@ -1680,7 +1942,7 @@ compute_time_ordered_layout <- function(
 
   # Normalize: x → integer layer indices (1, 2, 3, ...)
   # y → centered, divided by the same uniform scale as x
-  normalize_positions(
+  coords <- normalize_positions(
     positions,
     layer_assign,
     direction,
@@ -1688,6 +1950,100 @@ compute_time_ordered_layout <- function(
     time_points = time_points,
     layer_gap = layer_gap
   )
+
+  if (!is.null(fixed_layers)) {
+    coords <- prefer_spread_grid(
+      coords,
+      layer_assign,
+      edges_df,
+      node_radius,
+      time_points = time_points,
+      direction = direction,
+      layer_gap = layer_gap,
+      curvature = edge_trace_curvature(
+        edges_df,
+        arc_curvature,
+        layer_assign = layer_assign,
+        spanning_arcs = spanning_arcs
+      )
+    )
+  }
+
+  coords
+}
+
+#' Per-edge curvature for tracing edges as they are drawn
+#'
+#' Builds the curvature vector the scoring helpers trace each edge with:
+#' bidirected rows carry the arc curvature the edge layers draw them with,
+#' and, when `spanning_arcs` is `TRUE`, directed rows spanning two or more
+#' layers carry the negated curvature, because the edge geoms draw positive
+#' curvature on the left of travel while `sample_curved_edge()` offsets to
+#' the right. Every other row is straight.
+#'
+#' @param edges_df Data frame with `name` and `to` columns; a `direction`
+#'   column marks the bidirected rows.
+#' @param arc_curvature Curvature the edge geoms draw arcs with.
+#' @param layer_assign Named integer vector (node -> 0-based layer);
+#'   required to find spanning rows when `spanning_arcs` is `TRUE`.
+#' @param spanning_arcs If `TRUE`, trace spanning directed rows as arcs.
+#' @return Numeric vector with one curvature per row of `edges_df`.
+#' @noRd
+edge_trace_curvature <- function(
+  edges_df,
+  arc_curvature,
+  layer_assign = NULL,
+  spanning_arcs = FALSE
+) {
+  curvature <- rep(0, nrow(edges_df))
+
+  if ("direction" %in% names(edges_df)) {
+    bidirected <- !is.na(edges_df$to) &
+      !is.na(edges_df$direction) &
+      edges_df$direction == "<->"
+  } else {
+    bidirected <- rep(FALSE, nrow(edges_df))
+  }
+  curvature[bidirected] <- arc_curvature
+
+  if (isTRUE(spanning_arcs) && !is.null(layer_assign)) {
+    directed <- !is.na(edges_df$to) & !bidirected
+    spans <- directed
+    spans[directed] <- abs(
+      layer_assign[edges_df$to[directed]] -
+        layer_assign[edges_df$name[directed]]
+    ) >=
+      2
+    curvature[spans] <- -arc_curvature
+  }
+
+  curvature
+}
+
+#' Test whether a position set is mirror-symmetric about its mid-x
+#'
+#' `TRUE` when reflecting the layout about the vertical line through its
+#' horizontal center maps the node set onto itself: every node has a
+#' partner, possibly itself, at the mirrored x with the same y, within
+#' `tol` internal pixels.
+#'
+#' @param positions List with `$x` and `$y` (named numeric vectors).
+#' @param tol Matching tolerance in internal pixels.
+#' @return `TRUE` or `FALSE`.
+#' @noRd
+mirror_symmetric_positions <- function(positions, tol = 1) {
+  x <- positions$x
+  y <- positions$y[names(x)]
+  mirrored_x <- max(x) + min(x) - x
+  used <- rep(FALSE, length(x))
+  for (i in seq_along(x)) {
+    j <- which(!used & abs(x - mirrored_x[i]) < tol & abs(y - y[i]) < tol)
+    if (length(j) == 0) {
+      return(FALSE)
+    }
+    used[j[1]] <- TRUE
+  }
+  TRUE
 }
 
 #' Choose the better of two candidate position sets
@@ -1705,6 +2061,11 @@ compute_time_ordered_layout <- function(
 #' @param node_radius Radius of each node circle.
 #' @param arc_curvature Curvature the bidirected arcs are traced at. The
 #'   default reads the `curvature` option the edge geoms draw with.
+#' @param layer_assign Named integer vector (node -> 0-based layer), used
+#'   with `spanning_arcs` to find the directed edges that span layers.
+#' @param spanning_arcs If `TRUE`, directed edges spanning two or more
+#'   layers are scored as the arcs the `arc` and `diagonal` edge types draw
+#'   them with rather than as straight chords.
 #' @return Either `a` or `b`.
 #' @noRd
 better_positions <- function(
@@ -1712,19 +2073,16 @@ better_positions <- function(
   b,
   edges_df,
   node_radius,
-  arc_curvature = ggdag_option("curvature", 0.3)
+  arc_curvature = ggdag_option("curvature", 0.3),
+  layer_assign = NULL,
+  spanning_arcs = FALSE
 ) {
-  if ("direction" %in% names(edges_df)) {
-    curvature <- ifelse(
-      !is.na(edges_df$to) &
-        !is.na(edges_df$direction) &
-        edges_df$direction == "<->",
-      arc_curvature,
-      0
-    )
-  } else {
-    curvature <- rep(0, nrow(edges_df))
-  }
+  curvature <- edge_trace_curvature(
+    edges_df,
+    arc_curvature,
+    layer_assign = layer_assign,
+    spanning_arcs = spanning_arcs
+  )
 
   score <- function(positions) {
     coords <- data.frame(

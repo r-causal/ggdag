@@ -362,9 +362,34 @@ test_that("fixed_layers layouts are deterministic", {
 })
 
 test_that("node_scale still scales same-tier spacing under fixed_layers", {
-  fan <- manual_edges(c("a->y", "b->y", "c->y", "d->y", "e->y"))
-  fixed <- c(a = 1L, b = 1L, c = 1L, d = 1L, e = 1L, y = 2L)
+  # The optimize guard hands back the user's evenly spread grid whenever
+  # the optimized layout does not strictly improve on it, and the grid's
+  # spacing never depends on node_scale. This fixture must therefore beat
+  # its grid: c -> s spans tiers 1 to 3, and its straight chord passes
+  # through y at the grid's center, an overlap the optimizer clears while
+  # staying crossing-free, so the optimized geometry survives the guard at
+  # every scale. Swapping in a fixture whose grid is already crossing-free
+  # and overlap-free would hand back the unscaled grid at both scales and
+  # hide node_scale from this test. The score assertions below pin that
+  # strict improvement on the guard's own internal pixel scale.
+  fan <- manual_edges(c("a->y", "b->y", "c->y", "d->y", "e->y", "c->s"))
+  fixed <- c(a = 1L, b = 1L, c = 1L, d = 1L, e = 1L, y = 2L, s = 3L)
   roots <- c("a", "b", "c", "d", "e")
+
+  internal_pixels <- function(coords) {
+    data.frame(name = coords$name, x = coords$x * 180, y = coords$y * 180)
+  }
+  crossings <- function(coords) {
+    count_edge_crossings(internal_pixels(coords), fan)
+  }
+  overlaps_at <- function(coords, node_radius) {
+    count_node_edge_overlaps(internal_pixels(coords), fan, node_radius)
+  }
+
+  grid <- naive_tiers(list(roots, "y", "s"))
+  expect_identical(crossings(grid), 0L)
+  expect_gt(overlaps_at(grid, 26), 0L)
+  expect_gt(overlaps_at(grid, 52), 0L)
 
   min_gap <- function(coords) {
     min(diff(sort(coords$y[coords$name %in% roots])))
@@ -376,6 +401,13 @@ test_that("node_scale still scales same-tier spacing under fixed_layers", {
     fixed_layers = fixed,
     node_scale = 2
   )
+
+  # each optimized layout ties the grid's crossings and strictly improves
+  # its overlaps at that scale's node radius, so both are kept
+  expect_identical(crossings(base), 0L)
+  expect_identical(overlaps_at(base, 26), 0L)
+  expect_identical(crossings(scaled), 0L)
+  expect_identical(overlaps_at(scaled, 52), 0L)
 
   expect_gt(min_gap(scaled), min_gap(base))
 })
