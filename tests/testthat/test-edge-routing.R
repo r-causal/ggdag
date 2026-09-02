@@ -778,6 +778,119 @@ test_that("auto_route on: ggdag() swaps in the routed geom for directed edges", 
   expect_identical(sum(curve_rows), 0L)
 })
 
+# Faceting ---------------------------------------------------------------------
+
+test_that("route_dag_edges: waypoints carry the edge row columns without endpoints", {
+  coords <- data.frame(name = c("x", "m", "y"), x = c(0, 1, 2), y = c(0, 0, 0))
+  edges <- data.frame(name = c("x", "m", "x"), to = c("m", "y", "y"))
+  data <- make_dag_data(coords, edges)
+  data$dag <- 1L
+  data$label <- paste("node", data$name)
+  edge_rows <- data[!is.na(data$to), , drop = FALSE]
+  # stale waypoint columns on the input must not survive into the output
+  edge_rows$edge_id <- "stale"
+  edge_rows$seq <- 99L
+
+  res <- route_dag_edges(edge_rows, data)
+
+  # the waypoint columns come first, then everything of the edge row except
+  # its endpoints, which must stay absent: their absence is how a routed layer
+  # is told apart from one that draws chords or arcs
+  expect_identical(names(res)[1:4], c("edge_id", "x", "y", "seq"))
+  expect_contains(names(res), c("name", "to", "direction", "dag", "label"))
+  expect_false(any(c("xend", "yend") %in% names(res)))
+  expect_false(any(res$edge_id == "stale"))
+
+  # every waypoint of an edge carries that edge's own row values
+  for (i in seq_len(nrow(edge_rows))) {
+    rows <- res[res$name == edge_rows$name[i] & res$to == edge_rows$to[i], ]
+    expect_gte(nrow(rows), 2L)
+    expect_equal(rows$seq, seq_len(nrow(rows)))
+    expect_true(all(rows$dag == 1L))
+    expect_true(all(rows$label == edge_rows$label[i]))
+    expect_true(all(as.character(rows$direction) == "->"))
+    expect_length(unique(rows$edge_id), 1)
+  }
+
+  # the blocked x -> y edge keeps its full routed path
+  blocked <- res[res$name == "x" & res$to == "y", ]
+  expect_identical(nrow(blocked), 10L)
+  expect_equal(c(blocked$x[1], blocked$y[1]), c(0, 0))
+  expect_equal(c(blocked$x[10], blocked$y[10]), c(2, 0))
+})
+
+test_that("geom_dag_routed_arrows: a faceted plot draws each panel's own edges", {
+  skip_if_not_installed("ggarrow")
+  r <- node_radius_data()
+
+  # two panels over the same node positions: panel a is the mediation
+  # triangle with its blocked x -> y chord, panel b drops that chord, so the
+  # panels have different edge counts and a layer that leaks edges across
+  # panels cannot match both
+  coords <- data.frame(name = c("x", "m", "y"), x = c(0, 1, 2), y = c(0, 0, 0))
+  panel_a <- make_dag_data(
+    coords,
+    data.frame(name = c("x", "m", "x"), to = c("m", "y", "y"))
+  )
+  panel_a$panel <- "a"
+  panel_b <- make_dag_data(
+    coords,
+    data.frame(name = c("x", "m"), to = c("m", "y"))
+  )
+  panel_b$panel <- "b"
+  data <- dplyr::bind_rows(panel_a, panel_b)
+
+  p <- ggplot(data, aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point() +
+    facet_wrap(~panel)
+  idx <- routed_layer_index(p)
+  expect_length(idx, 1)
+  built <- ggplot2::ggplot_build(p)$data[[idx]]
+
+  per_panel <- tapply(built$edge_id, built$PANEL, function(v) {
+    length(unique(v))
+  })
+  expect_identical(as.integer(per_panel), c(3L, 2L))
+  expect_length(unique(built$edge_id), 5)
+
+  # the blocked chord routes in panel a and does not exist in panel b
+  in_a <- built[built$PANEL == 1, , drop = FALSE]
+  in_b <- built[built$PANEL == 2, , drop = FALSE]
+  blocked <- edge_waypoints(in_a, 0, 0, 2, 0)
+  expect_false(is.null(blocked))
+  expect_gt(nrow(blocked), 2L)
+  expect_gt(min(polyline_dist(1, 0, blocked$x, blocked$y)), r)
+  expect_null(edge_waypoints(in_b, 0, 0, 2, 0))
+
+  # the layer is still discovered as routed waypoints
+  geometry <- discover_edge_geometry(p)
+  expect_false(is.null(geometry))
+  routed <- geometry[geometry$type == "routed", , drop = FALSE]
+  expect_length(unique(routed$edge_id), 5)
+})
+
+test_that("auto_route on: ggdag_equivalent_dags() routes each equivalent DAG in its own panel", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", auto_route = TRUE)
+
+  p <- ggdag_equivalent_dags(dagify(y ~ x + z, x ~ z))
+  idx <- routed_layer_index(p)
+  expect_length(idx, 1)
+  built <- ggplot2::ggplot_build(p)
+
+  # six equivalent DAGs, each with exactly its own three edges
+  expect_identical(nrow(built$layout$layout), 6L)
+  layer_df <- built$data[[idx]]
+  per_panel <- tapply(layer_df$edge_id, layer_df$PANEL, function(v) {
+    length(unique(v))
+  })
+  expect_length(per_panel, 6)
+  expect_true(all(per_panel == 3))
+  expect_length(unique(layer_df$edge_id), 18)
+})
+
 # Visual baselines -------------------------------------------------------------
 
 test_that("vdiffr: routed arrows detour around a mediator", {
@@ -868,4 +981,42 @@ test_that("vdiffr: auto route off draws the straight edge", {
   stopifnot(length(routed_layer_index(p)) == 0)
 
   expect_doppelganger("auto route off draws the straight edge", p)
+})
+
+test_that("vdiffr: auto route facets each equivalent DAG's own edges", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", auto_route = TRUE)
+  r <- node_radius_data()
+
+  # the equivalence class of the mediation triangle keeps the mediator on the
+  # x -- y chord in every panel, so each panel routes one edge of its own
+  p <- ggdag_equivalent_dags(mediator_dag())
+
+  # never record a baseline while the panels share their edges
+  idx <- routed_layer_index(p)
+  stopifnot(length(idx) == 1)
+  built <- ggplot2::ggplot_build(p)
+  layer_df <- built$data[[idx]]
+  per_panel <- tapply(layer_df$edge_id, layer_df$PANEL, function(v) {
+    length(unique(v))
+  })
+  stopifnot(
+    nrow(built$layout$layout) == 6,
+    length(per_panel) == 6,
+    all(per_panel == 3)
+  )
+  for (panel in split(layer_df, layer_df$PANEL)) {
+    chord <- edge_waypoints(panel, 0, 0, 2, 0)
+    if (is.null(chord)) {
+      chord <- edge_waypoints(panel, 2, 0, 0, 0)
+    }
+    stopifnot(
+      !is.null(chord),
+      nrow(chord) > 2,
+      min(polyline_dist(1, 0, chord$x, chord$y)) > r
+    )
+  }
+
+  expect_doppelganger("auto route facets each equivalent DAG's own edges", p)
 })

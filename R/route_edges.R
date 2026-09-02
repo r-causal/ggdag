@@ -683,11 +683,18 @@ routed_edge_path <- function(x, y, xend, yend, curvature, px, py, node_radius) {
 #' columns and by exact position otherwise. An `edge_curvature` column on the
 #' edges is honored per `routed_edge_path()`.
 #'
+#' Every other column of an edge row is repeated onto its waypoints, so a
+#' facet variable such as `dag` or `instrumental_name` still splits the layer
+#' into panels. The `xend` and `yend` columns are left out on purpose: their
+#' absence is how the edge geometry discovery tells a routed layer apart from
+#' one that draws chords or arcs.
+#'
 #' @param edges Data frame of edge rows with `x`, `y`, `xend`, and `yend`
 #'   columns; rows with a missing endpoint are dropped.
 #' @param dag_data Data frame the obstacle node positions are read from.
 #' @param node_radius Drawn node radius in data units.
-#' @return A data frame with columns `edge_id`, `x`, `y`, and `seq`.
+#' @return A data frame with columns `edge_id`, `x`, `y`, and `seq`, followed
+#'   by the remaining columns of `edges` other than `xend` and `yend`.
 #' @noRd
 route_dag_edges <- function(edges, dag_data, node_radius = node_radius_data()) {
   empty <- data.frame(
@@ -717,6 +724,10 @@ route_dag_edges <- function(edges, dag_data, node_radius = node_radius_data()) {
   # The key alone does not identify an edge: two edges can run between the
   # same pair of nodes, so the row index tells them apart.
   key <- edge_key(edges$x, edges$y, edges$xend, edges$yend)
+  carried <- edges[,
+    setdiff(names(edges), c("x", "y", "xend", "yend", "edge_id", "seq")),
+    drop = FALSE
+  ]
   waypoints <- lapply(seq_len(nrow(edges)), function(i) {
     others <- if (by_name) {
       coords$name != as.character(edges$name[[i]]) &
@@ -735,13 +746,16 @@ route_dag_edges <- function(edges, dag_data, node_radius = node_radius_data()) {
       coords$y[others],
       node_radius
     )
-    data.frame(
-      edge_id = paste(key[[i]], i, sep = "\r"),
-      x = path$x,
-      y = path$y,
-      seq = seq_len(nrow(path)),
-      stringsAsFactors = FALSE
+    dplyr::bind_cols(
+      data.frame(
+        edge_id = paste(key[[i]], i, sep = "\r"),
+        x = path$x,
+        y = path$y,
+        seq = seq_len(nrow(path)),
+        stringsAsFactors = FALSE
+      ),
+      carried[rep(i, nrow(path)), , drop = FALSE]
     )
   })
-  do.call(rbind, waypoints)
+  dplyr::bind_rows(waypoints)
 }
