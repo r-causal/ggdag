@@ -20,8 +20,9 @@
 #' `edge_route` chooses how the ggarrow engine draws directed edges.
 #' `"straight"`, the default, draws chords. `"spline"` routes each directed
 #' edge whose path a node blocks around that node with a smooth curve.
-#' `"orthogonal"`, which routes with axis-aligned segments and rounded
-#' corners, is not yet available and errors when the plot is drawn.
+#' `"orthogonal"` draws every directed edge as axis-aligned runs with rounded
+#' corners, leaving each node through a port and passing the intermediate
+#' layers in the gaps between them or along a channel beyond them.
 #' Routing happens when the plot is drawn, in the units of the device, so the
 #' same DAG re-routes when the plot is resized. Curvature you set yourself,
 #' through [curved()], [curve_edge()], or DAGitty control points, is never

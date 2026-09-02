@@ -54,11 +54,11 @@ customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, an
 \code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
 
 \item{edge_route}{How the ggarrow engine draws directed edges, one of
-\code{"straight"} (the default), \code{"spline"}, or \code{"orthogonal"}. A routing mode
-detours an edge whose path a node blocks around that node, deciding the
-geometry in the units of the device when the plot is drawn.
-\code{"orthogonal"} is not yet available and errors when the plot is drawn.
-The ggraph engine cannot route and warns when asked to.}
+\code{"straight"} (the default), \code{"spline"}, or \code{"orthogonal"}. \code{"spline"}
+detours an edge whose path a node blocks around that node with a smooth
+curve; \code{"orthogonal"} draws every edge as axis-aligned runs with rounded
+corners. Both decide the geometry in the units of the device when the
+plot is drawn. The ggraph engine cannot route and warns when asked to.}
 
 \item{node_size}{The size of the nodes.}
 

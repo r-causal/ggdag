@@ -1798,11 +1798,11 @@ geom_dag_ggarrow_edges <- function(
 #'   customization via the `arrow_head`, `arrow_fins`, `arrow_mid`, and
 #'   `curvature` global options (see [ggdag_options_set()]).
 #' @param edge_route How the ggarrow engine draws directed edges, one of
-#'   `"straight"` (the default), `"spline"`, or `"orthogonal"`. A routing mode
-#'   detours an edge whose path a node blocks around that node, deciding the
-#'   geometry in the units of the device when the plot is drawn.
-#'   `"orthogonal"` is not yet available and errors when the plot is drawn.
-#'   The ggraph engine cannot route and warns when asked to.
+#'   `"straight"` (the default), `"spline"`, or `"orthogonal"`. `"spline"`
+#'   detours an edge whose path a node blocks around that node with a smooth
+#'   curve; `"orthogonal"` draws every edge as axis-aligned runs with rounded
+#'   corners. Both decide the geometry in the units of the device when the
+#'   plot is drawn. The ggraph engine cannot route and warns when asked to.
 #' @param node_size The size of the nodes.
 #' @param text_size The size of the text.
 #' @param label_size The size of the labels.

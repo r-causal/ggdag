@@ -69,8 +69,9 @@ Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjus
 \code{edge_route} chooses how the ggarrow engine draws directed edges.
 \code{"straight"}, the default, draws chords. \code{"spline"} routes each directed
 edge whose path a node blocks around that node with a smooth curve.
-\code{"orthogonal"}, which routes with axis-aligned segments and rounded
-corners, is not yet available and errors when the plot is drawn.
+\code{"orthogonal"} draws every directed edge as axis-aligned runs with rounded
+corners, leaving each node through a port and passing the intermediate
+layers in the gaps between them or along a channel beyond them.
 Routing happens when the plot is drawn, in the units of the device, so the
 same DAG re-routes when the plot is resized. Curvature you set yourself,
 through \code{\link[=curved]{curved()}}, \code{\link[=curve_edge]{curve_edge()}}, or DAGitty control points, is never

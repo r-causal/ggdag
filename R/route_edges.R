@@ -14,6 +14,18 @@
 # edge is routed with its source to the left of its target; "above" (side +1)
 # means larger y in that orientation, and the polyline of an edge that runs
 # right to left is reversed on output.
+#
+# Orthogonal mode shares the orientation, the layers, the side cost, and the
+# parallel-edge spreading, but draws every edge as axis-aligned runs whether
+# or not a node blocks its chord. A spanning edge between the extreme nodes
+# of their layers leaves through the S or N port and follows a channel past
+# the crossed stacks; every other edge leaves through the E port and enters
+# through the W port, with one vertical run per crossed gap. Within a gap the
+# vertical runs are hyperedge segments (a fan leaving one port shares one),
+# ordered by a dependency graph weighted by the crossings each order would
+# cause, numbered by longest path, and spread evenly over the gap's band.
+# Bends are then rounded with a quadratic Bezier, the runs are sampled, and
+# the result is verified against the node discs like a spline.
 
 #' Constants of the millimetre router
 #'
@@ -21,7 +33,8 @@
 #' clearance margin, the edge separations, and the layer tolerance scale with
 #' the radius above millimetre floors; the remaining values are dimensionless
 #' or fixed lengths. `m` and `sep_e` override the two the caller is allowed to
-#' set; `layer_axis` overrides the axis the layers are inferred from.
+#' set; `layer_axis` overrides the axis the layers are inferred from;
+#' `corners` chooses how orthogonal mode draws its bends.
 #'
 #' @param r_ref Reference node radius in mm, typically the median radius.
 #' @param m Clearance margin in mm, or `NULL` for `max(0.5 * r_ref, 1.2)`.
@@ -29,15 +42,20 @@
 #'   `max(0.6 * r_ref, 1.5)`.
 #' @param layer_axis The axis the layers run along: `"auto"` infers it,
 #'   `"x"` and `"y"` name it.
+#' @param corners In orthogonal mode, `"rounded"` replaces every bend with a
+#'   quadratic Bezier of radius `rc`, and `"sharp"` keeps the bends. Spline
+#'   and straight mode ignore it.
 #' @return A named list of constants.
 #' @noRd
 route_opts <- function(
   r_ref,
   m = NULL,
   sep_e = NULL,
-  layer_axis = c("auto", "x", "y")
+  layer_axis = c("auto", "x", "y"),
+  corners = c("rounded", "sharp")
 ) {
   layer_axis <- match.arg(layer_axis)
+  corners <- match.arg(corners)
   m <- m %||% max(0.5 * r_ref, 1.2)
   m_min <- min(1.2, m)
   list(
@@ -45,6 +63,8 @@ route_opts <- function(
     m = m,
     m_min = m_min,
     layer_axis = layer_axis,
+    corners = corners,
+    rc = min(max(0.35 * r_ref, 0.8), 2.5),
     R = r_ref + m,
     R_soft = r_ref + m_min,
     sep_e = sep_e %||% max(0.6 * r_ref, 1.5),
@@ -87,8 +107,14 @@ route_opts <- function(
 #'   pre-sampled `data.frame(x, y)` paths for user-curved edges.
 #' @param bounds Panel bounds `c(xmin, ymin, xmax, ymax)` in mm.
 #' @param cap Edge cap in mm, the length the arrow layer resects at each end.
-#' @param mode `"spline"` routes blocked edges as curves, `"straight"` draws
-#'   every edge as its chord. `"orthogonal"` is not yet implemented.
+#' @param mode `"spline"` routes blocked edges as curves and `"straight"`
+#'   draws every edge as its chord. `"orthogonal"` draws every edge as
+#'   axis-aligned runs whether or not its chord is blocked: E and W ports
+#'   with one vertical run per crossed gap at an assigned slot, or, for a
+#'   spanning edge between the extreme nodes of their layers, S and N ports
+#'   with a channel run past the crossed stacks. Corners are rounded unless
+#'   `opts$corners` is `"sharp"`. A vertical chord, and a horizontal chord
+#'   between adjacent layers, is already orthogonal and stays straight.
 #' @param opts Constants from `route_opts()`.
 #' @return A list with `paths` (one `data.frame(x, y)` per edge, in input
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
@@ -105,14 +131,6 @@ route_edges_mm <- function(
   opts = route_opts(stats::median(nodes$r))
 ) {
   mode <- check_route_mode(mode)
-  if (mode == "orthogonal") {
-    abort(
-      c(
-        "Orthogonal edge routing is not yet implemented.",
-        "i" = "Use {.code mode = \"spline\"} or {.code mode = \"straight\"}."
-      )
-    )
-  }
   scene <- canonicalize_scene(
     nodes,
     edges,
@@ -1297,6 +1315,893 @@ route_free_bow <- function(job, placed) {
   )
 }
 
+# Parallel groups ------------------------------------------------------------------------------
+
+#' Spread the members of parallel-edge groups
+#'
+#' Members share an unordered node pair. Each member of a group of `k` is
+#' routed with an extra clearance of `sep_m * (k - 1) / 2` and translated by
+#' `sep_m * (i - (k + 1) / 2)`, in the canonical order of its endpoint names.
+#'
+#' @return A list with `extra` and `shift`, one value per edge.
+#' @noRd
+parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
+  n_edges <- length(from)
+  extra <- numeric(n_edges)
+  shift <- numeric(n_edges)
+  key <- paste(pmin(from, to), pmax(from, to))
+  for (k in unique(key[routable])) {
+    members <- which(routable & key == k)
+    if (length(members) < 2) {
+      next
+    }
+    members <- members[order(
+      from_name[members],
+      to_name[members],
+      method = "radix"
+    )]
+    size <- length(members)
+    extra[members] <- sep_m * (size - 1) / 2
+    shift[members] <- sep_m * (seq_len(size) - (size + 1) / 2)
+  }
+  list(extra = extra, shift = shift)
+}
+
+# Orthogonal mode ------------------------------------------------------------------------------
+
+#' Route a canonically oriented scene with axis-aligned runs
+#'
+#' Every routable edge is drawn orthogonally whether or not a node blocks
+#' its chord. A vertical chord, and a horizontal chord between adjacent
+#' layers, is its own orthogonal drawing and stays a two-row straight path.
+#' A spanning edge whose endpoints are both the extreme node of their layer
+#' on one side (or alone in it) leaves through the S or N port and follows a
+#' channel `R` beyond the crossed stacks and at least a stub beyond both
+#' endpoints, with two bends. Every other edge leaves through the E port and
+#' enters through the W port with one vertical run per crossed gap at a slot
+#' assigned by `ortho_slot_ranks()`; a spanning edge of this kind carries a
+#' channel run past the crossed stacks between its first and last gap, with
+#' four bends. The side of a channel is priced by `side_cost()`, ties above;
+#' channels are placed shortest span first, and one that would run beside a
+#' placed channel on the same side is pushed `sep_e` outward past it, so
+#' longer edges nest outside shorter ones.
+#'
+#' Duplicates of a straight chord take a rectangular detour so the parallel
+#' spread has something to translate.
+#'
+#' @return The per-edge state of `route_scene_mm()` as a list.
+#' @noRd
+route_orthogonal_scene <- function(
+  nodes,
+  from,
+  to,
+  from_name,
+  to_name,
+  is_fixed,
+  paths,
+  bounds,
+  cap,
+  opts
+) {
+  n_edges <- length(from)
+  waypoints <- rep(list(empty_waypoints()), n_edges)
+  routed <- logical(n_edges)
+  mode_out <- rep("straight", n_edges)
+  mode_out[is_fixed] <- "fixed"
+  side_out <- rep(NA_real_, n_edges)
+  n_wp <- integer(n_edges)
+  wp_layers <- rep(list(integer(0)), n_edges)
+  clearance_ok <- rep(TRUE, n_edges)
+  sagitta <- numeric(n_edges)
+  capped <- logical(n_edges)
+
+  layers <- infer_layers(nodes, opts$tol_layer)
+  info <- edge_span_info(nodes, from, to, layers)
+  routable <- !is_fixed & info$Lc > 0 & from != to
+  R_node <- nodes$r + opts$m
+  rc <- opts$rc
+  stub <- opts$r_ref + cap + rc
+  tol <- 1e-3
+
+  # canonical endpoints: the source is the left (or lower) node
+  a <- ifelse(info$reversed, to, from)
+  b <- ifelse(info$reversed, from, to)
+  Sx <- nodes$x[a]
+  Sy <- nodes$y[a]
+  Tx <- nodes$x[b]
+  Ty <- nodes$y[b]
+  span <- info$span
+  vertical <- abs(Tx - Sx) < tol
+  horizontal <- abs(Ty - Sy) < tol
+
+  # a node is extreme on a side when nothing in its layer lies beyond it
+  layer_hi <- vapply(layers$members, function(m) max(nodes$y[m]), numeric(1))
+  layer_lo <- vapply(layers$members, function(m) min(nodes$y[m]), numeric(1))
+  at_top <- nodes$y >= layer_hi[layers$id] - 1e-9
+  at_bottom <- nodes$y <= layer_lo[layers$id] + 1e-9
+
+  grp <- parallel_groups(from, to, from_name, to_name, routable, opts$sep_m)
+  shift <- grp$shift
+  extra <- grp$extra
+
+  kind <- rep("straight", n_edges)
+  kind[routable & !vertical & !(horizontal & span <= 1)] <- "ew"
+  kind[routable & kind == "straight" & shift != 0] <- "detour"
+
+  # channels of spanning edges, shortest first so that a longer edge nests
+  # outside the channels already placed, priced against the chords of the
+  # edges not yet placed and the channels of those already placed
+  side <- rep(NA_real_, n_edges)
+  y_ch <- rep(NA_real_, n_edges)
+  clamped <- logical(n_edges)
+  placed <- lapply(paths, function(p) placed_polyline(p$x, p$y))
+  channels <- df_cols(
+    side = numeric(0),
+    y = numeric(0),
+    lo = numeric(0),
+    hi = numeric(0)
+  )
+  ctx <- list(nodes = nodes, from = from, to = to, Lc = info$Lc)
+  gap_mid <- (layers$x[-layers$n] + layers$x[-1]) / 2
+
+  spanning <- which(kind == "ew" & span >= 2)
+  spanning <- spanning[order(
+    span[spanning],
+    info$Lc[spanning],
+    from_name[spanning],
+    to_name[spanning],
+    method = "radix"
+  )]
+  for (e in spanning) {
+    fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
+    ch <- ortho_channel(
+      fr,
+      edge_cost_context(fr, e, ctx),
+      info$la[[e]],
+      info$lb[[e]],
+      layers,
+      nodes,
+      R_node,
+      extra[[e]],
+      stub,
+      c(
+        at_top[[a[[e]]]] && at_top[[b[[e]]]],
+        at_bottom[[a[[e]]]] && at_bottom[[b[[e]]]]
+      ),
+      gap_mid,
+      bounds,
+      placed,
+      channels,
+      opts
+    )
+    kind[[e]] <- ch$kind
+    side[[e]] <- ch$side
+    y_ch[[e]] <- ch$y
+    clamped[[e]] <- ch$clamped
+    channels <- df_bind(channels, ch$channel)
+    placed[[e]] <- placed_polyline(
+      c(fr$S[[1]], ch$wp$x, fr$E[[1]]),
+      c(fr$S[[2]], ch$wp$y, fr$E[[2]])
+    )
+  }
+
+  # one slot per hyperedge segment in every gap
+  slot_first <- rep(NA_real_, n_edges)
+  slot_last <- rep(NA_real_, n_edges)
+  narrow <- logical(n_edges)
+  ew <- which(kind == "ew")
+  for (g in seq_len(layers$n - 1L)) {
+    first <- ew[info$la[ew] == g]
+    last <- ew[span[ew] >= 2 & info$lb[ew] - 1L == g]
+    if (length(first) + length(last) == 0) {
+      next
+    }
+    segs <- ortho_gap_segments(
+      first,
+      last,
+      a,
+      b,
+      Sy,
+      Ty,
+      y_ch,
+      span,
+      nodes$name,
+      tol
+    )
+    pos <- ortho_slot_positions(
+      segs,
+      c(layers$x[[g]] + stub, layers$x[[g + 1L]] - stub),
+      opts
+    )
+    for (k in seq_along(segs$members)) {
+      m <- segs$members[[k]]
+      is_first <- segs$member_first[[k]]
+      slot_first[m[is_first]] <- pos$x[[k]]
+      slot_last[m[!is_first]] <- pos$x[[k]]
+      if (pos$narrow) {
+        narrow[m] <- TRUE
+      }
+    }
+  }
+
+  # polylines: centre, port, bends, port, centre; then corners and sampling
+  for (e in which(kind != "straight" & !is_fixed)) {
+    fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
+    geom <- ortho_bends(
+      kind[[e]],
+      fr$S,
+      fr$E,
+      nodes$r[[a[[e]]]],
+      nodes$r[[b[[e]]]],
+      side[[e]],
+      y_ch[[e]],
+      slot_first[[e]],
+      slot_last[[e]],
+      span[[e]],
+      shift[[e]],
+      fr$u,
+      stub,
+      tol
+    )
+    if (is.null(geom$bends)) {
+      next
+    }
+    poly <- drop_collinear(dedupe_points(rbind(
+      fr$S,
+      geom$port_s,
+      geom$bends,
+      geom$port_t,
+      fr$E
+    )))
+    bends <- poly[-c(1L, nrow(poly)), , drop = FALSE]
+    if (nrow(bends) == 0) {
+      next
+    }
+    pts <- if (opts$corners == "rounded") round_corners(poly, rc) else poly
+    pts <- dedupe_points(sample_runs(pts, opts$sample_spacing))
+
+    others <- setdiff(seq_len(nrow(nodes)), c(a[[e]], b[[e]]))
+    ok <- !narrow[[e]] && !clamped[[e]]
+    if (ok && length(others) > 0) {
+      d <- polyline_min_dist(pts, nodes$x[others], nodes$y[others])
+      ok <- all(d >= R_node[others] - opts$verify_tol)
+    }
+
+    path <- df_cols(x = pts[, 1], y = pts[, 2])
+    if (info$reversed[[e]]) {
+      path <- df_cols(x = rev(path$x), y = rev(path$y))
+    }
+    paths[[e]] <- path
+    waypoints[[e]] <- df_cols(
+      x = bends[, 1],
+      y = bends[, 2],
+      layer = rep(NA_integer_, nrow(bends))
+    )
+    routed[[e]] <- TRUE
+    mode_out[[e]] <- "orthogonal"
+    side_out[[e]] <- geom$side
+    n_wp[[e]] <- nrow(bends)
+    wp_layers[[e]] <- rep(NA_integer_, nrow(bends))
+    clearance_ok[[e]] <- ok
+    sagitta[[e]] <- NA_real_
+    capped[[e]] <- NA
+  }
+
+  list(
+    paths = paths,
+    waypoints = waypoints,
+    routed = routed,
+    mode = mode_out,
+    side = side_out,
+    n_waypoints = n_wp,
+    waypoint_layers = wp_layers,
+    clearance_ok = clearance_ok,
+    sagitta_ratio = sagitta,
+    sagitta_capped = capped
+  )
+}
+
+#' Choose the channel of a spanning edge
+#'
+#' S/N candidates exist for each side on which both endpoints are extreme;
+#' their channel sits at `max(extreme_y + R, S_y + stub, T_y + stub)` above
+#' (mirrored below), so the stubs always hold the arrowhead. When no side is
+#' eligible, or every eligible channel leaves the panel, E/W candidates run
+#' at the lower of the endpoint y values that clear the crossed stacks, or
+#' at `extreme_y + R` when neither does (mirrored below), so a stack that an
+#' endpoint already looks over costs no detour. A candidate that would run
+#' within `sep_e` of an already placed channel on the same side over an
+#' overlapping x-range is pushed outward past it. Each candidate is priced
+#' by `side_cost()` with the displacement summed over the crossed layers;
+#' ties go above. A channel outside the panel is infeasible, and when
+#' nothing fits the least displaced candidate is clamped into the panel.
+#'
+#' @param sn_sides Logical pair: are S/N ports available above and below.
+#' @param channels The channels placed so far: `side`, `y`, `lo`, `hi`.
+#' @return A list with `kind` (`"sn"` or `"ew"`), `side`, `y`, `wp` (the
+#'   bends used for pricing), `clamped`, and `channel` (the row to register).
+#' @noRd
+ortho_channel <- function(
+  fr,
+  ectx,
+  la,
+  lb,
+  layers,
+  nodes,
+  R_node,
+  extra,
+  stub,
+  sn_sides,
+  gap_mid,
+  bounds,
+  placed,
+  channels,
+  opts
+) {
+  crossed <- (la + 1L):(lb - 1L)
+  members <- unlist(layers$members[crossed], use.names = FALSE)
+  ext_hi <- max(nodes$y[members] + R_node[members]) + extra
+  ext_lo <- min(nodes$y[members] - R_node[members]) - extra
+  Sx <- fr$S[[1]]
+  Sy <- fr$S[[2]]
+  Tx <- fr$E[[1]]
+  Ty <- fr$E[[2]]
+  yc <- Sy + (layers$x[crossed] - Sx) / (Tx - Sx) * (Ty - Sy)
+  x_a <- gap_mid[[la]]
+  x_b <- gap_mid[[lb - 1L]]
+  y_min <- bounds[[2]] + opts$pad
+  y_max <- bounds[[4]] - opts$pad
+  ends <- c(Sy, Ty)
+  ew_hi <- if (any(ends >= ext_hi)) min(ends[ends >= ext_hi]) else ext_hi
+  ew_lo <- if (any(ends <= ext_lo)) max(ends[ends <= ext_lo]) else ext_lo
+
+  bends_of <- function(kind, y) {
+    if (kind == "sn") {
+      df_cols(x = c(Sx, Tx), y = c(y, y))
+    } else {
+      df_cols(x = c(x_a, x_a, x_b, x_b), y = c(Sy, y, y, Ty))
+    }
+  }
+  span_of <- function(kind) {
+    if (kind == "sn") c(Sx, Tx) else c(x_a, x_b)
+  }
+  candidate <- function(kind, side, y) {
+    y <- stack_channel(y, side, span_of(kind), channels, opts$sep_e)
+    wp <- bends_of(kind, y)
+    displacement <- sum(abs(y - yc))
+    cost <- if (y >= y_min && y <= y_max) {
+      side_cost(fr, wp, side, displacement, ectx, placed, opts)
+    } else {
+      Inf
+    }
+    list(
+      kind = kind,
+      side = side,
+      y = y,
+      wp = wp,
+      displacement = displacement,
+      cost = round(cost, opts$cost_digits)
+    )
+  }
+  pick <- function(cands) {
+    cost <- vapply(cands, function(c) c$cost, numeric(1))
+    if (!any(is.finite(cost))) {
+      return(NULL)
+    }
+    sides <- vapply(cands, function(c) c$side, numeric(1))
+    cands[[order(cost, -sides)[[1]]]]
+  }
+
+  sn <- list()
+  if (sn_sides[[1]]) {
+    sn <- c(sn, list(candidate("sn", 1, max(ext_hi, Sy + stub, Ty + stub))))
+  }
+  if (sn_sides[[2]]) {
+    sn <- c(sn, list(candidate("sn", -1, min(ext_lo, Sy - stub, Ty - stub))))
+  }
+  ew <- list(candidate("ew", 1, ew_hi), candidate("ew", -1, ew_lo))
+  best <- pick(sn) %||% pick(ew)
+  clamped <- FALSE
+  if (is.null(best)) {
+    cands <- c(sn, ew)
+    displacement <- vapply(cands, function(c) c$displacement, numeric(1))
+    sides <- vapply(cands, function(c) c$side, numeric(1))
+    best <- cands[[order(displacement, -sides)[[1]]]]
+    best$y <- min(max(best$y, y_min), y_max)
+    best$wp <- bends_of(best$kind, best$y)
+    clamped <- TRUE
+  }
+  xr <- span_of(best$kind)
+  list(
+    kind = best$kind,
+    side = best$side,
+    y = best$y,
+    wp = best$wp,
+    clamped = clamped,
+    channel = df_cols(side = best$side, y = best$y, lo = xr[[1]], hi = xr[[2]])
+  )
+}
+
+#' Push a channel outward past the placed channels it would run beside
+#'
+#' Channels on the same side whose x-ranges properly overlap this one and
+#' whose y lies within `sep_e` of the candidate are conflicts; the candidate
+#' moves `sep_e` beyond the outermost conflict and is checked again until it
+#' is clear.
+#'
+#' @noRd
+stack_channel <- function(y, side, xr, channels, sep_e) {
+  same <- channels$side == side &
+    channels$hi > min(xr) + 1e-9 &
+    channels$lo < max(xr) - 1e-9
+  ys <- channels$y[same]
+  repeat {
+    near <- abs(ys - y) < sep_e - 1e-9
+    if (!any(near)) {
+      return(y)
+    }
+    y <- if (side > 0) max(ys[near]) + sep_e else min(ys[near]) - sep_e
+  }
+}
+
+#' The hyperedge segments of one gap
+#'
+#' Every E/W edge whose first gap this is contributes a piece entering at
+#' its source's y and leaving at its target's y (its channel y when it
+#' spans); every spanning E/W edge whose last gap this is contributes a
+#' piece entering at its channel y and leaving at its target's y. Pieces
+#' leaving one source port are one segment, as are the pieces of duplicate
+#' edges; the y-interval of a segment is the range of its pieces. Segments
+#' are returned in canonical order: source segments by source name, then
+#' last-gap segments by endpoint names.
+#'
+#' @return A list of parallel vectors and lists: `members` (edge indices),
+#'   `member_first` (whether each member enters from its source), `lefts`
+#'   and `rights` (the y values of the horizontal pieces on each side), `lo`,
+#'   `hi`, and `degenerate`.
+#' @noRd
+ortho_gap_segments <- function(
+  first,
+  last,
+  a,
+  b,
+  Sy,
+  Ty,
+  y_ch,
+  span,
+  names,
+  tol
+) {
+  e <- c(first, last)
+  is_first <- c(rep(TRUE, length(first)), rep(FALSE, length(last)))
+  left_y <- ifelse(is_first, Sy[e], y_ch[e])
+  right_y <- ifelse(is_first & span[e] >= 2, y_ch[e], Ty[e])
+  key <- ifelse(is_first, paste0("s", a[e]), paste0("e", a[e], "-", b[e]))
+  ord <- order(
+    as.integer(!is_first),
+    names[a[e]],
+    ifelse(is_first, "", names[b[e]]),
+    method = "radix"
+  )
+  idx <- lapply(unique(key[ord]), function(k) which(key == k))
+  lo <- vapply(idx, function(i) min(left_y[i], right_y[i]), numeric(1))
+  hi <- vapply(idx, function(i) max(left_y[i], right_y[i]), numeric(1))
+  list(
+    members = lapply(idx, function(i) e[i]),
+    member_first = lapply(idx, function(i) is_first[i]),
+    lefts = lapply(idx, function(i) unique(left_y[i])),
+    rights = lapply(idx, function(i) unique(right_y[i])),
+    lo = lo,
+    hi = hi,
+    degenerate = hi - lo < tol
+  )
+}
+
+#' Slot x of every segment in a gap
+#'
+#' Degenerate segments (equal entry and exit y) take no slot and stay
+#' straight. The others are ranked by `ortho_slot_ranks()` and spread evenly
+#' over the band, `x = lo + rank * (hi - lo) / (max_rank + 1)`. When the band
+#' is inverted (the gap is narrower than two stubs) or the spread would put
+#' two ranks closer than `sep_e`, the ranks are centred on the gap midpoint
+#' `sep_e` apart instead and the gap is flagged `narrow`.
+#'
+#' @noRd
+ortho_slot_positions <- function(segs, band, opts) {
+  x <- rep(NA_real_, length(segs$lo))
+  live <- which(!segs$degenerate)
+  if (length(live) == 0) {
+    return(list(x = x, narrow = FALSE))
+  }
+  ranks <- ortho_slot_ranks(
+    segs$lo[live],
+    segs$hi[live],
+    segs$lefts[live],
+    segs$rights[live],
+    opts$crossing_penalty
+  )
+  K <- max(ranks)
+  width <- band[[2]] - band[[1]]
+  spacing <- width / (K + 1)
+  narrow <- width < 0 || (K >= 2 && spacing < opts$sep_e - 1e-9)
+  x[live] <- if (narrow) {
+    mean(band) + (ranks - (K + 1) / 2) * opts$sep_e
+  } else {
+    band[[1]] + ranks * spacing
+  }
+  list(x = x, narrow = narrow)
+}
+
+#' Order the vertical segments of a gap left to right
+#'
+#' For every pair whose y-intervals properly overlap (touching at an
+#' endpoint is allowed) the crossings of each order are counted from the
+#' horizontal pieces: with `s1` left of `s2`, a piece leaving `s1` crosses
+#' `s2` when its y lies strictly inside `s2`'s interval, and a piece
+#' entering `s2` crosses `s1` likewise. A dependency toward the cheaper
+#' order carries the weight `16 * |c12 - c21| + 1`; equal counts depend in
+#' canonical order. Cycles are broken by dropping the lightest dependency on
+#' each, ranks follow the longest path from the sources, and any two
+#' overlapping segments left on one rank are pushed apart in canonical order
+#' until every overlapping pair differs. Ranks are returned compacted to
+#' `1:max`.
+#'
+#' @noRd
+ortho_slot_ranks <- function(lo, hi, lefts, rights, crossing_penalty) {
+  n <- length(lo)
+  eps <- 1e-9
+  overlap <- matrix(FALSE, n, n)
+  d_from <- integer(0)
+  d_to <- integer(0)
+  d_w <- numeric(0)
+  inside <- function(y, l, h) {
+    sum(y > l + eps & y < h - eps)
+  }
+  for (i in seq_len(n - 1L)) {
+    for (j in (i + 1L):n) {
+      if (min(hi[[i]], hi[[j]]) - max(lo[[i]], lo[[j]]) <= eps) {
+        next
+      }
+      overlap[i, j] <- TRUE
+      overlap[j, i] <- TRUE
+      c_ij <- inside(rights[[i]], lo[[j]], hi[[j]]) +
+        inside(lefts[[j]], lo[[i]], hi[[i]])
+      c_ji <- inside(rights[[j]], lo[[i]], hi[[i]]) +
+        inside(lefts[[i]], lo[[j]], hi[[j]])
+      if (c_ji < c_ij) {
+        d_from <- c(d_from, j)
+        d_to <- c(d_to, i)
+      } else {
+        d_from <- c(d_from, i)
+        d_to <- c(d_to, j)
+      }
+      d_w <- c(d_w, crossing_penalty * abs(c_ij - c_ji) + 1)
+    }
+  }
+
+  repeat {
+    cycle <- dependency_cycle(n, d_from, d_to)
+    if (is.null(cycle)) {
+      break
+    }
+    drop <- cycle[[which.min(d_w[cycle])]]
+    d_from <- d_from[-drop]
+    d_to <- d_to[-drop]
+    d_w <- d_w[-drop]
+  }
+
+  repeat {
+    ranks <- longest_path_ranks(n, d_from, d_to)
+    tied <- which(
+      overlap & outer(ranks, ranks, "==") & upper.tri(overlap),
+      arr.ind = TRUE
+    )
+    if (nrow(tied) == 0) {
+      break
+    }
+    tied <- tied[order(tied[, 1], tied[, 2]), , drop = FALSE]
+    d_from <- c(d_from, tied[[1, 1]])
+    d_to <- c(d_to, tied[[1, 2]])
+  }
+  match(ranks, sort(unique(ranks)))
+}
+
+#' One cycle of a dependency graph, as dependency indices, or `NULL`
+#'
+#' Sources are peeled off until none remain; if anything is left, walking
+#' backwards through remaining predecessors must revisit a node, and the
+#' dependencies between the two visits form a cycle.
+#'
+#' @noRd
+dependency_cycle <- function(n, from, to) {
+  if (length(from) == 0) {
+    return(NULL)
+  }
+  remaining <- rep(TRUE, n)
+  repeat {
+    has_pred <- seq_len(n) %in% to[remaining[from]]
+    removable <- remaining & !has_pred
+    if (!any(removable)) {
+      break
+    }
+    remaining[removable] <- FALSE
+  }
+  if (!any(remaining)) {
+    return(NULL)
+  }
+  nodes <- which(remaining)[[1]]
+  deps <- integer(0)
+  repeat {
+    current <- nodes[[length(nodes)]]
+    d <- which(to == current & remaining[from])[[1]]
+    u <- from[[d]]
+    k <- match(u, nodes)
+    if (!is.na(k)) {
+      return(c(d, deps[seq.int(k, length.out = length(deps) - k + 1L)]))
+    }
+    nodes <- c(nodes, u)
+    deps <- c(deps, d)
+  }
+}
+
+#' Longest-path ranks of an acyclic dependency graph, sources at 1
+#' @noRd
+longest_path_ranks <- function(n, from, to) {
+  rank <- rep(1L, n)
+  indeg <- tabulate(to, n)
+  queue <- which(indeg == 0)
+  while (length(queue) > 0) {
+    v <- queue[[1]]
+    queue <- queue[-1]
+    for (d in which(from == v)) {
+      u <- to[[d]]
+      rank[[u]] <- max(rank[[u]], rank[[v]] + 1L)
+      indeg[[u]] <- indeg[[u]] - 1L
+      if (indeg[[u]] == 0) {
+        queue <- c(queue, u)
+      }
+    }
+  }
+  rank
+}
+
+#' Ports and bends of one orthogonal edge
+#'
+#' The parallel shift is applied along the layer axis for E/W slots and
+#' along the within-layer axis for channels, by the amount that gives the
+#' requested perpendicular displacement, so the runs stay axis-aligned. A
+#' port is dropped when its bend falls short of it, which happens only when
+#' a narrow gap has pushed a slot inside the node disc.
+#'
+#' @return A list with `bends` (a matrix, or `NULL` when the edge has no
+#'   bend and stays straight), `port_s`, `port_t`, and `side`.
+#' @noRd
+ortho_bends <- function(
+  kind,
+  S,
+  E,
+  r_s,
+  r_t,
+  side,
+  y_ch,
+  x_first,
+  x_last,
+  span,
+  shift,
+  u,
+  stub,
+  tol
+) {
+  if (kind == "sn") {
+    y <- y_ch + shift / u[[1]]
+    return(list(
+      bends = rbind(c(S[[1]], y), c(E[[1]], y)),
+      port_s = c(S[[1]], S[[2]] + side * r_s),
+      port_t = c(E[[1]], E[[2]] + side * r_t),
+      side = side
+    ))
+  }
+  if (kind == "detour") {
+    if (abs(E[[2]] - S[[2]]) < tol) {
+      xa <- S[[1]] + stub
+      xb <- E[[1]] - stub
+      if (xa > xb) {
+        xa <- (S[[1]] + E[[1]]) / 2
+        xb <- xa
+      }
+      y <- S[[2]] + shift
+      return(list(
+        bends = rbind(c(xa, S[[2]]), c(xa, y), c(xb, y), c(xb, E[[2]])),
+        port_s = c(S[[1]] + r_s, S[[2]]),
+        port_t = c(E[[1]] - r_t, E[[2]]),
+        side = sign(shift)
+      ))
+    }
+    ya <- S[[2]] + stub
+    yb <- E[[2]] - stub
+    if (ya > yb) {
+      ya <- (S[[2]] + E[[2]]) / 2
+      yb <- ya
+    }
+    x <- S[[1]] - shift
+    return(list(
+      bends = rbind(c(S[[1]], ya), c(x, ya), c(x, yb), c(E[[1]], yb)),
+      port_s = c(S[[1]], S[[2]] + r_s),
+      port_t = c(E[[1]], E[[2]] - r_t),
+      side = sign(shift)
+    ))
+  }
+
+  dx <- 0
+  dy <- 0
+  if (shift != 0) {
+    if (abs(u[[2]]) > 1e-9) {
+      dx <- -shift / u[[2]]
+    } else {
+      dy <- shift
+    }
+  }
+  bends <- NULL
+  if (span == 1) {
+    if (!is.na(x_first)) {
+      bends <- rbind(c(x_first, S[[2]]), c(x_first, E[[2]]))
+    }
+  } else {
+    y <- y_ch + dy
+    if (!is.na(x_first)) {
+      bends <- rbind(bends, c(x_first, S[[2]]), c(x_first, y))
+    }
+    if (!is.na(x_last)) {
+      bends <- rbind(bends, c(x_last, y), c(x_last, E[[2]]))
+    }
+  }
+  if (is.null(bends)) {
+    return(list(bends = NULL))
+  }
+  bends[, 1] <- bends[, 1] + dx
+  list(
+    bends = bends,
+    port_s = if (bends[[1, 1]] > S[[1]] + r_s) c(S[[1]] + r_s, S[[2]]),
+    port_t = if (bends[[nrow(bends), 1]] < E[[1]] - r_t) {
+      c(E[[1]] - r_t, E[[2]])
+    },
+    side = if (span >= 2) side else NA_real_
+  )
+}
+
+#' Drop consecutive duplicate points of a polyline matrix
+#' @noRd
+dedupe_points <- function(P, tol = 1e-9) {
+  if (nrow(P) < 2) {
+    return(P)
+  }
+  keep <- c(TRUE, abs(diff(P[, 1])) >= tol | abs(diff(P[, 2])) >= tol)
+  P[keep, , drop = FALSE]
+}
+
+#' Drop interior vertices a polyline passes straight through
+#'
+#' A vertex is kept when the path turns at it or reverses on it; only
+#' vertices collinear with their neighbours in the same direction go.
+#'
+#' @noRd
+drop_collinear <- function(P) {
+  n <- nrow(P)
+  if (n < 3) {
+    return(P)
+  }
+  keep <- rep(TRUE, n)
+  last <- 1L
+  for (i in 2:(n - 1L)) {
+    ab <- P[i, ] - P[last, ]
+    bc <- P[i + 1L, ] - P[i, ]
+    cross <- ab[[1]] * bc[[2]] - ab[[2]] * bc[[1]]
+    if (abs(cross) < 1e-9 && sum(ab * bc) > 0) {
+      keep[[i]] <- FALSE
+    } else {
+      last <- i
+    }
+  }
+  P[keep, , drop = FALSE]
+}
+
+#' Round the corners of a polyline with quadratic Beziers
+#'
+#' Each interior vertex `B` with neighbours `A` and `C` is replaced by `n`
+#' uniformly spaced samples of the quadratic Bezier from `P` through `B` to
+#' `Q`, where `P` and `Q` lie `rr = min(rc, |AB| / 2, |BC| / 2)` along the
+#' two runs, so neighbouring corners never overlap. Twelve samples keep the
+#' turning angle of a right angle under 12 degrees per step. Vertices the
+#' path runs straight through or reverses on are kept as they are.
+#'
+#' @noRd
+round_corners <- function(P, rc, n = 12L) {
+  k <- nrow(P)
+  if (k < 3) {
+    return(P)
+  }
+  t <- seq(0, 1, length.out = n)
+  w_p <- (1 - t)^2
+  w_b <- 2 * t * (1 - t)
+  w_q <- t^2
+  out <- vector("list", k)
+  out[[1]] <- P[1, , drop = FALSE]
+  for (i in 2:(k - 1L)) {
+    A <- P[i - 1L, ]
+    B <- P[i, ]
+    C <- P[i + 1L, ]
+    ab <- A - B
+    cb <- C - B
+    lab <- sqrt(sum(ab^2))
+    lcb <- sqrt(sum(cb^2))
+    cross <- ab[[1]] * cb[[2]] - ab[[2]] * cb[[1]]
+    if (abs(cross) < 1e-9 || lab == 0 || lcb == 0) {
+      out[[i]] <- P[i, , drop = FALSE]
+      next
+    }
+    rr <- min(rc, lab / 2, lcb / 2)
+    Pp <- B + rr * ab / lab
+    Qq <- B + rr * cb / lcb
+    pts <- cbind(
+      w_p * Pp[[1]] + w_b * B[[1]] + w_q * Qq[[1]],
+      w_p * Pp[[2]] + w_b * B[[2]] + w_q * Qq[[2]]
+    )
+    pts[1, ] <- Pp
+    pts[n, ] <- Qq
+    out[[i]] <- pts
+  }
+  out[[k]] <- P[k, , drop = FALSE]
+  do.call(rbind, out)
+}
+
+#' Subdivide the segments of a polyline to a maximum spacing
+#'
+#' Interior points interpolate each segment, so an axis-aligned run keeps
+#' its constant coordinate exactly; the original vertices are kept.
+#'
+#' @noRd
+sample_runs <- function(P, spacing) {
+  n <- nrow(P)
+  if (n < 2) {
+    return(P)
+  }
+  dx <- diff(P[, 1])
+  dy <- diff(P[, 2])
+  pieces <- pmax(1L, as.integer(ceiling(sqrt(dx^2 + dy^2) / spacing - 1e-9)))
+  if (all(pieces == 1L)) {
+    return(P)
+  }
+  out <- vector("list", n)
+  for (i in seq_len(n - 1L)) {
+    if (pieces[[i]] == 1L) {
+      out[[i]] <- P[i, , drop = FALSE]
+      next
+    }
+    f <- seq_len(pieces[[i]] - 1L) / pieces[[i]]
+    out[[i]] <- rbind(
+      P[i, ],
+      cbind(P[[i, 1]] + f * dx[[i]], P[[i, 2]] + f * dy[[i]])
+    )
+  }
+  out[[n]] <- P[n, , drop = FALSE]
+  do.call(rbind, out)
+}
+
+#' Distance from each obstacle centre to the nearest segment of a polyline
+#' @noRd
+polyline_min_dist <- function(P, ox, oy) {
+  n <- nrow(P)
+  x0 <- P[-n, 1]
+  y0 <- P[-n, 2]
+  x1 <- P[-1, 1]
+  y1 <- P[-1, 2]
+  vapply(
+    seq_along(ox),
+    function(k) min(dist_to_edge(ox[[k]], oy[[k]], x0, y0, x1, y1)),
+    numeric(1)
+  )
+}
+
 # Engine -------------------------------------------------------------------------------------
 
 #' Route a canonically oriented scene
@@ -1374,6 +2279,32 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
     return(assemble())
   }
 
+  if (mode == "orthogonal") {
+    st <- route_orthogonal_scene(
+      nodes,
+      from,
+      to,
+      from_name,
+      to_name,
+      is_fixed,
+      paths,
+      bounds,
+      cap,
+      opts
+    )
+    paths <- st$paths
+    waypoints <- st$waypoints
+    routed <- st$routed
+    mode_out <- st$mode
+    side_out <- st$side
+    n_wp <- st$n_waypoints
+    wp_layers <- st$waypoint_layers
+    clearance_ok <- st$clearance_ok
+    sagitta <- st$sagitta_ratio
+    capped <- st$sagitta_capped
+    return(assemble())
+  }
+
   layers <- infer_layers(nodes, opts$tol_layer)
   info <- edge_span_info(nodes, from, to, layers)
   routable <- !is_fixed & info$Lc > 0 & from != to
@@ -1388,24 +2319,9 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
   )
   hits$edge <- which(routable)[hits$edge]
 
-  # parallel groups: members share an unordered node pair
-  extra <- numeric(n_edges)
-  shift <- numeric(n_edges)
-  key <- paste(pmin(from, to), pmax(from, to))
-  for (k in unique(key[routable])) {
-    members <- which(routable & key == k)
-    if (length(members) < 2) {
-      next
-    }
-    members <- members[order(
-      from_name[members],
-      to_name[members],
-      method = "radix"
-    )]
-    size <- length(members)
-    extra[members] <- opts$sep_m * (size - 1) / 2
-    shift[members] <- opts$sep_m * (seq_len(size) - (size + 1) / 2)
-  }
+  grp <- parallel_groups(from, to, from_name, to_name, routable, opts$sep_m)
+  extra <- grp$extra
+  shift <- grp$shift
 
   to_route <- routable & (seq_len(n_edges) %in% hits$edge | shift != 0)
   order_e <- which(to_route)

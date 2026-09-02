@@ -45,10 +45,11 @@ applied to both the routed layer and the bidirected arc layer.}
 and bidirected edges respectively. By default, these filter the plot
 data by edge direction.}
 
-\item{route}{How to route a blocked edge: \code{"spline"} (the default) draws
-a smooth curve around the obstacle. \code{"orthogonal"}, which draws
-axis-aligned segments with rounded corners, is not yet available and
-errors when the plot is drawn.}
+\item{route}{How to route the edges: \code{"spline"} (the default) draws a
+blocked edge as a smooth curve around the obstacle and leaves unblocked
+edges straight. \code{"orthogonal"} draws every edge as axis-aligned runs
+with rounded corners, passing the intermediate layers in the gaps
+between them or along a channel beyond them.}
 
 \item{clearance}{The daylight in millimetres a routed path keeps beyond
 the node discs, or \code{NULL} (the default) for the router's own margin,

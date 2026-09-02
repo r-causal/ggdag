@@ -1251,10 +1251,11 @@ dag_routed_arrow_layer <- function(
 #' @param data_directed,data_bidirected The data to be displayed for directed
 #'   and bidirected edges respectively. By default, these filter the plot
 #'   data by edge direction.
-#' @param route How to route a blocked edge: `"spline"` (the default) draws
-#'   a smooth curve around the obstacle. `"orthogonal"`, which draws
-#'   axis-aligned segments with rounded corners, is not yet available and
-#'   errors when the plot is drawn.
+#' @param route How to route the edges: `"spline"` (the default) draws a
+#'   blocked edge as a smooth curve around the obstacle and leaves unblocked
+#'   edges straight. `"orthogonal"` draws every edge as axis-aligned runs
+#'   with rounded corners, passing the intermediate layers in the gaps
+#'   between them or along a channel beyond them.
 #' @param clearance The daylight in millimetres a routed path keeps beyond
 #'   the node discs, or `NULL` (the default) for the router's own margin,
 #'   half a node radius with a floor of 1.2 mm.
