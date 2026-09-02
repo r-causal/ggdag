@@ -26,31 +26,31 @@
   </clipPath>
 </defs>
 <g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
-<circle cx='64.98' cy='443.94' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='64.98' cy='276.73' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='64.98' cy='109.29' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='458.34' cy='524.59' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='655.02' cy='393.54' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='261.66' cy='70.29' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<circle cx='458.34' cy='201.78' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
-<path d='M 254.26 86.66 L 255.93 90.77 L 257.70 77.81 L 248.02 86.60 L 252.35 85.66 L 68.00 435.92 L 68.94 436.42 L 69.89 436.91 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 443.62 212.10 L 442.98 216.49 L 451.10 206.24 L 438.29 208.87 L 442.50 210.27 L 71.66 438.58 L 72.22 439.48 L 72.78 440.39 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 443.13 509.72 L 443.73 514.12 L 72.74 280.36 L 71.61 282.16 L 442.59 515.94 L 438.36 517.29 L 451.14 520.06 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 646.68 391.89 L 635.49 385.11 L 637.63 389.00 L 73.53 277.33 L 73.12 279.43 L 637.21 391.11 L 633.75 393.89 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 250.06 84.02 L 250.56 88.43 L 255.79 76.44 L 244.08 82.25 L 248.51 82.53 L 70.07 269.84 L 70.85 270.57 L 71.62 271.31 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 66.06 127.24 L 69.45 130.09 L 64.98 117.80 L 60.51 130.09 L 63.91 127.24 L 63.91 268.22 L 66.05 268.22 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 638.23 380.48 L 639.32 384.78 L 73.11 112.02 L 72.64 112.99 L 72.18 113.95 L 638.39 386.72 L 634.34 388.54 L 647.36 389.85 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 450.06 199.83 L 439.12 192.66 L 441.12 196.62 L 73.50 110.20 L 73.02 112.28 L 440.63 198.72 L 437.07 201.37 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 640.68 404.38 L 640.20 408.79 L 647.94 398.25 L 635.24 401.35 L 639.49 402.59 L 464.82 518.99 L 465.42 519.88 L 466.01 520.76 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 454.18 503.73 L 452.20 507.70 L 266.02 77.67 L 264.06 78.51 L 450.22 508.55 L 445.97 507.29 L 454.96 516.79 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 643.25 375.82 L 642.92 380.24 L 465.17 206.95 L 464.43 207.71 L 463.68 208.48 L 641.42 381.78 L 637.01 382.22 L 648.93 387.60 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<text x='64.98' y='447.86' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>v</text>
-<text x='64.98' y='280.64' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='14.55px' lengthAdjust='spacingAndGlyphs'>w1</text>
-<text x='64.98' y='113.21' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='14.55px' lengthAdjust='spacingAndGlyphs'>w2</text>
-<text x='458.34' y='528.51' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>x</text>
-<text x='655.02' y='397.45' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='261.66' y='74.20' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='12.03px' lengthAdjust='spacingAndGlyphs'>z1</text>
-<text x='458.34' y='205.69' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='12.03px' lengthAdjust='spacingAndGlyphs'>z2</text>
+<circle cx='64.98' cy='411.23' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='64.98' cy='240.76' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='64.98' cy='70.29' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='458.34' cy='434.67' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='127.39' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='261.66' cy='524.59' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='458.34' cy='264.20' r='21.69' style='stroke-width: 0.71; fill: #000000;' />
+<path d='M 245.88 510.33 L 246.65 514.70 L 72.88 414.55 L 72.35 415.47 L 71.82 416.40 L 245.58 516.56 L 241.41 518.08 L 254.29 520.35 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 441.91 271.49 L 440.43 275.67 L 450.37 267.17 L 437.30 267.29 L 441.16 269.47 L 72.57 407.25 L 72.95 408.25 L 73.32 409.25 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 441.67 421.46 L 442.72 425.77 L 73.08 243.56 L 72.61 244.52 L 72.14 245.47 L 441.77 427.70 L 437.71 429.49 L 450.71 430.91 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 637.60 131.84 L 635.44 135.71 L 646.67 129.00 L 633.76 126.92 L 637.20 129.72 L 73.13 238.10 L 73.33 239.15 L 73.53 240.20 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 253.49 504.95 L 252.33 509.23 L 70.70 247.14 L 69.82 247.75 L 68.95 248.35 L 250.56 510.46 L 246.14 510.05 L 256.82 517.60 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 66.06 88.23 L 69.45 91.08 L 64.98 78.79 L 60.51 91.08 L 63.91 88.23 L 63.91 232.25 L 66.05 232.25 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 646.55 126.57 L 634.75 120.94 L 637.26 124.59 L 73.55 70.04 L 73.45 71.10 L 73.34 72.17 L 637.06 126.74 L 633.89 129.84 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 441.67 250.99 L 442.72 255.30 L 73.08 73.09 L 72.61 74.05 L 72.14 75.00 L 441.77 257.23 L 437.71 259.01 L 450.71 260.44 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 646.25 143.09 L 647.58 147.32 L 650.43 134.56 L 640.04 142.49 L 644.44 141.93 L 462.03 426.93 L 462.92 427.51 L 463.82 428.08 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 442.47 443.11 L 441.29 447.38 L 450.61 438.20 L 437.57 439.25 L 441.57 441.15 L 268.95 520.09 L 269.39 521.06 L 269.84 522.03 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 640.90 138.52 L 640.50 142.94 L 648.04 132.25 L 635.39 135.59 L 639.67 136.76 L 464.71 258.46 L 465.93 260.22 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<text x='64.98' y='415.14' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>v</text>
+<text x='64.98' y='244.67' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='14.55px' lengthAdjust='spacingAndGlyphs'>w1</text>
+<text x='64.98' y='74.20' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='14.55px' lengthAdjust='spacingAndGlyphs'>w2</text>
+<text x='458.34' y='438.58' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='655.02' y='131.31' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='261.66' y='528.51' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='12.03px' lengthAdjust='spacingAndGlyphs'>z1</text>
+<text x='458.34' y='268.11' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='12.03px' lengthAdjust='spacingAndGlyphs'>z2</text>
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='315.41px' lengthAdjust='spacingAndGlyphs'>geom_dag_arrow user resect overrides discovery</text>
