@@ -1,7 +1,10 @@
 # Tests for wiring the ordering and coordinate upgrades into
 # compute_time_ordered_layout(): exact layer ordering via order_layers(),
 # median-based initialization, isotropic normalization, node_scale-derived
-# clearance constants, and curvature-aware bidirected overlap correction.
+# clearance constants, curvature-aware bidirected overlap correction, the
+# symmetry override in the dual-initialization guard, the manual-tiers
+# optimization guard, and arc-aware clearance for spanning directed edges
+# under the arc edge type.
 
 # Helpers ----------------------------------------------------------------------
 
@@ -58,7 +61,7 @@ layout_node_coords <- function(.tdy_dag) {
 # smoking                 0       0
 # epidemiology            1       1
 # selection_bias          1       1
-# overcontrol             1       0   (strict improvement)
+# overcontrol             1       1   (symmetric arch keeps one crossing)
 # napkin                  0       0
 # butterfly               0       0
 # complex_chain           0       0
@@ -125,8 +128,11 @@ canonical_wiring_dags <- list(
     budget = 1L
   ),
   overcontrol = list(
+    # The symmetry override keeps the even-spacing arch here, which trades
+    # one crossing for mirror symmetry; see the dual-initialization
+    # symmetry override tests below.
     spec = c("x->z", "z->y", "x->y", "w->x", "w->z"),
-    budget = 0L
+    budget = 1L
   ),
   napkin = list(
     spec = c(
@@ -836,4 +842,439 @@ test_that("barycenter_sort keeps the incumbent order on ties", {
 
   out <- barycenter_sort(layer_nodes, edges, layer_assign)
   expect_identical(out[[2]], c("q", "p", "z"))
+})
+
+# Dual-initialization symmetry override ----------------------------------------
+
+# TRUE when reflecting the layout about its mid-x maps the node set onto
+# itself: every node has a partner (possibly itself) at the mirrored x with
+# the same y. The tolerance is one internal pixel expressed in data units,
+# where the 180-pixel layer gap maps to one x unit.
+coords_mirror_symmetric <- function(coords, tol = 1 / 180) {
+  mirrored_x <- max(coords$x) + min(coords$x) - coords$x
+  used <- rep(FALSE, nrow(coords))
+  for (i in seq_len(nrow(coords))) {
+    j <- which(
+      !used &
+        abs(coords$x - mirrored_x[i]) < tol &
+        abs(coords$y - coords$y[i]) < tol
+    )
+    if (length(j) == 0) {
+      return(FALSE)
+    }
+    used[j[1]] <- TRUE
+  }
+  TRUE
+}
+
+test_that("the multi-mediator chain lays out as a symmetric arch", {
+  # A chain of three mediators between x and y is a mirror-symmetric DAG,
+  # and the even-spacing candidate solves it as a symmetric arch: x and y
+  # together at the lowest height, m1 and m3 level with each other, m2 at
+  # the apex. The median candidate removes two more crossings but breaks the
+  # arch into a staircase, so the never-worse guard keeps the even candidate
+  # whenever it is mirror-symmetric, has no node-edge overlaps, and the
+  # median candidate wins on crossings by no more than two. The expected
+  # coordinates are the even-spacing candidate's, computed with the engine's
+  # default geometry; both layering directions solve the same arch.
+  dag <- dagify(m1 ~ x, m2 ~ x + m1, m3 ~ x + m2, y ~ x + m1 + m2 + m3)
+  edges <- as.data.frame(get_dagitty_edges(dag))
+
+  for (sort_direction in c("right", "left")) {
+    coords <- compute_time_ordered_layout(
+      edges,
+      sort_direction = sort_direction
+    )
+    y_of <- function(nm) coords$y[coords$name == nm]
+
+    expect_equal(
+      y_of("x"),
+      y_of("y"),
+      tolerance = 1e-6,
+      label = paste0(sort_direction, ": y(x)"),
+      expected.label = paste0(sort_direction, ": y(y)")
+    )
+    expect_equal(
+      y_of("m1"),
+      y_of("m3"),
+      tolerance = 1e-6,
+      label = paste0(sort_direction, ": y(m1)"),
+      expected.label = paste0(sort_direction, ": y(m3)")
+    )
+    expect_equal(
+      y_of("x"),
+      min(coords$y),
+      tolerance = 1e-6,
+      label = paste0(sort_direction, ": y(x)"),
+      expected.label = paste0(sort_direction, ": lowest y")
+    )
+    expect_gt(
+      y_of("m2"),
+      y_of("m1"),
+      label = paste0(sort_direction, ": y(m2)"),
+      expected.label = paste0(sort_direction, ": y(m1)")
+    )
+    expect_true(
+      coords_mirror_symmetric(coords),
+      label = paste0(sort_direction, ": mirror symmetry")
+    )
+
+    expect_equal(
+      dplyr::arrange(coords, name),
+      tibble::tibble(
+        name = c("m1", "m2", "m3", "x", "y"),
+        x = c(2, 3, 4, 1, 5),
+        y = c(0.30405713, 0.39622736, 0.30405713, -0.50217081, -0.50217081)
+      ),
+      tolerance = 1e-6,
+      label = paste0(sort_direction, ": layout"),
+      expected.label = paste0(sort_direction, ": symmetric arch")
+    )
+  }
+})
+
+test_that("the symmetry override leaves the unaffected corpus untouched", {
+  # The override keeps the even-spacing candidate only when that candidate
+  # is mirror-symmetric, free of node-edge overlaps, and behind the median
+  # candidate by one or two straight-line crossings. Each of these DAGs
+  # misses at least one condition: an asymmetric even candidate (smoking,
+  # epidemiology, napkin, large_epi, multi_mediator), a crossing gap larger
+  # than two (deep_confound), or a median win on the stress tiebreak alone
+  # with no crossing advantage (cascade). Their layouts stay exactly as the
+  # invariance fixture pins them.
+  fixture <- readRDS(test_path("fixtures", "layout-invariance.rds"))
+  unaffected <- c(
+    "smoking",
+    "epidemiology",
+    "napkin",
+    "deep_confound",
+    "large_epi",
+    "cascade",
+    "multi_mediator"
+  )
+
+  for (nm in unaffected) {
+    edges <- canonical_dag_edges(canonical_dag_specs[[nm]])
+    expect_identical(
+      compute_time_ordered_layout(edges),
+      fixture[[nm]]$coords,
+      label = paste0(nm, ": layout"),
+      expected.label = paste0(nm, ": pinned coordinate fixture")
+    )
+  }
+})
+
+test_that("overcontrol keeps the symmetric even-spacing layout", {
+  # The even-spacing candidate here is mirror-symmetric and overlap-free
+  # with a single crossing; the median candidate clears that crossing but
+  # staggers the nodes. The symmetry override keeps the even candidate: w
+  # and y sit low, x and z sit high, mirrored about the center. The expected
+  # coordinates are the even candidate's, computed with the engine's default
+  # geometry. The invariance fixture entry for overcontrol pins this same
+  # layout.
+  edges <- canonical_dag_edges(canonical_dag_specs$overcontrol)
+  coords <- compute_time_ordered_layout(edges)
+
+  expect_true(coords_mirror_symmetric(coords))
+  expect_equal(
+    dplyr::arrange(coords, name),
+    tibble::tibble(
+      name = c("w", "x", "y", "z"),
+      x = c(1, 2, 4, 3),
+      y = c(-0.32002665, 0.32002665, -0.32002665, 0.32002665)
+    ),
+    tolerance = 1e-6
+  )
+})
+
+# Manual-tiers optimization guard -----------------------------------------------
+
+test_that("manual tiers keep the user's grid when optimizing gains nothing", {
+  # With every node's tier given, the spread grid is the user's own
+  # arrangement: tiers on the time axis, tier-mates spread in the order they
+  # were listed. The optimizer may replace that grid only when it strictly
+  # improves straight-line crossings, or ties crossings and strictly
+  # improves node-edge overlaps. This grid is already crossing-free and
+  # overlap-free, so nothing can improve on it and it comes back exactly as
+  # optimize = FALSE returns it, with z1, z2, and z3 in their listed order.
+  time_df <- data.frame(
+    name = c("x1", "x2", "y", "z1", "z2", "z3", "a"),
+    time = c(1, 1, 2, 3, 3, 3, 4)
+  )
+  dag <- dagify(z3 ~ y, y ~ x1 + x2, a ~ z1 + z2 + z3)
+  edges <- as.data.frame(get_dagitty_edges(dag))
+  grid <- time_ordered_coords(time_df, optimize = FALSE)
+
+  by_name <- function(coords) {
+    dplyr::arrange(tibble::as_tibble(coords)[c("name", "x", "y")], name)
+  }
+
+  coords <- compute_time_ordered_layout(
+    edges,
+    fixed_layers = c(x1 = 1, x2 = 1, y = 2, z1 = 3, z2 = 3, z3 = 3, a = 4),
+    time_points = 1:4
+  )
+  expect_equal(by_name(coords), by_name(grid))
+
+  z_heights <- coords$y[match(c("z1", "z2", "z3"), coords$name)]
+  expect_lt(z_heights[1], z_heights[2])
+  expect_lt(z_heights[2], z_heights[3])
+
+  # the user-facing layout closure hands back the same grid; the layout
+  # attributes the tidy data carries are not part of the contract
+  td <- tidy_dagitty(dag, layout = time_ordered_coords(time_df))
+  expect_equal(
+    layout_node_coords(td),
+    dplyr::mutate(
+      by_name(grid),
+      x = round(as.numeric(x), digits = 3),
+      y = round(as.numeric(y), digits = 3)
+    ),
+    ignore_attr = TRUE
+  )
+})
+
+test_that("manual tiers keep the optimized layout when it removes crossings", {
+  # In the user's listed order the straight edges of this DAG cross once;
+  # the optimizer unwinds that crossing, a strict improvement, so its layout
+  # is kept in place of the spread grid. The expected coordinates pin the
+  # optimized layout as the engine solves it today.
+  dag <- dagify(d ~ c1 + c2 + c3, c1 ~ b1 + b2, c3 ~ a, b1 ~ a)
+  edges <- as.data.frame(get_dagitty_edges(dag))
+  grid <- time_ordered_coords(
+    list("a", c("b1", "b2"), c("c1", "c2", "c3"), "d"),
+    optimize = FALSE
+  )
+
+  coords <- compute_time_ordered_layout(
+    edges,
+    fixed_layers = c(a = 1, b1 = 2, b2 = 2, c1 = 3, c2 = 3, c3 = 3, d = 4),
+    time_points = 1:4
+  )
+
+  expect_identical(count_edge_crossings(grid, edges), 1L)
+  expect_identical(count_edge_crossings(coords, edges), 0L)
+  expect_equal(
+    dplyr::arrange(coords, name),
+    tibble::tibble(
+      name = c("a", "b1", "b2", "c1", "c2", "c3", "d"),
+      x = c(1, 2, 2, 3, 3, 3, 4),
+      y = c(
+        0.08377394,
+        -0.45623187,
+        -0.05623187,
+        -0.29137027,
+        0.10862973,
+        0.50862973,
+        0.10280062
+      )
+    ),
+    tolerance = 1e-6
+  )
+})
+
+test_that("manual tiers still optimize when reordering removes a crossing", {
+  # a and b share the first tier and their children arrive swapped: in the
+  # listed order the straight edges a -> d and b -> c cross, and exchanging
+  # c and d clears the crossing. That strict improvement keeps the optimized
+  # layout, which pairs each parent with its child on the same side.
+  dag <- dagify(d ~ a, c ~ b)
+  edges <- as.data.frame(get_dagitty_edges(dag))
+  grid <- time_ordered_coords(list(c("a", "b"), c("c", "d")), optimize = FALSE)
+
+  coords <- compute_time_ordered_layout(
+    edges,
+    fixed_layers = c(a = 1, b = 1, c = 2, d = 2),
+    time_points = 1:2
+  )
+
+  expect_identical(count_edge_crossings(grid, edges), 1L)
+  expect_identical(count_edge_crossings(coords, edges), 0L)
+
+  y_of <- function(nm) coords$y[coords$name == nm]
+  expect_equal(y_of("a"), y_of("d"), tolerance = 1e-6)
+  expect_equal(y_of("b"), y_of("c"), tolerance = 1e-6)
+})
+
+# Arc-aware spanning edges ------------------------------------------------------
+
+test_that("arc edges draw positive curvature on the left of travel", {
+  # sample_curved_edge() offsets its through-point along the right normal of
+  # travel, while the arc edge geom draws positive curvature on the left, so
+  # tracing a drawn arc means negating the curvature handed to
+  # sample_curved_edge(). This pins the two conventions against each other:
+  # any code that traces a drawn arc must flip the sign, and a silent
+  # inversion in either convention fails here.
+  edge <- data.frame(
+    name = "a",
+    x = 0,
+    y = 0,
+    xend = 2,
+    yend = 0,
+    direction = factor("->", levels = c("->", "<->"))
+  )
+  p <- ggplot(edge, ggplot2::aes(x = x, y = y, xend = xend, yend = yend)) +
+    geom_dag_edges_arc(curvature = 0.3)
+  drawn <- ggplot2::ggplot_build(p)$data[[1]]
+  drawn_mid <- drawn$y[which.min(abs(drawn$x - 1))]
+
+  traced <- sample_curved_edge(0, 0, 2, 0, 0.3)
+  flipped <- sample_curved_edge(0, 0, 2, 0, -0.3)
+
+  # left of rightward travel is up, so the drawn arc bows above the chord
+  expect_gt(drawn_mid, 0)
+  # the same positive curvature traces below the chord ...
+  expect_lt(traced$y[which.min(abs(traced$x - 1))], 0)
+  # ... and only the negated curvature traces the drawn side
+  expect_gt(flipped$y[which.min(abs(flipped$x - 1))], 0)
+
+  # reversing travel flips the drawn side
+  edge_rev <- data.frame(
+    name = "b",
+    x = 2,
+    y = 0,
+    xend = 0,
+    yend = 0,
+    direction = factor("->", levels = c("->", "<->"))
+  )
+  p_rev <- ggplot(
+    edge_rev,
+    ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+    geom_dag_edges_arc(curvature = 0.3)
+  drawn_rev <- ggplot2::ggplot_build(p_rev)$data[[1]]
+  expect_lt(drawn_rev$y[which.min(abs(drawn_rev$x - 1))], 0)
+})
+
+# Minimum distance from a node's center to the drawn arc of a directed edge,
+# traced on the side the arc edge geom draws (the negated curvature; see the
+# convention test above). Coordinates are in data units.
+drawn_arc_clearance <- function(coords, from, to, node, curvature) {
+  at <- function(nm, col) coords[[col]][coords$name == nm]
+  arc <- sample_curved_edge(
+    at(from, "x"),
+    at(from, "y"),
+    at(to, "x"),
+    at(to, "y"),
+    -curvature
+  )
+  min(sqrt((at(node, "x") - arc$x)^2 + (at(node, "y") - arc$y)^2))
+}
+
+test_that("the arc edge type clears the collider apex at node_size 24", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.node_size = 24,
+    ggdag.edge_type = "arc"
+  ))
+
+  # x -> m spans two layers, and under the arc edge type it is drawn as an
+  # arc bowing to the left of travel, right where y settles when only the
+  # straight chord is checked. The layout must clear the arc as drawn. The
+  # clearance floor is the engine's own overlap threshold, node radius plus
+  # 8 internal pixels, mapped to data units by the 180-pixel layer gap.
+  td <- tidy_dagitty(dagify(m ~ x + y, y ~ x))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- drawn_arc_clearance(
+    coords,
+    "x",
+    "m",
+    "y",
+    ggdag_option("curvature", 0.3)
+  )
+  node_scale <- 24 / 16
+  expect_gte(clearance, (26 * node_scale + 8) / 180)
+})
+
+test_that("the arc edge type clears the confounder chain's middle node", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_width = 1.5,
+    ggdag.edge_type = "arc"
+  ))
+
+  # z -> y spans two layers and its drawn arc bows toward x, which clears
+  # the straight chord but sits inside the engine's overlap threshold of the
+  # arc as drawn. The same clearance floor as the collider case applies, at
+  # the default node scale.
+  td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- drawn_arc_clearance(
+    coords,
+    "z",
+    "y",
+    "x",
+    ggdag_option("curvature", 0.3)
+  )
+  expect_gte(clearance, (26 + 8) / 180)
+})
+
+test_that("the arc option leaves already-clear layouts unchanged", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_type = "arc"
+  ))
+
+  # Every spanning edge of this DAG already clears its drawn arc, so
+  # arc-aware layout must move nothing: the coordinates match the
+  # default-option layout to four decimals.
+  dag <- dagify(
+    y ~ x + z2 + w2 + w1,
+    x ~ z1 + w1,
+    z1 ~ w1 + v,
+    z2 ~ w2 + v,
+    w1 ~ ~w2,
+    exposure = "x",
+    outcome = "y"
+  )
+  td <- tidy_dagitty(dag)
+
+  expect_equal(
+    layout_node_coords(td),
+    tibble::tibble(
+      name = c("v", "w1", "w2", "x", "y", "z1", "z2"),
+      x = c(1, 1, 1, 3, 4, 2, 3),
+      y = c(-0.270, 0.130, 0.530, -0.325, 0.396, -0.536, 0.075)
+    ),
+    tolerance = 1e-4,
+    ignore_attr = TRUE
+  )
+})
+
+test_that("the default edge type keeps straight-chord layouts unchanged", {
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.edge_type = "link_arc"))
+
+  # Directed edges render as straight links under the default edge type, so
+  # arc tracing must not engage: these layouts stay exactly as the
+  # straight-chord engine solves them, even at the node scale where the arc
+  # edge type moves the middle node.
+  collider_edges <- as.data.frame(get_dagitty_edges(dagify(m ~ x + y, y ~ x)))
+  collider <- compute_time_ordered_layout(collider_edges, node_scale = 24 / 16)
+  expect_equal(
+    dplyr::arrange(collider, name),
+    tibble::tibble(
+      name = c("m", "x", "y"),
+      x = c(3, 1, 2),
+      y = c(-0.17213682, -0.17213682, 0.34427365)
+    ),
+    tolerance = 1e-7
+  )
+
+  chain_edges <- as.data.frame(get_dagitty_edges(dagify(y ~ x + z, x ~ z)))
+  chain <- compute_time_ordered_layout(chain_edges)
+  expect_equal(
+    dplyr::arrange(chain, name),
+    tibble::tibble(
+      name = c("x", "y", "z"),
+      x = c(2, 3, 1),
+      y = c(0.24209197, -0.12104599, -0.12104599)
+    ),
+    tolerance = 1e-7
+  )
 })
