@@ -49,14 +49,13 @@
 <circle cx='376.34' cy='87.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='643.36' cy='338.03' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='109.33' cy='338.03' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='400.39' y1='515.97' x2='394.00' y2='506.58' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='400.65' y1='53.31' x2='394.62' y2='61.74' style='stroke-width: 1.07; stroke: #666666;' />
-<text x='400.85' y='525.37' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x1</text>
-<text x='377.45' y='397.00' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x2</text>
-<text x='376.11' y='179.03' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x3</text>
-<text x='401.14' y='51.51' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x4</text>
-<text x='685.63' y='347.31' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='67.07' y='347.33' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
+<line x1='376.70' y1='396.11' x2='376.53' y2='373.71' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='376.21' y='517.87' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x1</text>
+<text x='376.70' y='405.51' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x2</text>
+<text x='376.42' y='183.33' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x3</text>
+<text x='376.02' y='52.32' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='11.66px' lengthAdjust='spacingAndGlyphs'>x4</text>
+<text x='674.50' y='344.94' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<text x='78.22' y='344.93' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <rect x='38.17' y='22.78' width='676.35' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

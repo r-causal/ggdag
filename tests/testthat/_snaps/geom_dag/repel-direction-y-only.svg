@@ -36,12 +36,12 @@
 <circle cx='647.08' cy='456.62' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='105.61' cy='456.62' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='376.34' cy='111.27' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='647.08' y1='393.99' x2='647.08' y2='425.22' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='105.61' y1='394.67' x2='105.61' y2='425.22' style='stroke-width: 1.07; stroke: #666666;' />
-<line x1='376.34' y1='173.03' x2='376.34' y2='142.68' style='stroke-width: 1.07; stroke: #666666;' />
-<text x='647.08' y='392.19' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
-<text x='105.61' y='392.87' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
-<text x='376.34' y='182.43' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
+<line x1='647.08' y1='519.41' x2='647.08' y2='480.83' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='105.61' y1='406.59' x2='105.61' y2='432.42' style='stroke-width: 1.07; stroke: #666666;' />
+<line x1='376.34' y1='55.81' x2='376.34' y2='87.07' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='647.08' y='528.81' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='9.20px' lengthAdjust='spacingAndGlyphs'>m</text>
+<text x='105.61' y='404.79' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='376.34' y='54.01' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <rect x='38.17' y='22.78' width='676.35' height='522.33' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
