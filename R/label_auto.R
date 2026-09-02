@@ -14,6 +14,12 @@ label_node_clearance <- 0.5
 label_edge_clearance <- 1
 label_arrow_clearance <- 2
 
+# Soft comfort zone in mm around node discs other than a label's own node.
+# A box inside this zone is not violating, but its penetration depth is
+# penalized (per the `soft` weight) so labels drift away from foreign discs
+# when an equally near spot is free of them.
+label_soft_margin <- 8
+
 #' Place DAG node labels deterministically
 #'
 #' Chooses a position for each label so that label boxes avoid node discs,
@@ -34,15 +40,25 @@ label_arrow_clearance <- 2
 #' Candidates are ordered ring-major (every anchor at ring 1 precedes any
 #' anchor at ring 2), and the `prefer` weight breaks score ties in that
 #' order. The radius used for a label's own rings is the radius of the node
-#' disc nearest to the label's node center.
+#' disc nearest to the label's node center. A candidate whose box spills the
+#' panel additionally spawns a slid variant translated by the minimal offset
+#' that brings it fully inside `bounds` (per axis, and only when the box fits
+#' along that axis), at preference rank + 0.5 and with a `*` suffix on its
+#' anchor, so a barely spilling spot can slide inside instead of losing to a
+#' farther anchor.
 #'
 #' Each candidate box is scored as a weighted sum of penalties: node disc
 #' penetration depth (including the clearance margin), the count of sampled
 #' edge points inside or within the edge margin of the box, the count of
 #' final edge segments (the arrowhead zone of each `edge_id`) within the
 #' arrow margin of the box, the overlap area with other placed labels, the
-#' box area outside `bounds`, and the candidate's preference rank as a pure
-#' tiebreak. Labels are assigned most constrained first (fewest
+#' box area outside `bounds`, the distance in mm from the box center to the
+#' label's own node center (the `dist` proximity pull), the total
+#' penetration depth in mm into the soft zone extending `label_soft_margin`
+#' beyond every other node's disc (the `soft` term), and the candidate's
+#' preference rank as a pure tiebreak. The proximity pull makes near anchors
+#' (the cardinals at ring 1) beat farther ones unless an obstacle penalty
+#' separates them. Labels are assigned most constrained first (fewest
 #' violation-free candidates, ties by input order) with a greedy argmin,
 #' then refined by two local-improvement sweeps that move a label only when
 #' its score strictly improves. When every candidate violates something the
@@ -66,9 +82,13 @@ label_arrow_clearance <- 2
 #'   preference order above.
 #' @param n_rings Number of rings of candidates per anchor.
 #' @param weights Named numeric vector weighting the score terms `node`,
-#'   `edge`, `arrow`, `label`, and `bounds`, plus the `prefer` tiebreak.
+#'   `edge`, `arrow`, `label`, and `bounds`, plus the `prefer` tiebreak, the
+#'   `dist` proximity pull, and the `soft` clearance-zone term. `dist` and
+#'   `soft` default to 0 when absent, so a weights vector from before those
+#'   terms existed still works.
 #' @return A data frame with one row per label in input order and columns
-#'   `id`, `x`, `y` (box centers), `anchor`, and `score`.
+#'   `id`, `x`, `y` (box centers), `anchor` (a `*` suffix marks a slid
+#'   variant), and `score`.
 #' @noRd
 place_dag_labels <- function(
   labels,
@@ -84,7 +104,9 @@ place_dag_labels <- function(
     arrow = 40,
     label = 30,
     bounds = 60,
-    prefer = 0.01
+    prefer = 0.01,
+    dist = 0.2,
+    soft = 1
   )
 ) {
   validate_label_placement_inputs(
@@ -114,7 +136,8 @@ place_dag_labels <- function(
       labels$width[i],
       labels$height[i],
       n_angles,
-      n_rings
+      n_rings,
+      bounds
     )
     scored <- score_label_candidates(
       cand,
@@ -122,7 +145,8 @@ place_dag_labels <- function(
       edges,
       arrow_segments,
       bounds,
-      weights
+      weights,
+      own_xy = c(labels$x[i], labels$y[i])
     )
     candidates[[i]] <- cand
     static_scores[[i]] <- scored$score
@@ -424,13 +448,19 @@ validate_label_placement_inputs <- function(
 #'
 #' Builds the ring-major candidate grid for a single label: the first
 #' `n_angles` anchors of the preference order at each of `n_rings` rings,
-#' with 0-based preference `rank` in evaluation order.
+#' with 0-based preference `rank` in evaluation order. When `bounds` is
+#' given, every candidate whose box spills the panel also gains a slid
+#' variant translated by the minimal offset that brings it inside, at
+#' rank + 0.5 and with `*` appended to its anchor; an axis the box cannot
+#' fit along is left untranslated.
 #'
 #' @param x,y Node center in mm.
 #' @param radius Node disc radius in mm.
 #' @param gap Ring 1 clearance between the disc edge and the box edge in mm.
 #' @param width,height Label box extent in mm.
 #' @param n_angles,n_rings Candidate grid size.
+#' @param bounds Panel extent `c(xmin, ymin, xmax, ymax)` in mm, or `NULL`
+#'   to build no slid variants.
 #' @return A list of parallel vectors `anchor`, `rank`, `x`, `y` (box
 #'   centers), and `xmin`, `ymin`, `xmax`, `ymax`, one element per
 #'   candidate.
@@ -443,7 +473,8 @@ label_candidates <- function(
   width,
   height,
   n_angles,
-  n_rings
+  n_rings,
+  bounds = NULL
 ) {
   anchors <- c("ne", "nw", "se", "sw", "n", "s", "e", "w")[seq_len(n_angles)]
   sign_x <- c(1, -1, 1, -1, 0, 0, 1, -1)[seq_len(n_angles)]
@@ -464,7 +495,7 @@ label_candidates <- function(
   center_x <- x + sign_x[anchor_index] * (reach + width / 2)
   center_y <- y + sign_y[anchor_index] * (reach + height / 2)
 
-  list(
+  cand <- list(
     anchor = anchors[anchor_index],
     rank = seq_along(center_x) - 1,
     x = center_x,
@@ -474,20 +505,56 @@ label_candidates <- function(
     xmax = center_x + width / 2,
     ymax = center_y + height / 2
   )
+  if (is.null(bounds)) {
+    return(cand)
+  }
+
+  # Minimal translation that brings a spilling box inside the panel; a box
+  # can spill at most one side per axis, so the two shifts never both apply.
+  dx <- pmax(0, bounds[[1]] - cand$xmin) - pmax(0, cand$xmax - bounds[[3]])
+  dy <- pmax(0, bounds[[2]] - cand$ymin) - pmax(0, cand$ymax - bounds[[4]])
+  if (width > bounds[[3]] - bounds[[1]]) {
+    dx[] <- 0
+  }
+  if (height > bounds[[4]] - bounds[[2]]) {
+    dy[] <- 0
+  }
+  spill <- dx != 0 | dy != 0
+  if (!any(spill)) {
+    return(cand)
+  }
+
+  idx <- which(spill)
+  list(
+    anchor = c(cand$anchor, paste0(cand$anchor[idx], "*")),
+    rank = c(cand$rank, cand$rank[idx] + 0.5),
+    x = c(cand$x, cand$x[idx] + dx[idx]),
+    y = c(cand$y, cand$y[idx] + dy[idx]),
+    xmin = c(cand$xmin, cand$xmin[idx] + dx[idx]),
+    ymin = c(cand$ymin, cand$ymin[idx] + dy[idx]),
+    xmax = c(cand$xmax, cand$xmax[idx] + dx[idx]),
+    ymax = c(cand$ymax, cand$ymax[idx] + dy[idx])
+  )
 }
 
 #' Score candidate boxes against the static obstacles
 #'
 #' Computes the placement score of every candidate against the obstacles
-#' that do not depend on other labels: node discs, sampled edge points,
-#' arrowhead segments, and the panel bounds, plus the preference-rank
+#' that do not depend on other labels: node discs (both the hard penetration
+#' depth and the soft comfort zone around discs other than the label's own),
+#' sampled edge points, arrowhead segments, and the panel bounds, plus the
+#' proximity pull toward the label's own node and the preference-rank
 #' tiebreak. The label overlap term is added later, during assignment.
 #'
 #' @param cand Candidate list from `label_candidates()`.
 #' @param nodes,edges,bounds,weights As in `place_dag_labels()`.
 #' @param arrow_segments Data frame from `final_edge_segments()`.
+#' @param own_xy Length-2 numeric, the label's own node center; the nearest
+#'   disc to it is exempt from the soft term and the proximity pull measures
+#'   from it. `NULL` disables both terms.
 #' @return A list with `score` (numeric per candidate) and `n_clean` (count
-#'   of candidates with no violations at all).
+#'   of candidates with no violations at all; soft-zone penetration and
+#'   distance are not violations).
 #' @noRd
 score_label_candidates <- function(
   cand,
@@ -495,13 +562,22 @@ score_label_candidates <- function(
   edges,
   arrow_segments,
   bounds,
-  weights
+  weights,
+  own_xy = NULL
 ) {
   n_cand <- length(cand$x)
 
-  # Node discs: total penetration depth past each disc's required clearance.
+  # Node discs: total penetration depth past each disc's required clearance,
+  # plus the depth into the soft zone beyond every disc except the label's
+  # own node's.
   node_penalty <- numeric(n_cand)
+  soft_penalty <- numeric(n_cand)
   if (nrow(nodes) > 0) {
+    own <- if (is.null(own_xy)) {
+      0L
+    } else {
+      which.min((nodes$x - own_xy[[1]])^2 + (nodes$y - own_xy[[2]])^2)
+    }
     i <- rep(seq_len(n_cand), times = nrow(nodes))
     j <- rep(seq_len(nrow(nodes)), each = n_cand)
     dist <- rect_point_dist(
@@ -514,6 +590,9 @@ score_label_candidates <- function(
     )
     depth <- pmax(0, nodes$radius[j] + label_node_clearance - dist)
     node_penalty <- rowSums(matrix(depth, nrow = n_cand))
+    soft <- pmax(0, label_soft_margin - (dist - nodes$radius[j]))
+    soft[j == own] <- 0
+    soft_penalty <- rowSums(matrix(soft, nrow = n_cand))
   }
 
   # Edges: count of sampled polyline points inside or too near the box.
@@ -584,12 +663,25 @@ score_label_candidates <- function(
     0
   )
 
+  # Distance from the box center to the label's own node center, for the
+  # proximity pull. `dist` and `soft` default to 0 when absent so weights
+  # vectors from before those terms existed keep working.
+  center_dist <- if (is.null(own_xy)) {
+    0
+  } else {
+    sqrt((cand$x - own_xy[[1]])^2 + (cand$y - own_xy[[2]])^2)
+  }
+  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
+  soft_weight <- if ("soft" %in% names(weights)) weights[["soft"]] else 0
+
   score <- weights[["node"]] *
     node_penalty +
     weights[["edge"]] * edge_violations +
     weights[["arrow"]] * arrow_violations +
     weights[["bounds"]] * outside_area +
-    weights[["prefer"]] * cand$rank
+    weights[["prefer"]] * cand$rank +
+    dist_weight * center_dist +
+    soft_weight * soft_penalty
 
   clean <- node_penalty == 0 &
     edge_violations == 0 &
@@ -1208,7 +1300,10 @@ shorten_polyline_tail <- function(px, py, cut) {
 #' `geom_dag_label_auto()` and `geom_dag_text_auto()` label the nodes of a
 #' DAG with deterministic, draw-time placement: each label is measured on the
 #' device the plot is drawn on and then placed so that label boxes avoid node
-#' discs, drawn edges, arrowheads, one another, and the panel edge. Unlike
+#' discs, drawn edges, arrowheads, one another, and the panel edge. Among
+#' positions that avoid those obstacles, the placement prefers spots close to
+#' the label's own node and clear of other nodes' discs, so each label reads
+#' as belonging to its node. Unlike
 #' [geom_dag_label_repel()], no simulation and no random numbers are
 #' involved, so the same plot always places its labels the same way.
 #' `geom_dag_label_auto()` draws each label in a borderless rounded box;

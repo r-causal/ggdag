@@ -24,8 +24,19 @@
 # * Each further ring steps that distance outward by half the box diagonal.
 # * Candidates are ordered ring-major: every anchor at ring 1 precedes any
 #   anchor at ring 2, and the prefer term breaks ties in that order.
+# * A candidate whose box spills the panel gains a slid variant translated
+#   minimally inside, at rank + 0.5, with "*" appended to its anchor.
+# * The score includes a proximity pull toward the label's own node (the
+#   dist weight, per mm of box-center distance) and a soft penalty for
+#   entering the 8 mm comfort zone around other nodes' discs (the soft
+#   weight), so near cardinal anchors beat the diagonals when both are
+#   clean.
 
 anchor_vocabulary <- c("ne", "nw", "se", "sw", "n", "s", "e", "w")
+slid_anchor_vocabulary <- c(
+  anchor_vocabulary,
+  paste0(anchor_vocabulary, "*")
+)
 
 # Center of the candidate box for `anchor` at `ring`, per the geometry above.
 candidate_center <- function(
@@ -96,19 +107,20 @@ straight_edge <- function(edge_id, x, y, xend, yend, n = 20) {
 
 no_edges <- data.frame(edge_id = character(), x = numeric(), y = numeric())
 
-test_that("a lone node's label sits at the NE anchor at ring 1", {
+test_that("a lone node's label sits at the N anchor at ring 1", {
   labels <- data.frame(id = "a", x = 0, y = 0, width = 18, height = 8)
   nodes <- data.frame(x = 0, y = 0, radius = 4)
   bounds <- c(-40, -40, 40, 40)
 
   res <- place_dag_labels(labels, nodes, no_edges, bounds)
 
-  # Nearest box point (its SW corner) sits at radius + gap = 5.5 mm along the
-  # 45 degree ray: corner (5.5 / sqrt(2), 5.5 / sqrt(2)) = (3.8890873,
-  # 3.8890873), so the center is offset by half the box from there:
-  # (12.8890873, 7.8890873).
-  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "ne")
-  expect_equal(res$anchor, "ne")
+  # Every ring 1 candidate is clean, so the proximity pull decides: the N
+  # box's facing side midpoint sits at radius + gap = 5.5 mm along the
+  # 90 degree ray, centering the box (0, 9.5) from the node, nearer than any
+  # diagonal box center (15.1 mm away) or the E/W centers (14.5 mm). S ties
+  # N on distance and the prefer term breaks the tie for N.
+  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "n")
+  expect_equal(res$anchor, "n")
   expect_equal(res$x, expected[[1]], tolerance = 1e-6)
   expect_equal(res$y, expected[[2]], tolerance = 1e-6)
 
@@ -126,9 +138,10 @@ test_that("gap sets the clearance between the node disc and the label box", {
   res <- place_dag_labels(labels, nodes, no_edges, bounds, gap = 3)
 
   # Same geometry as the default, with the nearest-point distance now
-  # 4 + 3 = 7 mm: corner (7 / sqrt(2), 7 / sqrt(2)) = (4.9497475, 4.9497475).
-  expected <- candidate_center(0, 0, 4, 3, 18, 8, "ne")
-  expect_equal(res$anchor, "ne")
+  # 4 + 3 = 7 mm: the N box's facing side midpoint sits at (0, 7), centering
+  # the box at (0, 11).
+  expected <- candidate_center(0, 0, 4, 3, 18, 8, "n")
+  expect_equal(res$anchor, "n")
   expect_equal(res$x, expected[[1]], tolerance = 1e-6)
   expect_equal(res$y, expected[[2]], tolerance = 1e-6)
 
@@ -136,14 +149,15 @@ test_that("gap sets the clearance between the node disc and the label box", {
   expect_equal(box_dist_to_point(box, 0, 0) - 4, 3, tolerance = 1e-6)
 })
 
-test_that("an obstacle disc over the NE candidates forces the NW anchor", {
+test_that("an obstacle disc over the NE candidates forces the label away", {
   # An obstacle disc of radius 12 centered on the NE ring 2 candidate center
   # (19.8532814, 14.8532814). Distances from that center to the NE candidate
   # boxes are 2.96 mm (ring 1), 0 (ring 2, center inside), and 2.96 mm
-  # (ring 3), so every NE candidate overlaps the disc. The NW ring 1 box
-  # (x in [-21.889, -3.889], y in [3.889, 11.889]) keeps a Euclidean
-  # clearance of 23.93 - 12 = 11.93 mm from the disc, making NW the next
-  # candidate by preference.
+  # (ring 3), so every NE candidate overlaps the disc; the N ring 1 box
+  # (10.94 mm away) and the E ring 1 box (10.85 mm away) overlap it too. The
+  # S ring 1 box clears the disc by 11.07 mm, past the 8 mm soft zone, so it
+  # is clean, and at 9.5 mm from the node it is the nearest clean anchor:
+  # the label lands on the far side of its node from the obstacle.
   obstacle <- candidate_center(0, 0, 4, 1.5, 18, 8, "ne", ring = 2)
   labels <- data.frame(id = "a", x = 0, y = 0, width = 18, height = 8)
   nodes <- data.frame(
@@ -155,8 +169,8 @@ test_that("an obstacle disc over the NE candidates forces the NW anchor", {
 
   res <- place_dag_labels(labels, nodes, no_edges, bounds)
 
-  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "nw")
-  expect_equal(res$anchor, "nw")
+  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "s")
+  expect_equal(res$anchor, "s")
   expect_equal(res$x, expected[[1]], tolerance = 1e-6)
   expect_equal(res$y, expected[[2]], tolerance = 1e-6)
 
@@ -165,16 +179,18 @@ test_that("an obstacle disc over the NE candidates forces the NW anchor", {
   expect_gte(box_dist_to_point(box, obstacle[[1]], obstacle[[2]]), 12)
 })
 
-test_that("edges through the northern candidates push the label to SE", {
+test_that("edges through the northern candidates push the label south", {
   # Three horizontal polylines at y = 8, 15, and 20 (x from -40 to 40) pass
-  # through every candidate box that would otherwise beat SE ring 1:
+  # through every northern candidate box at every ring:
   #   NE/NW ring 1 boxes span y [3.889, 11.889] (crossed by y = 8)
   #   NE/NW ring 2 boxes span y [10.853, 18.853] (crossed by y = 15)
   #   NE/NW ring 3 boxes span y [17.817, 25.817] (crossed by y = 20)
   #   N ring 1 spans y [5.5, 13.5] (y = 8); N ring 2 spans y [15.349, 23.349]
   #   (y = 15 and y = 20)
-  # The SE ring 1 box (y in [-11.889, -3.889]) is untouched and is the most
-  # preferred clean candidate.
+  # The S ring 1 box (y in [-13.5, -5.5]) is untouched, and among the clean
+  # southern candidates it is the nearest to the node (9.5 mm against
+  # 14.5 mm for E/W and 15.1 mm for SE/SW), so the edges push the label to
+  # the clean southern side.
   labels <- data.frame(id = "a", x = 0, y = 0, width = 18, height = 8)
   nodes <- data.frame(x = 0, y = 0, radius = 4)
   edges <- rbind(
@@ -186,8 +202,8 @@ test_that("edges through the northern candidates push the label to SE", {
 
   res <- place_dag_labels(labels, nodes, edges, bounds)
 
-  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "se")
-  expect_equal(res$anchor, "se")
+  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "s")
+  expect_equal(res$anchor, "s")
   expect_equal(res$x, expected[[1]], tolerance = 1e-6)
   expect_equal(res$y, expected[[2]], tolerance = 1e-6)
 })
@@ -304,19 +320,21 @@ test_that("two labels on the same node do not overlap", {
 
 test_that("a node near the panel corner gets its label pulled inside", {
   # The panel's top-right corner sits at (8, 8). NE, SE, N, S, and E ring 1
-  # boxes all cross the right or top panel edge; the NW ring 1 box crosses
-  # the top edge (it spans y up to 11.889 > 8). The first candidate in
-  # preference order that lies fully inside is SW ring 1 (x in [-21.889,
-  # -3.889], y in [-11.889, -3.889]); W ring 1 is also fully inside but ranks
-  # after SW, so the prefer term settles the tie for SW.
+  # boxes all cross the right or top panel edge, and the NW ring 1 box
+  # crosses the top edge (it spans y up to 11.889 > 8). The S ring 1 box
+  # (x in [-9, 9]) spills the right edge by only 1 mm, so its slid variant
+  # s* shifts it 1 mm left to x [-10, 8], fully inside while still clearing
+  # the disc by the gap. Its box center sits 9.55 mm from the node, beating
+  # the fully inside SW ring 1 (15.1 mm) and W ring 1 (14.5 mm), so the
+  # label ends up inside the panel at the slid southern spot.
   labels <- data.frame(id = "a", x = 0, y = 0, width = 18, height = 8)
   nodes <- data.frame(x = 0, y = 0, radius = 4)
   bounds <- c(-60, -60, 8, 8)
 
   res <- place_dag_labels(labels, nodes, no_edges, bounds)
 
-  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "sw")
-  expect_equal(res$anchor, "sw")
+  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "s") + c(-1, 0)
+  expect_equal(res$anchor, "s*")
   expect_equal(res$x, expected[[1]], tolerance = 1e-6)
   expect_equal(res$y, expected[[2]], tolerance = 1e-6)
 
@@ -355,12 +373,13 @@ test_that("rings step outward by half the box diagonal", {
   # 7.5 mm along each anchor ray, placing each disc center inside its ring 1
   # candidate box (diagonal rays: (5.303, 5.303) and reflections; cardinal
   # rays: (0, 7.5), (7.5, 0) and reflections), so all eight ring 1 candidates
-  # are dirty. Every ring 2 box clears every disc by more than the gap: the
-  # tightest pair is the NE ring 2 box corner at (10.853, 10.853), which is
-  # sqrt(5.55^2 + 5.55^2) - 2 = 5.85 mm from the NE ray disc. The winner is
-  # therefore NE at ring 2: nearest-point distance 5.5 + sqrt(18^2 + 8^2) / 2
-  # = 15.3488578 mm, corner (10.8532814, 10.8532814), center (19.8532814,
-  # 14.8532814).
+  # are dirty. Every ring 2 box clears every disc, but only by less than the
+  # 8 mm soft zone: the N ring 2 box bottom at y = 15.349 sits 5.85 mm past
+  # the (0, 7.5) disc, a soft penalty of 2.15 mm, which outweighs stepping
+  # one more ring out (2.05 mm of extra distance and rank cost). The winner
+  # is therefore N at ring 3: nearest-point distance 5.5 +
+  # 2 * sqrt(18^2 + 8^2) / 2 = 25.1977156 mm, two half-diagonal steps past
+  # ring 1, centering the box at (0, 29.1977156) with no soft penetration.
   labels <- data.frame(id = "a", x = 0, y = 0, width = 18, height = 8)
   angles <- pi / 180 * c(45, 135, 315, 225, 90, 270, 0, 180)
   nodes <- data.frame(
@@ -372,8 +391,8 @@ test_that("rings step outward by half the box diagonal", {
 
   res <- place_dag_labels(labels, nodes, no_edges, bounds)
 
-  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "ne", ring = 2)
-  expect_equal(res$anchor, "ne")
+  expected <- candidate_center(0, 0, 4, 1.5, 18, 8, "n", ring = 3)
+  expect_equal(res$anchor, "n")
   expect_equal(res$x, expected[[1]], tolerance = 1e-6)
   expect_equal(res$y, expected[[2]], tolerance = 1e-6)
 })
@@ -450,21 +469,18 @@ test_that("mediation triangle labels avoid the edges geometrically", {
   # Straight edges x -> m, m -> y, and x -> y, each sampled at 20 points
   # including both endpoints.
   #
-  # Hand-verified winners:
-  # * x: the x -> m edge (the line y = x / 2) crosses the NE ring 1 box
-  #   between x = 7.78 and x = 21.89, crosses the NE ring 2 box between
-  #   x = 21.71 and x = 28.85, and has the sampled point (35.789, 17.895)
-  #   inside the NE ring 3 box, so every NE candidate is dirty. Every edge
-  #   point stays at least 5.5 mm from the NW ring 1 box (the nearest edge
-  #   point is the endpoint (0, 0), 5.5 mm from the box corner at (-3.889,
-  #   3.889)), so NW ring 1 is the first clean candidate: anchor "nw".
-  # * m: both incident edges leave m heading down toward x and y, and the
-  #   nearest approach of any edge to the NE ring 1 box is 5.22 mm (the
-  #   m -> y line x + 2y = 80 passes 11.667 / sqrt(5) = 5.218 mm from the box
-  #   corner at (43.889, 23.889)), so NE ring 1 is clean: anchor "ne".
-  # * y: every edge point has x <= 80 while the NE ring 1 box starts at
-  #   x = 83.889; the nearest edge point (80, 0) is 5.5 mm from the box
-  #   corner, so NE ring 1 is clean: anchor "ne".
+  # Hand-verified winners, each the nearest candidate the edges leave clean:
+  # * x: the x -> m edge (the line y = x / 2) passes below x's N ring 1 box
+  #   (y from 5.5 to 13.5): its nearest sampled point (8.421, 4.211) sits
+  #   1.29 mm under the box, outside the 1 mm edge margin, and the x -> y
+  #   edge along y = 0 stays 5.5 mm below, so N ring 1 is clean and the
+  #   proximity pull picks it over every diagonal: anchor "n".
+  # * m: both incident edges leave m heading down toward x and y, so no edge
+  #   point comes near m's N ring 1 box (y from 25.5 to 33.5): anchor "n".
+  # * y: the m -> y edge (the line x + 2y = 80) approaches from the upper
+  #   left; its nearest sampled point to y's N ring 1 box, (71.579, 4.211),
+  #   sits 1.29 mm under the box, and the arrowhead segments ending at
+  #   (80, 0) stay at least 4.4 mm away, so N ring 1 is clean: anchor "n".
   labels <- data.frame(
     id = c("x", "m", "y"),
     x = c(0, 40, 80),
@@ -483,11 +499,11 @@ test_that("mediation triangle labels avoid the edges geometrically", {
   res <- place_dag_labels(labels, nodes, edges, bounds)
 
   expect_identical(res$id, c("x", "m", "y"))
-  expect_equal(res$anchor, c("nw", "ne", "ne"))
+  expect_equal(res$anchor, c("n", "n", "n"))
 
-  expected_x <- candidate_center(0, 0, 4, 1.5, 18, 8, "nw")
-  expected_m <- candidate_center(40, 20, 4, 1.5, 18, 8, "ne")
-  expected_y <- candidate_center(80, 0, 4, 1.5, 18, 8, "ne")
+  expected_x <- candidate_center(0, 0, 4, 1.5, 18, 8, "n")
+  expected_m <- candidate_center(40, 20, 4, 1.5, 18, 8, "n")
+  expected_y <- candidate_center(80, 0, 4, 1.5, 18, 8, "n")
   expect_equal(
     res$x,
     c(expected_x[[1]], expected_m[[1]], expected_y[[1]]),
@@ -529,12 +545,11 @@ test_that("curved edge polylines act as obstacles", {
   # and W boxes, and the sampled curve points (x = 4 k, y = 2 t (1 - t) *
   # -19.206 with t = x / 80) fall inside the S, SE, and SW boxes (for
   # example (40, -9.603) in S, (44, -9.507) in SE, (36, -9.507) in SW). So
-  # b's label must move farther out; the first fully clear candidate in
-  # preference order is SE ring 2 (x in [50.853, 68.853], y in [-18.853,
-  # -10.853]), which every sampled edge point misses (the curve stays above
-  # y = -8.8 over that x range and the other edges stay at or above y = 0).
-  # Nodes d, e, and c have unobstructed NE quadrants (every nearby edge
-  # point stays at least 5.5 mm away), so their labels take NE ring 1.
+  # b's label must move farther out to a clear ring 2 candidate; which one
+  # wins is left unpinned, checked only through the structural invariants
+  # below. Nodes d, e, and c have unobstructed northern sides (the incident
+  # edges leave them downward or pass well below), so the proximity pull
+  # gives each of their labels the near N ring 1 box.
   curve <- sample_curved_edge(0, 0, 80, 0, curvature = 0.15, n = 21)
   edges <- rbind(
     straight_edge("ab", 0, 0, 40, 0),
@@ -560,7 +575,7 @@ test_that("curved edge polylines act as obstacles", {
   res <- place_dag_labels(labels, nodes, edges, bounds)
 
   expect_identical(res$id, labels$id)
-  expect_equal(res$anchor[match(c("c", "d", "e"), res$id)], c("ne", "ne", "ne"))
+  expect_equal(res$anchor[match(c("c", "d", "e"), res$id)], c("n", "n", "n"))
 
   # Structural invariants for every label, including b's unpinned placement:
   # no sampled edge point inside a placed box, no node disc overlap, and no
@@ -648,7 +663,9 @@ test_that("a dense fixture degrades to least-bad placements without error", {
   # Four nodes on a 10 mm square, each with a 30 x 20 mm label, inside a
   # 34 x 34 mm panel: the four boxes cannot fit anywhere without violations
   # (total label area 2400 mm^2 against a 1156 mm^2 panel). Every label must
-  # still get a finite, deterministic, least-bad row.
+  # still get a finite, deterministic, least-bad row; in a panel this tight
+  # the least-bad candidates can be slid variants, so anchors come from the
+  # slid vocabulary.
   labels <- data.frame(
     id = c("a", "b", "c", "d"),
     x = c(0, 10, 0, 10),
@@ -669,7 +686,7 @@ test_that("a dense fixture degrades to least-bad placements without error", {
   expect_identical(res$id, labels$id)
   expect_true(all(is.finite(res$x)))
   expect_true(all(is.finite(res$y)))
-  expect_true(all(res$anchor %in% anchor_vocabulary))
+  expect_true(all(res$anchor %in% slid_anchor_vocabulary))
   expect_true(all(is.finite(res$score)))
   expect_true(all(res$score > 0))
 

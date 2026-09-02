@@ -200,6 +200,13 @@ for (case in unique(case_names)) {
 fixture <- stats::setNames(captures$log, case_names)
 fixture <- lapply(fixture, function(cp) cp[setdiff(names(cp), "case")])
 
+# The label text is recovered from the geom's calling frame; a silent
+# capture failure would leave NA text and break the placement tests'
+# text-based lookups, so it must fail here instead.
+for (cp in fixture) {
+  stopifnot(!anyNA(cp$text))
+}
+
 path <- file.path("tests", "testthat", "fixtures", "label-placement-inputs.rds")
 saveRDS(fixture, path, version = 3)
 cat("Wrote", path, "with", length(fixture), "captured scenes:\n")

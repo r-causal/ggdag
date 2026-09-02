@@ -115,7 +115,10 @@ A layer that can be added to a ggplot.
 \code{geom_dag_label_auto()} and \code{geom_dag_text_auto()} label the nodes of a
 DAG with deterministic, draw-time placement: each label is measured on the
 device the plot is drawn on and then placed so that label boxes avoid node
-discs, drawn edges, arrowheads, one another, and the panel edge. Unlike
+discs, drawn edges, arrowheads, one another, and the panel edge. Among
+positions that avoid those obstacles, the placement prefers spots close to
+the label's own node and clear of other nodes' discs, so each label reads
+as belonging to its node. Unlike
 \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}, no simulation and no random numbers are
 involved, so the same plot always places its labels the same way.
 \code{geom_dag_label_auto()} draws each label in a borderless rounded box;
