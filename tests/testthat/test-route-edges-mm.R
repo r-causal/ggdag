@@ -530,7 +530,13 @@ expect_orthogonal_scene <- function(
     if (res$meta$mode[i] == "straight") {
       expect_false(res$meta$routed[i], label = label)
       expect_identical(nrow(path), 2L, label = label)
-      expect_lt(abs(ends$from[2] - ends$to[2]), 1e-3, label = label)
+      # only a horizontal chord or a vertical chord within one layer stays
+      # straight
+      expect_true(
+        abs(ends$from[2] - ends$to[2]) < 1e-3 ||
+          abs(ends$from[1] - ends$to[1]) < 1e-3,
+        label = label
+      )
       next
     }
 
@@ -1843,6 +1849,82 @@ test_that("orthogonal fan: edges sharing a source port share one vertical segmen
   expect_equal(ab, 50, tolerance = 1e-6)
 })
 
+# The fan plus a node b2 at (80, 70) and an edge a->b2. a->b covers
+# [55, 85] and a->b2 [55, 70], a proper overlap on the same side of a, which
+# only hyperedge merging can place in one slot. fan_scene() itself stays as
+# in the worked trace.
+fan_same_side_scene <- function() {
+  scene <- fan_scene()
+  scene$nodes <- rbind(scene$nodes, mm_nodes("b2", 80, 70))
+  scene$edges <- rbind(scene$edges, mm_edges("a", "b2"))
+  scene
+}
+
+test_that("orthogonal fan: edges leaving one port to the same side merge into one segment", {
+  scene <- fan_same_side_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  # Without merging, a->b and a->b2 would need two slots in gap 1 at
+  # 36.1 + 27.8 / 3 = 45.367 and 36.1 + 2 * 27.8 / 3 = 54.633. As one
+  # segment over the union [25, 85] with a->d they share the single slot
+  # 36.1 + 27.8 / 2 = 50.
+  labs <- c("a->b", "a->b2", "a->d")
+  xs <- vapply(
+    labs,
+    function(lab) {
+      x <- slot_xs(res$paths[[edge_index(scene, lab)]], c(20, 80))
+      expect_length(x, 1)
+      x
+    },
+    numeric(1)
+  )
+  expect_equal(unname(xs), rep(50, 3), tolerance = 1e-6)
+
+  # the vertical runs of the merged edges sit at bit-identical x
+  run_x <- function(lab) {
+    runs <- straight_runs(res$paths[[edge_index(scene, lab)]])
+    runs$coord[runs$axis == "v"]
+  }
+  expect_identical(run_x("a->b"), run_x("a->b2"))
+  expect_identical(run_x("a->b"), run_x("a->d"))
+
+  # the rest of the fan is unchanged by the extra target
+  base <- ortho(fan_scene())
+  for (lab in edge_labels(fan_scene()$edges)) {
+    i <- edge_index(scene, lab)
+    j <- edge_index(fan_scene(), lab)
+    expect_lt(polyline_hausdorff(res$paths[[i]], base$paths[[j]]), 1e-6)
+  }
+
+  # The four-layer fixture has no same-side pair to check in the same way:
+  # p->q1 and p->q2, q1->s1 and q1->s2, and q2->s2 and q2->s3 all leave
+  # their port to opposite sides, so their intervals only touch at the
+  # port's y.
+})
+
+test_that("orthogonal: a vertical chord within one layer stays a straight chord", {
+  # u and v share a layer 40 mm apart in y; w sits in a second layer so the
+  # layer axis is inferable
+  scene <- list(
+    nodes = mm_nodes(c("u", "v", "w"), c(20, 20, 80), c(20, 60, 40)),
+    edges = mm_edges(c("u", "w"), c("v", "v")),
+    bounds = c(0, 0, 160, 110)
+  )
+  res <- ortho(scene)
+  ends <- edge_endpoints(scene, 1)
+
+  expect_false(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "straight")
+  expect_equal(res$meta$n_waypoints[1], 0)
+  expect_identical(nrow(res$waypoints[[1]]), 0L)
+  expect_straight_path(res$paths[[1]], ends$from, ends$to)
+
+  # the oblique edge into v is drawn orthogonally as usual
+  expect_equal(res$meta$mode[2], "orthogonal")
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+})
+
 test_that("orthogonal fan: edges entering the same port share their last run", {
   scene <- fan_scene()
   res <- ortho(scene)
@@ -1864,9 +1946,11 @@ test_that("orthogonal fan: edges entering the same port share their last run", {
 })
 
 # Two layers 40 mm apart leave a band [20 + 16.1, 60 - 16.1] = [36.1, 43.9]
-# of 7.8 mm. Four staircase edges pairwise overlap in y, so they need four
-# slots: an even spread would put them 7.8 / 5 = 1.56 mm apart, closer than
-# sep_e, so the slots fall back to the gap midpoint 40 spaced by 3.6.
+# of 7.8 mm. Each adjacent pair of the four staircase edges overlaps in y
+# (a1/a3 and a2/a4 only touch, a1/a4 are disjoint), which forces the chain
+# a4 -> a3 -> a2 -> a1 and four slots: an even spread would put them
+# 7.8 / 5 = 1.56 mm apart, closer than sep_e, so the slots fall back to the
+# gap midpoint 40 spaced by 3.6.
 narrow_band_scene <- function() {
   list(
     nodes = mm_nodes(
@@ -2030,8 +2114,10 @@ test_that("orthogonal: bends scale exactly with k while rc stays inside its clam
           ref$waypoints[[i]]$y,
           tolerance = 1e-9
         )
+        # sample counts may differ between scales, so the sampled paths are
+        # compared at 0.05 mm like the spline scale test
         scaled <- pt(res$paths[[i]]$x / k, res$paths[[i]]$y / k)
-        expect_lt(polyline_hausdorff(scaled, ref$paths[[i]]), 1e-6)
+        expect_lt(polyline_hausdorff(scaled, ref$paths[[i]]), 0.05)
       }
     }
   }
@@ -2090,7 +2176,10 @@ test_that("canonical DAGs: orthogonal mode is axis-aligned with exact endpoints 
       for (i in seq_len(nrow(scene$edges))) {
         ends <- edge_endpoints(scene, i)
         label <- paste0(prefix, edge_labels(scene$edges)[i])
-        if (abs(ends$from[2] - ends$to[2]) >= 1e-3) {
+        # every chord that is neither horizontal nor vertical is orthogonal
+        oblique <- abs(ends$from[2] - ends$to[2]) >= 1e-3 &&
+          abs(ends$from[1] - ends$to[1]) >= 1e-3
+        if (oblique) {
           expect_equal(res$meta$mode[i], "orthogonal", label = label)
         }
       }
