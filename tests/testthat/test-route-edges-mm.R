@@ -900,6 +900,51 @@ test_that("four-layer: p->t sweeps the periphery above the two middle layers", {
   )
 })
 
+# Steepest |dy / dx| along a sampled path, ignoring vertical steps.
+max_slope <- function(path) {
+  dx <- diff(path$x)
+  dy <- diff(path$y)
+  keep <- dx > 1e-6
+  max(abs(dy[keep] / dx[keep]))
+}
+
+test_that("four-layer: the periphery arch peaks near mid-span and climbs as steeply as it descends", {
+  scene <- four_layer_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[10]]
+  ends <- edge_endpoints(scene, 10)
+
+  # The chord is horizontal, so the perpendicular offset is y - 55 and the
+  # chord parameter is (x - 20) / 120. The outer slots sit 9 mm above the
+  # stack tops, 84 at layer 2 and 99 at layer 3, and the verify step lifts
+  # the layer 3 waypoint to about 101. An arch that hugs both slots peaks
+  # over layer 3 at t = 0.63; a symmetric arch through (60, 101) and
+  # (100, 101) peaks at t = 0.5.
+  offset <- chord_offset(path, ends$from, ends$to)
+  apex <- which.max(offset)
+  t_apex <- chord_progress(path, ends$from, ends$to)[apex] /
+    chord_length(ends$from, ends$to)
+  expect_gte(t_apex, 0.4)
+  expect_lte(t_apex, 0.6)
+
+  # The descent is steep by construction: from the layer 3 slot at
+  # (100, >= 99) down to t at (140, 55) the mean slope is at least 44 / 40 =
+  # 1.1, so no arch through that slot descends at 45 degrees, and the
+  # symmetric arch drops at 1.44. What distinguishes a balanced arch is that
+  # it climbs as steeply as it falls, whereas the slot-hugging arch climbs
+  # at 0.88 and falls at 1.50.
+  climb <- max_slope(pt(path$x[seq_len(apex)], path$y[seq_len(apex)]))
+  descent <- max_slope(pt(
+    path$x[apex:nrow(path)],
+    path$y[apex:nrow(path)]
+  ))
+  expect_lte(descent, 1.25 * climb)
+
+  # both ends leave and arrive within the 40 degree tangent clamp
+  expect_lt(arrival_angle(path, ends$to), 40)
+  expect_lt(arrival_angle(pt(rev(path$x), rev(path$y)), ends$from), 40)
+})
+
 test_that("layer_free_intervals() lists the gaps between padded nodes with outer flags", {
   bounds <- c(0, 0, 160, 110)
 
@@ -954,6 +999,201 @@ test_that("nearest_free_y() snaps to the nearest free y on the requested side", 
   # nothing free on that side of the panel
   expect_true(is.na(nearest_free_y(ints, 200, 1, FALSE)))
   expect_true(is.na(nearest_free_y(ints, -50, -1, FALSE)))
+})
+
+test_that("layer_free_intervals() drops interior gaps narrower than sep_e", {
+  bounds <- c(0, 0, 160, 110)
+
+  # Four nodes at y = 20, 38.2, 59.2, and 82.2 with padded radius R = 9
+  # leave gaps of 0.2 mm ([29, 29.2]), 3.0 mm ([47.2, 50.2]), and 5.0 mm
+  # ([68.2, 73.2]). A slot narrower than sep_e = 3.6 cannot hold an edge
+  # with its separation, so only the 5 mm gap and the two outer intervals
+  # remain.
+  nodes <- mm_nodes(c("a", "b", "c", "d"), 80, c(20, 38.2, 59.2, 82.2))
+  ints <- layer_free_intervals(nodes, 3, bounds, sep_e = sep_e_default)
+  expect_equal(ints$lo, c(0.5, 68.2, 91.2))
+  expect_equal(ints$hi, c(11, 73.2, 109.5))
+  expect_equal(ints$outer, c(TRUE, FALSE, TRUE))
+
+  # a chord dead on b snaps past both slivers to the surviving intervals
+  expect_equal(nearest_free_y(ints, 38.2, 1, FALSE), 68.2)
+  expect_equal(nearest_free_y(ints, 38.2, -1, FALSE), 11)
+
+  # an outer interval is kept however narrow: a node at y = 100 leaves
+  # [109, 109.5] toward the panel edge
+  edge <- layer_free_intervals(
+    mm_nodes("z", 80, 100),
+    3,
+    bounds,
+    sep_e = sep_e_default
+  )
+  expect_equal(edge$lo, c(0.5, 109))
+  expect_equal(edge$hi, c(91, 109.5))
+  expect_equal(edge$outer, c(TRUE, TRUE))
+})
+
+test_that("a chord whose nearest slot is a sliver is routed to the next interval", {
+  # S -> T runs dead on b through a layer whose gaps above and below b are
+  # 3.0 and 0.2 mm wide. Without the width floor both sides snap 9 mm off
+  # the chord into a sliver and the tie goes above, to y = 47.2. With it the
+  # candidates are 11 below (displacement 27.2) and 68.2 above (30), so the
+  # waypoint sits in the lower outer interval.
+  scene <- list(
+    nodes = rbind(
+      mm_nodes(c("S", "T"), c(20, 140), 38.2),
+      mm_nodes(c("a", "b", "c", "d"), 80, c(20, 38.2, 59.2, 82.2))
+    ),
+    edges = mm_edges("S", "T"),
+    bounds = c(0, 0, 160, 110)
+  )
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+
+  expect_true(res$meta$routed[1])
+  expect_true(res$meta$mode[1] %in% c("interior", "periphery"))
+  expect_equal(res$meta$side[1], -1)
+  expect_true(res$meta$clearance_ok[1])
+  wp <- res$waypoints[[1]]
+  at_layer <- wp$y[wp$layer == 2]
+  expect_length(at_layer, 1)
+  expect_true(at_layer <= 11 + 1e-6 || at_layer >= 68.2 - 1e-6)
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(nrow(path), 16)
+  expect_gte(path_min_clearance(scene, 1, path), r_full - verify_tol)
+  expect_true(all(diff(path$x) >= -0.1))
+  expect_lt(max(abs(turning_angles(path))), 12)
+})
+
+# Two horizontal chords at y = 30 and 46 cross a layer whose stack at y =
+# 40, 23, and 6 leaves one free interval, [49, 109.5], so both snap to 49
+# above. `low` and `high` name the endpoints of the chord-30 and chord-46
+# edges; the edges tie on span and length, so the canonical name order
+# decides which is routed first.
+shared_slot_scene <- function(low, high) {
+  list(
+    nodes = rbind(
+      mm_nodes(c(low, high), c(20, 140, 20, 140), c(30, 30, 46, 46)),
+      mm_nodes(c("m1", "m2", "m3"), 80, c(40, 23, 6))
+    ),
+    edges = mm_edges(c(low[1], high[1]), c(low[2], high[2])),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+expect_shared_slot_order <- function(scene) {
+  res <- route_scene(scene)
+  expect_true(all(res$meta$routed))
+  expect_equal(res$meta$mode, c("interior", "interior"))
+  expect_equal(res$meta$side, c(1, 1))
+  expect_true(all(res$meta$clearance_ok))
+
+  low <- res$waypoints[[1]]
+  high <- res$waypoints[[2]]
+  expect_identical(nrow(low), 1L)
+  expect_identical(nrow(high), 1L)
+  expect_equal(c(low$x, high$x), c(80, 80))
+  expect_equal(c(low$layer, high$layer), c(2, 2))
+  # the lower chord takes the slot boundary, 9 above m1; the higher chord
+  # sits sep_e further out
+  expect_equal(low$y, 49)
+  expect_equal(high$y, 49 + sep_e_default)
+  expect_lt(low$y, high$y)
+  expect_gte(high$y - low$y, sep_e_default - 1e-6)
+
+  for (i in 1:2) {
+    ends <- edge_endpoints(scene, i)
+    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+    expect_gte(
+      path_min_clearance(scene, i, res$paths[[i]]),
+      r_full - verify_tol
+    )
+  }
+}
+
+test_that("spread_in_slot(): edges sharing a slot keep the y-order of their chords", {
+  # the lower chord is routed first and the higher one is spread outward
+  expect_shared_slot_order(shared_slot_scene(c("a1", "b1"), c("a2", "b2")))
+  # the higher chord is routed first: the order of the chords at the layer
+  # still decides who sits inside, not the order of routing
+  expect_shared_slot_order(shared_slot_scene(c("a2", "b2"), c("a1", "b1")))
+})
+
+# Two fan-in edges pa -> t and pb -> t span four layers. The stacks at
+# layers 2 and 3 (x = 60 and 100) leave no free interval below and one
+# above each: [99, 109.5] at layer 2 and [65, 109.5] at layer 3. Both
+# chords are blocked at both layers and can only arch above.
+occupied_arch_scene <- function() {
+  list(
+    nodes = rbind(
+      mm_nodes(c("pa", "pb", "t"), c(20, 20, 140), c(40, 60, 55)),
+      mm_nodes(paste0("q", 1:6), 60, c(5, 22, 39, 56, 73, 90)),
+      mm_nodes(paste0("s", 1:4), 100, c(5, 22, 39, 56))
+    ),
+    edges = mm_edges(c("pa", "pb"), c("t", "t")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+# y of a sampled path where it crosses the vertical line x = x0.
+path_y_at <- function(path, x0) {
+  n <- nrow(path)
+  k <- which(path$x[-n] <= x0 & path$x[-1] >= x0)[1]
+  stats::approx(path$x[k + 0:1], path$y[k + 0:1], xout = x0)$y
+}
+
+test_that("an arch occupies every layer it crosses, not only the layers of its waypoints", {
+  scene <- occupied_arch_scene()
+  res <- route_scene(scene)
+
+  expect_true(all(res$meta$routed))
+  expect_true(all(res$meta$clearance_ok))
+  expect_equal(res$meta$side, c(1, 1))
+
+  # pa -> t is the longer edge (120.9 against 120.1 mm) and routes first.
+  # Its slots are 99 at layer 2 and 65 at layer 3; the line from (60, 99)
+  # to t passes layer 3 at 77, above 65, so the hull drops the layer 3
+  # waypoint and the arch crosses that layer without one. The verify step
+  # then lifts the remaining waypoint to about 101.
+  expect_identical(res$meta$waypoint_layers[[1]], 2L)
+
+  # pb -> t wants the same slots. Its chord is higher at both layers (58.3
+  # against 45 at layer 2, 56.7 against 50 at layer 3), so it sits outside
+  # pa -> t: sep_e above the waypoint pa -> t was drawn through at layer 2,
+  # and sep_e above where the pa -> t arch actually passes layer 3, rather
+  # than at the slot boundary 65 that its own hull would discard. Spreading
+  # only against registered waypoints drew the arches 1.6 mm apart at
+  # x = 60 and 0.4 mm apart at x = 100.
+  for (x0 in c(60, 100)) {
+    ya <- path_y_at(res$paths[[1]], x0)
+    yb <- path_y_at(res$paths[[2]], x0)
+    expect_gt(yb, ya)
+    expect_gte(yb - ya, sep_e_default - 0.1)
+  }
+
+  for (i in 1:2) {
+    ends <- edge_endpoints(scene, i)
+    path <- res$paths[[i]]
+    expect_exact_endpoints(path, ends$from, ends$to)
+    expect_gte(nrow(path), 16)
+    expect_gte(path_min_clearance(scene, i, path), r_full - verify_tol)
+    expect_true(all(diff(path$x) >= -0.1))
+    expect_lt(max(abs(turning_angles(path))), 12)
+  }
+
+  # deterministic and invariant to row order
+  expect_identical(route_scene(scene), res)
+  shuffled <- scene
+  shuffled$nodes <- scene$nodes[rev(seq_len(nrow(scene$nodes))), ]
+  shuffled$edges <- scene$edges[2:1, ]
+  rownames(shuffled$nodes) <- NULL
+  rownames(shuffled$edges) <- NULL
+  res2 <- route_scene(shuffled)
+  expect_identical(res2$paths[[2]], res$paths[[1]])
+  expect_identical(res2$paths[[1]], res$paths[[2]])
+  expect_identical(res2$waypoints[[2]], res$waypoints[[1]])
+  expect_identical(res2$waypoints[[1]], res$waypoints[[2]])
 })
 
 # Fixture 4: weave -------------------------------------------------------------
@@ -1167,6 +1407,56 @@ test_that("a panel with no free slot on either side yields a least-bad bow, not 
     expect_false(res$meta$routed[i])
     expect_straight_path(res$paths[[i]], ends_i$from, ends_i$to)
   }
+})
+
+# A and B are `gap` mm apart on y = 50 and C sits above the chord midpoint.
+short_chord_scene <- function(gap, c_y) {
+  list(
+    nodes = mm_nodes(
+      c("A", "B", "C"),
+      c(50, 50 + gap, 50 + gap / 2),
+      c(50, 50, c_y)
+    ),
+    edges = mm_edges("A", "B"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("a chord shorter than 2R between overlapping discs stays straight", {
+  # A and B are 14 mm apart, so their 6 mm discs are 2 mm from touching and
+  # the chord is shorter than 2R = 18. C sits 8 mm above the chord midpoint
+  # (a soft hit) or 6 mm above it (a hard hit); either way its disc overlaps
+  # both endpoint discs and a bow around it would be steeper than the chord
+  # is long, so the chord is drawn as is.
+  for (c_y in c(58, 56)) {
+    scene <- short_chord_scene(14, c_y)
+    res <- route_scene(scene)
+    ends <- edge_endpoints(scene, 1)
+
+    expect_lt(chord_min_clearance(scene, 1), r_full)
+    expect_false(res$meta$routed[1])
+    expect_equal(res$meta$mode[1], "straight")
+    expect_equal(res$meta$n_waypoints[1], 0)
+    expect_straight_path(res$paths[[1]], ends$from, ends$to)
+  }
+})
+
+test_that("a chord just longer than 2R is still routed around a hit", {
+  # 18.5 mm chord, C 6 mm above its midpoint: a hard hit on an edge long
+  # enough to bow, so the rule is a threshold and not an exemption for
+  # short edges
+  scene <- short_chord_scene(18.5, 56)
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+
+  expect_lt(chord_min_clearance(scene, 1), r_soft)
+  expect_true(res$meta$routed[1])
+  expect_true(res$meta$clearance_ok[1])
+  expect_gte(nrow(path), 16)
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(path_min_dist(path, node_xy(scene, "C")), r_full - verify_tol)
+  expect_lt(max(abs(turning_angles(path))), 12)
 })
 
 # Layer axis and edge direction ------------------------------------------------
@@ -2514,4 +2804,63 @@ test_that("route_edges_mm() never touches the RNG and repeats identically", {
   expect_identical(get(".Random.seed", envir = globalenv()), seed)
 
   expect_identical(first, second)
+})
+
+# TRUE when the collation locale `loc` can be selected on this platform.
+has_collate <- function(loc) {
+  old <- Sys.getlocale("LC_COLLATE")
+  on.exit(Sys.setlocale("LC_COLLATE", old))
+  identical(suppressWarnings(Sys.setlocale("LC_COLLATE", loc)), loc)
+}
+
+test_that("routing does not depend on the collation locale", {
+  # S -> T grazes two nodes at the same chord parameter, B 8.5 mm above and
+  # a 8.5 mm below, so the soft nudges tie on t and are ordered by node
+  # name. "B" sorts before "a" in the C locale and after it in en_US, so a
+  # locale-aware sort swaps the two waypoints and changes the curve.
+  scene <- list(
+    nodes = mm_nodes(
+      c("S", "T", "B", "a"),
+      c(0, 100, 50, 50),
+      c(0, 0, 8.5, -8.5)
+    ),
+    edges = mm_edges("S", "T"),
+    bounds = c(-10, -60, 110, 60)
+  )
+  in_c <- withr::with_collate("C", route_scene(scene))
+  expect_equal(in_c$meta$mode[1], "soft")
+  expect_identical(nrow(in_c$waypoints[[1]]), 2L)
+
+  skip_if_not(
+    has_collate("en_US.UTF-8"),
+    "the en_US.UTF-8 collation is not available"
+  )
+  in_en <- withr::with_collate("en_US.UTF-8", route_scene(scene))
+  expect_identical(in_en$meta, in_c$meta)
+  expect_identical(in_en$waypoints, in_c$waypoints)
+  expect_identical(in_en$paths, in_c$paths)
+})
+
+# Performance -----------------------------------------------------------------------
+
+test_that("route_edges_mm() routes large_epi at a small device size at interactive speed", {
+  skip_on_cran()
+  skip_on_ci()
+  # Opt-in pin; see test-layout-perf.R for the GGDAG_RUN_PERF_TESTS contract.
+  skip_if(
+    Sys.getenv("GGDAG_RUN_PERF_TESTS") == "",
+    "GGDAG_RUN_PERF_TESTS is not set"
+  )
+  skip_if_not_installed("bench")
+
+  # large_epi at 100 x 70 is the densest canonical scene: four hard-blocked
+  # chords through the spanning and free-bow tiers plus the straight rest
+  scene <- canonical_scene("large_epi", c(100, 70))
+
+  timing <- bench::mark(
+    route_scene(scene, mode = "spline"),
+    iterations = 30,
+    filter_gc = FALSE
+  )
+  expect_lt(as.numeric(timing$median), 0.005)
 })
