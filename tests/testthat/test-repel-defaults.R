@@ -15,6 +15,14 @@
 #
 # Everything here is snapshot-free.
 
+# The render-based tests below measure geometry on the svg device the vdiffr
+# baselines use, so they run only where those baselines reproduce, matching
+# the platform policy in helper-vdiffr.R.
+skip_unless_render_platform <- function() {
+  testthat::skip_if_not_installed("vdiffr")
+  testthat::skip_on_os(c("windows", "linux", "solaris"))
+}
+
 # A confounder triangle with a label on every node and fixed coordinates.
 confounder_dag <- function() {
   dagify(
@@ -189,7 +197,7 @@ test_that("the built repel label layer keeps the constructor label padding", {
 # Determinism ------------------------------------------------------------------
 
 test_that("rendering the default repel labels twice places them identically", {
-  skip_if_not_installed("vdiffr")
+  skip_unless_render_platform()
 
   p <- default_repel_plot()
 
@@ -203,7 +211,7 @@ test_that("rendering the default repel labels twice places them identically", {
 })
 
 test_that("rendering the default repel labels leaves the session RNG alone", {
-  skip_if_not_installed("vdiffr")
+  skip_unless_render_platform()
 
   p <- default_repel_plot()
 
@@ -218,7 +226,7 @@ test_that("rendering the default repel labels leaves the session RNG alone", {
 # Quality tripwires ------------------------------------------------------------
 
 test_that("default repel labels stay adjacent to their nodes", {
-  skip_if_not_installed("vdiffr")
+  skip_unless_render_platform()
 
   withr::local_seed(1234)
   geometry <- rendered_repel_geometry(default_repel_plot())
@@ -250,7 +258,7 @@ test_that("default repel labels stay adjacent to their nodes", {
 })
 
 test_that("no default repel label box covers another node's center", {
-  skip_if_not_installed("vdiffr")
+  skip_unless_render_platform()
 
   withr::local_seed(1234)
   geometry <- rendered_repel_geometry(default_repel_plot())

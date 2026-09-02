@@ -720,7 +720,7 @@ test_that("a custom function tagged with dag_node_aware() gets node-aware params
   expect_equal(recorded$args$node_size, 20)
   expect_equal(recorded$args$n_edge_points, 7)
   expect_equal(recorded$args$n_node_points, 5)
-  expect_equal(recorded$args$box.padding, 1.5)
+  expect_equal(recorded$args$box.padding, 0.5)
   expect_equal(recorded$args$max.overlaps, Inf)
 })
 

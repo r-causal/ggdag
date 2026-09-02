@@ -297,6 +297,24 @@ geom_dag_label <- function(
 #'   same 25 points per node and the parameter only starts to take effect
 #'   above 16. Defaults to `NULL`, which uses the `StatNodesRepel` default of
 #'   12. Set to 0 to disable node skeleton repulsion.
+#' @param box.padding Amount of padding around the label's bounding box, as a
+#'   unit or number. Defaults to 0.5 lines, and to 0.75 in
+#'   `geom_dag_label_repel2()` and `geom_dag_text_repel2()`.
+#' @param point.padding Amount of padding around the labeled node, as a unit
+#'   or number. Defaults to 0.5 lines.
+#' @param min.segment.length Skip drawing segments shorter than this, as a
+#'   unit or number. Defaults to 1 line; set to 0 to always draw segments.
+#' @param max.overlaps Exclude a label when it overlaps too many other things.
+#'   Defaults to `Inf`, so every label is drawn.
+#' @param force_pull Force of attraction between a label and its node.
+#'   Defaults to 2, which holds labels closer to their nodes than ggrepel's
+#'   default of 1.
+#' @param max.time Maximum number of seconds to spend resolving overlaps.
+#'   Defaults to 1, so the iteration cap in `max.iter` usually ends the
+#'   simulation rather than the wall clock.
+#' @param seed Random seed for the repel simulation. Defaults to 1234, so the
+#'   same plot draws its labels the same way in every session. Set to `NA`
+#'   for ggrepel's default behavior, a new arrangement on every draw.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -443,18 +461,18 @@ geom_dag_text_repel <- function(
   node_size = NULL,
   n_edge_points = NULL,
   n_node_points = NULL,
-  box.padding = 1.25,
-  point.padding = 1,
-  min.segment.length = 0.5,
+  box.padding = 0.5,
+  point.padding = 0.5,
+  min.segment.length = 1,
   segment.color = "#666666",
   segment.alpha = 1,
   fontface = "bold",
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
-  force_pull = 1,
-  max.time = 0.5,
-  max.iter = 2000,
+  force_pull = 2,
+  max.time = 1,
+  max.iter = 10000,
   max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
@@ -463,7 +481,7 @@ geom_dag_text_repel <- function(
   na.rm = FALSE,
   show.legend = NA,
   direction = c("both", "y", "x"),
-  seed = NA,
+  seed = 1234,
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
@@ -565,20 +583,20 @@ geom_dag_label_repel <- function(
   node_size = NULL,
   n_edge_points = NULL,
   n_node_points = NULL,
-  box.padding = grid::unit(1.25, "lines"),
+  box.padding = grid::unit(0.5, "lines"),
   label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1, "lines"),
+  point.padding = grid::unit(0.5, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
-  min.segment.length = 0.5,
+  min.segment.length = 1,
   segment.color = "grey50",
   segment.alpha = 1,
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
-  force_pull = 1,
-  max.time = 0.5,
-  max.iter = 2000,
+  force_pull = 2,
+  max.time = 1,
+  max.iter = 10000,
   max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
@@ -587,7 +605,7 @@ geom_dag_label_repel <- function(
   na.rm = FALSE,
   show.legend = NA,
   direction = c("both", "y", "x"),
-  seed = NA,
+  seed = 1234,
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
@@ -675,17 +693,14 @@ geom_dag_label_repel <- function(
   )
 }
 
-geom_dag_label_repel <- dag_node_aware(
-  geom_dag_label_repel,
-  extra = "label.padding"
-)
+geom_dag_label_repel <- dag_node_aware(geom_dag_label_repel)
 
 #' @rdname repel
 #' @export
 geom_dag_label_repel2 <- function(
   mapping = NULL,
   data = NULL,
-  box.padding = 2,
+  box.padding = 0.75,
   max.overlaps = Inf,
   label.size = NA,
   linewidth = 0,
@@ -702,17 +717,14 @@ geom_dag_label_repel2 <- function(
   )
 }
 
-geom_dag_label_repel2 <- dag_node_aware(
-  geom_dag_label_repel2,
-  extra = "label.padding"
-)
+geom_dag_label_repel2 <- dag_node_aware(geom_dag_label_repel2)
 
 #' @rdname repel
 #' @export
 geom_dag_text_repel2 <- function(
   mapping = NULL,
   data = NULL,
-  box.padding = 2,
+  box.padding = 0.75,
   max.overlaps = Inf,
   ...
 ) {
@@ -1789,7 +1801,7 @@ geom_dag <- function(
     label = label_size,
     edge = edge_width,
     arrow = arrow_length,
-    box_padding = 1.5
+    box_padding = 0.5
   ) *
     size
 
@@ -1965,9 +1977,6 @@ geom_dag <- function(
       common_params$box.padding <- sizes[["box_padding"]]
       common_params$max.overlaps <- Inf
       extra <- attr(label_geom, "dag_node_aware_extra")
-      if ("label.padding" %in% extra) {
-        common_params$label.padding <- 0.1
-      }
       if ("edge_cap" %in% extra) {
         common_params$edge_cap <- sizes[["cap"]]
       }

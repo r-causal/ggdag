@@ -1211,8 +1211,7 @@ make_debug_repel_layer <- function(
 # Tags a label geom constructor so `geom_dag()` threads the node geometry
 # parameters (`node_size`, `n_edge_points`, `n_node_points`, `box.padding`,
 # and `max.overlaps`) to it. `extra` names further parameters the constructor
-# takes beyond those: "label.padding" for the boxed repel geoms and
-# "edge_cap" for the automatic label geoms.
+# takes beyond those: "edge_cap" for the automatic label geoms.
 dag_node_aware <- function(f, extra = character()) {
   attr(f, "dag_node_aware") <- TRUE
   attr(f, "dag_node_aware_extra") <- extra
