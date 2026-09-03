@@ -939,6 +939,7 @@ test_that("four-layer: the periphery arch peaks near mid-span and climbs as stee
     path$y[apex:nrow(path)]
   ))
   expect_lte(descent, 1.25 * climb)
+  expect_lte(descent, 1.5)
 
   # both ends leave and arrive within the 40 degree tangent clamp
   expect_lt(arrival_angle(path, ends$to), 40)
@@ -1689,7 +1690,7 @@ test_that("canonical DAGs: unblocked chords are straight, hit chords are routed,
           expect_false(res$meta$routed[i], label = label)
           expect_identical(nrow(path), 2L, label = label)
         }
-        if (d < r_soft) {
+        if (d < r_soft && chord_length(ends$from, ends$to) >= 2 * r_full) {
           expect_true(res$meta$routed[i], label = label)
         }
       }

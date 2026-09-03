@@ -57,8 +57,16 @@ route_opts <- function(
   layer_axis = c("auto", "x", "y"),
   corners = c("rounded", "sharp")
 ) {
-  layer_axis <- match.arg(layer_axis)
-  corners <- match.arg(corners)
+  layer_axis <- if (identical(layer_axis, c("auto", "x", "y"))) {
+    "auto"
+  } else {
+    match.arg(layer_axis)
+  }
+  corners <- if (identical(corners, c("rounded", "sharp"))) {
+    "rounded"
+  } else {
+    match.arg(corners)
+  }
   m <- m %||% max(0.5 * r_ref, 1.2)
   m_min <- min(1.2, m)
   list(
@@ -149,7 +157,8 @@ route_edges_mm <- function(
     scene$bounds,
     cap,
     mode,
-    opts
+    opts,
+    scene$layers
   )
   decanonicalize(res, scene$transposed)
 }
@@ -182,25 +191,37 @@ check_route_mode <- function(mode) {
 #' are exact (zero spread within every cluster) while the x clusters are not;
 #' `"x"` and `"y"` name the axis outright.
 #'
-#' @return A list with `nodes`, `edges`, `bounds`, and `transposed`.
+#' @return A list with `nodes`, `edges`, `bounds`, `transposed`, and the
+#'   `layers` of the oriented scene when they were inferred (`NULL` when
+#'   the axis was named).
 #' @noRd
 canonicalize_scene <- function(nodes, edges, bounds, tol, layer_axis = "auto") {
-  nodes <- data.frame(
+  nodes <- df_cols(
     name = as.character(nodes$name),
     x = as.numeric(nodes$x),
     y = as.numeric(nodes$y),
-    r = as.numeric(nodes$r),
-    stringsAsFactors = FALSE
+    r = as.numeric(nodes$r)
   )
-  edges <- as.data.frame(edges, stringsAsFactors = FALSE)
+  if (!is.data.frame(edges)) {
+    edges <- as.data.frame(edges, stringsAsFactors = FALSE)
+  }
   bounds <- as.numeric(bounds)
 
   transposed <- identical(layer_axis, "y")
+  layers <- NULL
   if (identical(layer_axis, "auto") && nrow(nodes) > 0) {
     lx <- infer_layers(nodes, tol)
-    ly <- infer_layers(data.frame(x = nodes$y), tol)
-    transposed <- lx$n < 2 ||
-      (ly$n >= 2 && layers_exact(ly, nodes$y) && !layers_exact(lx, nodes$x))
+    layers <- lx
+    if (lx$n < 2) {
+      transposed <- TRUE
+      layers <- infer_layers(df_cols(x = nodes$y), tol)
+    } else if (!layers_exact(lx, nodes$x)) {
+      ly <- infer_layers(df_cols(x = nodes$y), tol)
+      if (ly$n >= 2 && layers_exact(ly, nodes$y)) {
+        transposed <- TRUE
+        layers <- ly
+      }
+    }
   }
 
   if (transposed) {
@@ -212,7 +233,13 @@ canonicalize_scene <- function(nodes, edges, bounds, tol, layer_axis = "auto") {
       })
     }
   }
-  list(nodes = nodes, edges = edges, bounds = bounds, transposed = transposed)
+  list(
+    nodes = nodes,
+    edges = edges,
+    bounds = bounds,
+    transposed = transposed,
+    layers = layers
+  )
 }
 
 #' Swap the paths and waypoints back after a transposed routing
@@ -260,12 +287,19 @@ infer_layers <- function(nodes, tol) {
   }
   cluster <- cumsum(c(1L, as.integer(diff(xs) > tol)))
   id <- cluster[match(nodes$x, xs)]
-  n <- max(cluster)
+  n <- cluster[[length(cluster)]]
   list(
     id = id,
-    x = unname(vapply(split(xs, cluster), mean, numeric(1))),
+    x = vapply(
+      seq_len(n),
+      function(k) {
+        v <- xs[cluster == k]
+        if (length(v) == 1L) v else mean(v)
+      },
+      numeric(1)
+    ),
     n = n,
-    members = split(seq_len(nrow(nodes)), factor(id, levels = seq_len(n)))
+    members = lapply(seq_len(n), function(k) which(id == k))
   )
 }
 
@@ -284,7 +318,7 @@ edge_span_info <- function(nodes, from, to, layers) {
   lb <- layers$id[to]
   dx <- xt - xs
   dy <- nodes$y[to] - nodes$y[from]
-  data.frame(
+  df_cols(
     la = pmin(la, lb),
     lb = pmax(la, lb),
     span = abs(lb - la),
@@ -330,14 +364,13 @@ edge_frame <- function(nodes, from, to, reversed) {
 find_blocked_edges <- function(nodes, edges, R_soft, R) {
   n_e <- nrow(edges)
   n_n <- nrow(nodes)
-  empty <- data.frame(
+  empty <- df_cols(
     edge = integer(),
     node = character(),
     d = numeric(),
     h = numeric(),
     t = numeric(),
-    severity = character(),
-    stringsAsFactors = FALSE
+    severity = character()
   )
   if (n_e == 0 || n_n == 0) {
     return(empty)
@@ -369,14 +402,13 @@ find_blocked_edges <- function(nodes, edges, R_soft, R) {
   if (!any(keep)) {
     return(empty)
   }
-  data.frame(
+  df_cols(
     edge = ei[keep],
     node = nodes$name[ni[keep]],
     d = d[keep],
     h = h[keep],
     t = t[keep],
-    severity = ifelse(d[keep] < R_soft[ni[keep]], "hard", "soft"),
-    stringsAsFactors = FALSE
+    severity = ifelse(d[keep] < R_soft[ni[keep]], "hard", "soft")
   )
 }
 
@@ -386,17 +418,29 @@ find_blocked_edges <- function(nodes, edges, R_soft, R) {
 #'
 #' The gaps between the padded discs of a layer's nodes, plus the space below
 #' the lowest and above the highest node down to the panel edge less `pad`.
-#' Intervals narrower than zero are dropped; the first and last surviving
-#' intervals are flagged `outer`.
+#' Intervals of zero or negative width are dropped, and so is a gap between
+#' two discs narrower than `sep_e`, since a slot that cannot hold an edge
+#' with its separation is a sliver; the two intervals toward the panel edges
+#' are kept however narrow. The first and last surviving intervals are
+#' flagged `outer`.
 #'
 #' @noRd
-layer_free_intervals <- function(layer_nodes, margin, bounds, pad = 0.5) {
+layer_free_intervals <- function(
+  layer_nodes,
+  margin,
+  bounds,
+  pad = 0.5,
+  sep_e = 0
+) {
   ord <- order(layer_nodes$y)
   ys <- layer_nodes$y[ord]
   Rk <- layer_nodes$r[ord] + margin
   lo <- c(bounds[[2]] + pad, ys + Rk)
   hi <- c(ys - Rk, bounds[[4]] - pad)
-  keep <- hi >= lo
+  n <- length(lo)
+  width <- hi - lo
+  toward_edge <- seq_len(n) %in% c(1L, n)
+  keep <- width > 0 & (toward_edge | width >= sep_e)
   lo <- lo[keep]
   hi <- hi[keep]
   n <- length(lo)
@@ -438,42 +482,258 @@ nearest_free_y <- function(intervals, y, side, outer_only) {
 
 #' Spread waypoints that share a slot with already routed edges
 #'
-#' When another edge occupies the same (layer, interval) within `sep_e`, the
-#' new waypoint moves `sep_e` beyond the farthest occupant, away from the
-#' chord side. If that leaves the interval, the next free interval outward
-#' is used; if none exists the waypoint stops at the interval edge.
+#' The occupants of a slot are the arches already drawn through it, each
+#' registered with the y it passes the layer at and the y of its chord
+#' there. A new waypoint keeps the order of the chords when the slot can
+#' hold it: it moves `sep_e` beyond every occupant whose chord lies inside
+#' its own (nearer the side the route detours to) and stays `sep_e` inside
+#' every occupant whose chord lies outside it; when both cannot hold, it
+#' moves `sep_e` beyond the outermost occupant. A reserved position (see
+#' `slot_reservations()`) holds the waypoint out for edges routed later
+#' whose chords lie inside. If that leaves the interval, the next free
+#' interval outward is used. When no interval outward can hold the chord
+#' order, the waypoint keeps its separation only: it starts from its
+#' snapped y and steps `sep_e` beyond any occupant within `sep_e` of it,
+#' and if even that leaves every interval it stops at the interval edge and
+#' the overlap is reported.
 #'
-#' @return A list with the updated `wp` and the `slot` index per row.
+#' @param wp Waypoints with `x`, `y`, `layer`, one per crossed layer.
+#' @param ints Free intervals, one data frame per row of `wp`.
+#' @param occ Occupancy with `layer`, `slot`, `y`, `chord`.
+#' @param yc Chord y per row of `wp`.
+#' @param reserved Reservations for this edge with `layer`, `slot`, `y`, or
+#'   `NULL`.
+#' @return A list with the updated `wp`, the `slot` index per row, and
+#'   `overlap`, whether any waypoint had to stop on an occupant.
 #' @noRd
-spread_in_slot <- function(wp, ints, occ, side, sep_e) {
+spread_in_slot <- function(wp, ints, occ, side, sep_e, yc, reserved = NULL) {
   slot <- integer(nrow(wp))
+  if (nrow(occ) == 0 && is.null(reserved)) {
+    for (i in seq_len(nrow(wp))) {
+      s <- which(ints[[i]]$lo <= wp$y[[i]] & wp$y[[i]] <= ints[[i]]$hi)
+      slot[[i]] <- if (length(s) == 0) NA_integer_ else s[[1]]
+    }
+    return(list(wp = wp, slot = slot, overlap = FALSE))
+  }
+  overlap <- FALSE
+  outward <- if (side > 0) max else min
+  inward <- if (side > 0) min else max
   for (i in seq_len(nrow(wp))) {
     iv <- ints[[i]]
-    y <- wp$y[[i]]
-    s <- which(iv$lo <= y & y <= iv$hi)
+    y0 <- wp$y[[i]]
+    s <- which(iv$lo <= y0 & y0 <= iv$hi)
     if (length(s) == 0) {
       slot[[i]] <- NA_integer_
       next
     }
     s <- s[[1]]
-    taken <- occ$y[occ$layer == wp$layer[[i]] & occ$slot == s]
-    if (length(taken) > 0 && any(abs(taken - y) < sep_e)) {
-      y_new <- if (side > 0) max(taken) + sep_e else min(taken) - sep_e
-      inside <- y_new >= iv$lo[[s]] && y_new <= iv$hi[[s]]
-      if (!inside) {
-        alt <- nearest_free_y(iv, y_new, side, FALSE)
-        if (is.na(alt)) {
-          y_new <- if (side > 0) iv$hi[[s]] else iv$lo[[s]]
-        } else {
-          y_new <- alt
-          s <- which(iv$lo <= alt & alt <= iv$hi)[[1]]
+    layer <- wp$layer[[i]]
+    if (!is.null(reserved)) {
+      held <- reserved$y[reserved$layer == layer & reserved$slot == s]
+      if (length(held) > 0) {
+        y0 <- outward(y0, held[[1]])
+      }
+    }
+    here <- which(occ$layer == layer & occ$slot == s)
+    y <- y0
+    if (length(here) > 0) {
+      oy <- occ$y[here]
+      inside <- side * (occ$chord[here] - yc[[i]]) <= 0
+      if (any(inside)) {
+        y <- outward(y, outward(oy[inside]) + side * sep_e)
+      }
+      if (!all(inside)) {
+        room <- inward(oy[!inside]) - side * sep_e
+        if (side * (y - room) > 1e-9) {
+          y <- outward(oy) + side * sep_e
         }
       }
-      wp$y[[i]] <- y_new
     }
-    slot[[i]] <- s
+    placed <- slot_position(y, iv, s, side)
+    if (is.na(placed$slot) && length(here) > 0) {
+      y <- y0
+      repeat {
+        near <- abs(oy - y) < sep_e - 1e-9
+        if (!any(near)) {
+          break
+        }
+        y <- outward(oy[near]) + side * sep_e
+      }
+      placed <- slot_position(y, iv, s, side)
+    }
+    if (is.na(placed$slot)) {
+      overlap <- length(here) > 0
+      placed <- list(y = if (side > 0) iv$hi[[s]] else iv$lo[[s]], slot = s)
+    }
+    wp$y[[i]] <- placed$y
+    slot[[i]] <- placed$slot
   }
-  list(wp = wp, slot = slot)
+  list(wp = wp, slot = slot, overlap = overlap)
+}
+
+#' The interval a spread waypoint falls in
+#'
+#' Its own slot when `y` is still inside it, else the nearest free interval
+#' outward; `slot` is `NA` when nothing outward is free.
+#'
+#' @noRd
+slot_position <- function(y, iv, s, side) {
+  if (y >= iv$lo[[s]] && y <= iv$hi[[s]]) {
+    return(list(y = y, slot = s))
+  }
+  alt <- nearest_free_y(iv, y, side, FALSE)
+  if (is.na(alt)) {
+    return(list(y = y, slot = NA_integer_))
+  }
+  list(y = alt, slot = which(iv$lo <= alt & alt <= iv$hi)[[1]])
+}
+
+#' Where a drawn arch passes each crossed layer
+#'
+#' Registers, for every layer strictly between the endpoints' layers, the y
+#' at which the sampled path crosses the layer's x, the slot that y falls
+#' in, the y of the chord there, and the innermost y the edge could have
+#' taken in that slot on its side. Layers the path crosses outside every
+#' free interval are not registered.
+#'
+#' @param path The final sampled path, source to target.
+#' @param ints Free intervals, one data frame per crossed layer.
+#' @noRd
+arch_occupancy <- function(e, path, fr, crossed, layers, ints, side) {
+  x0 <- layers$x[crossed]
+  y <- polyline_y_at(path$x, path$y, x0)
+  yc <- fr$S[[2]] +
+    (x0 - fr$S[[1]]) / (fr$E[[1]] - fr$S[[1]]) * (fr$E[[2]] - fr$S[[2]])
+  slot <- integer(length(crossed))
+  base <- numeric(length(crossed))
+  lo <- numeric(length(crossed))
+  hi <- numeric(length(crossed))
+  for (i in seq_along(crossed)) {
+    iv <- ints[[i]]
+    s <- which(iv$lo <= y[[i]] & y[[i]] <= iv$hi)
+    if (length(s) == 0 || is.na(y[[i]])) {
+      slot[[i]] <- NA_integer_
+      next
+    }
+    s <- s[[1]]
+    slot[[i]] <- s
+    lo[[i]] <- iv$lo[[s]]
+    hi[[i]] <- iv$hi[[s]]
+    base[[i]] <- if (side > 0) max(lo[[i]], yc[[i]]) else min(hi[[i]], yc[[i]])
+  }
+  keep <- which(!is.na(slot))
+  df_cols(
+    edge = rep(e, length(keep)),
+    layer = crossed[keep],
+    slot = slot[keep],
+    y = y[keep],
+    chord = yc[keep],
+    side = rep(side, length(keep)),
+    base = base[keep],
+    lo = lo[keep],
+    hi = hi[keep]
+  )
+}
+
+#' y of a polyline where it first crosses each vertical line
+#'
+#' Linear interpolation on the first segment whose x-range contains `x0`;
+#' `NA` when no segment does.
+#'
+#' @noRd
+polyline_y_at <- function(x, y, x0) {
+  n <- length(x)
+  xa <- x[-n]
+  xb <- x[-1]
+  vapply(
+    x0,
+    function(v) {
+      k <- which((xa - v) * (xb - v) <= 0)
+      if (length(k) == 0) {
+        return(NA_real_)
+      }
+      k <- k[[1]]
+      dx <- xb[[k]] - xa[[k]]
+      if (abs(dx) < 1e-12) {
+        return(y[[k]])
+      }
+      y[[k]] + (v - xa[[k]]) / dx * (y[[k + 1L]] - y[[k]])
+    },
+    numeric(1)
+  )
+}
+
+#' Positions that keep shared slots in chord order
+#'
+#' Edges whose arches share a slot on the same side should sit in the order
+#' of their chords at that layer, the edge with the innermost chord nearest
+#' the stack. Routing order alone cannot guarantee this: an edge routed
+#' first takes the slot boundary and pushes a later edge with an inner chord
+#' outside it. This looks at the occupancy of a finished pass and, for every
+#' slot whose occupants are out of chord order, assigns positions inner to
+#' outer, each `sep_e` beyond the last. Edges that sit further out than the
+#' position they would take on their own get a reservation, and the scene is
+#' routed again with it. Only slots whose occupants all sit at a spread
+#' position (their own innermost y, or another occupant's y plus `sep_e`)
+#' are considered: an arch that passes a layer elsewhere was shaped by a
+#' plateau, the hull, or a repair, and a reservation cannot move it. A slot
+#' too narrow to hold its occupants in order gets no reservation either.
+#'
+#' @return `NULL` when every shared slot is already in chord order;
+#'   otherwise a data frame with `edge`, `layer`, `slot`, `y`.
+#' @noRd
+slot_reservations <- function(occ, sep_e) {
+  if (nrow(occ) == 0) {
+    return(NULL)
+  }
+  key <- paste(occ$layer, occ$slot, occ$side)
+  out <- list()
+  for (k in unique(key)) {
+    rows <- which(key == k)
+    if (length(rows) < 2) {
+      next
+    }
+    side <- occ$side[[rows[[1]]]]
+    rows <- rows[order(side * occ$chord[rows], occ$edge[rows])]
+    y <- occ$y[rows]
+    if (all(side * diff(y) >= 0)) {
+      next
+    }
+    base <- occ$base[rows]
+    spread <- vapply(
+      seq_along(rows),
+      function(i) {
+        abs(y[[i]] - base[[i]]) < 1e-6 ||
+          any(abs(y[[i]] - (y[-i] + side * sep_e)) < 1e-6)
+      },
+      logical(1)
+    )
+    if (!all(spread)) {
+      next
+    }
+    pos <- base
+    for (i in seq_along(rows)[-1]) {
+      pos[[i]] <- if (side > 0) {
+        max(pos[[i]], pos[[i - 1]] + sep_e)
+      } else {
+        min(pos[[i]], pos[[i - 1]] - sep_e)
+      }
+    }
+    fits <- all(pos >= occ$lo[rows] - 1e-9 & pos <= occ$hi[rows] + 1e-9)
+    held <- which(side * (pos - occ$base[rows]) > 1e-9)
+    if (fits && length(held) > 0) {
+      out[[length(out) + 1]] <- df_cols(
+        edge = occ$edge[rows[held]],
+        layer = occ$layer[rows[held]],
+        slot = occ$slot[rows[held]],
+        y = pos[held]
+      )
+    }
+  }
+  if (length(out) == 0) {
+    return(NULL)
+  }
+  Reduce(df_bind, out)
 }
 
 # Waypoint chains ----------------------------------------------------------------------
@@ -501,32 +761,72 @@ hull_waypoints <- function(S, wp, E, side) {
   n <- c(-u[[2]], u[[1]])
   t <- (wp$x - S[[1]]) * u[[1]] + (wp$y - S[[2]]) * u[[2]]
   o <- (wp$x - S[[1]]) * n[[1]] + (wp$y - S[[2]]) * n[[2]]
+  if (length(t) == 1L) {
+    # a lone waypoint is the arch when it lies strictly on its side
+    return(if (side * o[[1]] * Lc > 0) wp else df_rows(wp, integer(0)))
+  }
+  if (length(t) == 2L) {
+    return(hull_two(wp, t, o, Lc, side))
+  }
   ord <- order(t, side * o)
 
   px <- c(0, t[ord], Lc)
   py <- c(0, o[ord], 0)
   idx <- c(0L, ord, 0L)
-  hull <- integer(0)
-  for (k in seq_along(px)) {
-    while (length(hull) >= 2) {
-      a <- hull[[length(hull) - 1]]
-      b <- hull[[length(hull)]]
+  m <- length(px)
+  hull <- integer(m)
+  h <- 0L
+  for (k in seq_len(m)) {
+    while (h >= 2L) {
+      a <- hull[[h - 1L]]
+      b <- hull[[h]]
       cr <- (px[[b]] - px[[a]]) *
         (py[[k]] - py[[a]]) -
         (py[[b]] - py[[a]]) * (px[[k]] - px[[a]])
       if (side * cr >= 0) {
-        hull <- hull[-length(hull)]
+        h <- h - 1L
       } else {
         break
       }
     }
-    hull <- c(hull, k)
+    h <- h + 1L
+    hull[[h]] <- k
   }
-  keep <- idx[hull]
+  keep <- idx[hull[seq_len(h)]]
   df_rows(wp, keep[keep > 0])
 }
 
+#' The monotone chain of two waypoints, unrolled
+#'
+#' The same pops as the loop in `hull_waypoints()` over the four points
+#' source, first, second, target: the first goes when the second does not
+#' turn outward from it, the second when the target does not, and after
+#' that the first is checked against the target directly.
+#'
+#' @noRd
+hull_two <- function(wp, t, o, Lc, side) {
+  ord <- order(t, side * o)
+  a <- ord[[1]]
+  b <- ord[[2]]
+  turn <- function(px0, py0, px1, py1, px2, py2) {
+    side * ((px1 - px0) * (py2 - py0) - (py1 - py0) * (px2 - px0)) >= 0
+  }
+  keep_a <- !turn(0, 0, t[[a]], o[[a]], t[[b]], o[[b]])
+  if (keep_a) {
+    keep_b <- !turn(t[[a]], o[[a]], t[[b]], o[[b]], Lc, 0)
+    if (!keep_b) {
+      keep_a <- !turn(0, 0, t[[a]], o[[a]], Lc, 0)
+    }
+  } else {
+    keep_b <- !turn(0, 0, t[[b]], o[[b]], Lc, 0)
+  }
+  df_rows(wp, c(a, b)[c(keep_a, keep_b)])
+}
+
 xy <- function(p) {
+  if (is.numeric(p)) {
+    return(p)
+  }
   c(as.numeric(p[[1]])[[1]], as.numeric(p[[2]])[[1]])
 }
 
@@ -585,36 +885,50 @@ catmull_rom_beziers <- function(
 ) {
   n <- nrow(P)
   arm_min <- rep_len(arm_min, 2)
-  seg <- sqrt(rowSums((P[-1, , drop = FALSE] - P[-n, , drop = FALSE])^2))
+  px <- P[, 1]
+  py <- P[, 2]
+  seg <- sqrt((px[-1] - px[-n])^2 + (py[-1] - py[-n])^2)
   dt <- pmax(seg^alpha, 1e-9)
   t <- cumsum(c(0, dt))
 
-  D <- matrix(0, n, 2)
+  Dx <- numeric(n)
+  Dy <- numeric(n)
   if (n > 2) {
     i <- 2:(n - 1)
-    D[i, ] <- (P[i, , drop = FALSE] - P[i - 1, , drop = FALSE]) /
+    Dx[i] <- (px[i] - px[i - 1]) /
       (t[i] - t[i - 1]) -
-      (P[i + 1, , drop = FALSE] - P[i - 1, , drop = FALSE]) /
-        (t[i + 1] - t[i - 1]) +
-      (P[i + 1, , drop = FALSE] - P[i, , drop = FALSE]) / (t[i + 1] - t[i])
+      (px[i + 1] - px[i - 1]) / (t[i + 1] - t[i - 1]) +
+      (px[i + 1] - px[i]) / (t[i + 1] - t[i])
+    Dy[i] <- (py[i] - py[i - 1]) /
+      (t[i] - t[i - 1]) -
+      (py[i + 1] - py[i - 1]) / (t[i + 1] - t[i - 1]) +
+      (py[i + 1] - py[i]) / (t[i + 1] - t[i])
   }
 
   B <- vector("list", n - 1)
   for (i in seq_len(n - 1)) {
-    B[[i]] <- rbind(
-      P[i, ],
-      P[i, ] + dt[[i]] * D[i, ] / 3,
-      P[i + 1, ] - dt[[i]] * D[i + 1, ] / 3,
-      P[i + 1, ]
+    B[[i]] <- matrix(
+      c(
+        px[[i]],
+        px[[i]] + dt[[i]] * Dx[[i]] / 3,
+        px[[i + 1]] - dt[[i]] * Dx[[i + 1]] / 3,
+        px[[i + 1]],
+        py[[i]],
+        py[[i]] + dt[[i]] * Dy[[i]] / 3,
+        py[[i + 1]] - dt[[i]] * Dy[[i + 1]] / 3,
+        py[[i + 1]]
+      ),
+      4,
+      2
     )
   }
 
   a_s <- max(
-    sqrt(sum((dt[[1]] * D[1, ] / 3)^2)),
+    sqrt((dt[[1]] * Dx[[1]] / 3)^2 + (dt[[1]] * Dy[[1]] / 3)^2),
     min(arm_min[[1]], arm_fraction * seg[[1]])
   )
   a_e <- max(
-    sqrt(sum((dt[[n - 1]] * D[n, ] / 3)^2)),
+    sqrt((dt[[n - 1]] * Dx[[n]] / 3)^2 + (dt[[n - 1]] * Dy[[n]] / 3)^2),
     min(arm_min[[2]], arm_fraction * seg[[n - 1]])
   )
   B[[1]][2, ] <- P[1, ] + a_s * d_start
@@ -631,27 +945,31 @@ catmull_rom_beziers <- function(
 #'
 #' @noRd
 sample_beziers <- function(B, spacing = 0.5, min_n = 16) {
-  out <- vector("list", length(B))
-  for (k in seq_along(B)) {
-    seg <- B[[k]]
-    len <- sum(sqrt(rowSums((seg[-1, ] - seg[-4, ])^2)))
-    n <- max(min_n, ceiling(len / spacing))
-    t <- (0:(n - 1)) / (n - 1)
-    mt <- 1 - t
-    b0 <- mt^3
-    b1 <- 3 * mt^2 * t
-    b2 <- 3 * mt * t^2
-    b3 <- t^3
-    pts <- cbind(
-      b0 * seg[1, 1] + b1 * seg[2, 1] + b2 * seg[3, 1] + b3 * seg[4, 1],
-      b0 * seg[1, 2] + b1 * seg[2, 2] + b2 * seg[3, 2] + b3 * seg[4, 2]
-    )
-    pts[1, ] <- seg[1, ]
-    pts[n, ] <- seg[4, ]
-    out[[k]] <- if (k > 1) pts[-1, , drop = FALSE] else pts
-  }
-  pts <- do.call(rbind, out)
-  df_cols(x = pts[, 1], y = pts[, 2])
+  K <- length(B)
+  cp <- matrix(unlist(B, use.names = FALSE), nrow = 8L)
+  len <- sqrt((cp[2, ] - cp[1, ])^2 + (cp[6, ] - cp[5, ])^2) +
+    sqrt((cp[3, ] - cp[2, ])^2 + (cp[7, ] - cp[6, ])^2) +
+    sqrt((cp[4, ] - cp[3, ])^2 + (cp[8, ] - cp[7, ])^2)
+  n <- pmax(min_n, ceiling(len / spacing))
+  # every segment is sampled from its start, and the shared join is kept
+  # once: segments after the first skip their first sample
+  first <- c(0L, rep(1L, K - 1L))
+  count <- n - first
+  seg <- rep.int(seq_len(K), count)
+  t <- (sequence(count, from = first + 1L) - 1L) / (n[seg] - 1L)
+  mt <- 1 - t
+  b0 <- mt^3
+  b1 <- 3 * mt^2 * t
+  b2 <- 3 * mt * t^2
+  b3 <- t^3
+  x <- b0 * cp[1, seg] + b1 * cp[2, seg] + b2 * cp[3, seg] + b3 * cp[4, seg]
+  y <- b0 * cp[5, seg] + b1 * cp[6, seg] + b2 * cp[7, seg] + b3 * cp[8, seg]
+  ends <- cumsum(count)
+  x[ends] <- cp[4, ]
+  y[ends] <- cp[8, ]
+  x[[1]] <- cp[[1, 1]]
+  y[[1]] <- cp[[5, 1]]
+  df_cols(x = x, y = y)
 }
 
 #' Find samples that come too close to an obstacle
@@ -678,12 +996,15 @@ verify_clearance <- function(samples, obstacles, R_vec, tol = 0.1) {
   if (length(cand) == 0) {
     return(df_cols(obstacle = integer(), sample = integer(), depth = numeric()))
   }
-  d <- sqrt(
-    outer(obstacles$x[cand], samples$x, "-")^2 +
-      outer(obstacles$y[cand], samples$y, "-")^2
-  )
-  j <- max.col(-d, ties.method = "first")
-  min_d <- d[cbind(seq_along(cand), j)]
+  sx <- samples$x
+  sy <- samples$y
+  j <- integer(length(cand))
+  min_d <- numeric(length(cand))
+  for (k in seq_along(cand)) {
+    d2 <- (sx - obstacles$x[[cand[[k]]]])^2 + (sy - obstacles$y[[cand[[k]]]])^2
+    j[[k]] <- which.min(d2)
+    min_d[[k]] <- sqrt(d2[[j[[k]]]])
+  }
   depth <- R_vec[cand] - tol - min_d
   keep <- depth > 0
   df_cols(obstacle = cand[keep], sample = j[keep], depth = depth[keep])
@@ -696,9 +1017,11 @@ verify_clearance <- function(samples, obstacles, R_vec, tol = 0.1) {
 #' `R` from the node on the side of the sample; otherwise every interior
 #' waypoint within `repair_window` of the sample's chord parameter moves
 #' along y by `relax * depth + slack * R`, so the local leg translates and
-#' each waypoint stays at its layer's x. In the free tier the nearest
-#' waypoint within the window moves straight away from the node, and a new
-#' waypoint is inserted at clearance `R` when none is near.
+#' each waypoint stays at its layer's x. Waypoints that share a y with a
+#' moved one form a level plateau and move with it, so a levelled arch is
+#' lifted whole rather than tilted. In the free tier the nearest waypoint
+#' within the window moves straight away from the node, and a new waypoint
+#' is inserted at clearance `R` when none is near.
 #'
 #' @noRd
 repair_waypoints <- function(
@@ -714,7 +1037,12 @@ repair_waypoints <- function(
   lb,
   opts
 ) {
-  viol <- df_rows(viol, order(-viol$depth, obstacles$name[viol$obstacle]))
+  if (nrow(viol) > 1) {
+    viol <- df_rows(
+      viol,
+      order(-viol$depth, obstacles$name[viol$obstacle], method = "radix")
+    )
+  }
   for (k in seq_len(nrow(viol))) {
     ob <- viol$obstacle[[k]]
     C <- c(obstacles$x[[ob]], obstacles$y[[ob]])
@@ -750,6 +1078,11 @@ repair_waypoints <- function(
     }
     if (length(near) > 0) {
       if (tier == "spanning") {
+        level <- logical(nrow(wp))
+        for (j in near) {
+          level <- level | abs(wp$y - wp$y[[j]]) < 1e-9
+        }
+        near <- which(level)
         at_layer <- which(wp$layer == layer_c)
         s <- if (length(at_layer) > 0) {
           sign(wp$y[[at_layer[[1]]]] - C[[2]])
@@ -817,7 +1150,10 @@ route_spline_edge <- function(
   best <- NULL
   best_depth <- Inf
   for (iter in 0:opts$repair_iter) {
-    P <- rbind(fr$S, cbind(wp$x, wp$y), fr$E)
+    P <- cbind(
+      c(fr$S[[1]], wp$x, fr$E[[1]]),
+      c(fr$S[[2]], wp$y, fr$E[[2]])
+    )
     n <- nrow(P)
     d_s <- clamp_direction(P[2, ] - P[1, ], fr$E - fr$S, opts$tangent_clamp)
     d_e <- clamp_direction(P[n, ] - P[n - 1, ], fr$E - fr$S, opts$tangent_clamp)
@@ -867,6 +1203,42 @@ route_spline_edge <- function(
 
 # Costs ------------------------------------------------------------------------------------
 
+#' The placed set: every edge as drawn so far
+#'
+#' Straight edges are kept as one chord each in parallel vectors, so a
+#' candidate chain is tested against all of them at once; an edge drawn as
+#' a polyline (a routed edge, or a user-curved one) is kept as a
+#' `placed_polyline()` instead and tested on its own.
+#'
+#' @param paths The current paths, one `data.frame(x, y)` per edge.
+#' @noRd
+placed_set <- function(paths) {
+  xs <- lapply(paths, `[[`, "x")
+  ys <- lapply(paths, `[[`, "y")
+  chord <- lengths(xs) == 2L
+  last <- function(v) v[[length(v)]]
+  poly <- vector("list", length(paths))
+  for (e in which(!chord)) {
+    poly[[e]] <- placed_polyline(xs[[e]], ys[[e]])
+  }
+  list(
+    chord = chord,
+    ax = vapply(xs, `[[`, numeric(1), 1L),
+    ay = vapply(ys, `[[`, numeric(1), 1L),
+    bx = vapply(xs, last, numeric(1)),
+    by = vapply(ys, last, numeric(1)),
+    poly = poly
+  )
+}
+
+#' Replace one edge of the placed set with its drawn polyline
+#' @noRd
+place_edge <- function(placed, e, x, y) {
+  placed$chord[[e]] <- FALSE
+  placed$poly[[e]] <- placed_polyline(x, y)
+  placed
+}
+
 #' A placed polyline with the bounding boxes of its segments
 #' @noRd
 placed_polyline <- function(x, y) {
@@ -884,15 +1256,47 @@ placed_polyline <- function(x, y) {
     xmax = pmax(cx, dx),
     ymin = pmin(cy, dy),
     ymax = pmax(cy, dy),
+    box = c(min(x), max(x), min(y), max(y)),
     n = n - 1L
   )
 }
 
-#' Count proper crossings between a waypoint chain and a placed polyline
+#' Count proper crossings between a waypoint chain and a set of segments
 #'
 #' Segment pairs whose endpoints straddle each other's line; touching at a
-#' shared endpoint does not count. Each segment of the chain is tested only
-#' against the segments of the polyline whose bounding boxes overlap it.
+#' shared endpoint does not count.
+#'
+#' @param pa Two-column matrix of chain points.
+#' @param cx,cy,dx,dy Endpoints of the segments.
+#' @noRd
+count_segment_crossings <- function(pa, cx, cy, dx, dy) {
+  na <- nrow(pa) - 1L
+  m <- length(cx)
+  if (na < 1L || m == 0L) {
+    return(0L)
+  }
+  # every (chain segment, segment) pair at once
+  i <- seq_len(na)
+  ax <- rep(pa[i, 1L], each = m)
+  ay <- rep(pa[i, 2L], each = m)
+  bx <- rep(pa[i + 1L, 1L], each = m)
+  by <- rep(pa[i + 1L, 2L], each = m)
+  cx <- rep.int(cx, na)
+  cy <- rep.int(cy, na)
+  dx <- rep.int(dx, na)
+  dy <- rep.int(dy, na)
+  d1 <- (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+  d2 <- (bx - ax) * (dy - ay) - (by - ay) * (dx - ax)
+  d3 <- (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx)
+  d4 <- (dx - cx) * (by - cy) - (dy - cy) * (bx - cx)
+  sum(d1 * d2 < 0 & d3 * d4 < 0)
+}
+
+#' Count proper crossings between a waypoint chain and a placed polyline
+#'
+#' Each segment of the chain is tested only against the segments of the
+#' polyline whose bounding boxes overlap it; a chain whose bounding box
+#' misses the polyline's is not tested at all.
 #'
 #' @param pa Two-column matrix of chain points.
 #' @param pb A polyline from `placed_polyline()`.
@@ -902,25 +1306,34 @@ count_polyline_crossings <- function(pa, pb) {
   if (na < 1 || pb$n < 1) {
     return(0L)
   }
+  box <- pb$box
   if (
-    max(pa[, 1]) < min(pb$xmin) ||
-      min(pa[, 1]) > max(pb$xmax) ||
-      max(pa[, 2]) < min(pb$ymin) ||
-      min(pa[, 2]) > max(pb$ymax)
+    max(pa[, 1]) < box[[1]] ||
+      min(pa[, 1]) > box[[2]] ||
+      max(pa[, 2]) < box[[3]] ||
+      min(pa[, 2]) > box[[4]]
   ) {
     return(0L)
   }
   total <- 0L
   for (i in seq_len(na)) {
-    ax <- pa[i, 1]
-    ay <- pa[i, 2]
-    bx <- pa[i + 1, 1]
-    by <- pa[i + 1, 2]
-    near <- pb$xmax >= min(ax, bx) &
-      pb$xmin <= max(ax, bx) &
-      pb$ymax >= min(ay, by) &
-      pb$ymin <= max(ay, by)
-    if (!any(near)) {
+    ax <- pa[[i, 1]]
+    ay <- pa[[i, 2]]
+    bx <- pa[[i + 1L, 1]]
+    by <- pa[[i + 1L, 2]]
+    x_lo <- min(ax, bx)
+    x_hi <- max(ax, bx)
+    y_lo <- min(ay, by)
+    y_hi <- max(ay, by)
+    if (
+      x_hi < box[[1]] || x_lo > box[[2]] || y_hi < box[[3]] || y_lo > box[[4]]
+    ) {
+      next
+    }
+    near <- which(
+      pb$xmax >= x_lo & pb$xmin <= x_hi & pb$ymax >= y_lo & pb$ymin <= y_hi
+    )
+    if (length(near) == 0) {
       next
     }
     cx <- pb$cx[near]
@@ -949,9 +1362,17 @@ count_polyline_crossings <- function(pa, pb) {
 #' @noRd
 side_cost <- function(fr, wp, side, displacement, ectx, placed, opts) {
   poly <- rbind(fr$S, cbind(wp$x, wp$y), fr$E)
-  crossings <- 0L
-  for (o in ectx$others) {
-    crossings <- crossings + count_polyline_crossings(poly, placed[[o]])
+  others <- ectx$others
+  chords <- others[placed$chord[others]]
+  crossings <- count_segment_crossings(
+    poly,
+    placed$ax[chords],
+    placed$ay[chords],
+    placed$bx[chords],
+    placed$by[chords]
+  )
+  for (o in others[!placed$chord[others]]) {
+    crossings <- crossings + count_polyline_crossings(poly, placed$poly[[o]])
   }
   congestion <- sum(side * ectx$h_far > opts$R)
   opts$crossing_penalty *
@@ -992,10 +1413,19 @@ edge_cost_context <- function(fr, e, ctx) {
 #' on each side. Interior candidates use every free interval; periphery
 #' candidates (span at least `periphery_span`) use only the outer ones.
 #' Candidates that share a slot with an already routed edge are spread by
-#' `sep_e`, reduced to one arch by the hull, and priced by `side_cost()`.
+#' `sep_e` in chord order and reduced to one arch by the hull; a candidate
+#' that had to stop on an occupant ranks below every other. A periphery
+#' arch is then levelled: every surviving waypoint rises to the outermost
+#' one, so the apex sits mid-span rather than over the tallest stack and the
+#' arch climbs as steeply as it descends; the levelled chain is spread and
+#' hulled again. Candidates are priced by `side_cost()` on the displacement
+#' the stacks require, measured before levelling, and on the crossings of
+#' the chain as drawn.
 #'
+#' @param reserved Reservations for this edge from `slot_reservations()`,
+#'   or `NULL`.
 #' @return `NULL` when every candidate has a slot with no free y; otherwise
-#'   a list with `wp`, `side`, `scope`, and `occ` (the slots to register).
+#'   a list with `wp`, `side`, `scope`, and `overlap`.
 #' @noRd
 assign_spanning_waypoints <- function(
   fr,
@@ -1006,7 +1436,8 @@ assign_spanning_waypoints <- function(
   occ,
   ectx,
   placed,
-  opts
+  opts,
+  reserved = NULL
 ) {
   crossed <- (la + 1L):(lb - 1L)
   yc <- fr$S[[2]] +
@@ -1033,17 +1464,34 @@ assign_spanning_waypoints <- function(
         next
       }
       wp <- df_cols(x = layers$x[crossed], y = yk, layer = crossed)
-      sp <- spread_in_slot(wp, ints, occ, side, opts$sep_e)
+      sp <- spread_in_slot(wp, ints, occ, side, opts$sep_e, yc, reserved)
+      overlap <- sp$overlap
       wp <- hull_waypoints(fr$S, sp$wp, fr$E, side)
+      # the displacement priced is what the stacks require; levelling a
+      # periphery arch shapes it without changing the slots it needs
       at <- match(wp$layer, crossed)
       displacement <- sum(abs(wp$y - yc[at]))
+      if (scope == "periphery" && nrow(wp) > 1) {
+        wp$y <- if (side > 0) max(wp$y) else min(wp$y)
+        sp <- spread_in_slot(
+          wp,
+          ints[at],
+          occ,
+          side,
+          opts$sep_e,
+          yc[at],
+          reserved
+        )
+        overlap <- overlap || sp$overlap
+        wp <- hull_waypoints(fr$S, sp$wp, fr$E, side)
+      }
       cost <- side_cost(fr, wp, side, displacement, ectx, placed, opts)
       cands[[length(cands) + 1]] <- list(
         side = side,
         scope = scope,
         wp = wp,
         cost = round(cost, opts$cost_digits),
-        occ = df_cols(layer = wp$layer, slot = sp$slot[at], y = wp$y)
+        overlap = overlap
       )
     }
   }
@@ -1051,9 +1499,10 @@ assign_spanning_waypoints <- function(
     return(NULL)
   }
   cost <- vapply(cands, function(c) c$cost, numeric(1))
+  overlap <- vapply(cands, function(c) c$overlap, logical(1))
   interior <- vapply(cands, function(c) c$scope == "interior", logical(1))
   above <- vapply(cands, function(c) c$side > 0, logical(1))
-  cands[[order(cost, !interior, !above)[[1]]]]
+  cands[[order(overlap, cost, !interior, !above)[[1]]]]
 }
 
 #' Waypoints of the free-bow tier
@@ -1180,7 +1629,9 @@ soft_nudge_waypoints <- function(hits, fr, extra, opts) {
 #' Waypoints offset from the chord at each hit's clamped parameter
 #' @noRd
 bow_points <- function(hits, fr, offsets, opts) {
-  tc <- pmin(pmax(hits$t, opts$t_clamp[[1]]), opts$t_clamp[[2]])
+  tc <- hits$t
+  tc[tc < opts$t_clamp[[1]]] <- opts$t_clamp[[1]]
+  tc[tc > opts$t_clamp[[2]]] <- opts$t_clamp[[2]]
   df_cols(
     x = fr$S[[1]] + tc * fr$Lc * fr$u[[1]] + offsets * fr$n[[1]],
     y = fr$S[[2]] + tc * fr$Lc * fr$u[[2]] + offsets * fr$n[[2]],
@@ -1233,7 +1684,7 @@ df_cols <- function(...) {
 }
 
 new_df <- function(cols) {
-  attr(cols, "row.names") <- .set_row_names(length(cols[[1]]))
+  attr(cols, "row.names") <- c(NA_integer_, -length(cols[[1]]))
   class(cols) <- "data.frame"
   cols
 }
@@ -1241,17 +1692,37 @@ new_df <- function(cols) {
 #' Row subset and row concatenation for the light frames above
 #' @noRd
 df_rows <- function(df, idx) {
-  new_df(lapply(unclass(df), function(col) col[idx]))
+  cols <- unclass(df)
+  for (j in seq_along(cols)) {
+    cols[[j]] <- cols[[j]][idx]
+  }
+  new_df(cols)
 }
 
 df_bind <- function(a, b) {
-  cols <- lapply(names(a), function(nm) c(a[[nm]], b[[nm]]))
-  names(cols) <- names(a)
+  cols <- unclass(a)
+  for (nm in names(cols)) {
+    cols[[nm]] <- c(cols[[nm]], b[[nm]])
+  }
   new_df(cols)
 }
 
 empty_waypoints <- function() {
   df_cols(x = numeric(0), y = numeric(0), layer = integer(0))
+}
+
+empty_occupancy <- function() {
+  df_cols(
+    edge = integer(0),
+    layer = integer(0),
+    slot = integer(0),
+    y = numeric(0),
+    chord = numeric(0),
+    side = numeric(0),
+    base = numeric(0),
+    lo = numeric(0),
+    hi = numeric(0)
+  )
 }
 
 #' Route one candidate waypoint set of an edge
@@ -1360,7 +1831,7 @@ parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
 #' orthogonally whether or not a node blocks its chord. A chord that is
 #' already axis-aligned stays a two-row straight path: a vertical chord, a
 #' horizontal chord between adjacent layers, and a horizontal spanning chord
-#' that no disc in a crossed layer comes within `R` of. A chord between two
+#' that no non-endpoint disc comes within `R` of. A chord between two
 #' nodes of one layer stays straight as well, since the layer has no gap to
 #' route it through.
 #' A spanning edge whose endpoints are both the extreme node of their layer
@@ -1390,7 +1861,8 @@ route_orthogonal_scene <- function(
   paths,
   bounds,
   cap,
-  opts
+  opts,
+  layers
 ) {
   n_edges <- length(from)
   waypoints <- rep(list(empty_waypoints()), n_edges)
@@ -1404,7 +1876,6 @@ route_orthogonal_scene <- function(
   sagitta <- numeric(n_edges)
   capped <- logical(n_edges)
 
-  layers <- infer_layers(nodes, opts$tol_layer)
   info <- edge_span_info(nodes, from, to, layers)
   routable <- !is_fixed & info$Lc > 0 & from != to
   R_node <- nodes$r + opts$m
@@ -1459,7 +1930,7 @@ route_orthogonal_scene <- function(
   side <- rep(NA_real_, n_edges)
   y_ch <- rep(NA_real_, n_edges)
   clamped <- logical(n_edges)
-  placed <- lapply(paths, function(p) placed_polyline(p$x, p$y))
+  placed <- placed_set(paths)
   channels <- df_cols(
     side = numeric(0),
     y = numeric(0),
@@ -1504,7 +1975,9 @@ route_orthogonal_scene <- function(
     y_ch[[e]] <- ch$y
     clamped[[e]] <- ch$clamped
     channels <- df_bind(channels, ch$channel)
-    placed[[e]] <- placed_polyline(
+    placed <- place_edge(
+      placed,
+      e,
       c(fr$S[[1]], ch$wp$x, fr$E[[1]]),
       c(fr$S[[2]], ch$wp$y, fr$E[[2]])
     )
@@ -2230,8 +2703,19 @@ polyline_min_dist <- function(P, ox, oy) {
 # Engine -------------------------------------------------------------------------------------
 
 #' Route a canonically oriented scene
+#'
+#' @param layers The scene's layers from `infer_layers()`, or `NULL` to
+#'   infer them here.
 #' @noRd
-route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
+route_scene_mm <- function(
+  nodes,
+  edges,
+  bounds,
+  cap,
+  mode,
+  opts,
+  layers = NULL
+) {
   n_edges <- nrow(edges)
   from_name <- as.character(edges$from)
   to_name <- as.character(edges$to)
@@ -2286,23 +2770,24 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
   }
 
   assemble <- function() {
-    meta <- data.frame(
+    meta <- df_cols(
       edge = paste0(from_name, "->", to_name),
       routed = routed,
       mode = mode_out,
       side = side_out,
       n_waypoints = n_wp,
-      stringsAsFactors = FALSE
+      waypoint_layers = wp_layers,
+      clearance_ok = clearance_ok,
+      sagitta_ratio = sagitta,
+      sagitta_capped = capped
     )
-    meta$waypoint_layers <- wp_layers
-    meta$clearance_ok <- clearance_ok
-    meta$sagitta_ratio <- sagitta
-    meta$sagitta_capped <- capped
     list(paths = paths, meta = meta, waypoints = waypoints)
   }
   if (mode == "straight" || n_edges == 0 || nrow(nodes) == 0) {
     return(assemble())
   }
+
+  layers <- layers %||% infer_layers(nodes, opts$tol_layer)
 
   if (mode == "orthogonal") {
     st <- route_orthogonal_scene(
@@ -2315,7 +2800,8 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
       paths,
       bounds,
       cap,
-      opts
+      opts,
+      layers
     )
     paths <- st$paths
     waypoints <- st$waypoints
@@ -2330,7 +2816,6 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
     return(assemble())
   }
 
-  layers <- infer_layers(nodes, opts$tol_layer)
   info <- edge_span_info(nodes, from, to, layers)
   routable <- !is_fixed & info$Lc > 0 & from != to
   R_full <- nodes$r + opts$m
@@ -2338,11 +2823,14 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
 
   hits <- find_blocked_edges(
     nodes,
-    edges[routable, , drop = FALSE],
+    df_cols(from = from_name[routable], to = to_name[routable]),
     R_soft,
     R_full
   )
   hits$edge <- which(routable)[hits$edge]
+  # a chord shorter than 2R cannot bow around a disc that overlaps both of
+  # its endpoint discs, so it is drawn as it is
+  hits <- df_rows(hits, which(info$Lc[hits$edge] >= 2 * opts$R))
 
   grp <- parallel_groups(from, to, from_name, to_name, routable, opts$sep_m)
   extra <- grp$extra
@@ -2358,19 +2846,19 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
     method = "radix"
   )]
 
-  placed <- lapply(paths, function(p) placed_polyline(p$x, p$y))
-  occ <- df_cols(layer = integer(0), slot = integer(0), y = numeric(0))
   ctx <- list(nodes = nodes, from = from, to = to, Lc = info$Lc)
   base_intervals <- lapply(seq_len(layers$n), function(k) {
     layer_free_intervals(
-      nodes[layers$members[[k]], , drop = FALSE],
+      df_rows(nodes, layers$members[[k]]),
       opts$m,
       bounds,
-      opts$pad
+      opts$pad,
+      opts$sep_e
     )
   })
 
-  for (e in order_e) {
+  # one edge: the candidate tiers in order, verified and repaired
+  route_one <- function(e, placed, occ, reserved) {
     fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
     la <- info$la[[e]]
     lb <- info$lb[[e]]
@@ -2388,9 +2876,9 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
       r = nodes$r[idx],
       hard = he$severity == "hard"
     )
-    eh <- df_rows(eh, order(eh$t, nodes$name[idx]))
+    eh <- df_rows(eh, order(eh$t, nodes$name[idx], method = "radix"))
 
-    others <- setdiff(seq_len(nrow(nodes)), c(fr$a, fr$b))
+    others <- seq_len(nrow(nodes))[-c(fr$a, fr$b)]
     job <- list(
       fr = fr,
       la = la,
@@ -2414,7 +2902,7 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
     )
 
     res <- NULL
-    cand <- NULL
+    ints <- NULL
     if (nrow(eh) == 0) {
       # a parallel-group member whose chord is clear: one midpoint waypoint
       wp <- df_cols(
@@ -2443,10 +2931,11 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
         } else {
           lapply(crossed, function(k) {
             layer_free_intervals(
-              nodes[layers$members[[k]], , drop = FALSE],
+              df_rows(nodes, layers$members[[k]]),
               opts$m + extra[[e]],
               bounds,
-              opts$pad
+              opts$pad,
+              opts$sep_e
             )
           })
         }
@@ -2459,7 +2948,8 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
           occ,
           ectx,
           placed,
-          opts
+          opts,
+          reserved
         )
         if (!is.null(cand) && nrow(cand$wp) > 0) {
           wp <- cand$wp
@@ -2481,6 +2971,9 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
             "spanning",
             placed
           )
+          # a waypoint that stopped on an occupant is drawn over another
+          # edge, which no verification against the discs can see
+          res$clearance_ok <- res$clearance_ok && !cand$overlap
           # a spanning route that cannot be verified inside the panel falls
           # through to the free-bow tier, which is kept when it does better
           if (!res$clearance_ok || !res$inside) {
@@ -2500,12 +2993,52 @@ route_scene_mm <- function(nodes, edges, bounds, cap, mode, opts) {
       }
     }
 
-    if (res$tier == "spanning" && !is.null(cand)) {
-      occ <- df_bind(occ, cand$occ)
+    # the drawn arch of a spanning route occupies every layer it crosses
+    res$occ <- if (res$tier == "spanning") {
+      arch_occupancy(
+        e,
+        res$path,
+        fr,
+        (la + 1L):(lb - 1L),
+        layers,
+        ints,
+        res$side
+      )
     }
+    res$fr <- fr
+    res
+  }
 
+  # every routed edge in order; a second pass with slot reservations when a
+  # shared slot came out in routing order rather than chord order
+  route_all <- function(reserved) {
+    placed <- placed_set(paths)
+    occ <- empty_occupancy()
+    out <- vector("list", n_edges)
+    for (e in order_e) {
+      held <- if (!is.null(reserved)) {
+        df_rows(reserved, which(reserved$edge == e))
+      }
+      res <- route_one(e, placed, occ, held)
+      placed <- place_edge(placed, e, res$path$x, res$path$y)
+      if (!is.null(res$occ)) {
+        occ <- df_bind(occ, res$occ)
+      }
+      out[[e]] <- res
+    }
+    list(results = out, occ = occ)
+  }
+
+  pass <- route_all(NULL)
+  reserved <- slot_reservations(pass$occ, opts$sep_e)
+  if (!is.null(reserved)) {
+    pass <- route_all(reserved)
+  }
+
+  for (e in order_e) {
+    res <- pass$results[[e]]
+    fr <- res$fr
     path <- res$path
-    placed[[e]] <- placed_polyline(path$x, path$y)
     if (info$reversed[[e]]) {
       path <- df_cols(x = rev(path$x), y = rev(path$y))
     }
