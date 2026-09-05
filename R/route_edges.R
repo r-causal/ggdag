@@ -6,8 +6,8 @@
 # chord shorter than 2R stays straight, since no bow fits between endpoint
 # discs that close. The slots of a layer are the gaps between its padded
 # discs; a gap narrower than the edge separation is a sliver and is not a
-# slot, and a periphery slot also keeps R from the panel bounds so that no
-# arch runs along the border. The side of a detour is chosen by a cost that
+# slot, and a periphery slot keeps the clearance margin m from the panel
+# bounds, as every drawn curve does. The side of a detour is chosen by a cost that
 # weighs edge crossings, displacement, and the crowding of the endpoints'
 # fans. Every routed curve is sampled, verified against the node discs, and
 # repaired by pushing its waypoints outward; a periphery arch is levelled
@@ -17,9 +17,10 @@
 # separation in the order of their chords, a repaired arch being spread
 # again if the repair moved it onto a neighbour. When a slot came out in
 # routing order rather than chord order, the scene is routed a second time
-# with positions reserved for the inner chords. Nothing is drawn outside the
-# panel: a route whose curve leaves it yields to the free bow, and failing
-# that is clamped to the panel and reported without clearance. The engine is
+# with positions reserved for the inner chords. Every drawn curve keeps m
+# from the panel bounds: a route whose curve comes closer yields to the free
+# bow, and failing that is clamped to that margin and reported without
+# clearance. The engine is
 # pure: it consumes no randomness, does not depend on row order, and returns
 # identical output on repeated calls.
 #
@@ -465,8 +466,9 @@ layer_free_intervals <- function(
 
 #' The free intervals a periphery arch may use
 #'
-#' A periphery waypoint keeps at least `R` from the panel bounds, so the
-#' outer interval on each side is clipped by `R` rather than by the pad. An
+#' A periphery waypoint keeps at least the clearance margin `m` from the
+#' panel bounds, so the outer interval on each side is clipped by `margin`
+#' rather than by the pad. An
 #' outer interval that vanishes is kept as a row of `NA` so that slot
 #' indices still match the layer's full interval list, and it is no longer
 #' flagged `outer`; a side whose outer interval is gone has no periphery
@@ -474,7 +476,7 @@ layer_free_intervals <- function(
 #'
 #' @param ints Free intervals of one layer from `layer_free_intervals()`.
 #' @noRd
-periphery_intervals <- function(ints, bounds, R) {
+periphery_intervals <- function(ints, bounds, margin) {
   n <- nrow(ints)
   if (n == 0) {
     return(ints)
@@ -483,10 +485,10 @@ periphery_intervals <- function(ints, bounds, R) {
   hi <- ints$hi
   outer <- ints$outer
   if (outer[[1]]) {
-    lo[[1]] <- max(lo[[1]], bounds[[2]] + R)
+    lo[[1]] <- max(lo[[1]], bounds[[2]] + margin)
   }
   if (outer[[n]]) {
-    hi[[n]] <- min(hi[[n]], bounds[[4]] - R)
+    hi[[n]] <- min(hi[[n]], bounds[[4]] - margin)
   }
   gone <- which(lo > hi)
   lo[gone] <- NA_real_
@@ -546,18 +548,32 @@ nearest_free_y <- function(intervals, y, side, outer_only) {
 #' the overlap is reported.
 #'
 #' @param wp Waypoints with `x`, `y`, `layer`, one per crossed layer.
-#' @param ints Free intervals, one data frame per row of `wp`.
-#' @param occ Occupancy with `layer`, `slot`, `y`, `chord`.
+#' @param ints Free intervals, one data frame per row of `wp`, the ones the
+#'   waypoints snap into (a parallel-group member's carry its extra margin).
+#' @param occ Occupancy with `layer`, `slot`, `y`, `chord`, whose slots are
+#'   indices into the layer's base intervals.
 #' @param yc Chord y per row of `wp`.
 #' @param reserved Reservations for this edge with `layer`, `slot`, `y`, or
 #'   `NULL`.
+#' @param base The layer's base free intervals, one per row of `wp`, that
+#'   occupancy and reservations are indexed by; `ints` when `NULL`.
 #' @return A list with the updated `wp`, the `slot` index per row,
 #'   `disordered`, whether any waypoint had to give up the chord order and
 #'   keep its separation only, and `overlap`, whether any waypoint had to
 #'   stop on an occupant.
 #' @noRd
-spread_in_slot <- function(wp, ints, occ, side, sep_e, yc, reserved = NULL) {
+spread_in_slot <- function(
+  wp,
+  ints,
+  occ,
+  side,
+  sep_e,
+  yc,
+  reserved = NULL,
+  base = NULL
+) {
   slot <- integer(nrow(wp))
+  base <- base %||% ints
   if (nrow(occ) == 0 && is.null(reserved)) {
     for (i in seq_len(nrow(wp))) {
       s <- which(ints[[i]]$lo <= wp$y[[i]] & wp$y[[i]] <= ints[[i]]$hi)
@@ -579,13 +595,14 @@ spread_in_slot <- function(wp, ints, occ, side, sep_e, yc, reserved = NULL) {
     }
     s <- s[[1]]
     layer <- wp$layer[[i]]
+    b <- slot_of(base[[i]], y0, sep_e)
     if (!is.null(reserved)) {
-      held <- reserved$y[reserved$layer == layer & reserved$slot == s]
+      held <- reserved$y[reserved$layer == layer & reserved$slot == b]
       if (length(held) > 0) {
         y0 <- outward(y0, held[[1]])
       }
     }
-    here <- which(occ$layer == layer & occ$slot == s)
+    here <- which(occ$layer == layer & occ$slot == b)
     y <- y0
     if (length(here) > 0) {
       oy <- occ$y[here]
@@ -720,10 +737,11 @@ slot_of <- function(iv, y, sep_e) {
 #' the path passes gets its waypoint moved there (inserted when the hull
 #' had dropped it).
 #'
+#' @param base The layers' base free intervals the occupancy is indexed by.
 #' @return The adjusted waypoints, or `NULL` when the drawn arch already
 #'   respects the occupancy.
 #' @noRd
-respread_arch <- function(res, fr, crossed, layers, ints, occ, opts) {
+respread_arch <- function(res, fr, crossed, layers, ints, occ, opts, base) {
   x0 <- layers$x[crossed]
   y <- polyline_y_at(res$path$x, res$path$y, x0)
   yc <- fr$S[[2]] +
@@ -738,7 +756,16 @@ respread_arch <- function(res, fr, crossed, layers, ints, occ, opts) {
     iv <- ints[[i]]
     y_in <- min(max(y[[i]], iv$lo[[s]]), iv$hi[[s]])
     row <- df_cols(x = x0[[i]], y = y_in, layer = crossed[[i]])
-    sp <- spread_in_slot(row, ints[i], occ, res$side, opts$sep_e, yc[[i]])
+    sp <- spread_in_slot(
+      row,
+      ints[i],
+      occ,
+      res$side,
+      opts$sep_e,
+      yc[[i]],
+      NULL,
+      base[i]
+    )
     if (abs(sp$wp$y[[1]] - y_in) < 1e-6) {
       next
     }
@@ -1530,14 +1557,14 @@ edge_cost_context <- function(fr, e, ctx) {
 #' One waypoint per crossed layer, snapped into the free slots of that layer
 #' on each side. Interior candidates use every free interval; periphery
 #' candidates (span at least `periphery_span`) use only the outer ones.
-#' A periphery slot also keeps `R` from the panel bounds
-#' (`periphery_intervals()`), so an arch never runs along the border; when
-#' no outer slot on a side satisfies that, the periphery candidate on that
-#' side is infeasible. Candidates that share a slot with an already routed
-#' edge are spread by `sep_e` in chord order and reduced to one arch by the
-#' hull; a candidate that had to stop on an occupant ranks below every
-#' other, and one that had to give up the chord order ranks below every
-#' candidate that kept it. A periphery
+#' A periphery slot also keeps the clearance margin `m` from the panel
+#' bounds (`periphery_intervals()`), so a periphery arch keeps `m` from the
+#' border; when no outer slot on a side satisfies that, the periphery
+#' candidate on that side is infeasible. Candidates that share a slot with
+#' an already routed edge are spread by `sep_e` in chord order and reduced
+#' to one arch by the hull; a candidate that had to stop on an occupant
+#' ranks below every other, and one that had to give up the chord order is
+#' priced as if it crossed one edge. A periphery
 #' arch is then levelled: every surviving waypoint rises to the outermost
 #' one, so the apex sits mid-span rather than over the tallest stack and the
 #' arch climbs as steeply as it descends; the levelled chain is spread and
@@ -1548,8 +1575,12 @@ edge_cost_context <- function(fr, e, ctx) {
 #' @param bounds Panel bounds.
 #' @param reserved Reservations for this edge from `slot_reservations()`,
 #'   or `NULL`.
+#' @param base The layers' base free intervals that the occupancy is
+#'   indexed by; `ints` unless the edge carries an extra margin.
 #' @return `NULL` when every candidate has a slot with no free y; otherwise
-#'   a list with `wp`, `side`, `scope`, `disordered`, and `overlap`.
+#'   the candidates ranked best first, each a list with `wp`, `side`,
+#'   `scope`, `disordered`, `overlap`, and `ints`, the free intervals the
+#'   candidate was placed in (clipped for a periphery candidate).
 #' @noRd
 assign_spanning_waypoints <- function(
   fr,
@@ -1562,7 +1593,8 @@ assign_spanning_waypoints <- function(
   placed,
   opts,
   bounds,
-  reserved = NULL
+  reserved = NULL,
+  base = ints
 ) {
   crossed <- (la + 1L):(lb - 1L)
   yc <- fr$S[[2]] +
@@ -1576,7 +1608,7 @@ assign_spanning_waypoints <- function(
   }
 
   pints <- if ("periphery" %in% scopes) {
-    lapply(ints, periphery_intervals, bounds = bounds, R = opts$R)
+    lapply(ints, periphery_intervals, bounds = bounds, margin = opts$m)
   }
 
   cands <- list()
@@ -1593,7 +1625,7 @@ assign_spanning_waypoints <- function(
         next
       }
       wp <- df_cols(x = layers$x[crossed], y = yk, layer = crossed)
-      sp <- spread_in_slot(wp, use, occ, side, opts$sep_e, yc, reserved)
+      sp <- spread_in_slot(wp, use, occ, side, opts$sep_e, yc, reserved, base)
       overlap <- sp$overlap
       disordered <- sp$disordered
       wp <- hull_waypoints(fr$S, sp$wp, fr$E, side)
@@ -1610,20 +1642,25 @@ assign_spanning_waypoints <- function(
           side,
           opts$sep_e,
           yc[at],
-          reserved
+          reserved,
+          base[at]
         )
         overlap <- overlap || sp$overlap
         disordered <- disordered || sp$disordered
         wp <- hull_waypoints(fr$S, sp$wp, fr$E, side)
       }
       cost <- side_cost(fr, wp, side, displacement, ectx, placed, opts)
+      if (disordered) {
+        cost <- cost + opts$crossing_penalty
+      }
       cands[[length(cands) + 1]] <- list(
         side = side,
         scope = scope,
         wp = wp,
         cost = round(cost, opts$cost_digits),
         disordered = disordered,
-        overlap = overlap
+        overlap = overlap,
+        ints = use
       )
     }
   }
@@ -1632,10 +1669,31 @@ assign_spanning_waypoints <- function(
   }
   cost <- vapply(cands, function(c) c$cost, numeric(1))
   overlap <- vapply(cands, function(c) c$overlap, logical(1))
-  disordered <- vapply(cands, function(c) c$disordered, logical(1))
   interior <- vapply(cands, function(c) c$scope == "interior", logical(1))
   above <- vapply(cands, function(c) c$side > 0, logical(1))
-  cands[[order(overlap, disordered, cost, !interior, !above)[[1]]]]
+  cands[order(overlap, cost, !interior, !above)]
+}
+
+#' Whether every waypoint at a crossed layer lies in one of its intervals
+#'
+#' A repair or a re-spread can move a periphery waypoint back into the
+#' margin its slot was clipped away from; such a candidate is infeasible.
+#'
+#' @noRd
+waypoints_in_slots <- function(wp, crossed, ints) {
+  for (i in seq_along(crossed)) {
+    at <- which(wp$layer == crossed[[i]])
+    if (length(at) == 0) {
+      next
+    }
+    iv <- ints[[i]]
+    for (y in wp$y[at]) {
+      if (!any(iv$lo <= y & y <= iv$hi, na.rm = TRUE)) {
+        return(FALSE)
+      }
+    }
+  }
+  TRUE
 }
 
 #' Waypoints of the free-bow tier
@@ -1772,20 +1830,35 @@ bow_points <- function(hits, fr, offsets, opts) {
   )
 }
 
-#' Whether a sampled path stays inside the panel less the pad
+#' Whether a sampled path keeps `margin` from every panel bound
+#'
+#' The endpoints are node centres and are not the path's to move, so only
+#' the interior samples are checked.
+#'
 #' @noRd
-path_inside_bounds <- function(path, bounds, pad) {
-  min(path$x) >= bounds[[1]] + pad &&
-    max(path$x) <= bounds[[3]] - pad &&
-    min(path$y) >= bounds[[2]] + pad &&
-    max(path$y) <= bounds[[4]] - pad
+path_inside_bounds <- function(path, bounds, margin) {
+  n <- length(path$x)
+  if (n <= 2) {
+    return(TRUE)
+  }
+  x <- path$x[-c(1L, n)]
+  y <- path$y[-c(1L, n)]
+  min(x) >= bounds[[1]] + margin &&
+    max(x) <= bounds[[3]] - margin &&
+    min(y) >= bounds[[2]] + margin &&
+    max(y) <= bounds[[4]] - margin
 }
 
-#' Clamp a sampled path into the panel less the pad
+#' Clamp the interior samples of a path to `margin` inside the bounds
 #' @noRd
-clamp_path <- function(path, bounds, pad) {
-  path$x <- pmin(pmax(path$x, bounds[[1]] + pad), bounds[[3]] - pad)
-  path$y <- pmin(pmax(path$y, bounds[[2]] + pad), bounds[[4]] - pad)
+clamp_path <- function(path, bounds, margin) {
+  n <- length(path$x)
+  if (n <= 2) {
+    return(path)
+  }
+  i <- 2:(n - 1L)
+  path$x[i] <- pmin(pmax(path$x[i], bounds[[1]] + margin), bounds[[3]] - margin)
+  path$y[i] <- pmin(pmax(path$y[i], bounds[[2]] + margin), bounds[[4]] - margin)
   path
 }
 
@@ -1913,10 +1986,11 @@ route_candidate <- function(
   res$capped <- capped
   res$least_bad <- least_bad
   res$clearance_ok <- res$clearance_ok && !least_bad
-  # the waypoints and the drawn curve must both stay inside the panel: a
-  # levelled plateau bulges a few millimetres beyond its waypoints
+  # the waypoints stay inside the panel and the drawn curve keeps the
+  # clearance margin from its bounds: a levelled plateau bulges a few
+  # millimetres beyond its waypoints
   res$inside <- inside_bounds(res$wp, job$bounds, job$opts$pad) &&
-    path_inside_bounds(res$path, job$bounds, job$opts$pad)
+    path_inside_bounds(res$path, job$bounds, job$opts$m)
   res
 }
 
@@ -1942,6 +2016,78 @@ route_free_bow <- function(job, placed) {
     capped = fb$capped,
     least_bad = fb$least_bad
   )
+}
+
+#' Route one ranked spanning candidate of an edge
+#'
+#' Merges the bows around endpoint-layer hits into the candidate's arch,
+#' builds and verifies the curve, spreads a repaired arch again against the
+#' occupancy (twice at most, reporting a persisting conflict as lost
+#' clearance), and marks a periphery waypoint that repairs moved back into
+#' the margin clipped from its slot as infeasible. The re-spread waypoints
+#' carry the parallel-group offset already, so it is taken off before the
+#' candidate applies it again.
+#'
+#' @param cand One candidate from `assign_spanning_waypoints()`.
+#' @param eh The edge's hits in its frame.
+#' @param crossed The crossed layers.
+#' @param base The layers' base free intervals, one per crossed layer, that
+#'   the occupancy is indexed by.
+#' @noRd
+route_spanning_candidate <- function(
+  job,
+  cand,
+  eh,
+  crossed,
+  layers,
+  base,
+  occ,
+  placed,
+  shift,
+  opts
+) {
+  fr <- job$fr
+  wp <- cand$wp
+  outside <- df_rows(eh, which(eh$layer <= job$la | eh$layer >= job$lb))
+  if (nrow(outside) > 0) {
+    o <- outside$h + cand$side * (outside$r + opts$m + job$extra)
+    wp <- hull_waypoints(
+      fr$S,
+      df_bind(wp, bow_points(outside, fr, o, opts)),
+      fr$E,
+      cand$side
+    )
+  }
+  res <- route_candidate(job, wp, cand$side, cand$scope, "spanning", placed)
+  # a waypoint that stopped on an occupant is drawn over another edge,
+  # which no verification against the discs can see
+  res$clearance_ok <- res$clearance_ok && !cand$overlap
+  use <- cand$ints
+  for (round in 1:2) {
+    wp2 <- respread_arch(res, fr, crossed, layers, use, occ, opts, base)
+    if (is.null(wp2)) {
+      break
+    }
+    res <- route_candidate(
+      job,
+      offset_parallel_edges(wp2, -shift, fr, "spanning"),
+      cand$side,
+      cand$scope,
+      "spanning",
+      placed
+    )
+    res$clearance_ok <- res$clearance_ok && !cand$overlap
+  }
+  if (
+    res$clearance_ok &&
+      !is.null(respread_arch(res, fr, crossed, layers, use, occ, opts, base))
+  ) {
+    res$clearance_ok <- FALSE
+  }
+  if (cand$scope == "periphery" && !waypoints_in_slots(res$wp, crossed, use)) {
+    res$inside <- FALSE
+  }
+  res
 }
 
 # Parallel groups ------------------------------------------------------------------------------
@@ -2219,6 +2365,11 @@ route_orthogonal_scene <- function(
     }
 
     path <- df_cols(x = pts[, 1], y = pts[, 2])
+    # the drawn runs keep the clearance margin from the panel bounds
+    if (!path_inside_bounds(path, bounds, opts$m)) {
+      path <- clamp_path(path, bounds, opts$m)
+      ok <- FALSE
+    }
     if (info$reversed[[e]]) {
       path <- df_cols(x = rev(path$x), y = rev(path$y))
     }
@@ -2264,8 +2415,9 @@ route_orthogonal_scene <- function(
 #' within `sep_e` of an already placed channel on the same side over an
 #' overlapping x-range is pushed outward past it. Each candidate is priced
 #' by `side_cost()` with the displacement summed over the crossed layers;
-#' ties go above. A channel outside the panel is infeasible, and when
-#' nothing fits the least displaced candidate is clamped into the panel.
+#' ties go above. A channel closer than the clearance margin `m` to the
+#' panel bounds is infeasible, and when nothing fits the least displaced
+#' candidate is clamped to that margin.
 #'
 #' @param sn_sides Logical pair: are S/N ports available above and below.
 #' @param channels The channels placed so far: `side`, `y`, `lo`, `hi`.
@@ -2300,8 +2452,8 @@ ortho_channel <- function(
   yc <- Sy + (layers$x[crossed] - Sx) / (Tx - Sx) * (Ty - Sy)
   x_a <- gap_mid[[la]]
   x_b <- gap_mid[[lb - 1L]]
-  y_min <- bounds[[2]] + opts$pad
-  y_max <- bounds[[4]] - opts$pad
+  y_min <- bounds[[2]] + opts$m
+  y_max <- bounds[[4]] - opts$m
   ends <- c(Sy, Ty)
   ew_hi <- if (any(ends >= ext_hi)) min(ends[ends >= ext_hi]) else ext_hi
   ew_lo <- if (any(ends <= ext_lo)) max(ends[ends <= ext_lo]) else ext_lo
@@ -2991,9 +3143,11 @@ route_scene_mm <- function(
 
   to_route <- routable & (seq_len(n_edges) %in% hits$edge | shift != 0)
   order_e <- which(to_route)
+  # chord lengths are rounded to a micrometre so that two skip edges of one
+  # row tie on length and the name order decides, not a floating difference
   order_e <- order_e[order(
     -info$span[order_e],
-    -info$Lc[order_e],
+    -round(info$Lc[order_e], 6),
     from_name[order_e],
     to_name[order_e],
     method = "radix"
@@ -3092,7 +3246,7 @@ route_scene_mm <- function(
             )
           })
         }
-        cand <- assign_spanning_waypoints(
+        cands <- assign_spanning_waypoints(
           fr,
           la,
           lb,
@@ -3103,60 +3257,37 @@ route_scene_mm <- function(
           placed,
           opts,
           bounds,
-          reserved
+          reserved,
+          base_intervals[crossed]
         )
-        if (!is.null(cand) && nrow(cand$wp) > 0) {
-          wp <- cand$wp
-          outside <- df_rows(eh, which(eh$layer <= la | eh$layer >= lb))
-          if (nrow(outside) > 0) {
-            o <- outside$h + cand$side * (outside$r + opts$m + extra[[e]])
-            wp <- hull_waypoints(
-              fr$S,
-              df_bind(wp, bow_points(outside, fr, o, opts)),
-              fr$E,
-              cand$side
-            )
-          }
-          res <- route_candidate(
+        cands <- Filter(function(c) nrow(c$wp) > 0, cands)
+        # candidates are tried best first; one whose curve cannot keep the
+        # margin from the panel bounds gives way to the next, and the best
+        # is kept when none can
+        first <- NULL
+        for (cand in cands) {
+          tried <- route_spanning_candidate(
             job,
-            wp,
-            cand$side,
-            cand$scope,
-            "spanning",
-            placed
+            cand,
+            eh,
+            crossed,
+            layers,
+            base_intervals[crossed],
+            occ,
+            placed,
+            shift[[e]],
+            opts
           )
-          # a waypoint that stopped on an occupant is drawn over another
-          # edge, which no verification against the discs can see
-          res$clearance_ok <- res$clearance_ok && !cand$overlap
-          # repairs may have moved the arch onto an arch already drawn
-          # through the same slot: spread it again and re-verify, twice at
-          # most, and report a persisting conflict as lost clearance
-          use <- if (cand$scope == "periphery") {
-            lapply(ints, periphery_intervals, bounds = bounds, R = opts$R)
-          } else {
-            ints
+          if (is.null(first)) {
+            first <- tried
           }
-          for (round in 1:2) {
-            wp2 <- respread_arch(res, fr, crossed, layers, use, occ, opts)
-            if (is.null(wp2)) {
-              break
-            }
-            res <- route_candidate(
-              job,
-              wp2,
-              cand$side,
-              cand$scope,
-              "spanning",
-              placed
-            )
-            res$clearance_ok <- res$clearance_ok && !cand$overlap
+          if (tried$inside) {
+            res <- tried
+            break
           }
-          if (
-            res$clearance_ok &&
-              !is.null(respread_arch(res, fr, crossed, layers, use, occ, opts))
-          ) {
-            res$clearance_ok <- FALSE
-          }
+        }
+        res <- res %||% first
+        if (!is.null(res)) {
           # a spanning route that cannot be verified inside the panel falls
           # through to the free-bow tier, which is kept when it does better
           if (!res$clearance_ok || !res$inside) {
@@ -3176,10 +3307,11 @@ route_scene_mm <- function(
       }
     }
 
-    # nothing is drawn outside the panel: a route that no tier could keep
-    # inside is clamped to the panel less the pad and loses its clearance
+    # every drawn curve keeps the clearance margin from the panel bounds: a
+    # route that no tier could keep there is clamped to it and loses its
+    # clearance
     if (!res$inside) {
-      res$path <- clamp_path(res$path, bounds, opts$pad)
+      res$path <- clamp_path(res$path, bounds, opts$m)
       res$clearance_ok <- FALSE
     }
 
@@ -3191,7 +3323,7 @@ route_scene_mm <- function(
         fr,
         (la + 1L):(lb - 1L),
         layers,
-        ints,
+        base_intervals[(la + 1L):(lb - 1L)],
         res$side,
         opts$sep_e
       )

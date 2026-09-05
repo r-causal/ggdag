@@ -1203,9 +1203,12 @@ test_that("an arch occupies every layer it crosses, not only the layers of its w
 # passes above it, so the layer 3 waypoint of each arch is inserted by the
 # repair loop at s5 + R = 89 from the node disc alone. Without a re-check
 # against the occupancy, pb -> t was drawn 0.29 mm from pa -> t at x = 100.
+# The panel is 120 mm high: the outer arch passes layer 2 at 107.6 and
+# every drawn curve keeps the clearance margin m = 3 from the bounds.
 repaired_arch_scene <- function() {
   scene <- occupied_arch_scene()
   scene$nodes <- rbind(scene$nodes, mm_nodes("s5", 100, 80))
+  scene$bounds <- c(0, 0, 160, 120)
   scene
 }
 
@@ -1244,6 +1247,111 @@ test_that("an arch that repairs moved onto another arch is spread again", {
   res2 <- route_scene(shuffled)
   expect_identical(res2$paths[[2]], res$paths[[1]])
   expect_identical(res2$paths[[1]], res$paths[[2]])
+})
+
+test_that("a re-spread arch keeps its parallel-group offset only once", {
+  # t -> pb makes pb -> t one of a parallel pair, routed with an extra margin
+  # and translated sep_m / 2 = 3 mm inward. The re-spread waypoints already
+  # carry that offset; applying it a second time pulled the arch back onto
+  # pa -> t (0.60 mm apart at x = 60) and cost it its clearance.
+  scene <- repaired_arch_scene()
+  scene$edges <- rbind(scene$edges, mm_edges("t", "pb"))
+  res <- route_scene(scene)
+
+  expect_true(all(res$meta$routed))
+  expect_true(all(res$meta$clearance_ok))
+  expect_equal(res$meta$side, c(1, 1, 1))
+  for (i in 1:3) {
+    expect_gte(
+      path_min_clearance(scene, i, res$paths[[i]]),
+      r_full - verify_tol
+    )
+  }
+
+  # the reversed member is drawn target to source
+  flip <- function(path) pt(rev(path$x), rev(path$y))
+  pa <- res$paths[[1]]
+  inner <- res$paths[[2]]
+  outer <- flip(res$paths[[3]])
+  for (x0 in c(60, 100)) {
+    ya <- path_y_at(pa, x0)
+    yi <- path_y_at(inner, x0)
+    yo <- path_y_at(outer, x0)
+    expect_gt(yi, ya)
+    expect_gte(yi - ya, sep_e_default - 0.1)
+    # the pair sits at least sep_m = 6 apart, the inner member nearer
+    # pa -> t; the outer member is also spread sep_e from the inner one
+    # before its own translation, so the gap is sep_m + (sep_e - sep_m / 2)
+    expect_gt(yo, yi)
+    expect_gte(yo - yi, 6 - 0.1)
+    expect_lte(yo - yi, 6 + sep_e_default)
+  }
+
+  # deterministic and invariant to row order
+  expect_identical(route_scene(scene), res)
+  shuffled <- scene
+  shuffled$nodes <- scene$nodes[rev(seq_len(nrow(scene$nodes))), ]
+  shuffled$edges <- scene$edges[3:1, ]
+  rownames(shuffled$nodes) <- NULL
+  rownames(shuffled$edges) <- NULL
+  res2 <- route_scene(shuffled)
+  for (i in 1:3) {
+    expect_identical(res2$paths[[4 - i]], res$paths[[i]])
+  }
+})
+
+# Two skip edges of one row, a -> d and b -> e, have chords of exactly 120
+# mm each; both are blocked by the nodes between their endpoints. With equal
+# spans and lengths the name order decides which routes first, and a
+# floating difference in the seventh decimal must not change that.
+equal_skip_scene <- function(eps = 0) {
+  list(
+    nodes = mm_nodes(
+      c("a", "b", "c", "d", "e"),
+      c(0, 40, 80, 120, 160 + eps),
+      50
+    ),
+    edges = mm_edges(
+      c("a", "b", "a", "b", "c", "d"),
+      c("d", "e", "b", "c", "d", "e")
+    ),
+    bounds = c(-10, 0, 170, 100)
+  )
+}
+
+# proper crossings between two sampled paths
+count_paths_crossing <- function(p, q) {
+  total <- 0L
+  for (i in seq_len(nrow(q) - 1)) {
+    total <- total +
+      count_path_crossings(
+        p,
+        c(q$x[i], q$y[i]),
+        c(q$x[i + 1], q$y[i + 1])
+      )
+  }
+  total
+}
+
+test_that("skip edges of equal chord length route in name order and take opposite sides", {
+  ref <- route_scene(equal_skip_scene())
+  expect_true(all(ref$meta$routed[1:2]))
+  expect_equal(ref$meta$mode[1:2], c("interior", "interior"))
+  # a -> d routes first and ties above; b -> e above would cross it twice,
+  # so it goes below and the two arches cross nowhere
+  expect_equal(ref$meta$side[1:2], c(1, -1))
+  expect_identical(count_paths_crossing(ref$paths[[1]], ref$paths[[2]]), 0L)
+
+  # a 1e-9 mm perturbation of e's x in either direction changes b -> e's
+  # length in the ninth decimal only, so the ordering, the sides, and the
+  # modes are unchanged
+  for (eps in c(1e-9, -1e-9)) {
+    res <- route_scene(equal_skip_scene(eps))
+    expect_identical(res$meta$mode, ref$meta$mode)
+    expect_identical(res$meta$side, ref$meta$side)
+    expect_identical(res$meta$waypoint_layers, ref$meta$waypoint_layers)
+    expect_identical(count_paths_crossing(res$paths[[1]], res$paths[[2]]), 0L)
+  }
 })
 
 # Fixture 4: weave -------------------------------------------------------------
@@ -1892,6 +2000,22 @@ expect_paths_inside <- function(res, bounds, label) {
   }
 }
 
+# every sampled point of every path keeps the clearance margin m = 3 from
+# the panel bounds
+m_default <- 3
+
+expect_paths_keep_margin <- function(res, bounds, label) {
+  for (path in res$paths) {
+    d <- min(
+      path$x - bounds[1],
+      bounds[3] - path$x,
+      path$y - bounds[2],
+      bounds[4] - path$y
+    )
+    expect_gte(d, m_default - 1e-6, label = label)
+  }
+}
+
 test_that("device size: routing decisions do not change with the panel size", {
   panels <- list(c(100, 70), c(120, 84), c(160, 110), c(240, 160))
 
@@ -1904,16 +2028,22 @@ test_that("device size: routing decisions do not change with the panel size", {
       expect_identical(res$meta$side, ref$meta$side)
       expect_identical(res$meta$mode, ref$meta$mode)
       expect_identical(res$meta$waypoint_layers, ref$meta$waypoint_layers)
-      expect_paths_inside(res, scene$bounds, paste(panel, collapse = "x"))
+      label <- paste(panel, collapse = "x")
+      expect_paths_inside(res, scene$bounds, label)
+      expect_paths_keep_margin(res, scene$bounds, label)
+      ortho <- route_scene(scene, mode = "orthogonal")
+      expect_paths_keep_margin(ortho, scene$bounds, label)
     }
   }
 
-  # The four-layer periphery needs a slot at least R = 9 from the panel
-  # edge above s1: at 160 x 110 and 240 x 160 it has one, and p->t sweeps
-  # the periphery with full clearance. At 120 x 84 the top slot is
-  # 84 - 9 = 75 while s1 + R reaches 77.7, and at 100 x 70 it is 61 against
-  # 64.7, so the periphery is infeasible and p->t threads the interior
-  # instead. Whatever the size, no sampled point leaves the panel.
+  # The four-layer periphery needs a slot above s1 that keeps m = 3 from
+  # the panel edge: at 160 x 110 and 240 x 160 it has one, and p->t sweeps
+  # the periphery with full clearance. At 120 x 84 the slot may reach
+  # 84 - 3 = 81 and s1 + R = 77.7 fits, but the levelled arch bulges past
+  # 81 and the candidate gives way to the interior; at 100 x 70 the slot
+  # ends at 67 while s1 + R reaches 66.3, and the arch again bulges past
+  # it. Whatever the size, no sampled point leaves the panel or comes
+  # closer than m to its bounds, in either mode.
   ref <- route_scene(four_layer_scene(panel = c(160, 110)))
   for (panel in panels) {
     scene <- four_layer_scene(panel = panel)
@@ -1923,6 +2053,12 @@ test_that("device size: routing decisions do not change with the panel size", {
     expect_identical(res$meta$side, ref$meta$side)
     expect_identical(res$meta$mode[1:9], ref$meta$mode[1:9])
     expect_paths_inside(res, scene$bounds, label)
+    expect_paths_keep_margin(res, scene$bounds, label)
+    expect_paths_keep_margin(
+      route_scene(scene, mode = "orthogonal"),
+      scene$bounds,
+      label
+    )
     if (panel[1] >= 160) {
       expect_identical(res$meta$mode[10], "periphery", label = label)
       expect_identical(res$meta$waypoint_layers, ref$meta$waypoint_layers)
