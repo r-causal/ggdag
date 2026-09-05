@@ -519,44 +519,34 @@ rev_path <- function(path) {
   path[rev(seq_len(nrow(path))), , drop = FALSE]
 }
 
-# Arc length of the terminal stub at the end of a path: from the endpoint,
-# a node centre, back over any segments hidden inside the node (both ends
-# within the cap of the centre) and then along the last axis-aligned run up
-# to its first corner. After the cap is resected the arrowhead sits on this
-# stub, which is why it must be straight for at least cap + rc. Pass the
-# reversed path for the stub at the start.
+# Length of the terminal stub at the end of a path: the axis-aligned run
+# that reaches the endpoint, a node centre, or that reaches the connector an
+# offset port needs. A connector is the last run when it is at most sep_e / 2
+# long (an offset port sits sep_e / 2 beside the centre line, so a longer
+# leg is a stub in its own right), lies within the cap of the centre, and is
+# perpendicular to the run before it, with nothing between them but a
+# rounded corner hidden inside the node. Nothing else is skipped and the
+# connector's own length never counts, so a short centre stub followed by a
+# channel measures as the stub, not the channel. After the cap is resected
+# the arrowhead sits on the run, which is why it must be straight for at
+# least cap + rc. Pass the reversed path for the stub at the start.
 end_stub_length <- function(path, centre, tol = 1e-6) {
   path <- dedupe_path(path)
-  n <- nrow(path)
-  if (n < 2) {
+  runs <- straight_runs(path, tol)
+  n <- nrow(runs)
+  if (n == 0 || runs$to[n] != nrow(path)) {
     return(0)
   }
-  inside <- sqrt((path$x - centre[1])^2 + (path$y - centre[2])^2) <=
-    cap_default + tol
-  axis <- segment_axes(path, tol)
-  len <- sqrt(diff(path$x)^2 + diff(path$y)^2)
-  total <- 0
-  run_axis <- NULL
-  run_coord <- NULL
-  for (i in rev(seq_len(n - 1))) {
-    if (is.null(run_axis) && inside[i] && inside[i + 1]) {
-      total <- total + len[i]
-      next
-    }
-    if (axis[i] == "o") {
-      break
-    }
-    coord <- if (axis[i] == "h") path$y[i] else path$x[i]
-    if (is.null(run_axis)) {
-      run_axis <- axis[i]
-      run_coord <- coord
-    }
-    if (axis[i] != run_axis || abs(coord - run_coord) > tol) {
-      break
-    }
-    total <- total + len[i]
+  last <- runs[n, ]
+  if (last$length > sep_e_default / 2 + tol || n < 2) {
+    return(last$length)
   }
-  total
+  before <- runs[n - 1, ]
+  idx <- before$to:last$to
+  hidden <- sqrt((path$x[idx] - centre[1])^2 + (path$y[idx] - centre[2])^2) <=
+    cap_default + tol
+  connector <- before$axis != last$axis && all(hidden)
+  if (connector) before$length else last$length
 }
 
 # The orthogonal predicates for a whole scene: exact endpoints; straight
@@ -2256,7 +2246,8 @@ test_that("continuity: sliding m through the obstruction threshold never pops th
 # that side; and a channel whose margin band would cut a disc is infeasible,
 # the edge running through a free interval of every crossed layer instead.
 # Every candidate, S/N or E/W, is priced as displacement / r + bend_penalty
-# per bend + the crossing and congestion terms, ties above.
+# per bend (2 by default, so four bends cost a second detour) + the crossing
+# and congestion terms, ties above.
 ortho <- function(scene, corners = NULL, ...) {
   opts <- if (is.null(corners)) {
     route_opts(r_default)
@@ -3076,10 +3067,64 @@ expect_runs_owned <- function(scene, res, sharp, prefix = "") {
   }
 }
 
+test_that("end_stub_length() measures the visible run and skips only an offset-port connector", {
+  centre <- c(80, 55)
+  # a centre port: a 12 mm run down x = 80 after a perpendicular channel
+  expect_equal(end_stub_length(pt(c(0, 80, 80), c(67, 67, 55)), centre), 12)
+  # an offset port: the 12 mm run down x = 78.2 ends 1.8 mm beside the
+  # centre and a perpendicular connector closes the gap; the connector does
+  # not count
+  expect_equal(
+    end_stub_length(pt(c(0, 78.2, 78.2, 80), c(67, 67, 55, 55)), centre),
+    12
+  )
+  # a 7 mm stub followed by a 100 mm channel is 7 mm, neither 107 nor 100,
+  # and fails the floor
+  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(62, 62, 55)), centre), 7)
+  expect_lt(7, cap_default + rc_default)
+  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(64, 64, 55)), centre), 9)
+  # a leg longer than sep_e / 2 is a stub, not a connector, whether it is
+  # a 3 mm centre stub under a channel or a 5 mm offset
+  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(58, 58, 55)), centre), 3)
+  expect_equal(
+    end_stub_length(pt(c(0, 75, 75, 80), c(67, 67, 55, 55)), centre),
+    5
+  )
+  # with rounded corners the connector's own corner is cut to 0.9 (half its
+  # 1.8 mm leg) and the run loses rc at each corner: 71.1 - 2.1 - 55.9 = 13.1
+  P <- rbind(c(7.3, 55), c(7.3, 71.1), c(78.2, 71.1), c(78.2, 55), c(80, 55))
+  rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
+  expect_equal(
+    end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
+    13.1,
+    tolerance = 1e-6
+  )
+  # the reviewer's hole: a channel at 62 leaves a 7 mm stub whose straight
+  # part after rounding is 7 - 2.1 = 4.9, measured as itself
+  P <- rbind(c(7.3, 55), c(7.3, 62), c(80, 62), c(80, 55))
+  rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
+  expect_equal(
+    end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
+    4.9,
+    tolerance = 1e-6
+  )
+  # an oblique tail has no stub
+  expect_equal(
+    end_stub_length(pt(c(0, 78, 78, 80), c(67, 67, 61, 55)), centre),
+    0
+  )
+  # the reversed path measures the stub at the start
+  expect_equal(
+    end_stub_length(rev_path(pt(c(80, 80, 0), c(55, 67, 67))), centre),
+    12
+  )
+})
+
 # A collinear chain with two skip edges: a->c is blocked by b and c->e by d,
 # so both channel above at max(55 + 9, 55 + 16.1) = 71.1 (S/N: 16.1 / 6 + 2
-# bends = 4.68, against an E/W run at 55 + 9 = 64 with four bends, 9 / 6 + 4
-# = 5.5; nothing is congested and the tie between the sides goes above).
+# bends at 2 = 6.68, against an E/W run at 55 + 9 = 64 with four bends,
+# 9 / 6 + 8 = 9.5; nothing is congested and the tie between the sides goes
+# above).
 # a->c arrives at c's N port and c->e leaves from it.
 chain_scene <- function() {
   list(
@@ -3152,11 +3197,17 @@ test_that("orthogonal slots: touching segments from different sources never shar
   # In gap 2 (x 60 to 100) q1's hyperedge covers [55, 90] and q2's covers
   # [20, 55]; they meet at s2's y. One slot for both drew a continuous
   # vertical from q2 up to q1 that read as q1->s3 and q2->s1. The band
-  # [76.1, 83.9] is 7.8 mm wide, so two slots at least sep_e apart both
-  # fit inside it. Gap 3 (100 to 140) is the same picture with s1->t over
+  # [76.1, 83.9] is 7.8 mm wide and holds two slots at exactly sep_e = 3.6
+  # apart (an even spread would put them 2.6 apart). A band that holds its
+  # K slots at sep_e spacing is not narrow; the even-spread criterion applies
+  # only when K slots at sep_e do not fit, so these edges keep their
+  # clearance. Gap 3 (100 to 140) is the same picture with s1->t over
   # [55, 90] and s3->t over [20, 55] meeting at t's y.
   scene <- four_layer_scene()
   res <- ortho(scene)
+  for (lab in c("q1->s1", "q1->s2", "q2->s2", "q2->s3", "s1->t", "s3->t")) {
+    expect_true(res$meta$clearance_ok[edge_index(scene, lab)], label = lab)
+  }
   x_of <- function(lab, gap) {
     x <- slot_xs(res$paths[[edge_index(scene, lab)]], gap)
     expect_length(x, 1)
@@ -3189,9 +3240,10 @@ test_that("orthogonal slots: touching segments from different sources never shar
 # (blocked by d, e, f) both channel above. Their spans nest, d->f inside
 # c->h, so stacking them costs no crossing: d->f, placed first as the
 # shorter, runs at max(100 + 9, 100 + 16.1) = 116.1 and c->h sep_e outside
-# it at 119.7 (three crossed layers displaced 19.7 each: 59.1 / 6 + 2 bends
-# = 11.85, against an E/W run under both rows at 84 - 9 = 75, 75 / 6 + 4 =
-# 16.5). The rows are 16 mm apart, so no run fits between them: a run
+# it at 119.7. d->f costs 16.1 / 6 + 2 bends at 2 = 6.68 against an E/W run
+# under both rows at 84 - 9 = 75, 25 / 6 + 8 = 12.17; c->h, three crossed
+# layers displaced 19.7 each, costs 59.1 / 6 + 4 = 13.85 against 75 / 6 + 8
+# = 20.5. The rows are 16 mm apart, so no run fits between them: a run
 # needs R = 9 from each row and 100 - 9 < 84 + 9.
 nested_row_scene <- function() {
   list(
@@ -3286,8 +3338,12 @@ test_that("orthogonal channels: two edges never share a channel run", {
   # order puts c->f inside, nearer the row
   expect_gte(abs(run_cf$coord - run_eh$coord), sep_e_default - 1e-6)
   expect_gt(run_cf$coord, run_eh$coord)
-  # no horizontal run of one edge overlaps in x with a run of the other at
-  # the same y
+  # No horizontal run of one edge overlaps in x with a run of the other at
+  # the same y. This forces one proper crossing: c->f rises into f along
+  # y = 100 from its gap-2 slot and e->h leaves e along y = 100 up to its
+  # gap-2 slot, so the two runs on the row's line stay apart only when
+  # e->h's slot is left of c->f's, and then e->h's descent crosses c->f's
+  # channel run. One crossing is accepted here, as in the overcontrol X.
   expect_equal(shared_run_length(res$paths[[cf]], res$paths[[eh]]), 0)
 })
 
@@ -3414,8 +3470,8 @@ test_that("orthogonal channels: a channel that would cut a disc gives way to a r
 # The collinear mediator with z at (7.3, 75) above x in x's layer. x is not
 # the top of its layer, so there is no N channel (one would have to pass
 # z's disc from x's N port); x->y takes the S channel at min(55 - 9,
-# 55 - 16.1) = 38.9 (S/N below 16.1 / 6 + 2 bends = 4.68, against an E/W
-# run at 46 or 64 with four bends, 9 / 6 + 4 = 5.5).
+# 55 - 16.1) = 38.9 (S/N below 16.1 / 6 + 2 bends at 2 = 6.68, against an
+# E/W run at 46 or 64 with four bends, 9 / 6 + 8 = 9.5).
 flanked_source_scene <- function() {
   list(
     nodes = mm_nodes(
@@ -3449,17 +3505,18 @@ test_that("orthogonal channels: a node beside the source in its layer rules out 
 
 # Bend-priced candidates -----------------------------------------------------------
 
-test_that("route_opts() prices a bend at one reference radius by default", {
-  expect_equal(route_opts(r_default)$bend_penalty, 1)
+test_that("route_opts() prices a bend at two reference radii by default", {
+  # two bends are the price of one detour, so four bends cost a second one
+  expect_equal(route_opts(r_default)$bend_penalty, 2)
   expect_equal(route_opts(r_default, bend_penalty = 0)$bend_penalty, 0)
   expect_equal(route_opts(r_default, bend_penalty = 2.5)$bend_penalty, 2.5)
-  expect_equal(route_opts(3)$bend_penalty, 1)
+  expect_equal(route_opts(3)$bend_penalty, 2)
 })
 
 test_that("orthogonal pricing: the collinear mediator keeps its two-bend channel until bends are free", {
   # S/N above: channel at max(55 + 9, 55 + 16.1) = 71.1, displacing the
-  # chord by 16.1: 16.1 / 6 + 2 * 1 = 4.683. E/W above: run at 55 + 9 = 64
-  # with four bends: 9 / 6 + 4 * 1 = 5.5. Below mirrors both, nothing is
+  # chord by 16.1: 16.1 / 6 + 2 * 2 = 6.683. E/W above: run at 55 + 9 = 64
+  # with four bends: 9 / 6 + 4 * 2 = 9.5. Below mirrors both, nothing is
   # congested, and the tie between the sides goes above.
   scene <- mediator_scene()
   res <- ortho(scene)
@@ -3504,17 +3561,44 @@ test_that("orthogonal pricing: the collinear mediator keeps its two-bend channel
   }
 })
 
+test_that("orthogonal pricing: the displaced mediator keeps its two-bend channel under the default penalty", {
+  # m sits 8 mm above the chord. S/N below at min(63 - 9, 55 - 16.1) = 38.9
+  # displaces the chord by 16.1: 16.1 / 6 + 2 * 2 = 6.683; S/N above at
+  # max(63 + 9, 71.1) = 72 displaces by 17: 17 / 6 + 4 = 6.833. The E/W run
+  # below at 63 - 9 = 54 jogs the chord by 1 mm with four bends: 1 / 6 + 4 *
+  # 2 = 8.167 (at one per bend it would cost 4.167 and win, a visible wobble
+  # for nothing); above at 72 it costs 17 / 6 + 8 = 10.83. Nothing is
+  # congested, since m's offset of 8 lies inside R.
+  scene <- mediator_scene(m_y = 63)
+  res <- ortho(scene)
+  k <- edge_index(scene, "x->y")
+  expect_equal(res$meta$mode[k], "orthogonal")
+  expect_true(res$meta$clearance_ok[k])
+  expect_equal(res$meta$side[k], -1)
+  expect_equal(res$meta$n_waypoints[k], 2)
+  wp <- res$waypoints[[k]]
+  expect_equal(wp$x, c(7.3, 152.7), tolerance = 1e-6)
+  expect_equal(wp$y, c(38.9, 38.9), tolerance = 1e-6)
+  path <- res$paths[[k]]
+  runs <- straight_runs(path)
+  # down the S stub, along the channel, and up: no jog near the chord
+  expect_equal(runs$axis[1], "v")
+  expect_equal(runs$axis[nrow(runs)], "v")
+  expect_equal(channel_run(path, 80)$coord, 38.9, tolerance = 1e-6)
+  expect_true(all(path$y <= 55 + 1e-9))
+})
+
 test_that("orthogonal pricing: a skip edge with a free E/W route takes it instead of a channel loop", {
   # a->c's chord passes x = 55 at y = 37.5. The channel below at
   # min(90 - 9, 20 - 16.1, 55 - 16.1) = 3.9 displaces it by 33.6 and has
-  # two bends: 33.6 / 6 + 2 + 4 (e lies below the chord for a->e and c->e)
-  # = 11.6. The channel above at 90 + 9 = 99 displaces by 61.5: 10.25 + 2 +
-  # 6 (b twice and d above) = 18.25. The E/W route at c's own y = 55 has two
-  # bends and displaces by 17.5: 17.5 / 6 + 2 + 4 = 8.92, so it wins; the
-  # E/W run at 99 with four bends costs 20.25. Without a bend penalty the
-  # loop under a scored 9.6 against the E/W route's 6.92, but S/N candidates
-  # were tried first and the loop was drawn 0.9 mm inside the margin. c->e
-  # mirrors a->c through d's layer.
+  # two bends at 2: 33.6 / 6 + 4 + 4 (e lies below the chord for a->e and
+  # c->e) = 13.6. The channel above at 90 + 9 = 99 displaces by 61.5: 10.25
+  # + 4 + 6 (b twice and d above) = 20.25. The E/W route at c's own y = 55
+  # has two bends and displaces by 17.5: 17.5 / 6 + 4 + 4 = 10.92, so it
+  # wins; the E/W run at 99 with four bends costs 10.25 + 8 + 6 = 24.25.
+  # Without a bend penalty the loop under a scored 9.6 against the E/W
+  # route's 6.92, but S/N candidates were tried first and the loop was drawn
+  # 0.9 mm inside the margin. c->e mirrors a->c through d's layer.
   scene <- complex_chain_scene()
   res <- ortho(scene)
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
@@ -3556,10 +3640,10 @@ test_that("orthogonal pricing: a skip edge with a free E/W route takes it instea
 
 test_that("orthogonal pricing: the fan's a->e keeps the channel below at 16", {
   # c sits on the chord, so a->e cannot run at its own y. S/N below at
-  # 25 - 9 = 16 displaces by 39: 39 / 6 + 2 bends + 2 (d below the chord)
-  # = 10.5. S/N above at 85 + 9 = 94: 6.5 + 2 + 4 (b above, for a->b and
-  # b->e) = 12.5. An E/W run at 16 has four bends and shares the fan's trunk
-  # through gap 1: 6.5 + 4 + 2 = 12.5; at 94 it costs 14.5.
+  # 25 - 9 = 16 displaces by 39: 39 / 6 + 2 bends at 2 + 2 (d below the
+  # chord) = 12.5. S/N above at 85 + 9 = 94: 6.5 + 4 + 4 (b above, for a->b
+  # and b->e) = 14.5. An E/W run at 16 has four bends and shares the fan's
+  # trunk through gap 1: 6.5 + 8 + 2 = 16.5; at 94 it costs 18.5.
   scene <- fan_scene()
   res <- ortho(scene)
   i <- edge_index(scene, "a->e")
