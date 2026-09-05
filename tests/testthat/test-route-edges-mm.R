@@ -521,15 +521,19 @@ rev_path <- function(path) {
 
 # Length of the terminal stub at the end of a path: the axis-aligned run
 # that reaches the endpoint, a node centre, or that reaches the connector an
-# offset port needs. A connector is the last run when it is at most sep_e / 2
-# long (an offset port sits sep_e / 2 beside the centre line, so a longer
-# leg is a stub in its own right), lies within the cap of the centre, and is
-# perpendicular to the run before it, with nothing between them but a
-# rounded corner hidden inside the node. Nothing else is skipped and the
-# connector's own length never counts, so a short centre stub followed by a
-# channel measures as the stub, not the channel. After the cap is resected
-# the arrowhead sits on the run, which is why it must be straight for at
-# least cap + rc. Pass the reversed path for the stub at the start.
+# offset port needs. Only S/N ports carry both an arrival and a departure,
+# so a connector runs along the layer axis (horizontal in the canonical
+# orientation) from a vertical run to the centre. It is the last run when it
+# is horizontal, at most sep_e / 2 long (an offset port sits sep_e / 2
+# beside the centre line, so a longer leg is a stub in its own right), lies
+# within the cap of the centre, and follows a vertical run with nothing
+# between them but a rounded corner hidden inside the node. Rounding cuts
+# min(rc, leg / 2) off the connector, so in rounded mode a leg of up to
+# about sep_e / 2 + rc still reads as a connector. Nothing else is skipped
+# and the connector's own length never counts, so a short vertical stub
+# under a channel measures as the stub, not the channel. After the cap is
+# resected the arrowhead sits on the run, which is why it must be straight
+# for at least cap + rc. Pass the reversed path for the stub at the start.
 end_stub_length <- function(path, centre, tol = 1e-6) {
   path <- dedupe_path(path)
   runs <- straight_runs(path, tol)
@@ -538,14 +542,14 @@ end_stub_length <- function(path, centre, tol = 1e-6) {
     return(0)
   }
   last <- runs[n, ]
-  if (last$length > sep_e_default / 2 + tol || n < 2) {
+  if (last$axis != "h" || last$length > sep_e_default / 2 + tol || n < 2) {
     return(last$length)
   }
   before <- runs[n - 1, ]
   idx <- before$to:last$to
   hidden <- sqrt((path$x[idx] - centre[1])^2 + (path$y[idx] - centre[2])^2) <=
     cap_default + tol
-  connector <- before$axis != last$axis && all(hidden)
+  connector <- before$axis == "v" && all(hidden)
   if (connector) before$length else last$length
 }
 
@@ -3099,13 +3103,27 @@ test_that("end_stub_length() measures the visible run and skips only an offset-p
     13.1,
     tolerance = 1e-6
   )
-  # the reviewer's hole: a channel at 62 leaves a 7 mm stub whose straight
-  # part after rounding is 7 - 2.1 = 4.9, measured as itself
+  # a channel at 62 leaves a 7 mm stub whose straight part after rounding is
+  # 7 - 2.1 = 4.9, measured as itself and not as the channel run
   P <- rbind(c(7.3, 55), c(7.3, 62), c(80, 62), c(80, 55))
   rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
   expect_equal(
     end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
     4.9,
+    tolerance = 1e-6
+  )
+  # a short vertical leg under a channel is a stub, not a connector, since
+  # connectors run along the layer axis: 1.5 mm sharp, and 0.75 mm once
+  # rounding cuts half the leg, both under the floor
+  expect_equal(
+    end_stub_length(pt(c(-20, 80, 80), c(56.5, 56.5, 55)), centre),
+    1.5
+  )
+  P <- rbind(c(7.3, 55), c(7.3, 56.5), c(80, 56.5), c(80, 55))
+  rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
+  expect_equal(
+    end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
+    0.75,
     tolerance = 1e-6
   )
   # an oblique tail has no stub
@@ -3596,9 +3614,11 @@ test_that("orthogonal pricing: a skip edge with a free E/W route takes it instea
   # + 4 + 6 (b twice and d above) = 20.25. The E/W route at c's own y = 55
   # has two bends and displaces by 17.5: 17.5 / 6 + 4 + 4 = 10.92, so it
   # wins; the E/W run at 99 with four bends costs 10.25 + 8 + 6 = 24.25.
-  # Without a bend penalty the loop under a scored 9.6 against the E/W
-  # route's 6.92, but S/N candidates were tried first and the loop was drawn
-  # 0.9 mm inside the margin. c->e mirrors a->c through d's layer.
+  # An E/W route at a's own y = 20 would cost the same 10.92; running at
+  # c's y follows the ew_lo rule (the endpoint y nearest the stack), not
+  # the pricing. Without a bend penalty the loop under a scored 9.6 against
+  # the E/W route's 6.92, but S/N candidates were tried first and the loop
+  # was drawn 0.9 mm inside the margin. c->e mirrors a->c through d's layer.
   scene <- complex_chain_scene()
   res <- ortho(scene)
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
@@ -4015,6 +4035,55 @@ test_that("routing does not depend on the collation locale", {
   expect_identical(in_en$meta, in_c$meta)
   expect_identical(in_en$waypoints, in_c$waypoints)
   expect_identical(in_en$paths, in_c$paths)
+})
+
+# Rename every node of a scene, keeping the row order, so that only the
+# names the caller chose differ.
+rename_scene <- function(scene, names) {
+  old <- scene$nodes$name
+  scene$nodes$name <- names
+  scene$edges$from <- names[match(scene$edges$from, old)]
+  scene$edges$to <- names[match(scene$edges$to, old)]
+  scene$layer <- NULL
+  scene
+}
+
+test_that("routing does not depend on how the caller names the nodes", {
+  # Two callers naming one scene differently must draw it identically: the
+  # label grob and the drawn layer key their nodes independently, and any
+  # tie broken by name lets the two disagree about the same picture. The
+  # reversed alphabet inverts the sort order of every name; the
+  # numeric-looking strings sort differently again under radix ("n10"
+  # before "n6"). Only the edge label column of the meta may change.
+  scenes <- list(
+    fan = fan_scene(),
+    "four-layer" = four_layer_scene(),
+    large_epi = canonical_scene("large_epi")
+  )
+  for (nm in names(scenes)) {
+    scene <- scenes[[nm]]
+    n <- nrow(scene$nodes)
+    renamings <- list(
+      reversed = rev(letters)[seq_len(n)],
+      numeric = paste0("n", seq(n + 5, by = -1, length.out = n))
+    )
+    for (mode in c("spline", "orthogonal", "straight")) {
+      ref <- route_scene(scene, mode = mode)
+      keep <- setdiff(names(ref$meta), "edge")
+      for (rn in names(renamings)) {
+        res <- route_scene(rename_scene(scene, renamings[[rn]]), mode = mode)
+        label <- paste(nm, mode, rn)
+        for (i in seq_along(ref$paths)) {
+          expect_lt(
+            polyline_hausdorff(res$paths[[i]], ref$paths[[i]]),
+            1e-9,
+            label = paste(label, ref$meta$edge[i])
+          )
+        }
+        expect_identical(res$meta[keep], ref$meta[keep], label = label)
+      }
+    }
+  }
 })
 
 # Performance -----------------------------------------------------------------------
