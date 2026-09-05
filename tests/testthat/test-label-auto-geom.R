@@ -1097,3 +1097,308 @@ test_that("use_labels with no label column is a silent no-op for the auto geom",
   p <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto)
   expect_no_condition(ggplot2::ggplot_build(p))
 })
+
+# Orthogonal channels ---------------------------------------------------------
+#
+# Under `edge_route = "orthogonal"` every directed edge is drawn as
+# axis-aligned runs, so a long channel is an obstacle along its whole length
+# and a label box must keep off it. The measurements below are the
+# measured-hit machinery of test-label-placement-quality.R, copied so this
+# file owns what it asserts: the plot is drawn on an off-screen ragg device at
+# 150 dpi, the grob tree is forced, and the label boxes and the drawn paths
+# are read back in millimetres. A hit is drawn ink within the engine's own
+# margins of a box: 1 mm for an edge stroke and 2 mm over the last 5 mm of a
+# path, the arrowhead zone, once the path has been resected by the edge cap
+# at both ends.
+
+orthogonal_dense_dag <- function() {
+  dagify(
+    y ~ a + b + c + x,
+    x ~ a + b,
+    a ~ c,
+    b ~ c,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      a = "Alcohol consumption",
+      b = "Body mass index",
+      c = "Socioeconomic status",
+      x = "Physical activity",
+      y = "Cardiovascular disease"
+    ),
+    coords = list(
+      x = c(c = 0, a = 1, b = 1, x = 2, y = 3),
+      y = c(c = 0, a = 0.5, b = -0.5, x = 0, y = 0)
+    )
+  )
+}
+
+orthogonal_saturated_dag <- function() {
+  dag_saturate(dagify(
+    b ~ a,
+    c ~ a,
+    d ~ b,
+    e ~ b + c,
+    f ~ c,
+    g ~ d + e,
+    h ~ e + f,
+    x ~ g,
+    y ~ g + h + x,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      a = "Genetics",
+      b = "Diet",
+      c = "Exercise",
+      d = "Weight",
+      e = "Blood pressure",
+      f = "Cholesterol",
+      g = "Medication",
+      h = "Stress",
+      x = "Treatment",
+      y = "Outcome"
+    )
+  ))
+}
+
+# Draw the labelled `dag` under the ggarrow engine with orthogonal routing at
+# `size` inches and measure its one panel.
+orthogonal_scene <- function(dag, size) {
+  withr::local_options(list(
+    ggdag.edge_engine = "ggarrow",
+    ggdag.edge_route = "orthogonal"
+  ))
+  plot <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto) +
+    theme_dag()
+
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(
+    file,
+    width = size[[1]],
+    height = size[[2]],
+    units = "in",
+    res = 150
+  )
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  grid::grid.newpage()
+  grid::grid.draw(gtable)
+  grid::grid.force()
+
+  pattern <- "dag_labels_auto|arrow_path|curve_arrow"
+  paths <- grid::grid.grep(pattern, grep = TRUE, global = TRUE)
+  paths <- vapply(paths, as.character, character(1))
+  paths <- paths[grepl("^layout::panel", paths)]
+  paths <- paths[grepl(pattern, sub(".*::", "", paths))]
+  viewport <- strsplit(paths[[1]], "::", fixed = TRUE)[[1]][[2]]
+  grid::seekViewport(viewport)
+  on.exit(grid::upViewport(0), add = TRUE)
+  panel_width <- grid::convertWidth(grid::unit(1, "npc"), "mm", TRUE)
+  panel_height <- grid::convertHeight(grid::unit(1, "npc"), "mm", TRUE)
+
+  tree <- grid::grid.get(paths[grepl("dag_labels_auto", paths)][[1]])
+  edge_grobs <- lapply(paths[!grepl("dag_labels_auto", paths)], grid::grid.get)
+
+  list(
+    tree = tree,
+    labels = orthogonal_label_table(tree, panel_width, panel_height),
+    drawn = unlist(
+      lapply(edge_grobs, orthogonal_drawn_paths),
+      recursive = FALSE
+    ),
+    cap = tree$params$edge_cap
+  )
+}
+
+# The drawn paths of one edge grob, in millimetres of the current viewport.
+orthogonal_drawn_paths <- function(grob) {
+  if (inherits(grob, "arrow_path")) {
+    ids <- grob$id_rle
+    ids <- if (inherits(ids, "rle")) {
+      inverse.rle(ids)
+    } else {
+      fields <- unclass(ids)
+      rep(fields$group, fields$length)
+    }
+    points <- data.frame(
+      x = grid::convertX(grob$x, "mm", TRUE),
+      y = grid::convertY(grob$y, "mm", TRUE)
+    )
+    return(unname(split(points, factor(ids, levels = unique(ids)))))
+  }
+
+  curve <- grob$curve
+  if (is.null(curve) || length(curve$x1) == 0) {
+    return(list())
+  }
+  x1 <- grid::convertX(curve$x1, "mm", TRUE)
+  y1 <- grid::convertY(curve$y1, "mm", TRUE)
+  x2 <- grid::convertX(curve$x2, "mm", TRUE)
+  y2 <- grid::convertY(curve$y2, "mm", TRUE)
+  lapply(seq_along(x1), function(i) {
+    if (curve$curvature == 0) {
+      return(data.frame(x = c(x1[i], x2[i]), y = c(y1[i], y2[i])))
+    }
+    sample_curved_edge(x1[i], y1[i], x2[i], y2[i], curve$curvature, n = 50)
+  })
+}
+
+# One row per label of a forced `dag_labels_auto` gTree: the text and the box
+# in millimetres.
+orthogonal_label_table <- function(tree, panel_width, panel_height) {
+  children <- tree$children
+  names <- vapply(children, function(child) child$name %||% "", character(1))
+  boxes <- unname(children[grepl("roundrect", names)])
+  texts <- unname(children[grepl("text", names)])
+  stopifnot(length(boxes) == length(texts))
+
+  rows <- lapply(seq_along(boxes), function(i) {
+    box <- boxes[[i]]
+    center_x <- grid::convertX(box$vp$x, "mm", TRUE)
+    center_y <- grid::convertY(box$vp$y, "mm", TRUE)
+    width <- grid::convertWidth(box$vp$width, "mm", TRUE)
+    height <- grid::convertHeight(box$vp$height, "mm", TRUE)
+    data.frame(
+      label = as.character(texts[[i]]$label),
+      xmin = center_x - width / 2,
+      xmax = center_x + width / 2,
+      ymin = center_y - height / 2,
+      ymax = center_y + height / 2,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+# The polyline resampled every `spacing` millimetres.
+orthogonal_densify <- function(path, spacing = 0.5) {
+  x <- path$x
+  y <- path$y
+  dense_x <- x[[1]]
+  dense_y <- y[[1]]
+  for (i in seq_len(length(x) - 1)) {
+    dx <- x[[i + 1]] - x[[i]]
+    dy <- y[[i + 1]] - y[[i]]
+    steps <- max(1, ceiling(sqrt(dx^2 + dy^2) / spacing))
+    fraction <- seq_len(steps) / steps
+    dense_x <- c(dense_x, x[[i]] + fraction * dx)
+    dense_y <- c(dense_y, y[[i]] + fraction * dy)
+  }
+  data.frame(x = dense_x, y = dense_y)
+}
+
+# Every drawn path as visible ink: resected by `cap` millimetres at each end,
+# resampled every half millimetre, with the points of the last 5 mm flagged
+# as the arrowhead zone.
+orthogonal_ink <- function(scene) {
+  head_length <- 5
+  lapply(scene$drawn, function(path) {
+    dense <- orthogonal_densify(path)
+    last <- nrow(dense)
+    to_ends <- pmin(
+      sqrt((dense$x - dense$x[[1]])^2 + (dense$y - dense$y[[1]])^2),
+      sqrt((dense$x - dense$x[[last]])^2 + (dense$y - dense$y[[last]])^2)
+    )
+    dense <- dense[to_ends > scene$cap, , drop = FALSE]
+    last <- nrow(dense)
+    if (last == 0) {
+      dense$head <- logical()
+      return(dense)
+    }
+    to_end <- sqrt(
+      (dense$x - dense$x[[last]])^2 + (dense$y - dense$y[[last]])^2
+    )
+    dense$head <- to_end <= head_length
+    dense
+  })
+}
+
+# The labels whose boxes drawn ink comes within the engine's margins of.
+orthogonal_hit_labels <- function(scene) {
+  ink <- orthogonal_ink(scene)
+  labels <- scene$labels
+  hit <- vapply(
+    seq_len(nrow(labels)),
+    function(i) {
+      for (path in ink) {
+        if (nrow(path) == 0) {
+          next
+        }
+        distance <- rect_point_dist(
+          labels$xmin[i],
+          labels$ymin[i],
+          labels$xmax[i],
+          labels$ymax[i],
+          path$x,
+          path$y
+        )
+        margin <- ifelse(
+          path$head,
+          label_arrow_clearance,
+          label_edge_clearance
+        )
+        if (any(distance < margin)) {
+          return(TRUE)
+        }
+      }
+      FALSE
+    },
+    logical(1)
+  )
+  labels$label[hit]
+}
+
+test_that("orthogonal channels: no box on a channel of the dense DAG", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  for (size in list(c(7, 5), c(10, 6))) {
+    scene <- orthogonal_scene(orthogonal_dense_dag(), size)
+    key <- paste0(size[[1]], "x", size[[2]])
+    expect_identical(
+      orthogonal_hit_labels(scene),
+      character(0),
+      label = paste("dense orthogonal", key, "boxes on channels")
+    )
+    expect_identical(
+      scene$tree$unresolved,
+      character(0),
+      label = paste("dense orthogonal", key, "unresolved")
+    )
+  }
+})
+
+test_that("orthogonal channels: the saturated DAG's hits are pinned", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # The saturated ten-node DAG draws 41 channels, and under orthogonal routing
+  # today no box can keep off every one of them at every size, so the hits
+  # are pinned rather than forbidden. At 7 x 5 the Blood pressure and
+  # Medication boxes sit on channels and the engine reports both as
+  # unresolved: no admissible spot exists in its model of the picture. At
+  # 10 x 6 the Medication box sits on a channel the engine's model does not
+  # hold: the paths the label grob routes for this scene differ from the
+  # channels the routed layer draws (19 of the 41 edges by more than 0.5 mm,
+  # up to 16 mm), so the engine finds every box clear. That parity gap is a
+  # defect of the orthogonal router, which is being fixed separately; once
+  # the two routings agree this hit should disappear and this test should be
+  # tightened to forbid it.
+  scene <- orthogonal_scene(orthogonal_saturated_dag(), c(7, 5))
+  expect_setequal(
+    orthogonal_hit_labels(scene),
+    c("Blood pressure", "Medication")
+  )
+  expect_setequal(scene$tree$unresolved, c("Blood pressure", "Medication"))
+
+  scene <- orthogonal_scene(orthogonal_saturated_dag(), c(10, 6))
+  expect_identical(orthogonal_hit_labels(scene), "Medication")
+  expect_identical(scene$tree$unresolved, character(0))
+})

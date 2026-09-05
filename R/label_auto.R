@@ -14,11 +14,61 @@ label_node_clearance <- 0.5
 label_edge_clearance <- 1
 label_arrow_clearance <- 2
 
+# Length in mm of the arrowhead zone at the end of every edge polyline. The
+# points of a path within this distance of its last point are measured with
+# the arrow margin rather than the edge margin, so a box keeps further from
+# the drawn head than from the stroke leading up to it. This is a millimetre
+# calibration of where the wider margin applies; the drawn head itself is
+# shorter.
+label_arrow_zone <- 5
+
 # Soft comfort zone in mm around node discs other than a label's own node.
 # A box inside this zone is not violating, but its penetration depth is
 # penalized (per the `soft` weight) so labels drift away from foreign discs
 # when an equally near spot is free of them.
 label_soft_margin <- 8
+
+# Off-grid candidates fill the space between the disc and each reach
+# threshold at this many clearance steps per threshold, on evenly spaced rays.
+# Beyond the reach itself, a few sparser levels at these multiples of the
+# reach give a label somewhere to go when nothing nearer is admissible.
+label_reach_steps <- 8L
+label_far_reach <- c(1.5, 2, 3)
+
+# A leader that crosses drawn ink, a node disc, or another label's box is
+# priced as though it were longer: each ink point within the edge margin of
+# the leader adds this many mm to its length, each disc it crosses adds this
+# multiple of that disc's radius, and each box it crosses adds this many mm.
+label_leader_ink_cost <- 2
+label_leader_disc_cost <- 4
+label_leader_box_cost <- 20
+
+# A box slid back inside the panel stops this far, in mm, inside the border
+# rather than exactly on it: invisible on the page, and enough to keep the
+# box inside through floating-point round trips.
+label_slide_nudge <- 1e-9
+
+# The local-improvement sweeps stop as soon as one changes nothing; this caps
+# them so placement always terminates in bounded time. The repair rounds
+# that follow are capped the same way, as is the number of blocked spots one
+# label tries to take over from another.
+label_max_sweeps <- 10L
+label_max_repairs <- 5L
+label_max_ejections <- 50L
+
+# Spacing in mm of the fallback candidate grid over the panel, built only
+# for a label whose rays all end on obstacles or other labels.
+label_grid_spacing <- 2
+
+# Side in mm of the square cells the sampled edge points are bucketed into,
+# so a candidate box is compared only with the points in the cells around it.
+label_ink_cell <- 10
+
+# Anchors in preference order, with the sign of the offset each one takes
+# along x and y.
+label_anchor_names <- c("ne", "nw", "se", "sw", "n", "s", "e", "w")
+label_anchor_sign_x <- c(1, -1, 1, -1, 0, 0, 1, -1)
+label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 
 #' Place DAG node labels deterministically
 #'
@@ -40,30 +90,51 @@ label_soft_margin <- 8
 #' Candidates are ordered ring-major (every anchor at ring 1 precedes any
 #' anchor at ring 2), and the `prefer` weight breaks score ties in that
 #' order. The radius used for a label's own rings is the radius of the node
-#' disc nearest to the label's node center. A candidate whose box spills the
-#' panel additionally spawns a slid variant translated by the minimal offset
-#' that brings it fully inside `bounds` (per axis, and only when the box fits
-#' along that axis), at preference rank + 0.5 and with a `*` suffix on its
-#' anchor, so a barely spilling spot can slide inside instead of losing to a
-#' farther anchor.
+#' disc nearest to the label's node center.
 #'
-#' Each candidate box is scored as a weighted sum of penalties: node disc
-#' penetration depth (including the clearance margin), the count of sampled
-#' edge points inside or within the edge margin of the box, the count of
-#' final edge segments (the arrowhead zone of each `edge_id`) within the
-#' arrow margin of the box, the overlap area with other placed labels, the
-#' box area outside `bounds`, the distance in mm from the box center to the
-#' label's own node center (the `dist` proximity pull), the total
-#' penetration depth in mm into the soft zone extending `label_soft_margin`
-#' beyond every other node's disc (the `soft` term), and the candidate's
-#' preference rank as a pure tiebreak. The proximity pull makes near anchors
-#' (the cardinals at ring 1) beat farther ones unless an obstacle penalty
-#' separates them. Labels are assigned most constrained first (fewest
-#' violation-free candidates, ties by input order) with a greedy argmin,
-#' then refined by two local-improvement sweeps that move a label only when
-#' its score strictly improves. When every candidate violates something the
-#' least-bad candidate is still returned, so there is always one row per
-#' label.
+#' A finite `reach` adds off-grid candidates that fill the space between the
+#' disc and the reach: on `n_rays` evenly spaced rays around the node, at
+#' `label_reach_steps` clearances from `gap` up to `reach` (and up to
+#' `leader` when that is finite), a box is placed both with its facing
+#' corner on the ray and with its center on the ray, and kept when its
+#' clearance from the disc is at least `gap`. A few sparser levels beyond the
+#' reach, at `label_far_reach` times `reach`, give a label somewhere to go
+#' when nothing nearer is admissible. Off-grid candidates are named after
+#' the anchor whose 45 degree sector their ray falls in, and only the sectors
+#' of the anchors `n_angles` keeps are used; they share the preference rank
+#' range just past the last anchor, so the `prefer` term still favors an
+#' anchor over an off-grid spot of equal score.
+#'
+#' A candidate whose box spills the panel additionally spawns a slid variant
+#' translated by the minimal offset that brings it fully inside `bounds`
+#' (per axis, and only when the box fits along that axis), at preference
+#' rank + 0.5 and with a `*` suffix on its anchor, so a barely spilling spot
+#' can slide inside instead of losing to a farther anchor.
+#'
+#' Scoring has two tiers. A candidate violates a hard constraint when its box
+#' penetrates a node disc's clearance margin, comes within the edge margin of
+#' a sampled edge point, comes within the arrow margin of a point in an
+#' arrowhead zone (the last `label_arrow_zone` mm of each `edge_id`),
+#' overlaps another placed label, or lies partly outside `bounds`. Every
+#' violating candidate scores above every admissible one, whatever the
+#' weights; among violating candidates the weighted sum of node penetration
+#' depth, edge point count, arrowhead point count, overlap area, and outside
+#' area decides, so that when nothing is admissible the least-bad candidate
+#' is still returned and there is always one row per label. Among admissible
+#' candidates the proximity bands come first: a candidate whose clearance
+#' from the disc exceeds `leader` needs a leader line and loses to any
+#' admissible candidate that does not, and one whose clearance exceeds
+#' `reach` loses to any admissible candidate within reach. Within a band the
+#' score is the distance in mm from the box center to the label's own node
+#' center (the `dist` proximity pull), plus for a candidate past `leader`
+#' the extra length its leader is priced at for the ink and discs it
+#' crosses, the total penetration depth in mm into the soft zone extending
+#' `label_soft_margin` beyond every other node's disc (the `soft` term), and
+#' the preference rank as a pure tiebreak. Labels are assigned most
+#' constrained first (fewest violation-free candidates, ties by input order)
+#' with a greedy argmin, then refined by local-improvement sweeps that move
+#' a label only when its score strictly improves, until a sweep moves
+#' nothing.
 #'
 #' @param labels Data frame with columns `id` (unique character), `x`, `y`
 #'   (node centers in mm), and `width`, `height` (label box extent in mm,
@@ -72,8 +143,8 @@ label_soft_margin <- 8
 #'   finite), one row per drawn node disc.
 #' @param edges Data frame with columns `edge_id`, `x`, and `y`: ordered
 #'   sampled points along each drawn edge, at least two per `edge_id`. The
-#'   final segment of each `edge_id` is treated as its arrowhead zone. Zero
-#'   rows means no edges.
+#'   points within `label_arrow_zone` mm of the last point of each `edge_id`
+#'   are its arrowhead zone. Zero rows means no edges.
 #' @param bounds Numeric of length 4, `c(xmin, ymin, xmax, ymax)`, the panel
 #'   extent in mm; must be strictly ordered in each dimension.
 #' @param gap Clearance in mm between the node disc edge and the label box
@@ -86,6 +157,15 @@ label_soft_margin <- 8
 #'   `dist` proximity pull, and the `soft` clearance-zone term. `dist` and
 #'   `soft` default to 0 when absent, so a weights vector from before those
 #'   terms existed still works.
+#' @param reach Clearance in mm from the disc within which a label should
+#'   sit when it can: off-grid candidates fill the space up to it, and an
+#'   admissible candidate within it always beats one beyond it. `Inf`, the
+#'   default, adds no off-grid candidates and no such preference.
+#' @param leader Clearance in mm from the disc past which a label is drawn
+#'   with a leader line: an admissible candidate within it always beats one
+#'   beyond it. `Inf`, the default, adds no such preference.
+#' @param n_rays Number of evenly spaced rays the off-grid candidates are
+#'   placed on when `reach` is finite.
 #' @return A data frame with one row per label in input order and columns
 #'   `id`, `x`, `y` (box centers), `anchor` (a `*` suffix marks a slid
 #'   variant), and `score`.
@@ -107,7 +187,10 @@ place_dag_labels <- function(
     prefer = 0.01,
     dist = 0.2,
     soft = 1
-  )
+  ),
+  reach = Inf,
+  leader = Inf,
+  n_rays = 36L
 ) {
   validate_label_placement_inputs(
     labels,
@@ -117,101 +200,307 @@ place_dag_labels <- function(
     gap,
     n_angles,
     n_rings,
-    weights
+    weights,
+    reach,
+    leader,
+    n_rays
   )
 
-  arrow_segments <- final_edge_segments(edges)
+  ink <- label_ink_points(edges)
   radius <- nearest_node_radius(labels$x, labels$y, nodes)
-
   n <- nrow(labels)
+
+  # Per-label candidate state, kept as plain vectors so the assignment loops
+  # avoid data frame subsetting: the candidates themselves, their static
+  # scores, and whether each one violates a static hard constraint.
   candidates <- vector("list", n)
-  static_scores <- vector("list", n)
+  hard_static <- vector("list", n)
+  violating_static <- vector("list", n)
+  band_static <- vector("list", n)
+  within_static <- vector("list", n)
+  leader_static <- vector("list", n)
   clean_counts <- integer(n)
-  for (i in seq_len(n)) {
-    cand <- label_candidates(
-      labels$x[i],
-      labels$y[i],
-      radius[i],
-      gap,
-      labels$width[i],
-      labels$height[i],
-      n_angles,
-      n_rings,
-      bounds
-    )
+  best_bands <- numeric(n)
+
+  own_node <- function(i) {
+    list(x = labels$x[i], y = labels$y[i], radius = radius[i])
+  }
+  add_candidates <- function(i, cand) {
     scored <- score_label_candidates(
       cand,
       nodes,
-      edges,
-      arrow_segments,
+      ink,
       bounds,
       weights,
-      own_xy = c(labels$x[i], labels$y[i])
+      own = own_node(i),
+      reach = reach,
+      leader = leader
     )
-    candidates[[i]] <- cand
-    static_scores[[i]] <- scored$score
-    clean_counts[i] <- scored$n_clean
+    if (is.null(candidates[[i]])) {
+      candidates[[i]] <<- cand
+      hard_static[[i]] <<- scored$hard
+      violating_static[[i]] <<- scored$violating
+      band_static[[i]] <<- scored$band
+      within_static[[i]] <<- scored$within
+      leader_static[[i]] <<- scored$leader
+    } else {
+      candidates[[i]] <<- Map(c, candidates[[i]], cand)
+      hard_static[[i]] <<- c(hard_static[[i]], scored$hard)
+      violating_static[[i]] <<- c(violating_static[[i]], scored$violating)
+      band_static[[i]] <<- c(band_static[[i]], scored$band)
+      within_static[[i]] <<- c(within_static[[i]], scored$within)
+      leader_static[[i]] <<- Map(c, leader_static[[i]], scored$leader)
+    }
+    clean_counts[i] <<- sum(!violating_static[[i]])
+    best_bands[i] <<- if (clean_counts[i] > 0) {
+      min(band_static[[i]][!violating_static[[i]]])
+    } else {
+      Inf
+    }
   }
 
-  # Most constrained labels claim their spots first; ties fall back to input
-  # order, keeping the order deterministic.
-  placement_order <- order(clean_counts, seq_len(n))
-  chosen <- integer(n)
+  for (i in seq_len(n)) {
+    add_candidates(
+      i,
+      label_candidates(
+        labels$x[i],
+        labels$y[i],
+        radius[i],
+        gap,
+        labels$width[i],
+        labels$height[i],
+        n_angles,
+        n_rings,
+        bounds,
+        reach = reach,
+        leader = leader,
+        n_rays = n_rays
+      )
+    )
+  }
 
-  # Candidate box limits and chosen box limits per label, kept as plain
-  # vectors so the assignment loops avoid data frame subsetting.
-  cand_xmin <- lapply(candidates, `[[`, "xmin")
-  cand_ymin <- lapply(candidates, `[[`, "ymin")
-  cand_xmax <- lapply(candidates, `[[`, "xmax")
-  cand_ymax <- lapply(candidates, `[[`, "ymax")
+  # Labels that can sit beside their node claim their spots before labels
+  # that have to go far, so a far label never takes the spot beside another
+  # label's node; within a band the most constrained labels go first, and
+  # ties fall back to input order, keeping the order deterministic.
+  placement_order <- order(best_bands, clean_counts, seq_len(n))
+  chosen <- integer(n)
   box_xmin <- box_ymin <- box_xmax <- box_ymax <- rep(NA_real_, n)
   record_box <- function(i) {
-    box_xmin[i] <<- cand_xmin[[i]][chosen[i]]
-    box_ymin[i] <<- cand_ymin[[i]][chosen[i]]
-    box_xmax[i] <<- cand_xmax[[i]][chosen[i]]
-    box_ymax[i] <<- cand_ymax[[i]][chosen[i]]
+    cand <- candidates[[i]]
+    box_xmin[i] <<- cand$xmin[chosen[i]]
+    box_ymin[i] <<- cand$ymin[chosen[i]]
+    box_xmax[i] <<- cand$xmax[chosen[i]]
+    box_ymax[i] <<- cand$ymax[chosen[i]]
   }
 
-  totals_for <- function(i) {
+  # The overlap area of each candidate of label `i` with the placed boxes of
+  # the other labels.
+  placed_overlap <- function(i) {
+    cand <- candidates[[i]]
+    n_cand <- length(cand$x)
     placed <- which(chosen > 0L)
     placed <- placed[placed != i]
     if (length(placed) == 0) {
-      return(static_scores[[i]])
+      return(numeric(n_cand))
     }
-    n_cand <- length(cand_xmin[[i]])
     ci <- rep(seq_len(n_cand), times = length(placed))
     pj <- rep(placed, each = n_cand)
     pair_overlap <- rect_overlap_area(
-      cand_xmin[[i]][ci],
-      cand_ymin[[i]][ci],
-      cand_xmax[[i]][ci],
-      cand_ymax[[i]][ci],
+      cand$xmin[ci],
+      cand$ymin[ci],
+      cand$xmax[ci],
+      cand$ymax[ci],
       box_xmin[pj],
       box_ymin[pj],
       box_xmax[pj],
       box_ymax[pj]
     )
-    overlap <- rowSums(matrix(pair_overlap, nrow = n_cand))
-    static_scores[[i]] + weights[["label"]] * overlap
+    rowSums(matrix(pair_overlap, nrow = n_cand))
+  }
+
+  # The number of other labels' placed boxes the leader of each candidate of
+  # label `i` would cross, priced like the ink and discs it crosses.
+  leader_box_crossings <- function(i) {
+    segment <- leader_static[[i]]
+    n_cand <- length(candidates[[i]]$x)
+    crossings <- numeric(n_cand)
+    idx <- which(!is.na(segment$x0))
+    placed <- which(chosen > 0L)
+    placed <- placed[placed != i]
+    if (length(idx) == 0 || length(placed) == 0) {
+      return(crossings)
+    }
+    ci <- rep(idx, times = length(placed))
+    pj <- rep(placed, each = length(idx))
+    # Only a leader whose bounding box, grown by the margin, reaches a box
+    # can come within the margin of it, so the exact distance is computed
+    # for those pairs alone.
+    near <- pmin(segment$x0[ci], segment$x1[ci]) - label_edge_clearance <=
+      box_xmax[pj] &
+      pmax(segment$x0[ci], segment$x1[ci]) + label_edge_clearance >=
+        box_xmin[pj] &
+      pmin(segment$y0[ci], segment$y1[ci]) - label_edge_clearance <=
+        box_ymax[pj] &
+      pmax(segment$y0[ci], segment$y1[ci]) + label_edge_clearance >=
+        box_ymin[pj]
+    ci <- ci[near]
+    pj <- pj[near]
+    if (length(ci) == 0) {
+      return(crossings)
+    }
+    dist <- rect_segment_dist(
+      box_xmin[pj],
+      box_ymin[pj],
+      box_xmax[pj],
+      box_ymax[pj],
+      segment$x0[ci],
+      segment$y0[ci],
+      segment$x1[ci],
+      segment$y1[ci]
+    )
+    tabulate(ci[dist < label_edge_clearance], nbins = n_cand)
+  }
+
+  # Every candidate of label `i` scored against the current placement of the
+  # others: the total, and whether it violates a hard constraint.
+  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
+  evaluate <- function(i) {
+    overlap <- placed_overlap(i)
+    within <- within_static[[i]] +
+      dist_weight * label_leader_box_cost * leader_box_crossings(i)
+    soft <- band_static[[i]] * (max(within) + 1) + within
+    violating <- violating_static[[i]] | overlap > 0
+    hard <- hard_static[[i]] + weights[["label"]] * overlap
+    list(total = tiered_score(soft, hard, violating), violating = violating)
   }
 
   for (i in placement_order) {
-    chosen[i] <- which.min(totals_for(i))
+    chosen[i] <- which.min(evaluate(i)$total)
     record_box(i)
   }
 
-  # Two local-improvement sweeps: re-evaluate each label with the others
-  # fixed and move only on strict improvement, so the refinement is
-  # deterministic and cannot oscillate.
-  for (pass in 1:2) {
-    for (i in placement_order) {
-      totals <- totals_for(i)
-      best <- which.min(totals)
-      if (totals[best] < totals[chosen[i]]) {
-        chosen[i] <- best
-        record_box(i)
+  # Local-improvement sweeps: re-evaluate each label with the others fixed
+  # and move only on strict improvement, so the refinement is deterministic
+  # and cannot oscillate. A sweep that moves nothing ends the refinement,
+  # leaving every label at its best candidate given the others.
+  sweep <- function() {
+    for (pass in seq_len(label_max_sweeps)) {
+      moved <- FALSE
+      for (i in placement_order) {
+        totals <- evaluate(i)$total
+        best <- which.min(totals)
+        if (totals[best] < totals[chosen[i]]) {
+          chosen[i] <<- best
+          record_box(i)
+          moved <- TRUE
+        }
+      }
+      if (!moved) {
+        break
       }
     }
+  }
+  sweep()
+
+  # Repair: a label left on a violating candidate first gains a grid of
+  # candidates over the whole panel, in case its free spot is somewhere no
+  # ray reaches, and failing that tries to take an admissible spot one other
+  # label is sitting on, when that label can move to an admissible spot of
+  # its own. Like the ray candidates, the grid is part of filling the space
+  # around the anchors, so an infinite `reach` builds none.
+  grid_added <- !is.finite(reach) | logical(n)
+  add_grid <- function(i) {
+    if (grid_added[i]) {
+      return(FALSE)
+    }
+    grid_added[i] <<- TRUE
+    grid <- label_grid_candidates(
+      labels$x[i],
+      labels$y[i],
+      labels$width[i],
+      labels$height[i],
+      bounds,
+      rank_from = n_angles * n_rings + 1
+    )
+    if (length(grid$x) == 0) {
+      return(FALSE)
+    }
+    add_candidates(i, grid)
+    TRUE
+  }
+  settle <- function(i) {
+    scored <- evaluate(i)
+    best <- which.min(scored$total)
+    if (scored$violating[best]) {
+      return(FALSE)
+    }
+    chosen[i] <<- best
+    record_box(i)
+    TRUE
+  }
+  eject <- function(i) {
+    cand <- candidates[[i]]
+    scored <- evaluate(i)
+    # the admissible spots of `i` that only other boxes block, best first
+    blocked <- which(!violating_static[[i]] & scored$violating)
+    blocked <- blocked[order(scored$total[blocked])]
+    blocked <- blocked[seq_len(min(length(blocked), label_max_ejections))]
+    placed <- which(chosen > 0L)
+    placed <- placed[placed != i]
+    for (k in blocked) {
+      overlap <- rect_overlap_area(
+        cand$xmin[k],
+        cand$ymin[k],
+        cand$xmax[k],
+        cand$ymax[k],
+        box_xmin[placed],
+        box_ymin[placed],
+        box_xmax[placed],
+        box_ymax[placed]
+      )
+      blockers <- placed[overlap > 0]
+      if (length(blockers) != 1) {
+        next
+      }
+      j <- blockers
+      previous <- chosen[i]
+      chosen[i] <<- k
+      record_box(i)
+      add_grid(j)
+      before <- chosen[j]
+      if (settle(j)) {
+        return(TRUE)
+      }
+      chosen[j] <<- before
+      chosen[i] <<- previous
+      record_box(i)
+    }
+    FALSE
+  }
+  for (round in seq_len(label_max_repairs)) {
+    stuck <- placement_order[vapply(
+      placement_order,
+      function(i) evaluate(i)$violating[chosen[i]],
+      logical(1)
+    )]
+    if (length(stuck) == 0) {
+      break
+    }
+    changed <- FALSE
+    for (i in stuck) {
+      if (add_grid(i) && settle(i)) {
+        changed <- TRUE
+        next
+      }
+      if (eject(i)) {
+        changed <- TRUE
+      }
+    }
+    if (!changed) {
+      break
+    }
+    sweep()
   }
 
   pick <- function(column) {
@@ -223,7 +512,7 @@ place_dag_labels <- function(
   }
   score <- vapply(
     seq_len(n),
-    function(i) totals_for(i)[chosen[i]],
+    function(i) evaluate(i)$total[chosen[i]],
     numeric(1)
   )
 
@@ -237,6 +526,82 @@ place_dag_labels <- function(
       character(1)
     ),
     score = score
+  )
+}
+
+#' Combine the two score tiers of one label's candidates
+#'
+#' Every violating candidate is lifted past the largest admissible score, so
+#' an admissible candidate always wins when one exists, and the weighted
+#' violations order the violating candidates among themselves. A violation
+#' counts whatever its weight, so a zero weight reorders the violating
+#' candidates without admitting one.
+#'
+#' @param soft Numeric, the admissible-tier score per candidate.
+#' @param hard Numeric, the weighted hard violations per candidate.
+#' @param violating Logical, whether each candidate violates a hard
+#'   constraint.
+#' @return Numeric total per candidate.
+#' @noRd
+tiered_score <- function(soft, hard, violating) {
+  lift <- max(soft) + 1
+  soft + ifelse(violating, lift + hard, 0)
+}
+
+#' Candidate boxes on a grid over the whole panel
+#'
+#' Box centers every `label_grid_spacing` mm across the part of `bounds` a
+#' box of this size fits in, named after the anchor whose sector the center
+#' lies in as seen from the node. These are the fallback for a label whose
+#' rays all end on obstacles or other labels.
+#'
+#' @param x,y Node center in mm.
+#' @param width,height Label box extent in mm.
+#' @param bounds Panel extent `c(xmin, ymin, xmax, ymax)` in mm.
+#' @param rank_from Preference rank of the first grid candidate; the grid
+#'   shares the unit range starting there.
+#' @return A candidate list as `label_candidates()` returns, possibly empty.
+#' @noRd
+label_grid_candidates <- function(x, y, width, height, bounds, rank_from) {
+  empty <- list(
+    anchor = character(),
+    rank = numeric(),
+    x = numeric(),
+    y = numeric(),
+    xmin = numeric(),
+    ymin = numeric(),
+    xmax = numeric(),
+    ymax = numeric()
+  )
+  if (
+    width > bounds[[3]] - bounds[[1]] ||
+      height > bounds[[4]] - bounds[[2]]
+  ) {
+    return(empty)
+  }
+  center_x <- seq(
+    bounds[[1]] + width / 2,
+    bounds[[3]] - width / 2,
+    by = label_grid_spacing
+  )
+  center_y <- seq(
+    bounds[[2]] + height / 2,
+    bounds[[4]] - height / 2,
+    by = label_grid_spacing
+  )
+  grid <- expand.grid(x = center_x, y = center_y)
+  n <- nrow(grid)
+  compass <- c("e", "ne", "n", "nw", "w", "sw", "s", "se")
+  angle <- atan2(grid$y - y, grid$x - x)
+  list(
+    anchor = compass[round(angle / (pi / 4)) %% 8 + 1],
+    rank = rank_from + (seq_len(n) - 1) / n,
+    x = grid$x,
+    y = grid$y,
+    xmin = grid$x - width / 2,
+    ymin = grid$y - height / 2,
+    xmax = grid$x + width / 2,
+    ymax = grid$y + height / 2
   )
 }
 
@@ -260,6 +625,9 @@ validate_label_placement_inputs <- function(
   n_angles,
   n_rings,
   weights,
+  reach = Inf,
+  leader = Inf,
+  n_rays = 36L,
   call = rlang::caller_env()
 ) {
   duplicated_ids <- unique(labels$id[duplicated(labels$id)])
@@ -404,20 +772,53 @@ validate_label_placement_inputs <- function(
     )
   }
 
-  n_rings_valid <- length(n_rings) == 1 &&
-    is.numeric(n_rings) &&
-    is.finite(n_rings) &&
-    n_rings == as.integer(n_rings) &&
-    n_rings >= 1
-  if (!n_rings_valid) {
+  whole_positive <- function(value) {
+    length(value) == 1 &&
+      is.numeric(value) &&
+      is.finite(value) &&
+      value == as.integer(value) &&
+      value >= 1
+  }
+  if (!whole_positive(n_rings)) {
     abort(
       "{.arg n_rings} must be a whole number of at least 1.",
       error_class = "ggdag_type_error",
       call = call
     )
   }
+  if (!whole_positive(n_rays)) {
+    abort(
+      "{.arg n_rays} must be a whole number of at least 1.",
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
 
-  weight_names <- c("node", "edge", "arrow", "label", "bounds", "prefer")
+  # A threshold is a positive distance in mm, or Inf to switch the
+  # preference off.
+  positive_or_inf <- function(value) {
+    length(value) == 1 &&
+      is.numeric(value) &&
+      !is.na(value) &&
+      value > 0
+  }
+  if (!positive_or_inf(reach)) {
+    abort(
+      "{.arg reach} must be a single positive number or {.code Inf}.",
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+  if (!positive_or_inf(leader)) {
+    abort(
+      "{.arg leader} must be a single positive number or {.code Inf}.",
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  required_weights <- c("node", "edge", "arrow", "label", "bounds", "prefer")
+  optional_weights <- c("dist", "soft")
   if (!is.numeric(weights)) {
     abort(
       c(
@@ -428,12 +829,15 @@ validate_label_placement_inputs <- function(
       call = call
     )
   }
-  bad_weights <- weight_names[!is.finite(weights[weight_names])]
+  present_optional <- optional_weights[optional_weights %in% names(weights)]
+  checked <- c(required_weights, present_optional)
+  bad_weights <- checked[!is.finite(weights[checked])]
   if (length(bad_weights) > 0) {
     abort(
       c(
         "{.arg weights} must contain finite values named
-         {.val {weight_names}}.",
+         {.val {required_weights}}, and finite {.val {optional_weights}}
+         when present.",
         "x" = "Missing or non-finite weight{?s}: {.val {bad_weights}}."
       ),
       error_class = "ggdag_type_error",
@@ -446,13 +850,16 @@ validate_label_placement_inputs <- function(
 
 #' Candidate label boxes around one node
 #'
-#' Builds the ring-major candidate grid for a single label: the first
-#' `n_angles` anchors of the preference order at each of `n_rings` rings,
-#' with 0-based preference `rank` in evaluation order. When `bounds` is
-#' given, every candidate whose box spills the panel also gains a slid
-#' variant translated by the minimal offset that brings it inside, at
-#' rank + 0.5 and with `*` appended to its anchor; an axis the box cannot
-#' fit along is left untranslated.
+#' Builds the candidate set for a single label: the ring-major anchor grid
+#' (the first `n_angles` anchors of the preference order at each of
+#' `n_rings` rings, with 0-based preference `rank` in evaluation order),
+#' then, when `reach` is finite, the off-grid candidates of
+#' `label_ray_candidates()`, which share the rank range just past the last
+#' anchor. Candidates whose boxes coincide are kept once, at their first
+#' rank. When `bounds` is given, every candidate whose box spills the panel
+#' also gains a slid variant translated by the minimal offset that brings it
+#' inside, at rank + 0.5 and with `*` appended to its anchor; an axis the box
+#' cannot fit along is left untranslated.
 #'
 #' @param x,y Node center in mm.
 #' @param radius Node disc radius in mm.
@@ -461,6 +868,8 @@ validate_label_placement_inputs <- function(
 #' @param n_angles,n_rings Candidate grid size.
 #' @param bounds Panel extent `c(xmin, ymin, xmax, ymax)` in mm, or `NULL`
 #'   to build no slid variants.
+#' @param reach,leader,n_rays Off-grid candidate settings, as in
+#'   `place_dag_labels()`.
 #' @return A list of parallel vectors `anchor`, `rank`, `x`, `y` (box
 #'   centers), and `xmin`, `ymin`, `xmax`, `ymax`, one element per
 #'   candidate.
@@ -474,11 +883,14 @@ label_candidates <- function(
   height,
   n_angles,
   n_rings,
-  bounds = NULL
+  bounds = NULL,
+  reach = Inf,
+  leader = Inf,
+  n_rays = 36L
 ) {
-  anchors <- c("ne", "nw", "se", "sw", "n", "s", "e", "w")[seq_len(n_angles)]
-  sign_x <- c(1, -1, 1, -1, 0, 0, 1, -1)[seq_len(n_angles)]
-  sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)[seq_len(n_angles)]
+  anchors <- label_anchor_names[seq_len(n_angles)]
+  sign_x <- label_anchor_sign_x[seq_len(n_angles)]
+  sign_y <- label_anchor_sign_y[seq_len(n_angles)]
   diagonal <- sign_x != 0 & sign_y != 0
 
   ring <- rep(seq_len(n_rings), each = n_angles)
@@ -490,21 +902,51 @@ label_candidates <- function(
   # coordinate offset is that distance over sqrt(2); along a cardinal ray it
   # is the facing side midpoint, at the full distance.
   distance <- radius + gap + (ring - 1) * sqrt(width^2 + height^2) / 2
-  reach <- ifelse(diagonal[anchor_index], distance / sqrt(2), distance)
+  reach_along <- ifelse(diagonal[anchor_index], distance / sqrt(2), distance)
 
-  center_x <- x + sign_x[anchor_index] * (reach + width / 2)
-  center_y <- y + sign_y[anchor_index] * (reach + height / 2)
+  center_x <- x + sign_x[anchor_index] * (reach_along + width / 2)
+  center_y <- y + sign_y[anchor_index] * (reach_along + height / 2)
 
   cand <- list(
     anchor = anchors[anchor_index],
     rank = seq_along(center_x) - 1,
     x = center_x,
-    y = center_y,
-    xmin = center_x - width / 2,
-    ymin = center_y - height / 2,
-    xmax = center_x + width / 2,
-    ymax = center_y + height / 2
+    y = center_y
   )
+
+  if (is.finite(reach)) {
+    off <- label_ray_candidates(
+      x,
+      y,
+      radius,
+      gap,
+      width,
+      height,
+      anchors,
+      reach,
+      leader,
+      n_rays
+    )
+    n_off <- length(off$x)
+    if (n_off > 0) {
+      cand <- list(
+        anchor = c(cand$anchor, off$anchor),
+        rank = c(cand$rank, length(cand$rank) + (seq_len(n_off) - 1) / n_off),
+        x = c(cand$x, off$x),
+        y = c(cand$y, off$y)
+      )
+    }
+  }
+
+  # A box reached by two constructions is one candidate, kept at its first
+  # (most preferred) rank.
+  keep <- !duplicated(paste(round(cand$x, 6), round(cand$y, 6)))
+  cand <- lapply(cand, `[`, keep)
+
+  cand$xmin <- cand$x - width / 2
+  cand$ymin <- cand$y - height / 2
+  cand$xmax <- cand$x + width / 2
+  cand$ymax <- cand$y + height / 2
   if (is.null(bounds)) {
     return(cand)
   }
@@ -524,6 +966,12 @@ label_candidates <- function(
     return(cand)
   }
 
+  # A slid box stops a hair inside the border rather than exactly on it, so
+  # that it still reads as inside after its coordinates have been through
+  # the round trip of drawing units and back.
+  dx <- dx + sign(dx) * label_slide_nudge
+  dy <- dy + sign(dy) * label_slide_nudge
+
   idx <- which(spill)
   list(
     anchor = c(cand$anchor, paste0(cand$anchor[idx], "*")),
@@ -537,33 +985,267 @@ label_candidates <- function(
   )
 }
 
+#' Off-grid candidate boxes within reach of one node
+#'
+#' On `n_rays` evenly spaced rays from the node center, at
+#' `label_reach_steps` clearances from `gap` to each finite threshold
+#' (`reach`, and `leader` when finite) and at the sparser far levels
+#' `label_far_reach * reach`, a box is placed two ways: with the corner
+#' facing the node on the ray, so its nearest point sits exactly at that
+#' clearance, and with its center offset along the ray, so it straddles the
+#' ray as a label beside a node often does. A placement whose box comes
+#' nearer the disc than `gap` is dropped. Only rays in the 45 degree sectors
+#' of `anchors` are used, and each candidate is named after its sector's
+#' anchor. Candidates are ordered by clearance level, then by the preference
+#' rank of their sector, then by angle, corner placement first.
+#'
+#' @param x,y Node center in mm.
+#' @param radius Node disc radius in mm.
+#' @param gap Minimum clearance between the disc edge and the box edge.
+#' @param width,height Label box extent in mm.
+#' @param anchors Character, the anchors whose sectors are used.
+#' @param reach,leader,n_rays As in `place_dag_labels()`; `reach` is finite.
+#' @return A list of parallel vectors `anchor`, `x`, `y` (box centers).
+#' @noRd
+label_ray_candidates <- function(
+  x,
+  y,
+  radius,
+  gap,
+  width,
+  height,
+  anchors,
+  reach,
+  leader,
+  n_rays
+) {
+  empty <- list(anchor = character(), x = numeric(), y = numeric())
+
+  thresholds <- unique(c(reach, leader[is.finite(leader)]))
+  levels <- unlist(lapply(thresholds, function(threshold) {
+    seq(gap, threshold, length.out = label_reach_steps)
+  }))
+  levels <- sort(unique(c(levels, label_far_reach * reach)))
+  levels <- levels[levels >= gap]
+  if (length(levels) == 0) {
+    return(empty)
+  }
+
+  # Each ray belongs to the anchor whose direction it is nearest, counting
+  # sectors counterclockwise from east.
+  angles <- seq(0, 2 * pi, length.out = n_rays + 1)[-(n_rays + 1)]
+  compass <- c("e", "ne", "n", "nw", "w", "sw", "s", "se")
+  sector <- compass[round(angles / (pi / 4)) %% 8 + 1]
+  keep <- sector %in% anchors
+  if (!any(keep)) {
+    return(empty)
+  }
+  angles <- angles[keep]
+  sector <- sector[keep]
+  ray_order <- order(match(sector, anchors), angles)
+  angles <- angles[ray_order]
+  sector <- sector[ray_order]
+
+  ux <- cos(angles)
+  uy <- sin(angles)
+  sign_x <- sign(round(ux, 8))
+  sign_y <- sign(round(uy, 8))
+
+  n_levels <- length(levels)
+  n_rays_kept <- length(angles)
+  level_index <- rep(seq_len(n_levels), each = 2 * n_rays_kept)
+  ray_index <- rep(rep(seq_len(n_rays_kept), each = 2), times = n_levels)
+  corner <- rep(c(TRUE, FALSE), times = n_levels * n_rays_kept)
+
+  distance <- radius + levels[level_index]
+  ray_x <- x + ux[ray_index] * distance
+  ray_y <- y + uy[ray_index] * distance
+  center_x <- ray_x +
+    ifelse(corner, sign_x[ray_index], ux[ray_index]) * width / 2
+  center_y <- ray_y +
+    ifelse(corner, sign_y[ray_index], uy[ray_index]) * height / 2
+
+  clearance <- rect_point_dist(
+    center_x - width / 2,
+    center_y - height / 2,
+    center_x + width / 2,
+    center_y + height / 2,
+    x,
+    y
+  ) -
+    radius
+  keep <- clearance >= gap - 1e-9
+
+  list(
+    anchor = sector[ray_index][keep],
+    x = center_x[keep],
+    y = center_y[keep]
+  )
+}
+
+#' Sampled edge points prepared for box tests
+#'
+#' Flags the points of each `edge_id` within `label_arrow_zone` mm of its
+#' last point as arrowhead-zone points and buckets the points into square
+#' cells of `label_ink_cell` mm, sorted by cell, so that `ink_cell_pairs()`
+#' can pick out the points near a set of boxes without comparing every box
+#' with every point.
+#'
+#' @param edges Data frame with columns `edge_id`, `x`, and `y`.
+#' @return A list with `x`, `y`, `head` (logical) in input order, plus the
+#'   cell index: `order` (the permutation sorting the points by cell),
+#'   `sorted_cell` (their cell ids in that order), and the grid's origin
+#'   `col0`, `row0` and height in cells `n_rows`.
+#' @noRd
+label_ink_points <- function(edges) {
+  if (nrow(edges) == 0) {
+    return(list(
+      x = numeric(),
+      y = numeric(),
+      head = logical(),
+      order = integer(),
+      sorted_cell = numeric(),
+      col0 = 0,
+      row0 = 0,
+      n_cols = 0,
+      n_rows = 0
+    ))
+  }
+  id <- factor(edges$edge_id, levels = unique(edges$edge_id))
+  rows <- split(seq_len(nrow(edges)), id)
+  last <- vapply(rows, function(r) r[[length(r)]], integer(1))
+  end_x <- edges$x[last][as.integer(id)]
+  end_y <- edges$y[last][as.integer(id)]
+  head <- sqrt((edges$x - end_x)^2 + (edges$y - end_y)^2) <= label_arrow_zone
+
+  col <- floor(edges$x / label_ink_cell)
+  row <- floor(edges$y / label_ink_cell)
+  col0 <- min(col)
+  row0 <- min(row)
+  n_rows <- max(row) - row0 + 1
+  cell <- (col - col0) * n_rows + (row - row0)
+  ord <- order(cell)
+  list(
+    x = edges$x,
+    y = edges$y,
+    head = head,
+    order = ord,
+    sorted_cell = cell[ord],
+    col0 = col0,
+    row0 = row0,
+    n_cols = max(col) - col0 + 1,
+    n_rows = n_rows
+  )
+}
+
+#' Pair boxes with the ink points in the cells around them
+#'
+#' For each box, the points in every cell the box grown by `margin` touches;
+#' no point elsewhere can come within `margin` of the box. The pairs are
+#' built with vectorised `sequence()` and `findInterval()` calls over the
+#' sorted cell ids, so the work is proportional to the points that actually
+#' need a distance.
+#'
+#' @param xmin,ymin,xmax,ymax Box limits.
+#' @param ink Prepared points from `label_ink_points()`.
+#' @param margin The widest margin any test on the pairs will use.
+#' @return A list with parallel integer vectors `box` and `point` indexing
+#'   the boxes and `ink`.
+#' @noRd
+ink_cell_pairs <- function(xmin, ymin, xmax, ymax, ink, margin) {
+  cell <- label_ink_cell
+  col_from <- pmax(floor((xmin - margin) / cell) - ink$col0, 0)
+  col_to <- pmin(floor((xmax + margin) / cell) - ink$col0, ink$n_cols - 1)
+  row_from <- pmax(floor((ymin - margin) / cell) - ink$row0, 0)
+  row_to <- pmin(floor((ymax + margin) / cell) - ink$row0, ink$n_rows - 1)
+  n_col <- pmax(0, col_to - col_from + 1)
+  n_row <- pmax(0, row_to - row_from + 1)
+  n_cell <- n_col * n_row
+
+  # Every (box, cell) pair, walking each box's cell rectangle column-major.
+  box <- rep(seq_along(xmin), n_cell)
+  k <- sequence(n_cell) - 1
+  id <- (col_from[box] + k %/% n_row[box]) *
+    ink$n_rows +
+    row_from[box] +
+    k %% n_row[box]
+
+  first <- findInterval(id, ink$sorted_cell, left.open = TRUE) + 1L
+  last <- findInterval(id, ink$sorted_cell)
+  count <- pmax(0L, last - first + 1L)
+  list(
+    box = rep(box, count),
+    point = ink$order[sequence(count, from = first)]
+  )
+}
+
+#' Count the ink points within the margins of each box
+#'
+#' @param xmin,ymin,xmax,ymax Box limits.
+#' @param ink Prepared points from `label_ink_points()`.
+#' @return A list with `edge`, the number of points within
+#'   `label_edge_clearance` of each box, and `arrow`, the number of
+#'   arrowhead-zone points within `label_arrow_clearance` of it.
+#' @noRd
+ink_box_hits <- function(xmin, ymin, xmax, ymax, ink) {
+  n <- length(xmin)
+  if (length(ink$x) == 0 || n == 0) {
+    return(list(edge = integer(n), arrow = integer(n)))
+  }
+  pairs <- ink_cell_pairs(xmin, ymin, xmax, ymax, ink, label_arrow_clearance)
+  ci <- pairs$box
+  pj <- pairs$point
+  dist <- rect_point_dist(
+    xmin[ci],
+    ymin[ci],
+    xmax[ci],
+    ymax[ci],
+    ink$x[pj],
+    ink$y[pj]
+  )
+  list(
+    edge = tabulate(ci[dist < label_edge_clearance], nbins = n),
+    arrow = tabulate(
+      ci[ink$head[pj] & dist < label_arrow_clearance],
+      nbins = n
+    )
+  )
+}
+
 #' Score candidate boxes against the static obstacles
 #'
-#' Computes the placement score of every candidate against the obstacles
-#' that do not depend on other labels: node discs (both the hard penetration
+#' Computes both score tiers of every candidate against the obstacles that
+#' do not depend on other labels: node discs (both the hard penetration
 #' depth and the soft comfort zone around discs other than the label's own),
-#' sampled edge points, arrowhead segments, and the panel bounds, plus the
-#' proximity pull toward the label's own node and the preference-rank
-#' tiebreak. The label overlap term is added later, during assignment.
+#' sampled edge points with their arrowhead zones, and the panel bounds, plus
+#' the proximity bands, the proximity pull toward the label's own node, the
+#' leader pricing, and the preference-rank tiebreak. The label overlap term
+#' is added later, during assignment.
 #'
 #' @param cand Candidate list from `label_candidates()`.
-#' @param nodes,edges,bounds,weights As in `place_dag_labels()`.
-#' @param arrow_segments Data frame from `final_edge_segments()`.
-#' @param own_xy Length-2 numeric, the label's own node center; the nearest
-#'   disc to it is exempt from the soft term and the proximity pull measures
-#'   from it. `NULL` disables both terms.
-#' @return A list with `score` (numeric per candidate) and `n_clean` (count
-#'   of candidates with no violations at all; soft-zone penetration and
-#'   distance are not violations).
+#' @param nodes,bounds,weights,reach,leader As in `place_dag_labels()`.
+#' @param ink Prepared points from `label_ink_points()`.
+#' @param own A list with the label's own node center `x`, `y` and disc
+#'   `radius`; the nearest disc to it is exempt from the soft term, the
+#'   proximity pull measures from it, and clearance is measured from its
+#'   disc. `NULL` disables the proximity terms.
+#' @return A list with `hard` (weighted violations per candidate),
+#'   `violating` (whether each candidate violates a hard constraint), `band`
+#'   (the proximity band of each candidate: 0 within `leader`, 1 within
+#'   `reach`, 2 beyond), `within` (the score that orders admissible
+#'   candidates of one band), and `leader` (the leader segment of each
+#'   candidate as `x0`, `y0`, `x1`, `y1`, `NA` where none is drawn; `NULL`
+#'   without `own`).
 #' @noRd
 score_label_candidates <- function(
   cand,
   nodes,
-  edges,
-  arrow_segments,
+  ink,
   bounds,
   weights,
-  own_xy = NULL
+  own = NULL,
+  reach = Inf,
+  leader = Inf
 ) {
   n_cand <- length(cand$x)
 
@@ -573,10 +1255,10 @@ score_label_candidates <- function(
   node_penalty <- numeric(n_cand)
   soft_penalty <- numeric(n_cand)
   if (nrow(nodes) > 0) {
-    own <- if (is.null(own_xy)) {
+    own_index <- if (is.null(own)) {
       0L
     } else {
-      which.min((nodes$x - own_xy[[1]])^2 + (nodes$y - own_xy[[2]])^2)
+      which.min((nodes$x - own$x)^2 + (nodes$y - own$y)^2)
     }
     i <- rep(seq_len(n_cand), times = nrow(nodes))
     j <- rep(seq_len(nrow(nodes)), each = n_cand)
@@ -591,61 +1273,13 @@ score_label_candidates <- function(
     depth <- pmax(0, nodes$radius[j] + label_node_clearance - dist)
     node_penalty <- rowSums(matrix(depth, nrow = n_cand))
     soft <- pmax(0, label_soft_margin - (dist - nodes$radius[j]))
-    soft[j == own] <- 0
+    soft[j == own_index] <- 0
     soft_penalty <- rowSums(matrix(soft, nrow = n_cand))
   }
 
-  # Edges: count of sampled polyline points inside or too near the box.
-  # Only points near the candidate region can violate, so the rest are
-  # dropped before building the candidate-point grid.
-  edge_violations <- numeric(n_cand)
-  if (nrow(edges) > 0) {
-    px <- edges$x
-    py <- edges$y
-    near <- px >= min(cand$xmin) - label_edge_clearance &
-      px <= max(cand$xmax) + label_edge_clearance &
-      py >= min(cand$ymin) - label_edge_clearance &
-      py <= max(cand$ymax) + label_edge_clearance
-    px <- px[near]
-    py <- py[near]
-    if (length(px) > 0) {
-      i <- rep(seq_len(n_cand), times = length(px))
-      j <- rep(seq_along(px), each = n_cand)
-      dist <- rect_point_dist(
-        cand$xmin[i],
-        cand$ymin[i],
-        cand$xmax[i],
-        cand$ymax[i],
-        px[j],
-        py[j]
-      )
-      edge_violations <- rowSums(
-        matrix(dist < label_edge_clearance, nrow = n_cand)
-      )
-    }
-  }
-
-  # Arrowheads: count of final edge segments too near the box, using the
-  # true segment distance so a segment crossing the box between its sampled
-  # endpoints still counts.
-  arrow_violations <- numeric(n_cand)
-  if (nrow(arrow_segments) > 0) {
-    i <- rep(seq_len(n_cand), times = nrow(arrow_segments))
-    j <- rep(seq_len(nrow(arrow_segments)), each = n_cand)
-    dist <- rect_segment_dist(
-      cand$xmin[i],
-      cand$ymin[i],
-      cand$xmax[i],
-      cand$ymax[i],
-      arrow_segments$x1[j],
-      arrow_segments$y1[j],
-      arrow_segments$x2[j],
-      arrow_segments$y2[j]
-    )
-    arrow_violations <- rowSums(
-      matrix(dist < label_arrow_clearance, nrow = n_cand)
-    )
-  }
+  # Ink: sampled points within the edge margin of the box, and arrowhead-zone
+  # points within the arrow margin.
+  hits <- ink_box_hits(cand$xmin, cand$ymin, cand$xmax, cand$ymax, ink)
 
   # Bounds: box area outside the panel.
   inside <- rect_overlap_area(
@@ -663,38 +1297,227 @@ score_label_candidates <- function(
     0
   )
 
-  # Distance from the box center to the label's own node center, for the
-  # proximity pull. `dist` and `soft` default to 0 when absent so weights
-  # vectors from before those terms existed keep working.
-  center_dist <- if (is.null(own_xy)) {
-    0
-  } else {
-    sqrt((cand$x - own_xy[[1]])^2 + (cand$y - own_xy[[2]])^2)
+  hard <- weights[["node"]] *
+    node_penalty +
+    weights[["edge"]] * hits$edge +
+    weights[["arrow"]] * hits$arrow +
+    weights[["bounds"]] * outside_area
+  violating <- node_penalty > 0 |
+    hits$edge > 0 |
+    hits$arrow > 0 |
+    outside_area > 0
+
+  # Proximity: the pull toward the label's own node center, the band a
+  # candidate's clearance from its own disc puts it in, and the pricing of
+  # the leader a candidate past `leader` would be drawn with. `dist` and
+  # `soft` default to 0 when absent so weights vectors from before those
+  # terms existed keep working.
+  center_dist <- numeric(n_cand)
+  band <- numeric(n_cand)
+  leader_extra <- numeric(n_cand)
+  leaders <- NULL
+  if (!is.null(own)) {
+    center_dist <- sqrt((cand$x - own$x)^2 + (cand$y - own$y)^2)
+    clearance <- rect_point_dist(
+      cand$xmin,
+      cand$ymin,
+      cand$xmax,
+      cand$ymax,
+      own$x,
+      own$y
+    ) -
+      own$radius
+    band <- (clearance > leader) + (clearance > reach)
+    leaders <- leader_crossing_length(
+      cand,
+      clearance > leader,
+      own,
+      nodes,
+      ink
+    )
+    leader_extra <- leaders$extra
   }
   dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
   soft_weight <- if ("soft" %in% names(weights)) weights[["soft"]] else 0
 
-  score <- weights[["node"]] *
-    node_penalty +
-    weights[["edge"]] * edge_violations +
-    weights[["arrow"]] * arrow_violations +
-    weights[["bounds"]] * outside_area +
-    weights[["prefer"]] * cand$rank +
-    dist_weight * center_dist +
-    soft_weight * soft_penalty
+  within <- dist_weight *
+    (center_dist + leader_extra) +
+    soft_weight * soft_penalty +
+    weights[["prefer"]] * cand$rank
 
-  clean <- node_penalty == 0 &
-    edge_violations == 0 &
-    arrow_violations == 0 &
-    outside_area == 0
+  list(
+    hard = hard,
+    violating = violating,
+    band = band,
+    within = within,
+    leader = leaders[c("x0", "y0", "x1", "y1")]
+  )
+}
 
-  list(score = score, n_clean = sum(clean))
+#' Extra length a leader is priced at for what it crosses
+#'
+#' The leader of a candidate runs from the label's node center to the nearest
+#' point of the box. Each ink point within the edge margin of that segment
+#' adds `label_leader_ink_cost` mm, and each disc other than the label's own
+#' that the segment crosses adds `label_leader_disc_cost` times its radius,
+#' so among candidates that need a leader the engine prefers one whose
+#' leader crosses nothing.
+#'
+#' @param cand Candidate list from `label_candidates()`.
+#' @param with_leader Logical per candidate, whether a leader would be drawn.
+#' @param own The label's own node, as in `score_label_candidates()`.
+#' @param nodes Node discs.
+#' @param ink Prepared points from `label_ink_points()`.
+#' @return A list with `extra`, the priced extra length per candidate (0 for
+#'   candidates without a leader), and the leader segments `x0`, `y0`, `x1`,
+#'   `y1` (`NA` for candidates without one).
+#' @noRd
+leader_crossing_length <- function(cand, with_leader, own, nodes, ink) {
+  n_cand <- length(cand$x)
+  extra <- numeric(n_cand)
+  segment <- list(
+    x0 = rep(NA_real_, n_cand),
+    y0 = rep(NA_real_, n_cand),
+    x1 = rep(NA_real_, n_cand),
+    y1 = rep(NA_real_, n_cand)
+  )
+  idx <- which(with_leader)
+  if (length(idx) == 0) {
+    return(c(list(extra = extra), segment))
+  }
+
+  # The leader runs from the disc edge to the nearest point of the box, as it
+  # is drawn; a candidate past the leader threshold is clear of its own
+  # disc, so the direction is well defined.
+  near_x <- pmin(pmax(own$x, cand$xmin[idx]), cand$xmax[idx])
+  near_y <- pmin(pmax(own$y, cand$ymin[idx]), cand$ymax[idx])
+  length <- sqrt((near_x - own$x)^2 + (near_y - own$y)^2)
+  start_x <- own$x + own$radius * (near_x - own$x) / length
+  start_y <- own$y + own$radius * (near_y - own$y) / length
+  segment$x0[idx] <- start_x
+  segment$y0[idx] <- start_y
+  segment$x1[idx] <- near_x
+  segment$y1[idx] <- near_y
+
+  if (length(ink$x) > 0) {
+    pairs <- ink_cell_pairs(
+      pmin(start_x, near_x),
+      pmin(start_y, near_y),
+      pmax(start_x, near_x),
+      pmax(start_y, near_y),
+      ink,
+      label_edge_clearance
+    )
+    ci <- pairs$box
+    pj <- pairs$point
+    dist <- dist_to_edge(
+      ink$x[pj],
+      ink$y[pj],
+      start_x[ci],
+      start_y[ci],
+      near_x[ci],
+      near_y[ci]
+    )
+    crossed <- tabulate(ci[dist < label_edge_clearance], nbins = length(idx))
+    extra[idx] <- extra[idx] + label_leader_ink_cost * crossed
+  }
+
+  if (nrow(nodes) > 0) {
+    own_index <- which.min((nodes$x - own$x)^2 + (nodes$y - own$y)^2)
+    others <- setdiff(seq_len(nrow(nodes)), own_index)
+    if (length(others) > 0) {
+      ci <- rep(seq_along(idx), times = length(others))
+      nj <- rep(others, each = length(idx))
+      dist <- dist_to_edge(
+        nodes$x[nj],
+        nodes$y[nj],
+        start_x[ci],
+        start_y[ci],
+        near_x[ci],
+        near_y[ci]
+      )
+      crossed <- (dist < nodes$radius[nj]) * nodes$radius[nj]
+      extra[idx] <- extra[idx] +
+        label_leader_disc_cost * rowSums(matrix(crossed, nrow = length(idx)))
+    }
+  }
+
+  c(list(extra = extra), segment)
+}
+
+#' Hard-constraint violations of placed label boxes
+#'
+#' Tests each placed box against the same hard constraints the scoring uses:
+#' penetration of a node disc's clearance margin, ink within the edge margin
+#' or arrowhead-zone ink within the arrow margin, overlap with another box,
+#' and spilling `bounds`.
+#'
+#' @param boxes Data frame with columns `xmin`, `ymin`, `xmax`, `ymax`.
+#' @param nodes,edges,bounds As in `place_dag_labels()`.
+#' @return Logical, one element per box.
+#' @noRd
+label_box_violations <- function(boxes, nodes, edges, bounds) {
+  n <- nrow(boxes)
+  if (n == 0) {
+    return(logical())
+  }
+
+  hits <- ink_box_hits(
+    boxes$xmin,
+    boxes$ymin,
+    boxes$xmax,
+    boxes$ymax,
+    label_ink_points(edges)
+  )
+
+  node_hit <- logical(n)
+  if (nrow(nodes) > 0) {
+    i <- rep(seq_len(n), times = nrow(nodes))
+    j <- rep(seq_len(nrow(nodes)), each = n)
+    dist <- rect_point_dist(
+      boxes$xmin[i],
+      boxes$ymin[i],
+      boxes$xmax[i],
+      boxes$ymax[i],
+      nodes$x[j],
+      nodes$y[j]
+    )
+    node_hit <- rowSums(
+      matrix(dist < nodes$radius[j] + label_node_clearance, nrow = n)
+    ) >
+      0
+  }
+
+  overlap <- logical(n)
+  if (n > 1) {
+    i <- rep(seq_len(n), times = n)
+    j <- rep(seq_len(n), each = n)
+    area <- rect_overlap_area(
+      boxes$xmin[i],
+      boxes$ymin[i],
+      boxes$xmax[i],
+      boxes$ymax[i],
+      boxes$xmin[j],
+      boxes$ymin[j],
+      boxes$xmax[j],
+      boxes$ymax[j]
+    )
+    area[i == j] <- 0
+    overlap <- rowSums(matrix(area, nrow = n)) > 0
+  }
+
+  outside <- boxes$xmin < bounds[[1]] |
+    boxes$ymin < bounds[[2]] |
+    boxes$xmax > bounds[[3]] |
+    boxes$ymax > bounds[[4]]
+
+  hits$edge > 0 | hits$arrow > 0 | node_hit | overlap | outside
 }
 
 #' Final segment of each edge polyline
 #'
 #' Extracts the last segment of every `edge_id`, in order of first
-#' appearance, as the arrowhead zone of that edge.
+#' appearance: the segment that carries the drawn arrowhead.
 #'
 #' @param edges Data frame with columns `edge_id`, `x`, and `y`.
 #' @return A data frame with columns `x1`, `y1`, `x2`, `y2`, one row per
@@ -1042,12 +1865,22 @@ GeomDagTextAuto <- ggplot2::ggproto(
 #' Compute and draw automatically placed labels
 #'
 #' Runs at draw time, inside the panel viewport, where positions in native
-#' units convert to true millimetres: it measures every label's text, traces
-#' the drawn edges up to the arrowhead, calls `place_dag_labels()`, and
-#' emits the leader lines, boxes, and text of the final placement.
+#' units convert to true millimetres: it measures every label's text, models
+#' the drawn edges as the ink the reader sees, calls `place_dag_labels()`,
+#' and emits the leader lines, boxes, and text of the final placement.
+#'
+#' The engine is given the panel inset by half a node radius on every side,
+#' so no box is set down on the panel border, a reach of one and a half node
+#' radii, within which a label sits whenever an admissible spot exists there,
+#' and the leader threshold `min.segment.length`, so a leader is drawn only
+#' when no admissible spot within that distance exists. After placement every
+#' box is tested against the same hard constraints, and the labels whose box
+#' still violates one are recorded on the tree as `unresolved`.
 #'
 #' @param x A `dag_labels_auto` gTree built by `GeomDagLabelAuto$draw_panel()`.
-#' @return `x`, with children set to the drawn grobs.
+#' @return `x`, with children set to the drawn grobs and the field
+#'   `unresolved` set to the character vector of label texts whose box
+#'   violates a hard constraint (`character(0)` when every box is clear).
 #' @exportS3Method grid::makeContent
 #' @noRd
 makeContent.dag_labels_auto <- function(x) {
@@ -1140,15 +1973,40 @@ makeContent.dag_labels_auto <- function(x) {
     par,
     c(0, 0, panel_width, panel_height)
   )
-  edge_input <- shorten_edge_tails(edges_mm, par$edge_cap)
+  edge_input <- label_ink(edges_mm, par$edge_cap)
+
+  # The engine works inside the panel inset by half a node radius, so a box
+  # that slides back from the border stops short of it; a panel too small
+  # for that inset keeps at least half of its extent.
+  node_radius <- node_radius_mm(par$node_size)
+  inset <- min(
+    label_inset_radii * node_radius,
+    0.25 * min(panel_width, panel_height)
+  )
+  bounds <- c(inset, inset, panel_width - inset, panel_height - inset)
 
   placed <- place_dag_labels(
     label_input,
     node_input,
     edge_input,
-    bounds = c(0, 0, panel_width, panel_height),
-    gap = par$gap
+    bounds = bounds,
+    gap = par$gap,
+    reach = label_reach_radii * node_radius,
+    leader = par$min.segment.length
   )
+
+  violated <- label_box_violations(
+    data.frame(
+      xmin = placed$x - widths / 2,
+      ymin = placed$y - heights / 2,
+      xmax = placed$x + widths / 2,
+      ymax = placed$y + heights / 2
+    ),
+    node_input,
+    edge_input,
+    bounds
+  )
+  x$unresolved <- as.character(labels$label[violated])
 
   radius <- nearest_node_radius(label_input$x, label_input$y, node_input)
 
@@ -1218,14 +2076,14 @@ makeContent.dag_labels_auto <- function(x) {
 #' the spec the layer routes it with, because where it goes is decided in
 #' millimetres at draw time. This calls the same pure router the arrows are
 #' drawn with, on the same node discs, panel bounds, cap, and options, and
-#' thins each path to the resolution the other edges are traced at. Edges no
-#' routed layer draws are returned untouched.
+#' keeps each path at the router's own sampling, so a long axis-aligned run
+#' stays an obstacle along its whole length. Edges no routed layer draws are
+#' returned untouched.
 #'
 #' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
 #' @param spec The routing columns of the same rows, as the stat carried them.
 #' @param nodes Node centres in millimetres with their `radius`.
-#' @param par The gTree parameters, carrying `node_size`, `n_edge_points`, and
-#'   `edge_cap`.
+#' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
 #' @return `edges`, with each routed edge's two rows replaced by its path.
 #' @noRd
@@ -1324,7 +2182,6 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   }
 
   radius <- node_radius_mm(par$node_size)
-  n_points <- (par$n_edge_points %||% 20) + 2
 
   paths <- vector("list", nrow(chords))
   groups <- paste(
@@ -1367,22 +2224,15 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     paths[rows] <- routed$paths[seq_along(rows)]
   }
 
-  # The router samples at half a millimetre, so its own vertices carry no
-  # information a thinning would lose: an obstacle every `n_points` along
-  # the path is what every other traced edge contributes.
+  # The router's path is the drawn path, point for point; `label_ink()`
+  # resamples it with every other edge before placement.
   routed_rows <- do.call(
     rbind,
     lapply(seq_len(nrow(chords)), function(i) {
-      sampled <- sample_polyline(
-        paths[[i]]$x,
-        paths[[i]]$y,
-        n_points,
-        keep_vertices = FALSE
-      )
       data.frame(
         edge_id = chords$edge_id[[i]],
-        x = sampled$x,
-        y = sampled$y,
+        x = paths[[i]]$x,
+        y = paths[[i]]$y,
         stringsAsFactors = FALSE
       )
     })
@@ -1449,20 +2299,35 @@ label_leader_grob <- function(
   )
 }
 
-#' Shorten each edge polyline at its arrowhead end
+# The ink model the labels are placed against, in mm. The panel is inset by
+# this many node radii on every side, a label sits within this many radii of
+# its disc whenever it can, and every drawn path is resampled at this spacing
+# once the cap has been cut from both of its ends.
+label_inset_radii <- 0.5
+label_reach_radii <- 1.5
+label_ink_spacing <- 0.5
+
+#' The drawn edges as the ink the reader sees
 #'
-#' Cuts `cut` millimetres off the end of every `edge_id`, where the drawn
-#' edge is resected to make room for the node and its arrowhead, so the final
-#' segment of what remains is the arrowhead actually on the page. An edge
-#' shorter than the cut disappears entirely.
+#' Turns the traced edge polylines into the obstacle points the engine is
+#' scored against. A traced polyline with no bend is collapsed to its chord,
+#' which is the path the straight engine draws; every path is then resampled
+#' every `spacing` mm, segment by segment, and the points within `cap` mm of
+#' either end are dropped, because that is where the arrow layer resects the
+#' path to make room for the node and its arrowhead. What remains is the
+#' part of each edge actually on the page, with its last `label_arrow_zone`
+#' mm carrying the drawn head. An edge shorter than twice the cap disappears
+#' entirely.
 #'
 #' @param edges Data frame with columns `edge_id`, `x`, and `y`, in mm.
-#' @param cut Length to remove in mm.
-#' @return The shortened edges, in the same shape.
+#' @param cap Length in mm cut from each end.
+#' @param spacing Resampling spacing in mm.
+#' @return A data frame with columns `edge_id`, `x`, and `y`.
 #' @noRd
-shorten_edge_tails <- function(edges, cut) {
-  if (nrow(edges) == 0 || cut <= 0) {
-    return(edges)
+label_ink <- function(edges, cap, spacing = label_ink_spacing) {
+  empty <- edges[0, c("edge_id", "x", "y"), drop = FALSE]
+  if (nrow(edges) == 0) {
+    return(empty)
   }
 
   pieces <- lapply(
@@ -1471,54 +2336,74 @@ shorten_edge_tails <- function(edges, cut) {
       factor(edges$edge_id, levels = unique(edges$edge_id))
     ),
     function(rows) {
-      trimmed <- shorten_polyline_tail(edges$x[rows], edges$y[rows], cut)
-      if (is.null(trimmed)) {
+      path <- polyline_chord(edges$x[rows], edges$y[rows])
+      dense <- densify_polyline(path$x, path$y, spacing)
+      n <- length(dense$x)
+      to_ends <- pmin(
+        sqrt((dense$x - dense$x[[1]])^2 + (dense$y - dense$y[[1]])^2),
+        sqrt((dense$x - dense$x[[n]])^2 + (dense$y - dense$y[[n]])^2)
+      )
+      keep <- to_ends > cap
+      if (sum(keep) < 2) {
         return(NULL)
       }
       data.frame(
         edge_id = edges$edge_id[rows[[1]]],
-        x = trimmed$x,
-        y = trimmed$y,
+        x = dense$x[keep],
+        y = dense$y[keep],
         stringsAsFactors = FALSE
       )
     }
   )
   pieces <- pieces[!vapply(pieces, is.null, logical(1))]
   if (length(pieces) == 0) {
-    return(edges[0, , drop = FALSE])
+    return(empty)
   }
 
   do.call(rbind, pieces)
 }
 
-#' Cut a length off the end of one polyline
+#' Collapse a straight polyline to its two endpoints
+#'
+#' A traced straight edge arrives as many points along one line; the drawn
+#' chord is the same line, and resampling the two gives the same points only
+#' when they share their vertices.
 #'
 #' @param px,py Ordered polyline coordinates.
-#' @param cut Length to remove from the end, along the path.
-#' @return A list with the shortened `x` and `y`, ending exactly `cut` from
-#'   the old end, or `NULL` when the whole polyline is shorter than the cut.
+#' @return A list with `x` and `y`: the endpoints when every point lies on
+#'   the chord between them, the polyline itself otherwise.
 #' @noRd
-shorten_polyline_tail <- function(px, py, cut) {
-  segments <- sqrt(diff(px)^2 + diff(py)^2)
-  # Distance from each vertex to the last one, along the path.
-  from_end <- c(rev(cumsum(rev(segments))), 0)
-  if (from_end[[1]] <= cut) {
-    return(NULL)
+polyline_chord <- function(px, py) {
+  n <- length(px)
+  if (n <= 2) {
+    return(list(x = px, y = py))
   }
+  off_chord <- dist_to_edge(px, py, px[[1]], py[[1]], px[[n]], py[[n]])
+  if (max(off_chord) <= 1e-6) {
+    return(list(x = px[c(1L, n)], y = py[c(1L, n)]))
+  }
+  list(x = px, y = py)
+}
 
-  last_kept <- max(which(from_end > cut))
-  t <- (from_end[[last_kept]] - cut) /
-    (from_end[[last_kept]] - from_end[[last_kept + 1]])
-  keep <- seq_len(last_kept)
+#' Resample a polyline every `spacing` along each segment
+#'
+#' Each segment is split into as many equal steps as it takes to keep the
+#' spacing at or below `spacing`, so a path a box sits beside is caught by a
+#' point beside it. The first point and every vertex are kept.
+#'
+#' @param px,py Ordered polyline coordinates.
+#' @param spacing Maximum spacing between consecutive points.
+#' @return A list with the resampled `x` and `y`.
+#' @noRd
+densify_polyline <- function(px, py, spacing) {
+  dx <- diff(px)
+  dy <- diff(py)
+  steps <- pmax(1, ceiling(sqrt(dx^2 + dy^2) / spacing))
+  segment <- rep(seq_along(steps), steps)
+  fraction <- sequence(steps) / steps[segment]
   list(
-    x = c(
-      px[keep],
-      px[[last_kept]] + t * (px[[last_kept + 1]] - px[[last_kept]])
-    ),
-    y = c(
-      py[keep],
-      py[[last_kept]] + t * (py[[last_kept + 1]] - py[[last_kept]])
-    )
+    x = c(px[[1]], px[segment] + fraction * dx[segment]),
+    y = c(py[[1]], py[segment] + fraction * dy[segment])
   )
 }
 
@@ -1540,30 +2425,50 @@ shorten_polyline_tail <- function(px, py, cut) {
 #' added to: the node size comes from the plot's [geom_dag_point()] or
 #' [geom_dag_node()] layer, and edges are traced along the paths the plot's
 #' edge layers draw, including the arc of [geom_dag_edges_arc()] and the
-#' per-edge curvature drawn by the ggarrow engine (see [curve_edge()]). A
-#' label placed further from its node than `min.segment.length` gets a leader
-#' line from the node disc to the label box.
+#' per-edge curvature drawn by the ggarrow engine (see [curve_edge()]).
+#'
+#' @section Placement rules:
+#' The placement works in the millimetres of the device, so the same plot
+#' places its labels the same way at every size that has the same room. A
+#' label box is admissible when it clears every node disc, comes no closer
+#' than 1 mm to a drawn edge and 2 mm to the last 5 mm of one (where the
+#' arrowhead is), overlaps no other label box, and stays inside the panel by
+#' half a node radius, so no box is set down on the panel border. Among
+#' admissible boxes, a label sits within one and a half node radii of its
+#' own disc whenever such a spot exists, preferring the nearer and the
+#' anchor order NE, NW, SE, SW, N, S, E, W, and drifting away from other
+#' nodes' discs. A leader line is a fallback: a label is placed further than
+#' `min.segment.length` from its disc, and drawn with a leader from the disc
+#' to the box, only when no admissible spot within that distance exists, and
+#' a leader that would cross an edge or a disc counts against its spot. When
+#' no admissible box exists at all, the label is drawn at the least-bad
+#' position and its text is recorded in the `unresolved` field of the drawn
+#' `dag_labels_auto` grob tree (`character(0)` when every box is clear), so
+#' a plot too crowded for its labels can be detected after drawing.
 #'
 #' @inheritParams geom_dag_arrow
 #' @param node_size The size of the plot's nodes, as given to
 #'   [geom_dag_point()]. `NULL`, the default, discovers it from the plot.
-#' @param n_edge_points Number of points traced along each drawn edge as
-#'   obstacles. `NULL`, the default, uses 20.
+#' @param n_edge_points Number of points traced along each drawn curved edge
+#'   before the trace is resampled every 0.5 mm at draw time; a
+#'   straight edge is traced as its chord whatever the value. `NULL`, the
+#'   default, uses 20.
 #' @param n_node_points Accepted for compatibility with the repel label
 #'   geoms; the automatic placement describes each node by its drawn disc, so
 #'   this is ignored.
 #' @param edge_cap The distance in millimetres that drawn edges stop short of
-#'   the node, as in [geom_dag()]; the traced edges are shortened by the same
-#'   amount so the arrowhead zone each label avoids ends where the drawn
-#'   arrowhead does. `NULL`, the default, uses the `ggdag.edge_cap` option
-#'   (8 mm).
+#'   the node, as in [geom_dag()]; the traced edges are cut by the same
+#'   amount at both ends so the ink each label avoids is the ink on the page
+#'   and its arrowhead zone ends where the drawn arrowhead does. `NULL`, the
+#'   default, uses the `ggdag.edge_cap` option (8 mm).
 #' @param gap Clearance in millimetres between a node disc and its label box.
 #' @param label.padding Padding around the label text, as a [grid::unit()].
 #' @param label.r Radius of the label box corners, as a [grid::unit()].
 #' @param label.size Width of the label box border in millimetres. The
 #'   default, `NA`, draws no border.
 #' @param min.segment.length Distance in millimetres from the node disc past
-#'   which a label gets a leader line back to its node.
+#'   which a label gets a leader line back to its node. A label is placed
+#'   past it only when no admissible spot within it exists.
 #' @param segment.colour,segment.size Colour and linewidth of the leader
 #'   lines.
 #' @param box.padding,max.overlaps Accepted for compatibility with the repel

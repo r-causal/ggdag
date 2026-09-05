@@ -69,18 +69,20 @@ call to a position adjustment function.}
 \item{node_size}{The size of the plot's nodes, as given to
 \code{\link[=geom_dag_point]{geom_dag_point()}}. \code{NULL}, the default, discovers it from the plot.}
 
-\item{n_edge_points}{Number of points traced along each drawn edge as
-obstacles. \code{NULL}, the default, uses 20.}
+\item{n_edge_points}{Number of points traced along each drawn curved edge
+before the trace is resampled every 0.5 mm at draw time; a
+straight edge is traced as its chord whatever the value. \code{NULL}, the
+default, uses 20.}
 
 \item{n_node_points}{Accepted for compatibility with the repel label
 geoms; the automatic placement describes each node by its drawn disc, so
 this is ignored.}
 
 \item{edge_cap}{The distance in millimetres that drawn edges stop short of
-the node, as in \code{\link[=geom_dag]{geom_dag()}}; the traced edges are shortened by the same
-amount so the arrowhead zone each label avoids ends where the drawn
-arrowhead does. \code{NULL}, the default, uses the \code{ggdag.edge_cap} option
-(8 mm).}
+the node, as in \code{\link[=geom_dag]{geom_dag()}}; the traced edges are cut by the same
+amount at both ends so the ink each label avoids is the ink on the page
+and its arrowhead zone ends where the drawn arrowhead does. \code{NULL}, the
+default, uses the \code{ggdag.edge_cap} option (8 mm).}
 
 \item{gap}{Clearance in millimetres between a node disc and its label box.}
 
@@ -92,7 +94,8 @@ arrowhead does. \code{NULL}, the default, uses the \code{ggdag.edge_cap} option
 default, \code{NA}, draws no border.}
 
 \item{min.segment.length}{Distance in millimetres from the node disc past
-which a label gets a leader line back to its node.}
+which a label gets a leader line back to its node. A label is placed
+past it only when no admissible spot within it exists.}
 
 \item{segment.colour, segment.size}{Colour and linewidth of the leader
 lines.}
@@ -129,10 +132,29 @@ Like the repel geoms, these layers read the rest of the plot they are
 added to: the node size comes from the plot's \code{\link[=geom_dag_point]{geom_dag_point()}} or
 \code{\link[=geom_dag_node]{geom_dag_node()}} layer, and edges are traced along the paths the plot's
 edge layers draw, including the arc of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} and the
-per-edge curvature drawn by the ggarrow engine (see \code{\link[=curve_edge]{curve_edge()}}). A
-label placed further from its node than \code{min.segment.length} gets a leader
-line from the node disc to the label box.
+per-edge curvature drawn by the ggarrow engine (see \code{\link[=curve_edge]{curve_edge()}}).
 }
+\section{Placement rules}{
+
+The placement works in the millimetres of the device, so the same plot
+places its labels the same way at every size that has the same room. A
+label box is admissible when it clears every node disc, comes no closer
+than 1 mm to a drawn edge and 2 mm to the last 5 mm of one (where the
+arrowhead is), overlaps no other label box, and stays inside the panel by
+half a node radius, so no box is set down on the panel border. Among
+admissible boxes, a label sits within one and a half node radii of its
+own disc whenever such a spot exists, preferring the nearer and the
+anchor order NE, NW, SE, SW, N, S, E, W, and drifting away from other
+nodes' discs. A leader line is a fallback: a label is placed further than
+\code{min.segment.length} from its disc, and drawn with a leader from the disc
+to the box, only when no admissible spot within that distance exists, and
+a leader that would cross an edge or a disc counts against its spot. When
+no admissible box exists at all, the label is drawn at the least-bad
+position and its text is recorded in the \code{unresolved} field of the drawn
+\code{dag_labels_auto} grob tree (\code{character(0)} when every box is clear), so
+a plot too crowded for its labels can be detected after drawing.
+}
+
 \examples{
 library(ggplot2)
 
