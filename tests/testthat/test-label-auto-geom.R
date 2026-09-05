@@ -1379,19 +1379,18 @@ test_that("orthogonal channels: the saturated DAG keeps off them where it can", 
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
 
-  # The saturated ten-node DAG draws 41 channels. At 10 x 6 inches there is
-  # room for every box, so no box may sit on a channel and the engine reports
-  # nothing unresolved. At 7 x 5 the Blood pressure and Medication boxes have
-  # no admissible spot: both sit on a channel, and both are named in
-  # `unresolved`, so a box on a channel is always one the engine has
-  # reported. The engine routes the channels itself, with the routed layer's
-  # node names, so what it keeps off is what the reader sees.
+  # The saturated ten-node DAG draws 41 channels. At both 10 x 6 and 7 x 5
+  # inches every box finds an admissible spot, so no box sits on a channel and
+  # the engine reports nothing unresolved at either size. The tighter panel is
+  # the demanding one: the boxes crowd closer together there, and the engine
+  # still keeps all of them clear of the ink. The engine routes the channels
+  # itself, with the routed layer's node names, so what it keeps off is what
+  # the reader sees.
   scene <- orthogonal_scene(orthogonal_saturated_dag(), c(10, 6))
   expect_identical(orthogonal_hit_labels(scene), character(0))
   expect_identical(scene$tree$unresolved, character(0))
 
   scene <- orthogonal_scene(orthogonal_saturated_dag(), c(7, 5))
-  hits <- orthogonal_hit_labels(scene)
-  expect_setequal(hits, c("Blood pressure", "Medication"))
-  expect_setequal(scene$tree$unresolved, hits)
+  expect_identical(orthogonal_hit_labels(scene), character(0))
+  expect_identical(scene$tree$unresolved, character(0))
 })
