@@ -152,6 +152,31 @@ expect_label_free_of_hard_overlaps <- function(result, scene, text) {
 
 no_edges <- data.frame(edge_id = character(), x = numeric(), y = numeric())
 
+# The last segment of every `edge_id`, in order of first appearance: the
+# segment that carries the drawn arrowhead. `(x2, y2)` is the polyline's last
+# point.
+final_edge_segments <- function(edges) {
+  if (nrow(edges) == 0) {
+    return(
+      data.frame(x1 = numeric(), y1 = numeric(), x2 = numeric(), y2 = numeric())
+    )
+  }
+
+  rows <- split(
+    seq_len(nrow(edges)),
+    factor(edges$edge_id, levels = unique(edges$edge_id))
+  )
+  from <- vapply(rows, function(r) r[length(r) - 1L], integer(1))
+  to <- vapply(rows, function(r) r[length(r)], integer(1))
+
+  data.frame(
+    x1 = edges$x[from],
+    y1 = edges$y[from],
+    x2 = edges$x[to],
+    y2 = edges$y[to]
+  )
+}
+
 # Proximity, soft clearance, and slide forces ----------------------------------
 
 test_that("a lone node's label stays near its node", {

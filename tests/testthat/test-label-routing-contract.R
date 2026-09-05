@@ -223,10 +223,14 @@ label_routed_obstacles <- function(tree, scene) {
     y = tree$edges$y * scene$height,
     stringsAsFactors = FALSE
   )
+  # the grob names its nodes by their npc position, as the routed layer does,
+  # before converting them to millimetres
   nodes_mm <- data.frame(
+    name = routed_position_keys(tree$nodes$x, tree$nodes$y),
     x = tree$nodes$x * scene$width,
     y = tree$nodes$y * scene$height,
-    radius = node_radius_mm(tree$nodes$node_size)
+    radius = node_radius_mm(tree$nodes$node_size),
+    stringsAsFactors = FALSE
   )
   routed <- route_label_obstacles(
     edges_mm,
@@ -750,6 +754,79 @@ test_that("the label grob routes the edge the arrow grob drew", {
   # and it is the same detour, to a tenth of the drawn line's width: both
   # grobs called one pure router on one set of inputs
   expect_lt(parity, 0.5)
+})
+
+test_that("the label grob routes every orthogonal channel the arrow grob drew", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # Orthogonal routing assigns slots and channels by sorting, and breaks ties
+  # between equally priced routes by node name. The two grobs therefore have
+  # to name their nodes identically as well as place them identically: the
+  # names are keys of the npc positions, taken before either grob converts
+  # to millimetres. The saturated ten-node DAG at 10 x 6 inches draws 41
+  # channels, enough ties for a naming difference to move a third of them by
+  # several millimetres.
+  dag <- dag_saturate(dagify(
+    b ~ a,
+    c ~ a,
+    d ~ b,
+    e ~ b + c,
+    f ~ c,
+    g ~ d + e,
+    h ~ e + f,
+    x ~ g,
+    y ~ g + h + x,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      a = "Genetics",
+      b = "Diet",
+      c = "Exercise",
+      d = "Weight",
+      e = "Blood pressure",
+      f = "Cholesterol",
+      g = "Medication",
+      h = "Stress",
+      x = "Treatment",
+      y = "Outcome"
+    )
+  ))
+  p <- ggdag(
+    dag,
+    edge_engine = "ggarrow",
+    edge_route = "orthogonal",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  scene <- forced_panel_scene(
+    p,
+    "dag_routed_edges|dag_labels_auto",
+    width = 10,
+    height = 6
+  )
+  routed_tree <- scene_gtree(scene, "dag_routed_edges")
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+  cap <- label_tree$params$edge_cap %||% 8
+
+  obstacles <- label_routed_obstacles(label_tree, scene)
+  expect_length(obstacles, 41)
+
+  # every path the label grob places against is a channel the arrow grob
+  # drew, point for point over the part of it on the page
+  parity <- vapply(
+    obstacles,
+    function(path) {
+      drawn <- drawn_path_for(routed_tree, path)
+      if (is.null(drawn)) {
+        return(Inf)
+      }
+      hausdorff_mm(trim_by_cap(path, cap), trim_by_cap(drawn, cap))
+    },
+    numeric(1)
+  )
+  expect_lt(max(parity), 0.5)
 })
 
 test_that("the label grob carries the routed layer's routing parameters", {

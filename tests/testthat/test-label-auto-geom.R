@@ -1375,30 +1375,23 @@ test_that("orthogonal channels: no box on a channel of the dense DAG", {
   }
 })
 
-test_that("orthogonal channels: the saturated DAG's hits are pinned", {
+test_that("orthogonal channels: the saturated DAG keeps off them where it can", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
 
-  # The saturated ten-node DAG draws 41 channels, and under orthogonal routing
-  # today no box can keep off every one of them at every size, so the hits
-  # are pinned rather than forbidden. At 7 x 5 the Blood pressure and
-  # Medication boxes sit on channels and the engine reports both as
-  # unresolved: no admissible spot exists in its model of the picture. At
-  # 10 x 6 the Medication box sits on a channel the engine's model does not
-  # hold: the paths the label grob routes for this scene differ from the
-  # channels the routed layer draws (19 of the 41 edges by more than 0.5 mm,
-  # up to 16 mm), so the engine finds every box clear. That parity gap is a
-  # defect of the orthogonal router, which is being fixed separately; once
-  # the two routings agree this hit should disappear and this test should be
-  # tightened to forbid it.
-  scene <- orthogonal_scene(orthogonal_saturated_dag(), c(7, 5))
-  expect_setequal(
-    orthogonal_hit_labels(scene),
-    c("Blood pressure", "Medication")
-  )
-  expect_setequal(scene$tree$unresolved, c("Blood pressure", "Medication"))
-
+  # The saturated ten-node DAG draws 41 channels. At 10 x 6 inches there is
+  # room for every box, so no box may sit on a channel and the engine reports
+  # nothing unresolved. At 7 x 5 the Blood pressure and Medication boxes have
+  # no admissible spot: both sit on a channel, and both are named in
+  # `unresolved`, so a box on a channel is always one the engine has
+  # reported. The engine routes the channels itself, with the routed layer's
+  # node names, so what it keeps off is what the reader sees.
   scene <- orthogonal_scene(orthogonal_saturated_dag(), c(10, 6))
-  expect_identical(orthogonal_hit_labels(scene), "Medication")
+  expect_identical(orthogonal_hit_labels(scene), character(0))
   expect_identical(scene$tree$unresolved, character(0))
+
+  scene <- orthogonal_scene(orthogonal_saturated_dag(), c(7, 5))
+  hits <- orthogonal_hit_labels(scene)
+  expect_setequal(hits, c("Blood pressure", "Medication"))
+  expect_setequal(scene$tree$unresolved, hits)
 })

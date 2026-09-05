@@ -44,8 +44,11 @@ label_leader_disc_cost <- 4
 label_leader_box_cost <- 20
 
 # A box slid back inside the panel stops this far, in mm, inside the border
-# rather than exactly on it: invisible on the page, and enough to keep the
-# box inside through floating-point round trips.
+# rather than exactly on it. A slide computes the box limit as
+# xmin + (bound - xmin), which floating-point addition need not return as
+# exactly bound, and the box is later rebuilt from its centre and width, so
+# a box slid exactly to the border can read as a hair outside it. The nudge
+# is invisible on the page and far larger than that rounding.
 label_slide_nudge <- 1e-9
 
 # The local-improvement sweeps stop as soon as one changes nothing; this caps
@@ -130,11 +133,26 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' the extra length its leader is priced at for the ink and discs it
 #' crosses, the total penetration depth in mm into the soft zone extending
 #' `label_soft_margin` beyond every other node's disc (the `soft` term), and
-#' the preference rank as a pure tiebreak. Labels are assigned most
-#' constrained first (fewest violation-free candidates, ties by input order)
-#' with a greedy argmin, then refined by local-improvement sweeps that move
-#' a label only when its score strictly improves, until a sweep moves
-#' nothing.
+#' the preference rank as a pure tiebreak.
+#'
+#' Labels are assigned in order of the lowest band any of their admissible
+#' candidates falls in, so a label that can sit beside its node claims its
+#' spot before a label that has to go far; ties go to the most constrained
+#' label (fewest violation-free candidates), then to input order. Each label
+#' takes its best candidate given the labels placed so far, and
+#' local-improvement sweeps then re-evaluate every label with the others
+#' fixed, moving it only when its score strictly improves, until a sweep
+#' moves nothing (at most `label_max_sweeps`). A repair stage follows for
+#' any label still on a violating candidate, when `reach` is finite: the
+#' label first gains a grid of candidates every `label_grid_spacing` mm over
+#' the whole panel and takes the best admissible one if any exists; failing
+#' that, it tries its statically admissible spots that only one other
+#' label's box blocks, best first and at most `label_max_ejections` of
+#' them, and takes the first one whose blocker can itself move to an
+#' admissible candidate. Each repair round ends with another set of sweeps,
+#' and repair stops after a round that changes nothing or after
+#' `label_max_repairs` rounds. A label no repair can clear keeps its
+#' least-bad candidate.
 #'
 #' @param labels Data frame with columns `id` (unique character), `x`, `y`
 #'   (node centers in mm), and `width`, `height` (label box extent in mm,
@@ -967,8 +985,8 @@ label_candidates <- function(
   }
 
   # A slid box stops a hair inside the border rather than exactly on it, so
-  # that it still reads as inside after its coordinates have been through
-  # the round trip of drawing units and back.
+  # that it still reads as inside once its limits have been rebuilt from its
+  # centre and width in floating point.
   dx <- dx + sign(dx) * label_slide_nudge
   dy <- dy + sign(dy) * label_slide_nudge
 
@@ -1514,37 +1532,6 @@ label_box_violations <- function(boxes, nodes, edges, bounds) {
   hits$edge > 0 | hits$arrow > 0 | node_hit | overlap | outside
 }
 
-#' Final segment of each edge polyline
-#'
-#' Extracts the last segment of every `edge_id`, in order of first
-#' appearance: the segment that carries the drawn arrowhead.
-#'
-#' @param edges Data frame with columns `edge_id`, `x`, and `y`.
-#' @return A data frame with columns `x1`, `y1`, `x2`, `y2`, one row per
-#'   `edge_id`; `(x2, y2)` is the polyline's last point.
-#' @noRd
-final_edge_segments <- function(edges) {
-  if (nrow(edges) == 0) {
-    return(
-      data.frame(x1 = numeric(), y1 = numeric(), x2 = numeric(), y2 = numeric())
-    )
-  }
-
-  rows <- split(
-    seq_len(nrow(edges)),
-    factor(edges$edge_id, levels = unique(edges$edge_id))
-  )
-  from <- vapply(rows, function(r) r[length(r) - 1L], integer(1))
-  to <- vapply(rows, function(r) r[length(r)], integer(1))
-
-  data.frame(
-    x1 = edges$x[from],
-    y1 = edges$y[from],
-    x2 = edges$x[to],
-    y2 = edges$y[to]
-  )
-}
-
 #' Radius of the node disc nearest each label's node center
 #'
 #' @param x,y Numeric vectors of label node centers.
@@ -1955,10 +1942,15 @@ makeContent.dag_labels_auto <- function(x) {
     width = widths,
     height = heights
   )
+  # The router names its nodes by position and breaks ties between equally
+  # priced routes by name, so the names must be the ones the routed layer
+  # used: keys of the npc positions, taken before the millimetre conversion.
   node_input <- data.frame(
+    name = routed_position_keys(x$nodes$x, x$nodes$y),
     x = mm_x(x$nodes$x),
     y = mm_y(x$nodes$y),
-    radius = node_radius_mm(x$nodes$node_size)
+    radius = node_radius_mm(x$nodes$node_size),
+    stringsAsFactors = FALSE
   )
   edges_mm <- data.frame(
     edge_id = x$edges$edge_id,
@@ -2082,7 +2074,11 @@ makeContent.dag_labels_auto <- function(x) {
 #'
 #' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
 #' @param spec The routing columns of the same rows, as the stat carried them.
-#' @param nodes Node centres in millimetres with their `radius`.
+#' @param nodes Node centres in millimetres with their `radius`, and the
+#'   `name` each node is routed under by the routed layer (the position key
+#'   of its npc coordinates); without a `name` column the nodes are named by
+#'   their millimetre position, which routes the same paths except where the
+#'   router breaks a tie by name.
 #' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
 #' @return `edges`, with each routed edge's two rows replaced by its path.
@@ -2124,10 +2120,11 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   chords <- chord_rows(tagged)
   pinned <- chord_rows(fixed)
 
-  # The router names its nodes by position, so an endpoint identifies the
-  # node it belongs to whichever layer measured it.
+  # The router breaks ties between equally priced routes by node name, so
+  # the nodes carry the names the routed layer routed with; an endpoint is
+  # matched to its node by position, whichever layer measured it.
   router_nodes <- data.frame(
-    name = routed_position_keys(nodes$x, nodes$y),
+    name = nodes$name %||% routed_position_keys(nodes$x, nodes$y),
     x = nodes$x,
     y = nodes$y,
     r = nodes$radius,
