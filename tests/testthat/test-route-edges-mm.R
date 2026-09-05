@@ -1432,6 +1432,61 @@ test_that("skip edges of equal chord length route in name order and take opposit
   }
 })
 
+# A short bottom-row chord b -> g at y = 11 blocked by d, whose floor slot
+# ends at d - R = 2, inside the clearance margin m = 3. Above d a stack of
+# four more nodes leaves slivers only until the gap between n2 and n3, at
+# [59, 76], so the other interior slot is 48 mm above the chord and an arch
+# through it crosses the placed chord p -> q at y = 40 twice: cost 8 for the
+# displacement plus 32 for the crossings. The free bow above d sits 9 mm
+# above the chord and crosses nothing, at cost 1.5.
+far_slot_scene <- function() {
+  list(
+    nodes = rbind(
+      mm_nodes(c("b", "g", "p", "q"), c(20, 80, 20, 80), c(11, 11, 40, 40)),
+      mm_nodes(c("d", "n1", "n2", "n3", "n4"), 50, c(11, 31, 50, 85, 104))
+    ),
+    edges = mm_edges(c("b", "p"), c("g", "q")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("a chord whose remaining slot is far away takes the cheaper bow", {
+  scene <- far_slot_scene()
+  res <- route_scene(scene)
+  ends <- edge_endpoints(scene, 1)
+  path <- res$paths[[1]]
+
+  # p -> q clears n1 and n2 by exactly R and stays straight
+  expect_false(res$meta$routed[2])
+  expect_straight_path(res$paths[[2]], node_xy(scene, "p"), node_xy(scene, "q"))
+
+  # the floor slot cannot keep the margin, and the slot at 59 is not taken
+  # by default: the bow above d is cheaper and verifies
+  expect_true(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "bow")
+  expect_equal(res$meta$side[1], 1)
+  expect_true(res$meta$clearance_ok[1])
+  expect_lte(max(abs(chord_offset(path, ends$from, ends$to))), 2 * r_full)
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(path_min_clearance(scene, 1, path), r_full - verify_tol)
+  expect_gte(min(path$y[-c(1, nrow(path))]), 3 - 1e-6)
+  expect_identical(
+    count_path_crossings(path, node_xy(scene, "p"), node_xy(scene, "q")),
+    0L
+  )
+
+  # deterministic and invariant to row order
+  expect_identical(route_scene(scene), res)
+  shuffled <- scene
+  shuffled$nodes <- scene$nodes[rev(seq_len(nrow(scene$nodes))), ]
+  shuffled$edges <- scene$edges[2:1, ]
+  rownames(shuffled$nodes) <- NULL
+  rownames(shuffled$edges) <- NULL
+  res2 <- route_scene(shuffled)
+  expect_identical(res2$paths[[2]], res$paths[[1]])
+  expect_identical(res2$meta$mode[2], "bow")
+})
+
 # Fixture 4: weave -------------------------------------------------------------
 
 test_that("weave: nodes 16 mm off the chord are not obstacles", {
@@ -2082,14 +2137,17 @@ expect_paths_inside <- function(res, bounds, label) {
 # the panel bounds
 m_default <- 3
 
+# the endpoints are node centres, which may sit closer to the bounds than
+# m on a small device, so only the interior samples are held to the margin
 expect_paths_keep_margin <- function(res, bounds, label) {
   for (path in res$paths) {
-    d <- min(
-      path$x - bounds[1],
-      bounds[3] - path$x,
-      path$y - bounds[2],
-      bounds[4] - path$y
-    )
+    n <- nrow(path)
+    if (n <= 2) {
+      next
+    }
+    x <- path$x[-c(1, n)]
+    y <- path$y[-c(1, n)]
+    d <- min(x - bounds[1], bounds[3] - x, y - bounds[2], bounds[4] - y)
     expect_gte(d, m_default - 1e-6, label = label)
   }
 }

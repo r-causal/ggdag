@@ -557,9 +557,11 @@ nearest_free_y <- function(intervals, y, side, outer_only) {
 #'   `NULL`.
 #' @param base The layer's base free intervals, one per row of `wp`, that
 #'   occupancy and reservations are indexed by; `ints` when `NULL`.
-#' @return A list with the updated `wp`, the `slot` index per row,
+#' @return A list with the updated `wp`; `slot`, the index per row of the
+#'   interval in `ints` (the member's own list) each waypoint sits in,
+#'   whereas `occ$slot` and `reserved$slot` index the layer's base list;
 #'   `disordered`, whether any waypoint had to give up the chord order and
-#'   keep its separation only, and `overlap`, whether any waypoint had to
+#'   keep its separation only; and `overlap`, whether any waypoint had to
 #'   stop on an occupant.
 #' @noRd
 spread_in_slot <- function(
@@ -2006,7 +2008,7 @@ route_free_bow <- function(job, placed) {
     placed,
     job$opts
   )
-  route_candidate(
+  res <- route_candidate(
     job,
     fb$wp,
     fb$side,
@@ -2016,6 +2018,8 @@ route_free_bow <- function(job, placed) {
     capped = fb$capped,
     least_bad = fb$least_bad
   )
+  res$cost <- fb$cost
+  res
 }
 
 #' Route one ranked spanning candidate of an edge
@@ -3261,37 +3265,60 @@ route_scene_mm <- function(
           base_intervals[crossed]
         )
         cands <- Filter(function(c) nrow(c$wp) > 0, cands)
-        # candidates are tried best first; one whose curve cannot keep the
-        # margin from the panel bounds gives way to the next, and the best
-        # is kept when none can
-        first <- NULL
-        for (cand in cands) {
-          tried <- route_spanning_candidate(
-            job,
-            cand,
-            eh,
-            crossed,
-            layers,
-            base_intervals[crossed],
-            occ,
-            placed,
-            shift[[e]],
-            opts
-          )
-          if (is.null(first)) {
-            first <- tried
+        bow <- NULL
+        if (length(cands) > 0) {
+          try_cand <- function(cand) {
+            route_spanning_candidate(
+              job,
+              cand,
+              eh,
+              crossed,
+              layers,
+              base_intervals[crossed],
+              occ,
+              placed,
+              shift[[e]],
+              opts
+            )
           }
-          if (tried$inside) {
-            res <- tried
-            break
+          # the best-ranked candidate wins when its curve keeps the margin
+          # from the panel bounds
+          first <- try_cand(cands[[1]])
+          if (first$inside) {
+            res <- first
+          } else {
+            # otherwise the free bow is priced with the remaining candidates
+            # and the cheapest verified one inside the margin wins; a
+            # lower-ranked slot never wins by default
+            bow <- route_free_bow(job, placed)
+            rest <- cands[-1]
+            pool_cost <- c(
+              vapply(rest, function(c) c$cost, numeric(1)),
+              bow$cost
+            )
+            pool_overlap <- c(
+              vapply(rest, function(c) c$overlap, logical(1)),
+              FALSE
+            )
+            fallback <- NULL
+            for (k in order(pool_overlap, pool_cost)) {
+              tried <- if (k > length(rest)) bow else try_cand(rest[[k]])
+              if (tried$inside && tried$clearance_ok) {
+                res <- tried
+                break
+              }
+              # when nothing verifies, the cheapest attempt inside the margin
+              # is kept, and the free bow may still replace it below
+              if (tried$inside && is.null(fallback)) {
+                fallback <- tried
+              }
+            }
+            res <- res %||% fallback %||% first
           }
-        }
-        res <- res %||% first
-        if (!is.null(res)) {
           # a spanning route that cannot be verified inside the panel falls
           # through to the free-bow tier, which is kept when it does better
           if (!res$clearance_ok || !res$inside) {
-            alt <- route_free_bow(job, placed)
+            alt <- bow %||% route_free_bow(job, placed)
             if (
               alt$clearance_ok ||
                 (!res$clearance_ok && alt$depth < res$depth) ||
