@@ -16,15 +16,17 @@
 #   clearance `gap` (2 mm here); a leader is drawn once it exceeds
 #   `min.segment.length` (5 mm).
 # * a hit: drawn ink closer to a box than the engine's own margins, 1 mm for
-#   an edge stroke and 2 mm along the last 5 mm of a path where the arrowhead
-#   is drawn. Ink is the drawn path resected by the edge cap at both ends,
-#   which is the part of it on the page.
+#   an edge stroke and 2 mm over the last 5 mm of a path, the arrowhead zone.
+#   The zone is a millimetre calibration of the margin, not the
+#   `arrow_length` option, which is in points: the drawn head (5 pt, 1.76 mm)
+#   is shorter than the zone by design. Ink is the drawn path resected by the
+#   edge cap at both ends, which is the part of it on the page.
 # * an admissible spot: a box position for one label, the others where the
 #   engine put them, that lies inside the panel by half a node radius, clears
-#   every node disc by the node margin, overlaps no other box, and has no hit.
-#   Spots are searched on 36 rays around the node at eight clearances between
-#   the node margin and the bound under test, anchored both corner-on-ray
-#   and centre-on-ray.
+#   every node disc by the node margin and its own disc by the engine's
+#   `gap`, overlaps no other box, and has no hit. Spots are searched on 36
+#   rays around the node at eight clearances between that floor and the
+#   bound under test, anchored both corner-on-ray and centre-on-ray.
 #
 # Signal pinned for labels the engine cannot place cleanly: after
 # `makeContent()`, the `dag_labels_auto` gTree carries a field `unresolved`,
@@ -206,6 +208,7 @@ quality_scenes <- function(build, size, route = "spline") {
       ),
       drawn = drawn,
       cap = tree$params$edge_cap,
+      gap = tree$params$gap %||% 2,
       width = panel_width,
       height = panel_height
     )
@@ -265,7 +268,8 @@ drawn_paths_mm <- function(grob) {
 }
 
 # One row per label of a forced `dag_labels_auto` gTree: the text, the box in
-# millimetres, and the node centre the label belongs to. Forcing turns each
+# millimetres, the node centre the label belongs to, and the number of
+# leaders drawn in the panel. Forcing turns each
 # box into a polygon whose geometry moves to the viewport
 # `makeContext.roundrect()` attaches, in the absolute millimetres the engine
 # placed it at. Boxes and texts are emitted in label order, so the i-th box
@@ -300,12 +304,15 @@ forced_label_table <- function(tree, panel_width, panel_height) {
   index <- match(out$label, tree$labels$label)
   out$node_x <- tree$labels$x[index] * panel_width
   out$node_y <- tree$labels$y[index] * panel_height
-  out$n_leaders <- sum(grepl("segments", names))
+  # Every child of the tree that is neither a box nor a text is a leader,
+  # whatever grob the engine draws one with.
+  out$n_leaders <- length(children) - length(boxes) - length(texts)
   out
 }
 
 # The polyline resampled every `spacing` millimetres, so that a segment
-# passing a box is caught by a point beside it.
+# passing a box is caught by a point beside it. Copied from
+# test-label-routing-contract.R so this file needs no helper it does not own.
 densify_mm_polyline <- function(path, spacing = 0.5) {
   x <- path$x
   y <- path$y
@@ -334,9 +341,12 @@ trim_by_cap <- function(path, cap) {
 }
 
 # Every drawn path as visible ink: resected by the cap, resampled every half
-# millimetre, with the points under the arrowhead flagged.
+# millimetre, with the points in the arrowhead zone flagged. The zone is a
+# 5 mm calibration of where the wider arrow margin applies, in millimetres
+# like every other quantity here; it is not the `arrow_length` option, which
+# is in points and draws a head shorter than the zone.
 drawn_ink <- function(scene) {
-  head_length <- ggdag_option("arrow_length", 5)
+  head_length <- 5
   lapply(scene$drawn, function(path) {
     dense <- trim_by_cap(densify_mm_polyline(path), scene$cap)
     last <- nrow(dense)
@@ -468,8 +478,11 @@ admissible_within <- function(scene, i, bound) {
   width <- labels$xmax[i] - labels$xmin[i]
   height <- labels$ymax[i] - labels$ymin[i]
 
+  # A spot is no nearer to its own disc than the engine's ring 1 clearance,
+  # so the search asks only for positions the engine itself would offer.
+  floor <- max(scene$gap, label_node_clearance)
   angles <- seq(0, 2 * pi, length.out = 37)[-37]
-  gaps <- seq(label_node_clearance, bound, length.out = 8)
+  gaps <- seq(floor, bound, length.out = 8)
   for (gap in gaps) {
     for (theta in angles) {
       ux <- cos(theta)
@@ -493,7 +506,7 @@ admissible_within <- function(scene, i, bound) {
         ymax <- center[[2]] + height / 2
         clearance <- rect_point_dist(xmin, ymin, xmax, ymax, node_x, node_y) -
           radius
-        if (clearance < label_node_clearance || clearance > bound) {
+        if (clearance < floor || clearance > bound) {
           next
         }
         if (box_admissible(xmin, ymin, xmax, ymax, scene, ink, i, inset)) {
@@ -580,7 +593,7 @@ test_that("no box slides onto the panel border", {
   #
   #   saturated 4x3: Genetics, Exercise, Blood pressure, Cholesterol,
   #     Stress, Treatment, Outcome
-  #   saturated 7x5: Genetics, Weight, Blood pressure, Cholesterol,
+  #   saturated 7x5: Genetics, Diet, Weight, Blood pressure, Cholesterol,
   #     Medication, Outcome
   #   saturated 10x6: Genetics, Weight, Blood pressure, Cholesterol,
   #     Medication, Outcome
@@ -661,7 +674,7 @@ test_that("the paths plot keeps the Outcome box off the shadow edge", {
   # Outcome box is placed above the node at [80.4, 100.3] x [24.1, 29.7] mm,
   # 0.69 mm from the z -> y edge, so the grey shadow arrow reads as running
   # into it in both panels. An admissible spot exists between the two
-  # arrows at the node, at [58.1, 78.0] x [14.4, 20.0] mm.
+  # arrows at the node, at [56.8, 76.7] x [15.1, 20.7] mm.
   scenes <- cached_scenes("paths", c(10, 6))
   expect_length(scenes, 2)
   for (k in seq_along(scenes)) {
@@ -705,9 +718,8 @@ test_that("a box the engine cannot clear is reported as unresolved", {
 
   # The saturated DAG at 4 x 3 inches: 41 edges on a 97.4 x 72.0 mm panel,
   # where several boxes cannot avoid the ink. Before the fix the routed
-  # picture has seven boxes hit (Genetics, Exercise, Blood pressure,
-  # Cholesterol, Medication, Treatment, Outcome), the straight one two
-  # (Cholesterol, Medication), and nothing reports it. Every hit box must be
+  # picture has four boxes hit (Genetics, Cholesterol, Medication, Outcome),
+  # the straight one two (Cholesterol, Medication), and nothing reports it. Every hit box must be
   # named in `unresolved`; a box not named there must be clear.
   for (route in c("spline", "straight")) {
     scene <- cached_scenes("saturated", c(4, 3), route)[[1]]
