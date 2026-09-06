@@ -190,7 +190,11 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #'   placed on when `reach` is finite.
 #' @return A data frame with one row per label in input order and columns
 #'   `id`, `x`, `y` (box centers), `anchor` (a `*` suffix marks a slid
-#'   variant), and `score`.
+#'   variant), and `score`, the total the chosen candidate was chosen by.
+#'   For an admissible candidate past `leader` the band multiplier in that
+#'   total is formed from the candidates whose leaders were priced, which
+#'   orders the label's candidates the same way but is not the multiplier
+#'   pricing every leader would give.
 #' @noRd
 place_dag_labels <- function(
   labels,
@@ -234,19 +238,135 @@ place_dag_labels <- function(
 
   # Per-label candidate state, kept as plain vectors so the assignment loops
   # avoid data frame subsetting: the candidates themselves, their static
-  # scores, and whether each one violates a static hard constraint.
+  # scores, and whether each one violates a static hard constraint. The
+  # proximity pull and the soft penalty are kept apart from `within_static`
+  # so a leader priced later folds into the score with the same arithmetic
+  # as one priced up front.
   candidates <- vector("list", n)
   hard_static <- vector("list", n)
   violating_static <- vector("list", n)
   band_static <- vector("list", n)
   within_static <- vector("list", n)
   leader_static <- vector("list", n)
+  leader_bbox_static <- vector("list", n)
+  center_static <- vector("list", n)
+  soft_static <- vector("list", n)
+  unpriced_static <- vector("list", n)
+  unpriced_counts <- integer(n)
   clean_counts <- integer(n)
   best_bands <- numeric(n)
+
+  # Pricing a leader against the ink is the most expensive score term, and
+  # the price of a candidate that violates a static hard constraint only
+  # ever matters when no admissible candidate is left. Those leaders are
+  # priced on demand, in `ensure_priced()`; `evaluate()` says when the
+  # deferral is safe. It relies on every score term being non-negative, so a
+  # negative weight prices everything up front.
+  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
+  price_lazily <- isTRUE(all(weights >= 0))
+  # No leader can be priced at more than every ink point and every disc, so
+  # this bounds how far full pricing could raise any `within` score.
+  price_bound <- dist_weight *
+    (label_leader_ink_cost *
+      length(ink$x) +
+      label_leader_disc_cost * sum(nodes$radius))
+
+  # The chosen candidate of each label and its box, once placed.
+  chosen <- integer(n)
+  box_xmin <- box_ymin <- box_xmax <- box_ymax <- rep(NA_real_, n)
+
+  # The terms of each label's candidates against the other labels' placed
+  # boxes, kept per placed box so that moving one box replaces one column
+  # rather than rebuilding every pair: `overlap_cols[[i]][[j]]` is the
+  # overlap area of each candidate of label `i` with the box of label `j`,
+  # `crossing_cols[[i]][[j]]` whether each candidate's leader crosses that
+  # box, and `crossing_counts[[i]]` the running total of the latter over the
+  # placed boxes. A column exists only for a placed label, and never for the
+  # label itself. Integer counts are exact under any order of addition, so
+  # the running total equals a fresh count; the overlap areas are summed
+  # afresh from the stored columns whenever they are read, in the same
+  # order a full rebuild would sum them, so that sum is bit-identical too.
+  #
+  # Columns are refreshed when a label is scored, not when a box moves:
+  # every move advances the version of its box, and a column whose version
+  # is behind is recomputed before it is read. A box moved and moved back,
+  # as a failed ejection does, therefore costs nothing for the labels not
+  # scored in between, and a column recomputed for a restored box holds the
+  # values it held before.
+  overlap_cols <- vector("list", n)
+  crossing_cols <- vector("list", n)
+  crossing_counts <- vector("list", n)
+  box_version <- integer(n)
+  col_version <- vector("list", n)
 
   own_node <- function(i) {
     list(x = labels$x[i], y = labels$y[i], radius = radius[i])
   }
+
+  # The bounding box of each leader segment, grown by the edge margin, as
+  # `box_crossings()` tests it: computed once per candidate rather than once
+  # per placed box.
+  leader_bbox <- function(segment) {
+    list(
+      xmin = pmin(segment$x0, segment$x1) - label_edge_clearance,
+      xmax = pmax(segment$x0, segment$x1) + label_edge_clearance,
+      ymin = pmin(segment$y0, segment$y1) - label_edge_clearance,
+      ymax = pmax(segment$y0, segment$y1) + label_edge_clearance
+    )
+  }
+
+  # The overlap area of the candidates in `rows` of label `i` with the placed
+  # box of label `j`, and whether the leader of each of those candidates
+  # crosses that box.
+  box_overlap <- function(i, rows, j) {
+    cand <- candidates[[i]]
+    rect_overlap_area(
+      cand$xmin[rows],
+      cand$ymin[rows],
+      cand$xmax[rows],
+      cand$ymax[rows],
+      box_xmin[j],
+      box_ymin[j],
+      box_xmax[j],
+      box_ymax[j]
+    )
+  }
+  box_crossings <- function(i, rows, j) {
+    segment <- leader_static[[i]]
+    bbox <- leader_bbox_static[[i]]
+    crossed <- integer(length(rows))
+    idx <- which(!is.na(segment$x0[rows]))
+    if (length(idx) == 0) {
+      return(crossed)
+    }
+    ci <- rows[idx]
+    # Only a leader whose bounding box, grown by the margin, reaches the box
+    # can come within the margin of it, so the exact distance is computed
+    # for those leaders alone.
+    near <- bbox$xmin[ci] <= box_xmax[j] &
+      bbox$xmax[ci] >= box_xmin[j] &
+      bbox$ymin[ci] <= box_ymax[j] &
+      bbox$ymax[ci] >= box_ymin[j]
+    ci <- ci[near]
+    idx <- idx[near]
+    if (length(ci) == 0) {
+      return(crossed)
+    }
+    m <- length(ci)
+    dist <- rect_segment_dist(
+      rep(box_xmin[j], m),
+      rep(box_ymin[j], m),
+      rep(box_xmax[j], m),
+      rep(box_ymax[j], m),
+      segment$x0[ci],
+      segment$y0[ci],
+      segment$x1[ci],
+      segment$y1[ci]
+    )
+    crossed[idx[dist < label_edge_clearance]] <- 1L
+    crossed
+  }
+
   add_candidates <- function(i, cand) {
     scored <- score_label_candidates(
       cand,
@@ -256,8 +376,10 @@ place_dag_labels <- function(
       weights,
       own = own_node(i),
       reach = reach,
-      leader = leader
+      leader = leader,
+      price_violating = !price_lazily
     )
+    n_new <- length(cand$x)
     if (is.null(candidates[[i]])) {
       candidates[[i]] <<- cand
       hard_static[[i]] <<- scored$hard
@@ -265,20 +387,92 @@ place_dag_labels <- function(
       band_static[[i]] <<- scored$band
       within_static[[i]] <<- scored$within
       leader_static[[i]] <<- scored$leader
+      leader_bbox_static[[i]] <<- leader_bbox(scored$leader)
+      center_static[[i]] <<- scored$center_dist
+      soft_static[[i]] <<- scored$soft_penalty
+      unpriced_static[[i]] <<- scored$unpriced
+      overlap_cols[[i]] <<- vector("list", n)
+      crossing_cols[[i]] <<- vector("list", n)
+      crossing_counts[[i]] <<- integer(n_new)
+      col_version[[i]] <<- integer(n)
+      new_rows <- seq_len(n_new)
     } else {
+      new_rows <- length(candidates[[i]]$x) + seq_len(n_new)
       candidates[[i]] <<- Map(c, candidates[[i]], cand)
       hard_static[[i]] <<- c(hard_static[[i]], scored$hard)
       violating_static[[i]] <<- c(violating_static[[i]], scored$violating)
       band_static[[i]] <<- c(band_static[[i]], scored$band)
       within_static[[i]] <<- c(within_static[[i]], scored$within)
       leader_static[[i]] <<- Map(c, leader_static[[i]], scored$leader)
+      leader_bbox_static[[i]] <<- Map(
+        c,
+        leader_bbox_static[[i]],
+        leader_bbox(scored$leader)
+      )
+      center_static[[i]] <<- c(center_static[[i]], scored$center_dist)
+      soft_static[[i]] <<- c(soft_static[[i]], scored$soft_penalty)
+      unpriced_static[[i]] <<- c(unpriced_static[[i]], scored$unpriced)
+      crossing_counts[[i]] <<- c(crossing_counts[[i]], integer(n_new))
     }
+    unpriced_counts[i] <<- sum(unpriced_static[[i]])
     clean_counts[i] <<- sum(!violating_static[[i]])
     best_bands[i] <<- if (clean_counts[i] > 0) {
       min(band_static[[i]][!violating_static[[i]]])
     } else {
       Inf
     }
+    # The new candidates are appended to every column that is up to date;
+    # a column behind its box is dropped, to be recomputed in full when the
+    # label is next scored.
+    for (j in which(col_version[[i]] > 0L)) {
+      if (col_version[[i]][j] == box_version[j]) {
+        overlap_cols[[i]][[j]] <<- c(
+          overlap_cols[[i]][[j]],
+          box_overlap(i, new_rows, j)
+        )
+        crossed <- box_crossings(i, new_rows, j)
+        crossing_cols[[i]][[j]] <<- c(crossing_cols[[i]][[j]], crossed)
+        crossing_counts[[i]][new_rows] <<- crossing_counts[[i]][new_rows] +
+          crossed
+      } else {
+        crossing_counts[[i]] <<- crossing_counts[[i]] -
+          c(crossing_cols[[i]][[j]], integer(n_new))
+        overlap_cols[[i]][j] <<- list(NULL)
+        crossing_cols[[i]][j] <<- list(NULL)
+        col_version[[i]][j] <<- 0L
+      }
+    }
+  }
+
+  # Price the leaders of label `i` that were deferred, with exactly the
+  # arithmetic up-front pricing uses: the extra length is computed per
+  # candidate, and `within_score()` combines it per candidate, so the
+  # result does not depend on which other candidates were priced alongside.
+  # Any cached evaluation of the label is stale afterwards.
+  ensure_priced <- function(i) {
+    if (unpriced_counts[i] == 0L) {
+      return(invisible())
+    }
+    cand <- candidates[[i]]
+    idx <- which(unpriced_static[[i]])
+    extra <- leader_crossing_length(
+      cand,
+      unpriced_static[[i]],
+      own_node(i),
+      nodes,
+      ink
+    )$extra
+    within_static[[i]][idx] <<- within_score(
+      center_static[[i]][idx],
+      extra[idx],
+      soft_static[[i]][idx],
+      cand$rank[idx],
+      weights
+    )
+    unpriced_static[[i]][idx] <<- FALSE
+    unpriced_counts[i] <<- 0L
+    evaluate_cache[[i]] <<- new.env(parent = emptyenv())
+    invisible()
   }
 
   for (i in seq_len(n)) {
@@ -306,119 +500,159 @@ place_dag_labels <- function(
   # label's node; within a band the most constrained labels go first, and
   # ties fall back to input order, keeping the order deterministic.
   placement_order <- order(best_bands, clean_counts, seq_len(n))
-  chosen <- integer(n)
-  box_xmin <- box_ymin <- box_xmax <- box_ymax <- rep(NA_real_, n)
-  record_box <- function(i) {
-    cand <- candidates[[i]]
-    box_xmin[i] <<- cand$xmin[chosen[i]]
-    box_ymin[i] <<- cand$ymin[chosen[i]]
-    box_xmax[i] <<- cand$xmax[chosen[i]]
-    box_ymax[i] <<- cand$ymax[chosen[i]]
+
+  # Record the box label `j` now sits on.
+  record_box <- function(j) {
+    cand <- candidates[[j]]
+    box_xmin[j] <<- cand$xmin[chosen[j]]
+    box_ymin[j] <<- cand$ymin[chosen[j]]
+    box_xmax[j] <<- cand$xmax[chosen[j]]
+    box_ymax[j] <<- cand$ymax[chosen[j]]
+    box_version[j] <<- box_version[j] + 1L
+  }
+
+  # Recompute the column of label `j`'s box in label `i`'s placed-box terms.
+  set_column <- function(i, j) {
+    rows <- seq_along(candidates[[i]]$x)
+    overlap_cols[[i]][[j]] <<- box_overlap(i, rows, j)
+    crossed <- box_crossings(i, rows, j)
+    previous <- crossing_cols[[i]][[j]]
+    if (!is.null(previous)) {
+      crossing_counts[[i]] <<- crossing_counts[[i]] - previous
+    }
+    crossing_counts[[i]] <<- crossing_counts[[i]] + crossed
+    crossing_cols[[i]][[j]] <<- crossed
+    col_version[[i]][j] <<- box_version[j]
+  }
+  # Bring every column of label `i` up to date with the placed boxes.
+  refresh_columns <- function(i) {
+    for (j in which(chosen > 0L)) {
+      if (j != i && col_version[[i]][j] != box_version[j]) {
+        set_column(i, j)
+      }
+    }
   }
 
   # The overlap area of each candidate of label `i` with the placed boxes of
-  # the other labels.
+  # the other labels. The stored columns are in label order, so this sums
+  # them in the order a full rebuild would.
   placed_overlap <- function(i) {
-    cand <- candidates[[i]]
-    n_cand <- length(cand$x)
-    placed <- which(chosen > 0L)
-    placed <- placed[placed != i]
-    if (length(placed) == 0) {
+    n_cand <- length(candidates[[i]]$x)
+    cols <- overlap_cols[[i]]
+    cols <- cols[lengths(cols) > 0]
+    if (length(cols) == 0) {
       return(numeric(n_cand))
     }
-    ci <- rep(seq_len(n_cand), times = length(placed))
-    pj <- rep(placed, each = n_cand)
-    pair_overlap <- rect_overlap_area(
-      cand$xmin[ci],
-      cand$ymin[ci],
-      cand$xmax[ci],
-      cand$ymax[ci],
-      box_xmin[pj],
-      box_ymin[pj],
-      box_xmax[pj],
-      box_ymax[pj]
-    )
-    rowSums(matrix(pair_overlap, nrow = n_cand))
+    rowSums(matrix(unlist(cols, use.names = FALSE), nrow = n_cand))
   }
 
   # The number of other labels' placed boxes the leader of each candidate of
   # label `i` would cross, priced like the ink and discs it crosses.
   leader_box_crossings <- function(i) {
-    segment <- leader_static[[i]]
-    n_cand <- length(candidates[[i]]$x)
-    crossings <- numeric(n_cand)
-    idx <- which(!is.na(segment$x0))
-    placed <- which(chosen > 0L)
-    placed <- placed[placed != i]
-    if (length(idx) == 0 || length(placed) == 0) {
-      return(crossings)
-    }
-    ci <- rep(idx, times = length(placed))
-    pj <- rep(placed, each = length(idx))
-    # Only a leader whose bounding box, grown by the margin, reaches a box
-    # can come within the margin of it, so the exact distance is computed
-    # for those pairs alone.
-    near <- pmin(segment$x0[ci], segment$x1[ci]) - label_edge_clearance <=
-      box_xmax[pj] &
-      pmax(segment$x0[ci], segment$x1[ci]) + label_edge_clearance >=
-        box_xmin[pj] &
-      pmin(segment$y0[ci], segment$y1[ci]) - label_edge_clearance <=
-        box_ymax[pj] &
-      pmax(segment$y0[ci], segment$y1[ci]) + label_edge_clearance >=
-        box_ymin[pj]
-    ci <- ci[near]
-    pj <- pj[near]
-    if (length(ci) == 0) {
-      return(crossings)
-    }
-    dist <- rect_segment_dist(
-      box_xmin[pj],
-      box_ymin[pj],
-      box_xmax[pj],
-      box_ymax[pj],
-      segment$x0[ci],
-      segment$y0[ci],
-      segment$x1[ci],
-      segment$y1[ci]
-    )
-    tabulate(ci[dist < label_edge_clearance], nbins = n_cand)
+    crossing_counts[[i]]
   }
 
   # Every candidate of label `i` scored against the current placement of the
   # others: the total, and whether it violates a hard constraint.
-  #
-  # The refinement asks for the same label in the same surroundings again and
-  # again: a sweep pass that moves nothing repeats the pass before it, the
-  # stuck check follows such a pass, and the final score repeats the last
-  # evaluation. The result depends on the label, on its own candidate set,
-  # and on where every other label currently sits, and on nothing else: the
-  # static tables are indexed by label and candidate, and candidate sets only
-  # ever grow by appending, so their length identifies them. Caching on that
-  # triple therefore returns exactly what a recomputation would. `chosen`
-  # also carries the ejection state, so backtracking an ejection restores the
-  # key along with the placement it names.
-  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
-  evaluate_cache <- new.env(parent = emptyenv())
-  evaluate <- function(i) {
-    key <- paste0(
-      c(i, length(candidates[[i]]$x), chosen[-i]),
-      collapse = ","
-    )
-    cached <- evaluate_cache[[key]]
-    if (!is.null(cached)) {
-      return(cached)
-    }
+  score_against_placed <- function(i) {
+    refresh_columns(i)
     overlap <- placed_overlap(i)
     within <- within_static[[i]] +
       dist_weight * label_leader_box_cost * leader_box_crossings(i)
     soft <- band_static[[i]] * (max(within) + 1) + within
     violating <- violating_static[[i]] | overlap > 0
     hard <- hard_static[[i]] + weights[["label"]] * overlap
-    scored <- list(
+    list(
       total = tiered_score(soft, hard, violating),
-      violating = violating
+      violating = violating,
+      within = within
     )
-    evaluate_cache[[key]] <- scored
+  }
+
+  # Whether deferred pricing could change which candidate of label `i` wins
+  # when `best`, an admissible candidate, has the least total under it.
+  #
+  # Admissible candidates are fully priced, so their `within` scores are the
+  # ones full pricing gives; only the band multiplier `M = max(within) + 1`
+  # differs, and it is at most `price_bound` larger under full pricing. A
+  # candidate of a higher band than `best` adds at least one more `M` to a
+  # non-negative `within`, and `M` exceeds every `within` by at least 1, so
+  # it stays behind `best` under either multiplier, exactly and after
+  # rounding. A candidate of the same band differs from `best` only in
+  # `within`, and rounding `band * M + within` can only reorder two such
+  # candidates, or tie them, when their `within` scores differ by less than
+  # the rounding at that magnitude. Under any multiplier the totals are
+  # below `3 * m_upper`, so a difference of more than a few units in the
+  # last place at that magnitude survives rounding under both.
+  deferred_pricing_unsafe <- function(i, best, scored) {
+    band <- band_static[[i]]
+    if (band[best] == 0) {
+      return(FALSE)
+    }
+    within <- scored$within
+    m_upper <- max(within) + price_bound + 1
+    tolerance <- 4 * .Machine$double.eps * 3 * m_upper
+    same_band <- !scored$violating & band == band[best]
+    delta <- abs(within[same_band] - within[best])
+    any(delta > 0 & delta <= tolerance)
+  }
+
+  # `score_against_placed()` with two economies that return exactly what it
+  # would.
+  #
+  # The first is deferred pricing. While some leaders of label `i` are not
+  # priced, its `within` scores are too low on those candidates, and every
+  # one of them violates a static constraint. The band multiplier
+  # `max(within) + 1` and the lift `max(soft) + 1` are then not the ones
+  # full pricing would give, so the totals are trusted only when the winner
+  # is admissible, where the identity of the winner does not depend on
+  # either. Every score term is non-negative (this is what `price_lazily`
+  # checks), so a violating candidate, which adds the lift, exceeding every
+  # `soft` by at least 1, plus a non-negative `hard`, scores above every
+  # admissible candidate under any lift formed this way, in exact arithmetic
+  # and after rounding (the rounding of a sum of non-negative terms never
+  # falls below either term, and a 1 is far beyond the rounding of any
+  # score). Among the admissible candidates, all fully priced, the winner is
+  # decided by band and then by `within`, and `deferred_pricing_unsafe()`
+  # rules out the one way the multiplier could still matter. So `which.min`
+  # (and the strict comparison in `sweep()`) picks the same candidate full
+  # pricing would. When the winner is violating, when the multiplier could
+  # matter, or when the totals of the violating candidates are read (in
+  # `eject()` and for the returned score of a violating label), the label
+  # is priced in full first and scored again.
+  #
+  # The second is caching. The refinement asks for the same label in the
+  # same surroundings again and again: a sweep pass that moves nothing
+  # repeats the pass before it, the stuck check follows such a pass, and
+  # the final score repeats the last evaluation. The result depends on the
+  # label, on its own candidate set, and on where every other label
+  # currently sits, and on nothing else: the static tables are indexed by
+  # label and candidate, and candidate sets only ever grow by appending, so
+  # their length identifies them. Caching per label on that pair therefore
+  # returns exactly what a recomputation would, and pricing a label in full
+  # discards its cache. `chosen` also carries the ejection state, so
+  # backtracking an ejection restores the key along with the placement it
+  # names.
+  evaluate_cache <- lapply(seq_len(n), function(i) {
+    new.env(parent = emptyenv())
+  })
+  evaluate <- function(i) {
+    key <- paste0(c(length(candidates[[i]]$x), chosen[-i]), collapse = ",")
+    cache <- evaluate_cache[[i]]
+    cached <- cache[[key]]
+    if (!is.null(cached)) {
+      return(cached)
+    }
+    scored <- score_against_placed(i)
+    if (unpriced_counts[i] > 0L) {
+      best <- which.min(scored$total)
+      if (scored$violating[best] || deferred_pricing_unsafe(i, best, scored)) {
+        ensure_priced(i)
+        cache <- evaluate_cache[[i]]
+        scored <- score_against_placed(i)
+      }
+    }
+    cache[[key]] <- scored
     scored
   }
 
@@ -517,6 +751,9 @@ place_dag_labels <- function(
   }
   eject <- function(i) {
     cand <- candidates[[i]]
+    # The blocked spots are ordered by their totals, which are exact only
+    # under full pricing.
+    ensure_priced(i)
     scored <- evaluate(i)
     # the admissible spots of `i` that only other boxes block, best first
     blocked <- which(!violating_static[[i]] & scored$violating)
@@ -586,9 +823,17 @@ place_dag_labels <- function(
       numeric(1)
     )
   }
+  # The returned score of a violating label is its total under full pricing,
+  # which the deferred totals do not give (see `evaluate()`). An admissible
+  # label keeps the total it was chosen by.
   score <- vapply(
     seq_len(n),
-    function(i) evaluate(i)$total[chosen[i]],
+    function(i) {
+      if (unpriced_counts[i] > 0L && chosen_violates(i)) {
+        ensure_priced(i)
+      }
+      evaluate(i)$total[chosen[i]]
+    },
     numeric(1)
   )
 
@@ -1316,13 +1561,19 @@ ink_box_hits <- function(xmin, ymin, xmax, ymax, ink) {
 #'   `radius`; the nearest disc to it is exempt from the soft term, the
 #'   proximity pull measures from it, and clearance is measured from its
 #'   disc. `NULL` disables the proximity terms.
+#' @param price_violating Whether to price the leaders of candidates that
+#'   violate a hard constraint. When `FALSE`, those candidates' `within`
+#'   omits the leader term and `unpriced` marks them, so the caller can
+#'   price them later with `leader_crossing_length()` and `within_score()`.
 #' @return A list with `hard` (weighted violations per candidate),
 #'   `violating` (whether each candidate violates a hard constraint), `band`
 #'   (the proximity band of each candidate: 0 within `leader`, 1 within
 #'   `reach`, 2 beyond), `within` (the score that orders admissible
-#'   candidates of one band), and `leader` (the leader segment of each
+#'   candidates of one band), `leader` (the leader segment of each
 #'   candidate as `x0`, `y0`, `x1`, `y1`, `NA` where none is drawn; `NULL`
-#'   without `own`).
+#'   without `own`), the `center_dist` and `soft_penalty` terms of
+#'   `within`, and `unpriced` (whether each candidate's leader is still to
+#'   be priced).
 #' @noRd
 score_label_candidates <- function(
   cand,
@@ -1332,9 +1583,11 @@ score_label_candidates <- function(
   weights,
   own = NULL,
   reach = Inf,
-  leader = Inf
+  leader = Inf,
+  price_violating = TRUE
 ) {
   n_cand <- length(cand$x)
+  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
 
   # Node discs: total penetration depth past each disc's required clearance,
   # plus the depth into the soft zone beyond every disc except the label's
@@ -1403,6 +1656,7 @@ score_label_candidates <- function(
   band <- numeric(n_cand)
   leader_extra <- numeric(n_cand)
   leaders <- NULL
+  unpriced <- logical(n_cand)
   if (!is.null(own)) {
     center_dist <- sqrt((cand$x - own$x)^2 + (cand$y - own$y)^2)
     clearance <- rect_point_dist(
@@ -1415,30 +1669,71 @@ score_label_candidates <- function(
     ) -
       own$radius
     band <- (clearance > leader) + (clearance > reach)
+    with_leader <- clearance > leader
+    # The price of a leader reaches the score only through the `dist`
+    # weight, so under a zero weight no leader needs pricing, then or later.
+    price <- with_leader & dist_weight != 0 & (price_violating | !violating)
+    unpriced <- with_leader & dist_weight != 0 & !price
     leaders <- leader_crossing_length(
       cand,
-      clearance > leader,
+      with_leader,
       own,
       nodes,
-      ink
+      ink,
+      price = price
     )
     leader_extra <- leaders$extra
   }
-  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
-  soft_weight <- if ("soft" %in% names(weights)) weights[["soft"]] else 0
 
-  within <- dist_weight *
-    (center_dist + leader_extra) +
-    soft_weight * soft_penalty +
-    weights[["prefer"]] * cand$rank
+  within <- within_score(
+    center_dist,
+    leader_extra,
+    soft_penalty,
+    cand$rank,
+    weights
+  )
 
   list(
     hard = hard,
     violating = violating,
     band = band,
     within = within,
-    leader = leaders[c("x0", "y0", "x1", "y1")]
+    leader = leaders[c("x0", "y0", "x1", "y1")],
+    center_dist = center_dist,
+    soft_penalty = soft_penalty,
+    unpriced = unpriced
   )
+}
+
+#' The score that orders admissible candidates of one band
+#'
+#' The proximity pull toward the label's own node, extended by the priced
+#' leader, plus the soft-zone penalty and the preference-rank tiebreak.
+#' Every operation is elementwise, so the score of a candidate is the same
+#' whether it is computed alongside the label's other candidates or on its
+#' own. `dist` and `soft` default to 0 when absent so weights vectors from
+#' before those terms existed keep working.
+#'
+#' @param center_dist Distance from each box center to the node center.
+#' @param leader_extra Extra length each leader is priced at.
+#' @param soft_penalty Penetration depth into the soft zones.
+#' @param rank Preference rank of each candidate.
+#' @param weights As in `place_dag_labels()`.
+#' @return Numeric, one score per candidate.
+#' @noRd
+within_score <- function(
+  center_dist,
+  leader_extra,
+  soft_penalty,
+  rank,
+  weights
+) {
+  dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
+  soft_weight <- if ("soft" %in% names(weights)) weights[["soft"]] else 0
+  dist_weight *
+    (center_dist + leader_extra) +
+    soft_weight * soft_penalty +
+    weights[["prefer"]] * rank
 }
 
 #' Extra length a leader is priced at for what it crosses
@@ -1455,11 +1750,22 @@ score_label_candidates <- function(
 #' @param own The label's own node, as in `score_label_candidates()`.
 #' @param nodes Node discs.
 #' @param ink Prepared points from `label_ink_points()`.
+#' @param price Logical per candidate, which of the leaders to price; the
+#'   others get a segment but an `extra` of 0. Every leader by default.
+#'   The price of a leader is computed per candidate, so pricing a subset
+#'   gives each of its candidates the value pricing every leader would.
 #' @return A list with `extra`, the priced extra length per candidate (0 for
 #'   candidates without a leader), and the leader segments `x0`, `y0`, `x1`,
 #'   `y1` (`NA` for candidates without one).
 #' @noRd
-leader_crossing_length <- function(cand, with_leader, own, nodes, ink) {
+leader_crossing_length <- function(
+  cand,
+  with_leader,
+  own,
+  nodes,
+  ink,
+  price = with_leader
+) {
   n_cand <- length(cand$x)
   extra <- numeric(n_cand)
   segment <- list(
@@ -1485,6 +1791,17 @@ leader_crossing_length <- function(cand, with_leader, own, nodes, ink) {
   segment$y0[idx] <- start_y
   segment$x1[idx] <- near_x
   segment$y1[idx] <- near_y
+
+  # From here on only the leaders to be priced take part.
+  priced <- which(price[idx])
+  if (length(priced) == 0) {
+    return(c(list(extra = extra), segment))
+  }
+  idx <- idx[priced]
+  near_x <- near_x[priced]
+  near_y <- near_y[priced]
+  start_x <- start_x[priced]
+  start_y <- start_y[priced]
 
   if (length(ink$x) > 0) {
     pairs <- ink_cell_pairs(
