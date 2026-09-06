@@ -65,7 +65,11 @@ label_grid_spacing <- 2
 
 # Side in mm of the square cells the sampled edge points are bucketed into,
 # so a candidate box is compared only with the points in the cells around it.
-label_ink_cell <- 10
+# The cell size only sets how large that superset of points is, never which
+# of them pass the distance tests, so it is free to tune: 5 mm measured best
+# on small scenes, where cells smaller than that cost more bookkeeping over
+# the cell rectangle than they save in distances.
+label_ink_cell <- 5
 
 # Anchors in preference order, with the sign of the offset each one takes
 # along x and y.
@@ -382,15 +386,69 @@ place_dag_labels <- function(
 
   # Every candidate of label `i` scored against the current placement of the
   # others: the total, and whether it violates a hard constraint.
+  #
+  # The refinement asks for the same label in the same surroundings again and
+  # again: a sweep pass that moves nothing repeats the pass before it, the
+  # stuck check follows such a pass, and the final score repeats the last
+  # evaluation. The result depends on the label, on its own candidate set,
+  # and on where every other label currently sits, and on nothing else: the
+  # static tables are indexed by label and candidate, and candidate sets only
+  # ever grow by appending, so their length identifies them. Caching on that
+  # triple therefore returns exactly what a recomputation would. `chosen`
+  # also carries the ejection state, so backtracking an ejection restores the
+  # key along with the placement it names.
   dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
+  evaluate_cache <- new.env(parent = emptyenv())
   evaluate <- function(i) {
+    key <- paste0(
+      c(i, length(candidates[[i]]$x), chosen[-i]),
+      collapse = ","
+    )
+    cached <- evaluate_cache[[key]]
+    if (!is.null(cached)) {
+      return(cached)
+    }
     overlap <- placed_overlap(i)
     within <- within_static[[i]] +
       dist_weight * label_leader_box_cost * leader_box_crossings(i)
     soft <- band_static[[i]] * (max(within) + 1) + within
     violating <- violating_static[[i]] | overlap > 0
     hard <- hard_static[[i]] + weights[["label"]] * overlap
-    list(total = tiered_score(soft, hard, violating), violating = violating)
+    scored <- list(
+      total = tiered_score(soft, hard, violating),
+      violating = violating
+    )
+    evaluate_cache[[key]] <- scored
+    scored
+  }
+
+  # Whether the candidate label `i` currently sits on violates a hard
+  # constraint. This is `evaluate(i)$violating[chosen[i]]` for that one
+  # candidate: its static violations, or any overlap with a placed box. The
+  # overlap areas are never negative, so their sum is positive exactly when
+  # one of them is.
+  chosen_violates <- function(i) {
+    if (violating_static[[i]][chosen[i]]) {
+      return(TRUE)
+    }
+    placed <- which(chosen > 0L)
+    placed <- placed[placed != i]
+    if (length(placed) == 0) {
+      return(FALSE)
+    }
+    any(
+      rect_overlap_area(
+        box_xmin[i],
+        box_ymin[i],
+        box_xmax[i],
+        box_ymax[i],
+        box_xmin[placed],
+        box_ymin[placed],
+        box_xmax[placed],
+        box_ymax[placed]
+      ) >
+        0
+    )
   }
 
   for (i in placement_order) {
@@ -499,7 +557,7 @@ place_dag_labels <- function(
   for (round in seq_len(label_max_repairs)) {
     stuck <- placement_order[vapply(
       placement_order,
-      function(i) evaluate(i)$violating[chosen[i]],
+      chosen_violates,
       logical(1)
     )]
     if (length(stuck) == 0) {
@@ -957,8 +1015,19 @@ label_candidates <- function(
   }
 
   # A box reached by two constructions is one candidate, kept at its first
-  # (most preferred) rank.
-  keep <- !duplicated(paste(round(cand$x, 6), round(cand$y, 6)))
+  # (most preferred) rank. Matching each rounded coordinate against itself
+  # replaces it with the index of the first candidate holding that value, so
+  # two candidates share a rounded position exactly when they share both
+  # indices; those indices are in `1:n_cand`, so combining them base `n_cand`
+  # gives a whole number below `n_cand^2` that is exact in double precision
+  # for any candidate set this engine builds, and one number per candidate
+  # identifies the position with no strings to allocate.
+  round_x <- round(cand$x, 6)
+  round_y <- round(cand$y, 6)
+  n_cand <- length(round_x)
+  keep <- !duplicated(
+    (match(round_x, round_x) - 1) * n_cand + match(round_y, round_y)
+  )
   cand <- lapply(cand, `[`, keep)
 
   cand$xmin <- cand$x - width / 2
