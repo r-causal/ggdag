@@ -141,9 +141,10 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' A label none of whose admissible candidates lies within `reach` (or that
 #' has none at all) gains, before any label is assigned, a grid of
 #' candidates every `label_local_grid_spacing` mm around its own node,
-#' phased about the node center and kept where the box clears the disc by at
-#' least `gap` and by at most `label_local_reach` times `reach`, so it can
-#' settle in a pocket the sparse levels beyond the reach step over. Grid
+#' phased from the near edge of the square search extent the grid covers
+#' rather than from the node center, and kept where the box clears the disc
+#' by at least `gap` and by at most `label_local_reach` times `reach`, so it
+#' can settle in a pocket the sparse levels beyond the reach step over. Grid
 #' candidates are named after the sector their center lies in and share the
 #' rank range just past the last anchor. Like the off-grid candidates, this
 #' grid is built only when `reach` is finite.
