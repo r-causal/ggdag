@@ -556,6 +556,97 @@ test_that("the routed layer draws one arrow path grob in millimetres", {
   )
 })
 
+# A collinear chain of five nodes with two skip edges. a->c and c->e each
+# span a node, so both take S/N channels and meet at c's N side, where the
+# arrival and the departure take ports sep_e / 2 either side of the centre
+# line. The offset is what an offset port costs the arrowhead.
+chain_skip_dag <- function() {
+  dagify(
+    b ~ a,
+    c ~ b + a,
+    d ~ c,
+    e ~ d + c,
+    coords = list(
+      x = c(a = 0, b = 1, c = 2, d = 3, e = 4),
+      y = c(a = 0, b = 0, c = 0, d = 0, e = 0)
+    )
+  )
+}
+
+# The point at arc length `s` from the end of a drawn path, where the
+# arrowhead's tip lands once the layer resects `s` from that end.
+path_arc_point <- function(path, s) {
+  keep <- c(TRUE, abs(diff(path$x)) >= 1e-9 | abs(diff(path$y)) >= 1e-9)
+  path <- path[keep, , drop = FALSE]
+  path <- path[rev(seq_len(nrow(path))), , drop = FALSE]
+  d <- c(0, cumsum(sqrt(diff(path$x)^2 + diff(path$y)^2)))
+  k <- max(which(d <= s + 1e-12))
+  f <- (s - d[[k]]) / (d[[k + 1L]] - d[[k]])
+  c(
+    path$x[[k]] + f * (path$x[[k + 1L]] - path$x[[k]]),
+    path$y[[k]] + f * (path$y[[k + 1L]] - path$y[[k]])
+  )
+}
+
+test_that("the routed layer resects each edge by the router's own arc length", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  p <- ggplot(tidy_dagitty(chain_skip_dag()), aes_dag()) +
+    geom_dag_routed_arrows(route = "orthogonal") +
+    geom_dag_point()
+
+  gtree <- routed_gtree(p)
+  arrows <- find_grob_class(gtree, "arrow_path")
+  expect_length(arrows, 1)
+  paths <- arrow_grob_paths(arrows[[1]])
+  keys <- path_grid_keys(paths)
+
+  # the resection reaches ggarrow per edge, in the millimetres the router
+  # measured it in
+  head <- arrows[[1]]$resect$head
+  fins <- arrows[[1]]$resect$fins
+  expect_true(all(grid::unitType(head) == "mm"))
+  expect_true(all(grid::unitType(fins) == "mm"))
+  expect_length(as.numeric(head), length(paths))
+  expect_length(as.numeric(fins), length(paths))
+
+  # a->c arrives at c's N port 1.8 mm off the centre line and c->e leaves
+  # the other side of it; the hidden connector and its corner cost each of
+  # them 1.46 mm of arc, which the resect gives back
+  skip_edge <- which(keys == "c1r1->c3r1")
+  back_edge <- which(keys == "c3r1->c5r1")
+  expect_length(skip_edge, 1)
+  expect_length(back_edge, 1)
+  expect_equal(as.numeric(head)[[skip_edge]], 9.46, tolerance = 1e-3)
+  expect_equal(as.numeric(fins)[[back_edge]], 9.46, tolerance = 1e-3)
+  expect_equal(
+    as.numeric(head)[-skip_edge],
+    rep(node_size_to_cap(16), length(paths) - 1),
+    tolerance = 1e-3
+  )
+  expect_equal(
+    as.numeric(fins)[-back_edge],
+    rep(node_size_to_cap(16), length(paths) - 1),
+    tolerance = 1e-3
+  )
+
+  # so the tip of the arrowhead sits the cap from c's centre on the port's
+  # own axis, whatever the offset
+  skip_path <- paths[[skip_edge]]
+  centre <- c(
+    skip_path$x[[nrow(skip_path)]],
+    skip_path$y[[nrow(skip_path)]]
+  )
+  tip <- path_arc_point(skip_path, as.numeric(head)[[skip_edge]])
+  expect_equal(tip[[1]], centre[[1]] - 1.8, tolerance = 1e-3)
+  expect_equal(
+    abs(tip[[2]] - centre[[2]]),
+    node_size_to_cap(16),
+    tolerance = 1e-3
+  )
+})
+
 test_that("curvature the user set is drawn as an arrow curve and never rerouted", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")

@@ -22,13 +22,21 @@ r_soft <- 7.2
 verify_tol <- 0.1
 
 # Orthogonal constants at r = 6: the corner radius rc = clamp(0.35 r, 0.8,
-# 2.5) = 2.1, the default edge cap of 8 mm, the stub r + cap + rc = 16.1 that
-# keeps the resected arrowhead on a straight run, and the slot separation
-# sep_e = max(0.6 r, 1.5) = 3.6.
+# 2.5) = 2.1, the default edge cap of 8 mm, the nominal stub r + cap + rc =
+# 16.1, and the slot separation sep_e = max(0.6 r, 1.5) = 3.6. The arrowhead
+# is a literal 2 mm, the same length the label engine reserves for it, and
+# the true floor a bend vertex needs past a node centre is
+# cap + max(head, rc) + rc = 12.2, since the resect is measured from the
+# centre. The ladder tightens the spacing no further than
+# sep_min = max(0.25 r, 1.5) = 1.5 and the corner radius no further than 0.8.
 cap_default <- 8
 rc_default <- 2.1
 stub_default <- r_default + cap_default + rc_default
 sep_e_default <- 3.6
+head_default <- 2
+sep_min_default <- 1.5
+rc_min_default <- 0.8
+stub_min_default <- cap_default + max(head_default, rc_default) + rc_default
 
 # Scene construction ------------------------------------------------------------
 
@@ -579,6 +587,9 @@ expect_orthogonal_scene <- function(
   }
   labels <- edge_labels(scene$edges)
   slots <- list()
+  # the scene draws every corner at the smallest radius any of its gaps
+  # needed, and the terminal stub follows the same radius
+  rc_used <- res$ortho$rc %||% rc_default
 
   for (i in seq_len(nrow(scene$edges))) {
     label <- paste0(prefix, labels[i])
@@ -589,10 +600,10 @@ expect_orthogonal_scene <- function(
     if (res$meta$mode[i] == "straight") {
       expect_false(res$meta$routed[i], label = label)
       expect_identical(nrow(path), 2L, label = label)
-      # only a horizontal chord or a vertical chord within one layer stays
-      # straight
+      # only a level chord, one whose endpoints differ in y by at most the
+      # corner radius, or a vertical chord within one layer stays straight
       expect_true(
-        abs(ends$from[2] - ends$to[2]) < 1e-3 ||
+        abs(ends$from[2] - ends$to[2]) <= rc_used + 1e-9 ||
           abs(ends$from[1] - ends$to[1]) < 1e-3,
         label = label
       )
@@ -608,7 +619,7 @@ expect_orthogonal_scene <- function(
     expect_orthogonal_outside_corners(
       path,
       bends,
-      rc_default,
+      rc_used,
       label = label,
       ends = ends
     )
@@ -616,7 +627,7 @@ expect_orthogonal_scene <- function(
     runs <- straight_runs(path)
     expect_gte(nrow(runs), 2L, label = label)
     if (stub_always || res$meta$clearance_ok[i]) {
-      floor <- cap_default + rc_default - 1e-9
+      floor <- cap_default + max(head_default, rc_used) - 1e-9
       expect_gte(
         end_stub_length(rev_path(path), ends$from),
         floor,
@@ -670,11 +681,12 @@ expect_orthogonal_scene <- function(
     n <- nrow(s)
     for (a in seq_len(n - 1)) {
       for (b in (a + 1):n) {
-        # runs from different sources that overlap or meet in y never
-        # share an x; two rounded runs that met before rounding are 2 rc
-        # apart
+        # runs from different sources that overlap or come within sep_e
+        # in y never share an x; two rounded runs that met before rounding
+        # are 2 rc apart, and stacked ports part two runs that used to meet
+        # by as much as a port stack is tall
         overlap <- min(s$hi[a], s$hi[b]) - max(s$lo[a], s$lo[b])
-        touching <- overlap >= -2 * rc_default - 1e-6
+        touching <- overlap >= -sep_e_default - 2 * rc_used - 1e-6
         if (s$left[a] != s$left[b] && touching) {
           expect_gte(
             abs(s$x[a] - s$x[b]),
@@ -2645,7 +2657,8 @@ expect_orthogonal_scene_without <- function(scene, res, drop) {
   res_sub <- list(
     paths = res$paths[keep],
     meta = res$meta[keep, , drop = FALSE],
-    waypoints = res$waypoints[keep]
+    waypoints = res$waypoints[keep],
+    ortho = res$ortho
   )
   expect_orthogonal_scene(sub, res_sub, stub_always = TRUE)
 }
@@ -2710,37 +2723,45 @@ test_that("orthogonal: a same-layer chord in the last layer stays straight like 
   expect_orthogonal_scene_without(scene, res, i)
 })
 
-test_that("orthogonal fan: edges entering the same port share their last run", {
+test_that("orthogonal fan: edges entering the same port take their own rows", {
   scene <- fan_scene()
   res <- ortho(scene)
   be <- res$paths[[edge_index(scene, "b->e")]]
   ce <- res$paths[[edge_index(scene, "c->e")]]
 
-  # b->e turns down at x = 110 onto y = 55 and runs into e's W port along
-  # the chord of c->e, so one arrowhead is visible
-  tail <- be[be$x > 110 + rc_default + 1e-6, , drop = FALSE]
+  # b->e turns down at x = 110 onto the port row sep_e above e's centre
+  # rather than onto the chord of the level c->e, so both arrowheads show.
+  # The run ends at the foot on e's disc, 4.8 mm short of the centre, and
+  # the connector from the foot is hidden inside the node.
+  foot <- 140 - sqrt(r_default^2 - sep_e_default^2)
+  tail <- be[
+    be$x > 110 + rc_default + 1e-6 & be$x < foot - 1e-6,
+    ,
+    drop = FALSE
+  ]
   expect_gt(nrow(tail), 0)
-  expect_true(all(abs(tail$y - 55) < 1e-6))
-  expect_lt(max(point_polyline_dist(tail, ce)), 1e-6)
+  expect_true(all(abs(tail$y - 58.6) < 1e-6))
+  expect_gte(min(point_polyline_dist(tail, ce)), sep_e_default - 1e-6)
   runs <- straight_runs(be)
   last <- runs[nrow(runs), ]
   expect_equal(last$axis, "h")
-  expect_equal(last$coord, 55, tolerance = 1e-6)
-  # from the tangent point at 110 + 2.1 to the centre of e at 140
-  expect_gte(last$length, 30 - rc_default - 1e-6)
+  expect_equal(last$coord, 58.6, tolerance = 1e-6)
+  # from the tangent point at 110 + 2.1 to the foot on e's disc at 135.2
+  expect_gte(last$length, 25.2 - rc_default - 1e-6)
 })
 
-# Two layers 40 mm apart leave a band [20 + 16.1, 60 - 16.1] = [36.1, 43.9]
-# of 7.8 mm. Each adjacent pair of the four staircase edges overlaps in y
-# (a1/a3 and a2/a4 only touch, a1/a4 are disjoint), which forces the chain
-# a4 -> a3 -> a2 -> a1 and four slots: an even spread would put them
-# 7.8 / 5 = 1.56 mm apart, closer than sep_e, so the slots fall back to the
-# gap midpoint 40 spaced by 3.6.
-narrow_band_scene <- function() {
+# Two layers `gap` apart, centred on x = 40, with four staircase edges
+# between them. Each adjacent pair overlaps in y (a1/a3 and a2/a4 only
+# touch, a1/a4 are disjoint), which forces the chain a4 -> a3 -> a2 -> a1
+# and four slots. At the default 40 mm the nominal band [36.1, 43.9] is
+# 7.8 mm wide, too narrow for four slots at sep_e, and the gap climbs the
+# ladder from there; the narrower gaps drive it rung by rung.
+narrow_band_scene <- function(gap = 40) {
+  half <- gap / 2
   list(
     nodes = mm_nodes(
       c("a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"),
-      c(20, 20, 20, 20, 60, 60, 60, 60),
+      c(rep(40 - half, 4), rep(40 + half, 4)),
       c(20, 35, 50, 65, 50, 65, 80, 95)
     ),
     edges = mm_edges(c("a1", "a2", "a3", "a4"), c("b1", "b2", "b3", "b4")),
@@ -2755,7 +2776,9 @@ test_that("orthogonal: a band too narrow for its slots centres them on the gap m
 
   expect_true(all(res$meta$routed))
   expect_true(all(res$meta$mode == "orthogonal"))
-  expect_false(any(res$meta$clearance_ok))
+  # the first rung of the ladder buys the band by shortening the stub to
+  # (40 - 3 * 3.6) / 2 = 14.6, so these slots keep their clearance
+  expect_true(all(res$meta$clearance_ok))
   for (i in seq_len(nrow(scene$edges))) {
     ends <- edge_endpoints(scene, i)
     expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
@@ -2763,6 +2786,14 @@ test_that("orthogonal: a band too narrow for its slots centres them on the gap m
       res$paths[[i]],
       res$waypoints[[i]],
       rc_default
+    )
+    expect_gte(
+      end_stub_length(res$paths[[i]], ends$to),
+      14.6 - rc_default - 1e-6
+    )
+    expect_gte(
+      end_stub_length(rev_path(res$paths[[i]]), ends$from),
+      14.6 - rc_default - 1e-6
     )
   }
 
@@ -2961,8 +2992,9 @@ test_that("canonical DAGs: orthogonal mode is axis-aligned with exact endpoints 
       for (i in seq_len(nrow(scene$edges))) {
         ends <- edge_endpoints(scene, i)
         label <- paste0(prefix, edge_labels(scene$edges)[i])
-        # every chord that is neither horizontal nor vertical is orthogonal
-        oblique <- abs(ends$from[2] - ends$to[2]) >= 1e-3 &&
+        # every chord that is neither level nor vertical is orthogonal; a
+        # chord within the corner radius of level may stay straight
+        oblique <- abs(ends$from[2] - ends$to[2]) > rc_default &&
           abs(ends$from[1] - ends$to[1]) >= 1e-3
         if (oblique) {
           expect_equal(res$meta$mode[i], "orthogonal", label = label)
@@ -3209,6 +3241,13 @@ test_that("orthogonal ports: an arrival and a departure on one side of a node us
     min(point_polyline_dist(head, visible_ce)),
     sep_e_default - 1e-6
   )
+
+  # the offset costs the head 1.46 mm of arc, which the per-edge resect
+  # gives back so that both tips sit 8 mm from c's centre
+  expect_equal(res$meta$resect_head[[ac]], 9.46, tolerance = 1e-3)
+  expect_equal(res$meta$resect_fins[[ce]], 9.46, tolerance = 1e-3)
+  expect_equal(res$meta$resect_fins[[ac]], cap_default, tolerance = 1e-6)
+  expect_equal(res$meta$resect_head[[ce]], cap_default, tolerance = 1e-6)
 })
 
 test_that("orthogonal slots: touching segments from different sources never share an x", {
@@ -3414,9 +3453,10 @@ test_that("orthogonal runs: no segment carries two edges unless they share a por
     )
   }
 
-  # the fan's trunk and merge, as a check on the measure itself: a->b and
-  # a->d share a's port and the 30 mm from a to the slot at 50; b->e and
-  # c->e share e's port and the 30 mm from the slot at 110 to e
+  # the fan's trunk, as a check on the measure itself: a->b and a->d share
+  # a's port and the 30 mm from a to the slot at 50. b->e and c->e enter
+  # e's W side on rows of their own, so they share nothing: a shared suffix
+  # belongs to a merged side, not to every pair at one port.
   scene <- fan_scene()
   res <- ortho(scene, corners = "sharp")
   ab <- res$paths[[edge_index(scene, "a->b")]]
@@ -3425,8 +3465,8 @@ test_that("orthogonal runs: no segment carries two edges unless they share a por
   ce <- res$paths[[edge_index(scene, "c->e")]]
   expect_equal(shared_run_length(ab, ad), 30, tolerance = 1e-6)
   expect_equal(common_prefix_length(ab, ad), 30, tolerance = 1e-6)
-  expect_equal(shared_run_length(be, ce), 30, tolerance = 1e-6)
-  expect_equal(common_suffix_length(be, ce), 30, tolerance = 1e-6)
+  expect_equal(shared_run_length(be, ce), 0)
+  expect_equal(common_suffix_length(be, ce), 0)
 })
 
 # The collinear mediator with two more nodes in m's layer at the panel's
@@ -3673,6 +3713,654 @@ test_that("orthogonal pricing: the fan's a->e keeps the channel below at 16", {
   wp <- res$waypoints[[i]]
   expect_equal(wp$x, c(20, 140), tolerance = 1e-6)
   expect_equal(wp$y, c(16, 16), tolerance = 1e-6)
+})
+
+
+# Level tolerance, the ladder, stacked ports, and per-edge resects ---------------
+
+# The point at arc length `s` from the end of a sampled path, the geometry
+# the router's per-edge resect names: the arrowhead is drawn from the end of
+# the path inward, so a resect of `s` puts the head's tip here.
+arc_from_end <- function(path, s) {
+  if (length(s) != 1 || !is.finite(s)) {
+    return(c(NA_real_, NA_real_))
+  }
+  path <- dedupe_path(rev_path(path))
+  d <- c(0, cumsum(sqrt(diff(path$x)^2 + diff(path$y)^2)))
+  k <- max(which(d <= s + 1e-12))
+  if (k == nrow(path)) {
+    return(c(path$x[[k]], path$y[[k]]))
+  }
+  f <- (s - d[[k]]) / (d[[k + 1L]] - d[[k]])
+  c(
+    path$x[[k]] + f * (path$x[[k + 1L]] - path$x[[k]]),
+    path$y[[k]] + f * (path$y[[k + 1L]] - path$y[[k]])
+  )
+}
+
+# The last axis-aligned run of a path, the run an arrival is drawn along.
+last_run <- function(path) {
+  runs <- straight_runs(path)
+  runs[nrow(runs), ]
+}
+
+# The constant coordinate of the last run of edge `label`: the row an
+# arrival enters its target on.
+arrival_row <- function(scene, res, label) {
+  last_run(res$paths[[edge_index(scene, label)]])$coord
+}
+
+# Two arrivals at b, one of them level. a sits 1.5 mm below b, inside the
+# 2.1 mm corner radius, so a->b is level and stays a straight chord; c
+# arrives from below and takes the port row sep_e beneath b's centre. The
+# variant tilts b to 2.7 mm above a, past the corner radius, so a->b bends.
+near_level_scene <- function(by = 56.5) {
+  list(
+    nodes = mm_nodes(c("a", "b", "c"), c(20, 80, 20), c(55, by, 20)),
+    edges = mm_edges(c("a", "c"), c("b", "b")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal: a chord within the corner radius of level stays straight", {
+  scene <- near_level_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  ab <- edge_index(scene, "a->b")
+  cb <- edge_index(scene, "c->b")
+  ends <- edge_endpoints(scene, ab)
+  # a jog of 1.5 mm cannot show two corners of radius 2.1, so the chord is
+  # drawn as it is
+  expect_equal(res$meta$mode[ab], "straight")
+  expect_false(res$meta$routed[ab])
+  expect_equal(res$meta$n_waypoints[ab], 0)
+  expect_identical(nrow(res$paths[[ab]]), 2L)
+  expect_straight_path(res$paths[[ab]], ends$from, ends$to)
+
+  # the level chord owns b's centre row, so c->b takes the port sep_e below
+  # it and the two runs are drawn apart
+  expect_equal(res$meta$mode[cb], "orthogonal")
+  expect_equal(arrival_row(scene, res, "c->b"), 52.9, tolerance = 1e-6)
+  expect_equal(shared_run_length(res$paths[[ab]], res$paths[[cb]]), 0)
+
+  # the arrowhead zone of c->b, the 8 mm of path after its resected cap,
+  # keeps half a separation from the chord it used to be drawn under
+  head <- arc_window(
+    res$paths[[cb]],
+    cap_default,
+    cap_default + 8,
+    from_end = TRUE
+  )
+  expect_gt(nrow(head), 0)
+  expect_gte(
+    min(point_polyline_dist(head, res$paths[[ab]])),
+    sep_e_default / 2 - 1e-6
+  )
+})
+
+test_that("orthogonal: a chord tilted past the corner radius bends at one slot", {
+  scene <- near_level_scene(by = 57.7)
+  res <- ortho(scene, corners = "sharp")
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  ab <- edge_index(scene, "a->b")
+  expect_equal(res$meta$mode[ab], "orthogonal")
+  expect_true(res$meta$routed[ab])
+  wp <- res$waypoints[[ab]]
+  expect_identical(nrow(wp), 2L)
+  expect_equal(wp$x[[1]], wp$x[[2]], tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 57.7), tolerance = 1e-6)
+
+  # the 2.7 mm vertical is drawn, and the two arrivals keep distinct slots
+  runs <- straight_runs(res$paths[[ab]])
+  vertical <- runs[runs$axis == "v", , drop = FALSE]
+  expect_identical(nrow(vertical), 1L)
+  expect_equal(vertical$length, 2.7, tolerance = 1e-6)
+  x_ab <- slot_xs(res$paths[[ab]], c(20, 80))
+  x_cb <- slot_xs(res$paths[[edge_index(scene, "c->b")]], c(20, 80))
+  expect_length(x_ab, 1)
+  expect_length(x_cb, 1)
+  expect_gte(abs(x_ab - x_cb), sep_e_default - 1e-9)
+
+  # neither arrival is level now, so the group from below takes two rows:
+  # its first member keeps b's centre and the second sits sep_e beneath it
+  rows <- vapply(
+    edge_labels(scene$edges),
+    function(lab) arrival_row(scene, res, lab),
+    numeric(1)
+  )
+  expect_equal(sort(unname(rows)), c(54.1, 57.7), tolerance = 1e-6)
+})
+
+test_that("canonical multi_mediator: the near-level x->y is a straight chord", {
+  # at the large panel x and y differ by 1.89 mm, inside the corner radius,
+  # and the chord clears every crossed disc by 26 mm
+  scene <- canonical_scene("multi_mediator", c(249.78, 148.18))
+  i <- edge_index(scene, "x->y")
+  ends <- edge_endpoints(scene, i)
+  expect_lte(abs(ends$from[2] - ends$to[2]), rc_default)
+  expect_gt(chord_min_clearance(scene, i), r_full)
+
+  res <- ortho(scene)
+  expect_equal(res$meta$mode[i], "straight")
+  expect_false(res$meta$routed[i])
+  expect_identical(nrow(res$paths[[i]]), 2L)
+})
+
+# x spans the layer of a and b to reach m, whose own y clears both discs by
+# more than R: the two-bend run at m's y displaces as little as the run at
+# x's own y and half as much as the channel above the stack.
+staircase_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("x", "a", "b", "m"),
+      c(20, 60, 60, 100),
+      c(55, 12, 98, 75)
+    ),
+    edges = mm_edges(c("x", "x", "x", "a", "b"), c("a", "b", "m", "m", "m")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal: a spanning chord takes the two-bend run at its target's y", {
+  scene <- staircase_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  i <- edge_index(scene, "x->m")
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_true(res$meta$clearance_ok[i])
+  # the runs at m's y (75) and at x's own y (55) displace 10 mm each and
+  # cost the same; the tie goes above
+  expect_equal(res$meta$side[i], 1)
+  expect_equal(res$meta$n_waypoints[i], 2)
+  wp <- res$waypoints[[i]]
+  expect_equal(wp$x, c(40, 40), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 75), tolerance = 1e-6)
+
+  # the path stays between the two endpoint rows and leaves x's E port
+  # along its own row
+  path <- res$paths[[i]]
+  expect_true(all(path$y >= 55 - 1e-6 & path$y <= 75 + 1e-6))
+  runs <- straight_runs(path)
+  expect_equal(runs$axis[[1]], "h")
+  expect_equal(runs$coord[[1]], 55, tolerance = 1e-6)
+})
+
+test_that("orthogonal: the four-layer sweep keeps its channel at the large panel", {
+  # the endpoint runs of p->t are blocked by s2 in the crossed layer, so its
+  # candidate table is unchanged and the periphery sweep still wins
+  scene <- four_layer_scene(panel = c(249.78, 148.18))
+  res <- ortho(scene)
+  i <- edge_index(scene, "p->t")
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_equal(res$meta$side[i], 1)
+  expect_equal(res$meta$n_waypoints[i], 2)
+  wp <- res$waypoints[[i]]
+  expect_equal(wp$y, c(130.24, 130.24), tolerance = 1e-4)
+})
+
+# The ladder ---------------------------------------------------------------------
+
+test_that("route_opts() derives the minimum slot separation and takes an override", {
+  # sep_min = max(0.25 r, 1.5), the floor the ladder tightens the slot
+  # spacing to, never wider than the nominal separation
+  expect_equal(route_opts(6)$sep_min, sep_min_default)
+  expect_equal(route_opts(2)$sep_min, 1.5)
+  expect_equal(route_opts(10)$sep_min, 2.5)
+  # the user option fixes the spacing at the separation
+  expect_equal(route_opts(6, sep_min = 3.6)$sep_min, 3.6)
+  expect_lte(route_opts(6)$sep_min, route_opts(6)$sep_e)
+})
+
+# The slot x of each edge of the narrow band, in edge order.
+narrow_band_slots <- function(scene, res) {
+  layers <- infer_layers(scene$nodes, r_default)
+  vapply(
+    res$paths,
+    function(path) {
+      x <- slot_xs(path, layers$x)
+      expect_length(x, 1)
+      x
+    },
+    numeric(1)
+  )
+}
+
+test_that("orthogonal ladder: a 40 mm gap takes the stub slack and keeps its slots", {
+  # rung 1: 4 slots at sep_e need 24.4 + 10.8 = 35.2 mm of gap, so the stub
+  # gives up 1.5 mm at each end, 16.1 down to (40 - 10.8) / 2 = 14.6, and
+  # the slots are the same four x values the centred fallback drew, now
+  # with the clearance the fallback could not claim
+  scene <- narrow_band_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  expect_true(all(res$meta$clearance_ok))
+  expect_equal(
+    narrow_band_slots(scene, res),
+    c(45.4, 41.8, 38.2, 34.6),
+    tolerance = 1e-6
+  )
+
+  expect_type(res$ortho, "list")
+  expect_equal(res$ortho$rc, rc_default)
+  gaps <- res$ortho$gaps
+  expect_true(is.data.frame(gaps))
+  expect_named(
+    gaps,
+    c("gap", "width", "ranks", "rung", "stub", "spacing")
+  )
+  expect_identical(nrow(gaps), 1L)
+  expect_equal(gaps$gap, 1)
+  expect_equal(gaps$width, 40)
+  expect_equal(gaps$ranks, 4)
+  expect_equal(gaps$rung, 1)
+  expect_equal(gaps$stub, 14.6)
+  expect_equal(gaps$spacing, sep_e_default)
+})
+
+test_that("orthogonal ladder: a 30 mm gap tightens the spacing", {
+  # rung 2: the stub is at its floor of 12.2 and the four slots share the
+  # remaining 5.6 mm at (30 - 24.4) / 3 = 1.867, still above sep_min
+  scene <- narrow_band_scene(gap = 30)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  expect_true(all(res$meta$clearance_ok))
+  expect_equal(
+    sort(narrow_band_slots(scene, res)),
+    c(37.2, 39.0667, 40.9333, 42.8),
+    tolerance = 1e-4
+  )
+
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 2)
+  expect_equal(gaps$width, 30)
+  expect_equal(gaps$stub, stub_min_default)
+  expect_equal(gaps$spacing, (30 - 2 * stub_min_default) / 3, tolerance = 1e-6)
+  expect_equal(res$ortho$rc, rc_default)
+  expect_gte(gaps$spacing, sep_min_default)
+})
+
+test_that("orthogonal ladder: a 27 mm gap tightens the corner radius", {
+  # rung 3: at sep_min spacing the four slots need 4.5 mm, leaving 11.25 mm
+  # of stub at each end, so rc drops to 11.25 - cap - head = 1.25 and every
+  # corner of the scene is drawn at that radius
+  scene <- narrow_band_scene(gap = 27)
+  res <- ortho(scene)
+  expect_true(all(res$meta$clearance_ok))
+  expect_equal(res$ortho$rc, 1.25, tolerance = 1e-6)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 3)
+  expect_equal(gaps$width, 27)
+  expect_equal(gaps$stub, 11.25, tolerance = 1e-6)
+  expect_equal(gaps$spacing, sep_min_default)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  slots <- sort(narrow_band_slots(scene, res))
+  expect_equal(diff(slots), rep(sep_min_default, 3), tolerance = 1e-6)
+  expect_gte(min(slots), 26.5 + 11.25 - 1e-6)
+  expect_lte(max(slots), 53.5 - 11.25 + 1e-6)
+})
+
+test_that("orthogonal ladder: a 20 mm gap spreads the slots between the discs", {
+  # rung 4: no stub fits, so the slots are spread over the band that keeps
+  # r + m_min from either layer and the gap's edges lose their clearance
+  scene <- narrow_band_scene(gap = 20)
+  res <- ortho(scene)
+  expect_true(all(res$meta$routed))
+  expect_false(any(res$meta$clearance_ok))
+  expect_equal(res$ortho$rc, rc_min_default)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 4)
+  expect_equal(gaps$width, 20)
+
+  slots <- sort(narrow_band_slots(scene, res))
+  expect_length(unique(round(slots, 9)), 4)
+  expect_gte(min(slots), 30 + r_default + 1.2 - 1e-6)
+  expect_lte(max(slots), 50 - r_default - 1.2 + 1e-6)
+})
+
+test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", {
+  # edge_sep_min = edge_sep makes rung 2 a no-op and rung 3 unreachable, so
+  # a 30 mm gap drops to rung 4 with the slots the fallback drew: sep_e
+  # apart about the gap midpoint, without clearance
+  scene <- narrow_band_scene(gap = 30)
+  res <- route_scene(
+    scene,
+    mode = "orthogonal",
+    opts = route_opts(r_default, sep_min = sep_e_default)
+  )
+  expect_true(all(res$meta$routed))
+  expect_false(any(res$meta$clearance_ok))
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(res$ortho$gaps$spacing, sep_e_default)
+  expect_equal(
+    sort(narrow_band_slots(scene, res)),
+    c(34.6, 38.2, 41.8, 45.4),
+    tolerance = 1e-6
+  )
+})
+
+# Nine sources into one target across one gap, the saturated scene's worst
+# gap in miniature. Every interval contains the target's y, so the nine
+# segments overlap pairwise and take nine ranks.
+nine_arrival_scene <- function(gap) {
+  ys <- c(15, 25, 35, 45, 65, 75, 85, 95, 105)
+  names <- paste0("s", seq_along(ys))
+  list(
+    nodes = mm_nodes(
+      c(names, "t"),
+      c(rep(20, length(ys)), 20 + gap),
+      c(ys, 60)
+    ),
+    edges = mm_edges(names, rep("t", length(ys))),
+    bounds = c(0, 0, 40 + gap, 120)
+  )
+}
+
+# The x of every vertical run of a routed scene that lies strictly inside
+# the single gap.
+gap_slots <- function(scene, res) {
+  layers <- infer_layers(scene$nodes, r_default)
+  sort(unlist(lapply(res$paths, function(path) slot_xs(path, layers$x))))
+}
+
+test_that("orthogonal ladder: nine arrivals in a 41.63 mm gap reach the second rung", {
+  # rung 1 would need 24.4 + 3.6 * 8 = 53.2 mm; rung 2 keeps the 12.2 mm
+  # stub at both ends and shares the remaining 17.23 mm at 2.154
+  scene <- nine_arrival_scene(41.63)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  expect_true(all(res$meta$clearance_ok))
+
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 2)
+  expect_equal(gaps$ranks, 9)
+  expect_equal(gaps$width, 41.63)
+  expect_equal(gaps$stub, stub_min_default)
+  expect_equal(gaps$spacing, (41.63 - 24.4) / 8, tolerance = 1e-6)
+
+  slots <- gap_slots(scene, res)
+  expect_length(slots, 9)
+  expect_equal(diff(slots), rep((41.63 - 24.4) / 8, 8), tolerance = 1e-6)
+  # every join sits at or beyond the rung's stub from the target, so no
+  # vertical enters the disc the arrowhead is drawn in
+  expect_lte(max(slots), 61.63 - stub_min_default + 1e-6)
+  expect_gte(min(slots), 20 + stub_min_default - 1e-6)
+  expect_gte(61.63 - max(slots), r_full)
+})
+
+test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap stay clear of both layers", {
+  # 24.4 + 1.5 * 8 = 36.4 and 21.6 + 1.5 * 8 = 33.6 both exceed the gap, so
+  # it falls to rung 4: the slots keep r + m_min from either layer and the
+  # gap's edges report no clearance
+  scene <- nine_arrival_scene(28.93)
+  res <- ortho(scene)
+  expect_true(all(res$meta$routed))
+  expect_false(any(res$meta$clearance_ok))
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(res$ortho$rc, rc_min_default)
+
+  slots <- gap_slots(scene, res)
+  expect_length(unique(round(slots, 9)), 9)
+  expect_gte(min(slots), 20 + r_default + 1.2 - 1e-6)
+  expect_lte(max(slots), 48.93 - r_default - 1.2 + 1e-6)
+})
+
+test_that("orthogonal channels: an S/N channel retries at the shorter stub", {
+  # a 72 mm panel leaves 69 mm of room, so the channel above the mediator
+  # at 55 + 16.1 = 71.1 does not fit; at the 12.2 mm floor it sits at 67.2
+  # and displaces 12.2 against the 16.1 of the channel below
+  scene <- list(
+    nodes = mm_nodes(c("x", "m", "y"), c(7.3, 80, 152.7), rep(55, 3)),
+    edges = mm_edges(c("x", "m", "x"), c("m", "y", "y")),
+    bounds = c(0, 0, 160, 72)
+  )
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  i <- edge_index(scene, "x->y")
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_equal(res$meta$side[i], 1)
+  expect_true(res$meta$clearance_ok[i])
+  wp <- res$waypoints[[i]]
+  expect_equal(wp$y, c(67.2, 67.2), tolerance = 1e-6)
+  expect_gte(
+    end_stub_length(res$paths[[i]], node_xy(scene, "y")),
+    cap_default + max(head_default, rc_default) - 1e-9
+  )
+})
+
+# Stacked ports ------------------------------------------------------------------
+
+# One target with a level source and `n_above` sources above it, all in one
+# layer 80 mm away: the gap is wide enough for rung 0, so the ladder leaves
+# the joins alone and only the ports decide how many rows the target shows.
+stacked_port_scene <- function(n_above) {
+  above <- paste0("b", seq_len(n_above))
+  ys <- 55 + 15 * seq_len(n_above)
+  list(
+    nodes = mm_nodes(
+      c("t", "a", above),
+      c(100, rep(20, n_above + 1)),
+      c(55, 55, ys)
+    ),
+    edges = mm_edges(c("a", above), rep("t", n_above + 1)),
+    bounds = c(0, 0, 140, max(ys) + 20)
+  )
+}
+
+test_that("orthogonal ports: arrivals on one W side take stacked rows", {
+  scene <- fan_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  # c->e is level and keeps e's centre row; b->e arrives from above and
+  # takes the row sep_e above it, so the two heads are drawn apart
+  expect_equal(res$meta$mode[edge_index(scene, "c->e")], "straight")
+  expect_equal(arrival_row(scene, res, "c->e"), 55, tolerance = 1e-6)
+  expect_equal(arrival_row(scene, res, "b->e"), 58.6, tolerance = 1e-6)
+  expect_equal(
+    arrival_row(scene, res, "b->e") - arrival_row(scene, res, "c->e"),
+    sep_e_default,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    shared_run_length(
+      res$paths[[edge_index(scene, "b->e")]],
+      res$paths[[edge_index(scene, "c->e")]]
+    ),
+    0
+  )
+
+  # a->e arrives at e's S port up the centre line and is unchanged
+  ae <- last_run(res$paths[[edge_index(scene, "a->e")]])
+  expect_equal(ae$axis, "v")
+  expect_equal(ae$coord, 140, tolerance = 1e-6)
+})
+
+test_that("orthogonal ports: the four-layer's three arrivals stack at t", {
+  scene <- four_layer_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  # s2->t is the level chord and keeps the centre; s1 arrives from above
+  # and s3 from below
+  expect_equal(res$meta$mode[edge_index(scene, "s2->t")], "straight")
+  expect_equal(arrival_row(scene, res, "s1->t"), 58.6, tolerance = 1e-6)
+  expect_equal(arrival_row(scene, res, "s3->t"), 51.4, tolerance = 1e-6)
+  expect_equal(arrival_row(scene, res, "s2->t"), 55, tolerance = 1e-6)
+
+  # the port rows part the two segments, and they still take distinct
+  # slots: one vertical carrying both would read as an edge through s2
+  gap3 <- c(100, 140)
+  s1 <- slot_xs(res$paths[[edge_index(scene, "s1->t")]], gap3)
+  s3 <- slot_xs(res$paths[[edge_index(scene, "s3->t")]], gap3)
+  expect_length(s1, 1)
+  expect_length(s3, 1)
+  expect_gte(abs(s1 - s3), sep_e_default - 1e-9)
+
+  for (pair in list(
+    c("s1->t", "s2->t"),
+    c("s1->t", "s3->t"),
+    c("s2->t", "s3->t")
+  )) {
+    expect_equal(
+      shared_run_length(
+        res$paths[[edge_index(scene, pair[[1]])]],
+        res$paths[[edge_index(scene, pair[[2]])]]
+      ),
+      0,
+      label = paste(pair, collapse = " | ")
+    )
+  }
+})
+
+test_that("orthogonal ports: two arrivals above a level chord stack at 2.68", {
+  # three rows need the outermost head to stay inside the disc silhouette:
+  # s = min(sep_e, (r - 0.65) / 2) = 2.675, so the rows are 55, 57.675 and
+  # 60.35 and every head is drawn on the node
+  scene <- stacked_port_scene(2)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  rows <- vapply(
+    edge_labels(scene$edges),
+    function(lab) arrival_row(scene, res, lab),
+    numeric(1)
+  )
+  expect_equal(sort(unname(rows)), c(55, 57.675, 60.35), tolerance = 1e-6)
+  expect_equal(unname(rows[["a->t"]]), 55, tolerance = 1e-6)
+  expect_lte(max(abs(rows - 55)), r_default - 0.65 + 1e-9)
+
+  for (a in 1:2) {
+    for (b in (a + 1):3) {
+      expect_equal(
+        shared_run_length(res$paths[[a]], res$paths[[b]]),
+        0,
+        label = paste(edge_labels(scene$edges)[c(a, b)], collapse = " | ")
+      )
+    }
+  }
+})
+
+test_that("orthogonal ports: a group of four arrivals merges into one row", {
+  # a group stacks only while two rows fit it; four arrivals from above
+  # would need 1.34 mm rows, so they merge onto one row of their own at the
+  # next free offset and join it at or beyond the gap's stub
+  scene <- stacked_port_scene(4)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  expect_equal(res$ortho$gaps$rung, 0)
+
+  labels <- edge_labels(scene$edges)
+  rows <- vapply(labels, function(lab) arrival_row(scene, res, lab), numeric(1))
+  expect_equal(unname(rows[["a->t"]]), 55, tolerance = 1e-6)
+  expect_equal(sort(unique(round(unname(rows), 6))), c(55, 58.6))
+
+  # the merged arrivals share their last run, and none of them shares it
+  # with the level chord
+  merged <- setdiff(labels, "a->t")
+  for (lab in merged) {
+    expect_gt(
+      shared_run_length(
+        res$paths[[edge_index(scene, lab)]],
+        res$paths[[edge_index(scene, merged[[1]])]]
+      ),
+      0
+    )
+    expect_equal(
+      shared_run_length(
+        res$paths[[edge_index(scene, lab)]],
+        res$paths[[edge_index(scene, "a->t")]]
+      ),
+      0,
+      label = lab
+    )
+  }
+
+  # every join onto the merged row sits at or beyond the nominal stub
+  slots <- gap_slots(scene, res)
+  expect_length(slots, 4)
+  expect_lte(max(slots), 100 - stub_default + 1e-6)
+})
+
+test_that("orthogonal ports: the chain's N ports keep their sep_e / 2 stack", {
+  # a's departure and c's arrival share no side, and the two edges at c's N
+  # side keep the +- sep_e / 2 offsets the two-member stack reproduces
+  scene <- chain_scene()
+  res <- ortho(scene)
+  runs_ac <- straight_runs(res$paths[[edge_index(scene, "a->c")]])
+  runs_ce <- straight_runs(res$paths[[edge_index(scene, "c->e")]])
+  v_ac <- runs_ac[runs_ac$axis == "v", , drop = FALSE]
+  v_ce <- runs_ce[runs_ce$axis == "v", , drop = FALSE]
+  expect_equal(
+    v_ac$coord[[nrow(v_ac)]],
+    80 - sep_e_default / 2,
+    tolerance = 1e-6
+  )
+  expect_equal(v_ce$coord[[1]], 80 + sep_e_default / 2, tolerance = 1e-6)
+  expect_equal(v_ac$coord[[1]], 20, tolerance = 1e-6)
+  expect_equal(v_ce$coord[[nrow(v_ce)]], 140, tolerance = 1e-6)
+})
+
+# Per-edge resects ---------------------------------------------------------------
+
+test_that("orthogonal resects: the router reports the arc length to each cap line", {
+  # a->c arrives at c's N port 1.8 mm off the centre line: the hidden
+  # connector and its corner add 1.46 mm to the 8 mm of stub, so the head
+  # must be resected by 9.46 to put its tip 8 mm above c's centre. c->e
+  # leaves the same side and its fins ask for the same.
+  scene <- chain_scene()
+  res <- ortho(scene)
+  n <- nrow(scene$edges)
+  expect_length(res$meta$resect_head, n)
+  expect_length(res$meta$resect_fins, n)
+
+  ac <- edge_index(scene, "a->c")
+  ce <- edge_index(scene, "c->e")
+  expect_equal(res$meta$resect_head[[ac]], 9.46, tolerance = 1e-3)
+  expect_equal(res$meta$resect_fins[[ce]], 9.46, tolerance = 1e-3)
+  expect_equal(
+    res$meta$resect_head[-ac],
+    rep(cap_default, n - 1),
+    tolerance = 1e-3
+  )
+  expect_equal(
+    res$meta$resect_fins[-ce],
+    rep(cap_default, n - 1),
+    tolerance = 1e-3
+  )
+
+  # the tip of the head sits cap from c's centre on the port's own axis
+  expect_equal(
+    arc_from_end(res$paths[[ac]], res$meta$resect_head[[ac]]),
+    c(78.2, 63),
+    tolerance = 1e-3
+  )
+})
+
+test_that("orthogonal resects: an offset W port lengthens the head resect", {
+  # b->e enters e's W port 3.6 mm above the centre line through a foot on
+  # the disc boundary: the hidden diagonal is 6 mm long against a 4.8 mm
+  # projection, so the resect grows to 9.06 and the tip sits at x = 132
+  scene <- fan_scene()
+  res <- ortho(scene)
+  be <- edge_index(scene, "b->e")
+  ce <- edge_index(scene, "c->e")
+  expect_equal(res$meta$resect_head[[be]], 9.06, tolerance = 1e-2)
+  expect_equal(res$meta$resect_head[[ce]], cap_default, tolerance = 1e-6)
+  expect_equal(
+    arc_from_end(res$paths[[be]], res$meta$resect_head[[be]]),
+    c(132, 58.6),
+    tolerance = 1e-3
+  )
+  expect_equal(
+    arc_from_end(res$paths[[ce]], res$meta$resect_head[[ce]]),
+    c(132, 55),
+    tolerance = 1e-6
+  )
 })
 
 # Helper: infer_layers -----------------------------------------------------------
