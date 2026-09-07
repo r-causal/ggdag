@@ -1752,14 +1752,19 @@ route_spline_curve <- function(
         }
         separated <- TRUE
         # only the end control point on the rotated tangent moves, so only
-        # that segment is sampled again
+        # that segment is sampled again, and a rotation the clamp and the
+        # side constraint absorb entirely leaves nothing to resample
         if (head_end == "E") {
           prefer <- if (is.na(side)) 0 else -side
-          d_e <- keep_side(
+          d_new <- keep_side(
             clamp_direction(rotate(d_e, turn), fr$u, opts$tangent_clamp),
             fr$u,
             prefer
           )
+          if (all(d_new == d_e)) {
+            break
+          }
+          d_e <- d_new
           n_old <- bezier_sample_counts(
             B[K],
             opts$sample_spacing,
@@ -1773,6 +1778,9 @@ route_spline_curve <- function(
             -fr$u,
             prefer
           )
+          if (all(d_in == -d_s)) {
+            break
+          }
           d_s <- -d_in
           n_old <- bezier_sample_counts(
             B[1L],
@@ -1919,12 +1927,16 @@ keep_side <- function(d, ref, prefer) {
 #' Directions into the target are parametrised by their signed angle from
 #' the chord direction into it. Admissible angles lie within the tangent
 #' clamp and on the detour's side of the chord (`prefer`, the sign of the
-#' admissible angles, or 0 for either side). The current direction stands
-#' when it already keeps `theta_min` from every arrival; otherwise, among
-#' the admissible angles that do (the clamp edges and the angles
-#' `theta_min` either side of each arrival), the one nearest the current
-#' direction wins, and when none does, the admissible angle with the
-#' largest minimum gap.
+#' admissible angles, or 0 for either side). The candidates are the current
+#' direction, the clamp edges, the angles `theta_min` either side of each
+#' arrival, and the midpoint of each pair of arrivals adjacent in angle.
+#' The current direction stands when it already keeps `theta_min` from
+#' every arrival; otherwise, among the admissible candidates that do, the
+#' one nearest the current direction wins, and when none does, the
+#' candidate with the largest minimum gap, which in a squeeze is the
+#' midpoint of the pair the arrival is caught between. Ties go to the
+#' smallest rotation from the current direction and then to the preferred
+#' side.
 #'
 #' @param d_in Current unit direction into the target.
 #' @param arrivals Two-column matrix of unit directions into the target.
@@ -1951,15 +1963,24 @@ separate_arrival <- function(
   if (min_gap(cur) >= theta_min - 1e-9) {
     return(d_in)
   }
-  cands <- c(cur, lo, hi, arr + theta_min, arr - theta_min)
+  sorted <- sort(arr)
+  mids <- if (length(sorted) > 1L) {
+    (sorted[-1L] + sorted[-length(sorted)]) / 2
+  } else {
+    numeric()
+  }
+  cands <- c(cur, lo, hi, arr + theta_min, arr - theta_min, mids)
   cands <- cands[cands >= lo - 1e-9 & cands <= hi + 1e-9]
   gaps <- vapply(cands, min_gap, numeric(1))
   ok <- which(gaps >= theta_min - 1e-9)
-  phi <- if (length(ok) > 0) {
-    cands[ok][[which.min(abs(cands[ok] - cur))]]
-  } else {
-    cands[[which.max(gaps)]]
+  pick <- function(i) {
+    i[order(
+      -round(gaps[i], 9),
+      round(abs(cands[i] - cur), 9),
+      sign(cands[i]) != prefer
+    )][[1L]]
   }
+  phi <- cands[[pick(if (length(ok) > 0) ok else seq_along(cands))]]
   rotate(chord_in, phi)
 }
 
@@ -1968,8 +1989,11 @@ separate_arrival <- function(
 #' Measures the direction of the sampled curve into the true target at
 #' `cap` before it and finds the arrival it falls short of `theta_min`
 #' from by the most (a shortfall under half a degree is accepted). Returns
-#' the signed rotation to apply to the end tangent, 1.2 times the deficit
-#' away from that arrival, or 0 when every arrival is far enough.
+#' the signed rotation to apply to the end tangent, or 0 when every arrival
+#' is far enough. When the two nearest arrivals lie on opposite sides of
+#' the sampled direction the rotation equalises those two gaps, which one
+#' step of the loop reaches exactly; with every near arrival on one side it
+#' is 1.2 times the deficit away from the worst of them.
 #'
 #' @noRd
 arrival_deficit <- function(pts, fr, cap, arrivals, head_end, theta_min) {
@@ -1992,6 +2016,15 @@ arrival_deficit <- function(pts, fr, cap, arrivals, head_end, theta_min) {
   k <- which.max(short)
   if (length(k) == 0 || short[[k]] <= 0.5) {
     return(0)
+  }
+  if (length(gap) > 1L) {
+    near <- order(abs(gap))[1:2]
+    g1 <- gap[[near[[1L]]]]
+    g2 <- gap[[near[[2L]]]]
+    if (g1 * g2 < 0) {
+      turn <- -(g1 + g2) / 2
+      return(if (abs(turn) <= 0.5) 0 else turn)
+    }
   }
   s <- sign(gap[[k]])
   if (s == 0) {
