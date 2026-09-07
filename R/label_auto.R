@@ -35,11 +35,17 @@ label_soft_margin <- 8
 label_reach_steps <- 8L
 label_far_reach <- c(1.5, 2, 3)
 
-# A leader that crosses drawn ink, a node disc, or another label's box is
-# priced as though it were longer: each ink point within the edge margin of
-# the leader adds this many mm to its length, each disc it crosses adds this
-# multiple of that disc's radius, and each box it crosses adds this many mm.
-label_leader_ink_cost <- 2
+# A leader is priced at its own length, from the disc edge to the box, and a
+# leader that crosses drawn ink, a node disc, or another label's box is
+# priced as though it were longer still: each ink point within the edge
+# margin of the leader adds this many mm to its length, each disc it crosses
+# adds this multiple of that disc's radius, and each box it crosses adds this
+# many mm. The ink points are sampled every 0.5 mm, so an edge crossing puts
+# about four of them within the margin and costs about 16 mm of leader. At
+# 2 mm per point a short leader over an edge still beat a longer one over
+# open space often enough to leave the very big scene with a third more
+# crossings and leaders a fifth longer on average.
+label_leader_ink_cost <- 4
 label_leader_disc_cost <- 4
 label_leader_box_cost <- 20
 
@@ -62,6 +68,18 @@ label_max_ejections <- 50L
 # Spacing in mm of the fallback candidate grid over the panel, built only
 # for a label whose rays all end on obstacles or other labels.
 label_grid_spacing <- 2
+
+# The local grid built around the node of a label with no admissible
+# candidate within reach: box centers every `label_local_grid_spacing` mm,
+# phased about the node center, out to `label_local_reach` times the reach.
+# Beyond the reach the rays offer only a few sparse levels, so a pocket
+# between two of them is found by no ray, and the panel grid is a repair
+# device for a label left on the ink. A 2 mm spacing found the same spots
+# on the scenes measured and cost a fifth more time and allocation on the
+# very big spline scene, which brought it within a few percent of that
+# scene's performance pins; 3 mm keeps the same pictures with room to spare.
+label_local_grid_spacing <- 3
+label_local_reach <- 3
 
 # Side in mm of the square cells the sampled edge points are bucketed into,
 # so a candidate box is compared only with the points in the cells around it.
@@ -112,6 +130,16 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' range just past the last anchor, so the `prefer` term still favors an
 #' anchor over an off-grid spot of equal score.
 #'
+#' A label none of whose admissible candidates lies within `reach` (or that
+#' has none at all) gains, before any label is assigned, a grid of
+#' candidates every `label_local_grid_spacing` mm around its own node,
+#' phased about the node center and kept where the box clears the disc by at
+#' least `gap` and by at most `label_local_reach` times `reach`, so it can
+#' settle in a pocket the sparse levels beyond the reach step over. Grid
+#' candidates are named after the sector their center lies in and share the
+#' rank range just past the last anchor. Like the off-grid candidates, this
+#' grid is built only when `reach` is finite.
+#'
 #' A candidate whose box spills the panel additionally spawns a slid variant
 #' translated by the minimal offset that brings it fully inside `bounds`
 #' (per axis, and only when the box fits along that axis), at preference
@@ -134,10 +162,23 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' `reach` loses to any admissible candidate within reach. Within a band the
 #' score is the distance in mm from the box center to the label's own node
 #' center (the `dist` proximity pull), plus for a candidate past `leader`
-#' the extra length its leader is priced at for the ink and discs it
-#' crosses, the total penetration depth in mm into the soft zone extending
-#' `label_soft_margin` beyond every other node's disc (the `soft` term), and
-#' the preference rank as a pure tiebreak.
+#' the length of its leader and the extra length it is priced at for the
+#' ink and discs it crosses (so a longer leader over open space beats a
+#' shorter one over ink), the total penetration depth in mm into the soft
+#' zone extending `label_soft_margin` beyond every other node's disc (the
+#' `soft` term), the ownership term, and the preference rank as a pure
+#' tiebreak.
+#'
+#' The ownership term keeps a label from reading as another node's. With
+#' `d_own` a candidate's clearance from its own disc and `d_other` its
+#' clearance from the nearest other disc, the term is
+#' `max(0, min(d_own, reach) - d_other)` at the `own` weight: a box nearer a
+#' foreign disc than its own pays the difference, a foreign disc farther
+#' away than `reach` claims nothing, and with `reach` infinite the term is
+#' off. A candidate that pays it and would be drawn without a leader
+#' (clearance no more than `leader`) is also raised one band, so a
+#' leaderless label beside the wrong node loses to any owned spot, with a
+#' leader if need be. An `own` weight of 0 switches both parts off.
 #'
 #' Labels are assigned in order of the lowest band any of their admissible
 #' candidates falls in, so a label that can sit beside its node claims its
@@ -176,9 +217,9 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' @param n_rings Number of rings of candidates per anchor.
 #' @param weights Named numeric vector weighting the score terms `node`,
 #'   `edge`, `arrow`, `label`, and `bounds`, plus the `prefer` tiebreak, the
-#'   `dist` proximity pull, and the `soft` clearance-zone term. `dist` and
-#'   `soft` default to 0 when absent, so a weights vector from before those
-#'   terms existed still works.
+#'   `dist` proximity pull, the `soft` clearance-zone term, and the `own`
+#'   ownership term. `dist`, `soft`, and `own` default to 0 when absent, so
+#'   a weights vector from before those terms existed still works.
 #' @param reach Clearance in mm from the disc within which a label should
 #'   sit when it can: off-grid candidates fill the space up to it, and an
 #'   admissible candidate within it always beats one beyond it. `Inf`, the
@@ -212,7 +253,8 @@ place_dag_labels <- function(
     bounds = 60,
     prefer = 0.01,
     dist = 0.2,
-    soft = 1
+    soft = 1,
+    own = 1
   ),
   reach = Inf,
   leader = Inf,
@@ -239,9 +281,9 @@ place_dag_labels <- function(
   # Per-label candidate state, kept as plain vectors so the assignment loops
   # avoid data frame subsetting: the candidates themselves, their static
   # scores, and whether each one violates a static hard constraint. The
-  # proximity pull and the soft penalty are kept apart from `within_static`
-  # so a leader priced later folds into the score with the same arithmetic
-  # as one priced up front.
+  # proximity pull, the soft penalty, and the ownership penalty are kept
+  # apart from `within_static` so a leader priced later folds into the
+  # score with the same arithmetic as one priced up front.
   candidates <- vector("list", n)
   hard_static <- vector("list", n)
   violating_static <- vector("list", n)
@@ -251,6 +293,7 @@ place_dag_labels <- function(
   leader_bbox_static <- vector("list", n)
   center_static <- vector("list", n)
   soft_static <- vector("list", n)
+  own_static <- vector("list", n)
   unpriced_static <- vector("list", n)
   unpriced_counts <- integer(n)
   clean_counts <- integer(n)
@@ -264,8 +307,10 @@ place_dag_labels <- function(
   # negative weight prices everything up front.
   dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
   price_lazily <- isTRUE(all(weights >= 0))
-  # No leader can be priced at more than every ink point and every disc, so
-  # this bounds how far full pricing could raise any `within` score.
+  # A leader's own length and the ownership term are computed for every
+  # candidate up front, so full pricing adds only the crossings, and no
+  # leader can cross more than every ink point and every disc: this bounds
+  # how far full pricing could raise any `within` score.
   price_bound <- dist_weight *
     (label_leader_ink_cost *
       length(ink$x) +
@@ -390,6 +435,7 @@ place_dag_labels <- function(
       leader_bbox_static[[i]] <<- leader_bbox(scored$leader)
       center_static[[i]] <<- scored$center_dist
       soft_static[[i]] <<- scored$soft_penalty
+      own_static[[i]] <<- scored$own_penalty
       unpriced_static[[i]] <<- scored$unpriced
       overlap_cols[[i]] <<- vector("list", n)
       crossing_cols[[i]] <<- vector("list", n)
@@ -411,6 +457,7 @@ place_dag_labels <- function(
       )
       center_static[[i]] <<- c(center_static[[i]], scored$center_dist)
       soft_static[[i]] <<- c(soft_static[[i]], scored$soft_penalty)
+      own_static[[i]] <<- c(own_static[[i]], scored$own_penalty)
       unpriced_static[[i]] <<- c(unpriced_static[[i]], scored$unpriced)
       crossing_counts[[i]] <<- c(crossing_counts[[i]], integer(n_new))
     }
@@ -466,6 +513,7 @@ place_dag_labels <- function(
       center_static[[i]][idx],
       extra[idx],
       soft_static[[i]][idx],
+      own_static[[i]][idx],
       cand$rank[idx],
       weights
     )
@@ -493,6 +541,30 @@ place_dag_labels <- function(
         n_rays = n_rays
       )
     )
+  }
+
+  # A label with no admissible candidate within reach has only the sparse
+  # far levels of its rays to go to, which step straight over a pocket
+  # between two rays, so it gains a grid of candidates around its own node
+  # before anything is assigned. Like the ray candidates, the grid fills the
+  # space around the anchors, so an infinite `reach` builds none.
+  if (is.finite(reach)) {
+    for (i in which(best_bands >= 2)) {
+      local <- label_local_grid_candidates(
+        labels$x[i],
+        labels$y[i],
+        radius[i],
+        gap,
+        labels$width[i],
+        labels$height[i],
+        bounds,
+        reach,
+        rank_from = n_angles * n_rings + 1
+      )
+      if (length(local$x) > 0) {
+        add_candidates(i, local)
+      }
+    }
   }
 
   # Labels that can sit beside their node claim their spots before labels
@@ -884,21 +956,11 @@ tiered_score <- function(soft, hard, violating) {
 #' @return A candidate list as `label_candidates()` returns, possibly empty.
 #' @noRd
 label_grid_candidates <- function(x, y, width, height, bounds, rank_from) {
-  empty <- list(
-    anchor = character(),
-    rank = numeric(),
-    x = numeric(),
-    y = numeric(),
-    xmin = numeric(),
-    ymin = numeric(),
-    xmax = numeric(),
-    ymax = numeric()
-  )
   if (
     width > bounds[[3]] - bounds[[1]] ||
       height > bounds[[4]] - bounds[[2]]
   ) {
-    return(empty)
+    return(empty_label_candidates())
   }
   center_x <- seq(
     bounds[[1]] + width / 2,
@@ -911,18 +973,134 @@ label_grid_candidates <- function(x, y, width, height, bounds, rank_from) {
     by = label_grid_spacing
   )
   grid <- expand.grid(x = center_x, y = center_y)
-  n <- nrow(grid)
+  grid_label_candidates(grid$x, grid$y, x, y, width, height, rank_from)
+}
+
+#' Candidate boxes on a grid around one node
+#'
+#' Box centers every `label_local_grid_spacing` mm on a grid phased about
+#' the node center, so the candidates sit at whole multiples of the spacing
+#' from the node on each axis whatever the panel's origin, kept where the
+#' box lies inside `bounds` and clears the node disc by at least `gap` and
+#' at most `label_local_reach` times `reach`. These are built for a label
+#' with no admissible candidate within reach, whose rays offer only a few
+#' sparse levels beyond it, so that a pocket between two rays is found.
+#'
+#' @param x,y Node center in mm.
+#' @param radius Node disc radius in mm.
+#' @param gap Minimum clearance between the disc edge and the box edge.
+#' @param width,height Label box extent in mm.
+#' @param bounds Panel extent `c(xmin, ymin, xmax, ymax)` in mm.
+#' @param reach As in `place_dag_labels()`, finite.
+#' @param rank_from Preference rank of the first grid candidate; the grid
+#'   shares the unit range starting there.
+#' @return A candidate list as `label_candidates()` returns, possibly empty.
+#' @noRd
+label_local_grid_candidates <- function(
+  x,
+  y,
+  radius,
+  gap,
+  width,
+  height,
+  bounds,
+  reach,
+  rank_from
+) {
+  far <- label_local_reach * reach
+  # The farthest a box center can sit while its nearest point is within the
+  # far clearance: along a diagonal the nearest point is a corner, half the
+  # box diagonal from the center.
+  extent <- radius + far + sqrt(width^2 + height^2) / 2
+  steps <- ceiling(extent / label_local_grid_spacing)
+  offsets <- seq(-steps, steps) * label_local_grid_spacing
+  center_x <- x + offsets
+  center_y <- y + offsets
+  center_x <- center_x[
+    center_x - width / 2 >= bounds[[1]] & center_x + width / 2 <= bounds[[3]]
+  ]
+  center_y <- center_y[
+    center_y - height / 2 >= bounds[[2]] &
+      center_y + height / 2 <= bounds[[4]]
+  ]
+  if (length(center_x) == 0 || length(center_y) == 0) {
+    return(empty_label_candidates())
+  }
+  grid <- expand.grid(x = center_x, y = center_y)
+  clearance <- rect_point_dist(
+    grid$x - width / 2,
+    grid$y - height / 2,
+    grid$x + width / 2,
+    grid$y + height / 2,
+    x,
+    y
+  ) -
+    radius
+  keep <- clearance >= gap - 1e-9 & clearance <= far
+  if (!any(keep)) {
+    return(empty_label_candidates())
+  }
+  grid_label_candidates(
+    grid$x[keep],
+    grid$y[keep],
+    x,
+    y,
+    width,
+    height,
+    rank_from
+  )
+}
+
+#' Name and rank grid candidates
+#'
+#' Names each box center after the anchor whose 45 degree sector it lies in
+#' as seen from the node, and spreads the ranks over the unit range from
+#' `rank_from` in the order given.
+#'
+#' @param center_x,center_y Box centers in mm.
+#' @param x,y Node center in mm.
+#' @param width,height Label box extent in mm.
+#' @param rank_from Preference rank of the first candidate.
+#' @return A candidate list as `label_candidates()` returns.
+#' @noRd
+grid_label_candidates <- function(
+  center_x,
+  center_y,
+  x,
+  y,
+  width,
+  height,
+  rank_from
+) {
+  n <- length(center_x)
   compass <- c("e", "ne", "n", "nw", "w", "sw", "s", "se")
-  angle <- atan2(grid$y - y, grid$x - x)
+  angle <- atan2(center_y - y, center_x - x)
   list(
     anchor = compass[round(angle / (pi / 4)) %% 8 + 1],
     rank = rank_from + (seq_len(n) - 1) / n,
-    x = grid$x,
-    y = grid$y,
-    xmin = grid$x - width / 2,
-    ymin = grid$y - height / 2,
-    xmax = grid$x + width / 2,
-    ymax = grid$y + height / 2
+    x = center_x,
+    y = center_y,
+    xmin = center_x - width / 2,
+    ymin = center_y - height / 2,
+    xmax = center_x + width / 2,
+    ymax = center_y + height / 2
+  )
+}
+
+#' An empty candidate list
+#'
+#' @return A candidate list as `label_candidates()` returns, with no rows.
+#' @noRd
+empty_label_candidates <- function() {
+  list(
+    anchor = character(),
+    rank = numeric(),
+    x = numeric(),
+    y = numeric(),
+    xmin = numeric(),
+    ymin = numeric(),
+    xmax = numeric(),
+    ymax = numeric()
   )
 }
 
@@ -1139,7 +1317,7 @@ validate_label_placement_inputs <- function(
   }
 
   required_weights <- c("node", "edge", "arrow", "label", "bounds", "prefer")
-  optional_weights <- c("dist", "soft")
+  optional_weights <- c("dist", "soft", "own")
   if (!is.numeric(weights)) {
     abort(
       c(
@@ -1614,9 +1792,9 @@ ink_box_edge_hits <- function(xmin, ymin, xmax, ymax, ink) {
 #'   `reach`, 2 beyond), `within` (the score that orders admissible
 #'   candidates of one band), `leader` (the leader segment of each
 #'   candidate as `x0`, `y0`, `x1`, `y1`, `NA` where none is drawn; `NULL`
-#'   without `own`), the `center_dist` and `soft_penalty` terms of
-#'   `within`, and `unpriced` (whether each candidate's leader is still to
-#'   be priced).
+#'   without `own`), the `center_dist`, `soft_penalty`, and `own_penalty`
+#'   terms of `within`, and `unpriced` (whether each candidate's leader is
+#'   still to be priced).
 #' @noRd
 score_label_candidates <- function(
   cand,
@@ -1631,12 +1809,15 @@ score_label_candidates <- function(
 ) {
   n_cand <- length(cand$x)
   dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
+  own_weight <- if ("own" %in% names(weights)) weights[["own"]] else 0
 
   # Node discs: total penetration depth past each disc's required clearance,
   # plus the depth into the soft zone beyond every disc except the label's
-  # own node's.
+  # own node's, and the clearance from the nearest of those other discs,
+  # which the ownership term below reads.
   node_penalty <- numeric(n_cand)
   soft_penalty <- numeric(n_cand)
+  other_clearance <- rep(Inf, n_cand)
   if (nrow(nodes) > 0) {
     own_index <- if (is.null(own)) {
       0L
@@ -1658,6 +1839,16 @@ score_label_candidates <- function(
     soft <- pmax(0, label_soft_margin - (dist - nodes$radius[j]))
     soft[j == own_index] <- 0
     soft_penalty <- rowSums(matrix(soft, nrow = n_cand))
+    if (own_index > 0L && nrow(nodes) > 1) {
+      # `dist` runs candidate-fastest, so the block for node `k` is one
+      # contiguous slice; a running elementwise minimum over the other
+      # nodes' slices costs one pass per node and no reshaping.
+      clearance_all <- dist - nodes$radius[j]
+      for (k in setdiff(seq_len(nrow(nodes)), own_index)) {
+        slice <- (k - 1) * n_cand + seq_len(n_cand)
+        other_clearance <- pmin(other_clearance, clearance_all[slice])
+      }
+    }
   }
 
   # Ink: sampled points within the edge margin of the box, and arrowhead-zone
@@ -1692,12 +1883,13 @@ score_label_candidates <- function(
 
   # Proximity: the pull toward the label's own node center, the band a
   # candidate's clearance from its own disc puts it in, and the pricing of
-  # the leader a candidate past `leader` would be drawn with. `dist` and
-  # `soft` default to 0 when absent so weights vectors from before those
-  # terms existed keep working.
+  # the leader a candidate past `leader` would be drawn with. `dist`,
+  # `soft`, and `own` default to 0 when absent so weights vectors from
+  # before those terms existed keep working.
   center_dist <- numeric(n_cand)
   band <- numeric(n_cand)
   leader_extra <- numeric(n_cand)
+  own_penalty <- numeric(n_cand)
   leaders <- NULL
   unpriced <- logical(n_cand)
   if (!is.null(own)) {
@@ -1711,8 +1903,20 @@ score_label_candidates <- function(
       own$y
     ) -
       own$radius
-    band <- (clearance > leader) + (clearance > reach)
     with_leader <- clearance > leader
+    band <- with_leader + (clearance > reach)
+    # Ownership: a box nearer another node's disc than its own reads as that
+    # node's label. The term is how much nearer, counting the box's own
+    # clearance only up to `reach`, so a foreign disc beyond the distance a
+    # label reads as beside a node claims nothing and a far label in the
+    # open with a leader pays nothing. A box that would be drawn without a
+    # leader has no cue to correct the reader, so it is raised a band as
+    # well and loses to any owned spot, with a leader if need be. Both
+    # parts are off at an `own` weight of 0 and with `reach` infinite.
+    if (own_weight > 0 && is.finite(reach)) {
+      own_penalty <- pmax(0, pmin(clearance, reach) - other_clearance)
+      band <- band + (own_penalty > 0 & !with_leader)
+    }
     # The price of a leader reaches the score only through the `dist`
     # weight, so under a zero weight no leader needs pricing, then or later.
     price <- with_leader & dist_weight != 0 & (price_violating | !violating)
@@ -1732,6 +1936,7 @@ score_label_candidates <- function(
     center_dist,
     leader_extra,
     soft_penalty,
+    own_penalty,
     cand$rank,
     weights
   )
@@ -1744,6 +1949,7 @@ score_label_candidates <- function(
     leader = leaders[c("x0", "y0", "x1", "y1")],
     center_dist = center_dist,
     soft_penalty = soft_penalty,
+    own_penalty = own_penalty,
     unpriced = unpriced
   )
 }
@@ -1751,15 +1957,18 @@ score_label_candidates <- function(
 #' The score that orders admissible candidates of one band
 #'
 #' The proximity pull toward the label's own node, extended by the priced
-#' leader, plus the soft-zone penalty and the preference-rank tiebreak.
-#' Every operation is elementwise, so the score of a candidate is the same
-#' whether it is computed alongside the label's other candidates or on its
-#' own. `dist` and `soft` default to 0 when absent so weights vectors from
-#' before those terms existed keep working.
+#' leader, plus the soft-zone penalty, the ownership penalty, and the
+#' preference-rank tiebreak. Every operation is elementwise, so the score of
+#' a candidate is the same whether it is computed alongside the label's
+#' other candidates or on its own. `dist`, `soft`, and `own` default to 0
+#' when absent so weights vectors from before those terms existed keep
+#' working.
 #'
 #' @param center_dist Distance from each box center to the node center.
-#' @param leader_extra Extra length each leader is priced at.
+#' @param leader_extra Length each leader is priced at.
 #' @param soft_penalty Penetration depth into the soft zones.
+#' @param own_penalty How much nearer each box sits to a foreign disc than to
+#'   its own, as `score_label_candidates()` computes it.
 #' @param rank Preference rank of each candidate.
 #' @param weights As in `place_dag_labels()`.
 #' @return Numeric, one score per candidate.
@@ -1768,36 +1977,41 @@ within_score <- function(
   center_dist,
   leader_extra,
   soft_penalty,
+  own_penalty,
   rank,
   weights
 ) {
   dist_weight <- if ("dist" %in% names(weights)) weights[["dist"]] else 0
   soft_weight <- if ("soft" %in% names(weights)) weights[["soft"]] else 0
+  own_weight <- if ("own" %in% names(weights)) weights[["own"]] else 0
   dist_weight *
     (center_dist + leader_extra) +
     soft_weight * soft_penalty +
+    own_weight * own_penalty +
     weights[["prefer"]] * rank
 }
 
-#' Extra length a leader is priced at for what it crosses
+#' Length a leader is priced at, for itself and for what it crosses
 #'
-#' The leader of a candidate runs from the label's node center to the nearest
-#' point of the box. Each ink point within the edge margin of that segment
-#' adds `label_leader_ink_cost` mm, and each disc other than the label's own
-#' that the segment crosses adds `label_leader_disc_cost` times its radius,
-#' so among candidates that need a leader the engine prefers one whose
-#' leader crosses nothing.
+#' The leader of a candidate runs from the edge of the label's node disc to
+#' the nearest point of the box. Its price starts at its own length, so that
+#' among candidates that need a leader the engine still pulls toward the
+#' node. Each ink point within the edge margin of the segment then adds
+#' `label_leader_ink_cost` mm, and each disc other than the label's own that
+#' the segment crosses adds `label_leader_disc_cost` times its radius, so a
+#' longer leader over open space beats a shorter one over ink.
 #'
 #' @param cand Candidate list from `label_candidates()`.
 #' @param with_leader Logical per candidate, whether a leader would be drawn.
 #' @param own The label's own node, as in `score_label_candidates()`.
 #' @param nodes Node discs.
 #' @param ink Prepared points from `label_ink_points()`.
-#' @param price Logical per candidate, which of the leaders to price; the
-#'   others get a segment but an `extra` of 0. Every leader by default.
-#'   The price of a leader is computed per candidate, so pricing a subset
-#'   gives each of its candidates the value pricing every leader would.
-#' @return A list with `extra`, the priced extra length per candidate (0 for
+#' @param price Logical per candidate, which of the leaders to price for
+#'   what they cross; the others get a segment and their own length but no
+#'   crossing price. Every leader by default. The price of a leader is
+#'   computed per candidate, so pricing a subset gives each of its
+#'   candidates the value pricing every leader would.
+#' @return A list with `extra`, the priced length per candidate (0 for
 #'   candidates without a leader), and the leader segments `x0`, `y0`, `x1`,
 #'   `y1` (`NA` for candidates without one).
 #' @noRd
@@ -1835,7 +2049,11 @@ leader_crossing_length <- function(
   segment$x1[idx] <- near_x
   segment$y1[idx] <- near_y
 
-  # From here on only the leaders to be priced take part.
+  # Every leader is priced at its own length, from the disc edge to the box.
+  # This part of the price needs no ink, so it is never deferred.
+  extra[idx] <- length - own$radius
+
+  # From here on only the leaders to be priced for their crossings take part.
   priced <- which(price[idx])
   if (length(priced) == 0) {
     return(c(list(extra = extra), segment))
@@ -3018,10 +3236,17 @@ densify_polyline <- function(px, py, spacing) {
 #' admissible boxes, a label sits within one and a half node radii of its
 #' own disc whenever such a spot exists, preferring the nearer and the
 #' anchor order NE, NW, SE, SW, N, S, E, W, and drifting away from other
-#' nodes' discs. A leader line is a fallback: a label is placed further than
-#' `min.segment.length` from its disc, and drawn with a leader from the disc
-#' to the box, only when no admissible spot within that distance exists, and
-#' a leader that would cross an edge or a disc counts against its spot. When
+#' nodes' discs. A label also stays its own node's: a box nearer another
+#' node's disc than its own pays for the difference, and a box that would
+#' be drawn without a leader beside the wrong node gives way to a spot
+#' beside its own node even when that spot needs a leader. A leader line is
+#' a fallback: a label is placed further than `min.segment.length` from its
+#' disc, and drawn with a leader from the disc to the box, only when no
+#' admissible spot within that distance exists. A label with no admissible
+#' spot within one and a half node radii searches a fine grid around its
+#' own node before it goes farther, and a leader is priced by its length
+#' and by every edge or disc it crosses, so a longer leader over open space
+#' beats a shorter one across the ink. When
 #' no admissible box exists at all, the label is drawn at the least-bad
 #' position and its text is recorded in the `unresolved` field of the drawn
 #' `dag_labels_auto` grob tree (`character(0)` when every box is clear), so

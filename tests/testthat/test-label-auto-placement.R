@@ -307,7 +307,17 @@ test_that("the default weights include the proximity and soft-zone terms", {
 
   expect_setequal(
     names(weights),
-    c("node", "edge", "arrow", "label", "bounds", "prefer", "dist", "soft")
+    c(
+      "node",
+      "edge",
+      "arrow",
+      "label",
+      "bounds",
+      "prefer",
+      "dist",
+      "soft",
+      "own"
+    )
   )
   expect_equal(
     weights[c(
@@ -318,7 +328,8 @@ test_that("the default weights include the proximity and soft-zone terms", {
       "bounds",
       "prefer",
       "dist",
-      "soft"
+      "soft",
+      "own"
     )],
     c(
       node = 100,
@@ -328,7 +339,8 @@ test_that("the default weights include the proximity and soft-zone terms", {
       bounds = 60,
       prefer = 0.01,
       dist = 0.2,
-      soft = 1
+      soft = 1,
+      own = 1
     )
   )
 })

@@ -161,10 +161,17 @@ half a node radius, so no box is set down on the panel border. Among
 admissible boxes, a label sits within one and a half node radii of its
 own disc whenever such a spot exists, preferring the nearer and the
 anchor order NE, NW, SE, SW, N, S, E, W, and drifting away from other
-nodes' discs. A leader line is a fallback: a label is placed further than
-\code{min.segment.length} from its disc, and drawn with a leader from the disc
-to the box, only when no admissible spot within that distance exists, and
-a leader that would cross an edge or a disc counts against its spot. When
+nodes' discs. A label also stays its own node's: a box nearer another
+node's disc than its own pays for the difference, and a box that would
+be drawn without a leader beside the wrong node gives way to a spot
+beside its own node even when that spot needs a leader. A leader line is
+a fallback: a label is placed further than \code{min.segment.length} from its
+disc, and drawn with a leader from the disc to the box, only when no
+admissible spot within that distance exists. A label with no admissible
+spot within one and a half node radii searches a fine grid around its
+own node before it goes farther, and a leader is priced by its length
+and by every edge or disc it crosses, so a longer leader over open space
+beats a shorter one across the ink. When
 no admissible box exists at all, the label is drawn at the least-bad
 position and its text is recorded in the \code{unresolved} field of the drawn
 \code{dag_labels_auto} grob tree (\code{character(0)} when every box is clear), so
