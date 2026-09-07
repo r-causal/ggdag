@@ -3347,6 +3347,49 @@ test_that("orthogonal slots: touching segments from different sources never shar
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
 })
 
+# Two chords whose y-intervals in the gap stop short of each other: s1->t1
+# covers [60, 80] and s2->t2 covers [40, 58], a 2 mm break, more than
+# touching and less than sep_e.
+near_interval_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("s1", "s2", "t1", "t2"),
+      c(20, 20, 100, 100),
+      c(80, 40, 60, 58)
+    ),
+    edges = mm_edges(c("s1", "s2"), c("t1", "t2")),
+    bounds = c(0, 0, 120, 110)
+  )
+}
+
+test_that("orthogonal slots: segments that stop short of each other by less than sep_e never share an x", {
+  # One slot for both would draw a vertical from 40 up to 80 with a 2 mm
+  # break in it, which reads as one line through all four discs, and a
+  # stacked arrival port closes a break that small anyway. The two segments
+  # take distinct ranks and the rung 0 spread of an 80 mm gap puts them
+  # (80 - 32.2) / 3 = 15.93 apart.
+  scene <- near_interval_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  expect_equal(res$ortho$gaps$ranks, 2)
+
+  slots <- vapply(
+    edge_labels(scene$edges),
+    function(lab) {
+      x <- slot_xs(res$paths[[edge_index(scene, lab)]], c(20, 100))
+      expect_length(x, 1)
+      x
+    },
+    numeric(1)
+  )
+  expect_gte(unname(abs(diff(slots))), sep_e_default - 1e-9)
+  expect_equal(
+    unname(abs(diff(slots))),
+    (80 - 2 * stub_default) / 3,
+    tolerance = 1e-6
+  )
+})
+
 # A five-node row at y = 100 with a second row 16 mm beneath it, so the S
 # side is not extreme and the two skip edges d->f (blocked by e) and c->h
 # (blocked by d, e, f) both channel above. Their spans nest, d->f inside
@@ -4167,6 +4210,71 @@ test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap stay clear of both
   expect_lte(max(slots), 48.93 - r_default - 1.2 + 1e-6)
 })
 
+# The x of the vertical run of every path that is not on a layer line. At
+# rung 4 a slot can sit closer to a layer than sep_e, or outside the gap
+# altogether, and slot_xs() reports neither.
+ladder_slots <- function(scene, res) {
+  layers <- infer_layers(scene$nodes, r_default)
+  vapply(
+    res$paths,
+    function(path) {
+      runs <- straight_runs(path)
+      x <- runs$coord[runs$axis == "v"]
+      x[!vapply(x, function(v) any(abs(v - layers$x) < 1e-6), logical(1))]
+    },
+    numeric(1)
+  )
+}
+
+test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides of the soft bands", {
+  # 2 R_soft = 14.4 is the width at which the two layers' soft bands meet.
+  # A spread of band / (K - 1) alone gives 0.00125 mm just above that width
+  # against sep_e just below it: a 14.4 mm jump in the drawing, and eight
+  # verticals a reader takes for one. The floor holds the spacing at
+  # sep_min = 1.5 on both sides of the boundary.
+  wide <- nine_arrival_scene(14.41)
+  narrow <- nine_arrival_scene(14.39)
+  res_wide <- ortho(wide)
+  res_narrow <- ortho(narrow)
+
+  for (res in list(res_wide, res_narrow)) {
+    expect_equal(res$ortho$gaps$rung, 4)
+    expect_equal(res$ortho$gaps$spacing, sep_min_default, tolerance = 1e-9)
+    expect_true(is.na(res$ortho$gaps$stub))
+    expect_false(any(res$meta$clearance_ok))
+  }
+
+  # nine sources, so every pair of slots comes from a different source
+  slots_wide <- sort(ladder_slots(wide, res_wide))
+  slots_narrow <- sort(ladder_slots(narrow, res_narrow))
+  expect_length(slots_wide, 9)
+  expect_length(slots_narrow, 9)
+  expect_true(all(diff(slots_wide) >= sep_min_default - 1e-9))
+  expect_true(all(diff(slots_narrow) >= sep_min_default - 1e-9))
+  # the 0.02 mm change in the gap moves no slot by a separation
+  expect_lte(max(abs(slots_wide - slots_narrow)), sep_e_default)
+})
+
+test_that("orthogonal ladder: the nine slots move continuously as the gap widens", {
+  # The gap swept 0.05 mm at a time from rung 4 through rungs 3 and 2. No
+  # slot may move by more than a separation between neighbouring widths.
+  # Rungs 2 and 3 agree at the width where they hand over; the largest step
+  # is at the 3 / 4 boundary, where nine ranks reach rung 3 at 33.6 with a
+  # soft band still wide enough for 2.39 mm of rung 4 spread, and the
+  # outermost slot of the nine steps by exactly sep_e.
+  previous <- NULL
+  worst <- 0
+  for (gap in seq(13, 45, by = 0.05)) {
+    scene <- nine_arrival_scene(gap)
+    slots <- sort(ladder_slots(scene, ortho(scene)))
+    if (!is.null(previous)) {
+      worst <- max(worst, max(abs(slots - previous)))
+    }
+    previous <- slots
+  }
+  expect_lte(worst, sep_e_default + 1e-9)
+})
+
 test_that("orthogonal channels: an S/N channel retries at the shorter stub", {
   # a 72 mm panel leaves 69 mm of room, so the channel above the mediator
   # at 55 + 16.1 = 71.1 does not fit; at the 12.2 mm floor it sits at 67.2
@@ -4345,6 +4453,36 @@ test_that("orthogonal ports: a group of four arrivals merges into one row", {
   expect_lte(max(slots), 100 - stub_default + 1e-6)
 })
 
+test_that("orthogonal ports: arrivals that cannot hold their rows merge instead of stacking", {
+  # node_size 8 draws r = 3. Two arrivals above the level chord would take
+  # rows (3 - 0.65) / 2 = 1.175 mm apart, below the ladder's floor of 1.5
+  # and below the 1.3 mm head width, so the two heads would be drawn on top
+  # of each other. The pair merges onto one row instead, at the sep_e of
+  # 1.8 that a single row affords, and the level chord keeps the centre.
+  scene <- stacked_port_scene(2)
+  scene$nodes$r <- 3
+  opts <- route_opts(3)
+  expect_equal(opts$sep_e, 1.8)
+  expect_equal(opts$sep_min, 1.5)
+  res <- route_scene(scene, mode = "orthogonal", opts = opts)
+
+  labels <- edge_labels(scene$edges)
+  rows <- vapply(labels, function(lab) arrival_row(scene, res, lab), numeric(1))
+  expect_equal(unname(rows[["a->t"]]), 55, tolerance = 1e-6)
+  expect_equal(unname(rows[["b1->t"]]), unname(rows[["b2->t"]]))
+  expect_equal(sort(unique(round(unname(rows), 6))), c(55, 56.8))
+  # two rows closer than the head width draw one head over the other
+  expect_gte(min(diff(sort(unique(round(unname(rows), 6))))), opts$head_w)
+
+  # the merged pair shares its row, and neither shares it with the chord
+  b1 <- res$paths[[edge_index(scene, "b1->t")]]
+  b2 <- res$paths[[edge_index(scene, "b2->t")]]
+  at <- res$paths[[edge_index(scene, "a->t")]]
+  expect_gt(shared_run_length(b1, b2), 0)
+  expect_equal(shared_run_length(b1, at), 0)
+  expect_equal(shared_run_length(b2, at), 0)
+})
+
 test_that("orthogonal ports: the chain's N ports keep their sep_e / 2 stack", {
   # a's departure and c's arrival share no side, and the two edges at c's N
   # side keep the +- sep_e / 2 offsets the two-member stack reproduces
@@ -4362,6 +4500,91 @@ test_that("orthogonal ports: the chain's N ports keep their sep_e / 2 stack", {
   expect_equal(v_ce$coord[[1]], 80 + sep_e_default / 2, tolerance = 1e-6)
   expect_equal(v_ac$coord[[1]], 20, tolerance = 1e-6)
   expect_equal(v_ce$coord[[nrow(v_ce)]], 140, tolerance = 1e-6)
+})
+
+# Five layers of paired nodes, every endpoint at the bottom of its layer
+# with a blocker above it, so each spanning chord is level, blocked, and
+# channels below. a->d has the shortest span and takes a's stub line at
+# 40 - 16.1 = 23.9; a->y stacks sep_e beneath it at 20.3 and b->y beneath
+# that at 16.7. a's S side therefore carries two departures and y's S side
+# two arrivals, each pair from a different channel.
+s_port_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("b", "a", "m", "d", "y", "b2", "a2", "m2", "d2", "y2"),
+      rep(c(20, 60, 100, 140, 180), 2),
+      c(rep(40, 5), rep(80, 5))
+    ),
+    edges = mm_edges(c("a", "b", "a"), c("y", "y", "d")),
+    bounds = c(0, 0, 200, 110)
+  )
+}
+
+# The scene reflected in the panel's horizontal centre line, which turns
+# every S side into the N side of the same picture.
+mirror_scene <- function(scene) {
+  scene$nodes$y <- scene$bounds[[2]] + scene$bounds[[4]] - scene$nodes$y
+  scene
+}
+
+mirror_path <- function(path, scene) {
+  path$y <- scene$bounds[[2]] + scene$bounds[[4]] - path$y
+  path
+}
+
+# The x of the first and the last vertical run of a path: the stubs an S or
+# N channel drops from its source and raises to its target.
+stub_xs <- function(path) {
+  v <- straight_runs(path)
+  v <- v[v$axis == "v", , drop = FALSE]
+  c(v$coord[[1]], v$coord[[nrow(v)]])
+}
+
+test_that("orthogonal ports: two channel stubs on an S side stack in the mirror of the N order", {
+  scene <- s_port_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  expect_true(all(res$meta$side == -1))
+
+  ay <- edge_index(scene, "a->y")
+  by <- edge_index(scene, "b->y")
+  ad <- edge_index(scene, "a->d")
+  channel <- function(i) channel_run(res$paths[[i]], 100)$coord
+  expect_equal(channel(ad), 23.9, tolerance = 1e-6)
+  expect_equal(channel(ay), 20.3, tolerance = 1e-6)
+  expect_equal(channel(by), 16.7, tolerance = 1e-6)
+
+  # neither port crosses its stubs: the inner channel of a pair keeps the
+  # port on the side its own run lies on, and the outer channel takes the
+  # far one
+  expect_identical(count_paths_crossing(res$paths[[ay]], res$paths[[by]]), 0L)
+  expect_identical(count_paths_crossing(res$paths[[ay]], res$paths[[ad]]), 0L)
+  half <- sep_e_default / 2
+  expect_equal(stub_xs(res$paths[[ad]])[[1]], 60 + half, tolerance = 1e-6)
+  expect_equal(stub_xs(res$paths[[ay]])[[1]], 60 - half, tolerance = 1e-6)
+  expect_equal(stub_xs(res$paths[[ay]])[[2]], 180 - half, tolerance = 1e-6)
+  expect_equal(stub_xs(res$paths[[by]])[[2]], 180 + half, tolerance = 1e-6)
+
+  # the N side of the mirrored scene draws the mirror image, crossings and
+  # all
+  flipped <- mirror_scene(scene)
+  res_n <- ortho(flipped)
+  expect_true(all(res_n$meta$side == 1))
+  expect_identical(
+    count_paths_crossing(res_n$paths[[ay]], res_n$paths[[by]]),
+    0L
+  )
+  expect_identical(
+    count_paths_crossing(res_n$paths[[ay]], res_n$paths[[ad]]),
+    0L
+  )
+  for (i in seq_len(nrow(scene$edges))) {
+    expect_lt(
+      polyline_hausdorff(res_n$paths[[i]], mirror_path(res$paths[[i]], scene)),
+      1e-9,
+      label = edge_labels(scene$edges)[i]
+    )
+  }
 })
 
 # Per-edge resects ---------------------------------------------------------------
