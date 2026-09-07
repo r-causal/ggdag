@@ -598,7 +598,12 @@ test_that("no box slides onto the panel border", {
   #   saturated 10x6: Genetics, Weight, Blood pressure, Cholesterol,
   #     Medication, Outcome
   for (size in quality_sizes) {
-    scene <- cached_scenes("saturated", size)[[1]]
+    # the saturated scene at 4 x 3 has labels the engine cannot place, which
+    # the draw reports; this block measures the borders rather than that
+    scene <- suppressWarnings(
+      cached_scenes("saturated", size),
+      classes = "ggdag_label_unresolved_warning"
+    )[[1]]
     expect_identical(
       border_labels(scene),
       character(0),
@@ -722,7 +727,10 @@ test_that("a box the engine cannot clear is reported as unresolved", {
   # the straight one two (Cholesterol, Medication), and nothing reports it. Every hit box must be
   # named in `unresolved`; a box not named there must be clear.
   for (route in c("spline", "straight")) {
-    scene <- cached_scenes("saturated", c(4, 3), route)[[1]]
+    scene <- suppressWarnings(
+      cached_scenes("saturated", c(4, 3), route),
+      classes = "ggdag_label_unresolved_warning"
+    )[[1]]
     unresolved <- scene$tree$unresolved
     hits <- hit_labels(scene)
 
@@ -759,7 +767,10 @@ test_that("a leader is drawn only when no leaderless spot exists", {
   min_segment_length <- 5
   for (name in c("ten_node", "skip_chain", "saturated")) {
     for (size in quality_sizes) {
-      scene <- cached_scenes(name, size)[[1]]
+      scene <- suppressWarnings(
+        cached_scenes(name, size),
+        classes = "ggdag_label_unresolved_warning"
+      )[[1]]
       clearance <- box_clearance(scene)
 
       # the leaders drawn are exactly the boxes past the threshold

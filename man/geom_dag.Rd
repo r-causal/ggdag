@@ -24,6 +24,7 @@ geom_dag(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   n_edge_points = NULL,
   n_node_points = NULL,
   unified_legend = TRUE,
@@ -103,6 +104,12 @@ used is controlled by \code{label_geom}.}
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
+
+\item{label_wrap}{Width in characters to wrap the label text to. Only the
+automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, wrap their text; the repel label geoms are not
+given it. \code{NULL}, the default, wraps nothing, and the \code{ggdag.label_wrap}
+option sets it for every plot.}
 
 \item{n_edge_points}{Number of invisible points to interpolate along each
 edge for label repulsion. Passed to repel label geoms. Defaults to \code{NULL}

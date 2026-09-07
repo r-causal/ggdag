@@ -1823,6 +1823,11 @@ geom_dag_ggarrow_edges <- function(
 #'   `use_labels = TRUE`. Default is `geom_dag_label_repel`. Other options
 #'   include `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
 #'   and `geom_dag_text_repel2`.
+#' @param label_wrap Width in characters to wrap the label text to. Only the
+#'   automatic label geoms, [geom_dag_label_auto()] and
+#'   [geom_dag_text_auto()], wrap their text; the repel label geoms are not
+#'   given it. `NULL`, the default, wraps nothing, and the `ggdag.label_wrap`
+#'   option sets it for every plot.
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge for label repulsion. Passed to repel label geoms. Defaults to `NULL`
 #'   (uses `StatNodesRepel` default of 50). Set to 0 to disable.
@@ -1902,6 +1907,7 @@ geom_dag <- function(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   n_edge_points = NULL,
   n_node_points = NULL,
   unified_legend = TRUE,
@@ -2101,6 +2107,9 @@ geom_dag <- function(
       extra <- attr(label_geom, "dag_node_aware_extra")
       if ("edge_cap" %in% extra) {
         common_params$edge_cap <- sizes[["cap"]]
+      }
+      if ("wrap" %in% extra && !is.null(label_wrap)) {
+        common_params$wrap <- label_wrap
       }
     }
 

@@ -80,6 +80,12 @@ with. The option applies to the ggarrow engine with
 \code{edge_type = "link_arc"} or \code{"link"}; it is a no-op for \code{"arc"} and
 \code{"diagonal"}, which already bend every edge.
 
+\code{label_wrap} is a width in characters that \code{\link[=geom_dag]{geom_dag()}} and \code{\link[=ggdag]{ggdag()}} hand
+to the automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, which wrap their text to it before the labels are
+measured and placed. \code{NULL}, the default, wraps nothing. The repel label
+geoms do no wrapping of their own and are not given it.
+
 \code{debug_repel_points} is a diagnostic rather than an appearance setting. When
 it is \code{TRUE}, every repelling label geom (see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}) adds
 a layer of purple points showing the invisible geometry that labels are

@@ -31,6 +31,12 @@
 #' `edge_type = "link_arc"` or `"link"`; it is a no-op for `"arc"` and
 #' `"diagonal"`, which already bend every edge.
 #'
+#' `label_wrap` is a width in characters that [geom_dag()] and [ggdag()] hand
+#' to the automatic label geoms, [geom_dag_label_auto()] and
+#' [geom_dag_text_auto()], which wrap their text to it before the labels are
+#' measured and placed. `NULL`, the default, wraps nothing. The repel label
+#' geoms do no wrapping of their own and are not given it.
+#'
 #' `debug_repel_points` is a diagnostic rather than an appearance setting. When
 #' it is `TRUE`, every repelling label geom (see [geom_dag_label_repel()]) adds
 #' a layer of purple points showing the invisible geometry that labels are
@@ -91,6 +97,7 @@ ggdag_defaults <- list(
   arrow_fins = NULL,
   arrow_mid = NULL,
   edge_route = "straight",
+  label_wrap = NULL,
   curvature = 0.3,
   debug_repel_points = FALSE
 )
@@ -330,6 +337,23 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       abort(
         c(
           "{.arg {name}} must be a function, a matrix, or {.code NULL}.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "label_wrap") {
+    if (
+      !is.numeric(value) ||
+        length(value) != 1 ||
+        is.na(value) ||
+        value < 1 ||
+        value != round(value)
+    ) {
+      abort(
+        c(
+          "{.arg label_wrap} must be a single positive whole number of characters.",
           "x" = "You provided {.obj_type_friendly {value}}."
         ),
         error_class = "ggdag_type_error",

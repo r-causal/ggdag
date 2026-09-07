@@ -21,8 +21,9 @@ geom_dag_label_auto(
   min.segment.length = 5,
   segment.colour = "grey50",
   segment.size = 0.5,
+  max.overlaps = Inf,
+  wrap = NULL,
   box.padding = NULL,
-  max.overlaps = NULL,
   na.rm = TRUE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -42,8 +43,9 @@ geom_dag_text_auto(
   min.segment.length = 5,
   segment.colour = "grey50",
   segment.size = 0.5,
+  max.overlaps = Inf,
+  wrap = NULL,
   box.padding = NULL,
-  max.overlaps = NULL,
   na.rm = TRUE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -100,8 +102,22 @@ past it only when no admissible spot within it exists.}
 \item{segment.colour, segment.size}{Colour and linewidth of the leader
 lines.}
 
-\item{box.padding, max.overlaps}{Accepted for compatibility with the repel
-label geoms and ignored.}
+\item{max.overlaps}{Maximum number of things a label's final box may still
+hit and be drawn anyway: the node discs it penetrates, the drawn edges
+within the placement margins, the other label boxes it overlaps, and the
+panel bounds it spills. The default, \code{Inf}, draws every label. A finite
+value leaves out, after placement and without running the engine again,
+every label whose box hits more than that many things, so
+\code{max.overlaps = 0} leaves out exactly the labels reported as
+\code{unresolved}. The labels that stay do not move.}
+
+\item{wrap}{Width in characters to wrap the label text to, through
+\code{\link[base:strwrap]{base::strwrap()}}. The wrapped text is what is measured, placed, and
+drawn, and a word longer than the width is left whole. \code{NULL}, the
+default, and \code{NA} wrap nothing.}
+
+\item{box.padding}{Accepted for compatibility with the repel label geoms
+and ignored.}
 
 \item{na.rm}{If \code{FALSE}, removes missing values with a warning. If \code{TRUE}
 (the default for DAG geoms), silently removes missing values.}
@@ -152,7 +168,10 @@ a leader that would cross an edge or a disc counts against its spot. When
 no admissible box exists at all, the label is drawn at the least-bad
 position and its text is recorded in the \code{unresolved} field of the drawn
 \code{dag_labels_auto} grob tree (\code{character(0)} when every box is clear), so
-a plot too crowded for its labels can be detected after drawing.
+a plot too crowded for its labels can be detected after drawing. Such a
+draw also warns once, naming the labels; \code{max.overlaps} leaves them out of
+the picture instead of drawing them on the ink, and \code{wrap} gives a long
+label a smaller box to find room for.
 }
 
 \examples{

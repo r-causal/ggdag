@@ -1424,10 +1424,11 @@ label_ray_candidates <- function(
 #' with every point.
 #'
 #' @param edges Data frame with columns `edge_id`, `x`, and `y`.
-#' @return A list with `x`, `y`, `head` (logical) in input order, plus the
-#'   cell index: `order` (the permutation sorting the points by cell),
-#'   `sorted_cell` (their cell ids in that order), and the grid's origin
-#'   `col0`, `row0` and height in cells `n_rows`.
+#' @return A list with `x`, `y`, `head` (logical), and `id` (the integer code
+#'   of the point's `edge_id`) in input order, plus the cell index: `order`
+#'   (the permutation sorting the points by cell), `sorted_cell` (their cell
+#'   ids in that order), and the grid's origin `col0`, `row0` and height in
+#'   cells `n_rows`.
 #' @noRd
 label_ink_points <- function(edges) {
   if (nrow(edges) == 0) {
@@ -1435,6 +1436,7 @@ label_ink_points <- function(edges) {
       x = numeric(),
       y = numeric(),
       head = logical(),
+      id = integer(),
       order = integer(),
       sorted_cell = numeric(),
       col0 = 0,
@@ -1461,6 +1463,7 @@ label_ink_points <- function(edges) {
     x = edges$x,
     y = edges$y,
     head = head,
+    id = as.integer(id),
     order = ord,
     sorted_cell = cell[ord],
     col0 = col0,
@@ -1542,6 +1545,46 @@ ink_box_hits <- function(xmin, ymin, xmax, ymax, ink) {
       nbins = n
     )
   )
+}
+
+#' Count the distinct drawn edges each box hits
+#'
+#' An edge counts once for a box, however many of its sampled points come
+#' within the margins, so a box lying along one long edge is one hit rather
+#' than one per sample. The margins are those of `ink_box_hits()`: any point
+#' within `label_edge_clearance`, or an arrowhead-zone point within
+#' `label_arrow_clearance`.
+#'
+#' @param xmin,ymin,xmax,ymax Box limits.
+#' @param ink Prepared points from `label_ink_points()`.
+#' @return Integer, the number of distinct edges hit by each box.
+#' @noRd
+ink_box_edge_hits <- function(xmin, ymin, xmax, ymax, ink) {
+  n <- length(xmin)
+  if (length(ink$x) == 0 || n == 0) {
+    return(integer(n))
+  }
+  pairs <- ink_cell_pairs(xmin, ymin, xmax, ymax, ink, label_arrow_clearance)
+  ci <- pairs$box
+  pj <- pairs$point
+  dist <- rect_point_dist(
+    xmin[ci],
+    ymin[ci],
+    xmax[ci],
+    ymax[ci],
+    ink$x[pj],
+    ink$y[pj]
+  )
+  hit <- dist < label_edge_clearance |
+    (ink$head[pj] & dist < label_arrow_clearance)
+  if (!any(hit)) {
+    return(integer(n))
+  }
+  box <- ci[hit]
+  edge <- ink$id[pj][hit]
+  # one key per (box, edge) pair, so duplicates of the same pair drop out
+  key <- box * (max(ink$id) + 1L) + edge
+  tabulate(box[!duplicated(key)], nbins = n)
 }
 
 #' Score candidate boxes against the static obstacles
@@ -1849,24 +1892,25 @@ leader_crossing_length <- function(
   c(list(extra = extra), segment)
 }
 
-#' Hard-constraint violations of placed label boxes
+#' Count what each placed label box still hits
 #'
-#' Tests each placed box against the same hard constraints the scoring uses:
-#' penetration of a node disc's clearance margin, ink within the edge margin
-#' or arrowhead-zone ink within the arrow margin, overlap with another box,
-#' and spilling `bounds`.
+#' The count a label is judged against by `max.overlaps`: the node discs its
+#' box penetrates, the distinct drawn edges within the engine's margins, the
+#' other boxes it overlaps, and one more when it spills `bounds`. The count
+#' is zero exactly when the box violates no hard constraint, so a label the
+#' engine placed cleanly is never dropped.
 #'
 #' @param boxes Data frame with columns `xmin`, `ymin`, `xmax`, `ymax`.
 #' @param nodes,edges,bounds As in `place_dag_labels()`.
-#' @return Logical, one element per box.
+#' @return Integer, one element per box.
 #' @noRd
-label_box_violations <- function(boxes, nodes, edges, bounds) {
+label_box_overlap_counts <- function(boxes, nodes, edges, bounds) {
   n <- nrow(boxes)
   if (n == 0) {
-    return(logical())
+    return(integer())
   }
 
-  hits <- ink_box_hits(
+  edge_hits <- ink_box_edge_hits(
     boxes$xmin,
     boxes$ymin,
     boxes$xmax,
@@ -1874,7 +1918,7 @@ label_box_violations <- function(boxes, nodes, edges, bounds) {
     label_ink_points(edges)
   )
 
-  node_hit <- logical(n)
+  node_hits <- integer(n)
   if (nrow(nodes) > 0) {
     i <- rep(seq_len(n), times = nrow(nodes))
     j <- rep(seq_len(nrow(nodes)), each = n)
@@ -1886,13 +1930,12 @@ label_box_violations <- function(boxes, nodes, edges, bounds) {
       nodes$x[j],
       nodes$y[j]
     )
-    node_hit <- rowSums(
+    node_hits <- rowSums(
       matrix(dist < nodes$radius[j] + label_node_clearance, nrow = n)
-    ) >
-      0
+    )
   }
 
-  overlap <- logical(n)
+  box_hits <- integer(n)
   if (n > 1) {
     i <- rep(seq_len(n), times = n)
     j <- rep(seq_len(n), each = n)
@@ -1907,7 +1950,7 @@ label_box_violations <- function(boxes, nodes, edges, bounds) {
       boxes$ymax[j]
     )
     area[i == j] <- 0
-    overlap <- rowSums(matrix(area, nrow = n)) > 0
+    box_hits <- rowSums(matrix(area > 0, nrow = n))
   }
 
   outside <- boxes$xmin < bounds[[1]] |
@@ -1915,7 +1958,7 @@ label_box_violations <- function(boxes, nodes, edges, bounds) {
     boxes$xmax > bounds[[3]] |
     boxes$ymax > bounds[[4]]
 
-  hits$edge > 0 | hits$arrow > 0 | node_hit | overlap | outside
+  as.integer(edge_hits + node_hits + box_hits + outside)
 }
 
 #' Radius of the node disc nearest each label's node center
@@ -2137,6 +2180,27 @@ GeomDagLabelAuto <- ggplot2::ggproto(
   ),
   draw_key = ggplot2::draw_key_label,
   boxed = TRUE,
+  # Every panel of one drawn layer shares a tally, so the labels no panel
+  # could place are reported once for the whole picture rather than once per
+  # panel. See `new_label_draw()` for how the tally decides when to warn.
+  draw_layer = function(self, data, params, layout, coord) {
+    grobs <- ggplot2::ggproto_parent(ggplot2::Geom, self)$draw_layer(
+      data,
+      params,
+      layout,
+      coord
+    )
+    labelled <- vapply(grobs, inherits, logical(1), "dag_labels_auto")
+    if (!any(labelled)) {
+      return(grobs)
+    }
+    draw <- new_label_draw(sum(labelled))
+    grobs[labelled] <- lapply(grobs[labelled], function(grob) {
+      grob[["draw"]] <- draw
+      grob
+    })
+    grobs
+  },
   draw_panel = function(
     self,
     data,
@@ -2151,6 +2215,8 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     min.segment.length = 5,
     segment.colour = "grey50",
     segment.size = 0.5,
+    max.overlaps = Inf,
+    wrap = NULL,
     na.rm = FALSE
   ) {
     coords <- coord$transform(data, panel_params)
@@ -2213,8 +2279,11 @@ GeomDagLabelAuto <- ggplot2::ggproto(
         label.size = label.size,
         min.segment.length = min.segment.length,
         segment.colour = segment.colour,
-        segment.size = segment.size
+        segment.size = segment.size,
+        max.overlaps = max.overlaps %||% Inf,
+        wrap = wrap
       ),
+      draw = NULL,
       cl = "dag_labels_auto"
     )
   }
@@ -2235,6 +2304,114 @@ GeomDagTextAuto <- ggplot2::ggproto(
   boxed = FALSE
 )
 
+#' Wrap label text to a width in characters
+#'
+#' @param label Character vector of label text.
+#' @param width Width in characters, or `NULL`/`NA` for no wrapping.
+#' @return `label`, with each element's lines joined by newlines.
+#' @noRd
+wrap_label_text <- function(label, width) {
+  if (is.null(width) || length(width) == 0 || is.na(width[[1]])) {
+    return(label)
+  }
+  vapply(
+    label,
+    function(text) {
+      if (is.na(text)) {
+        return(text)
+      }
+      # `strwrap()` never breaks a word, so a label with no space in it, or
+      # one whose words are longer than the width, is left as it is
+      paste(strwrap(text, width = width[[1]]), collapse = "\n")
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+}
+
+#' A tally of the labels one drawn layer could not place
+#'
+#' One warning belongs to one draw, not to one panel and not to one call of
+#' `makeContent()`. The tally is an environment `draw_layer()` attaches to
+#' every panel's gTree of a layer: each panel records what it could not place
+#' under its own grob name, and the panel that completes the tally signals
+#' the warning for the union. Because the environment belongs to the grobs,
+#' drawing those grobs again (`grid::grid.force()` after a `print()`, or a
+#' redraw on resize) finds the warning already signalled and stays quiet,
+#' while a fresh draw builds fresh grobs and a fresh tally. Nothing here
+#' depends on the text of the warning, so identical pictures drawn one after
+#' another each still warn.
+#'
+#' @param n_panels Number of panels the layer drew label trees for.
+#' @return An environment.
+#' @noRd
+new_label_draw <- function(n_panels) {
+  draw <- new.env(parent = emptyenv())
+  draw$n_panels <- n_panels
+  draw$panels <- list()
+  draw$warned <- FALSE
+  draw
+}
+
+#' Record one panel's unplaced labels and warn once the draw is complete
+#'
+#' @param x A drawn `dag_labels_auto` gTree, carrying `unresolved`, `dropped`,
+#'   and the `draw` tally its layer attached.
+#' @return `NULL`, invisibly.
+#' @noRd
+report_unresolved_labels <- function(x) {
+  draw <- x$draw
+  if (is.null(draw)) {
+    return(invisible(NULL))
+  }
+  draw$panels[[x$name]] <- list(
+    unresolved = x$unresolved,
+    dropped = x$dropped
+  )
+  if (draw$warned || length(draw$panels) < draw$n_panels) {
+    return(invisible(NULL))
+  }
+  draw$warned <- TRUE
+  collect <- function(field) {
+    as.character(unique(unlist(
+      lapply(draw$panels, `[[`, field),
+      use.names = FALSE
+    )))
+  }
+  warn_unresolved_labels(collect("unresolved"), collect("dropped"))
+}
+
+#' Warn about the labels a draw could not place
+#'
+#' @param unresolved Character vector of labels the engine could not place
+#'   clear of the drawing.
+#' @param dropped Character vector of those that were left out of the picture
+#'   for exceeding `max.overlaps`.
+#' @return `NULL`, invisibly.
+#' @noRd
+warn_unresolved_labels <- function(unresolved, dropped) {
+  if (length(unresolved) == 0 && length(dropped) == 0) {
+    return(invisible(NULL))
+  }
+  if (length(dropped) > 0) {
+    warn(
+      c(
+        "{length(dropped)} label{?s} could not be placed clear of the drawing and {?was/were} dropped: {.val {dropped}}.",
+        "i" = "Draw the plot on a larger device, or shorten the labels or wrap them with {.arg wrap}, to make room for {cli::qty(length(dropped))}{?it/them}."
+      ),
+      warning_class = "ggdag_label_unresolved_warning"
+    )
+    return(invisible(NULL))
+  }
+  warn(
+    c(
+      "{length(unresolved)} label{?s} could not be placed clear of the drawing: {.val {unresolved}}.",
+      "i" = "Draw the plot on a larger device, shorten the labels or wrap them with {.arg wrap}, or leave {cli::qty(length(unresolved))}{?it/them} out with {.code max.overlaps = 0}."
+    ),
+    warning_class = "ggdag_label_unresolved_warning"
+  )
+}
+
 #' Compute and draw automatically placed labels
 #'
 #' Runs at draw time, inside the panel viewport, where positions in native
@@ -2248,17 +2425,26 @@ GeomDagTextAuto <- ggplot2::ggproto(
 #' and the leader threshold `min.segment.length`, so a leader is drawn only
 #' when no admissible spot within that distance exists. After placement every
 #' box is tested against the same hard constraints, and the labels whose box
-#' still violates one are recorded on the tree as `unresolved`.
+#' still violates one are recorded on the tree as `unresolved`. A label that
+#' hits more than `max.overlaps` things is left out of the picture entirely
+#' and recorded as `dropped`; the labels that stay are not placed again.
 #'
 #' @param x A `dag_labels_auto` gTree built by `GeomDagLabelAuto$draw_panel()`.
-#' @return `x`, with children set to the drawn grobs and the field
-#'   `unresolved` set to the character vector of label texts whose box
-#'   violates a hard constraint (`character(0)` when every box is clear).
+#' @return `x`, with children set to the drawn grobs, the field `unresolved`
+#'   set to the character vector of label texts whose box violates a hard
+#'   constraint (`character(0)` when every box is clear), and the field
+#'   `dropped` set to those of them that were not drawn.
 #' @exportS3Method grid::makeContent
 #' @noRd
 makeContent.dag_labels_auto <- function(x) {
   labels <- x$labels
   par <- x$params
+
+  # The text is wrapped before it is measured, so the boxes the engine places
+  # are the boxes the reader sees. The tree keeps the labels as the stat
+  # carried them, so `unresolved` and the warning name a label the way the
+  # user wrote it.
+  drawn_text <- wrap_label_text(labels$label, par$wrap)
 
   mm_x <- function(value) {
     if (length(value) == 0) {
@@ -2298,7 +2484,7 @@ makeContent.dag_labels_auto <- function(x) {
     )
   }
   text_grobs <- lapply(seq_len(n), function(i) {
-    grid::textGrob(labels$label[i], gp = label_gp(i))
+    grid::textGrob(drawn_text[i], gp = label_gp(i))
   })
 
   padding <- as_unit(par$label.padding, "lines")
@@ -2373,7 +2559,7 @@ makeContent.dag_labels_auto <- function(x) {
     leader = par$min.segment.length
   )
 
-  violated <- label_box_violations(
+  overlaps <- label_box_overlap_counts(
     data.frame(
       xmin = placed$x - widths / 2,
       ymin = placed$y - heights / 2,
@@ -2384,7 +2570,14 @@ makeContent.dag_labels_auto <- function(x) {
     edge_input,
     bounds
   )
-  x$unresolved <- as.character(labels$label[violated])
+  # `unresolved` is the engine's own result, whatever is drawn afterwards.
+  # Dropping is post hoc: the labels over the allowance are left out of the
+  # picture, and the engine is not run again without them, so the labels that
+  # stay are where they were.
+  x$unresolved <- as.character(labels$label[overlaps > 0])
+  drop <- overlaps > (par$max.overlaps %||% Inf)
+  x$dropped <- as.character(labels$label[drop])
+  report_unresolved_labels(x)
 
   radius <- nearest_node_radius(label_input$x, label_input$y, node_input)
 
@@ -2392,6 +2585,9 @@ makeContent.dag_labels_auto <- function(x) {
   boxes <- list()
   texts <- list()
   for (i in seq_len(n)) {
+    if (drop[i]) {
+      next
+    }
     center_x <- placed$x[i]
     center_y <- placed$y[i]
     box <- c(
@@ -2438,7 +2634,7 @@ makeContent.dag_labels_auto <- function(x) {
     }
 
     texts[[length(texts) + 1]] <- grid::textGrob(
-      labels$label[i],
+      drawn_text[i],
       x = grid::unit(center_x, "mm"),
       y = grid::unit(center_y, "mm"),
       gp = label_gp(i)
@@ -2827,7 +3023,10 @@ densify_polyline <- function(px, py, spacing) {
 #' no admissible box exists at all, the label is drawn at the least-bad
 #' position and its text is recorded in the `unresolved` field of the drawn
 #' `dag_labels_auto` grob tree (`character(0)` when every box is clear), so
-#' a plot too crowded for its labels can be detected after drawing.
+#' a plot too crowded for its labels can be detected after drawing. Such a
+#' draw also warns once, naming the labels; `max.overlaps` leaves them out of
+#' the picture instead of drawing them on the ink, and `wrap` gives a long
+#' label a smaller box to find room for.
 #'
 #' @inheritParams geom_dag_arrow
 #' @param node_size The size of the plot's nodes, as given to
@@ -2854,8 +3053,20 @@ densify_polyline <- function(px, py, spacing) {
 #'   past it only when no admissible spot within it exists.
 #' @param segment.colour,segment.size Colour and linewidth of the leader
 #'   lines.
-#' @param box.padding,max.overlaps Accepted for compatibility with the repel
-#'   label geoms and ignored.
+#' @param max.overlaps Maximum number of things a label's final box may still
+#'   hit and be drawn anyway: the node discs it penetrates, the drawn edges
+#'   within the placement margins, the other label boxes it overlaps, and the
+#'   panel bounds it spills. The default, `Inf`, draws every label. A finite
+#'   value leaves out, after placement and without running the engine again,
+#'   every label whose box hits more than that many things, so
+#'   `max.overlaps = 0` leaves out exactly the labels reported as
+#'   `unresolved`. The labels that stay do not move.
+#' @param wrap Width in characters to wrap the label text to, through
+#'   [base::strwrap()]. The wrapped text is what is measured, placed, and
+#'   drawn, and a word longer than the width is left whole. `NULL`, the
+#'   default, and `NA` wrap nothing.
+#' @param box.padding Accepted for compatibility with the repel label geoms
+#'   and ignored.
 #'
 #' @return A layer that can be added to a ggplot.
 #'
@@ -2897,8 +3108,9 @@ geom_dag_label_auto <- function(
   min.segment.length = 5,
   segment.colour = "grey50",
   segment.size = 0.5,
+  max.overlaps = Inf,
+  wrap = NULL,
   box.padding = NULL,
-  max.overlaps = NULL,
   na.rm = TRUE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -2924,6 +3136,8 @@ geom_dag_label_auto <- function(
       min.segment.length = min.segment.length,
       segment.colour = segment.colour,
       segment.size = segment.size,
+      max.overlaps = max.overlaps,
+      wrap = wrap,
       ...
     )
   )
@@ -2931,7 +3145,10 @@ geom_dag_label_auto <- function(
   dag_layer(layer, discover = c("node_size", "edge_geometry"), debug = TRUE)
 }
 
-geom_dag_label_auto <- dag_node_aware(geom_dag_label_auto, extra = "edge_cap")
+geom_dag_label_auto <- dag_node_aware(
+  geom_dag_label_auto,
+  extra = c("edge_cap", "wrap")
+)
 
 #' @export
 #' @rdname label_auto
@@ -2949,8 +3166,9 @@ geom_dag_text_auto <- function(
   min.segment.length = 5,
   segment.colour = "grey50",
   segment.size = 0.5,
+  max.overlaps = Inf,
+  wrap = NULL,
   box.padding = NULL,
-  max.overlaps = NULL,
   na.rm = TRUE,
   show.legend = NA,
   inherit.aes = TRUE
@@ -2974,6 +3192,8 @@ geom_dag_text_auto <- function(
       min.segment.length = min.segment.length,
       segment.colour = segment.colour,
       segment.size = segment.size,
+      max.overlaps = max.overlaps,
+      wrap = wrap,
       ...
     )
   )
@@ -2981,4 +3201,7 @@ geom_dag_text_auto <- function(
   dag_layer(layer, discover = c("node_size", "edge_geometry"), debug = TRUE)
 }
 
-geom_dag_text_auto <- dag_node_aware(geom_dag_text_auto, extra = "edge_cap")
+geom_dag_text_auto <- dag_node_aware(
+  geom_dag_text_auto,
+  extra = c("edge_cap", "wrap")
+)
