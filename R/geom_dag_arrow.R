@@ -241,6 +241,7 @@ geom_dag_routed_arrow_geom <- function() {
         route = "spline",
         clearance = NULL,
         edge_sep = NULL,
+        edge_sep_min = NULL,
         layer_axis = "auto",
         node_size = NULL,
         arrow = list(
@@ -319,6 +320,7 @@ geom_dag_routed_arrow_geom <- function() {
             route = route,
             clearance = clearance,
             edge_sep = edge_sep,
+            edge_sep_min = edge_sep_min,
             layer_axis = layer_axis,
             node_size = node_size %||% ggdag_option("node_size", 16),
             arrow = arrow,
@@ -443,6 +445,7 @@ makeContent.dag_routed_edges <- function(x) {
       r_ref = radius,
       m = par$clearance,
       sep_e = par$edge_sep,
+      sep_min = par$edge_sep_min,
       layer_axis = par$layer_axis %||% "auto"
     )
   )
@@ -455,7 +458,8 @@ makeContent.dag_routed_edges <- function(x) {
       list(routed_arrow_grob(
         edges[paths, , drop = FALSE],
         routed$paths[paths],
-        par
+        par,
+        routed$meta[paths, , drop = FALSE]
       ))
     )
   }
@@ -541,11 +545,25 @@ routed_unit <- function(value, units) {
   if (grid::is.unit(value)) value else grid::unit(value, units)
 }
 
+# A resect per edge in millimetres: the value the layer resects by, read as
+# millimetres the way `routed_cap_mm()` reads it, plus the extra arc length
+# the router measured for that edge's port.
+routed_resect_mm <- function(value, extra) {
+  base <- suppressWarnings(as.numeric(value))
+  base[!is.finite(base)] <- 0
+  rep_len(base, length(extra)) + extra
+}
+
 # The routed and straight paths of a panel as one ggarrow arrow grob. This is
 # `ggarrow::GeomArrow$draw_panel()` with the panel's native units replaced by
 # the millimetres the router works in: per-edge colour, alpha, width, line
 # type, ornaments, and resection reach ggarrow exactly as they always do.
-routed_arrow_grob <- function(edges, paths, par) {
+# When the router reports a resect per edge (`meta$resect_head` and
+# `meta$resect_fins`, in orthogonal mode), each end is resected by that arc
+# length instead, so that a head entering an offset port still has its tip
+# the cap from the node centre; a resect the user mapped or set is moved by
+# the same amount the router moved the cap.
+routed_arrow_grob <- function(edges, paths, par, meta = NULL) {
   n_points <- vapply(paths, nrow, integer(1))
   drawable <- n_points >= 2
   edges <- edges[drawable, , drop = FALSE]
@@ -553,6 +571,14 @@ routed_arrow_grob <- function(edges, paths, par) {
   n_points <- n_points[drawable]
   if (nrow(edges) == 0) {
     return(NULL)
+  }
+  resect_head <- edges$resect_head %||% par$resect$head
+  resect_fins <- edges$resect_fins %||% par$resect$fins
+  if (!is.null(meta) && !is.null(meta$resect_head)) {
+    meta <- meta[drawable, , drop = FALSE]
+    cap <- routed_cap_mm(edges, par$resect)
+    resect_head <- routed_resect_mm(resect_head, meta$resect_head - cap)
+    resect_fins <- routed_resect_mm(resect_fins, meta$resect_fins - cap)
   }
 
   id <- rep(seq_along(paths), n_points)
@@ -583,8 +609,8 @@ routed_arrow_grob <- function(edges, paths, par) {
     force_arrow = par$force_arrow,
     mid_place = par$mid_place,
     shaft_width = width,
-    resect_head = routed_unit(edges$resect_head %||% par$resect$head, "mm"),
-    resect_fins = routed_unit(edges$resect_fins %||% par$resect$fins, "mm"),
+    resect_head = routed_unit(resect_head, "mm"),
+    resect_fins = routed_unit(resect_fins, "mm"),
     gp = grid::gpar(
       col = edges$stroke_colour,
       fill = alpha(edges$colour, edges$alpha),
@@ -1165,6 +1191,7 @@ dag_routed_arrow_layer <- function(
   route = "spline",
   clearance = NULL,
   edge_sep = NULL,
+  edge_sep_min = NULL,
   layer_axis = "auto",
   node_size = NULL,
   arrow_head,
@@ -1197,6 +1224,7 @@ dag_routed_arrow_layer <- function(
       route = route,
       clearance = clearance,
       edge_sep = edge_sep,
+      edge_sep_min = edge_sep_min,
       layer_axis = layer_axis,
       node_size = node_size,
       arrow = list(head = arrow_head, fins = arrow_fins, mid = arrow_mid),
@@ -1261,6 +1289,11 @@ dag_routed_arrow_layer <- function(
 #'   half a node radius with a floor of 1.2 mm.
 #' @param edge_sep The gap in millimetres between two routed paths sharing a
 #'   detour, or `NULL` (the default) for the router's own separation.
+#' @param edge_sep_min The gap in millimetres the orthogonal router may
+#'   tighten `edge_sep` to when a gap between layers is too narrow for its
+#'   slots at the full separation, or `NULL` (the default) for a quarter of
+#'   the node radius with a floor of 1.5 mm. Set it equal to `edge_sep` to
+#'   keep the separation fixed. Spline routing does not use it.
 #' @param layer_axis The axis the layout's layers run along, one of `"auto"`
 #'   (the default), `"x"`, or `"y"`. Routing sends a detour along the
 #'   within-layer axis, so a layout laid out down the panel rather than
@@ -1300,6 +1333,7 @@ geom_dag_routed_arrows <- function(
   route = c("spline", "orthogonal"),
   clearance = NULL,
   edge_sep = NULL,
+  edge_sep_min = NULL,
   layer_axis = c("auto", "x", "y"),
   node_size = NULL,
   curvature = 0.3,
@@ -1352,6 +1386,7 @@ geom_dag_routed_arrows <- function(
       route = route,
       clearance = clearance,
       edge_sep = edge_sep,
+      edge_sep_min = edge_sep_min,
       layer_axis = layer_axis,
       node_size = node_size,
       arrow_head = arrow_head,

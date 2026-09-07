@@ -942,6 +942,7 @@ route_spec_blanks <- list(
   route_style = NA_character_,
   route_clearance = NA_real_,
   route_sep = NA_real_,
+  route_sep_min = NA_real_,
   route_layer_axis = NA_character_,
   route_cap = NA_real_,
   route_fixed = NA,
@@ -976,6 +977,7 @@ dedupe_routed_geometry <- function(geometry) {
     "route_style",
     "route_clearance",
     "route_sep",
+    "route_sep_min",
     "route_layer_axis",
     "route_cap",
     "curvature"
@@ -1007,6 +1009,10 @@ routed_chord_points <- function(geometry, panel) {
       each = 2
     ),
     route_sep = rep(spec_column(geometry, "route_sep", NA_real_), each = 2),
+    route_sep_min = rep(
+      spec_column(geometry, "route_sep_min", NA_real_),
+      each = 2
+    ),
     route_layer_axis = rep(
       spec_column(geometry, "route_layer_axis", NA_character_),
       each = 2
@@ -1745,6 +1751,7 @@ routed_layer_geometry <- function(layer, plot_data) {
     route_style = layer$geom_params$route %||% "spline",
     route_clearance = layer$geom_params$clearance %||% NA_real_,
     route_sep = layer$geom_params$edge_sep %||% NA_real_,
+    route_sep_min = layer$geom_params$edge_sep_min %||% NA_real_,
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
     route_cap = routed_layer_cap_mm(layer, layer_data),
     stringsAsFactors = FALSE

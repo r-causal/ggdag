@@ -2692,6 +2692,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       style = spec$route_style[first],
       clearance = spec$route_clearance[first],
       sep = spec$route_sep[first],
+      sep_min = spec$route_sep_min[first],
       layer_axis = spec$route_layer_axis[first],
       cap = spec$route_cap[first],
       curvature = spec$curvature[first],
@@ -2793,6 +2794,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
         r_ref = radius,
         m = if (is.na(settings$clearance)) NULL else settings$clearance,
         sep_e = if (is.na(settings$sep)) NULL else settings$sep,
+        sep_min = if (is.na(settings$sep_min)) NULL else settings$sep_min,
         layer_axis = if (is.na(settings$layer_axis)) {
           "auto"
         } else {

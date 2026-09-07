@@ -11,6 +11,7 @@ geom_dag_routed_arrows(
   route = c("spline", "orthogonal"),
   clearance = NULL,
   edge_sep = NULL,
+  edge_sep_min = NULL,
   layer_axis = c("auto", "x", "y"),
   node_size = NULL,
   curvature = 0.3,
@@ -57,6 +58,12 @@ half a node radius with a floor of 1.2 mm.}
 
 \item{edge_sep}{The gap in millimetres between two routed paths sharing a
 detour, or \code{NULL} (the default) for the router's own separation.}
+
+\item{edge_sep_min}{The gap in millimetres the orthogonal router may
+tighten \code{edge_sep} to when a gap between layers is too narrow for its
+slots at the full separation, or \code{NULL} (the default) for a quarter of
+the node radius with a floor of 1.5 mm. Set it equal to \code{edge_sep} to
+keep the separation fixed. Spline routing does not use it.}
 
 \item{layer_axis}{The axis the layout's layers run along, one of \code{"auto"}
 (the default), \code{"x"}, or \code{"y"}. Routing sends a detour along the

@@ -33,29 +33,35 @@
 # Orthogonal mode shares the orientation, the layers, the side cost, and the
 # parallel-edge spreading, but draws every edge as axis-aligned runs whether
 # or not a node blocks its chord. Chords that are already axis-aligned stay
-# straight: vertical chords, horizontal chords between adjacent layers,
-# horizontal spanning chords that no crossed disc blocks, and chords between
-# two nodes of one layer. A spanning edge chooses the cheapest of its
-# candidate channels, each priced by displacement, bends, crossings, and
-# congestion: an S or N channel past the crossed stacks when its endpoints
-# are the extreme nodes of their layers, an E/W run at an endpoint's line or
-# beyond the stacks, and, when no S/N channel fits, a run through a free
-# interval of every crossed layer. A channel that would cut a disc or run
-# inside the panel margin is infeasible; channels that would share a y over
-# overlapping x-ranges are stacked sep_e apart, the shorter span inside.
-# Every other edge leaves through the E port and enters through the W port,
-# with one vertical run per crossed gap. Within a gap the vertical runs are
-# hyperedge segments (a fan leaving one port shares one); segments from
-# different sources never share a slot, even when they only meet. They are
+# straight: vertical chords, level chords (tilted by no more than the corner
+# radius) between adjacent layers, level spanning chords that no crossed
+# disc blocks, and chords between two nodes of one layer. A spanning edge
+# chooses the cheapest of its candidate channels, each priced by
+# displacement, bends, crossings, and congestion: an S or N channel past
+# the crossed stacks when its endpoints are the extreme nodes of their
+# layers, an E/W run at either endpoint's line or beyond the stacks, and,
+# when no S/N channel fits, a run through a free interval of every crossed
+# layer. A channel that would cut a disc or run inside the panel margin is
+# infeasible; channels that would share a y over overlapping x-ranges are
+# stacked sep_e apart, the shorter span inside. Every other edge leaves
+# through the E port and enters through the W port, with one vertical run
+# per crossed gap. Within a gap the vertical runs are hyperedge segments (a
+# fan leaving one port shares one); segments from different sources never
+# share a slot, even when they only meet or come within sep_e. They are
 # ordered by a dependency graph weighted by the crossings each order would
 # cause, an order whose horizontal pieces would coincide being forbidden,
-# numbered by longest path, and spread evenly over the gap's band. A node
-# whose N or S side carries both an arrival and a departure gives them
-# ports sep_e / 2 on either side of its centre line, so no stub carries two
-# edges in opposite directions and the arrowhead of the arrival stays
-# clear of the departure. Bends are then rounded with a quadratic Bezier,
-# the runs are sampled, and the result is verified against the node discs
-# like a spline.
+# numbered by longest path, and placed on the first rung of a ladder that
+# holds them: the nominal stub and an even spread, then a shorter stub, a
+# tighter spacing, a smaller corner radius, and finally slots spread between
+# the layers' soft bands without clearance. The arrivals on a node's W side
+# take stacked rows beside its centre line, the level chord keeping the
+# centre and a group of three or more merging onto one row, and two channel
+# stubs on one N or S side sit sep_e / 2 either side of the centre line, so
+# no stub carries two edges in opposite directions and every arrowhead is
+# drawn on a row of its own. Bends are then rounded with a quadratic
+# Bezier, the runs are sampled, the resect each end needs to put its head
+# tip on the cap line is measured, and the result is verified against the
+# node discs like a spline.
 
 #' Constants of the millimetre router
 #'
@@ -71,6 +77,9 @@
 #' @param m Clearance margin in mm, or `NULL` for `max(0.5 * r_ref, 1.2)`.
 #' @param sep_e Edge separation within a slot in mm, or `NULL` for
 #'   `max(0.6 * r_ref, 1.5)`.
+#' @param sep_min The separation the orthogonal ladder may tighten the slot
+#'   spacing of a narrow gap to, in mm, or `NULL` for `max(0.25 * r_ref,
+#'   1.5)`. Setting it equal to `sep_e` fixes the spacing.
 #' @param layer_axis The axis the layers run along: `"auto"` infers it,
 #'   `"x"` and `"y"` name it.
 #' @param corners In orthogonal mode, `"rounded"` replaces every bend with a
@@ -86,6 +95,7 @@ route_opts <- function(
   r_ref,
   m = NULL,
   sep_e = NULL,
+  sep_min = NULL,
   layer_axis = c("auto", "x", "y"),
   corners = c("rounded", "sharp"),
   bend_penalty = 2
@@ -102,6 +112,7 @@ route_opts <- function(
   }
   m <- m %||% max(0.5 * r_ref, 1.2)
   m_min <- min(1.2, m)
+  sep_e <- sep_e %||% max(0.6 * r_ref, 1.5)
   list(
     r_ref = r_ref,
     m = m,
@@ -109,9 +120,15 @@ route_opts <- function(
     layer_axis = layer_axis,
     corners = corners,
     rc = min(max(0.35 * r_ref, 0.8), 2.5),
+    # the floor of the corner radius, the drawn arrowhead length the stub
+    # must hold past the cap, and the head width that bounds a port stack
+    rc_min = 0.8,
+    head = 2,
+    head_w = 1.3,
     R = r_ref + m,
     R_soft = r_ref + m_min,
-    sep_e = sep_e %||% max(0.6 * r_ref, 1.5),
+    sep_e = sep_e,
+    sep_min = min(sep_min %||% max(0.25 * r_ref, 1.5), sep_e),
     sep_m = max(1.0 * r_ref, 2.5),
     tol_layer = r_ref,
     steep_deg = 60,
@@ -170,6 +187,14 @@ route_opts <- function(
 #'   edge). `clearance_ok` is `FALSE` when the drawn curve could not be kept
 #'   `R` from every node disc, when its arch had to stop on another edge's
 #'   arch in a shared slot, or when it left the panel and was clamped to it.
+#'   In orthogonal mode `meta` also carries `resect_head` and `resect_fins`,
+#'   the arc length in mm from each end of the path to the cap line on that
+#'   end's port axis (exactly `cap` at a centre port, more at an offset
+#'   port, whose hidden connector the resect must pass), and the result
+#'   carries `ortho`: `rc`, the corner radius the scene was drawn with, and
+#'   `gaps`, one row per gap that holds a slot with `gap`, `width`,
+#'   `ranks`, `rung`, `stub`, and `spacing` (see `ortho_slot_positions()`;
+#'   `stub` is `NA` on the last rung, where no stub fits).
 #' @noRd
 route_edges_mm <- function(
   nodes,
@@ -2222,6 +2247,10 @@ route_orthogonal_scene <- function(
   R_node <- nodes$r + opts$m
   rc <- opts$rc
   stub <- opts$r_ref + cap + rc
+  # the resect is measured from the node centre, so a bend vertex needs only
+  # the cap, the arrowhead or the corner arc, and the corner's tangent length
+  # past the centre; the nominal stub carries the radius as slack
+  stub_min <- cap + max(opts$head, rc) + rc
   tol <- 1e-3
 
   # canonical endpoints: the source is the left (or lower) node
@@ -2233,7 +2262,10 @@ route_orthogonal_scene <- function(
   Ty <- nodes$y[b]
   span <- info$span
   vertical <- abs(Tx - Sx) < tol
-  horizontal <- abs(Ty - Sy) < tol
+  # a chord tilted by no more than the corner radius is level: a jog shorter
+  # than rc cannot show two proper corners and reads as a wobble, while the
+  # tilt over a gap of at least a stub is a few degrees at most
+  horizontal <- abs(Ty - Sy) <= rc + 1e-9
 
   # a node is extreme on a side when nothing in its layer lies beyond it
   layer_hi <- vapply(layers$members, function(m) max(nodes$y[m]), numeric(1))
@@ -2341,7 +2373,7 @@ route_orthogonal_scene <- function(
       nodes,
       R_node,
       extra[[e]],
-      stub,
+      c(stub, stub_min),
       c(
         at_top[[a[[e]]]] && at_top[[b[[e]]]],
         at_bottom[[a[[e]]]] && at_bottom[[b[[e]]]]
@@ -2378,10 +2410,11 @@ route_orthogonal_scene <- function(
     }
   }
 
-  # ports: a side of a node that carries both arrivals and departures gives
-  # them stubs sep_e / 2 on either side of the centre line, the departure
-  # on the side of travel, so no stub carries two edges in opposite
-  # directions
+  # N and S ports: two channel stubs on one side of a node sit sep_e / 2
+  # either side of the centre line, an arrival on the left of a departure,
+  # two arrivals in ascending channel y and two departures in descending
+  # channel y, which is the crossing-free order. More than two share: the
+  # arrivals take the left stub and the departures the right
   port_s <- numeric(n_edges)
   port_t <- numeric(n_edges)
   sn <- which(kind == "sn")
@@ -2389,17 +2422,31 @@ route_orthogonal_scene <- function(
     for (s in c(1, -1)) {
       dep <- sn[a[sn] == n & side[sn] == s]
       arr <- sn[b[sn] == n & side[sn] == s]
-      if (length(dep) > 0 && length(arr) > 0) {
-        port_s[dep] <- opts$sep_e / 2
-        port_t[arr] <- -opts$sep_e / 2
+      if (length(dep) + length(arr) < 2) {
+        next
+      }
+      half <- opts$sep_e / 2
+      if (length(dep) + length(arr) == 2) {
+        dep <- dep[order(-y_ch[dep], Sy[dep], b[dep], method = "radix")]
+        arr <- arr[order(y_ch[arr], Sy[arr], a[arr], method = "radix")]
+        stack <- c(-half, half)
+        port_t[arr] <- stack[seq_along(arr)]
+        port_s[dep] <- stack[length(arr) + seq_along(dep)]
+      } else if (length(dep) > 0 && length(arr) > 0) {
+        port_s[dep] <- half
+        port_t[arr] <- -half
       }
     }
   }
 
-  # one slot per hyperedge segment in every gap
+  # one slot per hyperedge segment in every gap, on the rung of the ladder
+  # the gap reaches; the scene draws every corner at the smallest radius
+  # any gap needed
   slot_first <- rep(NA_real_, n_edges)
   slot_last <- rep(NA_real_, n_edges)
   narrow <- logical(n_edges)
+  ladder <- list()
+  rc_used <- rc
   ew <- which(kind == "ew")
   for (g in seq_len(n_gaps)) {
     first <- ew[info$la[ew] == g]
@@ -2421,8 +2468,9 @@ route_orthogonal_scene <- function(
     )
     pos <- ortho_slot_positions(
       segs,
-      c(layers$x[[g]] + stub, layers$x[[g + 1L]] - stub),
-      opts
+      c(layers$x[[g]], layers$x[[g + 1L]]),
+      opts,
+      cap
     )
     for (k in seq_along(segs$members)) {
       m <- segs$members[[k]]
@@ -2433,9 +2481,74 @@ route_orthogonal_scene <- function(
         narrow[m] <- TRUE
       }
     }
+    if (!is.null(pos$ladder)) {
+      ladder[[length(ladder) + 1L]] <- new_df(c(
+        list(gap = g),
+        unclass(pos$ladder)
+      ))
+      rc_used <- min(rc_used, pos$rc)
+    }
+  }
+  ladder <- Reduce(
+    df_bind,
+    ladder,
+    df_cols(
+      gap = integer(0),
+      width = numeric(0),
+      ranks = integer(0),
+      rung = integer(0),
+      stub = numeric(0),
+      spacing = numeric(0)
+    )
+  )
+
+  # W ports: the level chords into a node, straight or running at the
+  # node's own line, own its centre row. The other arrivals take rows above
+  # and below it in the order of their slots, the leftmost slot nearest the
+  # centre, which is the crossing-free order; without a level chord the
+  # larger group's first member takes the centre. A group stacks only while
+  # two rows hold it; a larger group merges onto one row of its own at its
+  # first offset, and the ladder keeps its joins clear of the stub. The
+  # copies of a parallel bundle are spread sep_m apart already, and an
+  # arrival through a gap too narrow for any stub has no room for a row,
+  # so both keep the centre row
+  port_y <- numeric(n_edges)
+  via_last <- span >= 2
+  arrival_slot <- ifelse(via_last, slot_last, slot_first)
+  arrival_entry <- ifelse(via_last, y_ch, Sy)
+  arrival <- kind == "ew" & !is.na(arrival_slot) & shift == 0 & !narrow
+  owner <- (kind == "straight" & routable & horizontal & !vertical) |
+    (kind == "ew" & via_last & is.na(slot_last))
+  for (t in unique(b[arrival])) {
+    idx <- which(arrival & b == t)
+    idx <- idx[order(arrival_slot[idx], Sy[idx], a[idx], method = "radix")]
+    above <- idx[arrival_entry[idx] > Ty[idx]]
+    below <- idx[arrival_entry[idx] <= Ty[idx]]
+    has0 <- any(owner & b == t)
+    ka <- length(above)
+    kb <- length(below)
+    a0 <- !has0 && ka > 0 && ka >= kb
+    b0 <- !has0 && kb > ka
+    mult_a <- seq_len(ka) - a0
+    mult_b <- seq_len(kb) - b0
+    if (ka > 0 && max(mult_a) > 2) {
+      mult_a <- rep(min(mult_a), ka)
+    }
+    if (kb > 0 && max(mult_b) > 2) {
+      mult_b <- rep(min(mult_b), kb)
+    }
+    k <- max(mult_a, mult_b, 0)
+    if (k == 0) {
+      next
+    }
+    s <- min(opts$sep_e, (nodes$r[[t]] - opts$head_w / 2) / k)
+    port_y[above] <- mult_a * s
+    port_y[below] <- -mult_b * s
   }
 
   # polylines: centre, port, bends, port, centre; then corners and sampling
+  resect_head <- rep(cap, n_edges)
+  resect_fins <- rep(cap, n_edges)
   for (e in which(kind != "straight" & !is_fixed)) {
     fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
     geom <- ortho_bends(
@@ -2454,6 +2567,7 @@ route_orthogonal_scene <- function(
       stub,
       port_s[[e]],
       port_t[[e]],
+      port_y[[e]],
       tol
     )
     if (is.null(geom$bends)) {
@@ -2472,8 +2586,39 @@ route_orthogonal_scene <- function(
       next
     }
     poly <- drop_collinear(dedupe_points(rbind(fr$S, core, fr$E)))
-    pts <- if (opts$corners == "rounded") round_corners(poly, rc) else poly
+    # the foot of a port row on the disc boundary is a sharp corner: the
+    # row runs to the boundary and the connector inside the disc is never
+    # drawn, so the arc the resect measures is the row plus the radius
+    foot <- if (geom$axis_t == 1L && geom$off_t != 0 && !is.null(geom$port_t)) {
+      nrow(poly) - 1L
+    }
+    pts <- if (opts$corners == "rounded") {
+      round_corners(poly, rc_used, sharp = foot %||% integer(0))
+    } else {
+      poly
+    }
     pts <- dedupe_points(sample_runs(pts, opts$sample_spacing))
+
+    # the resect at an offset port: the arc from the centre to the cap line
+    # on the port's axis, through the hidden connector and its corner
+    at_s <- port_resect(
+      pts[rev(seq_len(nrow(pts))), , drop = FALSE],
+      fr$S,
+      geom$axis_s,
+      cap,
+      geom$limit_s + rc_used,
+      geom$off_s
+    )
+    at_e <- port_resect(
+      pts,
+      fr$E,
+      geom$axis_t,
+      cap,
+      geom$limit_t + rc_used,
+      geom$off_t
+    )
+    resect_head[[e]] <- if (info$reversed[[e]]) at_s else at_e
+    resect_fins[[e]] <- if (info$reversed[[e]]) at_e else at_s
 
     others <- setdiff(seq_len(nrow(nodes)), c(a[[e]], b[[e]]))
     ok <- !narrow[[e]] && !clamped[[e]]
@@ -2517,7 +2662,10 @@ route_orthogonal_scene <- function(
     waypoint_layers = wp_layers,
     clearance_ok = clearance_ok,
     sagitta_ratio = sagitta,
-    sagitta_capped = capped
+    sagitta_capped = capped,
+    resect_head = resect_head,
+    resect_fins = resect_fins,
+    ortho = list(rc = rc_used, gaps = ladder)
   )
 }
 
@@ -2532,23 +2680,25 @@ empty_pieces <- function() {
 #' and ties go above. S/N candidates exist for each side on which both
 #' endpoints are extreme; their channel sits at `max(extreme_y + R, S_y +
 #' stub, T_y + stub)` above (mirrored below), so the stubs always hold the
-#' arrowhead, and it has two bends. E/W candidates run at the lower of the
-#' endpoint y values that clear the crossed stacks (two bends, since the run
-#' is on that endpoint's line), or at `extreme_y + R` when neither does
-#' (mirrored below, four bends). When no S/N channel is feasible the edge
-#' also gets an interior E/W candidate on each side: the run nearest the
-#' chord that lies in a free interval of every crossed layer, the orthogonal
-#' analogue of the spline's interior slot. A candidate that would run within
-#' `sep_e` of an already placed channel over an overlapping x-range is
-#' pushed outward past it.
+#' arrowhead, and it has two bends. A channel that leaves the panel margin
+#' at the nominal stub is tried again at the stub floor. E/W candidates run
+#' at the source's own line and at the target's own line (two bends each, on
+#' the side of the chord that line lies on) and at `extreme_y + R` beyond
+#' the crossed stacks (mirrored below, four bends). When no S/N channel is
+#' feasible the edge also gets an interior E/W candidate on each side: the
+#' run nearest the chord that lies in a free interval of every crossed
+#' layer, the orthogonal analogue of the spline's interior slot. A candidate
+#' that would run within `sep_e` of an already placed channel over an
+#' overlapping x-range is pushed outward past it.
 #'
 #' A candidate is infeasible when its run comes closer than the clearance
 #' margin `m` to the panel bounds, when its margin band would cut a disc of
 #' a layer it passes, or when its horizontal pieces in a gap would coincide
 #' with a committed piece from another source in either slot order. When
-#' nothing is feasible the least displaced candidate is clamped to the
-#' margin and reported without clearance.
+#' nothing is feasible the least displaced candidate other than an endpoint
+#' run is clamped to the margin and reported without clearance.
 #'
+#' @param stub The nominal stub and the stub floor, in that order.
 #' @param sn_sides Logical pair: are S/N ports available above and below.
 #' @param channels The channels placed so far: `side`, `y`, `lo`, `hi`.
 #' @param intervals Free intervals per layer from `layer_free_intervals()`.
@@ -2591,9 +2741,6 @@ ortho_channel <- function(
   x_b <- gap_mid[[lb - 1L]]
   y_min <- bounds[[2]] + opts$m
   y_max <- bounds[[4]] - opts$m
-  ends <- c(Sy, Ty)
-  ew_hi <- if (any(ends >= ext_hi)) min(ends[ends >= ext_hi]) else ext_hi
-  ew_lo <- if (any(ends <= ext_lo)) max(ends[ends <= ext_lo]) else ext_lo
 
   # the discs a run must keep clear of: those of the crossed layers, and
   # for a channel from stub to stub the other discs of the endpoint layers
@@ -2616,7 +2763,7 @@ ortho_channel <- function(
     if (kind == "sn") {
       c(Sx, Tx)
     } else {
-      c(layers$x[[la]] + stub, layers$x[[lb]] - stub)
+      c(layers$x[[la]] + stub[[1]], layers$x[[lb]] - stub[[1]])
     }
   }
   bends_count <- function(kind, y) {
@@ -2663,25 +2810,61 @@ ortho_channel <- function(
   }
   costs <- function(cands) vapply(cands, function(c) c$cost, numeric(1))
 
+  # an S/N channel keeps the nominal stub when its run fits inside the panel
+  # margin, and otherwise retries at the stub floor before it is given up
+  sn_candidate <- function(s) {
+    y_at <- function(st) {
+      if (s > 0) {
+        max(ext_hi, Sy + st, Ty + st)
+      } else {
+        min(ext_lo, Sy - st, Ty - st)
+      }
+    }
+    cand <- candidate("sn", s, y_at(stub[[1]]))
+    if (!is.finite(cand$cost) && (cand$y < y_min || cand$y > y_max)) {
+      cand <- candidate("sn", s, y_at(stub[[2]]))
+    }
+    cand
+  }
   cands <- list()
   if (sn_sides[[1]]) {
-    cands <- c(
-      cands,
-      list(candidate("sn", 1, max(ext_hi, Sy + stub, Ty + stub)))
-    )
+    cands <- c(cands, list(sn_candidate(1)))
   }
   if (sn_sides[[2]]) {
-    cands <- c(
-      cands,
-      list(candidate("sn", -1, min(ext_lo, Sy - stub, Ty - stub)))
-    )
+    cands <- c(cands, list(sn_candidate(-1)))
   }
   sn_feasible <- any(is.finite(costs(cands)))
-  cands <- c(cands, list(candidate("ew", 1, ew_hi), candidate("ew", -1, ew_lo)))
+  # E/W runs at each endpoint's own line, two bends each. Such a run passes
+  # the crossed stacks on one side, and that is the side it is priced on;
+  # when the stacks lie on both sides of it, the side of the chord its line
+  # lies on. Then the runs beyond the crossed stacks
+  yc_mid <- stats::median(yc)
+  at_end <- function(y) {
+    s <- if (all(nodes$y[members] > y)) {
+      -1
+    } else if (all(nodes$y[members] < y)) {
+      1
+    } else if (y >= yc_mid) {
+      1
+    } else {
+      -1
+    }
+    cand <- candidate("ew", s, y)
+    cand$endpoint <- TRUE
+    cand
+  }
+  cands <- c(
+    cands,
+    list(
+      at_end(Sy),
+      at_end(Ty),
+      candidate("ew", 1, ext_hi),
+      candidate("ew", -1, ext_lo)
+    )
+  )
   if (!sn_feasible) {
-    y0 <- stats::median(yc)
     for (s in c(1, -1)) {
-      y <- common_free_y(intervals[crossed], y0, s)
+      y <- common_free_y(intervals[crossed], yc_mid, s)
       if (!is.na(y)) {
         cands <- c(cands, list(candidate("ew", s, y)))
       }
@@ -2690,10 +2873,18 @@ ortho_channel <- function(
 
   cost <- costs(cands)
   sides <- vapply(cands, function(c) c$side, numeric(1))
+  ys <- vapply(cands, function(c) c$y, numeric(1))
   clamped <- FALSE
   if (any(is.finite(cost))) {
-    best <- cands[[order(cost, -sides)[[1]]]]
+    # ties go above: to the upper side, and between two runs priced on one
+    # side to the higher run
+    best <- cands[[order(cost, -sides, -ys)[[1]]]]
   } else {
+    # an endpoint run is never short of the margin, only blocked by a disc,
+    # so it is not a candidate for clamping
+    pool <- !vapply(cands, function(c) isTRUE(c$endpoint), logical(1))
+    cands <- cands[pool]
+    sides <- sides[pool]
     displacement <- vapply(cands, function(c) c$displacement, numeric(1))
     best <- cands[[order(displacement, -sides)[[1]]]]
     best$y <- min(max(best$y, y_min), y_max)
@@ -2847,49 +3038,172 @@ ortho_gap_segments <- function(
   )
 }
 
+#' Arc length from a path end to the cap line on its port's axis
+#'
+#' The arrow layer resects each end of a path by the cap, measured along the
+#' path from the node centre. A centre port runs straight out, so the head
+#' tip sits on the cap line `|coord - centre| = cap` on the port's axis
+#' exactly `cap` along the path; an offset port reaches that line later,
+#' through the hidden connector and its corner, and the resect is the arc
+#' length to the crossing. The crossing is looked for within
+#' `limit` of arc length, the sharp length of the connector and the terminal
+#' run, so that a run too short to reach the cap line falls back to the cap.
+#'
+#' @param P The sampled path as a matrix, the port's end last.
+#' @param axis The column of `P` the port's axis runs along.
+#' @noRd
+port_resect <- function(P, centre, axis, cap, limit, offset) {
+  if (offset == 0 || nrow(P) < 2) {
+    return(cap)
+  }
+  Q <- P[rev(seq_len(nrow(P))), , drop = FALSE]
+  s <- c(0, cumsum(sqrt(diff(Q[, 1])^2 + diff(Q[, 2])^2)))
+  off <- abs(Q[, axis] - centre[[axis]])
+  k <- which(off >= cap - 1e-9 & s <= limit + 1e-9)
+  if (length(k) == 0) {
+    return(cap)
+  }
+  k <- k[[1]]
+  if (k == 1L) {
+    return(cap)
+  }
+  f <- (cap - off[[k - 1L]]) / (off[[k]] - off[[k - 1L]])
+  s[[k - 1L]] + f * (s[[k]] - s[[k - 1L]])
+}
+
 #' Slot x of every segment in a gap
 #'
 #' Degenerate segments (equal entry and exit y) take no slot and stay
-#' straight. The others are ranked by `ortho_slot_ranks()` and spread evenly
-#' over the band, `x = lo + rank * (hi - lo) / (max_rank + 1)`, when that
-#' keeps neighbouring ranks `sep_e` apart. Otherwise the ranks are centred
-#' on the band midpoint `sep_e` apart; that is still a proper placement
-#' when the band holds them all, and when it does not (or the band is
-#' inverted, the gap being narrower than two stubs) the gap is flagged
-#' `narrow` and its edges lose their clearance.
+#' straight. The others are ranked by `ortho_slot_ranks()` and placed on the
+#' first rung of a ladder that holds them, each rung giving up something the
+#' one before kept:
 #'
+#' * Rung 0: the nominal stub `r_ref + cap + rc` at both ends; the ranks are
+#'   spread evenly over the band, `x = lo + rank * (hi - lo) / (K + 1)`,
+#'   when that keeps neighbouring ranks `sep_e` apart, and otherwise centred
+#'   on the band midpoint `sep_e` apart when the band holds them all.
+#' * Rung 1: the stub shrinks to `max(stub_min, (G - sep_e (K - 1)) / 2)`,
+#'   where `stub_min = cap + max(head, rc) + rc` is the floor a bend vertex
+#'   needs past a node centre, and the slots stay `sep_e` apart about the
+#'   midpoint.
+#' * Rung 2: the stub is at its floor and the spacing tightens to
+#'   `(G - 2 stub_min) / (K - 1)`, no closer than `sep_min`.
+#' * Rung 3: the spacing is `sep_min` and the corner radius shrinks, with
+#'   the stub floor following it, no further than `rc_min`.
+#' * Rung 4: no stub fits. The slots are centred on the gap midpoint at the
+#'   spacing that keeps them between the layers' soft bands, `r_ref + m_min`
+#'   from either layer, and no wider than `sep_e`; the gap is flagged
+#'   `narrow` and its edges lose their clearance.
+#'
+#' @return A list with `x` (the slot of every segment, `NA` for a degenerate
+#'   one), `narrow`, `rc` (the corner radius the gap needs), and `ladder`, a
+#'   one-row data frame with `width`, `ranks`, `rung`, `stub`, and
+#'   `spacing`, `NULL` when no segment took a slot.
 #' @noRd
-ortho_slot_positions <- function(segs, band, opts) {
+ortho_slot_positions <- function(segs, gap, opts, cap) {
   x <- rep(NA_real_, length(segs$lo))
   live <- which(!segs$degenerate)
   if (length(live) == 0) {
-    return(list(x = x, narrow = FALSE))
+    return(list(x = x, narrow = FALSE, rc = opts$rc, ladder = NULL))
   }
   ranks <- ortho_slot_ranks(
     segs$lo[live],
     segs$hi[live],
     segs$lefts[live],
     segs$rights[live],
-    opts$crossing_penalty
+    opts$crossing_penalty,
+    opts$sep_e
   )
   K <- max(ranks)
-  width <- band[[2]] - band[[1]]
-  spacing <- width / (K + 1)
-  even <- width >= 0 && (K < 2 || spacing >= opts$sep_e - 1e-9)
-  narrow <- !even && (width < 0 || (K - 1) * opts$sep_e > width + 1e-9)
-  x[live] <- if (even) {
-    band[[1]] + ranks * spacing
+  eps <- 1e-9
+  G <- gap[[2]] - gap[[1]]
+  mid <- mean(gap)
+  sep_e <- opts$sep_e
+  sep_min <- opts$sep_min
+  rc <- opts$rc
+  stub_of <- function(rc) cap + max(opts$head, rc) + rc
+  stub_min <- stub_of(rc)
+  centred <- function(spacing) mid + (ranks - (K + 1) / 2) * spacing
+  from_left <- function(stub, spacing) gap[[1]] + stub + (ranks - 1) * spacing
+
+  stub0 <- opts$r_ref + cap + rc
+  width0 <- G - 2 * stub0
+  even <- width0 >= 0 && (K < 2 || width0 / (K + 1) >= sep_e - eps)
+  narrow <- FALSE
+  rc_g <- rc
+  if (even) {
+    rung <- 0L
+    stub <- stub0
+    spacing <- width0 / (K + 1)
+    pos <- gap[[1]] + stub0 + ranks * spacing
+  } else if (width0 >= (K - 1) * sep_e - eps) {
+    rung <- 0L
+    stub <- stub0
+    spacing <- sep_e
+    pos <- centred(sep_e)
+  } else if ((G - sep_e * (K - 1)) / 2 >= stub_min - eps) {
+    rung <- 1L
+    stub <- (G - sep_e * (K - 1)) / 2
+    spacing <- sep_e
+    pos <- centred(sep_e)
+  } else if (K >= 2 && (G - 2 * stub_min) / (K - 1) >= sep_min - eps) {
+    rung <- 2L
+    stub <- stub_min
+    spacing <- (G - 2 * stub_min) / (K - 1)
+    pos <- from_left(stub, spacing)
   } else {
-    mean(band) + (ranks - (K + 1) / 2) * opts$sep_e
+    # the stub the gap can afford at sep_min spacing, and the corner radius
+    # whose floor fits inside it
+    afford <- (G - sep_min * (K - 1)) / 2
+    rc3 <- if ((afford - cap) / 2 > opts$head) {
+      (afford - cap) / 2
+    } else {
+      afford - cap - opts$head
+    }
+    rc3 <- min(rc3, rc)
+    if (rc3 >= opts$rc_min - eps) {
+      rung <- 3L
+      rc_g <- rc3
+      stub <- stub_of(rc3)
+      spacing <- sep_min
+      pos <- from_left(stub, spacing)
+    } else {
+      rung <- 4L
+      rc_g <- opts$rc_min
+      narrow <- TRUE
+      stub <- NA_real_
+      width4 <- G - 2 * opts$R_soft
+      spacing <- if (K >= 2 && width4 > 0) {
+        min(sep_e, width4 / (K - 1))
+      } else {
+        sep_e
+      }
+      pos <- centred(spacing)
+    }
   }
-  list(x = x, narrow = narrow)
+  x[live] <- pos
+  list(
+    x = x,
+    narrow = narrow,
+    rc = rc_g,
+    ladder = df_cols(
+      width = G,
+      ranks = K,
+      rung = rung,
+      stub = stub,
+      spacing = spacing
+    )
+  )
 }
 
 #' Order the vertical segments of a gap left to right
 #'
-#' Every pair whose y-intervals overlap or meet must take distinct slots:
-#' two segments from different sources at one x would draw a continuous
-#' line through both. For each such pair the crossings of each order are
+#' Every pair whose y-intervals overlap, meet, or come within `sep_e` of
+#' each other must take distinct slots: two segments from different sources
+#' at one x would draw a continuous line through both, and two that stop
+#' short of each other by less than the separation read the same way once
+#' stacked ports part the intervals that used to meet. For each such pair
+#' the crossings of each order are
 #' counted from the horizontal pieces: with `s1` left of `s2`, a piece
 #' leaving `s1` crosses `s2` when its y lies strictly inside `s2`'s
 #' interval, and a piece entering `s2` crosses `s1` likewise. A piece
@@ -2904,7 +3218,7 @@ ortho_slot_positions <- function(segs, band, opts) {
 #' returned compacted to `1:max`.
 #'
 #' @noRd
-ortho_slot_ranks <- function(lo, hi, lefts, rights, crossing_penalty) {
+ortho_slot_ranks <- function(lo, hi, lefts, rights, crossing_penalty, sep_e) {
   n <- length(lo)
   eps <- 1e-9
   overlap <- matrix(FALSE, n, n)
@@ -2919,7 +3233,7 @@ ortho_slot_ranks <- function(lo, hi, lefts, rights, crossing_penalty) {
   }
   for (i in seq_len(n - 1L)) {
     for (j in (i + 1L):n) {
-      if (min(hi[[i]], hi[[j]]) - max(lo[[i]], lo[[j]]) < -eps) {
+      if (min(hi[[i]], hi[[j]]) - max(lo[[i]], lo[[j]]) < -sep_e - eps) {
         next
       }
       overlap[i, j] <- TRUE
@@ -3040,12 +3354,19 @@ longest_path_ranks <- function(n, from, to) {
 #' requested perpendicular displacement, so the runs stay axis-aligned. An
 #' S/N port offset `dx_s` or `dx_t` moves the stub beside the centre line;
 #' the port returned is then the foot of the stub on that line, the corner
-#' the connector from the centre turns at. An E/W port is dropped when its
-#' bend falls short of it, which happens only when a narrow gap has pushed
-#' a slot inside the node disc.
+#' the connector from the centre turns at. A W port offset `dy_t` moves the
+#' arrival's last run onto a row beside the centre line; the port returned
+#' is then the foot of that row on the disc boundary, from which a hidden
+#' connector runs to the centre. An E/W port is dropped when its bend falls
+#' short of it, which happens only when a narrow gap has pushed a slot
+#' inside the node disc.
 #'
 #' @return A list with `bends` (a matrix, or `NULL` when the edge has no
-#'   bend and stays straight), `port_s`, `port_t`, and `side`.
+#'   bend and stays straight), `port_s`, `port_t`, `side`, and for each end
+#'   the port's axis (`axis_s`, `axis_t`, as a column of the path), its
+#'   offset from the centre line (`off_s`, `off_t`), and the sharp length of
+#'   its connector and terminal run (`limit_s`, `limit_t`), which the resect
+#'   is measured within.
 #' @noRd
 ortho_bends <- function(
   kind,
@@ -3063,6 +3384,7 @@ ortho_bends <- function(
   stub,
   dx_s,
   dx_t,
+  dy_t,
   tol
 ) {
   if (kind == "sn") {
@@ -3073,9 +3395,23 @@ ortho_bends <- function(
       bends = rbind(c(xs, y), c(xt, y)),
       port_s = c(xs, S[[2]]),
       port_t = c(xt, E[[2]]),
-      side = side
+      side = side,
+      axis_s = 2L,
+      axis_t = 2L,
+      off_s = dx_s,
+      off_t = dx_t,
+      limit_s = abs(dx_s) + abs(y - S[[2]]),
+      limit_t = abs(dx_t) + abs(y - E[[2]])
     ))
   }
+  centre_ports <- list(
+    axis_s = 1L,
+    axis_t = 1L,
+    off_s = 0,
+    off_t = 0,
+    limit_s = 0,
+    limit_t = 0
+  )
   if (kind == "detour") {
     if (abs(E[[2]] - S[[2]]) < tol) {
       xa <- S[[1]] + stub
@@ -3085,11 +3421,14 @@ ortho_bends <- function(
         xb <- xa
       }
       y <- S[[2]] + shift
-      return(list(
-        bends = rbind(c(xa, S[[2]]), c(xa, y), c(xb, y), c(xb, E[[2]])),
-        port_s = c(S[[1]] + r_s, S[[2]]),
-        port_t = c(E[[1]] - r_t, E[[2]]),
-        side = sign(shift)
+      return(c(
+        list(
+          bends = rbind(c(xa, S[[2]]), c(xa, y), c(xb, y), c(xb, E[[2]])),
+          port_s = c(S[[1]] + r_s, S[[2]]),
+          port_t = c(E[[1]] - r_t, E[[2]]),
+          side = sign(shift)
+        ),
+        centre_ports
       ))
     }
     ya <- S[[2]] + stub
@@ -3099,11 +3438,14 @@ ortho_bends <- function(
       yb <- ya
     }
     x <- S[[1]] - shift
-    return(list(
-      bends = rbind(c(S[[1]], ya), c(x, ya), c(x, yb), c(E[[1]], yb)),
-      port_s = c(S[[1]], S[[2]] + r_s),
-      port_t = c(E[[1]], E[[2]] - r_t),
-      side = sign(shift)
+    return(c(
+      list(
+        bends = rbind(c(S[[1]], ya), c(x, ya), c(x, yb), c(E[[1]], yb)),
+        port_s = c(S[[1]], S[[2]] + r_s),
+        port_t = c(E[[1]], E[[2]] - r_t),
+        side = sign(shift)
+      ),
+      centre_ports
     ))
   }
 
@@ -3116,10 +3458,16 @@ ortho_bends <- function(
       dy <- shift
     }
   }
+  # a spanning edge whose run lies on the target's own line has no last
+  # vertical to move onto a row
+  if (span >= 2 && is.na(x_last)) {
+    dy_t <- 0
+  }
+  yt <- E[[2]] + dy_t
   bends <- NULL
   if (span == 1) {
     if (!is.na(x_first)) {
-      bends <- rbind(c(x_first, S[[2]]), c(x_first, E[[2]]))
+      bends <- rbind(c(x_first, S[[2]]), c(x_first, yt))
     }
   } else {
     y <- y_ch + dy
@@ -3127,20 +3475,28 @@ ortho_bends <- function(
       bends <- rbind(bends, c(x_first, S[[2]]), c(x_first, y))
     }
     if (!is.na(x_last)) {
-      bends <- rbind(bends, c(x_last, y), c(x_last, E[[2]]))
+      bends <- rbind(bends, c(x_last, y), c(x_last, yt))
     }
   }
   if (is.null(bends)) {
     return(list(bends = NULL))
   }
   bends[, 1] <- bends[, 1] + dx
-  list(
-    bends = bends,
-    port_s = if (bends[[1, 1]] > S[[1]] + r_s) c(S[[1]] + r_s, S[[2]]),
-    port_t = if (bends[[nrow(bends), 1]] < E[[1]] - r_t) {
-      c(E[[1]] - r_t, E[[2]])
-    },
-    side = if (span >= 2) side else NA_real_
+  # the foot of the last run: the W port on the centre line, or the point
+  # where the port row meets the disc boundary
+  foot_x <- E[[1]] - sqrt(max(r_t^2 - dy_t^2, 0))
+  x_end <- bends[[nrow(bends), 1]]
+  ports <- centre_ports
+  ports$off_t <- dy_t
+  ports$limit_t <- r_t + max(foot_x - x_end, 0)
+  c(
+    list(
+      bends = bends,
+      port_s = if (bends[[1, 1]] > S[[1]] + r_s) c(S[[1]] + r_s, S[[2]]),
+      port_t = if (x_end < foot_x) c(foot_x, yt),
+      side = if (span >= 2) side else NA_real_
+    ),
+    ports
   )
 }
 
@@ -3187,10 +3543,11 @@ drop_collinear <- function(P) {
 #' `Q`, where `P` and `Q` lie `rr = min(rc, |AB| / 2, |BC| / 2)` along the
 #' two runs, so neighbouring corners never overlap. Twelve samples keep the
 #' turning angle of a right angle under 12 degrees per step. Vertices the
-#' path runs straight through or reverses on are kept as they are.
+#' path runs straight through or reverses on are kept as they are, and so
+#' are the vertices listed in `sharp`.
 #'
 #' @noRd
-round_corners <- function(P, rc, n = 12L) {
+round_corners <- function(P, rc, n = 12L, sharp = integer(0)) {
   k <- nrow(P)
   if (k < 3) {
     return(P)
@@ -3210,7 +3567,7 @@ round_corners <- function(P, rc, n = 12L) {
     lab <- sqrt(sum(ab^2))
     lcb <- sqrt(sum(cb^2))
     cross <- ab[[1]] * cb[[2]] - ab[[2]] * cb[[1]]
-    if (abs(cross) < 1e-9 || lab == 0 || lcb == 0) {
+    if (i %in% sharp || abs(cross) < 1e-9 || lab == 0 || lcb == 0) {
       out[[i]] <- P[i, , drop = FALSE]
       next
     }
@@ -3346,6 +3703,9 @@ route_scene_mm <- function(
     }
   }
 
+  resect_head <- NULL
+  resect_fins <- NULL
+  ortho <- NULL
   assemble <- function() {
     meta <- df_cols(
       edge = paste0(from_name, "->", to_name),
@@ -3358,7 +3718,16 @@ route_scene_mm <- function(
       sagitta_ratio = sagitta,
       sagitta_capped = capped
     )
-    list(paths = paths, meta = meta, waypoints = waypoints)
+    # orthogonal mode reports the resect each end needs and the ladder
+    if (!is.null(resect_head)) {
+      meta$resect_head <- resect_head
+      meta$resect_fins <- resect_fins
+    }
+    out <- list(paths = paths, meta = meta, waypoints = waypoints)
+    if (!is.null(ortho)) {
+      out$ortho <- ortho
+    }
+    out
   }
   if (mode == "straight" || n_edges == 0 || nrow(nodes) == 0) {
     return(assemble())
@@ -3390,6 +3759,9 @@ route_scene_mm <- function(
     clearance_ok <- st$clearance_ok
     sagitta <- st$sagitta_ratio
     capped <- st$sagitta_capped
+    resect_head <- st$resect_head
+    resect_fins <- st$resect_fins
+    ortho <- st$ortho
     return(assemble())
   }
 
