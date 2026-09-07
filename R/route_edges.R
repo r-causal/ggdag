@@ -89,6 +89,22 @@
 #'   units of the other cost terms (one reference radius of displacement is
 #'   1). Two bends are the price of one detour, so at the default of 2 a
 #'   four-bend run must save a second detour's displacement to win.
+#' @param head_penalty In spline mode, the price of a candidate chain that
+#'   passes within the edge separation of another edge's arrowhead zone
+#'   (the last `cap` of its drawn ink), per zone. A quarter of a crossing
+#'   at the default of 4: the chain is coarse, and the term is there to
+#'   steer a tie or a near tie toward the side that keeps clear.
+#' @param tight_penalty In spline mode, the price of a route through a tight
+#'   slot, a gap between two discs too narrow for a slot at the full
+#'   clearance margin that a curve can still thread at the soft margin, or
+#'   `NULL` for `2 (m - m_min) / r_ref`: the two flanking discs each give
+#'   up `m - m_min` of margin, priced as that much displacement.
+#' @param crossing_saturation In spline mode, whether the crossing price
+#'   saturates: the first crossing of a candidate costs `crossing_penalty`
+#'   in full and each further one half of the last (16, 24, 28, 30, ...),
+#'   so that in a tangle no route crosses fewer than several edges the
+#'   displacement decides. `FALSE` prices every crossing in full.
+#'   Orthogonal mode always prices crossings linearly.
 #' @return A named list of constants.
 #' @noRd
 route_opts <- function(
@@ -98,7 +114,10 @@ route_opts <- function(
   sep_min = NULL,
   layer_axis = c("auto", "x", "y"),
   corners = c("rounded", "sharp"),
-  bend_penalty = 2
+  bend_penalty = 2,
+  head_penalty = 4,
+  tight_penalty = NULL,
+  crossing_saturation = TRUE
 ) {
   layer_axis <- if (identical(layer_axis, c("auto", "x", "y"))) {
     "auto"
@@ -145,8 +164,11 @@ route_opts <- function(
     repair_iter = 4,
     repair_window = 0.35,
     crossing_penalty = 16,
+    crossing_saturation = isTRUE(crossing_saturation),
     congestion_penalty = 2,
     bend_penalty = bend_penalty,
+    head_penalty = head_penalty,
+    tight_penalty = tight_penalty %||% (2 * (m - m_min) / r_ref),
     displacement_weight = 1,
     periphery_span = 3,
     pad = 0.5,
@@ -485,27 +507,59 @@ find_blocked_edges <- function(nodes, edges, R_soft, R) {
 #' are kept however narrow. The first and last surviving intervals are
 #' flagged `outer`.
 #'
+#' A dropped gap whose two disc centres are at least `2 (r + m_min)` apart
+#' can still be threaded by a curve at the soft margin, and is kept as a
+#' tight slot: a zero-width row on the gap's centre line, flagged `tight`
+#' and never `outer`. A tight slot holds one edge and is verified at the
+#' soft margin. Whether a gap is tight is judged at `tight_margin`, the
+#' base clearance margin, even when `margin` carries the extra clearance
+#' of a parallel-edge group member: the group's members are offset from
+#' one route, so a slot is tight for all of them or for none. `m_min = NULL`
+#' finds no tight slots.
+#'
 #' @noRd
 layer_free_intervals <- function(
   layer_nodes,
   margin,
   bounds,
   pad = 0.5,
-  sep_e = 0
+  sep_e = 0,
+  m_min = min(1.2, margin),
+  tight_margin = margin
 ) {
   ord <- order(layer_nodes$y)
   ys <- layer_nodes$y[ord]
-  Rk <- layer_nodes$r[ord] + margin
+  rs <- layer_nodes$r[ord]
+  Rk <- rs + margin
   lo <- c(bounds[[2]] + pad, ys + Rk)
   hi <- c(ys - Rk, bounds[[4]] - pad)
   n <- length(lo)
   width <- hi - lo
   toward_edge <- seq_len(n) %in% c(1L, n)
   keep <- width > 0 & (toward_edge | width >= sep_e)
+  tight <- logical(n)
+  if (!is.null(m_min) && n > 2L) {
+    i <- 2:(n - 1L)
+    # the gap between neighbouring discs at the base margin, and the
+    # least distance between their centres a curve can thread at the
+    # soft margin
+    gap_base <- (ys[i] - (rs[i] + tight_margin)) -
+      (ys[i - 1L] + (rs[i - 1L] + tight_margin))
+    centres <- ys[i] - ys[i - 1L]
+    threadable <- rs[i] + rs[i - 1L] + 2 * m_min
+    tight[i] <- !keep[i] & gap_base < sep_e & centres >= threadable - 1e-9
+    at <- which(tight)
+    mid <- (ys[at] + ys[at - 1L]) / 2
+    lo[at] <- mid
+    hi[at] <- mid
+    keep <- keep | tight
+  }
   lo <- lo[keep]
   hi <- hi[keep]
+  tight <- tight[keep]
   n <- length(lo)
-  df_cols(lo = lo, hi = hi, outer = seq_len(n) %in% c(1L, n))
+  outer <- seq_len(n) %in% c(1L, n) & !tight
+  df_cols(lo = lo, hi = hi, outer = outer, tight = tight)
 }
 
 #' The free intervals a periphery arch may use
@@ -538,7 +592,7 @@ periphery_intervals <- function(ints, bounds, margin) {
   lo[gone] <- NA_real_
   hi[gone] <- NA_real_
   outer[gone] <- FALSE
-  df_cols(lo = lo, hi = hi, outer = outer)
+  df_cols(lo = lo, hi = hi, outer = outer, tight = ints$tight)
 }
 
 #' Snap a y to the nearest free value on one side
@@ -1064,7 +1118,8 @@ clamp_direction <- function(v, ref, max_deg = 40) {
 #' @param d_start,d_end Unit directions of departure and arrival.
 #' @param arm_min Minimum end arm length in mm; one value or one per end.
 #' @param arm_fraction Cap on the end arm as a fraction of the end segment.
-#' @return A list of 4 x 2 control point matrices.
+#' @return A list of 4 x 2 control point matrices, with the two end arm
+#'   lengths as the attribute `arms`.
 #' @noRd
 catmull_rom_beziers <- function(
   P,
@@ -1124,6 +1179,7 @@ catmull_rom_beziers <- function(
   )
   B[[1]][2, ] <- P[1, ] + a_s * d_start
   B[[n - 1]][3, ] <- P[n, ] - a_e * d_end
+  attr(B, "arms") <- c(a_s, a_e)
   B
 }
 
@@ -1138,10 +1194,7 @@ catmull_rom_beziers <- function(
 sample_beziers <- function(B, spacing = 0.5, min_n = 16) {
   K <- length(B)
   cp <- matrix(unlist(B, use.names = FALSE), nrow = 8L)
-  len <- sqrt((cp[2, ] - cp[1, ])^2 + (cp[6, ] - cp[5, ])^2) +
-    sqrt((cp[3, ] - cp[2, ])^2 + (cp[7, ] - cp[6, ])^2) +
-    sqrt((cp[4, ] - cp[3, ])^2 + (cp[8, ] - cp[7, ])^2)
-  n <- pmax(min_n, ceiling(len / spacing))
+  n <- control_sample_counts(cp, spacing, min_n)
   # every segment is sampled from its start, and the shared join is kept
   # once: segments after the first skip their first sample
   first <- c(0L, rep(1L, K - 1L))
@@ -1163,38 +1216,174 @@ sample_beziers <- function(B, spacing = 0.5, min_n = 16) {
   df_cols(x = x, y = y)
 }
 
+#' The number of samples `sample_beziers()` takes on each segment
+#' @noRd
+bezier_sample_counts <- function(B, spacing, min_n) {
+  control_sample_counts(
+    matrix(unlist(B, use.names = FALSE), nrow = 8L),
+    spacing,
+    min_n
+  )
+}
+
+control_sample_counts <- function(cp, spacing, min_n) {
+  len <- sqrt((cp[2, ] - cp[1, ])^2 + (cp[6, ] - cp[5, ])^2) +
+    sqrt((cp[3, ] - cp[2, ])^2 + (cp[7, ] - cp[6, ])^2) +
+    sqrt((cp[4, ] - cp[3, ])^2 + (cp[8, ] - cp[7, ])^2)
+  pmax(min_n, ceiling(len / spacing))
+}
+
+#' Resample one end segment of a sampled curve after its end tangent moved
+#'
+#' Rotating an end tangent changes one control point of the first or last
+#' Bezier segment and nothing else, so only that segment is sampled again
+#' and spliced into `pts` in place of its previous samples. The samples are
+#' the ones a full `sample_beziers()` would produce.
+#'
+#' @param pts The current samples.
+#' @param B The segments, with the changed end control point in place.
+#' @param n_old The sample count of the end segment before the change.
+#' @param end `"E"` for the last segment, `"S"` for the first.
+#' @noRd
+resample_end <- function(pts, B, n_old, end, spacing, min_n) {
+  K <- length(B)
+  N <- nrow(pts)
+  if (end == "E") {
+    seg <- sample_beziers(B[K], spacing, min_n)
+    if (K == 1L) {
+      return(seg)
+    }
+    # a later segment skips its first sample, the join with the segment
+    # before it
+    keep <- seq_len(N - (n_old - 1L))
+    df_cols(x = c(pts$x[keep], seg$x[-1L]), y = c(pts$y[keep], seg$y[-1L]))
+  } else {
+    seg <- sample_beziers(B[1L], spacing, min_n)
+    if (K == 1L) {
+      return(seg)
+    }
+    keep <- seq.int(n_old + 1L, N)
+    df_cols(x = c(seg$x, pts$x[keep]), y = c(seg$y, pts$y[keep]))
+  }
+}
+
+#' Bounding boxes of the control points of each Bezier segment
+#'
+#' A Bezier curve lies inside the convex hull of its control points, so an
+#' obstacle farther than its clearance from every box cannot be violated.
+#'
+#' @return A matrix with one row per segment: `xmin`, `xmax`, `ymin`, `ymax`.
+#' @noRd
+bezier_boxes <- function(B) {
+  cp <- matrix(unlist(B, use.names = FALSE), nrow = 8L)
+  cbind(
+    pmin(cp[1, ], cp[2, ], cp[3, ], cp[4, ]),
+    pmax(cp[1, ], cp[2, ], cp[3, ], cp[4, ]),
+    pmin(cp[5, ], cp[6, ], cp[7, ], cp[8, ]),
+    pmax(cp[5, ], cp[6, ], cp[7, ], cp[8, ])
+  )
+}
+
 #' Find samples that come too close to an obstacle
 #'
+#' An obstacle is a disc at `x, y`, or, when the table carries `x2, y2`
+#' and a `capsule` flag, the capsule around the segment from `x, y` to
+#' `x2, y2`: the arrowhead zone of another edge. Samples within arc length
+#' `cut` of either end of the path are hidden by the arrow layer's resect
+#' and are not tested against capsules.
+#'
 #' @param samples Data frame with `x`, `y`.
-#' @param obstacles Data frame with `x`, `y`.
+#' @param obstacles Data frame with `x`, `y`, and optionally `x2`, `y2`,
+#'   `capsule`.
 #' @param R_vec Clearance radius per obstacle.
+#' @param cut Arc length at each end of the path exempt from capsules.
 #' @return A data frame with `obstacle` (row in `obstacles`), `sample` (the
 #'   nearest sample) and `depth` (how far inside `R - tol` it lies), one row
 #'   per violated obstacle.
 #' @noRd
-verify_clearance <- function(samples, obstacles, R_vec, tol = 0.1) {
-  if (nrow(obstacles) == 0 || nrow(samples) == 0) {
-    return(df_cols(obstacle = integer(), sample = integer(), depth = numeric()))
-  }
-  R_vec <- rep_len(R_vec, nrow(obstacles))
-  # only obstacles whose disc reaches the path's bounding box can be violated
-  cand <- which(
-    obstacles$x + R_vec >= min(samples$x) &
-      obstacles$x - R_vec <= max(samples$x) &
-      obstacles$y + R_vec >= min(samples$y) &
-      obstacles$y - R_vec <= max(samples$y)
-  )
-  if (length(cand) == 0) {
-    return(df_cols(obstacle = integer(), sample = integer(), depth = numeric()))
-  }
+verify_clearance <- function(
+  samples,
+  obstacles,
+  R_vec,
+  tol = 0.1,
+  cut = 0,
+  boxes = NULL
+) {
+  empty <- df_cols(obstacle = integer(), sample = integer(), depth = numeric())
+  n_ob <- nrow(obstacles)
   sx <- samples$x
   sy <- samples$y
+  if (n_ob == 0 || length(sx) == 0) {
+    return(empty)
+  }
+  R_vec <- rep_len(R_vec, n_ob)
+  capsule <- obstacles$capsule %||% logical(n_ob)
+  ox <- obstacles$x
+  oy <- obstacles$y
+  x2 <- obstacles$x2 %||% ox
+  y2 <- obstacles$y2 %||% oy
+  # only an obstacle whose clearance reaches a box the curve lies in can be
+  # violated: the boxes of the curve's segments, else the samples' box
+  if (is.null(boxes)) {
+    boxes <- matrix(c(min(sx), max(sx), min(sy), max(sy)), 1L)
+  }
+  nb <- nrow(boxes)
+  i <- rep(seq_len(n_ob), each = nb)
+  b <- rep.int(seq_len(nb), n_ob)
+  lo_x <- pmin(ox, x2)
+  hi_x <- pmax(ox, x2)
+  lo_y <- pmin(oy, y2)
+  hi_y <- pmax(oy, y2)
+  gx <- pmax(0, boxes[b, 1L] - hi_x[i], lo_x[i] - boxes[b, 2L])
+  gy <- pmax(0, boxes[b, 3L] - hi_y[i], lo_y[i] - boxes[b, 4L])
+  near <- gx^2 + gy^2 < R_vec[i]^2
+  cand <- which(tabulate(i[near], nbins = n_ob) > 0L)
+  if (length(cand) == 0) {
+    return(empty)
+  }
+  hidden <- NULL
+  if (any(capsule[cand])) {
+    seg <- sqrt(diff(sx)^2 + diff(sy)^2)
+    from_start <- c(0, cumsum(seg))
+    from_end <- rev(c(0, cumsum(rev(seg))))
+    hidden <- from_start < cut | from_end < cut
+  }
   j <- integer(length(cand))
   min_d <- numeric(length(cand))
   for (k in seq_along(cand)) {
-    d2 <- (sx - obstacles$x[[cand[[k]]]])^2 + (sy - obstacles$y[[cand[[k]]]])^2
-    j[[k]] <- which.min(d2)
-    min_d[[k]] <- sqrt(d2[[j[[k]]]])
+    o <- cand[[k]]
+    if (capsule[[o]]) {
+      # a sample outside the capsule's box grown by the clearance is more
+      # than the clearance away, so only the samples inside it are measured
+      R <- R_vec[[o]]
+      inside <- which(
+        !hidden &
+          sx >= lo_x[[o]] - R &
+          sx <= hi_x[[o]] + R &
+          sy >= lo_y[[o]] - R &
+          sy <= hi_y[[o]] + R
+      )
+      if (length(inside) == 0) {
+        j[[k]] <- 1L
+        min_d[[k]] <- Inf
+        next
+      }
+      d <- dist_to_edge(
+        sx[inside],
+        sy[inside],
+        ox[[o]],
+        oy[[o]],
+        x2[[o]],
+        y2[[o]]
+      )
+      at <- which.min(d)
+      j[[k]] <- inside[[at]]
+      min_d[[k]] <- d[[at]]
+    } else {
+      d2 <- (sx - ox[[o]])^2 + (sy - oy[[o]])^2
+      j[[k]] <- which.min(d2)
+      min_d[[k]] <- sqrt(d2[[j[[k]]]])
+    }
   }
   depth <- R_vec[cand] - tol - min_d
   keep <- depth > 0
@@ -1214,6 +1403,14 @@ verify_clearance <- function(samples, obstacles, R_vec, tol = 0.1) {
 #' within the window moves straight away from the node, and a new waypoint
 #' is inserted at clearance `R` when none is near.
 #'
+#' A curve inside an arrowhead capsule is moved along the capsule's axis
+#' past its far end, not merely off the axis: in the spanning tier the
+#' waypoint moves along y by the y distance to that end plus the margin,
+#' in the free tier along the axis itself, either bounded by the capsule
+#' length plus `R`. The perpendicular escape from a near-vertical head zone
+#' is sideways, which a spanning waypoint cannot make, and the loop would
+#' oscillate. Disc violations are repaired before capsule violations.
+#'
 #' @noRd
 repair_waypoints <- function(
   wp,
@@ -1228,33 +1425,70 @@ repair_waypoints <- function(
   lb,
   opts
 ) {
-  # deepest first; equal depths are ordered by the obstacle's position and
-  # then its row, never by its name
-  if (nrow(viol) > 1) {
-    viol <- df_rows(
-      viol,
-      order(
-        -viol$depth,
-        obstacles$x[viol$obstacle],
-        obstacles$y[viol$obstacle],
-        viol$obstacle,
-        method = "radix"
-      )
+  capsule <- obstacles$capsule %||% logical(nrow(obstacles))
+  ox <- obstacles$x
+  oy <- obstacles$y
+  o_layer <- obstacles$layer
+  v_ob <- viol$obstacle
+  v_sample <- viol$sample
+  v_depth <- viol$depth
+  # discs first, then deepest first; equal depths are ordered by the
+  # obstacle's position and then its row, never by its name
+  if (length(v_ob) > 1) {
+    ord <- order(
+      capsule[v_ob],
+      -v_depth,
+      ox[v_ob],
+      oy[v_ob],
+      v_ob,
+      method = "radix"
     )
+    v_ob <- v_ob[ord]
+    v_sample <- v_sample[ord]
+    v_depth <- v_depth[ord]
   }
-  for (k in seq_len(nrow(viol))) {
-    ob <- viol$obstacle[[k]]
-    C <- c(obstacles$x[[ob]], obstacles$y[[ob]])
+  for (k in seq_along(v_ob)) {
+    ob <- v_ob[[k]]
+    C <- c(ox[[ob]], oy[[ob]])
     R <- R_vec[[ob]]
-    p <- c(pts$x[[viol$sample[[k]]]], pts$y[[viol$sample[[k]]]])
+    p <- c(pts$x[[v_sample[[k]]]], pts$y[[v_sample[[k]]]])
+    if (capsule[[ob]]) {
+      far <- C
+      near <- c(obstacles$x2[[ob]], obstacles$y2[[ob]])
+      C <- nearest_on_segment(p, far, near)
+    }
     nv <- p - C
     ln <- sqrt(sum(nv^2))
-    nv <- if (ln > 0) nv / ln else fr$n
-    push <- opts$repair_relax * viol$depth[[k]] + opts$repair_slack * R
+    nv <- if (ln > 1e-9) nv / ln else fr$n
+    slack <- opts$repair_slack * (if (capsule[[ob]]) max(R, opts$R) else R)
+    push <- opts$repair_relax * v_depth[[k]] + slack
+    if (capsule[[ob]]) {
+      axis <- far - near
+      cap_len <- sqrt(sum(axis^2))
+      axis <- axis / cap_len
+      if (tier == "spanning") {
+        if (abs(axis[[2]]) > 1e-6) {
+          nv <- c(0, sign(axis[[2]]))
+          push <- max(
+            push,
+            min(abs(far[[2]] - p[[2]]) + R + opts$verify_tol, cap_len + R)
+          )
+        }
+      } else {
+        nv <- axis
+        push <- max(
+          push,
+          min(sum((far - p) * axis) + R + opts$verify_tol, cap_len + R)
+        )
+      }
+    }
     t_p <- sum((p - fr$S) * fr$u) / fr$Lc
     t_wp <- ((wp$x - fr$S[[1]]) * fr$u[[1]] + (wp$y - fr$S[[2]]) * fr$u[[2]]) /
       fr$Lc
-    layer_c <- obstacles$layer[[ob]]
+    layer_c <- o_layer[[ob]]
+    if (is.na(layer_c)) {
+      layer_c <- 0L
+    }
     crossed <- tier == "spanning" && layer_c > la && layer_c < lb
     s_chord <- sign(sum(nv * fr$n))
     if (s_chord == 0) {
@@ -1318,17 +1552,55 @@ sort_waypoints <- function(wp, fr) {
   df_rows(wp, order(t))
 }
 
+#' The point of the segment from `a` to `b` nearest to `p`
+#' @noRd
+nearest_on_segment <- function(p, a, b) {
+  d <- b - a
+  l2 <- sum(d^2)
+  if (l2 == 0) {
+    return(a)
+  }
+  t <- min(1, max(0, sum((p - a) * d) / l2))
+  a + t * d
+}
+
 #' Build, sample, verify, and repair the curve of one edge
+#'
+#' The obstacles are the node discs and, for a detour, the arrowhead
+#' capsules of the other edges. `clearance_ok` is a statement about the
+#' discs: the repair loop runs on capsule violations within the same
+#' iteration budget once the discs are clear, keeps the disc-clear
+#' iteration with the least remaining capsule depth, and reports that
+#' curve as verified even when a head zone is still touched, since head
+#' zones sit where the geometry often forces a curve to pass.
+#'
+#' When other edges arrive at the edge's true target, the arrival direction
+#' is separated from theirs by `separate_arrival()`; the sampled curve bends
+#' inside the end arm when the last waypoint is close, so the arrival is
+#' measured again `cap` from the target after sampling and the tangent
+#' rotated further by 1.2 times the deficit, up to four passes. A separated
+#' arrival that cannot be verified against the discs is routed again
+#' without the separation, and the verified result wins; when the
+#' separation never moved a tangent the two routes are the same curve and
+#' the second is not built.
 #'
 #' @param fr Edge frame from `edge_frame()`.
 #' @param wp Waypoints with `x`, `y`, `layer`.
-#' @param obstacles Non-endpoint nodes with `name`, `x`, `y`, `layer`.
+#' @param obstacles Non-endpoint nodes with `name`, `x`, `y`, `layer`, and
+#'   capsules with `x2`, `y2`, `capsule`.
 #' @param R_vec Clearance radius per obstacle.
 #' @param arm_min End arm lengths, one per end.
 #' @param tier `"spanning"` or `"free"`; decides how repairs move waypoints.
 #' @param bounds Panel bounds; a repair that pushes a waypoint outside them
 #'   ends the loop, since the route can no longer be drawn inside the panel.
 #' @param repair Whether to run the repair loop.
+#' @param cap The edge cap; samples within it of either end are hidden.
+#' @param arrivals Two-column matrix of unit directions into the true
+#'   target of the other edges arriving there, or `NULL`.
+#' @param head_end `"E"` when the true target is the frame's `E`, `"S"`
+#'   when the edge runs right to left.
+#' @param theta_min Least angle between arrival directions, in degrees.
+#' @param side The detour's side, or `NA` when either side is allowed.
 #' @return A list with `path`, `wp`, `clearance_ok`, and `depth` (the total
 #'   violation depth of the returned curve, 0 when it verifies).
 #' @noRd
@@ -1344,10 +1616,87 @@ route_spline_edge <- function(
   la,
   lb,
   bounds,
-  repair = TRUE
+  repair = TRUE,
+  cap = 0,
+  arrivals = NULL,
+  head_end = "E",
+  theta_min = 0,
+  side = NA_real_
 ) {
+  res <- route_spline_curve(
+    fr,
+    wp,
+    obstacles,
+    R_vec,
+    arm_min,
+    opts,
+    tier,
+    layers,
+    la,
+    lb,
+    bounds,
+    repair,
+    cap,
+    arrivals,
+    head_end,
+    theta_min,
+    side
+  )
+  if (!res$clearance_ok && isTRUE(res$separated) && repair) {
+    alt <- route_spline_curve(
+      fr,
+      wp,
+      obstacles,
+      R_vec,
+      arm_min,
+      opts,
+      tier,
+      layers,
+      la,
+      lb,
+      bounds,
+      repair,
+      cap,
+      NULL,
+      head_end,
+      theta_min,
+      side
+    )
+    if (alt$clearance_ok || alt$depth < res$depth) {
+      return(alt)
+    }
+  }
+  res
+}
+
+#' The verify and repair loop of `route_spline_edge()`
+#' @noRd
+route_spline_curve <- function(
+  fr,
+  wp,
+  obstacles,
+  R_vec,
+  arm_min,
+  opts,
+  tier,
+  layers,
+  la,
+  lb,
+  bounds,
+  repair,
+  cap,
+  arrivals,
+  head_end,
+  theta_min,
+  side
+) {
+  capsule <- obstacles$capsule %||% logical(nrow(obstacles))
+  separate <- !is.null(arrivals) && nrow(arrivals) > 0
+  separated <- FALSE
   best <- NULL
   best_depth <- Inf
+  best_ok <- NULL
+  best_ok_depth <- Inf
   for (iter in 0:opts$repair_iter) {
     P <- cbind(
       c(fr$S[[1]], wp$x, fr$E[[1]]),
@@ -1356,6 +1705,34 @@ route_spline_edge <- function(
     n <- nrow(P)
     d_s <- clamp_direction(P[2, ] - P[1, ], fr$E - fr$S, opts$tangent_clamp)
     d_e <- clamp_direction(P[n, ] - P[n - 1, ], fr$E - fr$S, opts$tangent_clamp)
+    if (separate) {
+      if (head_end == "E") {
+        prefer <- if (is.na(side)) sign(signed_angle(fr$u, d_e)) else -side
+        d_sep <- separate_arrival(
+          d_e,
+          arrivals,
+          theta_min,
+          fr$u,
+          opts$tangent_clamp,
+          prefer
+        )
+        separated <- separated || any(d_sep != d_e)
+        d_e <- d_sep
+      } else {
+        d_in <- -d_s
+        prefer <- if (is.na(side)) sign(signed_angle(-fr$u, d_in)) else side
+        d_sep <- separate_arrival(
+          d_in,
+          arrivals,
+          theta_min,
+          -fr$u,
+          opts$tangent_clamp,
+          prefer
+        )
+        separated <- separated || any(d_sep != d_in)
+        d_s <- -d_sep
+      }
+    }
     B <- catmull_rom_beziers(
       P,
       opts$alpha,
@@ -1365,13 +1742,111 @@ route_spline_edge <- function(
       opts$arm_fraction
     )
     pts <- sample_beziers(B, opts$sample_spacing, opts$sample_min_n)
-    viol <- verify_clearance(pts, obstacles, R_vec, opts$verify_tol)
+    if (separate) {
+      arms <- attr(B, "arms")
+      K <- length(B)
+      for (pass in 1:4) {
+        turn <- arrival_deficit(pts, fr, cap, arrivals, head_end, theta_min)
+        if (turn == 0) {
+          break
+        }
+        separated <- TRUE
+        # only the end control point on the rotated tangent moves, so only
+        # that segment is sampled again
+        if (head_end == "E") {
+          prefer <- if (is.na(side)) 0 else -side
+          d_e <- keep_side(
+            clamp_direction(rotate(d_e, turn), fr$u, opts$tangent_clamp),
+            fr$u,
+            prefer
+          )
+          n_old <- bezier_sample_counts(
+            B[K],
+            opts$sample_spacing,
+            opts$sample_min_n
+          )
+          B[[K]][3, ] <- P[n, ] - arms[[2]] * d_e
+        } else {
+          prefer <- if (is.na(side)) 0 else side
+          d_in <- keep_side(
+            clamp_direction(rotate(-d_s, turn), -fr$u, opts$tangent_clamp),
+            -fr$u,
+            prefer
+          )
+          d_s <- -d_in
+          n_old <- bezier_sample_counts(
+            B[1L],
+            opts$sample_spacing,
+            opts$sample_min_n
+          )
+          B[[1L]][2, ] <- P[1, ] + arms[[1]] * d_s
+        }
+        pts <- resample_end(
+          pts,
+          B,
+          n_old,
+          head_end,
+          opts$sample_spacing,
+          opts$sample_min_n
+        )
+      }
+    }
+    viol <- verify_clearance(
+      pts,
+      obstacles,
+      R_vec,
+      opts$verify_tol,
+      cap,
+      bezier_boxes(B)
+    )
     total <- sum(viol$depth)
+    disc_viol <- df_rows(viol, which(!capsule[viol$obstacle]))
+    if (nrow(disc_viol) == 0 && nrow(viol) > 0) {
+      # the discs are clear: repair the head zones while the budget lasts
+      # and keep the curve that leaves them the shallowest
+      if (total < best_ok_depth) {
+        best_ok <- list(path = pts, wp = wp)
+        best_ok_depth <- total
+      }
+      if (!repair || iter == opts$repair_iter) {
+        break
+      }
+      wp <- repair_waypoints(
+        wp,
+        viol,
+        pts,
+        fr,
+        obstacles,
+        R_vec,
+        tier,
+        layers,
+        la,
+        lb,
+        opts
+      )
+      if (!inside_bounds(wp, bounds, opts$pad)) {
+        break
+      }
+      next
+    }
+    viol <- disc_viol
     if (nrow(viol) == 0) {
-      return(list(path = pts, wp = wp, clearance_ok = TRUE, depth = 0))
+      return(list(
+        path = pts,
+        wp = wp,
+        clearance_ok = TRUE,
+        depth = 0,
+        separated = separated
+      ))
     }
     if (!repair) {
-      return(list(path = pts, wp = wp, clearance_ok = FALSE, depth = total))
+      return(list(
+        path = pts,
+        wp = wp,
+        clearance_ok = FALSE,
+        depth = total,
+        separated = separated
+      ))
     }
     if (total < best_depth) {
       best <- list(path = pts, wp = wp)
@@ -1397,7 +1872,233 @@ route_spline_edge <- function(
       break
     }
   }
-  list(path = best$path, wp = best$wp, clearance_ok = FALSE, depth = best_depth)
+  if (!is.null(best_ok)) {
+    return(list(
+      path = best_ok$path,
+      wp = best_ok$wp,
+      clearance_ok = TRUE,
+      depth = 0,
+      separated = separated
+    ))
+  }
+  list(
+    path = best$path,
+    wp = best$wp,
+    clearance_ok = FALSE,
+    depth = best_depth,
+    separated = separated
+  )
+}
+
+#' Signed angle in degrees from direction `a` to direction `b`
+#' @noRd
+signed_angle <- function(a, b) {
+  atan2(a[[1]] * b[[2]] - a[[2]] * b[[1]], sum(a * b)) * 180 / pi
+}
+
+#' Rotate a direction by `deg` degrees
+#' @noRd
+rotate <- function(v, deg) {
+  th <- deg * pi / 180
+  c(v[[1]] * cos(th) - v[[2]] * sin(th), v[[1]] * sin(th) + v[[2]] * cos(th))
+}
+
+#' Snap a direction that crossed to the wrong side of a reference onto it
+#'
+#' `prefer` is the sign of the admissible angles from `ref`, or 0 when
+#' either side is allowed.
+#'
+#' @noRd
+keep_side <- function(d, ref, prefer) {
+  phi <- signed_angle(ref, d)
+  if (prefer != 0 && sign(phi) == -prefer) ref else d
+}
+
+#' Choose an arrival direction clear of the other arrivals at a target
+#'
+#' Directions into the target are parametrised by their signed angle from
+#' the chord direction into it. Admissible angles lie within the tangent
+#' clamp and on the detour's side of the chord (`prefer`, the sign of the
+#' admissible angles, or 0 for either side). The current direction stands
+#' when it already keeps `theta_min` from every arrival; otherwise, among
+#' the admissible angles that do (the clamp edges and the angles
+#' `theta_min` either side of each arrival), the one nearest the current
+#' direction wins, and when none does, the admissible angle with the
+#' largest minimum gap.
+#'
+#' @param d_in Current unit direction into the target.
+#' @param arrivals Two-column matrix of unit directions into the target.
+#' @param chord_in Unit chord direction into the target.
+#' @noRd
+separate_arrival <- function(
+  d_in,
+  arrivals,
+  theta_min,
+  chord_in,
+  clamp,
+  prefer
+) {
+  cur <- signed_angle(chord_in, d_in)
+  arr <- atan2(
+    chord_in[[1]] * arrivals[, 2L] - chord_in[[2]] * arrivals[, 1L],
+    chord_in[[1]] * arrivals[, 1L] + chord_in[[2]] * arrivals[, 2L]
+  ) *
+    180 /
+    pi
+  lo <- if (prefer > 0) 0 else -clamp
+  hi <- if (prefer < 0) 0 else clamp
+  min_gap <- function(phi) min(abs(((arr - phi + 180) %% 360) - 180))
+  if (min_gap(cur) >= theta_min - 1e-9) {
+    return(d_in)
+  }
+  cands <- c(cur, lo, hi, arr + theta_min, arr - theta_min)
+  cands <- cands[cands >= lo - 1e-9 & cands <= hi + 1e-9]
+  gaps <- vapply(cands, min_gap, numeric(1))
+  ok <- which(gaps >= theta_min - 1e-9)
+  phi <- if (length(ok) > 0) {
+    cands[ok][[which.min(abs(cands[ok] - cur))]]
+  } else {
+    cands[[which.max(gaps)]]
+  }
+  rotate(chord_in, phi)
+}
+
+#' How much further to turn a sampled arrival away from its nearest rival
+#'
+#' Measures the direction of the sampled curve into the true target at
+#' `cap` before it and finds the arrival it falls short of `theta_min`
+#' from by the most (a shortfall under half a degree is accepted). Returns
+#' the signed rotation to apply to the end tangent, 1.2 times the deficit
+#' away from that arrival, or 0 when every arrival is far enough.
+#'
+#' @noRd
+arrival_deficit <- function(pts, fr, cap, arrivals, head_end, theta_min) {
+  if (head_end == "E") {
+    q <- arc_point_before_end(pts$x, pts$y, cap)
+    target <- fr$E
+  } else {
+    q <- arc_point_before_end(rev(pts$x), rev(pts$y), cap)
+    target <- fr$S
+  }
+  own <- target - q
+  own <- own / sqrt(sum(own^2))
+  gap <- atan2(
+    arrivals[, 1L] * own[[2]] - arrivals[, 2L] * own[[1]],
+    arrivals[, 1L] * own[[1]] + arrivals[, 2L] * own[[2]]
+  ) *
+    180 /
+    pi
+  short <- theta_min - abs(gap)
+  k <- which.max(short)
+  if (length(k) == 0 || short[[k]] <= 0.5) {
+    return(0)
+  }
+  s <- sign(gap[[k]])
+  if (s == 0) {
+    s <- 1
+  }
+  s * short[[k]] * 1.2
+}
+
+#' The point `d` mm of arc before the end of a polyline
+#'
+#' The first point when the polyline is shorter than `d`.
+#'
+#' @noRd
+arc_point_before_end <- function(x, y, d) {
+  n <- length(x)
+  seg <- sqrt(diff(x)^2 + diff(y)^2)
+  a <- rev(cumsum(rev(c(seg, 0))))
+  if (a[[1]] <= d) {
+    return(c(x[[1]], y[[1]]))
+  }
+  k <- max(which(a >= d))
+  if (k >= n) {
+    return(c(x[[n]], y[[n]]))
+  }
+  f <- (a[[k]] - d) / (a[[k]] - a[[k + 1L]])
+  c(x[[k]] + f * (x[[k + 1L]] - x[[k]]), y[[k]] + f * (y[[k + 1L]] - y[[k]]))
+}
+
+# Arrowhead zones ------------------------------------------------------------------
+
+#' The arrowhead zone of every edge as currently drawn
+#'
+#' The arrow layer resects the last `cap` of each path, so the drawn head of
+#' an edge occupies the arc from `2 cap` to `cap` before its true target.
+#' One entry per edge in parallel vectors: the far end of that arc (`x`,
+#' `y`), its near end (`x2`, `y2`), the unit direction of travel into the
+#' target over the last `cap` (`ux`, `uy`), and whether the edge has a head
+#' at all (`valid`, false for a chord of zero length). Paths are given in
+#' true orientation, source to target.
+#'
+#' @param paths The current paths, one `data.frame(x, y)` per edge.
+#' @noRd
+head_registry <- function(paths, cap) {
+  n <- length(paths)
+  reg <- list(
+    x = numeric(n),
+    y = numeric(n),
+    x2 = numeric(n),
+    y2 = numeric(n),
+    ux = numeric(n),
+    uy = numeric(n),
+    valid = logical(n)
+  )
+  for (e in seq_len(n)) {
+    reg <- register_head(reg, e, paths[[e]]$x, paths[[e]]$y, cap)
+  }
+  reg
+}
+
+#' Record the arrowhead zone of one edge from its path in true orientation
+#' @noRd
+register_head <- function(reg, e, x, y, cap) {
+  n <- length(x)
+  far <- arc_point_before_end(x, y, 2 * cap)
+  near <- arc_point_before_end(x, y, cap)
+  u <- c(x[[n]], y[[n]]) - near
+  l <- sqrt(sum(u^2))
+  reg$x[[e]] <- far[[1]]
+  reg$y[[e]] <- far[[2]]
+  reg$x2[[e]] <- near[[1]]
+  reg$y2[[e]] <- near[[2]]
+  reg$valid[[e]] <- n >= 2 && l > 0
+  if (reg$valid[[e]]) {
+    reg$ux[[e]] <- u[[1]] / l
+    reg$uy[[e]] <- u[[2]] / l
+  }
+  reg
+}
+
+#' The head zones and co-arrivals that constrain one edge's detour
+#'
+#' The head zones of the other edges are capsule obstacles for the detour,
+#' except those of edges into the same target (their arrivals are
+#' separated instead), of edges into the detour's own source (they meet at
+#' the port it leaves through), and of edges between the same two nodes.
+#' The arrivals are the directions into the true target of the other edges
+#' that end there.
+#'
+#' @return A list with `heads`, a data frame of capsules with `x`, `y`,
+#'   `x2`, `y2`, and `arrivals`, a two-column matrix of unit directions.
+#' @noRd
+head_constraints <- function(reg, e, from, to) {
+  source <- from[[e]]
+  target <- to[[e]]
+  twin <- (from == source & to == target) | (from == target & to == source)
+  other <- reg$valid & !twin
+  zone <- which(other & to != target & to != source)
+  arriving <- which(other & to == target)
+  list(
+    heads = df_cols(
+      x = reg$x[zone],
+      y = reg$y[zone],
+      x2 = reg$x2[zone],
+      y2 = reg$y2[zone]
+    ),
+    arrivals = cbind(reg$ux[arriving], reg$uy[arriving])
+  )
 }
 
 # Costs ------------------------------------------------------------------------------------
@@ -1553,13 +2254,29 @@ count_polyline_crossings <- function(pa, pb) {
 #' `16` per crossing of another edge's placed polyline or chord (edges that
 #' share an endpoint are never counted), one per reference radius of
 #' displacement, and `2` per edge incident to either endpoint whose far
-#' endpoint lies strictly on `side`, more than `R` from the chord line.
+#' endpoint lies strictly on `side`, more than `R` from the chord line. In
+#' spline mode the crossing price saturates when `opts$crossing_saturation`
+#' is set, `16 (2 - 2^(1 - c))` for `c` crossings, so the first crossing
+#' costs 16 and each further one half of the last, and the chain pays
+#' `head_penalty` for every arrowhead zone of another edge it passes
+#' within `sep_e` of (`chain_head_intrusions()`). Orthogonal mode prices
+#' crossings linearly and has no head term.
 #'
 #' @param fr Edge frame.
 #' @param wp Waypoints with `x`, `y`.
 #' @param ectx Per-edge context from `edge_cost_context()`.
+#' @param spline Whether the spline terms apply.
 #' @noRd
-side_cost <- function(fr, wp, side, displacement, ectx, placed, opts) {
+side_cost <- function(
+  fr,
+  wp,
+  side,
+  displacement,
+  ectx,
+  placed,
+  opts,
+  spline = FALSE
+) {
   poly <- rbind(fr$S, cbind(wp$x, wp$y), fr$E)
   others <- ectx$others
   chords <- others[placed$chord[others]]
@@ -1574,10 +2291,74 @@ side_cost <- function(fr, wp, side, displacement, ectx, placed, opts) {
     crossings <- crossings + count_polyline_crossings(poly, placed$poly[[o]])
   }
   congestion <- sum(side * ectx$h_far > opts$R)
-  opts$crossing_penalty *
-    crossings +
+  cross_cost <- if (spline && isTRUE(opts$crossing_saturation)) {
+    opts$crossing_penalty * (2 - 2^(1 - crossings))
+  } else {
+    opts$crossing_penalty * crossings
+  }
+  heads <- if (spline && !is.null(ectx$heads) && nrow(ectx$heads) > 0) {
+    opts$head_penalty *
+      chain_head_intrusions(poly, ectx$heads, ectx$cap, opts$sep_e)
+  } else {
+    0
+  }
+  cross_cost +
     opts$displacement_weight * displacement / opts$r_ref +
-    opts$congestion_penalty * congestion
+    opts$congestion_penalty * congestion +
+    heads
+}
+
+#' Count the arrowhead zones a candidate chain passes through
+#'
+#' The first and last legs of the chain are trimmed by `cap`, the length
+#' the arrow layer resects, since ink inside a cap is never drawn. Every
+#' remaining leg is then tested against every head zone at once: the
+#' distance between a leg and a zone is the least of the four point to
+#' segment distances between their endpoints, and zero when the two
+#' segments cross. A zone closer than `sep_e` to any leg counts once.
+#'
+#' @param poly Two-column matrix of chain points, source to target.
+#' @param heads Head zones with `x`, `y` (the far end) and `x2`, `y2` (the
+#'   near end, `cap` before the target).
+#' @noRd
+chain_head_intrusions <- function(poly, heads, cap, sep_e) {
+  n <- nrow(poly)
+  trim <- function(a, b) {
+    d <- b - a
+    l <- sqrt(sum(d^2))
+    if (l <= cap) b else a + d / l * cap
+  }
+  poly[1, ] <- trim(poly[1, ], poly[2, ])
+  poly[n, ] <- trim(poly[n, ], poly[n - 1, ])
+  legs <- n - 1L
+  m <- nrow(heads)
+  i <- rep(seq_len(legs), each = m)
+  k <- rep.int(seq_len(m), legs)
+  ax <- poly[i, 1L]
+  ay <- poly[i, 2L]
+  bx <- poly[i + 1L, 1L]
+  by <- poly[i + 1L, 2L]
+  cx <- heads$x[k]
+  cy <- heads$y[k]
+  dx <- heads$x2[k]
+  dy <- heads$y2[k]
+  d <- pmin(
+    dist_to_edge(cx, cy, ax, ay, bx, by),
+    dist_to_edge(dx, dy, ax, ay, bx, by),
+    dist_to_edge(ax, ay, cx, cy, dx, dy),
+    dist_to_edge(bx, by, cx, cy, dx, dy)
+  )
+  d1 <- (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+  d2 <- (bx - ax) * (dy - ay) - (by - ay) * (dx - ax)
+  d3 <- (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx)
+  d4 <- (dx - cx) * (by - cy) - (dy - cy) * (bx - cx)
+  d[d1 * d2 < 0 & d3 * d4 < 0] <- 0
+  # the closest approach of each zone over the legs
+  nearest <- d[seq_len(m)]
+  for (leg in seq_len(legs)[-1L]) {
+    nearest <- pmin(nearest, d[(leg - 1L) * m + seq_len(m)])
+  }
+  sum(nearest < sep_e)
 }
 
 #' The other edges an edge is priced against
@@ -1618,13 +2399,16 @@ edge_cost_context <- function(fr, e, ctx) {
 #' an already routed edge are spread by `sep_e` in chord order and reduced
 #' to one arch by the hull; a candidate that had to stop on an occupant
 #' ranks below every other, and one that had to give up the chord order is
-#' priced as if it crossed one edge. A periphery
-#' arch is then levelled: every surviving waypoint rises to the outermost
-#' one, so the apex sits mid-span rather than over the tallest stack and the
-#' arch climbs as steeply as it descends; the levelled chain is spread and
-#' hulled again. Candidates are priced by `side_cost()` on the displacement
-#' the stacks require, measured before levelling, and on the crossings of
-#' the chain as drawn.
+#' priced as if it crossed one edge. A waypoint in a tight slot is kept
+#' even when it lies on the chord and the hull would drop it, since it pins
+#' the curve through the gap; a candidate through a tight slot is flagged
+#' `tight`, priced `tight_penalty`, and routed at the soft margin. A
+#' periphery arch is then levelled: every surviving waypoint rises to the
+#' outermost one, so the apex sits mid-span rather than over the tallest
+#' stack and the arch climbs as steeply as it descends; the levelled chain
+#' is spread and hulled again. Candidates are priced by `side_cost()` on
+#' the displacement the stacks require, measured before levelling, and on
+#' the crossings of the chain as drawn.
 #'
 #' @param bounds Panel bounds.
 #' @param reserved Reservations for this edge from `slot_reservations()`,
@@ -1682,7 +2466,16 @@ assign_spanning_waypoints <- function(
       sp <- spread_in_slot(wp, use, occ, side, opts$sep_e, yc, reserved, base)
       overlap <- sp$overlap
       disordered <- sp$disordered
+      tight_rows <- vapply(
+        seq_along(crossed),
+        function(i) in_tight_slot(use[[i]], sp$wp$y[[i]]),
+        logical(1)
+      )
       wp <- hull_waypoints(fr$S, sp$wp, fr$E, side)
+      dropped <- which(tight_rows & !sp$wp$layer %in% wp$layer)
+      if (length(dropped) > 0) {
+        wp <- sort_waypoints(df_bind(wp, df_rows(sp$wp, dropped)), fr)
+      }
       # the displacement priced is what the stacks require; levelling a
       # periphery arch shapes it without changing the slots it needs
       at <- match(wp$layer, crossed)
@@ -1703,9 +2496,22 @@ assign_spanning_waypoints <- function(
         disordered <- disordered || sp$disordered
         wp <- hull_waypoints(fr$S, sp$wp, fr$E, side)
       }
-      cost <- side_cost(fr, wp, side, displacement, ectx, placed, opts)
+      cost <- side_cost(
+        fr,
+        wp,
+        side,
+        displacement,
+        ectx,
+        placed,
+        opts,
+        spline = TRUE
+      )
       if (disordered) {
         cost <- cost + opts$crossing_penalty
+      }
+      tight <- any(tight_rows)
+      if (tight) {
+        cost <- cost + opts$tight_penalty
       }
       cands[[length(cands) + 1]] <- list(
         side = side,
@@ -1714,6 +2520,7 @@ assign_spanning_waypoints <- function(
         cost = round(cost, opts$cost_digits),
         disordered = disordered,
         overlap = overlap,
+        tight = tight,
         ints = use
       )
     }
@@ -1726,6 +2533,12 @@ assign_spanning_waypoints <- function(
   interior <- vapply(cands, function(c) c$scope == "interior", logical(1))
   above <- vapply(cands, function(c) c$side > 0, logical(1))
   cands[order(overlap, cost, !interior, !above)]
+}
+
+#' Whether a y is the centre line of a tight slot of a layer
+#' @noRd
+in_tight_slot <- function(iv, y) {
+  any(iv$tight & abs(iv$lo - y) < 1e-9, na.rm = TRUE)
 }
 
 #' Whether every waypoint at a crossed layer lies in one of its intervals
@@ -1782,7 +2595,16 @@ free_bow_waypoints <- function(hits, fr, extra, bounds, ectx, placed, opts) {
     wp <- hull_waypoints(fr$S, wp, fr$E, side)
     feasible <- nrow(wp) > 0 && inside_bounds(wp, bounds, opts$pad)
     cost <- if (feasible) {
-      side_cost(fr, wp, side, sum(abs(wp$o)), ectx, placed, opts)
+      side_cost(
+        fr,
+        wp,
+        side,
+        sum(abs(wp$o)),
+        ectx,
+        placed,
+        opts,
+        spline = TRUE
+      )
     } else {
       Inf
     }
@@ -2005,7 +2827,12 @@ empty_occupancy <- function() {
 #' Route one candidate waypoint set of an edge
 #'
 #' Applies the parallel-group offset, then builds, verifies, and repairs the
-#' curve. `job` carries the edge frame, obstacles, radii, and constants.
+#' curve. `job` carries the edge frame, obstacles, radii, and constants. A
+#' detour is verified against the arrowhead capsules of the other edges as
+#' well, at the margin of a disc (`m`, or `m_min` for a capped route), and
+#' its arrival is separated from the other arrivals at its target; a soft
+#' nudge is visually straight and gets neither, since a straight edge
+#' through a head is the picture the scene already has.
 #'
 #' @noRd
 route_candidate <- function(
@@ -2020,11 +2847,36 @@ route_candidate <- function(
   least_bad = FALSE
 ) {
   wp <- offset_parallel_edges(wp, job$shift, job$fr, tier)
+  obstacles <- job$obstacles
+  R_vec <- if (soft || capped) job$R_soft else job$R_full
+  arrivals <- NULL
+  heads <- job$ectx$heads
+  if (!soft && nrow(heads) > 0) {
+    obstacles <- df_bind(
+      obstacles,
+      df_cols(
+        name = rep(NA_character_, nrow(heads)),
+        x = heads$x,
+        y = heads$y,
+        layer = rep(NA_integer_, nrow(heads)),
+        x2 = heads$x2,
+        y2 = heads$y2,
+        capsule = rep(TRUE, nrow(heads))
+      )
+    )
+    R_vec <- c(
+      R_vec,
+      rep(if (capped) job$opts$m_min else job$opts$m, nrow(heads))
+    )
+  }
+  if (!soft && nrow(job$arrivals) > 0) {
+    arrivals <- job$arrivals
+  }
   res <- route_spline_edge(
     job$fr,
     wp,
-    job$obstacles,
-    if (soft || capped) job$R_soft else job$R_full,
+    obstacles,
+    R_vec,
     job$arm_min,
     job$opts,
     tier,
@@ -2032,7 +2884,12 @@ route_candidate <- function(
     job$la,
     job$lb,
     job$bounds,
-    repair = !least_bad
+    repair = !least_bad,
+    cap = job$cap,
+    arrivals = arrivals,
+    head_end = job$head_end,
+    theta_min = job$theta_min,
+    side = side
   )
   res$side <- side
   res$mode <- mode
@@ -2049,17 +2906,25 @@ route_candidate <- function(
 }
 
 #' Route an edge through the free-bow tier
+#'
+#' A bow whose curve leaves the panel margin is infeasible rather than
+#' verified: it is reported without clearance and at infinite depth, so it
+#' never replaces a spanning route drawn inside the margin.
+#'
+#' @param fb The bow's waypoints from `free_bow_waypoints()` when the
+#'   caller has them already.
 #' @noRd
-route_free_bow <- function(job, placed) {
-  fb <- free_bow_waypoints(
-    job$hits,
-    job$fr,
-    job$extra,
-    job$bounds,
-    job$ectx,
-    placed,
-    job$opts
-  )
+route_free_bow <- function(job, placed, fb = NULL) {
+  fb <- fb %||%
+    free_bow_waypoints(
+      job$hits,
+      job$fr,
+      job$extra,
+      job$bounds,
+      job$ectx,
+      placed,
+      job$opts
+    )
   res <- route_candidate(
     job,
     fb$wp,
@@ -2071,6 +2936,10 @@ route_free_bow <- function(job, placed) {
     least_bad = fb$least_bad
   )
   res$cost <- fb$cost
+  if (!res$inside) {
+    res$clearance_ok <- FALSE
+    res$depth <- Inf
+  }
   res
 }
 
@@ -2082,7 +2951,9 @@ route_free_bow <- function(job, placed) {
 #' clearance), and marks a periphery waypoint that repairs moved back into
 #' the margin clipped from its slot as infeasible. The re-spread waypoints
 #' carry the parallel-group offset already, so it is taken off before the
-#' candidate applies it again.
+#' candidate applies it again. A candidate through a tight slot is verified
+#' at the soft margin and reported capped, as a bow drawn at that margin
+#' is.
 #'
 #' @param cand One candidate from `assign_spanning_waypoints()`.
 #' @param eh The edge's hits in its frame.
@@ -2104,6 +2975,7 @@ route_spanning_candidate <- function(
 ) {
   fr <- job$fr
   wp <- cand$wp
+  capped <- isTRUE(cand$tight)
   outside <- df_rows(eh, which(eh$layer <= job$la | eh$layer >= job$lb))
   if (nrow(outside) > 0) {
     o <- outside$h + cand$side * (outside$r + opts$m + job$extra)
@@ -2114,7 +2986,15 @@ route_spanning_candidate <- function(
       cand$side
     )
   }
-  res <- route_candidate(job, wp, cand$side, cand$scope, "spanning", placed)
+  res <- route_candidate(
+    job,
+    wp,
+    cand$side,
+    cand$scope,
+    "spanning",
+    placed,
+    capped = capped
+  )
   # a waypoint that stopped on an occupant is drawn over another edge,
   # which no verification against the discs can see
   res$clearance_ok <- res$clearance_ok && !cand$overlap
@@ -2130,7 +3010,8 @@ route_spanning_candidate <- function(
       cand$side,
       cand$scope,
       "spanning",
-      placed
+      placed,
+      capped = capped
     )
     res$clearance_ok <- res$clearance_ok && !cand$overlap
   }
@@ -2330,7 +3211,8 @@ route_orthogonal_scene <- function(
       opts$m,
       bounds,
       opts$pad,
-      opts$sep_e
+      opts$sep_e,
+      m_min = NULL
     )
   })
 
@@ -3824,16 +4706,23 @@ route_scene_mm <- function(
       opts$m,
       bounds,
       opts$pad,
-      opts$sep_e
+      opts$sep_e,
+      opts$m_min
     )
   })
+  # two drawn tips theta degrees apart at one target are 2 cap sin(theta / 2)
+  # apart, so arrivals this far apart keep their arrowheads sep_e apart
+  theta_min <- 2 * asin(min(1, opts$sep_e / (2 * cap))) * 180 / pi
 
   # one edge: the candidate tiers in order, verified and repaired
-  route_one <- function(e, placed, occ, reserved) {
+  route_one <- function(e, placed, occ, reserved, heads) {
     fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
     la <- info$la[[e]]
     lb <- info$lb[[e]]
     ectx <- edge_cost_context(fr, e, ctx)
+    constraints <- head_constraints(heads, e, from, to)
+    ectx$heads <- constraints$heads
+    ectx$cap <- cap
 
     he <- df_rows(hits, which(hits$edge == e))
     idx <- match(he$node, nodes$name)
@@ -3868,12 +4757,19 @@ route_scene_mm <- function(
         name = nodes$name[others],
         x = nodes$x[others],
         y = nodes$y[others],
-        layer = layers$id[others]
+        layer = layers$id[others],
+        x2 = nodes$x[others],
+        y2 = nodes$y[others],
+        capsule = logical(length(others))
       ),
       R_full = R_full[others],
       R_soft = R_soft[others],
       hits = eh,
       ectx = ectx,
+      cap = cap,
+      arrivals = constraints$arrivals,
+      head_end = if (info$reversed[[e]]) "S" else "E",
+      theta_min = theta_min,
       opts = opts
     )
 
@@ -3911,7 +4807,9 @@ route_scene_mm <- function(
               opts$m + extra[[e]],
               bounds,
               opts$pad,
-              opts$sep_e
+              opts$sep_e,
+              opts$m_min,
+              tight_margin = opts$m
             )
           })
         }
@@ -3947,19 +4845,28 @@ route_scene_mm <- function(
             )
           }
           # the best-ranked candidate wins when its curve keeps the margin
-          # from the panel bounds
+          # from the panel bounds and verifies against the discs
           first <- try_cand(cands[[1]])
-          if (first$inside) {
+          if (first$inside && first$clearance_ok) {
             res <- first
           } else {
             # otherwise the free bow is priced with the remaining candidates
             # and the cheapest verified one inside the margin wins; a
-            # lower-ranked slot never wins by default
-            bow <- route_free_bow(job, placed)
+            # lower-ranked slot never wins by default. The bow is priced
+            # now and drawn only when its turn comes
+            fb <- free_bow_waypoints(
+              job$hits,
+              job$fr,
+              job$extra,
+              job$bounds,
+              job$ectx,
+              placed,
+              job$opts
+            )
             rest <- cands[-1]
             pool_cost <- c(
               vapply(rest, function(c) c$cost, numeric(1)),
-              bow$cost
+              fb$cost
             )
             pool_overlap <- c(
               vapply(rest, function(c) c$overlap, logical(1)),
@@ -3967,16 +4874,37 @@ route_scene_mm <- function(
             )
             fallback <- NULL
             for (k in order(pool_overlap, pool_cost)) {
-              tried <- if (k > length(rest)) bow else try_cand(rest[[k]])
+              if (k > length(rest)) {
+                bow <- route_free_bow(job, placed, fb)
+                tried <- bow
+              } else {
+                tried <- try_cand(rest[[k]])
+              }
               if (tried$inside && tried$clearance_ok) {
                 res <- tried
                 break
               }
-              # when nothing verifies, the cheapest attempt inside the margin
-              # is kept, and the free bow may still replace it below
-              if (tried$inside && is.null(fallback)) {
+              # when nothing verifies, the attempt inside the margin with
+              # the least violation is kept, and the free bow may still
+              # replace it below; attempts within the verification
+              # tolerance of each other are equally bad and the pool rank
+              # decides, so a floating difference between two mirror
+              # images cannot
+              if (
+                tried$inside &&
+                  (is.null(fallback) ||
+                    tried$depth < fallback$depth - opts$verify_tol)
+              ) {
                 fallback <- tried
               }
+            }
+            if (
+              is.null(res) &&
+                !is.null(fallback) &&
+                first$inside &&
+                fallback$depth > first$depth - opts$verify_tol
+            ) {
+              fallback <- first
             }
             res <- res %||% fallback %||% first
           }
@@ -4028,14 +4956,21 @@ route_scene_mm <- function(
   # shared slot came out in routing order rather than chord order
   route_all <- function(reserved) {
     placed <- placed_set(paths)
+    heads <- head_registry(paths, cap)
     occ <- empty_occupancy()
     out <- vector("list", n_edges)
     for (e in order_e) {
       held <- if (!is.null(reserved)) {
         df_rows(reserved, which(reserved$edge == e))
       }
-      res <- route_one(e, placed, occ, held)
+      res <- route_one(e, placed, occ, held, heads)
       placed <- place_edge(placed, e, res$path$x, res$path$y)
+      # the registry keeps every path source to target
+      heads <- if (info$reversed[[e]]) {
+        register_head(heads, e, rev(res$path$x), rev(res$path$y), cap)
+      } else {
+        register_head(heads, e, res$path$x, res$path$y, cap)
+      }
       if (!is.null(res$occ)) {
         occ <- df_bind(occ, res$occ)
       }
