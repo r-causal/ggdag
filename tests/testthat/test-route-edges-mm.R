@@ -20,6 +20,8 @@ r_default <- 6
 r_full <- 9
 r_soft <- 7.2
 verify_tol <- 0.1
+m_default <- 3
+m_min_default <- 1.2
 
 # Orthogonal constants at r = 6: the corner radius rc = clamp(0.35 r, 0.8,
 # 2.5) = 2.1, the default edge cap of 8 mm, the nominal stub r + cap + rc =
@@ -37,6 +39,14 @@ head_default <- 2
 sep_min_default <- 1.5
 rc_min_default <- 0.8
 stub_min_default <- cap_default + max(head_default, rc_default) + rc_default
+
+# ggarrow resects the last cap = 8 mm of every edge, so the drawn arrowhead
+# of an edge occupies the arc of its path from 2 cap to cap mm before its
+# target: its head zone. The point at cap is where the head ends, its tip.
+# Two tips theta degrees apart at a shared target are 2 cap sin(theta / 2)
+# mm apart, so keeping arrivals theta_min = 2 asin(sep_e / (2 cap)) = 26.0
+# degrees apart keeps the drawn heads sep_e apart.
+theta_min_default <- 2 * asin(sep_e_default / (2 * cap_default)) * 180 / pi
 
 # Scene construction ------------------------------------------------------------
 
@@ -125,6 +135,132 @@ weave_scene <- function(offset = 16) {
     ),
     edges = mm_edges(c("S", "A"), c("T", "B")),
     bounds = c(-10, -60, 650, 60)
+  )
+}
+
+# A 120 mm skip edge dead on a node of its own row, with a fourth node
+# feeding that node from below. c -> f cannot pass above e, whose disc plus
+# R reaches 109 against a 107 mm limit, so it bows below; b -> e arrives 14
+# degrees off vertical and its drawn arrowhead occupies the window from
+# (76.1, 84.5) to (78.1, 92.2), which a shallow bow skims.
+skip_over_head_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("c", "e", "f", "b"),
+      c(20, 80, 140, 60),
+      c(100, 100, 100, 20)
+    ),
+    edges = mm_edges(c("c", "e", "b", "c"), c("e", "f", "e", "f")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+# A 120 mm horizontal chord dead on n1 and 9.5 mm from n2. The two centres
+# are 16 mm apart: at least 2 (r + m_min) = 14.4, so a curve can pass
+# between them at the soft margin, but short of the 18 mm that two padded
+# discs need for a slot at the full margin.
+tight_slot_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("S", "T", "n1", "n2"),
+      c(20, 140, 80, 80),
+      c(50, 50, 43.5, 59.5)
+    ),
+    edges = mm_edges("S", "T"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+# A 140 mm span-4 chord across three crossed layers whose twelve interior
+# edges weave over and under it. Every interior route crosses at least five
+# of them and the only way to cross fewer is a deep arch under the stacks,
+# so the scene separates a linear crossing price from a saturating one.
+dense_span_scene <- function() {
+  list(
+    nodes = rbind(
+      mm_nodes(c("s", "t"), c(10, 150), c(50, 50)),
+      mm_nodes(
+        c("a1", "a2", "b1", "b2", "c1", "c2"),
+        c(45, 45, 80, 80, 115, 115),
+        c(30, 74, 50, 90, 30, 74)
+      ),
+      mm_nodes(c("u", "w"), 80, c(108, 4))
+    ),
+    edges = mm_edges(
+      c(
+        "s",
+        "s",
+        "a1",
+        "a1",
+        "a2",
+        "b1",
+        "b2",
+        "b2",
+        "c1",
+        "c2",
+        "u",
+        "u",
+        "u",
+        "w",
+        "w",
+        "w",
+        "s"
+      ),
+      c(
+        "a1",
+        "a2",
+        "b1",
+        "b2",
+        "b2",
+        "c1",
+        "c1",
+        "c2",
+        "t",
+        "t",
+        "a1",
+        "c1",
+        "b2",
+        "a2",
+        "c2",
+        "b1",
+        "t"
+      )
+    ),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+# The interior edges of dense_span_scene(): the twelve that touch neither
+# endpoint of s -> t and so are free to be crossed.
+dense_span_interior <- c(3:8, 11:16)
+
+# S -> T is dead on s2 and spans two crowded layers. The candidate that
+# ranks first, above the chord, stays inside the panel but its drawn curve
+# cannot be repaired clear of q2; the candidate below it verifies.
+unverified_slot_scene <- function() {
+  list(
+    nodes = rbind(
+      mm_nodes(c("S", "T"), c(20, 140), c(67, 52)),
+      mm_nodes(c("q1", "q2"), 60, c(90, 74)),
+      mm_nodes(c("s1", "s2"), 100, c(26, 57))
+    ),
+    edges = mm_edges("S", "T"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+# S -> T runs along a row 100 mm up a 110 mm panel, dead on B. A bow above B
+# needs B + R = 109, past the 107 mm the clearance margin leaves, so the
+# free bow can only be drawn by pressing it against the border; below B the
+# 21 mm gap to u is a slot only at the soft margin.
+border_bow_scene <- function() {
+  list(
+    nodes = rbind(
+      mm_nodes(c("S", "B", "T"), c(20, 80, 140), 100),
+      mm_nodes(c("u", "v"), c(80, 60), c(79, 74))
+    ),
+    edges = mm_edges("S", "T"),
+    bounds = c(0, 0, 160, 110)
   )
 }
 
@@ -345,6 +481,88 @@ count_path_crossings <- function(path, a, b) {
     },
     logical(1)
   ))
+}
+
+# Arc length from the far end of a path to each of its points.
+arc_to_end <- function(path) {
+  seg <- sqrt(diff(path$x)^2 + diff(path$y)^2)
+  rev(cumsum(rev(c(seg, 0))))
+}
+
+# The point `s` mm of arc before the end of a path.
+point_before_end <- function(path, s) {
+  d <- arc_to_end(path)
+  k <- min(max(which(d >= s)), nrow(path) - 1L)
+  f <- (d[k] - s) / (d[k] - d[k + 1L])
+  c(
+    path$x[k] + f * (path$x[k + 1L] - path$x[k]),
+    path$y[k] + f * (path$y[k + 1L] - path$y[k])
+  )
+}
+
+# Where the drawn arrowhead of an edge ends: the point `cap` mm of arc
+# before its target, since the arrow layer resects that much of the path.
+tip <- function(path, cap = cap_default) {
+  point_before_end(path, cap)
+}
+
+# The head zone of an edge as a two-row data frame: the arc of its path from
+# 2 cap to cap mm before its target, which the drawn arrowhead occupies.
+head_window <- function(path, cap = cap_default) {
+  far <- point_before_end(path, 2 * cap)
+  near <- point_before_end(path, cap)
+  pt(c(far[1], near[1]), c(far[2], near[2]))
+}
+
+# The visible ink of a path: what is left once the cap is resected at each
+# end. Samples inside a cap are hidden and cannot collide with anything.
+visible_body <- function(path, cap = cap_default) {
+  d <- arc_to_end(path)
+  path[d <= d[1] - cap & d >= cap, , drop = FALSE]
+}
+
+# Closest approach between a polyline and the segment from `a` to `b`, taken
+# both ways so that neither sampling density decides the answer.
+path_to_segment_dist <- function(path, a, b) {
+  n <- nrow(path)
+  if (n < 2) {
+    return(dist_to_edge(path$x, path$y, a[1], a[2], b[1], b[2]))
+  }
+  min(vapply(
+    seq_len(n - 1),
+    function(i) {
+      p <- c(path$x[i], path$x[i + 1])
+      q <- c(path$y[i], path$y[i + 1])
+      min(
+        dist_to_edge(p, q, a[1], a[2], b[1], b[2]),
+        dist_to_edge(a[1], a[2], p[1], q[1], p[2], q[2]),
+        dist_to_edge(b[1], b[2], p[1], q[1], p[2], q[2])
+      )
+    },
+    numeric(1)
+  ))
+}
+
+# Distance from a path to the head zone of another edge's path.
+path_to_head_dist <- function(path, other, cap = cap_default) {
+  w <- head_window(other, cap)
+  path_to_segment_dist(
+    visible_body(path, cap),
+    c(w$x[1], w$y[1]),
+    c(w$x[2], w$y[2])
+  )
+}
+
+# Distance between the drawn tips of two edges arriving at one target.
+tip_distance <- function(path_a, path_b, cap = cap_default) {
+  d <- tip(path_a, cap) - tip(path_b, cap)
+  sqrt(sum(d^2))
+}
+
+# The angle at a shared target between the arrival directions of two edges,
+# measured from each drawn tip to the target centre.
+arrival_separation <- function(path_a, path_b, to, cap = cap_default) {
+  abs(angle_between(to - tip(path_a, cap), to - tip(path_b, cap)))
 }
 
 max_dist_to_polyline <- function(pts, poly) {
@@ -908,6 +1126,36 @@ test_that("mediator: the routed path clears m, stays above the chord, and is smo
   expect_lt(arrival_angle(path, ends$to), 15)
 })
 
+test_that("mediator: x->y arrives clear of m->y's arrowhead", {
+  # x -> y and m -> y share a target, so their drawn arrowheads sit on the
+  # same 8 mm circle around y. The detour must arrive theta_min apart from
+  # the straight edge for the two heads to read as two edges; unseparated,
+  # the arrivals are 8.4 degrees apart and the tips 1.17 mm.
+  scene <- mediator_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[3]]
+  straight <- res$paths[[2]]
+  y <- node_xy(scene, "y")
+
+  expect_gte(tip_distance(path, straight), sep_e_default - verify_tol)
+  expect_gte(
+    arrival_separation(path, straight, y),
+    theta_min_default - 1
+  )
+
+  # separating the arrival changes only the last arm: the slot, the
+  # clearance from m and the smoothness of the curve are unchanged
+  expect_equal(res$meta$mode[3], "interior")
+  expect_equal(res$meta$side[3], 1)
+  wp <- res$waypoints[[3]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(80, 64))
+  expect_true(res$meta$clearance_ok[3])
+  expect_gte(path_min_dist(path, node_xy(scene, "m")), r_full - verify_tol)
+  expect_lt(max(abs(turning_angles(path))), 12)
+  expect_lt(arrival_angle(path, y), 15)
+})
+
 # Fixture 2: fan ---------------------------------------------------------------
 
 test_that("fan: every edge but a->e is straight", {
@@ -951,6 +1199,27 @@ test_that("fan: a->e bows below c, away from the crowded side of the fan", {
   expect_lt(max(abs(turning_angles(path))), 12)
   expect_lte(count_inflections(path), 2)
   expect_lt(arrival_angle(path, ends$to), 15)
+})
+
+test_that("fan: a->e arrives clear of the other two arrowheads at e", {
+  # Three edges arrive at e. b -> e comes from above and is far enough off
+  # on its own; c -> e is the level chord a -> e detours around, and the two
+  # heads sit 1.40 mm apart until the arrival is separated.
+  scene <- fan_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[6]]
+  e <- node_xy(scene, "e")
+
+  expect_gte(tip_distance(path, res$paths[[5]]), sep_e_default - verify_tol)
+  expect_gte(arrival_separation(path, res$paths[[5]], e), theta_min_default - 1)
+  expect_gte(tip_distance(path, res$paths[[4]]), sep_e_default)
+
+  # the separated arrival still comes from the side the bow was drawn on,
+  # so the curve never crosses back above the chord
+  expect_true(all(path$y <= 55 + 1e-9))
+  wp <- res$waypoints[[6]]
+  expect_equal(c(wp$x, wp$y), c(80, 46))
+  expect_lt(arrival_angle(path, e), 15)
 })
 
 # Fixture 3: four-layer periphery ----------------------------------------------
@@ -1005,7 +1274,21 @@ test_that("four-layer: p->t sweeps the periphery above the two middle layers", {
   expect_true(all(path$y >= 55 - 1e-9))
   expect_true(all(diff(path$x) >= -0.1))
   expect_lt(max(abs(turning_angles(path))), 12)
-  expect_lt(arrival_angle(path, ends$to), 15)
+  # Three edges arrive at t. s1 -> t comes down from above, on the side the
+  # arch descends from, and s2 -> t along the chord. The arch cannot reach
+  # theta_min from both inside the 40 degree tangent clamp, so it takes the
+  # admissible angle with the largest minimum gap: 15 degrees from s1 -> t,
+  # whose tips are then 2 cap sin(15 / 2 deg) = 2.09 mm apart, and a full
+  # theta_min from s2 -> t. Aiming a 26 degree arm at a target 14 mm away
+  # bends the curve inside the arm, so the radial arrival reads 16.7 and the
+  # sampled tips fall a little short of the nominal separation, 3.41 mm
+  # rather than the 3.6 the angle asks for.
+  expect_gte(
+    tip_distance(path, res$paths[[7]]),
+    2 * cap_default * sin(15 / 2 * pi / 180) - verify_tol
+  )
+  expect_gte(tip_distance(path, res$paths[[8]]), sep_e_default - 0.3)
+  expect_lt(arrival_angle(path, ends$to), 20)
   # runs outside q1->s1 rather than through it
   expect_identical(
     count_path_crossings(path, node_xy(scene, "q1"), node_xy(scene, "s1")),
@@ -1045,14 +1328,16 @@ test_that("four-layer: the periphery arch peaks near mid-span and climbs as stee
   # 1.1, so no arch through that slot descends at 45 degrees, and the
   # symmetric arch drops at 1.44. What distinguishes a balanced arch is that
   # it climbs as steeply as it falls, whereas the slot-hugging arch climbs
-  # at 0.88 and falls at 1.50.
+  # at 0.88 and falls at 1.50. Separating the arrival at t steepens the last
+  # few millimetres of the descent without unbalancing the arch, so the
+  # absolute bound is 1.8 while the ratio to the climb still holds.
   climb <- max_slope(pt(path$x[seq_len(apex)], path$y[seq_len(apex)]))
   descent <- max_slope(pt(
     path$x[apex:nrow(path)],
     path$y[apex:nrow(path)]
   ))
   expect_lte(descent, 1.25 * climb)
-  expect_lte(descent, 1.5)
+  expect_lte(descent, 1.8)
 
   # both ends leave and arrive within the 40 degree tangent clamp
   expect_lt(arrival_angle(path, ends$to), 40)
@@ -1066,10 +1351,12 @@ test_that("layer_free_intervals() lists the gaps between padded nodes with outer
   # 0.5 mm pad at the panel edge
   l2 <- layer_free_intervals(mm_nodes(c("q1", "q2"), 60, c(75, 35)), 3, bounds)
   expect_s3_class(l2, "data.frame")
-  expect_named(l2, c("lo", "hi", "outer"))
+  expect_named(l2, c("lo", "hi", "outer", "tight"))
   expect_equal(l2$lo, c(0.5, 44, 84))
   expect_equal(l2$hi, c(26, 66, 109.5))
   expect_equal(l2$outer, c(TRUE, FALSE, TRUE))
+  # a gap wide enough for a slot at the full margin is never a tight slot
+  expect_equal(l2$tight, c(FALSE, FALSE, FALSE))
 
   # layer 3: nodes at 90, 55, 20
   l3 <- layer_free_intervals(
@@ -1080,18 +1367,65 @@ test_that("layer_free_intervals() lists the gaps between padded nodes with outer
   expect_equal(l3$lo, c(0.5, 29, 64, 99))
   expect_equal(l3$hi, c(11, 46, 81, 109.5))
   expect_equal(l3$outer, c(TRUE, FALSE, FALSE, TRUE))
+  expect_equal(l3$tight, rep(FALSE, 4))
 
-  # a gap narrower than 2 R yields no interval
-  tight <- layer_free_intervals(mm_nodes(c("u", "v"), 60, c(40, 50)), 3, bounds)
-  expect_equal(tight$lo, c(0.5, 59))
-  expect_equal(tight$hi, c(31, 109.5))
-  expect_equal(tight$outer, c(TRUE, TRUE))
+  # centres 10 mm apart are closer than 2 (r + m_min) = 14.4, too close even
+  # for a tight slot, so the gap yields no interval at all
+  overlapped <- layer_free_intervals(
+    mm_nodes(c("u", "v"), 60, c(40, 50)),
+    3,
+    bounds
+  )
+  expect_equal(overlapped$lo, c(0.5, 59))
+  expect_equal(overlapped$hi, c(31, 109.5))
+  expect_equal(overlapped$outer, c(TRUE, TRUE))
+  expect_equal(overlapped$tight, c(FALSE, FALSE))
 
   # a single node splits the layer into two outer intervals
   one <- layer_free_intervals(mm_nodes("m", 80, 55), 3, bounds)
   expect_equal(one$lo, c(0.5, 64))
   expect_equal(one$hi, c(46, 109.5))
   expect_equal(one$outer, c(TRUE, TRUE))
+  expect_equal(one$tight, c(FALSE, FALSE))
+})
+
+test_that("layer_free_intervals() keeps a narrow gap as a tight slot on its centre line", {
+  bounds <- c(0, 0, 160, 110)
+
+  # n1 and n2 are 16 mm apart: their padded discs overlap, so the gap holds
+  # no slot at the full margin, but the centres are at least
+  # 2 (r + m_min) = 14.4 apart, so a curve can thread the gap at the soft
+  # margin. That gap is kept as a zero-width row on its centre line, flagged
+  # tight and never flagged outer.
+  ints <- layer_free_intervals(
+    mm_nodes(c("n1", "n2"), 80, c(43.5, 59.5)),
+    3,
+    bounds,
+    sep_e = sep_e_default
+  )
+  expect_named(ints, c("lo", "hi", "outer", "tight"))
+  expect_equal(ints$lo, c(0.5, 51.5, 68.5))
+  expect_equal(ints$hi, c(34.5, 51.5, 109.5))
+  expect_equal(ints$outer, c(TRUE, FALSE, TRUE))
+  expect_equal(ints$tight, c(FALSE, TRUE, FALSE))
+
+  # a chord dead on the gap snaps to its centre line on either side
+  expect_equal(nearest_free_y(ints, 51.5, 1, FALSE), 51.5)
+  expect_equal(nearest_free_y(ints, 51.5, -1, FALSE), 51.5)
+  # the tight slot is not an outer interval, so a periphery arch skips it
+  expect_equal(nearest_free_y(ints, 51.5, 1, TRUE), 68.5)
+
+  # centres 13 mm apart are too close: no tight row
+  closer <- layer_free_intervals(
+    mm_nodes(c("n1", "n2"), 80, c(43.5, 56.5)),
+    3,
+    bounds,
+    sep_e = sep_e_default
+  )
+  expect_equal(closer$lo, c(0.5, 65.5))
+  expect_equal(closer$hi, c(34.5, 109.5))
+  expect_equal(closer$outer, c(TRUE, TRUE))
+  expect_equal(closer$tight, c(FALSE, FALSE))
 })
 
 test_that("nearest_free_y() snaps to the nearest free y on the requested side", {
@@ -1121,17 +1455,24 @@ test_that("layer_free_intervals() drops interior gaps narrower than sep_e", {
   # Four nodes at y = 20, 38.2, 59.2, and 82.2 with padded radius R = 9
   # leave gaps of 0.2 mm ([29, 29.2]), 3.0 mm ([47.2, 50.2]), and 5.0 mm
   # ([68.2, 73.2]). A slot narrower than sep_e = 3.6 cannot hold an edge
-  # with its separation, so only the 5 mm gap and the two outer intervals
-  # remain.
+  # with its separation at the full margin, so neither of the first two
+  # survives as a slot. Their centres are 18.2 and 21 mm apart, both at
+  # least 2 (r + m_min) = 14.4, so each is kept as a tight slot on its
+  # centre line instead: zero width, flagged tight, priced for the margin
+  # the two flanking discs give up.
   nodes <- mm_nodes(c("a", "b", "c", "d"), 80, c(20, 38.2, 59.2, 82.2))
   ints <- layer_free_intervals(nodes, 3, bounds, sep_e = sep_e_default)
-  expect_equal(ints$lo, c(0.5, 68.2, 91.2))
-  expect_equal(ints$hi, c(11, 73.2, 109.5))
-  expect_equal(ints$outer, c(TRUE, FALSE, TRUE))
+  expect_equal(ints$lo, c(0.5, 29.1, 48.7, 68.2, 91.2))
+  expect_equal(ints$hi, c(11, 29.1, 48.7, 73.2, 109.5))
+  expect_equal(ints$outer, c(TRUE, FALSE, FALSE, FALSE, TRUE))
+  expect_equal(ints$tight, c(FALSE, TRUE, TRUE, FALSE, FALSE))
 
-  # a chord dead on b snaps past both slivers to the surviving intervals
-  expect_equal(nearest_free_y(ints, 38.2, 1, FALSE), 68.2)
-  expect_equal(nearest_free_y(ints, 38.2, -1, FALSE), 11)
+  # a chord dead on b snaps to the centre line of the gap on each side
+  expect_equal(nearest_free_y(ints, 38.2, 1, FALSE), 48.7)
+  expect_equal(nearest_free_y(ints, 38.2, -1, FALSE), 29.1)
+  # a periphery arch takes neither: a tight slot is never an outer interval
+  expect_equal(nearest_free_y(ints, 38.2, 1, TRUE), 91.2)
+  expect_equal(nearest_free_y(ints, 38.2, -1, TRUE), 11)
 
   # an outer interval is kept however narrow: a node at y = 100 leaves
   # [109, 109.5] toward the panel edge
@@ -1144,18 +1485,20 @@ test_that("layer_free_intervals() drops interior gaps narrower than sep_e", {
   expect_equal(edge$lo, c(0.5, 109))
   expect_equal(edge$hi, c(91, 109.5))
   expect_equal(edge$outer, c(TRUE, TRUE))
+  expect_equal(edge$tight, c(FALSE, FALSE))
 })
 
 test_that("a chord whose nearest slot is a sliver is routed to the next interval", {
-  # S -> T runs dead on b through a layer whose gaps above and below b are
-  # 3.0 and 0.2 mm wide. Without the width floor both sides snap 9 mm off
-  # the chord into a sliver and the tie goes above, to y = 47.2. With it the
-  # candidates are 11 below (displacement 27.2) and 68.2 above (30), so the
-  # waypoint sits in the lower outer interval.
+  # S -> T runs dead on b through a layer whose four nodes sit 13 mm apart,
+  # closer than the 2 (r + m_min) = 14.4 a tight slot needs and far closer
+  # than the 18 mm two padded discs need for a slot. Every interior gap is a
+  # sliver of negative width, so the candidates are the outer intervals: 11
+  # below (displacement 22) and 68 above (35), and the waypoint sits in the
+  # lower one.
   scene <- list(
     nodes = rbind(
-      mm_nodes(c("S", "T"), c(20, 140), 38.2),
-      mm_nodes(c("a", "b", "c", "d"), 80, c(20, 38.2, 59.2, 82.2))
+      mm_nodes(c("S", "T"), c(20, 140), 33),
+      mm_nodes(c("a", "b", "c", "d"), 80, c(20, 33, 46, 59))
     ),
     edges = mm_edges("S", "T"),
     bounds = c(0, 0, 160, 110)
@@ -1171,7 +1514,7 @@ test_that("a chord whose nearest slot is a sliver is routed to the next interval
   wp <- res$waypoints[[1]]
   at_layer <- wp$y[wp$layer == 2]
   expect_length(at_layer, 1)
-  expect_true(at_layer <= 11 + 1e-6 || at_layer >= 68.2 - 1e-6)
+  expect_true(at_layer <= 11 + 1e-6 || at_layer >= 68 - 1e-6)
 
   expect_exact_endpoints(path, ends$from, ends$to)
   expect_gte(nrow(path), 16)
@@ -1180,16 +1523,53 @@ test_that("a chord whose nearest slot is a sliver is routed to the next interval
   expect_lt(max(abs(turning_angles(path))), 12)
 })
 
+test_that("a chord threads a tight slot instead of bowing around the stack", {
+  # n1 and n2 leave a 16 mm gap the chord runs through. At the full margin
+  # that gap holds nothing, and the route detours 15.5 mm below n1 for a
+  # 4.4 mm longer path. Kept as a tight slot it is drawn almost straight,
+  # verified at the soft margin R_soft = 7.2 against both discs, and
+  # reported sagitta_capped, the flag a route verified at the soft margin
+  # already carries.
+  scene <- tight_slot_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+
+  expect_true(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "interior")
+  expect_equal(res$meta$side[1], 1)
+  expect_true(res$meta$clearance_ok[1])
+  expect_true(res$meta$sagitta_capped[1])
+
+  wp <- res$waypoints[[1]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(80, 51.5))
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(path_min_dist(path, node_xy(scene, "n1")), r_soft - verify_tol)
+  expect_gte(path_min_dist(path, node_xy(scene, "n2")), r_soft - verify_tol)
+  # threading the gap costs almost nothing: a 0.04 mm longer path at a
+  # sagitta the eye cannot read as a bow
+  expect_lt(res$meta$sagitta_ratio[1], 0.03)
+  excess <- sum(sqrt(diff(path$x)^2 + diff(path$y)^2)) -
+    chord_length(ends$from, ends$to)
+  expect_lt(excess, 0.5)
+  expect_true(all(diff(path$x) >= -0.1))
+  expect_lt(max(abs(turning_angles(path))), 12)
+})
+
 # Two horizontal chords at y = 30 and 46 cross a layer whose stack at y =
-# 40, 23, and 6 leaves one free interval, [49, 109.5], so both snap to 49
-# above. `low` and `high` name the endpoints of the chord-30 and chord-46
-# edges; the edges tie on span and length, so the canonical name order
-# decides which is routed first.
+# 40, 27, 14, and 1 leaves one free interval, [49, 109.5], so both snap to
+# 49 above. The nodes sit 13 mm apart, closer than the 2 (r + m_min) = 14.4
+# a tight slot needs, so no gap in the stack is usable and the lowest node
+# reaches past the panel edge. `low` and `high` name the endpoints of the
+# chord-30 and chord-46 edges; the edges tie on span and length, so the
+# canonical name order decides which is routed first.
 shared_slot_scene <- function(low, high) {
   list(
     nodes = rbind(
       mm_nodes(c(low, high), c(20, 140, 20, 140), c(30, 30, 46, 46)),
-      mm_nodes(c("m1", "m2", "m3"), 80, c(40, 23, 6))
+      mm_nodes(c("m1", "m2", "m3", "m4"), 80, c(40, 27, 14, 1))
     ),
     edges = mm_edges(c(low[1], high[1]), c(low[2], high[2])),
     bounds = c(0, 0, 160, 110)
@@ -1235,15 +1615,16 @@ test_that("spread_in_slot(): edges sharing a slot keep the y-order of their chor
 })
 
 # Two fan-in edges pa -> t and pb -> t span four layers. The stacks at
-# layers 2 and 3 (x = 60 and 100) leave no free interval below and one
-# above each: [99, 109.5] at layer 2 and [65, 109.5] at layer 3. Both
-# chords are blocked at both layers and can only arch above.
+# layers 2 and 3 (x = 60 and 100) sit 13 mm apart, closer than a tight slot
+# needs, and reach past the lower panel edge, so they leave no free interval
+# below and one above each: [83, 109.5] at layer 2 and [57, 109.5] at layer
+# 3. Both chords are blocked at both layers and can only arch above.
 occupied_arch_scene <- function() {
   list(
     nodes = rbind(
       mm_nodes(c("pa", "pb", "t"), c(20, 20, 140), c(40, 60, 55)),
-      mm_nodes(paste0("q", 1:6), 60, c(5, 22, 39, 56, 73, 90)),
-      mm_nodes(paste0("s", 1:4), 100, c(5, 22, 39, 56))
+      mm_nodes(paste0("q", 1:6), 60, c(9, 22, 35, 48, 61, 74)),
+      mm_nodes(paste0("s", 1:4), 100, c(9, 22, 35, 48))
     ),
     edges = mm_edges(c("pa", "pb"), c("t", "t")),
     bounds = c(0, 0, 160, 110)
@@ -1266,17 +1647,17 @@ test_that("an arch occupies every layer it crosses, not only the layers of its w
   expect_equal(res$meta$side, c(1, 1))
 
   # pa -> t is the longer edge (120.9 against 120.1 mm) and routes first.
-  # Its slots are 99 at layer 2 and 65 at layer 3; the line from (60, 99)
-  # to t passes layer 3 at 77, above 65, so the hull drops the layer 3
+  # Its slots are 83 at layer 2 and 57 at layer 3; the line from (60, 83)
+  # to t passes layer 3 at 69, above 57, so the hull drops the layer 3
   # waypoint and the arch crosses that layer without one. The verify step
-  # then lifts the remaining waypoint to about 101.
+  # then lifts the remaining waypoint further.
   expect_identical(res$meta$waypoint_layers[[1]], 2L)
 
   # pb -> t wants the same slots. Its chord is higher at both layers (58.3
   # against 45 at layer 2, 56.7 against 50 at layer 3), so it sits outside
   # pa -> t: sep_e above the waypoint pa -> t was drawn through at layer 2,
   # and sep_e above where the pa -> t arch actually passes layer 3, rather
-  # than at the slot boundary 65 that its own hull would discard. Spreading
+  # than at the slot boundary 57 that its own hull would discard. Spreading
   # only against registered waypoints drew the arches 1.6 mm apart at
   # x = 60 and 0.4 mm apart at x = 100.
   for (x0 in c(60, 100)) {
@@ -1310,17 +1691,17 @@ test_that("an arch occupies every layer it crosses, not only the layers of its w
   expect_identical(res2$waypoints[[1]], res$waypoints[[2]])
 })
 
-# The occupied-arch scene with a fifth node s5 at (100, 80) on top of the
+# The occupied-arch scene with a fifth node s5 at (100, 72) on top of the
 # layer 3 stack. Both chords now snap into the 6 mm gap between s4 and s5,
 # which the hull discards because the line from the layer 2 slot to t
 # passes above it, so the layer 3 waypoint of each arch is inserted by the
-# repair loop at s5 + R = 89 from the node disc alone. Without a re-check
+# repair loop at s5 + R = 81 from the node disc alone. Without a re-check
 # against the occupancy, pb -> t was drawn 0.29 mm from pa -> t at x = 100.
-# The panel is 120 mm high: the outer arch passes layer 2 at 107.6 and
-# every drawn curve keeps the clearance margin m = 3 from the bounds.
+# The panel is 120 mm high, and every drawn curve keeps the clearance
+# margin m = 3 from the bounds.
 repaired_arch_scene <- function() {
   scene <- occupied_arch_scene()
-  scene$nodes <- rbind(scene$nodes, mm_nodes("s5", 100, 80))
+  scene$nodes <- rbind(scene$nodes, mm_nodes("s5", 100, 72))
   scene$bounds <- c(0, 0, 160, 120)
   scene
 }
@@ -1333,7 +1714,7 @@ test_that("an arch that repairs moved onto another arch is spread again", {
   expect_true(all(res$meta$clearance_ok))
   expect_equal(res$meta$side, c(1, 1))
 
-  # pa -> t routes first and its repaired arch passes layer 3 near 92;
+  # pa -> t routes first and its repaired arch passes layer 3 near 83;
   # pb -> t has the higher chord at both layers and stays sep_e outside it
   for (x0 in c(60, 100)) {
     ya <- path_y_at(res$paths[[1]], x0)
@@ -1467,6 +1848,42 @@ test_that("skip edges of equal chord length route in name order and take opposit
   }
 })
 
+test_that("a skip edge detours past another edge's arrowhead, not through it", {
+  # c -> f bows under e. The shallowest bow that clears e's disc passes
+  # 0.24 mm from the arrowhead of b -> e, which arrives at e from below:
+  # two edges drawn through each other's ink. The head zone of every other
+  # edge is an obstacle for a detour with the same margin a disc has, so
+  # the bow drops to 18.7 mm below e and clears the window by m.
+  scene <- skip_over_head_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[4]]
+  ends <- edge_endpoints(scene, 4)
+
+  expect_gte(path_to_head_dist(path, res$paths[[3]]), m_default - verify_tol)
+
+  expect_true(res$meta$routed[4])
+  expect_equal(res$meta$mode[4], "interior")
+  expect_equal(res$meta$side[4], -1)
+  expect_true(res$meta$clearance_ok[4])
+  wp <- res$waypoints[[4]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(wp$x, 80)
+  expect_lte(wp$y, 100 - 2 * r_full)
+
+  # the shaft of b -> e is still crossed: only its head is given room
+  expect_identical(
+    count_path_crossings(path, node_xy(scene, "b"), node_xy(scene, "e")),
+    1L
+  )
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(path_min_dist(path, node_xy(scene, "e")), r_full - verify_tol)
+  # the detour is still a shallow curve, not an arch
+  expect_lte(res$meta$sagitta_ratio[4], 0.2)
+  expect_true(all(diff(path$x) >= -0.1))
+  expect_lt(max(abs(turning_angles(path))), 12)
+  expect_lt(arrival_angle(path, ends$to), 15)
+})
+
 # A short bottom-row chord b -> g at y = 11 blocked by d, whose floor slot
 # ends at d - R = 2, inside the clearance margin m = 3. Above d a stack of
 # four more nodes leaves slivers only until the gap between n2 and n3, at
@@ -1520,6 +1937,112 @@ test_that("a chord whose remaining slot is far away takes the cheaper bow", {
   res2 <- route_scene(shuffled)
   expect_identical(res2$paths[[2]], res$paths[[1]])
   expect_identical(res2$meta$mode[2], "bow")
+})
+
+test_that("a route through a tangle takes the interior rather than a deep arch", {
+  # s -> t crosses three layers whose twelve interior edges weave across it.
+  # No route crosses fewer than five of them, so a price of one crossing
+  # each buys nothing: the arch under the stacks avoids three crossings at
+  # the cost of 28 mm of extra path and a sagitta of 0.27. Charging the
+  # first crossing in full and halving each further one leaves the interior
+  # slot 9 mm above b1 as the cheaper route, at 1.3 mm of excess.
+  scene <- dense_span_scene()
+  res <- route_scene(scene)
+  i <- match("s->t", edge_labels(scene$edges))
+  path <- res$paths[[i]]
+  ends <- edge_endpoints(scene, i)
+
+  expect_true(res$meta$routed[i])
+  expect_equal(res$meta$mode[i], "interior")
+  expect_equal(res$meta$side[i], 1)
+  expect_true(res$meta$clearance_ok[i])
+  wp <- res$waypoints[[i]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(80, 59))
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(path_min_dist(path, node_xy(scene, "b1")), r_full - verify_tol)
+  expect_gte(path_min_clearance(scene, i, path), r_full - verify_tol)
+  # the drawn curve reads as a straight edge nudged over one node, not an
+  # arch: it never leaves a tenth of its own span
+  expect_lt(
+    max(abs(chord_offset(path, ends$from, ends$to))) /
+      chord_length(ends$from, ends$to),
+    0.1
+  )
+  # the tangle is still crossed, which is the point: paying to avoid some
+  # of five crossings is not worth a detour
+  crossings <- sum(vapply(
+    dense_span_interior,
+    function(o) {
+      other <- res$paths[[o]]
+      sum(vapply(
+        seq_len(nrow(other) - 1),
+        function(k) {
+          count_path_crossings(
+            path,
+            c(other$x[k], other$y[k]),
+            c(other$x[k + 1], other$y[k + 1])
+          )
+        },
+        integer(1)
+      ))
+    },
+    integer(1)
+  ))
+  expect_gte(crossings, 5L)
+})
+
+test_that("a rank-1 candidate that fails verification opens the candidate pool", {
+  # The candidate above the chord ranks first and stays inside the panel,
+  # but no repair gets its curve clear of q2: it is drawn 7.58 mm from that
+  # disc, short of R. A rank-1 candidate that is infeasible after routing
+  # opens the pool to the rest, and the candidate below verifies with a
+  # single waypoint in the gap under s2.
+  scene <- unverified_slot_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+
+  expect_true(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "interior")
+  expect_equal(res$meta$side[1], -1)
+  expect_true(res$meta$clearance_ok[1])
+  wp <- res$waypoints[[1]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(100, 48))
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_gte(path_min_clearance(scene, 1, path), r_full - verify_tol)
+  expect_true(all(diff(path$x) >= -0.1))
+  expect_lt(max(abs(turning_angles(path))), 12)
+})
+
+test_that("a free bow outside the panel margin never replaces a spanning route", {
+  # S -> T is dead on B, on a row 10 mm below the top of the panel. The free
+  # bow above B needs B + R = 109, past the 107 the clearance margin allows,
+  # so it can only be drawn pressed against the border. A bow that leaves
+  # the margin is infeasible rather than clamped, and the spanning route
+  # below B stands: it threads the 21 mm gap to u as a tight slot.
+  scene <- border_bow_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+
+  expect_true(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "interior")
+  expect_equal(res$meta$side[1], -1)
+  expect_true(res$meta$clearance_ok[1])
+  wp <- res$waypoints[[1]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(80, 89.5))
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  # the drawn curve is nowhere near the border it would have been clamped to
+  expect_gt(scene$bounds[4] - max(path$y), m_default + 1)
+  expect_gte(path_min_dist(path, node_xy(scene, "B")), r_soft - verify_tol)
+  expect_gte(path_min_dist(path, node_xy(scene, "u")), r_soft - verify_tol)
+  expect_lt(max(abs(turning_angles(path))), 12)
 })
 
 # Fixture 4: weave -------------------------------------------------------------
@@ -1852,6 +2375,33 @@ test_that("exact x layers keep x as the layer axis even when y has fewer distinc
 })
 
 test_that("a reversed edge returns the reversed polyline of its forward twin", {
+  # One blocked edge and one obstacle, so nothing else arrives at either
+  # endpoint: reversing the edge reverses the drawn polyline point for
+  # point. A scene with other arrivals is a different DAG once the edge is
+  # reversed, since the arrival the router separates is at the other end.
+  scene <- list(
+    nodes = mm_nodes(c("x", "m", "y"), c(7.3, 80, 152.7), c(55, 55, 55)),
+    edges = mm_edges("x", "y"),
+    bounds = c(0, 0, 160, 110)
+  )
+  forward <- route_scene(scene)
+  scene$edges <- mm_edges("y", "x")
+  res <- route_scene(scene)
+  ends <- edge_endpoints(scene, 1)
+
+  expect_true(res$meta$routed[1])
+  expect_identical(res$meta$side[1], forward$meta$side[1])
+  expect_identical(res$meta$mode[1], forward$meta$mode[1])
+  expect_identical(res$waypoints[[1]], forward$waypoints[[1]])
+  expect_identical(res$paths[[1]]$x, rev(forward$paths[[1]]$x))
+  expect_identical(res$paths[[1]]$y, rev(forward$paths[[1]]$y))
+  expect_exact_endpoints(res$paths[[1]], ends$from, ends$to)
+})
+
+test_that("a reversed edge keeps its twin's slot when other edges share its ends", {
+  # In the mediator, reversing x -> y makes m -> y the edge that arrives at
+  # y where y -> x now departs, so the two paths differ at that end. The
+  # slot the detour is drawn through is the same either way.
   forward <- route_scene(mediator_scene())
   scene <- mediator_scene()
   scene$edges <- mm_edges(c("x", "m", "y"), c("m", "y", "x"))
@@ -1862,8 +2412,6 @@ test_that("a reversed edge returns the reversed polyline of its forward twin", {
   expect_identical(res$meta$side[3], forward$meta$side[3])
   expect_identical(res$meta$mode[3], forward$meta$mode[3])
   expect_identical(res$waypoints[[3]], forward$waypoints[[3]])
-  expect_identical(res$paths[[3]]$x, rev(forward$paths[[3]]$x))
-  expect_identical(res$paths[[3]]$y, rev(forward$paths[[3]]$y))
   expect_exact_endpoints(res$paths[[3]], ends$from, ends$to)
 })
 
