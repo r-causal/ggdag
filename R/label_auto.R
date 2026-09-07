@@ -71,13 +71,21 @@ label_grid_spacing <- 2
 
 # The local grid built around the node of a label with no admissible
 # candidate within reach: box centers every `label_local_grid_spacing` mm,
-# phased about the node center, out to `label_local_reach` times the reach.
-# Beyond the reach the rays offer only a few sparse levels, so a pocket
-# between two of them is found by no ray, and the panel grid is a repair
-# device for a label left on the ink. A 2 mm spacing found the same spots
-# on the scenes measured and cost a fifth more time and allocation on the
-# very big spline scene, which brought it within a few percent of that
-# scene's performance pins; 3 mm keeps the same pictures with room to spare.
+# out to `label_local_reach` times the reach. Beyond the reach the rays
+# offer only a few sparse levels, so a pocket between two of them is found
+# by no ray, and the panel grid is a repair device for a label left on the
+# ink. A 2 mm spacing found the same spots on the scenes measured and cost
+# a fifth more time and allocation on the very big spline scene, which
+# brought it within a few percent of that scene's performance pins; 3 mm
+# keeps the same pictures with room to spare.
+#
+# The grid is phased from the near edge of the square it covers, not from
+# the node center: the first center sits at the edge of the search extent,
+# clipped to the panel, and the rest follow at the spacing. Either phase is
+# a convention, and this one is the one the placements were measured
+# against. Phasing about the node instead moved the very big spline scene
+# at 7 x 5 from 1126 to 1504 ms and its mean leader from 25.1 to 26.8 mm,
+# and left a third label unresolved on the saturated scene at 4 x 3.
 label_local_grid_spacing <- 3
 label_local_reach <- 3
 
@@ -978,13 +986,13 @@ label_grid_candidates <- function(x, y, width, height, bounds, rank_from) {
 
 #' Candidate boxes on a grid around one node
 #'
-#' Box centers every `label_local_grid_spacing` mm on a grid phased about
-#' the node center, so the candidates sit at whole multiples of the spacing
-#' from the node on each axis whatever the panel's origin, kept where the
-#' box lies inside `bounds` and clears the node disc by at least `gap` and
-#' at most `label_local_reach` times `reach`. These are built for a label
-#' with no admissible candidate within reach, whose rays offer only a few
-#' sparse levels beyond it, so that a pocket between two rays is found.
+#' Box centers every `label_local_grid_spacing` mm across the square the
+#' search covers, phased from that square's near edge on each axis rather
+#' than from the node, kept where the box lies inside `bounds` and clears
+#' the node disc by at least `gap` and at most `label_local_reach` times
+#' `reach`. These are built for a label with no admissible candidate within
+#' reach, whose rays offer only a few sparse levels beyond it, so that a
+#' pocket between two rays is found.
 #'
 #' @param x,y Node center in mm.
 #' @param radius Node disc radius in mm.
@@ -1011,22 +1019,21 @@ label_local_grid_candidates <- function(
   # The farthest a box center can sit while its nearest point is within the
   # far clearance: along a diagonal the nearest point is a corner, half the
   # box diagonal from the center.
-  extent <- radius + far + sqrt(width^2 + height^2) / 2
-  steps <- ceiling(extent / label_local_grid_spacing)
-  offsets <- seq(-steps, steps) * label_local_grid_spacing
-  center_x <- x + offsets
-  center_y <- y + offsets
-  center_x <- center_x[
-    center_x - width / 2 >= bounds[[1]] & center_x + width / 2 <= bounds[[3]]
-  ]
-  center_y <- center_y[
-    center_y - height / 2 >= bounds[[2]] &
-      center_y + height / 2 <= bounds[[4]]
-  ]
-  if (length(center_x) == 0 || length(center_y) == 0) {
+  half <- radius + far + sqrt(width^2 + height^2) / 2
+  # Each axis runs over the search extent narrowed to the centers whose box
+  # lies inside the panel, so a node near an edge gets the part of the grid
+  # that fits and nothing outside it.
+  lo_x <- max(bounds[[1]] + width / 2, x - half)
+  hi_x <- min(bounds[[3]] - width / 2, x + half)
+  lo_y <- max(bounds[[2]] + height / 2, y - half)
+  hi_y <- min(bounds[[4]] - height / 2, y + half)
+  if (lo_x > hi_x || lo_y > hi_y) {
     return(empty_label_candidates())
   }
-  grid <- expand.grid(x = center_x, y = center_y)
+  grid <- expand.grid(
+    x = seq(lo_x, hi_x, by = label_local_grid_spacing),
+    y = seq(lo_y, hi_y, by = label_local_grid_spacing)
+  )
   clearance <- rect_point_dist(
     grid$x - width / 2,
     grid$y - height / 2,
