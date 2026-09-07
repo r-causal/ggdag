@@ -264,6 +264,44 @@ border_bow_scene <- function() {
   )
 }
 
+# Three edges arrive at y. a -> y and b -> y come in from the corners at
+# 27.9 degrees either side of the row y sits on, and x -> y comes along it.
+# x is dead on the c -> y chord, so c -> y detours around it and then has to
+# land in a squeeze: no direction within the tangent clamp keeps theta_min
+# from all three, and the two arrivals it is caught between are 27.9 degrees
+# apart.
+dense_arrival_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("a", "b", "c", "x", "y"),
+      c(62.6826, 62.6826, 14.4652, 110.9, 159.1173),
+      c(112.5506, 10.2319, 61.3912, 61.3912, 61.3912)
+    ),
+    edges = mm_edges(
+      c("a", "a", "b", "b", "c", "c", "c", "x"),
+      c("x", "y", "x", "y", "a", "b", "y", "y")
+    ),
+    bounds = c(0, 0, 173.5825, 122.7825)
+  )
+}
+
+# S -> T runs along a row 10 mm below the top of the panel and is dead on B,
+# one layer in from T; u sits 14 mm below the row in the middle layer. The
+# candidate above the chord ranks first and clears every disc, but its curve
+# leaves the panel margin, so the pool opens; the candidates inside the
+# margin all graze u; and the free bow above B reaches y = 109, past the 107
+# the margin allows, so it can only be drawn pressed against the border.
+margin_bow_scene <- function() {
+  list(
+    nodes = rbind(
+      mm_nodes(c("S", "B", "T"), c(20, 100, 140), 100),
+      mm_nodes("u", 80, 86)
+    ),
+    edges = mm_edges("S", "T"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
 scale_scene <- function(scene, k) {
   scene$nodes$x <- scene$nodes$x * k
   scene$nodes$y <- scene$nodes$y * k
@@ -1222,6 +1260,58 @@ test_that("fan: a->e arrives clear of the other two arrowheads at e", {
   expect_lt(arrival_angle(path, e), 15)
 })
 
+# Fixture 2b: a squeezed arrival ------------------------------------------------
+
+test_that("separate_arrival() takes the midpoint when no angle clears them all", {
+  # Three edges arrive at a target: two 27.9 degrees either side of the
+  # chord and one along it. No direction within the 40 degree clamp keeps
+  # theta_min from all three, so the best available is the direction with
+  # the largest minimum gap, and that is the midpoint of the pair the
+  # arrival is caught between: -13.95 degrees, 13.95 from each. The clamp
+  # edge at -40 leaves only 12.05 to the nearest arrival.
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+  arrivals <- rbind(unit(-27.9), unit(27.9), unit(0))
+
+  d <- separate_arrival(
+    unit(-10.6),
+    arrivals,
+    theta_min_default,
+    c(1, 0),
+    40,
+    0
+  )
+
+  expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 13.95), 0.5)
+})
+
+test_that("dense arrival: c->y lands midway between the arrivals crowding it", {
+  # c -> y detours above x and arrives between x -> y along the row and
+  # a -> y from the corner. Neither gap can reach theta_min, so the two are
+  # equalised instead: rotating to the clamp leaves 6.1 degrees to a -> y
+  # and the two tips 0.85 mm apart, which reads as one arrowhead.
+  scene <- dense_arrival_scene()
+  res <- route_scene(scene)
+  labels <- edge_labels(scene$edges)
+  i <- match("c->y", labels)
+  path <- res$paths[[i]]
+  rivals <- res$paths[match(c("a->y", "x->y"), labels)]
+  y <- node_xy(scene, "y")
+
+  gaps <- vapply(rivals, function(p) arrival_separation(path, p, y), numeric(1))
+  expect_gte(min(gaps), theta_min_default / 2)
+  expect_lt(abs(diff(gaps)), 2)
+  tips <- vapply(rivals, function(p) tip_distance(path, p), numeric(1))
+  expect_gt(min(tips), 1.8)
+
+  # the detour itself is unchanged: the same slot above x, on the same side
+  expect_true(res$meta$routed[i])
+  expect_equal(res$meta$mode[i], "interior")
+  expect_equal(res$meta$side[i], 1)
+  expect_true(res$meta$clearance_ok[i])
+  expect_gte(path_min_dist(path, node_xy(scene, "x")), r_full - verify_tol)
+  expect_lt(arrival_angle(path, y), 15)
+})
+
 # Fixture 3: four-layer periphery ----------------------------------------------
 
 test_that("four-layer: every short edge is straight", {
@@ -2042,6 +2132,41 @@ test_that("a free bow outside the panel margin never replaces a spanning route",
   expect_gt(scene$bounds[4] - max(path$y), m_default + 1)
   expect_gte(path_min_dist(path, node_xy(scene, "B")), r_soft - verify_tol)
   expect_gte(path_min_dist(path, node_xy(scene, "u")), r_soft - verify_tol)
+  expect_lt(max(abs(turning_angles(path))), 12)
+})
+
+test_that("a free bow outside the margin loses to a spanning route that grazes", {
+  # Here nothing inside the margin verifies. The rank-1 candidate above the
+  # chord clears every disc but leaves the margin, so the pool opens; the
+  # candidates below it stay inside and graze u by 0.11 mm; and the free bow
+  # above B clears the discs only at y = 109, outside the margin. A bow that
+  # can be drawn only by clamping it to the border is infeasible, so the
+  # grazing spanning route wins: it keeps 9 mm from B where the clamped bow
+  # would have passed 7 mm from it and run along the border.
+  #
+  # No route in this scene verifies, so clearance_ok is FALSE either way:
+  # a route that keeps the margin and verifies would have been taken by the
+  # candidate pool and would never reach the bow.
+  scene <- margin_bow_scene()
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+
+  expect_true(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "interior")
+  expect_equal(res$meta$side[1], -1)
+  expect_false(res$meta$clearance_ok[1])
+  wp <- res$waypoints[[1]]
+  expect_identical(nrow(wp), 2L)
+  expect_equal(wp$x, c(80, 100))
+  expect_equal(wp$y, c(95, 91))
+
+  expect_exact_endpoints(path, ends$from, ends$to)
+  # the curve never rises above the row, let alone to the border
+  expect_lte(max(path$y), 100 + 1e-9)
+  expect_gt(scene$bounds[4] - max(path$y), m_default + 1)
+  expect_gte(path_min_dist(path, node_xy(scene, "B")), r_full - verify_tol)
+  expect_gte(path_min_dist(path, node_xy(scene, "u")), r_soft)
   expect_lt(max(abs(turning_angles(path))), 12)
 })
 
@@ -5627,8 +5752,10 @@ test_that("route_edges_mm() routes large_epi at a small device size at interacti
     iterations = 30,
     filter_gc = FALSE
   )
-  # The design target is 5 ms and the router measures 4.7 to 5.0 ms on the
-  # development machine, a margin that fails intermittently under load;
-  # the gate is 6 ms so that only a real regression trips it.
-  expect_lt(as.numeric(timing$median), 0.006)
+  # Head zones and arrival separation cost this scene about twice the curve
+  # and verification iterations, at about 1.6 times the work per iteration,
+  # so what measured 4.7 to 5.0 ms without them measures 19 ms with them on
+  # the development machine. The gate is 25 ms so that only a real
+  # regression trips it.
+  expect_lt(as.numeric(timing$median), 0.025)
 })

@@ -137,9 +137,11 @@ test_that("place_dag_labels() allocates modestly on a 30-node labelled scene", {
   # The engine runs at a near-constant 3.4 GB of allocation per second across
   # every problem size measured, so what it allocates is what it costs. This
   # pin is the time pin restated in the currency the engine actually spends.
+  # Routed ink gives the placement search more to work against and the
+  # engine searches harder on it, which is what the 4.5 GB bound allows for.
   expect_lt(
     timing$mem_alloc,
-    4 * 1024^3,
+    4.5 * 1024^3,
     label = sprintf(
       "very big spline engine allocation (%.1f GB)",
       timing$mem_alloc / 1024^3
