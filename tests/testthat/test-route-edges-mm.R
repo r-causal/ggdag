@@ -2312,10 +2312,16 @@ edge_index <- function(scene, label) {
 # and e alone in their layers, so it takes S ports and the channel below the
 # middle stack at 25 - 9 = 16. The polylines below omit the ports, which are
 # collinear with the centres and the first bends.
+#
+# c->e runs at e's own y, so it owns e's centre row and b->e stacks one slot
+# above it at 55 + 3.6 = 58.6. That row meets e's disc at the foot
+# (135.2, 58.6), from which the hidden connector runs to the centre: the last
+# leg of b->e is the oblique (135.2, 58.6) to (140, 55), never drawn because
+# the disc covers it.
 fan_sharp_polylines <- list(
   "a->b" = pt(c(20, 50, 50, 80), c(55, 55, 85, 85)),
   "a->d" = pt(c(20, 50, 50, 80), c(55, 55, 25, 25)),
-  "b->e" = pt(c(80, 110, 110, 140), c(85, 85, 55, 55)),
+  "b->e" = pt(c(80, 110, 110, 135.2, 140), c(85, 85, 58.6, 58.6, 55)),
   "a->e" = pt(c(20, 20, 140, 140), c(55, 16, 16, 55))
 )
 fan_straight <- c("a->c", "c->e")
@@ -2349,8 +2355,16 @@ test_that("orthogonal fan: sharp corners reproduce the worked trace exactly", {
     expect_true(all(is.na(res$meta$waypoint_layers[[i]])), label = lab)
     expect_exact_endpoints(path, ends$from, ends$to)
     expect_lt(polyline_hausdorff(path, poly), 1e-6, label = lab)
-    # a sharp path is axis-aligned everywhere
-    expect_true(all(segment_axes(dedupe_path(path)) != "o"), label = lab)
+    # a sharp path is axis-aligned everywhere it is drawn: the only oblique
+    # segment is the connector from an offset port's foot to the centre,
+    # which lies inside the node disc and is never drawn
+    seg <- dedupe_path(path)
+    oblique <- segment_axes(seg) == "o"
+    covered <- hidden_points(seg, ends, r_default + 1e-6)
+    expect_true(
+      all(!oblique | (covered[-length(covered)] & covered[-1])),
+      label = lab
+    )
 
     # the two bends are the interior vertices of the polyline
     bends <- res$waypoints[[i]]
@@ -2404,11 +2418,21 @@ test_that("orthogonal fan: rounded corners stay within rc of each bend and turn 
         label = lab
       )
     }
-    expect_orthogonal_outside_corners(path, bends, rc_default, label = lab)
+    expect_orthogonal_outside_corners(
+      path,
+      bends,
+      rc_default,
+      label = lab,
+      ends = ends
+    )
     # the corner must turn less than 12 degrees per sample; at uniform t a
     # quadratic Bezier through a right angle needs at least 11 samples for
-    # that (8 samples peak at 15.9 degrees), so the sample count is not pinned
-    expect_lt(max(abs(turning_angles(path))), 12, label = lab)
+    # that (8 samples peak at 15.9 degrees), so the sample count is not
+    # pinned. The foot corner where an offset port's row meets the disc
+    # stays sharp and turns 36.9 degrees, so the samples the disc covers
+    # are excluded; they form a prefix and a suffix of the path.
+    shown <- path[!hidden_points(path, ends, r_default + 1e-6), , drop = FALSE]
+    expect_lt(max(abs(turning_angles(shown))), 12, label = lab)
   }
 
   # at the (50, 55) corner of a->b the curve is tangent to the runs at
@@ -2524,7 +2548,9 @@ test_that("orthogonal mediator: a displaced m gets one slot per gap and the chan
   expect_equal(res$meta$mode[j], "orthogonal")
   expect_equal(slot_xs(res$paths[[j]], c(80, 152.7)), 116.35, tolerance = 1e-6)
   expect_equal(res$waypoints[[j]]$x, c(116.35, 116.35), tolerance = 1e-6)
-  expect_equal(res$waypoints[[j]]$y, c(75, 55), tolerance = 1e-6)
+  # x->y runs at y's own y, so it owns the centre row and m->y stacks one
+  # slot above it at 55 + 3.6 = 58.6
+  expect_equal(res$waypoints[[j]]$y, c(75, 58.6), tolerance = 1e-6)
 
   k <- edge_index(scene, "x->y")
   ends <- edge_endpoints(scene, k)
@@ -3617,8 +3643,9 @@ test_that("orthogonal pricing: the collinear mediator keeps its two-bend channel
 
   # With bend_penalty = 0 the E/W run at 64 costs 1.5 against the channel's
   # 2.683 and wins: four bends, the run past m no lower than 64 and below
-  # the channel's 71.1, leaving x's E port and entering y's W port along
-  # the chord.
+  # the channel's 71.1, leaving x's E port along the chord. m->y runs at
+  # y's own y, so it owns the centre row and x->y enters one slot above it
+  # at 55 + 3.6 = 58.6.
   free <- route_scene(
     scene,
     mode = "orthogonal",
@@ -3635,7 +3662,7 @@ test_that("orthogonal pricing: the collinear mediator keeps its two-bend channel
   expect_equal(runs$axis[1], "h")
   expect_equal(runs$coord[1], 55, tolerance = 1e-6)
   expect_equal(runs$axis[nrow(runs)], "h")
-  expect_equal(runs$coord[nrow(runs)], 55, tolerance = 1e-6)
+  expect_equal(runs$coord[nrow(runs)], 58.6, tolerance = 1e-6)
   expect_length(slot_xs(path, c(7.3, 80)), 1)
   expect_length(slot_xs(path, c(80, 152.7)), 1)
   expect_gte(path_min_dist(path, node_xy(scene, "m")), r_full - verify_tol)
@@ -3716,7 +3743,10 @@ test_that("orthogonal pricing: a skip edge with a free E/W route takes it instea
   expect_equal(runs$axis[1], "h")
   expect_equal(runs$coord[1], 55, tolerance = 1e-6)
   expect_equal(runs$axis[nrow(runs)], "h")
-  expect_equal(runs$coord[nrow(runs)], 20, tolerance = 1e-6)
+  # a->e runs at e's own y, so it owns the centre row and the two arrivals
+  # from above stack at s = min(3.6, (6 - 0.65) / 2) = 2.675: c->e takes the
+  # first slot at 20 + 2.675 = 22.675 and d->e the second at 25.35
+  expect_equal(runs$coord[nrow(runs)], 22.675, tolerance = 1e-6)
   expect_length(slot_xs(path, c(145, 190)), 1)
   expect_gt(min(path$y), 3 + 1e-6)
 
@@ -4372,13 +4402,15 @@ test_that("orthogonal resects: the router reports the arc length to each cap lin
 
 test_that("orthogonal resects: an offset W port lengthens the head resect", {
   # b->e enters e's W port 3.6 mm above the centre line through a foot on
-  # the disc boundary: the hidden diagonal is 6 mm long against a 4.8 mm
-  # projection, so the resect grows to 9.06 and the tip sits at x = 132
+  # the disc boundary at (135.2, 58.6). That corner is sharp, so the arc
+  # back from e's centre runs the whole 6 mm of the hidden diagonal and then
+  # 8 - 4.8 = 3.2 mm along the row: the resect is the row leg plus the
+  # radius, 3.2 + 6 = 9.2, and the tip sits at x = 132.
   scene <- fan_scene()
   res <- ortho(scene)
   be <- edge_index(scene, "b->e")
   ce <- edge_index(scene, "c->e")
-  expect_equal(res$meta$resect_head[[be]], 9.06, tolerance = 1e-2)
+  expect_equal(res$meta$resect_head[[be]], 9.2, tolerance = 1e-3)
   expect_equal(res$meta$resect_head[[ce]], cap_default, tolerance = 1e-6)
   expect_equal(
     arc_from_end(res$paths[[be]], res$meta$resect_head[[be]]),
