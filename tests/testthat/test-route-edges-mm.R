@@ -529,27 +529,42 @@ rev_path <- function(path) {
 
 # Length of the terminal stub at the end of a path: the axis-aligned run
 # that reaches the endpoint, a node centre, or that reaches the connector an
-# offset port needs. Only S/N ports carry both an arrival and a departure,
-# so a connector runs along the layer axis (horizontal in the canonical
-# orientation) from a vertical run to the centre. It is the last run when it
-# is horizontal, at most sep_e / 2 long (an offset port sits sep_e / 2
-# beside the centre line, so a longer leg is a stub in its own right), lies
-# within the cap of the centre, and follows a vertical run with nothing
-# between them but a rounded corner hidden inside the node. Rounding cuts
-# min(rc, leg / 2) off the connector, so in rounded mode a leg of up to
-# about sep_e / 2 + rc still reads as a connector. Nothing else is skipped
-# and the connector's own length never counts, so a short vertical stub
-# under a channel measures as the stub, not the channel. After the cap is
-# resected the arrowhead sits on the run, which is why it must be straight
-# for at least cap + rc. Pass the reversed path for the stub at the start.
+# offset port needs. An S/N port's connector runs along the layer axis
+# (horizontal in the canonical orientation) from a vertical run to the
+# centre. It is the last run when it is horizontal, at most sep_e / 2 long
+# (an offset port sits sep_e / 2 beside the centre line, so a longer leg is
+# a stub in its own right), lies within the cap of the centre, and follows a
+# vertical run with nothing between them but a rounded corner hidden inside
+# the node. Rounding cuts min(rc, leg / 2) off the connector, so in rounded
+# mode a leg of up to about sep_e / 2 + rc still reads as a connector. A W
+# port's row ends at its foot on the disc boundary and the connector from
+# the foot to the centre is hidden inside the node: the row is the stub when
+# it is horizontal and everything after it lies within the cap of the
+# centre, and it measures as its reach from the centre along its own axis,
+# the row plus the foot's inset, since the arrowhead is drawn where the row
+# crosses the cap line. Nothing else is skipped and an S/N connector's own
+# length never counts, so a short vertical stub under a channel measures as
+# the stub, not the channel, and an oblique tail after a vertical run is no
+# stub at all. After the cap is resected the arrowhead sits on the run,
+# which is why it must be straight for at least cap + rc. Pass the reversed
+# path for the stub at the start.
 end_stub_length <- function(path, centre, tol = 1e-6) {
   path <- dedupe_path(path)
   runs <- straight_runs(path, tol)
   n <- nrow(runs)
-  if (n == 0 || runs$to[n] != nrow(path)) {
+  if (n == 0) {
     return(0)
   }
   last <- runs[n, ]
+  if (last$to != nrow(path)) {
+    idx <- last$to:nrow(path)
+    hidden <- sqrt((path$x[idx] - centre[1])^2 + (path$y[idx] - centre[2])^2) <=
+      cap_default + tol
+    if (last$axis != "h" || !all(hidden)) {
+      return(0)
+    }
+    return(last$length + abs(path$x[last$to] - centre[1]))
+  }
   if (last$axis != "h" || last$length > sep_e_default / 2 + tol || n < 2) {
     return(last$length)
   }
@@ -671,12 +686,26 @@ expect_orthogonal_scene <- function(
     return(invisible())
   }
   slots <- do.call(rbind, slots)
+  # a gap on the second or third rung of the ladder tightens its spacing
+  # below sep_e, and reports the spacing its slots keep
+  gap_sep <- function(g) {
+    gaps_used <- res$ortho$gaps
+    if (is.null(gaps_used)) {
+      return(sep_e_default)
+    }
+    row <- gaps_used[gaps_used$gap == g, , drop = FALSE]
+    if (nrow(row) != 1 || !is.finite(row$spacing)) {
+      return(sep_e_default)
+    }
+    min(sep_e_default, row$spacing)
+  }
   for (g in unique(slots$gap)) {
     s <- slots[slots$gap == g, , drop = FALSE]
     gap_label <- paste0(prefix, "gap ", g, " slots")
+    sep_g <- gap_sep(g)
     xs <- sort(unique(round(s$x, 9)))
     if (length(xs) > 1) {
-      expect_true(all(diff(xs) >= sep_e_default - 1e-9), label = gap_label)
+      expect_true(all(diff(xs) >= sep_g - 1e-9), label = gap_label)
     }
     n <- nrow(s)
     for (a in seq_len(n - 1)) {
@@ -690,7 +719,7 @@ expect_orthogonal_scene <- function(
         if (s$left[a] != s$left[b] && touching) {
           expect_gte(
             abs(s$x[a] - s$x[b]),
-            sep_e_default - 1e-9,
+            sep_g - 1e-9,
             label = gap_label
           )
         }

@@ -368,9 +368,18 @@ hausdorff_mm <- function(a, b) {
 
 # The polyline with the millimetres the arrow layer resects at each end
 # dropped, so that two paths are compared over the part of them the reader
-# sees.
+# sees. A straight chord is two points, both of them ends, so it is trimmed
+# to the points the cap from each end instead.
 trim_by_cap <- function(path, cap) {
   last <- nrow(path)
+  if (last == 2) {
+    length <- sqrt(diff(path$x)^2 + diff(path$y)^2)
+    f <- c(cap, length - cap) / length
+    return(data.frame(
+      x = path$x[[1]] + f * diff(path$x),
+      y = path$y[[1]] + f * diff(path$y)
+    ))
+  }
   to_ends <- pmin(
     sqrt((path$x - path$x[[1]])^2 + (path$y - path$y[[1]])^2),
     sqrt((path$x - path$x[[last]])^2 + (path$y - path$y[[last]])^2)
