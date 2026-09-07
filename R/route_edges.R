@@ -2412,9 +2412,13 @@ route_orthogonal_scene <- function(
 
   # N and S ports: two channel stubs on one side of a node sit sep_e / 2
   # either side of the centre line, an arrival on the left of a departure,
-  # two arrivals in ascending channel y and two departures in descending
-  # channel y, which is the crossing-free order. More than two share: the
-  # arrivals take the left stub and the departures the right
+  # two arrivals in ascending and two departures in descending `s * y_ch`.
+  # That is the crossing-free order on either side, and the mirror of the
+  # one on the other: the inner channel of a pair keeps the stub on the
+  # side its own run lies on and the outer channel takes the far stub, so
+  # the outer never has to cross the inner's run to reach its port. More
+  # than two share: the arrivals take the left stub and the departures the
+  # right
   port_s <- numeric(n_edges)
   port_t <- numeric(n_edges)
   sn <- which(kind == "sn")
@@ -2427,8 +2431,8 @@ route_orthogonal_scene <- function(
       }
       half <- opts$sep_e / 2
       if (length(dep) + length(arr) == 2) {
-        dep <- dep[order(-y_ch[dep], Sy[dep], b[dep], method = "radix")]
-        arr <- arr[order(y_ch[arr], Sy[arr], a[arr], method = "radix")]
+        dep <- dep[order(-s * y_ch[dep], Sy[dep], b[dep], method = "radix")]
+        arr <- arr[order(s * y_ch[arr], Sy[arr], a[arr], method = "radix")]
         stack <- c(-half, half)
         port_t[arr] <- stack[seq_along(arr)]
         port_s[dep] <- stack[length(arr) + seq_along(dep)]
@@ -2507,12 +2511,16 @@ route_orthogonal_scene <- function(
   # and below it in the order of their slots, the leftmost slot nearest the
   # centre, which is the crossing-free order; without a level chord the
   # larger group's first member takes the centre. A group stacks only while
-  # two rows hold it; a larger group merges onto one row of its own at its
-  # first offset, and the ladder keeps its joins clear of the stub. The
-  # copies of a parallel bundle are spread sep_m apart already, and an
-  # arrival through a gap too narrow for any stub has no room for a row,
-  # so both keep the centre row
+  # two rows hold it and the rows stay at least sep_min apart; a group that
+  # fails either test merges onto one row of its own at its first offset,
+  # and the ladder keeps its joins clear of the stub. The copies of a
+  # parallel bundle are spread sep_m apart already, and an arrival through
+  # a gap too narrow for any stub has no room for a row, so both keep the
+  # centre row
   port_y <- numeric(n_edges)
+  merge_group <- function(mult) {
+    if (length(mult) == 0) mult else rep(min(mult), length(mult))
+  }
   via_last <- span >= 2
   arrival_slot <- ifelse(via_last, slot_last, slot_first)
   arrival_entry <- ifelse(via_last, y_ch, Sy)
@@ -2529,19 +2537,27 @@ route_orthogonal_scene <- function(
     kb <- length(below)
     a0 <- !has0 && ka > 0 && ka >= kb
     b0 <- !has0 && kb > ka
+    row_of <- function(k) min(opts$sep_e, (nodes$r[[t]] - opts$head_w / 2) / k)
     mult_a <- seq_len(ka) - a0
     mult_b <- seq_len(kb) - b0
     if (ka > 0 && max(mult_a) > 2) {
-      mult_a <- rep(min(mult_a), ka)
+      mult_a <- merge_group(mult_a)
     }
     if (kb > 0 && max(mult_b) > 2) {
-      mult_b <- rep(min(mult_b), kb)
+      mult_b <- merge_group(mult_b)
     }
     k <- max(mult_a, mult_b, 0)
+    # rows the ladder would not let two slots keep draw one head over the
+    # next, so a stack that small merges as a group of three or more does
+    if (k > 0 && row_of(k) < opts$sep_min) {
+      mult_a <- merge_group(mult_a)
+      mult_b <- merge_group(mult_b)
+      k <- max(mult_a, mult_b, 0)
+    }
     if (k == 0) {
       next
     }
-    s <- min(opts$sep_e, (nodes$r[[t]] - opts$head_w / 2) / k)
+    s <- row_of(k)
     port_y[above] <- mult_a * s
     port_y[below] <- -mult_b * s
   }
@@ -3092,8 +3108,12 @@ port_resect <- function(P, centre, axis, cap, limit, offset) {
 #'   the stub floor following it, no further than `rc_min`.
 #' * Rung 4: no stub fits. The slots are centred on the gap midpoint at the
 #'   spacing that keeps them between the layers' soft bands, `r_ref + m_min`
-#'   from either layer, and no wider than `sep_e`; the gap is flagged
-#'   `narrow` and its edges lose their clearance.
+#'   from either layer, no wider than `sep_e` and no narrower than
+#'   `sep_min`. The floor matters once the band has closed: without it the
+#'   slots of different sources collapse onto one x, which draws a line the
+#'   DAG does not have, and the spacing jumps by a whole band at the rung
+#'   boundary. The gap is flagged `narrow` and its edges lose their
+#'   clearance.
 #'
 #' @return A list with `x` (the slot of every segment, `NA` for a degenerate
 #'   one), `narrow`, `rc` (the corner radius the gap needs), and `ladder`, a
@@ -3173,8 +3193,8 @@ ortho_slot_positions <- function(segs, gap, opts, cap) {
       narrow <- TRUE
       stub <- NA_real_
       width4 <- G - 2 * opts$R_soft
-      spacing <- if (K >= 2 && width4 > 0) {
-        min(sep_e, width4 / (K - 1))
+      spacing <- if (K >= 2) {
+        max(min(sep_e, width4 / (K - 1)), sep_min)
       } else {
         sep_e
       }
