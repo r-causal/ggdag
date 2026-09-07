@@ -253,10 +253,16 @@ test_that("a label with nothing within reach gains a local grid", {
   expect_lt(clearance, 12)
   expect_lt(clearance, 3 * 9)
 
-  # On the 3 mm grid the local candidates are built on, measured from the
-  # node rather than from the panel.
-  expect_lt(off_grid(res$x - scene$nodes$x[[1]], 3), 1e-9)
-  expect_lt(off_grid(res$y - scene$nodes$y[[1]], 3), 1e-9)
+  # On the 3 mm grid the local candidates are built on, which is phased from
+  # the near edge of the square the search covers rather than from the node:
+  # `seq(x - half, x + half, by = 3)` on each axis, where `half` is the
+  # farthest a box center can sit and still clear the node by no more than 3
+  # times the reach.
+  half <- scene$nodes$radius[[1]] +
+    3 * 9 +
+    sqrt(scene$labels$width[[1]]^2 + scene$labels$height[[1]]^2) / 2
+  expect_lt(off_grid(res$x - (scene$nodes$x[[1]] - half), 3), 1e-9)
+  expect_lt(off_grid(res$y - (scene$nodes$y[[1]] - half), 3), 1e-9)
 
   # Beside the node, not out on the panel border where the repair grid puts a
   # label it cannot otherwise place, and clear of the fence.

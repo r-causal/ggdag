@@ -26,7 +26,7 @@
 #
 # The scene with labels the engine cannot place is the saturated ten-node DAG
 # of `helper-label-perf.R` at 4 x 3 inches: 41 edges on a panel of about
-# 97 x 72 mm, where `Weight` and `Blood pressure` come to rest on ink. Every
+# 97 x 72 mm, where `Blood pressure` and `Outcome` come to rest on ink. Every
 # render here is on an off-screen ragg device at 150 dpi, the millimetres the
 # engine works in, and every measurement is taken while that device is still
 # open.
@@ -251,7 +251,7 @@ test_that("the saturated scene at 4 x 3 leaves two labels unresolved", {
     )
   )[[1]]
 
-  expect_identical(scene$unresolved, c("Weight", "Blood pressure"))
+  expect_identical(scene$unresolved, c("Blood pressure", "Outcome"))
 })
 
 # The warning ----------------------------------------------------------------
@@ -269,8 +269,8 @@ test_that("a draw with unresolved labels warns once, naming them", {
     logical(1),
     "ggdag_label_unresolved_warning"
   )))
-  expect_true(any(grepl("Weight", messages, fixed = TRUE)))
   expect_true(any(grepl("Blood pressure", messages, fixed = TRUE)))
+  expect_true(any(grepl("Outcome", messages, fixed = TRUE)))
 })
 
 test_that("the unresolved warning reads in the package's cli style", {
@@ -313,8 +313,8 @@ test_that("dropping every unresolved label still warns, naming them", {
   messages <- warning_messages(warnings)
 
   expect_length(warnings, 1)
-  expect_true(any(grepl("Weight", messages, fixed = TRUE)))
   expect_true(any(grepl("Blood pressure", messages, fixed = TRUE)))
+  expect_true(any(grepl("Outcome", messages, fixed = TRUE)))
 })
 
 test_that("forcing a drawn scene a second time does not warn again", {
