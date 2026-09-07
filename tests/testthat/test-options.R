@@ -21,10 +21,49 @@ test_that("ggdag_defaults contains all expected options", {
     "arrow_fins",
     "arrow_mid",
     "edge_route",
+    "label_wrap",
     "curvature",
     "debug_repel_points"
   )
   expect_named(ggdag_defaults, expected_names, ignore.order = TRUE)
+})
+
+test_that("a new option keeps the option list cli prints in its error", {
+  # `ggdag_options_set()` names the valid options through cli, which elides
+  # the middle of a vector longer than twenty: it prints the first eighteen
+  # names, an ellipsis, and the last two. The snapshot of that message is
+  # unchanged only while a new entry goes in between, so the position of
+  # `label_wrap` in `ggdag_defaults` is part of the contract.
+  option_names <- names(ggdag_defaults)
+
+  expect_identical(
+    option_names[1:18],
+    c(
+      "node_size",
+      "text_size",
+      "label_size",
+      "text_col",
+      "label_col",
+      "edge_width",
+      "edge_cap",
+      "arrow_length",
+      "use_edges",
+      "use_nodes",
+      "use_stylized",
+      "use_text",
+      "use_labels",
+      "label_geom",
+      "edge_type",
+      "layout",
+      "edge_engine",
+      "arrow_head"
+    )
+  )
+  expect_identical(
+    utils::tail(option_names, 2),
+    c("curvature", "debug_repel_points")
+  )
+  expect_true(match("label_wrap", option_names) > 18)
 })
 
 test_that("ggdag_options_set() sets options and returns old values invisibly", {
@@ -778,6 +817,65 @@ test_that("curvature option stores and retrieves correctly", {
 test_that("curvature option rejects non-numeric", {
   expect_ggdag_error(ggdag_options_set(curvature = "bad"))
   expect_ggdag_error(ggdag_options_set(curvature = TRUE))
+})
+
+test_that("label_wrap option stores and retrieves correctly", {
+  local_ggdag_option_state()
+
+  expect_no_error(ggdag_options_set(label_wrap = 12))
+  expect_equal(ggdag_options_get("label_wrap"), 12)
+
+  # A width is a count of characters, so a whole number given as an integer
+  # is as good as one given as a double.
+  expect_no_error(ggdag_options_set(label_wrap = 8L))
+  expect_equal(ggdag_options_get("label_wrap"), 8L)
+
+  # `NULL` is the built-in default: no wrapping, and the option unset.
+  expect_no_error(ggdag_options_set(label_wrap = NULL))
+  expect_null(ggdag_options_get("label_wrap"))
+})
+
+test_that("label_wrap option rejects a width that is not a whole count", {
+  local_ggdag_option_state()
+
+  # The unknown-option error carries the same class as a validation error, so
+  # each rejection is checked to be a complaint about the value rather than
+  # about the name.
+  reject <- function(value) {
+    cnd <- rlang::catch_cnd(
+      ggdag_options_set(label_wrap = value),
+      classes = "error"
+    )
+    expect_s3_class(cnd, "ggdag_type_error")
+    expect_false(grepl("Unknown", conditionMessage(cnd), fixed = TRUE))
+  }
+
+  reject(2.5)
+  reject(0)
+  reject(-3)
+  reject(NA_integer_)
+  reject("twelve")
+  reject(c(10, 12))
+})
+
+test_that("ggdag() threads the label_wrap option to the auto label geom", {
+  withr::local_options(ggdag.label_wrap = 12)
+
+  dag <- dagify(
+    y ~ x,
+    labels = c(x = "Physical activity", y = "Cardiovascular disease"),
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+  p <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto)
+
+  index <- which(vapply(
+    p$layers,
+    function(layer) inherits(layer$stat, "StatNodesLabelAuto"),
+    logical(1)
+  ))
+  expect_length(index, 1)
+  params <- c(p$layers[[index]]$stat_params, p$layers[[index]]$geom_params)
+  expect_equal(params[["wrap"]], 12)
 })
 
 test_that("debug_repel_points is settable through the options API", {

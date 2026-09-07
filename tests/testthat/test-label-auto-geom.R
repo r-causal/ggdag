@@ -1394,3 +1394,258 @@ test_that("orthogonal channels: the saturated DAG keeps off them where it can", 
   expect_identical(orthogonal_hit_labels(scene), character(0))
   expect_identical(scene$tree$unresolved, character(0))
 })
+
+# Wrapped labels ---------------------------------------------------------------
+#
+# `wrap` on `geom_dag_label_auto()` and `geom_dag_text_auto()` is a width in
+# characters. The label text is wrapped with `strwrap()` before the boxes are
+# measured, so the wrapped text is what the engine places and what the reader
+# sees, and a word longer than the width is left whole. The default, `NULL`,
+# and `NA` wrap nothing. `label_wrap` on `geom_dag()` and `ggdag()` threads
+# the same value to the label geoms tagged for it.
+#
+# The measurements below read the drawn boxes off a forced grob tree on an
+# off-screen ragg device at 150 dpi, in the millimetres the engine works in,
+# while the device is still open. Rows are keyed by their text with the line
+# breaks taken back out, so a wrapped box and its unwrapped counterpart line
+# up whichever way round the drawn text carries them.
+
+# Two nodes whose labels are longer than ten characters and break in two:
+# `strwrap("Physical activity", 10)` gives "Physical" and "activity".
+wrappable_dag <- function() {
+  dagify(
+    y ~ x,
+    labels = c(x = "Physical activity", y = "Cardiovascular disease"),
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+}
+
+# The boxes `plot` draws, one row per label, sorted by key.
+wrap_boxes <- function(plot, size = c(7, 5)) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(
+    file,
+    width = size[[1]],
+    height = size[[2]],
+    units = "in",
+    res = 150
+  )
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  grid::grid.newpage()
+  forced <- grid::forceGrob(gtable)
+  tree <- grid::getGrob(forced, "dag_labels_auto", grep = TRUE, global = TRUE)
+
+  names <- vapply(
+    tree$children,
+    function(child) child$name %||% "",
+    character(1)
+  )
+  boxes <- unname(tree$children[grepl("roundrect", names)])
+  texts <- unname(tree$children[grepl("text", names)])
+
+  rows <- do.call(
+    rbind,
+    lapply(seq_along(boxes), function(i) {
+      text <- as.character(texts[[i]]$label)
+      data.frame(
+        key = gsub("\n", " ", text, fixed = TRUE),
+        text = text,
+        width = grid::convertWidth(boxes[[i]]$vp$width, "mm", TRUE),
+        height = grid::convertHeight(boxes[[i]]$vp$height, "mm", TRUE),
+        stringsAsFactors = FALSE
+      )
+    })
+  )
+  rows <- rows[order(rows$key), , drop = FALSE]
+  rownames(rows) <- NULL
+  rows
+}
+
+# The wrappable two-node scene, with whatever the auto label geom is given.
+wrappable_boxes <- function(...) {
+  plot <- ggplot(wrappable_dag(), aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges() +
+    geom_dag_label_auto(aes(label = label), ...) +
+    theme_dag()
+  wrap_boxes(plot)
+}
+
+test_that("wrap breaks a label wider than the width onto another line", {
+  skip_if_not_installed("ragg")
+
+  wrapped <- wrappable_boxes(wrap = 10)
+
+  expect_identical(
+    wrapped$text,
+    c("Cardiovascular\ndisease", "Physical\nactivity")
+  )
+})
+
+test_that("a word longer than the wrap width is left whole", {
+  skip_if_not_installed("ragg")
+
+  # `strwrap()` never breaks a word, so a width narrower than every word puts
+  # each word on a line of its own and leaves the words as they are.
+  wrapped <- wrappable_boxes(wrap = 3)
+
+  expect_identical(
+    wrapped$text,
+    c("Cardiovascular\ndisease", "Physical\nactivity")
+  )
+})
+
+test_that("wrap narrows and heightens the measured box", {
+  skip_if_not_installed("ragg")
+
+  # The boxes are measured after wrapping, so the placement the engine works
+  # with is the placement of what is drawn.
+  plain <- wrappable_boxes()
+  wrapped <- wrappable_boxes(wrap = 10)
+
+  expect_identical(wrapped$key, plain$key)
+  expect_true(all(wrapped$width < plain$width))
+  expect_true(all(wrapped$height > plain$height))
+})
+
+test_that("wrap = NULL and wrap = NA leave the label alone", {
+  skip_if_not_installed("ragg")
+
+  plain <- wrappable_boxes()
+
+  expect_equal(wrappable_boxes(wrap = NULL), plain)
+  expect_equal(wrappable_boxes(wrap = NA), plain)
+})
+
+test_that("the text variant wraps too", {
+  skip_if_not_installed("ragg")
+
+  plot <- ggplot(wrappable_dag(), aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges() +
+    geom_dag_text_auto(aes(label = label), wrap = 10) +
+    theme_dag()
+
+  drawn <- rendered_text_grobs(plot)
+  expect_true(all(grepl("\n", drawn$label, fixed = TRUE)))
+})
+
+test_that("label_wrap reaches the auto label geom through geom_dag()", {
+  layers <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto,
+    label_wrap = 12
+  )
+  label_item <- layers[[4]]
+  expect_s3_class(label_item, "dag_layer")
+  params <- c(label_item$stat_params, label_item$geom_params)
+  expect_equal(params[["wrap"]], 12)
+})
+
+test_that("label_wrap reaches the auto label geom through ggdag()", {
+  plot <- ggdag(
+    wrappable_dag(),
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto,
+    label_wrap = 12
+  )
+  index <- auto_layer_index(plot)
+  expect_length(index, 1)
+  layer <- plot$layers[[index]]
+  params <- c(layer$stat_params, layer$geom_params)
+  expect_equal(params[["wrap"]], 12)
+})
+
+test_that("a custom function tagged for wrap gets label_wrap", {
+  recorded <- new.env(parent = emptyenv())
+  recorder <- function(...) {
+    recorded$args <- rlang::list2(...)
+    NULL
+  }
+  aware <- dag_node_aware(recorder, extra = "wrap")
+
+  geom_dag(use_labels = TRUE, label_geom = aware, label_wrap = 12)
+
+  expect_equal(recorded$args$wrap, 12)
+})
+
+test_that("a label geom not tagged for wrap is not handed one", {
+  # The repel label geoms have no wrapping of their own, so the parameter
+  # stops at the tag.
+  recorded <- new.env(parent = emptyenv())
+  recorder <- function(...) {
+    recorded$args <- rlang::list2(...)
+    NULL
+  }
+  aware <- dag_node_aware(recorder)
+
+  geom_dag(use_labels = TRUE, label_geom = aware, label_wrap = 12)
+
+  expect_false("wrap" %in% names(recorded$args))
+
+  layers <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_label_repel,
+    label_wrap = 12
+  )
+  label_item <- layers[[4]]
+  params <- c(label_item$stat_params, label_item$geom_params)
+  expect_false("wrap" %in% names(params))
+})
+
+test_that("label-auto visuals: labels wrapped at ten characters", {
+  skip_if_not_installed("ragg")
+
+  # The ten-node scene of `helper-label-perf.R`, the same DAG the baseline
+  # above draws. Only "Blood pressure" is a label of more than ten characters
+  # with a space to break at, so the predicate is that no box grew and that
+  # the one that can wrap did: a baseline recorded from a plot that ignored
+  # `wrap` would pin the unwrapped picture, so the measurement runs first and
+  # fails the block before the snapshot is taken.
+  plain <- wrap_boxes(
+    ggdag(
+      perf_ten_node_dag(),
+      use_labels = TRUE,
+      label_geom = geom_dag_label_auto
+    ) +
+      theme_dag()
+  )
+  wrapped <- wrap_boxes(
+    ggdag(
+      perf_ten_node_dag(),
+      use_labels = TRUE,
+      label_geom = geom_dag_label_auto,
+      label_wrap = 10
+    ) +
+      theme_dag()
+  )
+  stopifnot(
+    "the wrapped scene draws the same labels" = identical(
+      wrapped$key,
+      plain$key
+    ),
+    "no wrapped box is wider than its unwrapped box" = all(
+      wrapped$width <= plain$width + 1e-6
+    ),
+    "the label with a break in it wraps to a narrower box" = any(
+      wrapped$width < plain$width - 1e-6
+    )
+  )
+
+  p <- ggdag(
+    perf_ten_node_dag(),
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto,
+    label_wrap = 10
+  ) +
+    theme_dag()
+  expect_doppelganger("label-auto-wrapped-ten-nodes", p)
+})
