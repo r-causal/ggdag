@@ -1083,3 +1083,882 @@ test_that("edge_route = 'spline': ggdag_equivalent_dags() routes each panel", {
   # every equivalent DAG has the same three edges, drawn in its own panel
   expect_identical(unname(routed_ids_per_panel(p)), rep(3L, 6))
 })
+
+# The routing options object -----------------------------------------------------
+
+# `edge_route_options()` carries the constants the router draws with. A field
+# left unset is derived when the plot is drawn, from the node size the plot
+# uses, so the object cannot be resolved until the panel is measured; one
+# function, `route_opts_from()`, turns it and a reference radius into the
+# constants the router reads, and both the arrow grob and the label engine
+# call that one function.
+#
+# The behaviour tests below hand scenes to `route_edges_mm()` directly, in the
+# millimetres the router works in, so each option is measured against the
+# geometry it moves rather than against a picture a layout may or may not
+# produce. The entry-point tests above them fix the path from the user's call
+# to those constants.
+
+# A routing scene in millimetres: node discs of the drawn radius, chords
+# between them, and the panel they sit in.
+mm_scene <- function(names, x, y, from, to, bounds) {
+  list(
+    nodes = data.frame(
+      name = names,
+      x = x,
+      y = y,
+      r = r_node,
+      stringsAsFactors = FALSE
+    ),
+    edges = data.frame(
+      from = from,
+      to = to,
+      direction = "->",
+      curvature = NA_real_,
+      stringsAsFactors = FALSE
+    ),
+    bounds = bounds
+  )
+}
+
+# Route `scene` with the options object a user would write, through the same
+# translation the drawn grob makes.
+route_mm <- function(scene, options = edge_route_options(), mode = "spline") {
+  route_edges_mm(
+    scene$nodes,
+    scene$edges,
+    scene$bounds,
+    mode = mode,
+    opts = route_opts_from(options, r_node)
+  )
+}
+
+# The index of the edge named "from->to".
+mm_edge <- function(scene, label) {
+  match(label, paste0(scene$edges$from, "->", scene$edges$to))
+}
+
+# The closest the routed path of edge `i` comes to a node centre that is not
+# one of its own endpoints.
+mm_clearance <- function(scene, res, i) {
+  others <- !scene$nodes$name %in% c(scene$edges$from[i], scene$edges$to[i])
+  if (!any(others)) {
+    return(Inf)
+  }
+  path <- res$paths[[i]]
+  min(polyline_dist(
+    scene$nodes$x[others],
+    scene$nodes$y[others],
+    path$x,
+    path$y
+  ))
+}
+
+# The smallest clearance any routed path of the scene keeps.
+mm_min_clearance <- function(scene, res) {
+  min(vapply(
+    seq_len(nrow(scene$edges)),
+    function(i) mm_clearance(scene, res, i),
+    numeric(1)
+  ))
+}
+
+# The y a path holds where it crosses `x0`.
+mm_y_at <- function(path, x0) {
+  path$y[[which.min(abs(path$x - x0))]]
+}
+
+# The turn in degrees at every interior vertex of a path, with the repeated
+# points a sampled curve carries dropped.
+mm_turning_angles <- function(path) {
+  keep <- c(TRUE, abs(diff(path$x)) > 1e-9 | abs(diff(path$y)) > 1e-9)
+  points <- path[keep, , drop = FALSE]
+  dx <- diff(points$x)
+  dy <- diff(points$y)
+  if (length(dx) < 2) {
+    return(numeric(0))
+  }
+  vapply(
+    seq_len(length(dx) - 1),
+    function(i) {
+      abs(atan2(
+        dx[i] * dy[i + 1] - dy[i] * dx[i + 1],
+        dx[i] * dx[i + 1] + dy[i] * dy[i + 1]
+      )) *
+        180 /
+        pi
+    },
+    numeric(1)
+  )
+}
+
+# The angle in degrees between the chord of a path and the first `forward`
+# millimetres of the path itself: how far off the chord the route departs.
+mm_departure_angle <- function(path, forward = 8) {
+  travelled <- cumsum(c(0, sqrt(diff(path$x)^2 + diff(path$y)^2)))
+  at <- which(travelled >= forward)[[1]]
+  last <- nrow(path)
+  step <- c(path$x[[at]] - path$x[[1]], path$y[[at]] - path$y[[1]])
+  chord <- c(path$x[[last]] - path$x[[1]], path$y[[last]] - path$y[[1]])
+  abs(atan2(
+    step[[1]] * chord[[2]] - step[[2]] * chord[[1]],
+    step[[1]] * chord[[1]] + step[[2]] * chord[[2]]
+  )) *
+    180 /
+    pi
+}
+
+# Scenes ------------------------------------------------------------------------
+
+# The mediation triangle with the mediator dead on the x -> y chord.
+mediator_mm <- function() {
+  mm_scene(
+    c("x", "m", "y"),
+    c(7.3, 80, 152.7),
+    55,
+    c("x", "m", "x"),
+    c("m", "y", "y"),
+    c(0, 0, 160, 110)
+  )
+}
+
+# A four-node chain on one row with all three of its skips drawn. The panel
+# floor sits just under the row, so both of the skips over q share the slot
+# above it rather than taking a side each.
+skip_chain_mm <- function() {
+  mm_scene(
+    c("p", "q", "r", "s"),
+    c(20, 60, 100, 140),
+    55,
+    c("p", "q", "r", "p", "q", "p"),
+    c("q", "r", "s", "r", "s", "s"),
+    c(0, 47, 160, 110)
+  )
+}
+
+# One node pair with two edges between it, the parallel bundle.
+parallel_pair_mm <- function() {
+  mm_scene(
+    c("a", "b"),
+    c(30, 130),
+    55,
+    c("a", "a"),
+    c("b", "b"),
+    c(0, 0, 160, 110)
+  )
+}
+
+# Four arrivals across one gap of the given width: the band the orthogonal
+# ladder tightens rung by rung.
+narrow_band_mm <- function(gap = 40) {
+  half <- gap / 2
+  mm_scene(
+    c("a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"),
+    c(rep(40 - half, 4), rep(40 + half, 4)),
+    c(20, 35, 50, 65, 50, 65, 80, 95),
+    c("a1", "a2", "a3", "a4"),
+    c("b1", "b2", "b3", "b4"),
+    c(0, 0, 80, 110)
+  )
+}
+
+# A skip whose chord runs 62 degrees to the layer axis, past the boundary of
+# the free-bow tier, and short enough for the sagitta cap to bind on it.
+steep_skip_mm <- function() {
+  mm_scene(
+    c("a", "b", "c"),
+    c(30, 55, 80),
+    c(8, 55, 102),
+    c("a", "b", "a"),
+    c("b", "c", "c"),
+    c(0, 0, 110, 110)
+  )
+}
+
+# The same shape with the chord at 34 degrees, inside the layered tier.
+shallow_skip_mm <- function() {
+  mm_scene(
+    c("a", "b", "c"),
+    c(20, 80, 140),
+    c(20, 60, 100),
+    c("a", "b", "a"),
+    c("b", "c", "c"),
+    c(0, 0, 160, 120)
+  )
+}
+
+# A 36 mm chord dead on one node: short enough that a detour around it wants
+# to leave its own chord steeply.
+short_skip_mm <- function() {
+  mm_scene(
+    c("s", "n", "t"),
+    c(62, 80, 98),
+    55,
+    "s",
+    "t",
+    c(0, 0, 160, 110)
+  )
+}
+
+# a -> b is blocked by m, with both sides of m equally far. u -> m arrives at
+# m from above, so its drawn arrowhead occupies the side the tie would
+# otherwise fall to.
+head_zone_mm <- function() {
+  mm_scene(
+    c("a", "m", "b", "u"),
+    c(20, 80, 140, 80),
+    c(55, 55, 55, 95),
+    c("u", "a"),
+    c("m", "b"),
+    c(0, 0, 160, 110)
+  )
+}
+
+# One source fanning into three nodes of one layer and on to a fourth: a -> e
+# is blocked, and both sides of the fan are equally far.
+fan_mm <- function() {
+  mm_scene(
+    c("a", "b", "c", "d", "e"),
+    c(20, 80, 80, 80, 140),
+    c(55, 85, 55, 25, 55),
+    c("a", "a", "a", "b", "c", "a"),
+    c("b", "c", "d", "e", "e", "e"),
+    c(0, 0, 160, 110)
+  )
+}
+
+# A 120 mm chord dead on n1 and 9.5 mm from n2. The two centres are 16 mm
+# apart: a curve can thread them at the soft margin but not at the full one.
+tight_slot_mm <- function() {
+  mm_scene(
+    c("S", "T", "n1", "n2"),
+    c(20, 140, 80, 80),
+    c(50, 50, 43.5, 59.5),
+    "S",
+    "T",
+    c(0, 0, 160, 110)
+  )
+}
+
+# A span-4 chord across three crossed layers whose twelve interior edges weave
+# over and under it: the tangle a saturating crossing price is tuned for.
+tangle_mm <- function() {
+  mm_scene(
+    c(
+      "s",
+      "t",
+      "a1",
+      "a2",
+      "b1",
+      "b2",
+      "c1",
+      "c2",
+      "u",
+      "w"
+    ),
+    c(10, 150, 45, 45, 80, 80, 115, 115, 80, 80),
+    c(50, 50, 30, 74, 50, 90, 30, 74, 108, 4),
+    c(
+      "s",
+      "s",
+      "a1",
+      "a1",
+      "a2",
+      "b1",
+      "b2",
+      "b2",
+      "c1",
+      "c2",
+      "u",
+      "u",
+      "u",
+      "w",
+      "w",
+      "w",
+      "s"
+    ),
+    c(
+      "a1",
+      "a2",
+      "b1",
+      "b2",
+      "b2",
+      "c1",
+      "c1",
+      "c2",
+      "t",
+      "t",
+      "a1",
+      "c1",
+      "b2",
+      "a2",
+      "c2",
+      "b1",
+      "t"
+    ),
+    c(0, 0, 160, 110)
+  )
+}
+
+# A five-step chain with one skip whose chord is steep enough for the free-bow
+# tier and short enough for the sagitta cap to bind on it. The other five
+# edges run straight, so the picture is one bow against a plain chain.
+bow_skip_dag <- function() {
+  dagify(
+    b ~ a,
+    c ~ b,
+    d ~ c + b,
+    e ~ d,
+    f ~ e,
+    coords = list(
+      x = c(a = 0, b = 1, c = 2, d = 3, e = 4, f = 5),
+      y = c(a = 3, b = 3, c = 1.5, d = 0, e = 0, f = 0)
+    )
+  )
+}
+
+# The scene the routed layer handed the router, read back off its forced gTree
+# in millimetres: the node discs, the chords, the panel, and the cap the arrow
+# layer resects. A predicate on this is a predicate on the picture a baseline
+# would record.
+routed_scene_mm <- function(plot, width = 10, height = 8) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  grid::grid.newpage()
+  grid::grid.draw(gtable)
+  grid::grid.force()
+
+  viewports <- unique(
+    grid::grid.ls(viewports = TRUE, grobs = FALSE, print = FALSE)$name
+  )
+  panel <- viewports[grepl("^panel\\.", viewports)][[1]]
+  grid::seekViewport(panel)
+  panel_width <- grid::convertWidth(grid::unit(1, "npc"), "mm", TRUE)
+  panel_height <- grid::convertHeight(grid::unit(1, "npc"), "mm", TRUE)
+  grid::upViewport(0)
+
+  paths <- grid::grid.grep("dag_routed_edges", grep = TRUE, global = TRUE)
+  tree <- grid::grid.get(vapply(paths, as.character, character(1))[[1]])
+  radius <- node_radius_mm(tree$params$node_size)
+
+  list(
+    nodes = data.frame(
+      name = routed_position_keys(tree$nodes$x, tree$nodes$y),
+      x = tree$nodes$x * panel_width,
+      y = tree$nodes$y * panel_height,
+      r = radius,
+      stringsAsFactors = FALSE
+    ),
+    edges = data.frame(
+      from = tree$edges$.ggdag_from,
+      to = tree$edges$.ggdag_to,
+      direction = "->",
+      curvature = NA_real_,
+      stringsAsFactors = FALSE
+    ),
+    bounds = c(0, 0, panel_width, panel_height),
+    cap = routed_cap_mm(tree$edges, tree$params$resect),
+    radius = radius
+  )
+}
+
+# The router's own paths for a drawn scene under one options object.
+route_drawn_scene <- function(scene, options, mode) {
+  route_edges_mm(
+    scene$nodes,
+    scene$edges,
+    scene$bounds,
+    cap = scene$cap,
+    mode = mode,
+    opts = route_opts_from(options, scene$radius)
+  )
+}
+
+# The entry points ---------------------------------------------------------------
+
+test_that("edge_route_options is spelled the same at every entry point", {
+  skip_if_not_installed("ggarrow")
+
+  arg_names <- names(formals(geom_dag_routed_arrows))
+  expect_contains(arg_names, "edge_route_options")
+  expect_null(eval(formals(geom_dag_routed_arrows)$edge_route_options))
+
+  # the three millimetre formals stay where they are: they are per-call
+  # overrides of the object's fields, not a second spelling of the object
+  expect_null(eval(formals(geom_dag_routed_arrows)$clearance))
+  expect_null(eval(formals(geom_dag_routed_arrows)$edge_sep))
+  expect_null(eval(formals(geom_dag_routed_arrows)$edge_sep_min))
+
+  # `geom_dag()` and `ggdag()` take the object beside `edge_route`, and both
+  # default through the global option, as `edge_route` itself does
+  for (fn in list(geom_dag, ggdag)) {
+    expect_contains(names(formals(fn)), "edge_route_options")
+    expect_identical(
+      formals(fn)$edge_route_options,
+      quote(ggdag_option("edge_route_options", NULL))
+    )
+  }
+
+  # the quick plotters take it through the global option only
+  expect_false("edge_route_options" %in% names(formals(ggdag_paths)))
+})
+
+test_that("a routed layer's own clearance overrides the object's field", {
+  skip_if_not_installed("ggarrow")
+
+  layer_options <- function(...) {
+    p <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
+      geom_dag_routed_arrows(...) +
+      geom_dag_point()
+    routed_layer_of(p)$geom_params$edge_route_options
+  }
+
+  # the object alone reaches the layer as it was written
+  alone <- layer_options(
+    edge_route_options = edge_route_options(clearance = 2, max_bow = 0.12)
+  )
+  expect_equal(alone$clearance, 2)
+  expect_equal(alone$max_bow, 0.12)
+
+  # an explicit formal wins the field of the same name and leaves the rest
+  both <- layer_options(
+    clearance = 4,
+    edge_route_options = edge_route_options(clearance = 2, max_bow = 0.12)
+  )
+  expect_equal(both$clearance, 4)
+  expect_equal(both$max_bow, 0.12)
+
+  # and the formals alone still reach the router, through the same object
+  formals_only <- layer_options(clearance = 4, edge_sep = 5, edge_sep_min = 2)
+  expect_equal(formals_only$clearance, 4)
+  expect_equal(formals_only$edge_sep, 5)
+  expect_equal(formals_only$edge_sep_min, 2)
+})
+
+test_that("a layer's object beats the global option, which beats the router", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  tidy_dag <- tidy_dagitty(mediator_dag())
+
+  # nothing set anywhere leaves every field to the router
+  bare <- ggplot(tidy_dag, aes_dag()) + geom_dag()
+  bare_options <- routed_layer_of(bare)$geom_params$edge_route_options
+  expect_true(is.null(bare_options) || is.null(bare_options$max_bow))
+
+  ggdag_options_set(edge_route_options = edge_route_options(max_bow = 0.12))
+
+  global <- ggplot(tidy_dag, aes_dag()) + geom_dag()
+  expect_equal(
+    routed_layer_of(global)$geom_params$edge_route_options$max_bow,
+    0.12
+  )
+
+  local <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag(edge_route_options = edge_route_options(max_bow = 0.08))
+  expect_equal(
+    routed_layer_of(local)$geom_params$edge_route_options$max_bow,
+    0.08
+  )
+})
+
+test_that("the object reaches the routed layer from every entry point", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  options <- edge_route_options(clearance = 4, max_bow = 0.12)
+  tidy_dag <- tidy_dagitty(mediator_dag())
+  reached <- function(plot) {
+    routed_layer_of(plot)$geom_params$edge_route_options
+  }
+
+  direct <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_routed_arrows(edge_route_options = options) +
+    geom_dag_point()
+  expect_equal(reached(direct)$max_bow, 0.12)
+
+  assembled <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag(edge_route_options = options)
+  expect_equal(reached(assembled)$max_bow, 0.12)
+
+  quick <- ggdag(tidy_dag, edge_route_options = options)
+  expect_equal(reached(quick)$max_bow, 0.12)
+
+  # the quick plotters carry no formal, so the global option is their route
+  ggdag_options_set(edge_route_options = options)
+  paths <- ggdag_paths(dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y"
+  ))
+  expect_equal(reached(paths)$max_bow, 0.12)
+})
+
+test_that("the object reaches route_edges_mm() from every entry point", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  options <- edge_route_options(clearance = 4, max_bow = 0.12)
+  tidy_dag <- tidy_dagitty(mediator_dag())
+
+  # the router is spied on rather than replaced: the picture is still drawn,
+  # so the constants captured are the ones a real drawing worked from
+  captured_opts <- function(plot) {
+    captured <- list()
+    original <- route_edges_mm
+    local_mocked_bindings(
+      route_edges_mm = function(...) {
+        args <- list(...)
+        captured[[length(captured) + 1L]] <<- args$opts
+        do.call(original, args)
+      }
+    )
+    draw_offscreen(plot)
+    captured
+  }
+
+  plots <- list(
+    geom_dag_routed_arrows = ggplot(tidy_dag, aes_dag()) +
+      geom_dag_routed_arrows(edge_route_options = options) +
+      geom_dag_point(),
+    geom_dag = ggplot(tidy_dag, aes_dag()) +
+      geom_dag(edge_route_options = options),
+    ggdag = ggdag(tidy_dag, edge_route_options = options)
+  )
+
+  for (name in names(plots)) {
+    seen <- captured_opts(plots[[name]])
+    expect_gte(length(seen), 1)
+    for (opts in seen) {
+      expect_equal(opts$sagitta_max, 0.12, label = name)
+      expect_equal(opts$m, 4, label = name)
+    }
+  }
+
+  # and the same through the global option, which is all the quick plots read
+  ggdag_options_set(edge_route_options = options)
+  seen <- captured_opts(ggdag_paths(dagify(
+    y ~ x + m,
+    m ~ x,
+    exposure = "x",
+    outcome = "y"
+  )))
+  expect_gte(length(seen), 1)
+  for (opts in seen) {
+    expect_equal(opts$sagitta_max, 0.12)
+    expect_equal(opts$m, 4)
+  }
+})
+
+# What each option moves ---------------------------------------------------------
+
+test_that("edge_route_options(): clearance widens the corridor the route keeps", {
+  scene <- mediator_mm()
+  i <- mm_edge(scene, "x->y")
+
+  default <- route_mm(scene)
+  wider <- route_mm(scene, edge_route_options(clearance = 6))
+
+  expect_gte(mm_clearance(scene, default, i), r_node + 3 - verify_tol)
+  expect_gte(mm_clearance(scene, wider, i), r_node + 6 - verify_tol)
+  expect_gt(mm_clearance(scene, wider, i), mm_clearance(scene, default, i))
+})
+
+test_that("edge_route_options(): edge_sep is the gap between two paths in one slot", {
+  scene <- skip_chain_mm()
+  first <- mm_edge(scene, "p->r")
+  second <- mm_edge(scene, "p->s")
+  slot_gap <- function(res) {
+    abs(mm_y_at(res$paths[[first]], 60) - mm_y_at(res$paths[[second]], 60))
+  }
+
+  # both skips arch over q on the same side, so the separation between them
+  # is the separation the option names
+  expect_equal(slot_gap(route_mm(scene)), 3.6, tolerance = 0.01)
+  expect_equal(
+    slot_gap(route_mm(scene, edge_route_options(edge_sep = 6))),
+    6,
+    tolerance = 0.01
+  )
+  expect_equal(
+    slot_gap(route_mm(scene, edge_route_options(edge_sep = 10))),
+    10,
+    tolerance = 0.01
+  )
+})
+
+test_that("edge_route_options(): edge_sep_min equal to edge_sep fixes the orthogonal spacing", {
+  scene <- narrow_band_mm(30)
+
+  # a 30 mm gap is too narrow for four slots at the full separation, so the
+  # ladder tightens them
+  default <- route_mm(scene, mode = "orthogonal")
+  expect_lt(default$ortho$gaps$spacing, 3.6)
+
+  # with the floor at the separation there is nothing left to tighten
+  fixed <- route_mm(
+    scene,
+    edge_route_options(edge_sep = 3.6, edge_sep_min = 3.6),
+    mode = "orthogonal"
+  )
+  expect_equal(fixed$ortho$gaps$spacing, 3.6)
+})
+
+test_that("edge_route_options(): corners = 'sharp' leaves every bend a right angle", {
+  scene <- narrow_band_mm(40)
+
+  rounded <- route_mm(scene, mode = "orthogonal")
+  sharp <- route_mm(
+    scene,
+    edge_route_options(corners = "sharp"),
+    mode = "orthogonal"
+  )
+
+  sharp_turns <- unlist(lapply(sharp$paths, mm_turning_angles))
+  rounded_turns <- unlist(lapply(rounded$paths, mm_turning_angles))
+
+  # the bends are kept, not cut: each of the eight is an exact quarter turn
+  expect_identical(sum(abs(sharp_turns - 90) < 1e-6), 8L)
+  expect_lte(max(sharp_turns), 90 + 1e-6)
+
+  # and the default draws none of them, because it rounds every one
+  expect_lt(max(rounded_turns), 90 - 1e-6)
+})
+
+test_that("edge_route_options(): corner_radius sets the radius the scene draws at", {
+  scene <- narrow_band_mm(40)
+
+  default <- route_mm(scene, mode = "orthogonal")
+  bigger <- route_mm(
+    scene,
+    edge_route_options(corner_radius = 4),
+    mode = "orthogonal"
+  )
+
+  expect_equal(default$ortho$rc, 2.1)
+  expect_equal(bigger$ortho$rc, 4)
+
+  # a wider corner reserves a longer stub past the cap, which is what pushes
+  # a crowded gap down the ladder
+  expect_gt(bigger$ortho$gaps$stub, default$ortho$gaps$stub)
+})
+
+test_that("edge_route_options(): a shallower max_bow caps the free bow", {
+  scene <- steep_skip_mm()
+  i <- mm_edge(scene, "a->c")
+
+  default <- route_mm(scene)
+  shallow <- route_mm(scene, edge_route_options(max_bow = 0.06))
+
+  expect_identical(default$meta$mode[[i]], "bow")
+  expect_false(default$meta$sagitta_capped[[i]])
+
+  expect_true(shallow$meta$sagitta_capped[[i]])
+  expect_lt(
+    shallow$meta$sagitta_ratio[[i]],
+    default$meta$sagitta_ratio[[i]]
+  )
+})
+
+test_that("edge_route_options(): bend_penalty = 0 buys the four-bend run", {
+  scene <- mediator_mm()
+  i <- mm_edge(scene, "x->y")
+
+  default <- route_mm(scene, mode = "orthogonal")
+  free <- route_mm(
+    scene,
+    edge_route_options(bend_penalty = 0),
+    mode = "orthogonal"
+  )
+
+  # two bends at the default price, four once bends cost nothing
+  expect_equal(default$meta$n_waypoints[[i]], 2)
+  expect_equal(free$meta$n_waypoints[[i]], 4)
+})
+
+test_that("edge_route_options(): a raised crossing_penalty buys the detour instead", {
+  scene <- tangle_mm()
+  i <- mm_edge(scene, "s->t")
+
+  default <- route_mm(scene)
+  dear <- route_mm(scene, edge_route_options(crossing_penalty = 200))
+
+  expect_identical(default$meta$mode[[i]], "interior")
+  expect_identical(dear$meta$mode[[i]], "periphery")
+  expect_gt(dear$meta$sagitta_ratio[[i]], default$meta$sagitta_ratio[[i]])
+})
+
+test_that("edge_route_options(): crossing_saturation = FALSE restores the deep arch", {
+  scene <- tangle_mm()
+  i <- mm_edge(scene, "s->t")
+
+  default <- route_mm(scene)
+  linear <- route_mm(scene, edge_route_options(crossing_saturation = FALSE))
+
+  # priced in full, every crossing the interior route makes adds up until the
+  # arch under the stacks is worth its displacement
+  expect_identical(default$meta$mode[[i]], "interior")
+  expect_identical(linear$meta$mode[[i]], "periphery")
+  expect_gt(linear$meta$sagitta_ratio[[i]], default$meta$sagitta_ratio[[i]])
+})
+
+test_that("edge_route_options(): head_penalty = 0 passes an arrowhead the default avoids", {
+  scene <- head_zone_mm()
+  i <- mm_edge(scene, "a->b")
+
+  default <- route_mm(scene)
+  free <- route_mm(scene, edge_route_options(head_penalty = 0))
+
+  # the tie between the two sides of m falls away from u's arrowhead while
+  # the head zone is priced, and back to the default side once it is free
+  expect_equal(default$meta$side[[i]], -1)
+  expect_equal(free$meta$side[[i]], 1)
+})
+
+test_that("edge_route_options(): tight_penalty prices the tight slot out of the route", {
+  scene <- tight_slot_mm()
+
+  default <- route_mm(scene)
+  free <- route_mm(scene, edge_route_options(tight_penalty = 0))
+  dear <- route_mm(scene, edge_route_options(tight_penalty = 20))
+
+  # the gap between n1 and n2 is threadable only at the soft margin, and at
+  # the default price it is still the cheapest way through
+  expect_equal(default$meta$side[[1]], 1)
+  expect_equal(free$meta$side[[1]], 1)
+
+  # priced high enough, the route goes around the pair instead
+  expect_equal(dear$meta$side[[1]], -1)
+  expect_gt(dear$meta$sagitta_ratio[[1]], default$meta$sagitta_ratio[[1]])
+})
+
+test_that("edge_route_options(): congestion_penalty = 0 sends the fan tie to the other side", {
+  scene <- fan_mm()
+  i <- mm_edge(scene, "a->e")
+
+  expect_equal(route_mm(scene)$meta$side[[i]], -1)
+  expect_equal(
+    route_mm(scene, edge_route_options(congestion_penalty = 0))$meta$side[[i]],
+    1
+  )
+})
+
+test_that("edge_route_options(): parallel_sep widens the lens between parallel edges", {
+  scene <- parallel_pair_mm()
+  lens <- function(res) {
+    abs(mm_y_at(res$paths[[1]], 80) - mm_y_at(res$paths[[2]], 80))
+  }
+
+  default <- lens(route_mm(scene))
+  wider <- lens(route_mm(scene, edge_route_options(parallel_sep = 14)))
+
+  expect_equal(default, 6, tolerance = 0.01)
+  expect_equal(wider, 14, tolerance = 0.01)
+  expect_gt(wider, default)
+})
+
+test_that("edge_route_options(): steep_angle moves the boundary of the free-bow tier", {
+  scene <- shallow_skip_mm()
+  i <- mm_edge(scene, "a->c")
+
+  # the chord runs 34 degrees to the layer axis, so it takes the layered tier
+  # until the boundary drops below it
+  expect_identical(route_mm(scene)$meta$mode[[i]], "interior")
+  expect_identical(
+    route_mm(scene, edge_route_options(steep_angle = 25))$meta$mode[[i]],
+    "bow"
+  )
+})
+
+test_that("edge_route_options(): tangent_clamp bounds the departure tangent", {
+  scene <- short_skip_mm()
+
+  default <- route_mm(scene)
+  tight <- route_mm(scene, edge_route_options(tangent_clamp = 10))
+
+  expect_lt(
+    mm_departure_angle(tight$paths[[1]]),
+    mm_departure_angle(default$paths[[1]])
+  )
+})
+
+# The pictures -------------------------------------------------------------------
+
+test_that("edge_route_options visuals: a spline scene under a shallower bow", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  shallow <- edge_route_options(max_bow = 0.04)
+  p <- ggdag(
+    bow_skip_dag(),
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    edge_route_options = shallow
+  ) +
+    theme_dag()
+
+  # A baseline is worth keeping only when the picture is known to be the one
+  # the options asked for, so the scene the layer routes is measured before
+  # it is drawn.
+  scene <- routed_scene_mm(p)
+  routed <- route_drawn_scene(scene, shallow, "spline")
+  default <- route_drawn_scene(scene, edge_route_options(), "spline")
+  bowed <- which(default$meta$mode == "bow")
+  stopifnot(
+    length(bowed) == 1,
+    # the cap is what changed the picture, and it is a cap: the bow is
+    # shallower than the one the default scene drew
+    routed$meta$sagitta_capped[bowed],
+    !default$meta$sagitta_capped[bowed],
+    routed$meta$sagitta_ratio[bowed] < default$meta$sagitta_ratio[bowed],
+    # and a capped bow still clears every disc it is not an endpoint of, at
+    # the soft margin the cap trades the full clearance for
+    mm_min_clearance(scene, routed) >= scene$radius + 1.2 - verify_tol
+  )
+
+  expect_doppelganger("edge-route-options-spline-shallow-bow", p)
+})
+
+test_that("edge_route_options visuals: an orthogonal scene with sharp corners", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  sharp <- edge_route_options(corners = "sharp")
+  p <- ggdag(
+    bow_skip_dag(),
+    edge_engine = "ggarrow",
+    edge_route = "orthogonal",
+    edge_route_options = sharp
+  ) +
+    theme_dag()
+
+  scene <- routed_scene_mm(p)
+  routed <- route_drawn_scene(scene, sharp, "orthogonal")
+  rounded <- route_drawn_scene(scene, edge_route_options(), "orthogonal")
+  turns <- unlist(lapply(routed$paths, mm_turning_angles))
+  stopifnot(
+    # no corner is cut: the bends the picture draws are right angles, apart
+    # from the connectors hidden inside the node discs
+    sum(abs(turns - 90) < 1e-6) >= 8,
+    max(turns) <= 90 + 1e-6,
+    # and the scene these replace rounds every one of them
+    max(unlist(lapply(rounded$paths, mm_turning_angles))) < 90 - 1e-6,
+    mm_min_clearance(scene, routed) >= scene$radius + 3 - verify_tol
+  )
+
+  expect_doppelganger("edge-route-options-orthogonal-sharp", p)
+})

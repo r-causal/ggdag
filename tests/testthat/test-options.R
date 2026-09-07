@@ -21,6 +21,7 @@ test_that("ggdag_defaults contains all expected options", {
     "arrow_fins",
     "arrow_mid",
     "edge_route",
+    "edge_route_options",
     "label_wrap",
     "curvature",
     "debug_repel_points"
@@ -64,6 +65,14 @@ test_that("a new option keeps the option list cli prints in its error", {
     c("curvature", "debug_repel_points")
   )
   expect_true(match("label_wrap", option_names) > 18)
+
+  # `edge_route_options` goes in beside the option it configures, which puts
+  # it in the elided middle as well
+  expect_true(match("edge_route_options", option_names) > 18)
+  expect_identical(
+    match("edge_route_options", option_names),
+    match("edge_route", option_names) + 1L
+  )
 })
 
 test_that("ggdag_options_set() sets options and returns old values invisibly", {
@@ -817,6 +826,46 @@ test_that("curvature option stores and retrieves correctly", {
 test_that("curvature option rejects non-numeric", {
   expect_ggdag_error(ggdag_options_set(curvature = "bad"))
   expect_ggdag_error(ggdag_options_set(curvature = TRUE))
+})
+
+test_that("edge_route_options option stores, retrieves, and unsets", {
+  local_ggdag_option_state()
+
+  expect_true("edge_route_options" %in% names(ggdag_defaults))
+  expect_null(ggdag_defaults$edge_route_options)
+  expect_null(ggdag_option("edge_route_options", NULL))
+
+  opts <- edge_route_options(max_bow = 0.12, corners = "sharp")
+  ggdag_options_set(edge_route_options = opts)
+  expect_identical(ggdag_options_get("edge_route_options"), opts)
+  expect_identical(ggdag_option("edge_route_options", NULL), opts)
+
+  ggdag_options_set(edge_route_options = NULL)
+  expect_null(ggdag_option("edge_route_options", NULL))
+})
+
+test_that("edge_route_options option takes the object and nothing else", {
+  local_ggdag_option_state()
+  # the registration has to exist before the message is asserted on, or the
+  # unknown-option error would stand in for the validation message
+  expect_true("edge_route_options" %in% names(ggdag_defaults))
+
+  # the message is asserted here rather than snapshotted so that
+  # `_snaps/options.md`, which records the elided list of valid names, stays
+  # exactly as it is
+  expect_error(
+    ggdag_options_set(edge_route_options = "bad"),
+    class = "ggdag_type_error",
+    regexp = "must be an object from"
+  )
+
+  # a bare named list carrying the right names is still not the object: one
+  # type means one place where the fields are validated
+  expect_error(
+    ggdag_options_set(edge_route_options = list(max_bow = 0.12)),
+    class = "ggdag_type_error",
+    regexp = "must be an object from"
+  )
 })
 
 test_that("label_wrap option stores and retrieves correctly", {

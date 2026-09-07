@@ -399,7 +399,7 @@ mid_chord_deviation <- function(path) {
 # node centres, node radius, cap, and spec that grob carries. The label
 # engine routes at draw time, so its realised obstacle polyline is not on the
 # gTree; this is the same call it has to make, from the same inputs.
-route_label_edge <- function(tree, scene, edge) {
+route_label_edge <- function(tree, scene, edge, route_options = NULL) {
   spec <- label_route_spec(tree, edge)
   if (is.na(spec$style)) {
     return(NULL)
@@ -443,14 +443,27 @@ route_label_edge <- function(tree, scene, edge) {
     bounds = c(0, 0, scene$width, scene$height),
     cap = if (is.na(spec$cap)) tree$params$edge_cap %||% 8 else spec$cap,
     mode = spec$style,
-    opts = route_opts(
-      r_ref = radius,
-      m = if (is.na(spec$clearance)) NULL else spec$clearance,
-      sep_e = if (is.na(spec$sep)) NULL else spec$sep,
-      layer_axis = spec$layer_axis
-    )
+    opts = if (is.null(route_options)) {
+      route_opts(
+        r_ref = radius,
+        m = if (is.na(spec$clearance)) NULL else spec$clearance,
+        sep_e = if (is.na(spec$sep)) NULL else spec$sep,
+        layer_axis = spec$layer_axis
+      )
+    } else {
+      route_opts_from(route_options, radius, layer_axis = spec$layer_axis)
+    }
   )
   routed$paths[[at]]
+}
+
+# The routing options object the label grob carries for an edge. The spec
+# travels as one list column, so the whole object arrives or none of it does.
+label_route_options <- function(edge) {
+  if (!"route_options" %in% names(edge)) {
+    return(NULL)
+  }
+  edge$route_options[[1]]
 }
 
 # The drawn path whose endpoints are those of `edge`, in millimetres.
@@ -905,6 +918,80 @@ test_that("the label grob carries the routed layer's routing parameters", {
       routed_layer$geom_params$layer_axis
     )
   }
+})
+
+test_that("the label grob routes with the options object the arrow grob drew with", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # A default object would prove nothing: the two grobs already agree on the
+  # router's own constants. This scene is drawn under a clearance and a bow
+  # cap neither of them derives.
+  route_options <- edge_route_options(clearance = 5, max_bow = 0.12)
+  p <- ggdag(
+    tidy_dagitty(collinear_mediator_dag()),
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    edge_route_options = route_options,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  routed_layer <- p$layers[[which(vapply(
+    p$layers,
+    function(layer) inherits(layer$geom, "GeomDAGRoutedArrow"),
+    logical(1)
+  ))]]
+  merged <- routed_layer$geom_params$edge_route_options
+
+  scene <- forced_panel_scene(p, "dag_routed_edges|dag_labels_auto")
+  routed_tree <- scene_gtree(scene, "dag_routed_edges")
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+
+  edges <- label_edge_input(label_tree, scene)
+  routed <- edges[vapply(
+    edges,
+    function(edge) !is.na(edge$route_style[[1]]),
+    logical(1)
+  )]
+  expect_length(routed, 3)
+
+  # the whole object travels as one column, so a field added to the
+  # constructor cannot be dropped on the way to the label engine
+  for (edge in routed) {
+    expect_identical(label_route_options(edge), merged)
+  }
+
+  # and the two grobs still draw one line: the label engine's obstacle is the
+  # path the arrow layer drew, under options that are not the defaults
+  lengths <- vapply(
+    routed,
+    function(edge) {
+      last <- nrow(edge)
+      sqrt(
+        (edge$x[[last]] - edge$x[[1]])^2 + (edge$y[[last]] - edge$y[[1]])^2
+      )
+    },
+    numeric(1)
+  )
+  blocked <- routed[[which.max(lengths)]]
+
+  cap <- label_tree$params$edge_cap %||% 8
+  label_path <- route_label_edge(
+    label_tree,
+    scene,
+    blocked,
+    route_options = merged
+  )
+  drawn_path <- drawn_path_for(routed_tree, blocked)
+
+  # the clearance the object asks for is wider than the router's own, so the
+  # detour leaves the mediator by more than the 9 mm the default would keep
+  expect_gte(mid_chord_deviation(label_path), 10)
+  expect_lt(
+    hausdorff_mm(trim_by_cap(label_path, cap), trim_by_cap(drawn_path, cap)),
+    0.5
+  )
 })
 
 test_that("without a routed layer the label grob's edges stay chords", {
