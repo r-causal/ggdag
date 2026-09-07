@@ -416,12 +416,27 @@ route_label_edge <- function(tree, scene, edge) {
   nearest <- function(px, py) {
     nodes$name[[which.min((nodes$x - px)^2 + (nodes$y - py)^2)]]
   }
-  last <- nrow(edge)
+  # the engine routes every directed edge of the scene together, as the
+  # arrow layer does, since a route depends on the other edges' chords and
+  # arrivals; the requested edge's path is picked out afterwards
+  all_edges <- label_edge_input(tree, scene)
+  all_edges <- all_edges[vapply(
+    all_edges,
+    function(e) !is.na(label_route_spec(tree, e)$style),
+    logical(1)
+  )]
+  ends <- function(e) {
+    last <- nrow(e)
+    c(nearest(e$x[[1]], e$y[[1]]), nearest(e$x[[last]], e$y[[last]]))
+  }
+  chords <- t(vapply(all_edges, ends, character(2)))
+  want <- ends(edge)
+  at <- which(chords[, 1] == want[[1]] & chords[, 2] == want[[2]])[[1]]
   routed <- route_edges_mm(
     nodes = nodes,
     edges = data.frame(
-      from = nearest(edge$x[[1]], edge$y[[1]]),
-      to = nearest(edge$x[[last]], edge$y[[last]]),
+      from = chords[, 1],
+      to = chords[, 2],
       curvature = NA_real_,
       stringsAsFactors = FALSE
     ),
@@ -435,7 +450,7 @@ route_label_edge <- function(tree, scene, edge) {
       layer_axis = spec$layer_axis
     )
   )
-  routed$paths[[1]]
+  routed$paths[[at]]
 }
 
 # The drawn path whose endpoints are those of `edge`, in millimetres.
