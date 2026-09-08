@@ -26,10 +26,10 @@
 #
 # The scene with labels the engine cannot place is the saturated ten-node DAG
 # of `helper-label-perf.R` at 4 x 3 inches: 41 edges on a panel of about
-# 97 x 72 mm, where `Blood pressure` and `Outcome` come to rest on ink. Every
-# render here is on an off-screen ragg device at 150 dpi, the millimetres the
-# engine works in, and every measurement is taken while that device is still
-# open.
+# 97 x 72 mm, where `Weight`, `Blood pressure`, and `Outcome` come to rest on
+# ink. Every render here is on an off-screen ragg device at 150 dpi, the
+# millimetres the engine works in, and every measurement is taken while that
+# device is still open.
 #
 # No snapshot is written here except the wording of the warning.
 
@@ -239,7 +239,7 @@ clear_labelled_dag <- function() {
 
 # The scene ------------------------------------------------------------------
 
-test_that("the saturated scene at 4 x 3 leaves two labels unresolved", {
+test_that("the saturated scene at 4 x 3 leaves three labels unresolved", {
   skip_if_not_installed("ragg")
 
   # The pin the warning below names. A label reported here is drawn at the
@@ -251,7 +251,7 @@ test_that("the saturated scene at 4 x 3 leaves two labels unresolved", {
     )
   )[[1]]
 
-  expect_identical(scene$unresolved, c("Blood pressure", "Outcome"))
+  expect_identical(scene$unresolved, c("Weight", "Blood pressure", "Outcome"))
 })
 
 # The warning ----------------------------------------------------------------

@@ -519,7 +519,7 @@ test_that("the ten-node fixture scene keeps Medication out of Weight's corridor"
   expect_equal(res$y[i], 81.7089162581516, tolerance = 1e-9)
 })
 
-test_that("the ten-node and dense scenes match the pinned 7 x 5 placements", {
+test_that("the smaller scenes match the pinned 7 x 5 placements", {
   skip_on_cran()
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
@@ -528,9 +528,13 @@ test_that("the ten-node and dense scenes match the pinned 7 x 5 placements", {
   # differ off macOS. See helper-vdiffr.R.
   skip_on_os(c("windows", "linux", "solaris"))
 
+  # The three scenes of the fixture whose placements no rule of this file, or
+  # of test-label-auto-occlusion.R, is allowed to move. The fixture's fourth
+  # scene, the 30-node one, is the scene those rules are calibrated on and is
+  # pinned in test-label-auto-perf.R alone.
   fixture <- readRDS(test_path("fixtures", "label-placements-7x5.rds"))
   keys <- as.vector(outer(
-    c("ten_node", "dense"),
+    c("ten_node", "dense", "saturated"),
     c("straight", "spline"),
     paste,
     sep = "|"

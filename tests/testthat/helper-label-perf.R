@@ -267,14 +267,17 @@ perf_scene_placement <- function(scene, route, size = c(7, 5)) {
 }
 
 # The exact arguments `makeContent.dag_labels_auto()` hands to
-# `place_dag_labels()` for one scene, captured by tracing the engine during a
-# real render. The trace is removed before this returns.
+# `place_dag_labels()` while `plot` is drawn, together with whatever
+# `measure()` reads off the forced tree, from one render. A block that needs
+# both the millimetre geometry the engine worked in and the boxes the render
+# drew takes them from here rather than rendering the scene twice. The trace
+# is removed before this returns.
 #
 # The tracer runs inside the engine's own frame, so it reaches the store
 # through an option rather than through any environment the caller could pass
 # it. The option name is deliberately outside the `ggdag.` namespace the
 # package reads.
-perf_engine_inputs <- function(scene, route, size = c(7, 5)) {
+perf_traced_render <- function(plot, size, measure) {
   captured <- new.env(parent = emptyenv())
   captured$store <- list()
   old_options <- options(ggdag_label_perf_capture = captured)
@@ -303,12 +306,32 @@ perf_engine_inputs <- function(scene, route, size = c(7, 5)) {
     after = FALSE
   )
 
+  measured <- perf_measure_render(plot, size, measure)
+  stopifnot(length(captured$store) >= 1)
+  list(
+    inputs = captured$store[[length(captured$store)]],
+    measured = measured
+  )
+}
+
+# The exact arguments `makeContent.dag_labels_auto()` hands to
+# `place_dag_labels()` for one scene, captured by tracing the engine during a
+# real render.
+perf_engine_inputs <- function(scene, route, size = c(7, 5)) {
   with_perf_options(route, {
     plot <- perf_label_plot(perf_label_dags[[scene]]())
-    perf_measure_render(plot, size, function(tree) invisible(NULL))
+    perf_traced_render(plot, size, function(tree) invisible(NULL))$inputs
   })
-  stopifnot(length(captured$store) >= 1)
-  captured$store[[length(captured$store)]]
+}
+
+# The engine inputs and the placement one render of `dag` produced, for the
+# labelled scenes the placement fixture does not carry.
+perf_dag_capture <- function(dag, route, size = c(7, 5)) {
+  with_perf_options(route, {
+    plot <- perf_label_plot(dag)
+    captured <- perf_traced_render(plot, size, perf_placement)
+    list(inputs = captured$inputs, placement = captured$measured)
+  })
 }
 
 # Time `place_dag_labels()` on captured inputs, returning the median seconds
