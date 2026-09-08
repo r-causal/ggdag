@@ -49,6 +49,21 @@ label_leader_ink_cost <- 4
 label_leader_disc_cost <- 4
 label_leader_box_cost <- 20
 
+# A box that covers only the mid-run of drawn edges, touching no node disc,
+# no arrowhead zone, no other label's box, and no panel border, is
+# admissible in a tier of its own: below every clear spot within this many
+# reaches of the label's own disc and above every clear spot beyond that.
+# At the default node size a reach is 9 mm, so the gate sits at 45 mm. The
+# accepted pictures carry no clear leader over 36 mm, and the flights the
+# tier ends were 46 to 82 mm, so five reaches separates the two. Four
+# reaches (36 mm) moves a pinned ten-node 4 x 3 leader of 36.1 mm, and
+# three (27 mm, the local grid's own extent) gives the shortest leaders at
+# 7 x 5 but puts two boxes on edges at 10 x 6 where clear 17 and 27 mm
+# leaders were accepted. The price of a box in the tier is the leader's own
+# price for the same ink, `label_leader_ink_cost` per sampled point within
+# the box's margin, so a box crossing one edge beats a box lying along it.
+label_occlusion_reach <- 5
+
 # A box slid back inside the panel stops this far, in mm, inside the border
 # rather than exactly on it. A slide computes the box limit as
 # xmin + (bound - xmin), which floating-point addition need not return as
@@ -304,6 +319,8 @@ place_dag_labels <- function(
   soft_static <- vector("list", n)
   own_static <- vector("list", n)
   unpriced_static <- vector("list", n)
+  occluding_static <- vector("list", n)
+  occlusion_static <- vector("list", n)
   unpriced_counts <- integer(n)
   clean_counts <- integer(n)
   best_bands <- numeric(n)
@@ -446,6 +463,8 @@ place_dag_labels <- function(
       soft_static[[i]] <<- scored$soft_penalty
       own_static[[i]] <<- scored$own_penalty
       unpriced_static[[i]] <<- scored$unpriced
+      occluding_static[[i]] <<- scored$occluding
+      occlusion_static[[i]] <<- scored$occlusion
       overlap_cols[[i]] <<- vector("list", n)
       crossing_cols[[i]] <<- vector("list", n)
       crossing_counts[[i]] <<- integer(n_new)
@@ -468,12 +487,19 @@ place_dag_labels <- function(
       soft_static[[i]] <<- c(soft_static[[i]], scored$soft_penalty)
       own_static[[i]] <<- c(own_static[[i]], scored$own_penalty)
       unpriced_static[[i]] <<- c(unpriced_static[[i]], scored$unpriced)
+      occluding_static[[i]] <<- c(occluding_static[[i]], scored$occluding)
+      occlusion_static[[i]] <<- c(occlusion_static[[i]], scored$occlusion)
       crossing_counts[[i]] <<- c(crossing_counts[[i]], integer(n_new))
     }
     unpriced_counts[i] <<- sum(unpriced_static[[i]])
-    clean_counts[i] <<- sum(!violating_static[[i]])
+    # An occluding candidate is admissible but not clear: it counts for
+    # neither the placement order nor the local grid trigger, so a label
+    # whose near field is ink still searches around its node and still
+    # waits its turn behind the labels that can sit clear.
+    clear <- !violating_static[[i]] & !occluding_static[[i]]
+    clean_counts[i] <<- sum(clear)
     best_bands[i] <<- if (clean_counts[i] > 0) {
-      min(band_static[[i]][!violating_static[[i]]])
+      min(band_static[[i]][clear])
     } else {
       Inf
     }
@@ -520,7 +546,7 @@ place_dag_labels <- function(
     )$extra
     within_static[[i]][idx] <<- within_score(
       center_static[[i]][idx],
-      extra[idx],
+      extra[idx] + occlusion_static[[i]][idx],
       soft_static[[i]][idx],
       own_static[[i]][idx],
       cand$rank[idx],
@@ -651,10 +677,15 @@ place_dag_labels <- function(
   }
 
   # Whether deferred pricing could change which candidate of label `i` wins
-  # when `best`, an admissible candidate, has the least total under it.
+  # when `best`, an admissible and fully priced candidate, has the least
+  # total under it.
   #
-  # Admissible candidates are fully priced, so their `within` scores are the
-  # ones full pricing gives; only the band multiplier `M = max(within) + 1`
+  # Clear candidates are fully priced, so their `within` scores are the
+  # ones full pricing gives, and an occluding candidate whose leader is
+  # still unpriced can only rise: pricing adds a non-negative length. Such
+  # a candidate therefore never overtakes `best` within its band, and
+  # `evaluate()` prices the label whenever the winner itself is unpriced.
+  # That leaves the band multiplier `M = max(within) + 1`, which alone
   # differs, and it is at most `price_bound` larger under full pricing. A
   # candidate of a higher band than `best` adds at least one more `M` to a
   # non-negative `within`, and `M` exceeds every `within` by at least 1, so
@@ -683,7 +714,8 @@ place_dag_labels <- function(
   #
   # The first is deferred pricing. While some leaders of label `i` are not
   # priced, its `within` scores are too low on those candidates, and every
-  # one of them violates a static constraint. The band multiplier
+  # one of them violates a static constraint or occludes an edge. The band
+  # multiplier
   # `max(within) + 1` and the lift `max(soft) + 1` are then not the ones
   # full pricing would give, so the totals are trusted only when the winner
   # is admissible, where the identity of the winner does not depend on
@@ -693,14 +725,16 @@ place_dag_labels <- function(
   # admissible candidate under any lift formed this way, in exact arithmetic
   # and after rounding (the rounding of a sum of non-negative terms never
   # falls below either term, and a 1 is far beyond the rounding of any
-  # score). Among the admissible candidates, all fully priced, the winner is
-  # decided by band and then by `within`, and `deferred_pricing_unsafe()`
-  # rules out the one way the multiplier could still matter. So `which.min`
-  # (and the strict comparison in `sweep()`) picks the same candidate full
-  # pricing would. When the winner is violating, when the multiplier could
-  # matter, or when the totals of the violating candidates are read (in
-  # `eject()` and for the returned score of a violating label), the label
-  # is priced in full first and scored again.
+  # score). Among the admissible candidates the winner is decided by band
+  # and then by `within`; an unpriced occluding candidate can only rise
+  # under full pricing, so it wins under the deferred totals whenever it
+  # would win under full pricing, and `deferred_pricing_unsafe()` rules out
+  # the one way the multiplier could still matter. So `which.min` (and the
+  # strict comparison in `sweep()`) picks the same candidate full pricing
+  # would. When the winner is violating or unpriced, when the multiplier
+  # could matter, or when the totals of the violating candidates are read
+  # (in `eject()` and for the returned score of a violating label), the
+  # label is priced in full first and scored again.
   #
   # The second is caching. The refinement asks for the same label in the
   # same surroundings again and again: a sweep pass that moves nothing
@@ -727,7 +761,11 @@ place_dag_labels <- function(
     scored <- score_against_placed(i)
     if (unpriced_counts[i] > 0L) {
       best <- which.min(scored$total)
-      if (scored$violating[best] || deferred_pricing_unsafe(i, best, scored)) {
+      if (
+        scored$violating[best] ||
+          unpriced_static[[i]][best] ||
+          deferred_pricing_unsafe(i, best, scored)
+      ) {
         ensure_priced(i)
         cache <- evaluate_cache[[i]]
         scored <- score_against_placed(i)
@@ -1797,12 +1835,17 @@ ink_box_edge_hits <- function(xmin, ymin, xmax, ymax, ink) {
 #' @return A list with `hard` (weighted violations per candidate),
 #'   `violating` (whether each candidate violates a hard constraint), `band`
 #'   (the proximity band of each candidate: 0 within `leader`, 1 within
-#'   `reach`, 2 beyond), `within` (the score that orders admissible
-#'   candidates of one band), `leader` (the leader segment of each
-#'   candidate as `x0`, `y0`, `x1`, `y1`, `NA` where none is drawn; `NULL`
-#'   without `own`), the `center_dist`, `soft_penalty`, and `own_penalty`
-#'   terms of `within`, and `unpriced` (whether each candidate's leader is
-#'   still to be priced).
+#'   `reach`, 2 beyond, 3 for an occluding candidate, and two more for any
+#'   candidate past `label_occlusion_reach` reaches), `within` (the score
+#'   that orders admissible candidates of one band), `leader` (the leader
+#'   segment of each candidate as `x0`, `y0`, `x1`, `y1`, `NA` where none
+#'   is drawn; `NULL` without `own`), the `center_dist`, `soft_penalty`,
+#'   and `own_penalty` terms of `within`, `unpriced` (whether each
+#'   candidate's leader is still to be priced), `occluding` (whether each
+#'   candidate is admissible only as a box on the mid-run of edges), and
+#'   `occlusion` (the length such a box is priced at for the ink under it,
+#'   already part of `within`, and to be added to the leader's price when
+#'   that is priced later).
 #' @noRd
 score_label_candidates <- function(
   cand,
@@ -1889,6 +1932,24 @@ score_label_candidates <- function(
     hits$arrow > 0 |
     outside_area > 0
 
+  # Occlusion: a box whose only fault is that mid-run edge points lie within
+  # its margin is admissible in a tier of its own rather than violating, and
+  # is priced up front as though its leader crossed the same ink. The tier
+  # is gated against the clear spots by the label's clearance from its own
+  # disc, so it exists only when that clearance is measured (`own`) and when
+  # `reach` is finite; the engine's fixture scenes at infinite reach keep
+  # every box on ink violating.
+  occluding <- logical(n_cand)
+  occlusion_extra <- numeric(n_cand)
+  if (!is.null(own) && is.finite(reach)) {
+    occluding <- hits$edge > 0 &
+      hits$arrow == 0 &
+      node_penalty == 0 &
+      outside_area == 0
+    occlusion_extra[occluding] <- label_leader_ink_cost * hits$edge[occluding]
+    violating[occluding] <- FALSE
+  }
+
   # Proximity: the pull toward the label's own node center, the band a
   # candidate's clearance from its own disc puts it in, and the pricing of
   # the leader a candidate past `leader` would be drawn with. `dist`,
@@ -1913,6 +1974,12 @@ score_label_candidates <- function(
       own$radius
     with_leader <- clearance > leader
     band <- with_leader + (clearance > reach)
+    # The occlusion tier sits below every clear band, and any candidate,
+    # clear or occluding, past `label_occlusion_reach` reaches is raised two
+    # bands: a clear spot within that distance beats any box on an edge, and
+    # a box on an edge beats a flight beyond it.
+    band[occluding] <- 3
+    band <- band + 2 * (clearance > label_occlusion_reach * reach)
     # Ownership: a box nearer another node's disc than its own reads as that
     # node's label. The term is how much nearer, counting the box's own
     # clearance only up to `reach`, so a foreign disc beyond the distance a
@@ -1927,7 +1994,11 @@ score_label_candidates <- function(
     }
     # The price of a leader reaches the score only through the `dist`
     # weight, so under a zero weight no leader needs pricing, then or later.
-    price <- with_leader & dist_weight != 0 & (price_violating | !violating)
+    # An occluding candidate's leader is deferred like a violating one's:
+    # it only ever matters once no clear spot within the gate is left.
+    price <- with_leader &
+      dist_weight != 0 &
+      (price_violating | !(violating | occluding))
     unpriced <- with_leader & dist_weight != 0 & !price
     leaders <- leader_crossing_length(
       cand,
@@ -1939,6 +2010,7 @@ score_label_candidates <- function(
     )
     leader_extra <- leaders$extra
   }
+  leader_extra <- leader_extra + occlusion_extra
 
   within <- within_score(
     center_dist,
@@ -1958,7 +2030,9 @@ score_label_candidates <- function(
     center_dist = center_dist,
     soft_penalty = soft_penalty,
     own_penalty = own_penalty,
-    unpriced = unpriced
+    unpriced = unpriced,
+    occluding = occluding,
+    occlusion = occlusion_extra
   )
 }
 
