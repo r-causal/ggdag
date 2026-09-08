@@ -62,9 +62,10 @@
 # cause, an order whose horizontal pieces would coincide being forbidden,
 # numbered by longest path, and placed on the first rung of a ladder that
 # holds them: the nominal stub and an even spread, then a shorter stub, a
-# tighter spacing, a smaller corner radius, and finally slots spread between
-# the layers' soft bands without clearance, moved toward the source where the
-# gap can give the slot nearest the target a straight run for its arrowhead.
+# tighter spacing, a smaller corner radius, and finally slots spread without
+# clearance between the source layer's soft band and a straight run before
+# the target layer that holds an arrowhead and half a separation behind its
+# base, overflowing toward the source when the gap cannot hold them all.
 # The arrivals on a node's W side
 # take stacked rows beside its centre line, the level chord, which runs on
 # that line, keeping the centre, the rows centred on the node when no chord
@@ -156,10 +157,13 @@ route_constants <- function(
     corners = corners,
     rc = min(max(0.35 * r_ref, 0.8), 2.5),
     # the floor of the corner radius, the drawn arrowhead length the stub
-    # must hold past the cap, and the head width that bounds a port stack
+    # must hold past the cap, the head width that bounds a port stack, and
+    # the run the ladder's last rung keeps behind a head base so that no
+    # other edge's slot is drawn across it
     rc_min = 0.8,
     head = 2,
     head_w = 1.3,
+    head_margin = sep_e / 2,
     R = r_ref + m,
     R_soft = r_ref + m_min,
     sep_e = sep_e,
@@ -241,9 +245,11 @@ route_constants <- function(
 #'   `gaps`, one row per gap that holds a slot with `gap`, `width`,
 #'   `ranks`, `rung`, `stub`, and `spacing` (see `ortho_slot_positions()`;
 #'   `stub` is `NA` on the last rung, where no stub fits and the slots are
-#'   centred on the gap, moved toward the source where the gap has the room
-#'   for the target side's head run; once that run is whole the gap's
-#'   arrivals take rows at their targets as arrivals out of wider gaps do).
+#'   spread between the source's soft band and a head run plus half a
+#'   separation before the target, overflowing toward the source when the
+#'   band cannot hold them; once the run before the target is a whole head
+#'   run the gap's arrivals take rows at their targets as arrivals out of
+#'   wider gaps do).
 #' @noRd
 route_edges_mm <- function(
   nodes,
@@ -3581,9 +3587,9 @@ route_orthogonal_scene <- function(
   # one, and the ladder keeps the joins clear of the stub. The copies of a
   # parallel bundle are spread sep_m apart already, so they keep the centre
   # row. So does an arrival out of a gap too narrow for any stub, unless
-  # the gap is floored: its slots have moved until the one nearest the
-  # target leaves a whole head run before the target's layer, and that run
-  # holds a row as well as a head. Only the arrival gap counts, so an edge
+  # the gap is floored: the slot nearest the target leaves a whole head
+  # run before the target's layer, and that run holds a row as well as a
+  # head. Only the arrival gap counts, so an edge
   # that crosses a narrow gap early and arrives through a wide or floored
   # one takes a row like any other
   port_y <- numeric(n_edges)
@@ -4508,32 +4514,32 @@ ortho_gap_segments <- function(
 #'   `(G - 2 stub_min) / (K - 1)`, no closer than `sep_min`.
 #' * Rung 3: the spacing is `sep_min` and the corner radius shrinks, with
 #'   the stub floor following it, no further than `rc_min`.
-#' * Rung 4: no stub fits. The slots are centred on the gap midpoint at the
-#'   spacing that keeps them between the layers' soft bands, `r_ref + m_min`
-#'   from either layer, no wider than `sep_e` and no narrower than
-#'   `sep_min`. The floor matters once the band has closed: without it the
-#'   slots of different sources collapse onto one x, which draws a line the
-#'   DAG does not have, and the spacing jumps by a whole band at the rung
-#'   boundary. The gap is flagged `narrow` and its edges lose their
-#'   clearance. The slot nearest the target is the run every arrowhead out
-#'   of the gap is drawn on, and a centred slot sits `R_soft` from the
-#'   target's layer, inside the cap, so the head would sit on the corner.
-#'   When the gap holds `R_soft + cap + head`, the source's soft band and a
-#'   whole head run, the slots keep their spacing and move toward the
-#'   source until that slot is `cap + head` from the target layer's centre
-#'   line, by no more than the band `G - (R_soft + cap + head)` the gap has
-#'   to spare and no more than the room the source-side slot has to the
-#'   source layer's centre line: nothing moves at that width, the move
-#'   grows continuously with the gap, and the source side may enter its
-#'   soft band but never leave the gap. Either cap can bind first, the room
-#'   once the ranks are many enough to fill the gap, and the slot nearest
-#'   the target then stops short of its head run. A gap crossed in both
-#'   directions has no target side and keeps the centred slots. A gap whose
-#'   slot nearest the target reaches `cap + head` from the target layer's
-#'   centre line is `floored`: the head run out of it holds a row as well
-#'   as a head, so its arrivals take rows at their targets like arrivals
-#'   out of a wider gap, while those out of a narrow gap short of the floor,
-#'   or one with no target side, keep the centre row.
+#' * Rung 4: no stub fits. The gap is flagged `narrow` and its edges lose
+#'   their clearance. The slot nearest the target is the run every
+#'   arrowhead out of the gap is drawn on, and the base of each head sits
+#'   `cap + head` before the target layer's centre line, so a slot there
+#'   would be drawn across the base of every other head arriving at that
+#'   layer. The slots are spread over the band from the source layer's soft
+#'   band, `R_soft`, to the head run and its margin, `cap + head +
+#'   head_margin`, before the target layer, at the spacing that fits them
+#'   in the band, no wider than `sep_e` and no narrower than `sep_min`:
+#'   centred in the band when they fit, and otherwise anchored at the head
+#'   run so that the overflow goes toward the source, entering the
+#'   source's soft band and stopping at the source layer's centre line,
+#'   where the whole spread shifts back and the slot nearest the target
+#'   gives up its run instead. So the head run and its margin come first,
+#'   the spacing second, the source's soft band third, and the source
+#'   layer's centre line is the hard stop. The spacing floor keeps the
+#'   slots of different sources from collapsing onto one x, which would
+#'   draw a line the DAG does not have; every term is continuous in the
+#'   gap width, so no slot moves faster than the gap widens within the
+#'   rung. A gap crossed in both directions has no target side and keeps
+#'   the slots centred between the two soft bands. A gap whose slot nearest
+#'   the target reaches `cap + head` from the target layer's centre line is
+#'   `floored`: the head run out of it holds a row as well as a head, so
+#'   its arrivals take rows at their targets like arrivals out of a wider
+#'   gap, while those out of a narrow gap short of the floor, or one with
+#'   no target side, keep the centre row.
 #'
 #' @param direction One value per segment: `1` when its edges all point to
 #'   the right layer, `-1` when they all point to the left one, and `0` when
@@ -4622,32 +4628,41 @@ ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
       rc_g <- opts$rc_min
       narrow <- TRUE
       stub <- NA_real_
-      width4 <- G - 2 * opts$R_soft
-      spacing <- if (K >= 2) {
-        max(min(sep_e, width4 / (K - 1)), sep_min)
-      } else {
-        sep_e
-      }
-      pos <- centred(spacing)
       target <- ortho_target_side(direction[live])
       head_run <- cap + opts$head
-      band <- G - (opts$R_soft + head_run)
-      if (target != 0L && band > eps) {
-        overrun <- if (target > 0) {
-          max(pos) - (gap[[2]] - head_run)
+      if (target == 0L) {
+        # crossed both ways, the gap has no target side to keep a head run
+        # for, so the slots are centred between the two soft bands
+        width4 <- G - 2 * opts$R_soft
+        spacing <- if (K >= 2) {
+          max(min(sep_e, width4 / (K - 1)), sep_min)
         } else {
-          (gap[[1]] + head_run) - min(pos)
+          sep_e
         }
-        room <- if (target > 0) {
-          min(pos) - gap[[1]]
+        pos <- centred(spacing)
+      } else {
+        # the band runs from the source's soft band to the head run and
+        # its margin before the target, measured from the source layer.
+        # The slots are centred in it when they fit; otherwise they are
+        # anchored at the head run and overflow toward the source, no
+        # further than the source layer's centre line
+        band_lo <- opts$R_soft
+        band_hi <- G - (head_run + opts$head_margin)
+        band_w <- band_hi - band_lo
+        spacing <- if (K >= 2) {
+          max(min(sep_e, band_w / (K - 1)), sep_min)
         } else {
-          gap[[2]] - max(pos)
+          sep_e
         }
-        pos <- pos - target * min(max(overrun, 0), band, max(room, 0))
-      }
-      # the gap is floored once the slot nearest the target leaves the
-      # whole head run before the target's layer
-      if (target != 0L) {
+        off <- if ((K - 1) * spacing <= band_w + eps) {
+          (band_lo + band_hi) / 2 + (ranks - (K + 1) / 2) * spacing
+        } else {
+          anchored <- band_hi - (K - ranks) * spacing
+          anchored - min(min(anchored), 0)
+        }
+        pos <- if (target > 0) gap[[1]] + off else gap[[2]] - off
+        # the gap is floored once the slot nearest the target leaves the
+        # whole head run before the target's layer
         to_target <- if (target > 0) {
           gap[[2]] - max(pos)
         } else {
