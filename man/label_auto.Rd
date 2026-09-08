@@ -171,14 +171,21 @@ admissible spot within that distance exists. A label with no admissible
 spot within one and a half node radii searches a fine grid around its
 own node before it goes farther, and a leader is priced by its length
 and by every edge or disc it crosses, so a longer leader over open space
-beats a shorter one across the ink. When
+beats a shorter one across the ink. A label whose every clear spot lies
+more than seven and a half node radii from its disc sits on the drawn
+edges near its node instead: a box that covers only the mid-run of edges,
+never a node disc, an arrowhead, another label, or the panel border, is
+admissible below every clear spot within that distance and above every
+clear spot beyond it, and among such boxes the one covering the least ink
+and nearest its node wins, with a leader if it is past
+\code{min.segment.length}. Such a label is still reported as unresolved. When
 no admissible box exists at all, the label is drawn at the least-bad
-position and its text is recorded in the \code{unresolved} field of the drawn
-\code{dag_labels_auto} grob tree (\code{character(0)} when every box is clear), so
-a plot too crowded for its labels can be detected after drawing. Such a
-draw also warns once, naming the labels; \code{max.overlaps} leaves them out of
-the picture instead of drawing them on the ink, and \code{wrap} gives a long
-label a smaller box to find room for.
+position. Either way its text is recorded in the \code{unresolved} field of
+the drawn \code{dag_labels_auto} grob tree (\code{character(0)} when every box is
+clear), so a plot too crowded for its labels can be detected after
+drawing. Such a draw also warns once, naming the labels; \code{max.overlaps}
+leaves them out of the picture instead of drawing them on the ink, and
+\code{wrap} gives a long label a smaller box to find room for.
 }
 
 \examples{

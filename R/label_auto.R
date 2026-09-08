@@ -204,6 +204,23 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' leaderless label beside the wrong node loses to any owned spot, with a
 #' leader if need be. An `own` weight of 0 switches both parts off.
 #'
+#' A label whose every clear spot lies beyond `label_occlusion_reach` times
+#' `reach` from its disc sits on the drawn edges near its node instead. A
+#' candidate whose only fault is that its box covers the mid-run of edges,
+#' never a node disc, an arrowhead zone, another label's box, or the panel
+#' border, is occluding rather than violating when `reach` is finite: it is
+#' admissible in band 3, below every clear spot within that distance and
+#' above every clear spot beyond it, which is raised two bands (to 4 clear,
+#' 5 occluding). Among occluding candidates the box covering the least ink
+#' and nearest its node wins, with a leader if it is past `leader`: each
+#' sampled ink point within the box's edge margin is priced at
+#' `label_leader_ink_cost` mm of leader, the price a leader pays for the
+#' same ink, so a box crossing one edge beats a box lying along it. The
+#' ownership demotion applies in every band. An occluding candidate counts
+#' as neither clear for the placement order and the local grid nor
+#' violating for the repair stage's ejections, and a label placed on one is
+#' still reported by `label_box_overlap_counts()` as a box on the ink.
+#'
 #' Labels are assigned in order of the lowest band any of their admissible
 #' candidates falls in, so a label that can sit beside its node claims its
 #' spot before a label that has to go far; ties go to the most constrained
@@ -218,8 +235,12 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #' that, it tries its statically admissible spots that only one other
 #' label's box blocks, best first and at most `label_max_ejections` of
 #' them, and takes the first one whose blocker can itself move to an
-#' admissible candidate. Each repair round ends with another set of sweeps,
-#' and repair stops after a round that changes nothing or after
+#' admissible candidate. A label sitting on an occluding candidate is
+#' offered the panel grid the same way, once, and settles on its best
+#' admissible candidate, a clear spot when the grid holds one within the
+#' gate; being admissible already, it neither ejects another label nor is
+#' moved to a least-bad spot. Each repair round ends with another set of
+#' sweeps, and repair stops after a round that changes nothing or after
 #' `label_max_repairs` rounds. A label no repair can clear keeps its
 #' least-bad candidate.
 #'
@@ -3367,14 +3388,21 @@ densify_polyline <- function(px, py, spacing) {
 #' spot within one and a half node radii searches a fine grid around its
 #' own node before it goes farther, and a leader is priced by its length
 #' and by every edge or disc it crosses, so a longer leader over open space
-#' beats a shorter one across the ink. When
+#' beats a shorter one across the ink. A label whose every clear spot lies
+#' more than seven and a half node radii from its disc sits on the drawn
+#' edges near its node instead: a box that covers only the mid-run of edges,
+#' never a node disc, an arrowhead, another label, or the panel border, is
+#' admissible below every clear spot within that distance and above every
+#' clear spot beyond it, and among such boxes the one covering the least ink
+#' and nearest its node wins, with a leader if it is past
+#' `min.segment.length`. Such a label is still reported as unresolved. When
 #' no admissible box exists at all, the label is drawn at the least-bad
-#' position and its text is recorded in the `unresolved` field of the drawn
-#' `dag_labels_auto` grob tree (`character(0)` when every box is clear), so
-#' a plot too crowded for its labels can be detected after drawing. Such a
-#' draw also warns once, naming the labels; `max.overlaps` leaves them out of
-#' the picture instead of drawing them on the ink, and `wrap` gives a long
-#' label a smaller box to find room for.
+#' position. Either way its text is recorded in the `unresolved` field of
+#' the drawn `dag_labels_auto` grob tree (`character(0)` when every box is
+#' clear), so a plot too crowded for its labels can be detected after
+#' drawing. Such a draw also warns once, naming the labels; `max.overlaps`
+#' leaves them out of the picture instead of drawing them on the ink, and
+#' `wrap` gives a long label a smaller box to find room for.
 #'
 #' @inheritParams geom_dag_arrow
 #' @param node_size The size of the plot's nodes, as given to
