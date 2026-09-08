@@ -1213,7 +1213,8 @@ dag_routed_arrow_layer <- function(
     edge_route_options,
     clearance = clearance,
     edge_sep = edge_sep,
-    edge_sep_min = edge_sep_min
+    edge_sep_min = edge_sep_min,
+    call = rlang::caller_env()
   )
 
   dag_arrow_layer(ggplot2::layer(

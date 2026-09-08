@@ -429,7 +429,8 @@ merge_edge_route_options <- function(
   options,
   clearance = NULL,
   edge_sep = NULL,
-  edge_sep_min = NULL
+  edge_sep_min = NULL,
+  call = rlang::caller_env()
 ) {
   if (!is.null(options) && !inherits(options, "ggdag_edge_route_options")) {
     abort(
@@ -437,7 +438,8 @@ merge_edge_route_options <- function(
         "{.arg edge_route_options} must be an object from {.fun edge_route_options}.",
         "x" = "You provided {.obj_type_friendly {options}}."
       ),
-      error_class = "ggdag_type_error"
+      error_class = "ggdag_type_error",
+      call = call
     )
   }
   options <- options %||% edge_route_options()
