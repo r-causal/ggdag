@@ -223,7 +223,8 @@ route_constants <- function(
 #'   `gaps`, one row per gap that holds a slot with `gap`, `width`,
 #'   `ranks`, `rung`, `stub`, and `spacing` (see `ortho_slot_positions()`;
 #'   `stub` is `NA` on the last rung, where no stub fits and the slots are
-#'   placed from the target side's head run instead).
+#'   centred on the gap, moved toward the source where the gap has the room
+#'   for the target side's head run).
 #' @noRd
 route_edges_mm <- function(
   nodes,
