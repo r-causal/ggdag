@@ -554,9 +554,11 @@ routed_resect_mm <- function(value, extra) {
 # type, ornaments, and resection reach ggarrow exactly as they always do.
 # When the router reports a resect per edge (`meta$resect_head` and
 # `meta$resect_fins`, in orthogonal mode), each end is resected by that arc
-# length instead, so that a head entering an offset port still has its tip
-# the cap from the node centre; a resect the user mapped or set is moved by
-# the same amount the router moved the cap.
+# length instead: an offset port's path ends on the port's own line at the
+# node's coordinate, so the resect is shortened by the run hidden under the
+# disc and the tip sits the same distance past the disc face as a centre
+# port's, with the head drawn along the run; a resect the user mapped or set
+# is moved by the same amount the router moved the cap.
 routed_arrow_grob <- function(edges, paths, par, meta = NULL) {
   n_points <- vapply(paths, nrow, integer(1))
   drawable <- n_points >= 2
