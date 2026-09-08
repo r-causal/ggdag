@@ -1284,6 +1284,33 @@ test_that("separate_arrival() takes the midpoint when no angle clears them all",
   expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 13.95), 0.5)
 })
 
+test_that("separate_arrival() takes the nearest clear angle when one exists", {
+  # One other edge arrives along the chord and the current direction is
+  # 5 degrees off it, inside theta_min. Rotating to 15 degrees clears the
+  # rival by exactly theta_min, so that is the answer: the largest minimum
+  # gap is reserved for the squeeze, where no candidate clears every
+  # arrival. The clamp edge at 40 degrees also clears the rival, but it
+  # turns 35 degrees to buy nothing.
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+  arrivals <- rbind(unit(0))
+
+  d <- separate_arrival(unit(5), arrivals, 15, c(1, 0), 40, 0)
+
+  expect_lt(abs(atan2(d[2], d[1]) * 180 / pi - 15), 0.5)
+})
+
+test_that("separate_arrival() takes the nearest clear angle on the minus side", {
+  # The mirror of the case above, with the detour constraining the arrival
+  # to negative angles: -15 clears the rival on the admissible side, and
+  # the clamp edge at -40 is a 35 degree turn for the same clearance.
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+  arrivals <- rbind(unit(0))
+
+  d <- separate_arrival(unit(-5), arrivals, 15, c(1, 0), 40, -1)
+
+  expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 15), 0.5)
+})
+
 test_that("dense arrival: c->y lands midway between the arrivals crowding it", {
   # c -> y detours above x and arrives between x -> y along the row and
   # a -> y from the corner. Neither gap can reach theta_min, so the two are
