@@ -296,8 +296,11 @@ arrow_grob_paths <- function(grob) {
 # numbered left to right and rows bottom to top: "c1r1->c3r1" is the edge from
 # the leftmost to the rightmost node of the bottom row. The fixtures here
 # place their nodes on such a grid, so this identifies an edge without
-# depending on the order the layer happens to draw in.
-path_grid_keys <- function(paths) {
+# depending on the order the layer happens to draw in. Coordinates within a
+# node radius of each other are one column or row: an orthogonal path ends at
+# its port's axis point, up to r - head_w / 2 off its node's own line, and
+# that is still the same node.
+path_grid_keys <- function(paths, tol = r_node) {
   ends <- function(column, at_end) {
     values <- vapply(
       paths,
@@ -313,17 +316,20 @@ path_grid_keys <- function(paths) {
   x_to <- ends("x", TRUE)
   y_to <- ends("y", TRUE)
 
-  columns <- sort(unique(c(x_from, x_to)))
-  rows <- sort(unique(c(y_from, y_to)))
+  index_in <- function(values, all) {
+    levels <- sort(unique(all))
+    group <- cumsum(c(1L, as.integer(diff(levels) > tol)))
+    group[match(values, levels)]
+  }
   paste0(
     "c",
-    match(x_from, columns),
+    index_in(x_from, c(x_from, x_to)),
     "r",
-    match(y_from, rows),
+    index_in(y_from, c(y_from, y_to)),
     "->c",
-    match(x_to, columns),
+    index_in(x_to, c(x_from, x_to)),
     "r",
-    match(y_to, rows)
+    index_in(y_to, c(y_from, y_to))
   )
 }
 
@@ -612,14 +618,15 @@ test_that("the routed layer resects each edge by the router's own arc length", {
   expect_length(as.numeric(fins), length(paths))
 
   # a->c arrives at c's N port 1.8 mm off the centre line and c->e leaves
-  # the other side of it; the hidden connector and its corner cost each of
-  # them 1.46 mm of arc, which the resect gives back
+  # the other side of it; the disc face on that axis is sqrt(r^2 - 1.8^2) =
+  # 5.724 mm from the centre, so each of them is resected by
+  # cap - r + 5.724 = 7.724
   skip_edge <- which(keys == "c1r1->c3r1")
   back_edge <- which(keys == "c3r1->c5r1")
   expect_length(skip_edge, 1)
   expect_length(back_edge, 1)
-  expect_equal(as.numeric(head)[[skip_edge]], 9.46, tolerance = 1e-3)
-  expect_equal(as.numeric(fins)[[back_edge]], 9.46, tolerance = 1e-3)
+  expect_equal(as.numeric(head)[[skip_edge]], 7.724, tolerance = 1e-3)
+  expect_equal(as.numeric(fins)[[back_edge]], 7.724, tolerance = 1e-3)
   expect_equal(
     as.numeric(head)[-skip_edge],
     rep(node_size_to_cap(16), length(paths) - 1),
@@ -631,18 +638,20 @@ test_that("the routed layer resects each edge by the router's own arc length", {
     tolerance = 1e-3
   )
 
-  # so the tip of the arrowhead sits the cap from c's centre on the port's
-  # own axis, whatever the offset
+  # the path ends at the port's axis point, 1.8 mm off c's centre line, and
+  # the tip sits cap - r = 2 mm past the disc face on that axis: on the run
+  # the head is drawn along, not angled at the centre
   skip_path <- paths[[skip_edge]]
-  centre <- c(
+  axis_point <- c(
     skip_path$x[[nrow(skip_path)]],
     skip_path$y[[nrow(skip_path)]]
   )
   tip <- path_arc_point(skip_path, as.numeric(head)[[skip_edge]])
-  expect_equal(tip[[1]], centre[[1]] - 1.8, tolerance = 1e-3)
+  expect_equal(tip[[1]], axis_point[[1]], tolerance = 1e-3)
+  face <- sqrt(r_node^2 - 1.8^2)
   expect_equal(
-    abs(tip[[2]] - centre[[2]]),
-    node_size_to_cap(16),
+    abs(tip[[2]] - axis_point[[2]]),
+    face + node_size_to_cap(16) - r_node,
     tolerance = 1e-3
   )
 })

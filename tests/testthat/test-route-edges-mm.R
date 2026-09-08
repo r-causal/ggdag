@@ -40,6 +40,20 @@ sep_min_default <- 1.5
 rc_min_default <- 0.8
 stub_min_default <- cap_default + max(head_default, rc_default) + rc_default
 
+# The drawn head is head_w = 1.3 mm wide, so a port row stays within
+# h = r - head_w / 2 = 5.35 mm of the centre line and the whole head is drawn
+# on the disc. A stack of arrival rows keeps them while they are at least
+# max(sep_e / 2, sep_min) = 1.8 mm apart, and merges when it cannot. A ported
+# end's resect is cap - r + sqrt(r^2 - offset^2), which puts every tip
+# cap - r = 2 mm from the disc face along its own run.
+head_w_default <- 1.3
+port_row_max <- r_default - head_w_default / 2
+row_floor_default <- max(sep_e_default / 2, sep_min_default)
+face_tip_default <- cap_default - r_default
+port_resect_at <- function(offset, r = r_default, cap = cap_default) {
+  cap - r + sqrt(r^2 - offset^2)
+}
+
 # ggarrow resects the last cap = 8 mm of every edge, so the drawn arrowhead
 # of an edge occupies the arc of its path from 2 cap to cap mm before its
 # target: its head zone. The point at cap is where the head ends, its tip.
@@ -642,6 +656,32 @@ expect_exact_endpoints <- function(path, from, to) {
   expect_identical(c(path$x[n], path$y[n]), to)
 }
 
+# An orthogonal path ends at its port's axis point: the node's own coordinate
+# along the port's axis, offset onto the port's line. A W or E port's row is
+# offset along the layer-crossing axis by at most h = r - head_w / 2, so the
+# head drawn along the row stays inside the disc silhouette; an N or S port is
+# offset along the layer axis by at most sep_e / 2. A centre port is exact.
+# The offset run from the disc face to the axis point is hidden under the
+# node, and because the path's last point lies on the run itself, the arrow
+# layer draws the head along the run instead of angling it at the centre.
+expect_axis_point <- function(point, centre, axis = "x", label = NULL) {
+  offset <- point - centre
+  crossing <- if (axis == "x") 2L else 1L
+  along <- if (axis == "x") 1L else 2L
+  exact <- offset[[1]] == 0 && offset[[2]] == 0
+  row <- abs(offset[[along]]) < 1e-9 &&
+    abs(offset[[crossing]]) <= port_row_max + 1e-9
+  stub <- abs(offset[[crossing]]) < 1e-9 &&
+    abs(offset[[along]]) <= sep_e_default / 2 + 1e-9
+  expect_true(exact || row || stub, label = label)
+}
+
+expect_port_endpoints <- function(path, from, to, axis = "x", label = NULL) {
+  n <- nrow(path)
+  expect_axis_point(c(path$x[1], path$y[1]), from, axis, label = label)
+  expect_axis_point(c(path$x[n], path$y[n]), to, axis, label = label)
+}
+
 # Orthogonal geometry ----------------------------------------------------------
 
 # Drop consecutive duplicate points so that zero-length segments do not
@@ -749,31 +789,18 @@ slot_xs <- function(path, gap, tol = 1e-6) {
   unique(round(runs$coord[inside], 9))
 }
 
-# Points of a path within `radius` of either endpoint centre.
-hidden_points <- function(path, ends, radius) {
-  d_from <- sqrt((path$x - ends$from[1])^2 + (path$y - ends$from[2])^2)
-  d_to <- sqrt((path$x - ends$to[1])^2 + (path$y - ends$to[2])^2)
-  pmin(d_from, d_to) <= radius
-}
-
 # Every segment whose endpoints both lie outside the rounded corners is
-# axis-aligned. When `ends` is given, segments hidden inside an endpoint
-# (both ends within the cap of its centre) are exempt as well: the arrow
-# layer resects the cap from each end, so the connector from an offset port
-# to the node centre is never drawn.
+# axis-aligned. Nothing is exempt: a ported end lies on its own run, so an
+# orthogonal path carries no oblique segment anywhere, drawn or hidden.
 expect_orthogonal_outside_corners <- function(
   path,
   bends,
   rc,
   tol = 1e-6,
-  label = NULL,
-  ends = NULL
+  label = NULL
 ) {
   path <- dedupe_path(path)
   near <- corner_points(path, bends, rc + tol)
-  if (!is.null(ends)) {
-    near <- near | hidden_points(path, ends, cap_default + tol)
-  }
   axis <- segment_axes(path, tol)
   outside <- !near[-length(near)] & !near[-1]
   expect_true(all(axis[outside] != "o"), label = label)
@@ -783,28 +810,16 @@ rev_path <- function(path) {
   path[rev(seq_len(nrow(path))), , drop = FALSE]
 }
 
-# Length of the terminal stub at the end of a path: the axis-aligned run
-# that reaches the endpoint, a node centre, or that reaches the connector an
-# offset port needs. An S/N port's connector runs along the layer axis
-# (horizontal in the canonical orientation) from a vertical run to the
-# centre. It is the last run when it is horizontal, at most sep_e / 2 long
-# (an offset port sits sep_e / 2 beside the centre line, so a longer leg is
-# a stub in its own right), lies within the cap of the centre, and follows a
-# vertical run with nothing between them but a rounded corner hidden inside
-# the node. Rounding cuts min(rc, leg / 2) off the connector, so in rounded
-# mode a leg of up to about sep_e / 2 + rc still reads as a connector. A W
-# port's row ends at its foot on the disc boundary and the connector from
-# the foot to the centre is hidden inside the node: the row is the stub when
-# it is horizontal and everything after it lies within the cap of the
-# centre, and it measures as its reach from the centre along its own axis,
-# the row plus the foot's inset, since the arrowhead is drawn where the row
-# crosses the cap line. Nothing else is skipped and an S/N connector's own
-# length never counts, so a short vertical stub under a channel measures as
-# the stub, not the channel, and an oblique tail after a vertical run is no
-# stub at all. After the cap is resected the arrowhead sits on the run,
-# which is why it must be straight for at least cap + rc. Pass the reversed
-# path for the stub at the start.
-end_stub_length <- function(path, centre, tol = 1e-6) {
+# Length of the terminal stub at the end of a path: the axis-aligned run that
+# reaches the path's last point. Every ported end lies on its own run, at the
+# axis point of an offset port or at the centre of a centre port, so the run
+# the arrowhead is drawn on is the last run and nothing is skipped. A path
+# whose last point is reached by an oblique segment has no stub at all, and a
+# short vertical stub under a channel measures as the stub, not the channel.
+# After the cap is resected the arrowhead sits on that run, which is why it
+# must be straight for at least cap + rc. Pass the reversed path for the stub
+# at the start.
+end_stub_length <- function(path, tol = 1e-6) {
   path <- dedupe_path(path)
   runs <- straight_runs(path, tol)
   n <- nrow(runs)
@@ -813,23 +828,9 @@ end_stub_length <- function(path, centre, tol = 1e-6) {
   }
   last <- runs[n, ]
   if (last$to != nrow(path)) {
-    idx <- last$to:nrow(path)
-    hidden <- sqrt((path$x[idx] - centre[1])^2 + (path$y[idx] - centre[2])^2) <=
-      cap_default + tol
-    if (last$axis != "h" || !all(hidden)) {
-      return(0)
-    }
-    return(last$length + abs(path$x[last$to] - centre[1]))
+    return(0)
   }
-  if (last$axis != "h" || last$length > sep_e_default / 2 + tol || n < 2) {
-    return(last$length)
-  }
-  before <- runs[n - 1, ]
-  idx <- before$to:last$to
-  hidden <- sqrt((path$x[idx] - centre[1])^2 + (path$y[idx] - centre[2])^2) <=
-    cap_default + tol
-  connector <- before$axis == "v" && all(hidden)
-  if (connector) before$length else last$length
+  last$length
 }
 
 # The orthogonal predicates for a whole scene: exact endpoints; straight
@@ -866,15 +867,16 @@ expect_orthogonal_scene <- function(
     label <- paste0(prefix, labels[i])
     ends <- edge_endpoints(scene, i)
     path <- res$paths[[i]]
-    expect_exact_endpoints(path, ends$from, ends$to)
+    expect_port_endpoints(path, ends$from, ends$to, label = label)
 
     if (res$meta$mode[i] == "straight") {
       expect_false(res$meta$routed[i], label = label)
       expect_identical(nrow(path), 2L, label = label)
-      # only a level chord, one whose endpoints differ in y by at most the
-      # corner radius, or a vertical chord within one layer stays straight
+      # only a chord level with the row it arrives on, one whose source and
+      # path end differ in y by at most the corner radius, or a vertical
+      # chord within one layer stays straight
       expect_true(
-        abs(ends$from[2] - ends$to[2]) <= rc_used + 1e-9 ||
+        abs(path$y[1] - path$y[2]) <= rc_used + 1e-9 ||
           abs(ends$from[1] - ends$to[1]) < 1e-3,
         label = label
       )
@@ -887,24 +889,18 @@ expect_orthogonal_scene <- function(
     expect_gte(nrow(bends), 2L, label = label)
     expect_equal(res$meta$n_waypoints[i], nrow(bends), label = label)
     expect_true(all(is.na(bends$layer)), label = label)
-    expect_orthogonal_outside_corners(
-      path,
-      bends,
-      rc_used,
-      label = label,
-      ends = ends
-    )
+    expect_orthogonal_outside_corners(path, bends, rc_used, label = label)
 
     runs <- straight_runs(path)
     expect_gte(nrow(runs), 2L, label = label)
     if (stub_always || res$meta$clearance_ok[i]) {
       floor <- cap_default + max(head_default, rc_used) - 1e-9
       expect_gte(
-        end_stub_length(rev_path(path), ends$from),
+        end_stub_length(rev_path(path)),
         floor,
         label = label
       )
-      expect_gte(end_stub_length(path, ends$to), floor, label = label)
+      expect_gte(end_stub_length(path), floor, label = label)
     }
     if (res$meta$clearance_ok[i]) {
       expect_gte(
@@ -3014,14 +3010,13 @@ edge_index <- function(scene, label) {
 # collinear with the centres and the first bends.
 #
 # c->e runs at e's own y, so it owns e's centre row and b->e stacks one slot
-# above it at 55 + 3.6 = 58.6. That row meets e's disc at the foot
-# (135.2, 58.6), from which the hidden connector runs to the centre: the last
-# leg of b->e is the oblique (135.2, 58.6) to (140, 55), never drawn because
-# the disc covers it.
+# above it at 55 + 3.6 = 58.6. That row runs on to e's own x, ending at the
+# axis point (140, 58.6): the last 4.8 mm are hidden under the disc, and the
+# head is drawn along the row rather than angled at the centre.
 fan_sharp_polylines <- list(
   "a->b" = pt(c(20, 50, 50, 80), c(55, 55, 85, 85)),
   "a->d" = pt(c(20, 50, 50, 80), c(55, 55, 25, 25)),
-  "b->e" = pt(c(80, 110, 110, 135.2, 140), c(85, 85, 58.6, 58.6, 55)),
+  "b->e" = pt(c(80, 110, 110, 140), c(85, 85, 58.6, 58.6)),
   "a->e" = pt(c(20, 20, 140, 140), c(55, 16, 16, 55))
 )
 fan_straight <- c("a->c", "c->e")
@@ -3053,18 +3048,12 @@ test_that("orthogonal fan: sharp corners reproduce the worked trace exactly", {
     expect_true(is.na(res$meta$sagitta_ratio[i]), label = lab)
     expect_true(is.na(res$meta$sagitta_capped[i]), label = lab)
     expect_true(all(is.na(res$meta$waypoint_layers[[i]])), label = lab)
-    expect_exact_endpoints(path, ends$from, ends$to)
+    expect_port_endpoints(path, ends$from, ends$to, label = lab)
     expect_lt(polyline_hausdorff(path, poly), 1e-6, label = lab)
-    # a sharp path is axis-aligned everywhere it is drawn: the only oblique
-    # segment is the connector from an offset port's foot to the centre,
-    # which lies inside the node disc and is never drawn
-    seg <- dedupe_path(path)
-    oblique <- segment_axes(seg) == "o"
-    covered <- hidden_points(seg, ends, r_default + 1e-6)
-    expect_true(
-      all(!oblique | (covered[-length(covered)] & covered[-1])),
-      label = lab
-    )
+    # a sharp path is axis-aligned everywhere, drawn or hidden: an offset
+    # port's row reaches the axis point without a connector, so no segment
+    # of the path is oblique
+    expect_true(all(segment_axes(dedupe_path(path)) != "o"), label = lab)
 
     # the two bends are the interior vertices of the polyline
     bends <- res$waypoints[[i]]
@@ -3101,7 +3090,7 @@ test_that("orthogonal fan: rounded corners stay within rc of each bend and turn 
     expect_equal(res$meta$mode[i], "orthogonal", label = lab)
     expect_equal(bends$x, sharp$waypoints[[i]]$x, label = lab)
     expect_equal(bends$y, sharp$waypoints[[i]]$y, label = lab)
-    expect_exact_endpoints(path, ends$from, ends$to)
+    expect_port_endpoints(path, ends$from, ends$to, label = lab)
 
     # every sample lies on the sharp polyline or inside a corner span, and
     # each corner span lies within rc of its bend
@@ -3118,21 +3107,13 @@ test_that("orthogonal fan: rounded corners stay within rc of each bend and turn 
         label = lab
       )
     }
-    expect_orthogonal_outside_corners(
-      path,
-      bends,
-      rc_default,
-      label = lab,
-      ends = ends
-    )
+    expect_orthogonal_outside_corners(path, bends, rc_default, label = lab)
     # the corner must turn less than 12 degrees per sample; at uniform t a
     # quadratic Bezier through a right angle needs at least 11 samples for
     # that (8 samples peak at 15.9 degrees), so the sample count is not
-    # pinned. The foot corner where an offset port's row meets the disc
-    # stays sharp and turns 36.9 degrees, so the samples the disc covers
-    # are excluded; they form a prefix and a suffix of the path.
-    shown <- path[!hidden_points(path, ends, r_default + 1e-6), , drop = FALSE]
-    expect_lt(max(abs(turning_angles(shown))), 12, label = lab)
+    # pinned. Every turn of the path is a rounded corner now, so none of it
+    # is excluded.
+    expect_lt(max(abs(turning_angles(path))), 12, label = lab)
   }
 
   # at the (50, 55) corner of a->b the curve is tangent to the runs at
@@ -3169,7 +3150,7 @@ test_that("orthogonal four-layer: p->t takes the channel above the stacks at y =
   expect_equal(wp$x, c(20, 140), tolerance = 1e-6)
   expect_equal(wp$y, c(99, 99), tolerance = 1e-6)
 
-  expect_exact_endpoints(path, ends$from, ends$to)
+  expect_port_endpoints(path, ends$from, ends$to)
   runs <- straight_runs(path)
   channel <- runs[which.max(runs$length), ]
   expect_equal(channel$axis, "h")
@@ -3486,23 +3467,27 @@ test_that("orthogonal fan: edges entering the same port take their own rows", {
 
   # b->e turns down at x = 110 onto the port row sep_e above e's centre
   # rather than onto the chord of the level c->e, so both arrowheads show.
-  # The run ends at the foot on e's disc, 4.8 mm short of the centre, and
-  # the connector from the foot is hidden inside the node.
-  foot <- 140 - sqrt(r_default^2 - sep_e_default^2)
+  # The run carries on to e's own x, ending at the axis point (140, 58.6);
+  # its last 4.8 mm are hidden under the disc.
   tail <- be[
-    be$x > 110 + rc_default + 1e-6 & be$x < foot - 1e-6,
+    be$x > 110 + rc_default + 1e-6,
     ,
     drop = FALSE
   ]
   expect_gt(nrow(tail), 0)
   expect_true(all(abs(tail$y - 58.6) < 1e-6))
   expect_gte(min(point_polyline_dist(tail, ce)), sep_e_default - 1e-6)
+  expect_equal(
+    unname(unlist(be[nrow(be), c("x", "y")])),
+    c(140, 58.6),
+    tolerance = 1e-6
+  )
   runs <- straight_runs(be)
   last <- runs[nrow(runs), ]
   expect_equal(last$axis, "h")
   expect_equal(last$coord, 58.6, tolerance = 1e-6)
-  # from the tangent point at 110 + 2.1 to the foot on e's disc at 135.2
-  expect_gte(last$length, 25.2 - rc_default - 1e-6)
+  # from the tangent point at 110 + 2.1 to the axis point at x = 140
+  expect_gte(last$length, 30 - rc_default - 1e-6)
 })
 
 # Two layers `gap` apart, centred on x = 40, with four staircase edges
@@ -3536,18 +3521,18 @@ test_that("orthogonal: a band too narrow for its slots centres them on the gap m
   expect_true(all(res$meta$clearance_ok))
   for (i in seq_len(nrow(scene$edges))) {
     ends <- edge_endpoints(scene, i)
-    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+    expect_port_endpoints(res$paths[[i]], ends$from, ends$to)
     expect_orthogonal_outside_corners(
       res$paths[[i]],
       res$waypoints[[i]],
       rc_default
     )
     expect_gte(
-      end_stub_length(res$paths[[i]], ends$to),
+      end_stub_length(res$paths[[i]]),
       14.6 - rc_default - 1e-6
     )
     expect_gte(
-      end_stub_length(rev_path(res$paths[[i]]), ends$from),
+      end_stub_length(rev_path(res$paths[[i]])),
       14.6 - rc_default - 1e-6
     )
   }
@@ -3592,7 +3577,7 @@ test_that("orthogonal: layers along y are transposed in and the result transpose
 
   for (i in seq_along(ref$paths)) {
     ends <- edge_endpoints(rotated, i)
-    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+    expect_port_endpoints(res$paths[[i]], ends$from, ends$to, axis = "y")
     expect_lt(polyline_hausdorff(swap_xy(res$paths[[i]]), ref$paths[[i]]), 1e-6)
     expect_equal(res$waypoints[[i]]$x, ref$waypoints[[i]]$y, tolerance = 1e-9)
     expect_equal(res$waypoints[[i]]$y, ref$waypoints[[i]]$x, tolerance = 1e-9)
@@ -3613,7 +3598,7 @@ test_that("orthogonal: a reversed edge returns the reversed polyline of its forw
   expect_equal(res$meta$mode[6], "orthogonal")
   expect_identical(res$meta$side[6], ref$meta$side[6])
   expect_identical(res$meta$n_waypoints[6], ref$meta$n_waypoints[6])
-  expect_exact_endpoints(res$paths[[6]], ends$from, ends$to)
+  expect_port_endpoints(res$paths[[6]], ends$from, ends$to)
   expect_lt(polyline_hausdorff(res$paths[[6]], ref$paths[[6]]), 1e-6)
   expect_equal(sort(res$waypoints[[6]]$x), sort(ref$waypoints[[6]]$x))
   expect_equal(sort(res$waypoints[[6]]$y), sort(ref$waypoints[[6]]$y))
@@ -3717,7 +3702,7 @@ test_that("orthogonal: parallel duplicate edges are spread sep_m apart with fixe
     expect_true(res$meta$routed[i])
     expect_equal(res$meta$mode[i], "orthogonal")
     expect_gte(nrow(res$paths[[i]]), 4)
-    expect_exact_endpoints(res$paths[[i]], ends$from, ends$to)
+    expect_port_endpoints(res$paths[[i]], ends$from, ends$to)
   }
   # the upper bend of a->b lies 13.4 mm left of its chord; the two copies
   # are translated sep_m = 6 mm apart and stay on that side
@@ -3731,7 +3716,7 @@ test_that("orthogonal: parallel duplicate edges are spread sep_m apart with fixe
   expect_gt(polyline_hausdorff(res$paths[[1]], res$paths[[7]]), 1)
 })
 
-test_that("canonical DAGs: orthogonal mode is axis-aligned with exact endpoints and separated slots", {
+test_that("canonical DAGs: orthogonal mode is axis-aligned with port endpoints and separated slots", {
   n_orthogonal <- 0L
   for (panel in canonical_panels) {
     for (nm in names(canonical_dag_specs)) {
@@ -3747,9 +3732,12 @@ test_that("canonical DAGs: orthogonal mode is axis-aligned with exact endpoints 
       for (i in seq_len(nrow(scene$edges))) {
         ends <- edge_endpoints(scene, i)
         label <- paste0(prefix, edge_labels(scene$edges)[i])
+        path <- res$paths[[i]]
         # every chord that is neither level nor vertical is orthogonal; a
-        # chord within the corner radius of level may stay straight
-        oblique <- abs(ends$from[2] - ends$to[2]) > rc_default &&
+        # chord within the corner radius of the row it arrives on may stay
+        # straight, whether that row is the centre or an offset one
+        row <- path$y[[nrow(path)]]
+        oblique <- abs(ends$from[2] - row) > rc_default &&
           abs(ends$from[1] - ends$to[1]) >= 1e-3
         if (oblique) {
           expect_equal(res$meta$mode[i], "orthogonal", label = label)
@@ -3858,69 +3846,57 @@ expect_runs_owned <- function(scene, res, sharp, prefix = "") {
   }
 }
 
-test_that("end_stub_length() measures the visible run and skips only an offset-port connector", {
-  centre <- c(80, 55)
+test_that("end_stub_length() measures the last run that reaches the path end", {
   # a centre port: a 12 mm run down x = 80 after a perpendicular channel
-  expect_equal(end_stub_length(pt(c(0, 80, 80), c(67, 67, 55)), centre), 12)
-  # an offset port: the 12 mm run down x = 78.2 ends 1.8 mm beside the
-  # centre and a perpendicular connector closes the gap; the connector does
-  # not count
-  expect_equal(
-    end_stub_length(pt(c(0, 78.2, 78.2, 80), c(67, 67, 55, 55)), centre),
-    12
-  )
+  expect_equal(end_stub_length(pt(c(0, 80, 80), c(67, 67, 55))), 12)
+  # an offset N port: the run continues to the centre's own y, so the stub is
+  # the whole 12 mm the head is drawn on
+  expect_equal(end_stub_length(pt(c(0, 78.2, 78.2), c(67, 67, 55))), 12)
+  # an offset W port: the row runs to the centre's own x, 4.8 mm of it under
+  # the disc, and the stub is the row
+  expect_equal(end_stub_length(pt(c(110, 140), c(58.6, 58.6))), 30)
   # a 7 mm stub followed by a 100 mm channel is 7 mm, neither 107 nor 100,
   # and fails the floor
-  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(62, 62, 55)), centre), 7)
+  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(62, 62, 55))), 7)
   expect_lt(7, cap_default + rc_default)
-  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(64, 64, 55)), centre), 9)
-  # a leg longer than sep_e / 2 is a stub, not a connector, whether it is
-  # a 3 mm centre stub under a channel or a 5 mm offset
-  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(58, 58, 55)), centre), 3)
+  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(64, 64, 55))), 9)
+  expect_equal(end_stub_length(pt(c(-20, 80, 80), c(58, 58, 55))), 3)
+  # the last run is the stub whatever its length, so a 5 mm leg onto the
+  # centre line is 5 mm of stub and fails the floor
   expect_equal(
-    end_stub_length(pt(c(0, 75, 75, 80), c(67, 67, 55, 55)), centre),
+    end_stub_length(pt(c(0, 75, 75, 80), c(67, 67, 55, 55))),
     5
-  )
-  # with rounded corners the connector's own corner is cut to 0.9 (half its
-  # 1.8 mm leg) and the run loses rc at each corner: 71.1 - 2.1 - 55.9 = 13.1
-  P <- rbind(c(7.3, 55), c(7.3, 71.1), c(78.2, 71.1), c(78.2, 55), c(80, 55))
-  rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
-  expect_equal(
-    end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
-    13.1,
-    tolerance = 1e-6
   )
   # a channel at 62 leaves a 7 mm stub whose straight part after rounding is
   # 7 - 2.1 = 4.9, measured as itself and not as the channel run
   P <- rbind(c(7.3, 55), c(7.3, 62), c(80, 62), c(80, 55))
   rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
   expect_equal(
-    end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
+    end_stub_length(pt(rounded[, 1], rounded[, 2])),
     4.9,
     tolerance = 1e-6
   )
-  # a short vertical leg under a channel is a stub, not a connector, since
-  # connectors run along the layer axis: 1.5 mm sharp, and 0.75 mm once
-  # rounding cuts half the leg, both under the floor
+  # a short vertical leg under a channel is a stub in its own right: 1.5 mm
+  # sharp, and 0.75 mm once rounding cuts half the leg, both under the floor
   expect_equal(
-    end_stub_length(pt(c(-20, 80, 80), c(56.5, 56.5, 55)), centre),
+    end_stub_length(pt(c(-20, 80, 80), c(56.5, 56.5, 55))),
     1.5
   )
   P <- rbind(c(7.3, 55), c(7.3, 56.5), c(80, 56.5), c(80, 55))
   rounded <- dedupe_points(sample_runs(round_corners(P, rc_default), 0.5))
   expect_equal(
-    end_stub_length(pt(rounded[, 1], rounded[, 2]), centre),
+    end_stub_length(pt(rounded[, 1], rounded[, 2])),
     0.75,
     tolerance = 1e-6
   )
   # an oblique tail has no stub
   expect_equal(
-    end_stub_length(pt(c(0, 78, 78, 80), c(67, 67, 61, 55)), centre),
+    end_stub_length(pt(c(0, 78, 78, 80), c(67, 67, 61, 55))),
     0
   )
   # the reversed path measures the stub at the start
   expect_equal(
-    end_stub_length(rev_path(pt(c(80, 80, 0), c(55, 67, 67))), centre),
+    end_stub_length(rev_path(pt(c(80, 80, 0), c(55, 67, 67)))),
     12
   )
 })
@@ -3997,10 +3973,16 @@ test_that("orthogonal ports: an arrival and a departure on one side of a node us
     sep_e_default - 1e-6
   )
 
-  # the offset costs the head 1.46 mm of arc, which the per-edge resect
-  # gives back so that both tips sit 8 mm from c's centre
-  expect_equal(res$meta$resect_head[[ac]], 9.46, tolerance = 1e-3)
-  expect_equal(res$meta$resect_fins[[ce]], 9.46, tolerance = 1e-3)
+  # the port's own axis is 1.8 mm off the centre line, so its resect is
+  # cap - r + sqrt(r^2 - 1.8^2) = 7.724 and both tips sit cap - r = 2 mm
+  # from c's disc face along the stub
+  expect_equal(res$meta$resect_head[[ac]], 7.724, tolerance = 1e-3)
+  expect_equal(res$meta$resect_fins[[ce]], 7.724, tolerance = 1e-3)
+  expect_equal(
+    res$meta$resect_head[[ac]],
+    port_resect_at(sep_e_default / 2),
+    tolerance = 1e-9
+  )
   expect_equal(res$meta$resect_fins[[ac]], cap_default, tolerance = 1e-6)
   expect_equal(res$meta$resect_head[[ce]], cap_default, tolerance = 1e-6)
 })
@@ -4540,6 +4522,41 @@ arc_from_end <- function(path, s) {
   )
 }
 
+# The angle, in degrees, between the arrowhead the layer draws and the run it
+# is drawn on. ggarrow cuts the path at arc length `resect` from the end and
+# aims the head from that cut point at the path's last point, so the head is
+# axis-aligned exactly when those two points share a coordinate. Anything the
+# path does before the cut plays no part.
+head_tilt_degrees <- function(path, resect) {
+  path <- dedupe_path(path)
+  n <- nrow(path)
+  tip <- arc_from_end(path, resect)
+  towards <- c(path$x[[n]] - tip[[1]], path$y[[n]] - tip[[2]])
+  if (sqrt(sum(towards^2)) < 1e-9) {
+    return(0)
+  }
+  degrees <- atan2(towards[[2]], towards[[1]]) * 180 / pi
+  off <- ((degrees %% 90) + 90) %% 90
+  min(off, 90 - off)
+}
+
+# The number of arrowheads a scene draws at more than `tol` degrees to their
+# own run.
+tilted_heads <- function(res, tol = 0.5) {
+  sum(vapply(
+    seq_along(res$paths),
+    function(i) {
+      if (res$meta$mode[[i]] != "orthogonal") {
+        return(0L)
+      }
+      as.integer(
+        head_tilt_degrees(res$paths[[i]], res$meta$resect_head[[i]]) > tol
+      )
+    },
+    integer(1)
+  ))
+}
+
 # The last axis-aligned run of a path, the run an arrival is drawn along.
 last_run <- function(path) {
   runs <- straight_runs(path)
@@ -4612,27 +4629,30 @@ test_that("orthogonal: a chord tilted past the corner radius bends at one slot",
   wp <- res$waypoints[[ab]]
   expect_identical(nrow(wp), 2L)
   expect_equal(wp$x[[1]], wp$x[[2]], tolerance = 1e-6)
-  expect_equal(wp$y, c(55, 57.7), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 59.5), tolerance = 1e-6)
 
-  # the 2.7 mm vertical is drawn, and the two arrivals keep distinct slots
+  # the 4.5 mm vertical is drawn, and the two arrivals keep distinct slots
   runs <- straight_runs(res$paths[[ab]])
   vertical <- runs[runs$axis == "v", , drop = FALSE]
   expect_identical(nrow(vertical), 1L)
-  expect_equal(vertical$length, 2.7, tolerance = 1e-6)
+  expect_equal(vertical$length, 4.5, tolerance = 1e-6)
   x_ab <- slot_xs(res$paths[[ab]], c(20, 80))
   x_cb <- slot_xs(res$paths[[edge_index(scene, "c->b")]], c(20, 80))
   expect_length(x_ab, 1)
   expect_length(x_cb, 1)
   expect_gte(abs(x_ab - x_cb), sep_e_default - 1e-9)
 
-  # neither arrival is level now, so the group from below takes two rows:
-  # its first member keeps b's centre and the second sits sep_e beneath it
+  # neither arrival is level now, so no chord owns b's centre row and the
+  # two rows are centred on it: both arrive from below, and the leftmost
+  # slot takes the higher row, which is the crossing-free order
   rows <- vapply(
     edge_labels(scene$edges),
     function(lab) arrival_row(scene, res, lab),
     numeric(1)
   )
-  expect_equal(sort(unname(rows)), c(54.1, 57.7), tolerance = 1e-6)
+  expect_equal(sort(unname(rows)), c(55.9, 59.5), tolerance = 1e-6)
+  expect_equal(unname(rows[["a->b"]]), 57.7 + sep_e_default / 2)
+  expect_equal(unname(rows[["c->b"]]), 57.7 - sep_e_default / 2)
 })
 
 test_that("canonical multi_mediator: the near-level x->y is a straight chord", {
@@ -4883,7 +4903,11 @@ test_that("orthogonal ladder: nine arrivals in a 41.63 mm gap reach the second r
   expect_equal(gaps$stub, stub_min_default)
   expect_equal(gaps$spacing, (41.63 - 24.4) / 8, tolerance = 1e-6)
 
-  slots <- gap_slots(scene, res)
+  # the slots are read off the sharp polyline: a jog shorter than twice the
+  # corner radius is drawn as one continuous curve, with no straight
+  # vertical left to measure, and where the slots sit is not a question
+  # about rounding
+  slots <- gap_slots(scene, ortho(scene, corners = "sharp"))
   expect_length(slots, 9)
   expect_equal(diff(slots), rep((41.63 - 24.4) / 8, 8), tolerance = 1e-6)
   # every join sits at or beyond the rung's stub from the target, so no
@@ -4966,7 +4990,9 @@ test_that("orthogonal ladder: the nine slots move continuously as the gap widens
   worst <- 0
   for (gap in seq(13, 45, by = 0.05)) {
     scene <- nine_arrival_scene(gap)
-    slots <- sort(ladder_slots(scene, ortho(scene)))
+    # on the sharp polyline, so that a jog the corners round away entirely
+    # still reports the slot it turns at
+    slots <- sort(ladder_slots(scene, ortho(scene, corners = "sharp")))
     if (!is.null(previous)) {
       worst <- max(worst, max(abs(slots - previous)))
     }
@@ -4994,7 +5020,7 @@ test_that("orthogonal channels: an S/N channel retries at the shorter stub", {
   wp <- res$waypoints[[i]]
   expect_equal(wp$y, c(67.2, 67.2), tolerance = 1e-6)
   expect_gte(
-    end_stub_length(res$paths[[i]], node_xy(scene, "y")),
+    end_stub_length(res$paths[[i]]),
     cap_default + max(head_default, rc_default) - 1e-9
   )
 })
@@ -5099,7 +5125,27 @@ test_that("orthogonal ports: two arrivals above a level chord stack at 2.68", {
   )
   expect_equal(sort(unname(rows)), c(55, 57.675, 60.35), tolerance = 1e-6)
   expect_equal(unname(rows[["a->t"]]), 55, tolerance = 1e-6)
-  expect_lte(max(abs(rows - 55)), r_default - 0.65 + 1e-9)
+  expect_lte(max(abs(rows - 55)), port_row_max + 1e-9)
+
+  # each row's resect is the closed form cap - r + sqrt(r^2 - offset^2), so
+  # all three tips sit cap - r = 2 mm from the disc face along their own run
+  resects <- res$meta$resect_head
+  names(resects) <- edge_labels(scene$edges)
+  expect_equal(unname(resects[["a->t"]]), cap_default, tolerance = 1e-6)
+  expect_equal(unname(resects[["b1->t"]]), 7.371, tolerance = 1e-3)
+  expect_equal(unname(resects[["b2->t"]]), 4.716, tolerance = 1e-3)
+  for (lab in names(resects)) {
+    offset <- unname(rows[[lab]]) - 55
+    expect_equal(
+      unname(resects[[lab]]),
+      port_resect_at(offset),
+      tolerance = 1e-9,
+      label = lab
+    )
+    tip <- arc_from_end(res$paths[[edge_index(scene, lab)]], resects[[lab]])
+    face <- 100 - sqrt(r_default^2 - offset^2)
+    expect_equal(tip[[1]], face - face_tip_default, tolerance = 1e-3)
+  }
 
   for (a in 1:2) {
     for (b in (a + 1):3) {
@@ -5113,9 +5159,10 @@ test_that("orthogonal ports: two arrivals above a level chord stack at 2.68", {
 })
 
 test_that("orthogonal ports: a group of four arrivals merges into one row", {
-  # a group stacks only while two rows fit it; four arrivals from above
-  # would need 1.34 mm rows, so they merge onto one row of their own at the
-  # next free offset and join it at or beyond the gap's stub
+  # a stack keeps its rows only while they are max(sep_e / 2, sep_min) =
+  # 1.8 mm apart; four arrivals over a level chord would need 1.34 mm rows,
+  # so they merge onto one row of their own at the next free offset and join
+  # it at or beyond the gap's stub
   scene <- stacked_port_scene(4)
   res <- ortho(scene)
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
@@ -5155,15 +5202,17 @@ test_that("orthogonal ports: a group of four arrivals merges into one row", {
 
 test_that("orthogonal ports: arrivals that cannot hold their rows merge instead of stacking", {
   # node_size 8 draws r = 3. Two arrivals above the level chord would take
-  # rows (3 - 0.65) / 2 = 1.175 mm apart, below the ladder's floor of 1.5
-  # and below the 1.3 mm head width, so the two heads would be drawn on top
-  # of each other. The pair merges onto one row instead, at the sep_e of
-  # 1.8 that a single row affords, and the level chord keeps the centre.
+  # rows (3 - 0.65) / 2 = 1.175 mm apart, below the row floor of
+  # max(sep_e / 2, sep_min) = max(0.9, 1.5) = 1.5 and below the 1.3 mm head
+  # width, so the two heads would be drawn on top of each other. The pair
+  # merges onto one row instead, at the sep_e of 1.8 that a single row
+  # affords, and the level chord keeps the centre.
   scene <- stacked_port_scene(2)
   scene$nodes$r <- 3
   opts <- route_constants(3)
   expect_equal(opts$sep_e, 1.8)
   expect_equal(opts$sep_min, 1.5)
+  expect_equal(max(opts$sep_e / 2, opts$sep_min), 1.5)
   res <- route_scene(scene, mode = "orthogonal", opts = opts)
 
   labels <- edge_labels(scene$edges)
@@ -5181,6 +5230,215 @@ test_that("orthogonal ports: arrivals that cannot hold their rows merge instead 
   expect_gt(shared_run_length(b1, b2), 0)
   expect_equal(shared_run_length(b1, at), 0)
   expect_equal(shared_run_length(b2, at), 0)
+})
+
+# One target with `n_above` sources above it and `n_below` below, all in one
+# layer 80 mm away and none of them level with it, so no chord owns the
+# target's centre row and the arrivals are centred on it.
+centred_port_scene <- function(n_above, n_below = 0) {
+  above <- if (n_above > 0) paste0("b", seq_len(n_above)) else character(0)
+  below <- if (n_below > 0) paste0("d", seq_len(n_below)) else character(0)
+  ys_above <- 55 + 15 * seq_len(n_above)
+  ys_below <- 55 - 15 * seq_len(n_below)
+  list(
+    nodes = mm_nodes(
+      c("t", above, below),
+      c(100, rep(20, n_above + n_below)),
+      c(55, ys_above, ys_below)
+    ),
+    edges = mm_edges(c(above, below), rep("t", n_above + n_below)),
+    bounds = c(0, 0, 140, max(c(ys_above, 70)) + 20)
+  )
+}
+
+# The row each arrival at `node` is drawn on, in edge order.
+arrival_rows <- function(scene, res, node) {
+  labels <- edge_labels(scene$edges)[scene$edges$to == node]
+  vapply(labels, function(lab) arrival_row(scene, res, lab), numeric(1))
+}
+
+test_that("orthogonal ports: rows with no level owner are centred on the node's line", {
+  # Two arrivals from above and nothing at the target's own y: the pair takes
+  # the centred rows +- sep_e / 2 rather than the centre and one row above
+  # it, so the node's centre line runs between the two heads instead of
+  # under one of them. The leftmost slot takes the lower row, which is the
+  # order that keeps the two verticals from crossing.
+  scene <- centred_port_scene(2)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(unname(rows[["b1->t"]]), 53.2, tolerance = 1e-6)
+  expect_equal(unname(rows[["b2->t"]]), 56.8, tolerance = 1e-6)
+  expect_equal(mean(rows), 55, tolerance = 1e-6)
+  expect_gte(abs(diff(unname(rows))), row_floor_default - 1e-9)
+  expect_equal(shared_run_length(res$paths[[1]], res$paths[[2]]), 0)
+
+  # three arrivals take the centre and one row either side of it
+  scene <- centred_port_scene(3)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(unname(rows), c(51.4, 55, 58.6), tolerance = 1e-6)
+  for (a in 1:2) {
+    for (b in (a + 1):3) {
+      expect_equal(
+        shared_run_length(res$paths[[a]], res$paths[[b]]),
+        0,
+        label = paste(edge_labels(scene$edges)[c(a, b)], collapse = " | ")
+      )
+    }
+  }
+
+  # one arrival from each side is centred the same way, the one from above
+  # on the upper row
+  scene <- centred_port_scene(1, 1)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(unname(rows[["b1->t"]]), 56.8, tolerance = 1e-6)
+  expect_equal(unname(rows[["d1->t"]]), 53.2, tolerance = 1e-6)
+})
+
+test_that("orthogonal ports: a canonical node's two arrivals straddle its centre line", {
+  # The same rule on the layout fixture. cascade e, triple_confound x and
+  # double_iv y each take two arrivals with nothing at their own y, and each
+  # pair straddles the centre at +- sep_e / 2 instead of sitting on the
+  # centre and one row beside it.
+  cases <- list(
+    list(name = "cascade", panel = c(160, 110), node = "e"),
+    list(name = "triple_confound", panel = c(160, 110), node = "x"),
+    list(name = "triple_confound", panel = c(100, 70), node = "x"),
+    list(name = "double_iv", panel = c(160, 110), node = "y"),
+    list(name = "double_iv", panel = c(100, 70), node = "y")
+  )
+  for (case in cases) {
+    scene <- canonical_scene(case$name, case$panel)
+    res <- ortho(scene)
+    label <- sprintf(
+      "%s at %d x %d: %s",
+      case$name,
+      case$panel[1],
+      case$panel[2],
+      case$node
+    )
+    rows <- arrival_rows(scene, res, case$node)
+    centre <- node_xy(scene, case$node)[[2]]
+    expect_equal(
+      sort(unname(rows) - centre),
+      c(-sep_e_default / 2, sep_e_default / 2),
+      tolerance = 1e-6,
+      label = label
+    )
+  }
+})
+
+test_that("orthogonal ports: a stack keeps its rows only while the floor holds", {
+  # Four arrivals with no level owner still fit: their rows are
+  # 2 h / (n - 1) = 3.567 mm apart, above the floor of 1.8, so the outermost
+  # sits at h = 5.35 and the whole comb is drawn on the disc.
+  scene <- centred_port_scene(4)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(
+    unname(rows),
+    55 + c(-5.35, -1.7833333, 1.7833333, 5.35),
+    tolerance = 1e-6
+  )
+  expect_gte(min(diff(sort(unname(rows)))), row_floor_default - 1e-9)
+  expect_lte(max(abs(rows - 55)), port_row_max + 1e-9)
+
+  # seven would need 1.783 mm rows, under the floor, so the group merges
+  # onto one row: with nothing else on the side, that row is the centre
+  scene <- centred_port_scene(7)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(unname(rows), rep(55, 7), tolerance = 1e-6)
+  expect_lt(2 * port_row_max / 6, row_floor_default)
+
+  # three arrivals over a level chord are the same arithmetic from the other
+  # side: h / 3 = 1.783 is under the floor, so they merge onto the chord's
+  # first free row at sep_e
+  scene <- stacked_port_scene(3)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(unname(rows[["a->t"]]), 55, tolerance = 1e-6)
+  expect_equal(
+    unname(rows[c("b1->t", "b2->t", "b3->t")]),
+    rep(58.6, 3),
+    tolerance = 1e-6
+  )
+  expect_lt(port_row_max / 3, row_floor_default)
+})
+
+# Two arrivals at one target, the second of them from a source that sits
+# `off` millimetres from the row it is assigned. With a level chord owning
+# the centre, that row is sep_e above it, so a source at 55 + sep_e + off
+# reaches its row with a jog of `off`.
+row_level_scene <- function(off = 1.5) {
+  list(
+    nodes = mm_nodes(
+      c("t", "a", "b"),
+      c(100, 20, 20),
+      c(55, 55, 55 + sep_e_default + off)
+    ),
+    edges = mm_edges(c("a", "b"), c("t", "t")),
+    bounds = c(0, 0, 140, 110)
+  )
+}
+
+test_that("orthogonal: a chord within the corner radius of its row is a straight chord", {
+  # A jog of 1.5 mm cannot show two corners of radius 2.1 whether it lands on
+  # the centre row or on a port row, so the arrival is drawn as the chord
+  # from its source to the axis point of the row, and the slot it would have
+  # taken is left free.
+  scene <- row_level_scene(1.5)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  i <- edge_index(scene, "b->t")
+  ends <- edge_endpoints(scene, i)
+  path <- res$paths[[i]]
+  expect_equal(res$meta$mode[i], "straight")
+  expect_false(res$meta$routed[i])
+  expect_equal(res$meta$n_waypoints[i], 0)
+  expect_identical(nrow(path), 2L)
+  expect_equal(c(path$x[[1]], path$y[[1]]), ends$from, tolerance = 1e-9)
+  expect_equal(c(path$x[[2]], path$y[[2]]), c(100, 58.6), tolerance = 1e-9)
+  expect_length(slot_xs(path, c(20, 100)), 0)
+
+  # a source 2.5 mm off its row is past the corner radius and bends as before
+  scene <- row_level_scene(2.5)
+  res <- ortho(scene)
+  i <- edge_index(scene, "b->t")
+  expect_equal(res$meta$mode[i], "orthogonal")
+  expect_equal(res$meta$n_waypoints[i], 2)
+  expect_equal(arrival_row(scene, res, "b->t"), 58.6, tolerance = 1e-6)
+})
+
+test_that("orthogonal: a canonical sub-corner jog onto a port row is drawn straight", {
+  # triple_confound's x->m at the small panel is the fixture's own instance:
+  # m's arrivals stack, x->m is assigned the row 3.6 mm above m's centre and
+  # x sits 1.749 mm below it, so the chord to the row replaces a jog no
+  # reader could see as two corners. The chord is tilted 3.8 degrees, the
+  # tilt item 48 accepts for a level chord.
+  scene <- canonical_scene("triple_confound", c(100, 70))
+  res <- ortho(scene)
+  i <- edge_index(scene, "x->m")
+  path <- res$paths[[i]]
+  ends <- edge_endpoints(scene, i)
+
+  expect_equal(res$meta$mode[i], "straight")
+  expect_identical(nrow(path), 2L)
+  expect_equal(path$y[[2]], ends$to[[2]] + sep_e_default, tolerance = 1e-6)
+  expect_equal(path$x[[2]], ends$to[[1]], tolerance = 1e-9)
+  jog <- abs(path$y[[1]] - path$y[[2]])
+  expect_lte(jog, rc_default)
+  tilt <- atan2(jog, abs(path$x[[2]] - path$x[[1]])) * 180 / pi
+  expect_lt(tilt, 5)
 })
 
 test_that("orthogonal ports: the chain's N ports keep their sep_e / 2 stack", {
@@ -5289,11 +5547,12 @@ test_that("orthogonal ports: two channel stubs on an S side stack in the mirror 
 
 # Per-edge resects ---------------------------------------------------------------
 
-test_that("orthogonal resects: the router reports the arc length to each cap line", {
-  # a->c arrives at c's N port 1.8 mm off the centre line: the hidden
-  # connector and its corner add 1.46 mm to the 8 mm of stub, so the head
-  # must be resected by 9.46 to put its tip 8 mm above c's centre. c->e
-  # leaves the same side and its fins ask for the same.
+test_that("orthogonal resects: the router puts every tip cap - r from the disc face", {
+  # a->c arrives at c's N port 1.8 mm off the centre line, where the disc
+  # face sits sqrt(r^2 - 1.8^2) = 5.724 mm above the centre: the head is
+  # resected by cap - r + 5.724 = 7.724 so that its tip sits cap - r = 2 mm
+  # past the face, as a centre port's tip does. c->e leaves the same side
+  # and its fins ask for the same.
   scene <- chain_scene()
   res <- ortho(scene)
   n <- nrow(scene$edges)
@@ -5302,8 +5561,8 @@ test_that("orthogonal resects: the router reports the arc length to each cap lin
 
   ac <- edge_index(scene, "a->c")
   ce <- edge_index(scene, "c->e")
-  expect_equal(res$meta$resect_head[[ac]], 9.46, tolerance = 1e-3)
-  expect_equal(res$meta$resect_fins[[ce]], 9.46, tolerance = 1e-3)
+  expect_equal(res$meta$resect_head[[ac]], 7.724, tolerance = 1e-3)
+  expect_equal(res$meta$resect_fins[[ce]], 7.724, tolerance = 1e-3)
   expect_equal(
     res$meta$resect_head[-ac],
     rep(cap_default, n - 1),
@@ -5315,36 +5574,162 @@ test_that("orthogonal resects: the router reports the arc length to each cap lin
     tolerance = 1e-3
   )
 
-  # the tip of the head sits cap from c's centre on the port's own axis
+  # the tip of the head sits 2 mm past c's disc face on the port's own axis
+  face <- 55 + sqrt(r_default^2 - (sep_e_default / 2)^2)
   expect_equal(
     arc_from_end(res$paths[[ac]], res$meta$resect_head[[ac]]),
-    c(78.2, 63),
+    c(78.2, face + face_tip_default),
     tolerance = 1e-3
   )
+  expect_equal(face + face_tip_default, 62.724, tolerance = 1e-3)
 })
 
-test_that("orthogonal resects: an offset W port lengthens the head resect", {
-  # b->e enters e's W port 3.6 mm above the centre line through a foot on
-  # the disc boundary at (135.2, 58.6). That corner is sharp, so the arc
-  # back from e's centre runs the whole 6 mm of the hidden diagonal and then
-  # 8 - 4.8 = 3.2 mm along the row: the resect is the row leg plus the
-  # radius, 3.2 + 6 = 9.2, and the tip sits at x = 132.
+test_that("orthogonal resects: an offset W port shortens the head resect", {
+  # b->e enters e's W port 3.6 mm above the centre line and runs on to the
+  # axis point (140, 58.6). The disc face on that row is 4.8 mm from the
+  # centre, so the resect is cap - r + 4.8 = 6.8 and the tip sits 2 mm past
+  # the face at x = 133.2, the same 2 mm as the level c->e's tip at x = 132.
   scene <- fan_scene()
   res <- ortho(scene)
   be <- edge_index(scene, "b->e")
   ce <- edge_index(scene, "c->e")
-  expect_equal(res$meta$resect_head[[be]], 9.2, tolerance = 1e-3)
+  expect_equal(res$meta$resect_head[[be]], 6.8, tolerance = 1e-3)
+  expect_equal(
+    res$meta$resect_head[[be]],
+    port_resect_at(sep_e_default),
+    tolerance = 1e-9
+  )
   expect_equal(res$meta$resect_head[[ce]], cap_default, tolerance = 1e-6)
+  face <- 140 - sqrt(r_default^2 - sep_e_default^2)
   expect_equal(
     arc_from_end(res$paths[[be]], res$meta$resect_head[[be]]),
-    c(132, 58.6),
+    c(face - face_tip_default, 58.6),
     tolerance = 1e-3
   )
   expect_equal(
     arc_from_end(res$paths[[ce]], res$meta$resect_head[[ce]]),
-    c(132, 55),
+    c(140 - r_default - face_tip_default, 55),
     tolerance = 1e-6
   )
+})
+
+test_that("orthogonal ports: an offset port's path ends at its axis point", {
+  # A W or E port's run carries on to the node's own x, an N or S port's to
+  # its own y, and the path ends there. The last stretch is hidden under the
+  # disc, and because the end lies on the run the arrow layer has nothing
+  # oblique to aim the head along.
+  fan <- fan_scene()
+  res <- ortho(fan)
+  be <- res$paths[[edge_index(fan, "b->e")]]
+  ce <- res$paths[[edge_index(fan, "c->e")]]
+  expect_equal(
+    unname(unlist(be[nrow(be), c("x", "y")])),
+    c(140, 58.6),
+    tolerance = 1e-9
+  )
+  # the level chord keeps the centre, so its own end is exact
+  expect_identical(c(ce$x[[nrow(ce)]], ce$y[[nrow(ce)]]), node_xy(fan, "e"))
+
+  chain <- chain_scene()
+  res <- ortho(chain)
+  ac <- res$paths[[edge_index(chain, "a->c")]]
+  ce <- res$paths[[edge_index(chain, "c->e")]]
+  expect_equal(
+    unname(unlist(ac[nrow(ac), c("x", "y")])),
+    c(80 - sep_e_default / 2, 55),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    unname(unlist(ce[1, c("x", "y")])),
+    c(80 + sep_e_default / 2, 55),
+    tolerance = 1e-9
+  )
+
+  four <- four_layer_scene()
+  res <- ortho(four)
+  for (case in list(c("s1->t", "58.6"), c("s3->t", "51.4"))) {
+    path <- res$paths[[edge_index(four, case[[1]])]]
+    expect_equal(
+      unname(unlist(path[nrow(path), c("x", "y")])),
+      c(140, as.numeric(case[[2]])),
+      tolerance = 1e-9,
+      label = case[[1]]
+    )
+  }
+
+  # every scene's ends are axis points, and every last segment runs along
+  # the port's own axis into it
+  for (scene in list(fan, chain, four, stacked_port_scene(2), s_port_scene())) {
+    res <- ortho(scene)
+    for (i in seq_len(nrow(scene$edges))) {
+      label <- edge_labels(scene$edges)[i]
+      path <- res$paths[[i]]
+      ends <- edge_endpoints(scene, i)
+      expect_port_endpoints(path, ends$from, ends$to, label = label)
+      if (res$meta$mode[i] != "orthogonal") {
+        next
+      }
+      last <- dedupe_path(path)
+      last <- last[c(nrow(last) - 1L, nrow(last)), , drop = FALSE]
+      expect_true(
+        segment_axes(last) != "o",
+        label = paste(label, "last segment")
+      )
+    }
+  }
+})
+
+test_that("orthogonal heads: no head is drawn at an angle to the run it sits on", {
+  # The arrow layer cuts each path at its own resect and aims the head from
+  # the cut point at the path's last point, so a head is straight exactly
+  # when those two share a coordinate. Over every hand fixture and every
+  # canonical scene whose gaps all hold a stub, no head is drawn more than
+  # half a degree off its run. The scenes whose gaps fall to the ladder's
+  # last rung are excluded: there the slot nearest the target sits inside
+  # the cap and the tip lands on a corner, which is a separate question.
+  scenes <- list(
+    fan_scene(),
+    four_layer_scene(),
+    mediator_scene(),
+    chain_scene(),
+    s_port_scene(),
+    stacked_port_scene(1),
+    stacked_port_scene(2),
+    stacked_port_scene(4),
+    centred_port_scene(2),
+    centred_port_scene(3),
+    centred_port_scene(4),
+    near_level_scene(57.7)
+  )
+  for (panel in canonical_panels) {
+    for (nm in names(canonical_dag_specs)) {
+      scenes[[length(scenes) + 1]] <- canonical_scene(nm, panel)
+    }
+  }
+
+  n_scenes <- 0L
+  n_heads <- 0L
+  for (scene in scenes) {
+    res <- ortho(scene)
+    gaps <- res$ortho$gaps
+    if (!is.null(gaps) && nrow(gaps) > 0 && any(gaps$rung > 3)) {
+      next
+    }
+    n_scenes <- n_scenes + 1L
+    n_heads <- n_heads + sum(res$meta$mode == "orthogonal")
+    expect_equal(
+      tilted_heads(res),
+      0L,
+      label = paste0(
+        scene$name %||% "fixture",
+        " tilted heads"
+      )
+    )
+  }
+  # the census is worth having only if it covers the pictures: the scenes
+  # above draw hundreds of orthogonal heads between them
+  expect_gt(n_scenes, 30)
+  expect_gt(n_heads, 200)
 })
 
 # Helper: infer_layers -----------------------------------------------------------

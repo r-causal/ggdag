@@ -1085,6 +1085,101 @@ test_that("the cap the layer draws with is the cap the label grob routes with", 
   expect_lt(parity, 0.5)
 })
 
+# The fan of the router's own fixtures, in millimetres, as the label grob
+# hands it to `route_label_obstacles()`: one row per endpoint of each edge,
+# every edge tagged as orthogonal. b->e arrives at e's W port on the row
+# sep_e above its centre; c->e is level and keeps the centre.
+label_fan_inputs <- function() {
+  nodes <- data.frame(
+    name = c("a", "b", "c", "d", "e"),
+    x = c(20, 80, 80, 80, 140),
+    y = c(55, 85, 55, 25, 55),
+    radius = 6,
+    stringsAsFactors = FALSE
+  )
+  from <- c("a", "a", "a", "b", "c", "a")
+  to <- c("b", "c", "d", "e", "e", "e")
+  at <- function(names, column) nodes[[column]][match(names, nodes$name)]
+  edges <- data.frame(
+    edge_id = rep(paste0(from, "->", to), each = 2),
+    x = as.numeric(rbind(at(from, "x"), at(to, "x"))),
+    y = as.numeric(rbind(at(from, "y"), at(to, "y"))),
+    stringsAsFactors = FALSE
+  )
+  spec <- data.frame(
+    route_style = rep("orthogonal", nrow(edges)),
+    route_fixed = FALSE,
+    route_layer_axis = NA_character_,
+    route_cap = 8,
+    curvature = NA_real_,
+    stringsAsFactors = FALSE
+  )
+  spec$route_options <- rep(list(edge_route_options()), nrow(spec))
+  list(
+    nodes = nodes,
+    edges = edges,
+    spec = spec,
+    par = list(node_size = 16, edge_cap = 8),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("the label engine hides exactly the head each routed edge draws", {
+  # `label_ink()` drops the part of every path the arrow layer resects, so
+  # what is left is the ink the reader sees. The resect is per edge: an
+  # arrival on an offset row is cut by cap - r + sqrt(r^2 - offset^2), which
+  # is 6.8 mm on the fan's 3.6 mm row against the 8 mm cap, so trimming by
+  # the cap would hide 1.2 mm of drawn head and let a box sit on it. The
+  # engine takes each edge's resect from the router instead.
+  input <- label_fan_inputs()
+  routed <- route_label_obstacles(
+    input$edges,
+    input$spec,
+    input$nodes,
+    input$par,
+    input$bounds
+  )
+
+  cap <- input$par$edge_cap
+  radius <- node_radius_mm(input$par$node_size)
+  offset_resect <- cap - radius + sqrt(radius^2 - 3.6^2)
+  expect_equal(offset_resect, 6.8, tolerance = 1e-9)
+
+  # the router's per-edge resects travel out with the paths, one value per
+  # edge
+  expect_true(all(c("cap_head", "cap_fins") %in% names(routed)))
+  resect_of <- function(column, id) {
+    values <- routed[[column]][routed$edge_id == id]
+    if (length(values) == 0) {
+      return(NA_real_)
+    }
+    expect_length(unique(values), 1)
+    values[[1]]
+  }
+  expect_equal(resect_of("cap_head", "b->e"), offset_resect)
+  expect_equal(resect_of("cap_fins", "b->e"), cap)
+  expect_equal(resect_of("cap_head", "c->e"), cap)
+  expect_equal(resect_of("cap_fins", "c->e"), cap)
+
+  # the ink of the offset arrival reaches to its own resect and no further:
+  # the head it hides is the head the arrow layer draws
+  ink <- label_ink(routed, cap)
+  reach <- function(id) {
+    path <- routed[routed$edge_id == id, , drop = FALSE]
+    points <- ink[ink$edge_id == id, , drop = FALSE]
+    expect_gt(nrow(points), 0)
+    last <- nrow(path)
+    min(sqrt(
+      (points$x - path$x[[last]])^2 + (points$y - path$y[[last]])^2
+    ))
+  }
+  expect_gt(reach("b->e"), offset_resect)
+  expect_lte(reach("b->e"), offset_resect + label_ink_spacing)
+  # a centre port is unchanged: its head ends on the cap line
+  expect_gt(reach("c->e"), cap)
+  expect_lte(reach("c->e"), cap + label_ink_spacing)
+})
+
 # Panels and pinned edges ------------------------------------------------------
 
 test_that("each panel routes the edges that panel draws, once each", {
