@@ -910,10 +910,18 @@ place_dag_labels <- function(
     }
     FALSE
   }
+  # A label sitting on an occluding candidate is offered the panel grid the
+  # same way, once, and settles on its best admissible candidate, which is a
+  # clear spot when the grid holds one within the gate; it is admissible
+  # already, so it never ejects another label and is never sent to a
+  # least-bad spot.
+  occluded <- function(i) {
+    occluding_static[[i]][chosen[i]]
+  }
   for (round in seq_len(label_max_repairs)) {
     stuck <- placement_order[vapply(
       placement_order,
-      chosen_violates,
+      function(i) chosen_violates(i) || occluded(i),
       logical(1)
     )]
     if (length(stuck) == 0) {
@@ -921,6 +929,16 @@ place_dag_labels <- function(
     }
     changed <- FALSE
     for (i in stuck) {
+      if (!chosen_violates(i)) {
+        before <- chosen[i]
+        if (add_grid(i)) {
+          settle(i)
+          if (chosen[i] != before) {
+            changed <- TRUE
+          }
+        }
+        next
+      }
       if (add_grid(i) && settle(i)) {
         changed <- TRUE
         next
