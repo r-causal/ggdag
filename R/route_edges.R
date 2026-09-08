@@ -1931,12 +1931,13 @@ keep_side <- function(d, ref, prefer) {
 #' direction, the clamp edges, the angles `theta_min` either side of each
 #' arrival, and the midpoint of each pair of arrivals adjacent in angle.
 #' The current direction stands when it already keeps `theta_min` from
-#' every arrival; otherwise, among the admissible candidates that do, the
-#' one nearest the current direction wins, and when none does, the
-#' candidate with the largest minimum gap, which in a squeeze is the
-#' midpoint of the pair the arrival is caught between. Ties go to the
-#' smallest rotation from the current direction and then to the preferred
-#' side.
+#' every arrival. Otherwise, among the admissible candidates that keep it
+#' from every arrival, the one nearest the current direction wins, ties
+#' going to the preferred side. When no candidate keeps `theta_min` from
+#' every arrival, the one with the largest minimum gap wins, which in a
+#' squeeze is the midpoint of the pair the arrival is caught between, ties
+#' going to the smallest rotation from the current direction and then to
+#' the preferred side.
 #'
 #' @param d_in Current unit direction into the target.
 #' @param arrivals Two-column matrix of unit directions into the target.
@@ -1973,14 +1974,14 @@ separate_arrival <- function(
   cands <- cands[cands >= lo - 1e-9 & cands <= hi + 1e-9]
   gaps <- vapply(cands, min_gap, numeric(1))
   ok <- which(gaps >= theta_min - 1e-9)
-  pick <- function(i) {
-    i[order(
-      -round(gaps[i], 9),
-      round(abs(cands[i] - cur), 9),
-      sign(cands[i]) != prefer
-    )][[1L]]
+  turn <- round(abs(cands - cur), 9)
+  off_side <- sign(cands) != prefer
+  best <- if (length(ok) > 0) {
+    ok[order(turn[ok], off_side[ok])][[1L]]
+  } else {
+    order(-round(gaps, 9), turn, off_side)[[1L]]
   }
-  phi <- cands[[pick(if (length(ok) > 0) ok else seq_along(cands))]]
+  phi <- cands[[best]]
   rotate(chord_in, phi)
 }
 
@@ -1990,10 +1991,10 @@ separate_arrival <- function(
 #' `cap` before it and finds the arrival it falls short of `theta_min`
 #' from by the most (a shortfall under half a degree is accepted). Returns
 #' the signed rotation to apply to the end tangent, or 0 when every arrival
-#' is far enough. When the two nearest arrivals lie on opposite sides of
-#' the sampled direction the rotation equalises those two gaps, which one
-#' step of the loop reaches exactly; with every near arrival on one side it
-#' is 1.2 times the deficit away from the worst of them.
+#' is far enough. In a true squeeze, where both of the two nearest arrivals
+#' fall short of `theta_min` and lie on opposite sides of the sampled
+#' direction, the rotation aims for the midpoint of those two gaps.
+#' Otherwise it is 1.2 times the deficit away from the worst arrival.
 #'
 #' @noRd
 arrival_deficit <- function(pts, fr, cap, arrivals, head_end, theta_min) {
@@ -2021,7 +2022,8 @@ arrival_deficit <- function(pts, fr, cap, arrivals, head_end, theta_min) {
     near <- order(abs(gap))[1:2]
     g1 <- gap[[near[[1L]]]]
     g2 <- gap[[near[[2L]]]]
-    if (g1 * g2 < 0) {
+    squeezed <- abs(g1) < theta_min && abs(g2) < theta_min
+    if (squeezed && g1 * g2 < 0) {
       turn <- -(g1 + g2) / 2
       return(if (abs(turn) <= 0.5) 0 else turn)
     }
