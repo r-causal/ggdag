@@ -10,7 +10,7 @@
 # * "routed": a layer drawing with `GeomDAGRoutedArrow`, whose path is
 #   decided in millimetres when the plot is drawn. The spec is one wide row
 #   per drawn edge carrying how the edge is routed, `route_style`,
-#   `route_clearance`, `route_sep`, and `route_layer_axis`, rather than where
+#   `route_options`, and `route_layer_axis`, rather than where
 #   it goes; the ggrepel obstacle tracers follow its chord, and the automatic
 #   label engine routes it again at draw time from that spec.
 
@@ -158,11 +158,15 @@ test_that("a routed arrows layer is discovered as a routing spec", {
   expect_equal(nrow(routed), 2)
   expect_contains(
     names(routed),
-    c("x", "y", "xend", "yend", "route_style", "route_clearance", "route_sep")
+    c("x", "y", "xend", "yend", "route_style", "route_options")
   )
   expect_true(all(routed$route_style == "spline"))
-  expect_true(all(is.na(routed$route_clearance)))
-  expect_true(all(is.na(routed$route_sep)))
+  # the layer carries an object whose every field is the router's own
+  expect_true(all(vapply(
+    routed$route_options,
+    function(options) all(vapply(options, is.null, logical(1))),
+    logical(1)
+  )))
 
   edges <- pull_dag_data(tidy_dag)
   edges <- edges[!is.na(edges$to), , drop = FALSE]
@@ -210,15 +214,18 @@ test_that("the routing spec carries the parameters the edges are routed with", {
   expect_equal(nrow(routed), 3)
   expect_contains(
     names(routed),
-    c("route_style", "route_clearance", "route_sep", "route_layer_axis")
+    c("route_style", "route_options", "route_layer_axis")
   )
   expect_true(all(routed$route_style == "spline"))
 
   # the clearance and the separation are the router's own defaults unless the
   # geom sets them, and the spec says so rather than guessing a number; the
   # layer axis is inferred unless the layout knows which way its layers run
-  expect_true(all(is.na(routed$route_clearance)))
-  expect_true(all(is.na(routed$route_sep)))
+  expect_true(all(vapply(
+    routed$route_options,
+    function(options) is.null(options$clearance) && is.null(options$edge_sep),
+    logical(1)
+  )))
   expect_equal(routed$route_layer_axis, rep("auto", nrow(routed)))
 
   # what the geom is given reaches the spec as it is, so the label engine
@@ -231,15 +238,24 @@ test_that("the routing spec carries the parameters the edges are routed with", {
   expect_contains(names(geometry), "route_layer_axis")
 
   given <- geometry[geometry$type == "routed", , drop = FALSE]
-  expect_equal(given$route_clearance, c(4, 4))
-  expect_equal(given$route_sep, c(2, 2))
+  expect_equal(
+    vapply(
+      given$route_options,
+      function(options) options$clearance,
+      numeric(1)
+    ),
+    c(4, 4)
+  )
+  expect_equal(
+    vapply(given$route_options, function(options) options$edge_sep, numeric(1)),
+    c(2, 2)
+  )
   expect_equal(given$route_layer_axis, c("y", "y"))
 
-  # a layer of any other type fills every routing column with NA
+  # a layer of any other type carries no routing spec at all
   arc <- geometry[geometry$type == "arc", , drop = FALSE]
   expect_true(all(is.na(arc$route_style)))
-  expect_true(all(is.na(arc$route_clearance)))
-  expect_true(all(is.na(arc$route_sep)))
+  expect_true(all(vapply(arc$route_options, is.null, logical(1))))
   expect_true(all(is.na(arc$route_layer_axis)))
 })
 
@@ -356,10 +372,9 @@ test_that("repel_edge_points traces a routed spec along its chord", {
     to = "y",
     curvature = NA_real_,
     route_style = "spline",
-    route_clearance = NA_real_,
-    route_sep = NA_real_,
     stringsAsFactors = FALSE
   )
+  geometry$route_options <- list(edge_route_options())
 
   points <- repel_edge_points(
     edges,

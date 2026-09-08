@@ -215,7 +215,7 @@ test_that("auto stat edge rows carry the spec a routed edge is routed with", {
   edge_rows <- stat_data[stat_data$ggdag_role == "edge", , drop = FALSE]
   expect_contains(
     names(edge_rows),
-    c("route_style", "route_clearance", "route_sep", "route_layer_axis")
+    c("route_style", "route_options", "route_layer_axis")
   )
 
   style <- if ("route_style" %in% names(edge_rows)) {
@@ -232,8 +232,12 @@ test_that("auto stat edge rows carry the spec a routed edge is routed with", {
   expect_equal(nrow(routed), 6)
   expect_length(unique(routed$edge_id), 3)
   expect_true(all(routed$route_style == "spline"))
-  expect_true(all(is.na(routed$route_clearance)))
-  expect_true(all(is.na(routed$route_sep)))
+  # every field is the router's own, since the plot set none of them
+  expect_true(all(vapply(
+    routed$route_options,
+    function(options) all(vapply(options, is.null, logical(1))),
+    logical(1)
+  )))
   expect_equal(routed$route_layer_axis, rep("auto", nrow(routed)))
 
   # the bidirected edge is drawn as an arc in data space, so it is traced

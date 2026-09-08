@@ -940,9 +940,7 @@ repel_edge_points <- function(
 # holds for an edge no routed layer draws.
 route_spec_blanks <- list(
   route_style = NA_character_,
-  route_clearance = NA_real_,
-  route_sep = NA_real_,
-  route_sep_min = NA_real_,
+  route_options = list(NULL),
   route_layer_axis = NA_character_,
   route_cap = NA_real_,
   route_fixed = NA,
@@ -950,6 +948,14 @@ route_spec_blanks <- list(
 )
 
 route_spec_columns <- names(route_spec_blanks)
+
+# The routing object of each row of a spec, as one string per row: the
+# identity of the object, not of the fields anything downstream remembers to
+# read.
+route_options_keys <- function(spec) {
+  objects <- spec_column(spec, "route_options", list(NULL))
+  vapply(objects, rlang::hash, character(1))
+}
 
 # A column of a discovered spec, or the default repeated to its height when
 # the spec does not carry that column.
@@ -975,9 +981,6 @@ dedupe_routed_geometry <- function(geometry) {
     "from",
     "to",
     "route_style",
-    "route_clearance",
-    "route_sep",
-    "route_sep_min",
     "route_layer_axis",
     "route_cap",
     "curvature"
@@ -986,6 +989,9 @@ dedupe_routed_geometry <- function(geometry) {
   for (field in fields) {
     key <- paste(key, spec_column(geometry, field, NA), sep = "\r")
   }
+  # the whole options object identifies the routing, so it is hashed rather
+  # than pasted: a field added to the constructor cannot fall out of the key
+  key <- paste(key, route_options_keys(geometry), sep = "\r")
   geometry[!duplicated(key), , drop = FALSE]
 }
 
@@ -995,22 +1001,13 @@ dedupe_routed_geometry <- function(geometry) {
 routed_chord_points <- function(geometry, panel) {
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
   rows <- seq_len(nrow(geometry))
-  data.frame(
+  points <- data.frame(
     edge_id = rep(paste(key, "routed", rows, sep = "\r"), each = 2),
     x = as.vector(rbind(geometry$x, geometry$xend)),
     y = as.vector(rbind(geometry$y, geometry$yend)),
     PANEL = panel,
     route_style = rep(
       spec_column(geometry, "route_style", NA_character_),
-      each = 2
-    ),
-    route_clearance = rep(
-      spec_column(geometry, "route_clearance", NA_real_),
-      each = 2
-    ),
-    route_sep = rep(spec_column(geometry, "route_sep", NA_real_), each = 2),
-    route_sep_min = rep(
-      spec_column(geometry, "route_sep_min", NA_real_),
       each = 2
     ),
     route_layer_axis = rep(
@@ -1022,6 +1019,13 @@ routed_chord_points <- function(geometry, panel) {
     curvature = NA_real_,
     stringsAsFactors = FALSE
   )
+  # a list column cannot be built by `data.frame()`, so the object travels
+  # into the frame after it is made
+  points$route_options <- rep(
+    spec_column(geometry, "route_options", list(NULL)),
+    each = 2
+  )
+  points
 }
 
 # Positions along the arcs a routed layer draws for the edges whose curvature
@@ -1734,7 +1738,7 @@ routed_layer_geometry <- function(layer, plot_data) {
     if (name %in% names(layer_data)) layer_data[[name]] else default
   }
 
-  data.frame(
+  geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
     xend = layer_data$xend,
@@ -1749,13 +1753,15 @@ routed_layer_geometry <- function(layer, plot_data) {
     to = as.character(column("to", NA_character_)),
     curvature = as.numeric(column("edge_curvature", NA_real_)),
     route_style = layer$geom_params$route %||% "spline",
-    route_clearance = layer$geom_params$clearance %||% NA_real_,
-    route_sep = layer$geom_params$edge_sep %||% NA_real_,
-    route_sep_min = layer$geom_params$edge_sep_min %||% NA_real_,
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
     route_cap = routed_layer_cap_mm(layer, layer_data),
     stringsAsFactors = FALSE
   )
+  geometry$route_options <- rep(
+    list(layer$geom_params$edge_route_options),
+    nrow(geometry)
+  )
+  geometry
 }
 
 resolve_layer_data <- function(

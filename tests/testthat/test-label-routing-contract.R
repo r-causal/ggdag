@@ -47,11 +47,10 @@ routed_geometry <- function(
   yend,
   curvature = NA_real_,
   route_style = "spline",
-  route_clearance = NA_real_,
-  route_sep = NA_real_,
+  route_options = edge_route_options(),
   route_layer_axis = "auto"
 ) {
-  data.frame(
+  geometry <- data.frame(
     x = x,
     y = y,
     xend = xend,
@@ -66,11 +65,11 @@ routed_geometry <- function(
     to = "to",
     curvature = curvature,
     route_style = route_style,
-    route_clearance = route_clearance,
-    route_sep = route_sep,
     route_layer_axis = route_layer_axis,
     stringsAsFactors = FALSE
   )
+  geometry$route_options <- list(route_options)
+  geometry
 }
 
 # A column of `data`, or a column of NA when the contract's column is not
@@ -293,8 +292,6 @@ label_edge_input <- function(tree, scene) {
   edges$x <- edges$x * scene$width
   edges$y <- edges$y * scene$height
   edges$route_style <- column_or_na(edges, "route_style", NA_character_)
-  edges$route_clearance <- column_or_na(edges, "route_clearance", NA_real_)
-  edges$route_sep <- column_or_na(edges, "route_sep", NA_real_)
   edges$route_layer_axis <- column_or_na(
     edges,
     "route_layer_axis",
@@ -319,8 +316,8 @@ label_route_spec <- function(tree, edge) {
   }
   list(
     style = pick(c("route", "route_style"), edge$route_style),
-    clearance = pick(c("clearance", "route_clearance"), edge$route_clearance),
-    sep = pick(c("edge_sep", "route_sep"), edge$route_sep),
+    clearance = pick(c("clearance"), NA),
+    sep = pick(c("edge_sep"), NA),
     cap = pick(c("route_cap"), edge$route_cap),
     layer_axis = axis_or_auto(pick(
       c("layer_axis", "route_layer_axis"),
@@ -444,7 +441,7 @@ route_label_edge <- function(tree, scene, edge, route_options = NULL) {
     cap = if (is.na(spec$cap)) tree$params$edge_cap %||% 8 else spec$cap,
     mode = spec$style,
     opts = if (is.null(route_options)) {
-      route_opts(
+      route_constants(
         r_ref = radius,
         m = if (is.na(spec$clearance)) NULL else spec$clearance,
         sep_e = if (is.na(spec$sep)) NULL else spec$sep,
@@ -622,8 +619,7 @@ test_that("the automatic tracer tags a routed edge with its routing spec", {
     0,
     2,
     0,
-    route_clearance = 4,
-    route_sep = 2,
+    route_options = edge_route_options(clearance = 4, edge_sep = 2),
     route_layer_axis = "x"
   )
 
@@ -640,8 +636,7 @@ test_that("the automatic tracer tags a routed edge with its routing spec", {
     names(points),
     c(
       "route_style",
-      "route_clearance",
-      "route_sep",
+      "route_options",
       "route_layer_axis",
       "curvature"
     )
@@ -658,8 +653,15 @@ test_that("the automatic tracer tags a routed edge with its routing spec", {
   expect_equal(routed$x, c(0, 2))
   expect_equal(routed$y, c(0, 0))
   expect_equal(routed$route_style, c("spline", "spline"))
-  expect_equal(routed$route_clearance, c(4, 4))
-  expect_equal(routed$route_sep, c(2, 2))
+  # the whole object travels with each of the two rows
+  expect_equal(
+    vapply(routed$route_options, function(o) o$clearance, numeric(1)),
+    c(4, 4)
+  )
+  expect_equal(
+    vapply(routed$route_options, function(o) o$edge_sep, numeric(1)),
+    c(2, 2)
+  )
   expect_equal(routed$route_layer_axis, c("x", "x"))
   expect_true(all(is.na(routed$curvature)))
 
@@ -714,7 +716,13 @@ test_that("the repel tracers see a routed edge as a chord", {
   points <- repel_edge_points(
     edges,
     12,
-    routed_geometry(0, 0, 2, 0, route_clearance = 4, route_sep = 2),
+    routed_geometry(
+      0,
+      0,
+      2,
+      0,
+      route_options = edge_route_options(clearance = 4, edge_sep = 2)
+    ),
     NULL
   )
 
@@ -900,19 +908,17 @@ test_that("the label grob carries the routed layer's routing parameters", {
   )]
   expect_length(routed, 3)
 
-  # a parameter the geom leaves to the router is NA in the spec rather than a
-  # guessed number, so the two calls agree on the default as well
+  # a parameter the geom leaves to the router is unset in the object rather
+  # than a guessed number, so the two calls agree on the default as well
   for (edge in routed) {
     spec <- label_route_spec(label_tree, edge)
     expect_equal(as.character(spec$style), routed_layer$geom_params$route)
-    expect_equal(
-      as.numeric(spec$clearance),
-      as.numeric(routed_layer$geom_params$clearance %||% NA_real_)
+    expect_identical(
+      label_route_options(edge),
+      routed_layer$geom_params$edge_route_options
     )
-    expect_equal(
-      as.numeric(spec$sep),
-      as.numeric(routed_layer$geom_params$edge_sep %||% NA_real_)
-    )
+    expect_null(label_route_options(edge)$clearance)
+    expect_null(label_route_options(edge)$edge_sep)
     expect_equal(
       as.character(spec$layer_axis),
       routed_layer$geom_params$layer_axis

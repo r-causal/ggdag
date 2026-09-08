@@ -2909,21 +2909,22 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     ids <- unique(edges$edge_id[mask])
     first <- match(ids, edges$edge_id)
     last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
-    data.frame(
+    rows <- data.frame(
       edge_id = ids,
       x = edges$x[first],
       y = edges$y[first],
       xend = edges$x[last],
       yend = edges$y[last],
       style = spec$route_style[first],
-      clearance = spec$route_clearance[first],
-      sep = spec$route_sep[first],
-      sep_min = spec$route_sep_min[first],
       layer_axis = spec$route_layer_axis[first],
       cap = spec$route_cap[first],
       curvature = spec$curvature[first],
       stringsAsFactors = FALSE
     )
+    # the routing options travel as one object, so the label engine and the
+    # arrow grob cannot read a partial specification differently
+    rows$route_options <- spec_column(spec, "route_options", list(NULL))[first]
+    rows
   }
 
   chords <- chord_rows(tagged)
@@ -2992,10 +2993,9 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   paths <- vector("list", nrow(chords))
   groups <- paste(
     chords$style,
-    chords$clearance,
-    chords$sep,
     chords$layer_axis,
     chords$cap,
+    route_options_keys(chords),
     sep = "\r"
   )
   for (rows in split(seq_len(nrow(chords)), groups)) {
@@ -3016,11 +3016,9 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       bounds = bounds,
       cap = if (is.na(settings$cap)) par$edge_cap else settings$cap,
       mode = settings$style,
-      opts = route_opts(
-        r_ref = radius,
-        m = if (is.na(settings$clearance)) NULL else settings$clearance,
-        sep_e = if (is.na(settings$sep)) NULL else settings$sep,
-        sep_min = if (is.na(settings$sep_min)) NULL else settings$sep_min,
+      opts = route_opts_from(
+        settings$route_options[[1]],
+        radius,
         layer_axis = if (is.na(settings$layer_axis)) {
           "auto"
         } else {
