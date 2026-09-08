@@ -3302,6 +3302,7 @@ route_orthogonal_scene <- function(
   clamped <- logical(n_edges)
   placed <- placed_set(paths)
   channels <- df_cols(
+    e = integer(0),
     side = numeric(0),
     y = numeric(0),
     lo = numeric(0),
@@ -3380,6 +3381,7 @@ route_orthogonal_scene <- function(
     ch <- ortho_channel(
       fr,
       edge_cost_context(fr, e, ctx),
+      e,
       info$la[[e]],
       info$lb[[e]],
       layers,
@@ -3847,17 +3849,22 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #'
 #' An endpoint line that the placed channels crowd, but that the run could
 #' take with them out of the way, is returned as a slide option: the run
-#' priced as if the band were empty, with the channels in its way. The
-#' caller decides through `slide_channels()` whether moving them costs less
-#' than the pushed alternatives. A line crowded by a channel that never
-#' moves, an S/N channel, a channel on its own endpoint line, or one of the
-#' edge's own hyperedge (its trunk or a sibling), is not offered.
+#' priced as if the band were empty, with the channels in its way. Their
+#' polylines are left out of the crossing count for that price, since the
+#' slide moves them off the line before the run is drawn; counting them
+#' would price a crowding channel's own vertical leg, which can meet the
+#' line to within rounding, as a crossing. The caller decides through
+#' `slide_channels()` whether moving them costs less than the pushed
+#' alternatives. A line crowded by a channel that never moves, an S/N
+#' channel, a channel on its own endpoint line, or one of the edge's own
+#' hyperedge (its trunk or a sibling), is not offered.
 #'
+#' @param e The edge being placed, the index the channel row records.
 #' @param stub The nominal stub and the stub floor, in that order.
 #' @param sn_sides Logical pair: are S/N ports available above and below.
-#' @param channels The channels placed so far: `side`, `y`, `lo`, `hi`,
-#'   `key`, the segment key of the channel's first gap, and `fixed`,
-#'   whether `channel_fixed()` holds it.
+#' @param channels The channels placed so far: `e`, the edge each belongs
+#'   to, `side`, `y`, `lo`, `hi`, `key`, the segment key of the channel's
+#'   first gap, and `fixed`, whether `channel_fixed()` holds it.
 #' @param intervals Free intervals per layer from `layer_free_intervals()`.
 #' @param pieces Committed horizontal pieces per gap: `key`, `left`,
 #'   `right`.
@@ -3874,6 +3881,7 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 ortho_channel <- function(
   fr,
   ectx,
+  e,
   la,
   lb,
   layers,
@@ -3937,8 +3945,10 @@ ortho_channel <- function(
       (pieces_coincide(pieces[[la]], keys[[1]], Sy, y) ||
         pieces_coincide(pieces[[lb - 1L]], keys[[2]], y, Ty))
   }
-  # the feasibility and price of a run at y, the placed channels aside
-  price <- function(kind, side, y) {
+  # the feasibility and price of a run at y, the placed channels aside; the
+  # edges in `drop` are left out of the crossing count, the channels a slide
+  # option would move off the line before the run is drawn
+  price <- function(kind, side, y, drop = integer(0)) {
     wp <- bends_of(kind, y)
     displacement <- sum(abs(y - yc))
     feasible <- y >= y_min &&
@@ -3946,7 +3956,11 @@ ortho_channel <- function(
       clear_of(y, if (kind == "sn") sn_nodes else members) &&
       !coincides(kind, y)
     cost <- if (feasible) {
-      side_cost(fr, wp, side, displacement, ectx, placed, opts) +
+      ec <- ectx
+      if (length(drop) > 0) {
+        ec$others <- setdiff(ec$others, drop)
+      }
+      side_cost(fr, wp, side, displacement, ec, placed, opts) +
         opts$bend_penalty * bends_count(kind, y)
     } else {
       Inf
@@ -3979,6 +3993,7 @@ ortho_channel <- function(
       cost = cand$cost,
       clamped = clamped,
       channel = df_cols(
+        e = e,
         side = cand$side,
         y = cand$y,
         lo = xr[[1]],
@@ -4053,7 +4068,8 @@ ortho_channel <- function(
   }
 
   # the slide options: each endpoint line the placed channels crowd that
-  # the run could take with the band empty, priced so; the caller decides
+  # the run could take with the band empty, priced so, the crowding
+  # channels' own polylines left out of the count; the caller decides
   # whether moving those channels is worth it. A line crowded by a channel
   # that never moves, one fixed by its kind or line or one of this edge's
   # own hyperedge, is no option and is not priced (`slide_channels()`
@@ -4068,7 +4084,7 @@ ortho_channel <- function(
     ) {
       next
     }
-    p <- price("ew", side_at(y0), y0)
+    p <- price("ew", side_at(y0), y0, channels$e[conflicts])
     if (is.finite(p$cost)) {
       slide <- c(
         slide,
@@ -4276,10 +4292,12 @@ channel_fixed <- function(kind, y, Sy, Ty) {
 #'
 #' The price is the moved channels' change in displacement, the sum of
 #' `|y - yc|` over their crossed layers weighted as `side_cost()` weighs it,
-#' plus `bend_penalty` per bend gained. Their crossings are not repriced:
-#' a moved channel keeps its side, and a chord between its old and new
-#' lines within its extent is rare enough to leave out until a scene shows
-#' the gap, which is why the price is kept in this one place.
+#' plus `bend_penalty` per bend gained, rounded to `cost_digits` like every
+#' other price so that the two directions are compared on a difference the
+#' constants can see rather than on rounding noise. Their crossings are not
+#' repriced: a moved channel keeps its side, and a chord between its old and
+#' new lines within its extent is rare enough to leave out until a scene
+#' shows the gap, which is why the price is kept in this one place.
 #'
 #' @param cand_pieces The candidate's own pieces, each a list with `g`,
 #'   `key`, `left`, and `right`.
@@ -4403,7 +4421,12 @@ slide_channels <- function(
       opts$bend_penalty *
         (ew_bend_count(r$fr, x_a, x_b, y) - ew_bend_count(r$fr, x_a, x_b, r$y))
   }
-  list(y = lines$y, moved = moved, cost = cost, pieces = pieces)
+  list(
+    y = lines$y,
+    moved = moved,
+    cost = round(cost, opts$cost_digits),
+    pieces = pieces
+  )
 }
 
 #' The hyperedge segments of one gap
