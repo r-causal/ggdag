@@ -3207,18 +3207,21 @@ route_orthogonal_scene <- function(
   extra <- grp$extra
 
   # a chord needs a bend when it is oblique and leaves its layer, or when it
-  # is horizontal, spans a layer, and a disc in a crossed layer blocks it; a
-  # horizontal chord that hits nothing is already axis-aligned
+  # is horizontal, spans a layer, and a disc in a crossed layer blocks it. A
+  # level chord is drawn as the run on its target's line, so that run, not
+  # the chord between the centres, is what the crossed discs must clear; a
+  # run that hits nothing is already axis-aligned
   bent <- routable & span >= 1 & !vertical & !(horizontal & span <= 1)
   level <- which(bent & horizontal)
   if (length(level) > 0) {
-    hits <- find_blocked_edges(
+    blocked <- level_run_blocked(
       nodes,
-      df_cols(from = nodes$name[a[level]], to = nodes$name[b[level]]),
-      nodes$r + opts$m_min,
+      a[level],
+      b[level],
+      ifelse(info$reversed[level], Sy[level], Ty[level]),
       R_node
     )
-    bent[level[!seq_along(level) %in% hits$edge]] <- FALSE
+    bent[level[!blocked]] <- FALSE
   }
   kind <- rep("straight", n_edges)
   kind[bent] <- "ew"
@@ -3524,6 +3527,30 @@ route_orthogonal_scene <- function(
   resect_head <- rep(cap, n_edges)
   resect_fins <- rep(cap, n_edges)
   face_resect <- function(r, off) cap - r + sqrt(max(r^2 - off^2, 0))
+
+  # a level chord is drawn as the run on its target's line: the head end
+  # keeps the target's centre and the tail leaves its node through the port
+  # on that line, so the run is exactly horizontal and the tail's resect is
+  # the face resect of the port's offset. A chord with no offset at all is
+  # that run already and keeps the chord it came in with
+  level <- which(
+    kind == "straight" & routable & horizontal & !vertical & span >= 1L
+  )
+  for (e in level) {
+    off <- Ty[[e]] - Sy[[e]]
+    if (abs(off) < 1e-12) {
+      next
+    }
+    y_run <- if (info$reversed[[e]]) Sy[[e]] else Ty[[e]]
+    path <- df_cols(x = c(Sx[[e]], Tx[[e]]), y = c(y_run, y_run))
+    if (info$reversed[[e]]) {
+      path <- df_cols(x = rev(path$x), y = rev(path$y))
+    }
+    paths[[e]] <- path
+    tail <- if (info$reversed[[e]]) b[[e]] else a[[e]]
+    resect_fins[[e]] <- face_resect(nodes$r[[tail]], off)
+  }
+
   for (e in which(kind != "straight" & !is_fixed)) {
     fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
     geom <- ortho_bends(
@@ -3552,22 +3579,35 @@ route_orthogonal_scene <- function(
     resect_fins[[e]] <- if (info$reversed[[e]]) at_e else at_s
 
     # a span-1 arrival whose source lies within rc of its row cannot show
-    # two proper corners, so it is the straight chord from the source to
-    # the row's axis point, as a level chord is to the centre, and the slot
-    # it was assigned goes unused
+    # two proper corners, so it is the run on the row's line from the tail's
+    # port on that line to the row's axis point, as a level chord is the run
+    # on its target's line, and the slot it was assigned goes unused. The
+    # head end keeps its line, the row for a forward edge and the target's
+    # centre for a reversed one, and the tail's resect is the face resect
+    # of its port's offset from that line
     if (
       kind[[e]] == "ew" &&
         span[[e]] == 1L &&
         abs(fr$S[[2]] - geom$port_t[[2]]) <= rc_used + 1e-9
     ) {
+      if (info$reversed[[e]]) {
+        y_run <- fr$S[[2]]
+        tail <- b[[e]]
+        tail_off <- fr$S[[2]] - fr$E[[2]]
+      } else {
+        y_run <- geom$port_t[[2]]
+        tail <- a[[e]]
+        tail_off <- geom$port_t[[2]] - fr$S[[2]]
+      }
       path <- df_cols(
         x = c(fr$S[[1]], geom$port_t[[1]]),
-        y = c(fr$S[[2]], geom$port_t[[2]])
+        y = c(y_run, y_run)
       )
       if (info$reversed[[e]]) {
         path <- df_cols(x = rev(path$x), y = rev(path$y))
       }
       paths[[e]] <- path
+      resect_fins[[e]] <- face_resect(nodes$r[[tail]], tail_off)
       next
     }
 
@@ -3635,6 +3675,36 @@ route_orthogonal_scene <- function(
 
 empty_pieces <- function() {
   df_cols(key = character(0), left = numeric(0), right = numeric(0))
+}
+
+#' Find the level chords whose run a disc blocks
+#'
+#' A level chord is drawn as the horizontal run on its target's line, so
+#' that run, not the chord between the centres, is what the discs of the
+#' crossed layers must clear. Vectorised over every (run, non-endpoint node)
+#' pair: a node blocks a run when its centre is closer than `R` to the
+#' segment between the endpoints' x at the run's y.
+#'
+#' @param nodes Data frame with `x`, `y`.
+#' @param a,b Row indices of each run's endpoints, `a` the left one.
+#' @param y The line each run lies on.
+#' @param R Obstruction radius, one value per node row.
+#' @return A logical vector, one value per run.
+#' @noRd
+level_run_blocked <- function(nodes, a, b, y, R) {
+  n_r <- length(a)
+  n_n <- nrow(nodes)
+  blocked <- logical(n_r)
+  if (n_r == 0 || n_n == 0) {
+    return(blocked)
+  }
+  ri <- rep(seq_len(n_r), each = n_n)
+  ni <- rep.int(seq_len(n_n), n_r)
+  dx <- pmax(nodes$x[a[ri]] - nodes$x[ni], nodes$x[ni] - nodes$x[b[ri]], 0)
+  dy <- nodes$y[ni] - y[ri]
+  hit <- ni != a[ri] & ni != b[ri] & sqrt(dx^2 + dy^2) < R[ni]
+  blocked[unique(ri[hit])] <- TRUE
+  blocked
 }
 
 #' Choose the channel of a spanning edge
