@@ -4578,9 +4578,10 @@ arrival_row <- function(scene, res, label) {
 }
 
 # Two arrivals at b, one of them level. a sits 1.5 mm below b, inside the
-# 2.1 mm corner radius, so a->b is level and stays a straight chord; c
-# arrives from below and takes the port row sep_e beneath b's centre. The
-# variant tilts b to 2.7 mm above a, past the corner radius, so a->b bends.
+# 2.1 mm corner radius, so a->b is level and is drawn as the run on b's
+# line; c arrives from below and takes the port row sep_e beneath b's
+# centre. The variant tilts b to 2.7 mm above a, past the corner radius, so
+# a->b bends.
 near_level_scene <- function(by = 56.5) {
   list(
     nodes = mm_nodes(c("a", "b", "c"), c(20, 80, 20), c(55, by, 20)),
@@ -4597,22 +4598,41 @@ test_that("orthogonal: a chord within the corner radius of level stays straight"
   ab <- edge_index(scene, "a->b")
   cb <- edge_index(scene, "c->b")
   ends <- edge_endpoints(scene, ab)
-  # a jog of 1.5 mm cannot show two corners of radius 2.1, so the chord is
-  # drawn as it is
+  # a jog of 1.5 mm cannot show two corners of radius 2.1, so the edge is
+  # drawn as the run on b's line: a leaves through the port 1.5 mm above its
+  # own centre and the run arrives at b's centre, with nothing oblique
+  # drawn. The tail's resect is the face resect of that offset, so its end
+  # still sits cap - r from a's face along the run it is drawn on.
+  path_ab <- res$paths[[ab]]
   expect_equal(res$meta$mode[ab], "straight")
   expect_false(res$meta$routed[ab])
   expect_equal(res$meta$n_waypoints[ab], 0)
-  expect_identical(nrow(res$paths[[ab]]), 2L)
-  expect_straight_path(res$paths[[ab]], ends$from, ends$to)
+  expect_identical(nrow(path_ab), 2L)
+  expect_equal(
+    c(path_ab$x[[1]], path_ab$y[[1]]),
+    c(ends$from[[1]], ends$to[[2]]),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    c(path_ab$x[[2]], path_ab$y[[2]]),
+    ends$to,
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$meta$resect_fins[[ab]],
+    port_resect_at(1.5),
+    tolerance = 1e-9
+  )
+  expect_equal(res$meta$resect_head[[ab]], cap_default)
 
-  # the level chord owns b's centre row, so c->b takes the port sep_e below
+  # the level edge owns b's centre row, so c->b takes the port sep_e below
   # it and the two runs are drawn apart
   expect_equal(res$meta$mode[cb], "orthogonal")
   expect_equal(arrival_row(scene, res, "c->b"), 52.9, tolerance = 1e-6)
   expect_equal(shared_run_length(res$paths[[ab]], res$paths[[cb]]), 0)
 
   # the arrowhead zone of c->b, the 8 mm of path after its resected cap,
-  # keeps half a separation from the chord it used to be drawn under
+  # keeps half a separation from the run it used to be drawn under
   head <- arc_window(
     res$paths[[cb]],
     cap_default,
@@ -4663,19 +4683,278 @@ test_that("orthogonal: a chord tilted past the corner radius bends at one slot",
   expect_equal(unname(rows[["c->b"]]), 57.7 - sep_e_default / 2)
 })
 
-test_that("canonical multi_mediator: the near-level x->y is a straight chord", {
-  # at the large panel x and y differ by 1.89 mm, inside the corner radius,
-  # and the chord clears every crossed disc by 26 mm
+# One level pair on its own: s and t a single gap apart, t sitting `d`
+# millimetres above s. Every value of d up to the corner radius is level
+# and every value past it bends, so the pair is the whole level rule in one
+# scene.
+level_pair_scene <- function(d) {
+  list(
+    nodes = mm_nodes(c("s", "t"), c(20, 80), c(55, 55 + d)),
+    edges = mm_edges("s", "t"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal: a level chord is the run on its target's line", {
+  # An orthogonal drawing shows no oblique run, so a level chord is drawn as
+  # the horizontal run on its target's line: the tail leaves s through the
+  # port `d` millimetres off its centre, the head arrives at t's centre, and
+  # the tail's resect is the face resect of that offset. The shape is the
+  # same whether the scene rounds its corners or not, since the run has no
+  # corner to round.
+  for (d in c(1, rc_default)) {
+    scene <- level_pair_scene(d)
+    res <- ortho(scene)
+    expect_orthogonal_scene(scene, res, stub_always = TRUE)
+    path <- res$paths[[1]]
+    label <- paste0("d = ", d, ":")
+
+    expect_equal(res$meta$mode[[1]], "straight", label = paste(label, "mode"))
+    expect_false(res$meta$routed[[1]], label = paste(label, "routed"))
+    expect_equal(
+      res$meta$n_waypoints[[1]],
+      0,
+      label = paste(label, "waypoints")
+    )
+    expect_identical(nrow(path), 2L)
+    expect_equal(
+      c(path$x[[1]], path$y[[1]]),
+      c(20, 55 + d),
+      tolerance = 1e-9,
+      label = paste(label, "tail port")
+    )
+    expect_equal(
+      c(path$x[[2]], path$y[[2]]),
+      c(80, 55 + d),
+      tolerance = 1e-9,
+      label = paste(label, "head point")
+    )
+    expect_equal(
+      res$meta$resect_fins[[1]],
+      port_resect_at(d),
+      tolerance = 1e-9,
+      label = paste(label, "tail resect")
+    )
+    expect_equal(
+      res$meta$resect_head[[1]],
+      cap_default,
+      label = paste(label, "head resect")
+    )
+    expect_identical(ortho(scene, corners = "sharp")$paths[[1]], path)
+  }
+})
+
+test_that("orthogonal: a chord level with its target is left as it is", {
+  # The control. With no offset at all the run and the chord coincide, so
+  # the path is the incoming chord between the centres and both resects are
+  # the plain cap.
+  scene <- level_pair_scene(0)
+  res <- ortho(scene)
+  ends <- edge_endpoints(scene, 1)
+
+  expect_equal(res$meta$mode[[1]], "straight")
+  expect_straight_path(res$paths[[1]], ends$from, ends$to)
+  expect_equal(res$meta$resect_fins[[1]], cap_default)
+  expect_equal(res$meta$resect_head[[1]], cap_default)
+})
+
+test_that("orthogonal: a chord past the corner radius still bends at its slot", {
+  # The other control. At 2.15 mm the pair is past the level threshold,
+  # which this round leaves where it is, so the edge takes its slot and
+  # draws the two corners, with both resects at the plain cap.
+  scene <- level_pair_scene(rc_default + 0.05)
+  res <- ortho(scene, corners = "sharp")
+  ends <- edge_endpoints(scene, 1)
+
+  expect_equal(res$meta$mode[[1]], "orthogonal")
+  expect_true(res$meta$routed[[1]])
+  expect_equal(res$meta$n_waypoints[[1]], 2)
+  expect_equal(
+    c(res$paths[[1]]$x[[1]], res$paths[[1]]$y[[1]]),
+    ends$from,
+    tolerance = 1e-9
+  )
+  runs <- straight_runs(res$paths[[1]])
+  expect_equal(runs$axis, c("h", "v", "h"))
+  expect_equal(runs$coord, c(55, 50, 57.15), tolerance = 1e-6)
+  expect_equal(res$meta$resect_fins[[1]], cap_default)
+  expect_equal(res$meta$resect_head[[1]], cap_default)
+})
+
+test_that("orthogonal: the drawing is continuous across the level threshold", {
+  # Crossing the threshold from below moves the tail port from `rc` off the
+  # centre back onto it and puts an S of the same height at the slot. Both
+  # drawings are axis-aligned and, as the round's design states the bound,
+  # nowhere more than the corner radius apart; the head end moves only by
+  # the change in d.
+  below <- ortho(level_pair_scene(rc_default))$paths[[1]]
+  above <- ortho(level_pair_scene(rc_default + 0.05))$paths[[1]]
+
+  expect_lte(polyline_hausdorff(below, above), rc_default + 1e-6)
+  n <- nrow(above)
+  expect_lte(
+    sqrt(
+      (below$x[[2]] - above$x[[n]])^2 + (below$y[[2]] - above$y[[n]])^2
+    ),
+    0.05 + 1e-9
+  )
+})
+
+# A source with one level departure and one that bends, both leaving its E
+# face: s->t is level, s->u drops a gap to a node well below it.
+sibling_level_scene <- function(d = 1.5) {
+  list(
+    nodes = mm_nodes(c("s", "t", "u"), c(20, 80, 80), c(55, 55 + d, 20)),
+    edges = mm_edges(c("s", "s"), c("t", "u")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal: a level departure leaves the trunk where it is", {
+  # The level run needs no slot, so it leaves the hyperedge its sibling
+  # takes and runs `d` above the trunk from s's face to the slot. The
+  # sibling keeps the drawing it had before the level rule: out along s's
+  # own line to the slot at the gap's centre, down, and in to u.
+  scene <- sibling_level_scene()
+  res <- ortho(scene, corners = "sharp")
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  st <- edge_index(scene, "s->t")
+  su <- edge_index(scene, "s->u")
+
+  level <- straight_runs(res$paths[[st]])
+  expect_equal(level$axis, "h")
+  expect_equal(level$coord, 56.5, tolerance = 1e-9)
+  expect_equal(c(level$lo, level$hi), c(20, 80), tolerance = 1e-9)
+  expect_equal(
+    res$meta$resect_fins[[st]],
+    port_resect_at(1.5),
+    tolerance = 1e-9
+  )
+
+  trunk <- straight_runs(res$paths[[su]])
+  expect_equal(trunk$axis, c("h", "v", "h"))
+  expect_equal(trunk$coord, c(55, 50, 20), tolerance = 1e-9)
+  expect_equal(res$meta$resect_fins[[su]], cap_default)
+  expect_equal(res$meta$resect_head[[su]], cap_default)
+
+  # the two departures are drawn apart the whole way: the level run sits
+  # exactly d above the trunk and shares none of it
+  expect_equal(shared_run_length(res$paths[[st]], res$paths[[su]]), 0)
+  expect_equal(level$coord - trunk$coord[[1]], 1.5, tolerance = 1e-9)
+})
+
+# A level pair two gaps apart with one node in the crossed layer. At 65.5 the
+# node is 9.5 mm from the chord between the centres and 8.5 mm from the run
+# on t's line; at 46.5 it is 9.5 from the chord and 10.5 from the run.
+spanning_level_scene <- function(my) {
+  list(
+    nodes = mm_nodes(c("s", "m", "t"), c(20, 60, 100), c(55, my, 57)),
+    edges = mm_edges("s", "t"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal: a spanning level chord is cleared on its run", {
+  # The run, not the chord, is what gets drawn, so the run is what the
+  # crossed discs have to clear. A disc that the chord clears by more than R
+  # but the run does not blocks the edge, which then bends like any other
+  # spanning edge.
+  scene <- spanning_level_scene(65.5)
+  expect_gt(chord_min_clearance(scene, 1), r_full)
+  res <- ortho(scene, corners = "sharp")
+
+  expect_equal(res$meta$mode[[1]], "orthogonal")
+  expect_true(res$meta$routed[[1]])
+  runs <- straight_runs(res$paths[[1]])
+  expect_equal(runs$axis, c("h", "v", "h"))
+  expect_equal(runs$coord, c(55, 80, 57), tolerance = 1e-9)
+
+  # mirrored, the run clears the disc by 10.5 mm and the edge is the run on
+  # t's line, two points and nothing oblique
+  scene <- spanning_level_scene(46.5)
+  res <- ortho(scene, corners = "sharp")
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  path <- res$paths[[1]]
+
+  expect_equal(res$meta$mode[[1]], "straight")
+  expect_false(res$meta$routed[[1]])
+  expect_identical(nrow(path), 2L)
+  expect_equal(c(path$x[[1]], path$y[[1]]), c(20, 57), tolerance = 1e-9)
+  expect_equal(c(path$x[[2]], path$y[[2]]), c(100, 57), tolerance = 1e-9)
+  expect_equal(res$meta$resect_fins[[1]], port_resect_at(2), tolerance = 1e-9)
+  expect_equal(res$meta$resect_head[[1]], cap_default)
+})
+
+# The same level pair drawn the other way round: b is the real source and
+# the head arrives at a, so the run lies on a's line and the offset port is
+# b's, on its W face.
+reversed_level_scene <- function(d = 1.5) {
+  list(
+    nodes = mm_nodes(c("a", "b"), c(20, 80), c(55, 55 + d)),
+    edges = mm_edges("b", "a"),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal: a reversed level chord runs on its own target's line", {
+  # The rule mirrored: the tail port is on the right node at the target's y
+  # and the head keeps a's centre, so the path starts at (80, 55) and ends
+  # at (20, 55) with the tail's resect the face resect of b's 1.5 mm offset.
+  scene <- reversed_level_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+  path <- res$paths[[1]]
+
+  expect_equal(res$meta$mode[[1]], "straight")
+  expect_false(res$meta$routed[[1]])
+  expect_equal(res$meta$n_waypoints[[1]], 0)
+  expect_identical(nrow(path), 2L)
+  expect_equal(c(path$x[[1]], path$y[[1]]), c(80, 55), tolerance = 1e-9)
+  expect_equal(c(path$x[[2]], path$y[[2]]), c(20, 55), tolerance = 1e-9)
+  expect_equal(
+    res$meta$resect_fins[[1]],
+    port_resect_at(1.5),
+    tolerance = 1e-9
+  )
+  expect_equal(res$meta$resect_head[[1]], cap_default)
+})
+
+test_that("spline and straight mode draw a level chord between the centres", {
+  # The control on the other two modes: the level rule belongs to the
+  # orthogonal router, and nothing else in the scene changes shape because
+  # of it.
+  scene <- level_pair_scene(1.5)
+  ends <- edge_endpoints(scene, 1)
+  for (mode in c("spline", "straight")) {
+    res <- route_scene(scene, mode = mode)
+    expect_false(res$meta$routed[[1]], label = mode)
+    expect_straight_path(res$paths[[1]], ends$from, ends$to)
+  }
+})
+
+test_that("canonical multi_mediator: the near-level x->y runs on y's line", {
+  # The fixture's own instance of the rule. x sits 1.893 mm above y at the
+  # large panel, inside the corner radius, and the run clears every crossed
+  # disc, so x->y is the horizontal run on y's line.
   scene <- canonical_scene("multi_mediator", c(249.78, 148.18))
   i <- edge_index(scene, "x->y")
   ends <- edge_endpoints(scene, i)
-  expect_lte(abs(ends$from[2] - ends$to[2]), rc_default)
+  off <- ends$from[[2]] - ends$to[[2]]
+  expect_lte(abs(off), rc_default)
   expect_gt(chord_min_clearance(scene, i), r_full)
 
   res <- ortho(scene)
-  expect_equal(res$meta$mode[i], "straight")
   expect_false(res$meta$routed[i])
-  expect_identical(nrow(res$paths[[i]]), 2L)
+  path <- res$paths[[i]]
+  expect_equal(res$meta$mode[i], "straight")
+  expect_identical(nrow(path), 2L)
+  expect_equal(path$y, rep(ends$to[[2]], 2), tolerance = 1e-9)
+  expect_equal(path$x, c(ends$from[[1]], ends$to[[1]]), tolerance = 1e-9)
+  expect_equal(
+    res$meta$resect_fins[[i]],
+    port_resect_at(abs(off)),
+    tolerance = 1e-9
+  )
 })
 
 # x spans the layer of a and b to reach m, whose own y clears both discs by
@@ -5617,9 +5896,9 @@ row_level_scene <- function(off = 1.5) {
 
 test_that("orthogonal: a chord within the corner radius of its row is a straight chord", {
   # A jog of 1.5 mm cannot show two corners of radius 2.1 whether it lands on
-  # the centre row or on a port row, so the arrival is drawn as the chord
-  # from its source to the axis point of the row, and the slot it would have
-  # taken is left free.
+  # the centre row or on a port row, so the arrival is drawn as the run on
+  # its row's line, leaving b through the port 1.5 mm below its centre, and
+  # the slot it would have taken is left free.
   scene <- row_level_scene(1.5)
   res <- ortho(scene)
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
@@ -5631,9 +5910,23 @@ test_that("orthogonal: a chord within the corner radius of its row is a straight
   expect_false(res$meta$routed[i])
   expect_equal(res$meta$n_waypoints[i], 0)
   expect_identical(nrow(path), 2L)
-  expect_equal(c(path$x[[1]], path$y[[1]]), ends$from, tolerance = 1e-9)
+  expect_equal(
+    c(path$x[[1]], path$y[[1]]),
+    c(ends$from[[1]], 58.6),
+    tolerance = 1e-9
+  )
   expect_equal(c(path$x[[2]], path$y[[2]]), c(100, 58.6), tolerance = 1e-9)
   expect_length(slot_xs(path, c(20, 100)), 0)
+  expect_equal(
+    res$meta$resect_fins[[i]],
+    port_resect_at(1.5),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$meta$resect_head[[i]],
+    port_resect_at(sep_e_default),
+    tolerance = 1e-9
+  )
 
   # a source 2.5 mm off its row is past the corner radius and bends as before
   scene <- row_level_scene(2.5)
@@ -5647,14 +5940,16 @@ test_that("orthogonal: a chord within the corner radius of its row is a straight
 test_that("orthogonal: a canonical sub-corner jog onto a port row is drawn straight", {
   # triple_confound's x->m at the small panel is the fixture's own instance:
   # m's arrivals stack, x->m is assigned the row 3.6 mm above m's centre and
-  # x sits 1.749 mm below it, so the chord to the row replaces a jog no
-  # reader could see as two corners. The chord is tilted 3.8 degrees, the
-  # tilt item 48 accepts for a level chord.
+  # x sits 1.749 mm below it, so the run on the row replaces a jog no reader
+  # could see as two corners. x leaves through the port on that row, so the
+  # run is level and the tail's resect is the face resect of the 1.749 mm
+  # offset.
   scene <- canonical_scene("triple_confound", c(100, 70))
   res <- ortho(scene)
   i <- edge_index(scene, "x->m")
   path <- res$paths[[i]]
   ends <- edge_endpoints(scene, i)
+  off <- ends$to[[2]] + sep_e_default - ends$from[[2]]
 
   expect_equal(res$meta$mode[i], "straight")
   expect_identical(nrow(path), 2L)
@@ -5664,6 +5959,20 @@ test_that("orthogonal: a canonical sub-corner jog onto a port row is drawn strai
   expect_lte(jog, rc_default)
   tilt <- atan2(jog, abs(path$x[[2]] - path$x[[1]])) * 180 / pi
   expect_lt(tilt, 5)
+
+  expect_equal(jog, 0, tolerance = 1e-9)
+  expect_equal(path$x[[1]], ends$from[[1]], tolerance = 1e-9)
+  expect_lte(abs(off), rc_default)
+  expect_equal(
+    res$meta$resect_fins[[i]],
+    port_resect_at(abs(off)),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$meta$resect_head[[i]],
+    port_resect_at(sep_e_default),
+    tolerance = 1e-9
+  )
 })
 
 # Rows out of a floored rung-4 gap -----------------------------------------------
@@ -6433,6 +6742,317 @@ test_that("orthogonal heads: a row in a floored gap keeps its head on its run", 
   }
   expect_gt(wide, 30L)
   expect_gt(ported, 20L)
+})
+
+# The oblique-run census -------------------------------------------------------
+
+# The three device sizes the routing gallery renders at, as panel dimensions
+# in millimetres: 4 x 3, 7 x 5 and 10 x 6 inches, each less the 4.2175 mm the
+# theme leaves outside the panel.
+gallery_panels <- list(
+  c(97.3824823578, 71.9824823578),
+  c(173.5824823578, 122.7824823578),
+  c(249.7824823578, 148.1824823578)
+)
+
+# The largest scene the gallery draws, in the coordinates the router is
+# handed: thirty nodes over eleven layers, each at its layer's share of the
+# panel width and its own fraction of the panel height, joined by the
+# fifty-six edges of the DAG. Two of its edges are the level chords the
+# round was reported on.
+very_big_nodes <- data.frame(
+  name = c(
+    "parental_ses",
+    "genetics",
+    "education",
+    "birth_weight",
+    "adversity",
+    "occupation",
+    "stress",
+    "social_support",
+    "income",
+    "depression",
+    "nutrition",
+    "phys_act",
+    "diet",
+    "sleep",
+    "bmi",
+    "healthcare_access",
+    "alcohol",
+    "medication",
+    "insulin_resistance",
+    "air_pollution",
+    "smoking",
+    "diabetes",
+    "bp",
+    "inflammation",
+    "chol",
+    "ckd",
+    "cancer",
+    "cvd",
+    "frailty",
+    "mortality"
+  ),
+  layer = c(
+    1L,
+    2L,
+    2L,
+    3L,
+    3L,
+    3L,
+    3L,
+    3L,
+    4L,
+    4L,
+    4L,
+    5L,
+    5L,
+    5L,
+    6L,
+    6L,
+    7L,
+    7L,
+    7L,
+    8L,
+    8L,
+    8L,
+    8L,
+    9L,
+    9L,
+    9L,
+    10L,
+    10L,
+    10L,
+    11L
+  ),
+  fraction = c(
+    0.443717277487,
+    0.247818499127,
+    0.335078534031,
+    0.45462478185,
+    0.592495636998,
+    0.702879581152,
+    0.794284467714,
+    0.916666666667,
+    0.409904013962,
+    0.497164048866,
+    0.753054101222,
+    0.694153577661,
+    0.781413612565,
+    0.868673647469,
+    0.2842495637,
+    0.371509598604,
+    0.299520069808,
+    0.602530541012,
+    0.689790575916,
+    0.0833333333333,
+    0.335296684119,
+    0.532722513089,
+    0.622382198953,
+    0.126745200698,
+    0.214005235602,
+    0.564354275742,
+    0.258944153578,
+    0.346204188482,
+    0.568935427574,
+    0.391797556719
+  ),
+  stringsAsFactors = FALSE
+)
+
+very_big_edge_specs <- c(
+  "adversity->depression",
+  "adversity->smoking",
+  "air_pollution->inflammation",
+  "alcohol->bp",
+  "alcohol->cancer",
+  "birth_weight->nutrition",
+  "bmi->bp",
+  "bmi->inflammation",
+  "bmi->insulin_resistance",
+  "bp->ckd",
+  "bp->cvd",
+  "cancer->mortality",
+  "chol->cvd",
+  "ckd->frailty",
+  "ckd->mortality",
+  "cvd->mortality",
+  "depression->medication",
+  "depression->phys_act",
+  "diabetes->ckd",
+  "diabetes->cvd",
+  "diet->bmi",
+  "education->healthcare_access",
+  "education->income",
+  "education->occupation",
+  "education->smoking",
+  "frailty->mortality",
+  "genetics->birth_weight",
+  "genetics->bmi",
+  "genetics->chol",
+  "healthcare_access->medication",
+  "income->diet",
+  "income->healthcare_access",
+  "income->phys_act",
+  "inflammation->cancer",
+  "inflammation->cvd",
+  "insulin_resistance->diabetes",
+  "medication->bp",
+  "nutrition->diet",
+  "occupation->income",
+  "parental_ses->adversity",
+  "parental_ses->birth_weight",
+  "parental_ses->education",
+  "parental_ses->nutrition",
+  "phys_act->bmi",
+  "phys_act->bp",
+  "phys_act->cvd",
+  "sleep->bmi",
+  "smoking->cancer",
+  "smoking->chol",
+  "smoking->cvd",
+  "social_support->depression",
+  "social_support->phys_act",
+  "stress->alcohol",
+  "stress->depression",
+  "stress->sleep",
+  "stress->smoking"
+)
+
+very_big_scene <- function(panel) {
+  parts <- strsplit(very_big_edge_specs, "->", fixed = TRUE)
+  list(
+    name = "very_big",
+    nodes = mm_nodes(
+      very_big_nodes$name,
+      very_big_nodes$layer / 12 * panel[1],
+      very_big_nodes$fraction * panel[2]
+    ),
+    edges = mm_edges(
+      vapply(parts, `[[`, character(1), 1L),
+      vapply(parts, `[[`, character(1), 2L)
+    ),
+    bounds = c(0, 0, panel)
+  )
+}
+
+# The scenes the oblique census runs over: everything the head census sees,
+# plus the canonical DAGs and the gallery's largest scene at each of the
+# three device sizes.
+oblique_census_scenes <- function() {
+  scenes <- head_census_scenes()
+  for (panel in gallery_panels) {
+    for (nm in names(canonical_dag_specs)) {
+      scenes[[length(scenes) + 1L]] <- canonical_scene(nm, panel)
+    }
+    scenes[[length(scenes) + 1L]] <- very_big_scene(panel)
+  }
+  scenes
+}
+
+test_that("orthogonal: no run in any scene is drawn at an angle", {
+  # An orthogonal drawing shows axis-aligned runs and rounded corners and
+  # nothing else, so over every census scene at every size no segment of any
+  # path across layers is oblique. The reading is the sharp polyline, the one
+  # the corner rounding is applied to, since a rounded corner's samples are
+  # oblique by construction. The count of level chords drawn on a line is
+  # pinned too: a rule that drew none of them would satisfy everything else
+  # here.
+  oblique <- 0L
+  crossing <- 0L
+  on_a_line <- 0L
+  for (scene in oblique_census_scenes()) {
+    res <- ortho(scene, corners = "sharp")
+    layers <- infer_layers(scene$nodes, r_default)
+    layer_of <- stats::setNames(layers$id, scene$nodes$name)
+    for (i in seq_len(nrow(scene$edges))) {
+      from <- layer_of[[scene$edges$from[[i]]]]
+      to <- layer_of[[scene$edges$to[[i]]]]
+      if (from == to) {
+        next
+      }
+      crossing <- crossing + 1L
+      path <- dedupe_path(res$paths[[i]])
+      axes <- segment_axes(path, 1e-6)
+      label <- paste0(
+        scene$name %||% "fixture",
+        " ",
+        edge_labels(scene$edges)[[i]],
+        " at ",
+        paste(round(scene$bounds[3:4], 2), collapse = " x ")
+      )
+      expect_equal(sum(axes == "o"), 0L, label = label)
+      oblique <- oblique + sum(axes == "o")
+      ends <- edge_endpoints(scene, i)
+      moved <- nrow(path) == 2L &&
+        res$meta$mode[[i]] == "straight" &&
+        abs(path$y[[1]] - ends$from[[2]]) > 1e-9
+      if (moved) {
+        on_a_line <- on_a_line + 1L
+      }
+    }
+  }
+  expect_equal(oblique, 0L)
+  # the census is worth having only if it covers the pictures, and only if
+  # the scenes hold level chords for the rule to move
+  expect_gt(crossing, 900L)
+  expect_gt(on_a_line, 30L)
+})
+
+test_that("orthogonal: the reported very_big level chords are horizontal", {
+  # The two edges the round was reported on, at the size they were reported
+  # at. Both are span-2 level chords with their endpoints 1.616 mm apart, so
+  # each is drawn as the run on its target's line: the path starts at the
+  # source's x on the target's y, is exactly level, and carries the face
+  # resect of the offset at its tail and the plain cap at its head.
+  scene <- very_big_scene(gallery_panels[[3]])
+  res <- ortho(scene)
+
+  for (label in c("parental_ses->birth_weight", "smoking->cvd")) {
+    i <- edge_index(scene, label)
+    path <- res$paths[[i]]
+    ends <- edge_endpoints(scene, i)
+    off <- ends$from[[2]] - ends$to[[2]]
+
+    expect_equal(
+      abs(off),
+      1.616,
+      tolerance = 1e-3,
+      label = paste(label, "offset")
+    )
+    expect_equal(res$meta$mode[[i]], "straight", label = paste(label, "mode"))
+    expect_identical(nrow(path), 2L)
+    expect_equal(
+      c(path$x[[1]], path$y[[1]]),
+      c(ends$from[[1]], ends$to[[2]]),
+      tolerance = 1e-9,
+      label = paste(label, "tail port")
+    )
+    expect_equal(
+      c(path$x[[2]], path$y[[2]]),
+      ends$to,
+      tolerance = 1e-9,
+      label = paste(label, "head point")
+    )
+    expect_equal(path$y[[1]], path$y[[2]], label = paste(label, "tilt"))
+    expect_equal(
+      res$meta$resect_fins[[i]],
+      port_resect_at(abs(off)),
+      tolerance = 1e-9,
+      label = paste(label, "tail resect")
+    )
+    expect_equal(
+      res$meta$resect_fins[[i]],
+      port_resect_at(1.616),
+      tolerance = 1e-3,
+      label = paste(label, "tail resect at the design's offset")
+    )
+    expect_equal(
+      res$meta$resect_head[[i]],
+      cap_default,
+      label = paste(label, "head resect")
+    )
+  }
 })
 
 # The panel's routed paths as the arrow grob the layer draws them with, so
