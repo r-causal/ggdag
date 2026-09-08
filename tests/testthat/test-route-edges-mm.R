@@ -42,10 +42,17 @@ stub_min_default <- cap_default + max(head_default, rc_default) + rc_default
 
 # Where the ladder's last rung places a slot, the run left between it and
 # the target's layer is the run the arrowhead is drawn on: cap + head = 10
-# mm of it holds the whole head. A gap holds that floor and the source's
-# soft band together from R_soft + cap + head = 17.2 mm on, which is where
-# the target-side floor starts to apply.
+# mm of it holds the whole head, and a further head_margin = sep_e / 2 = 1.8
+# keeps the base of that head clear of the nearest run in the gap. The last
+# rung spreads its slots over the band from the source layer's R_soft to
+# cap + head + head_margin = 11.8 mm before the target layer, so a gap holds
+# the whole band from R_soft + cap + head + head_margin = 19 mm on, and holds
+# the head run with its margin at the tightest spacing the ladder allows
+# from 11.8 + sep_min (K - 1) mm on. A gap holds the head run and the
+# source's soft band together from R_soft + cap + head = 17.2 mm on.
 head_run_default <- cap_default + head_default
+head_margin_default <- sep_e_default / 2
+head_run_margin_default <- head_run_default + head_margin_default
 head_run_gap_default <- r_soft + head_run_default
 
 # The drawn head is head_w = 1.3 mm wide, so a port row stays within
@@ -61,6 +68,11 @@ face_tip_default <- cap_default - r_default
 port_resect_at <- function(offset, r = r_default, cap = cap_default) {
   cap - r + sqrt(r^2 - offset^2)
 }
+
+# The drawn shaft is 0.45 mm wide, so the ink of a shaft overlaps the ink of
+# a head when the shaft comes within head_w / 2 + shaft / 2 = 0.875 mm of
+# the head's axis, which the head-crossing census below calls touching.
+shaft_default <- 0.45
 
 # ggarrow resects the last cap = 8 mm of every edge, so the drawn arrowhead
 # of an edge occupies the arc of its path from 2 cap to cap mm before its
@@ -894,13 +906,17 @@ expect_orthogonal_scene <- function(
     expect_equal(res$meta$mode[i], "orthogonal", label = label)
     expect_true(res$meta$routed[i], label = label)
     bends <- res$waypoints[[i]]
-    expect_gte(nrow(bends), 2L, label = label)
+    runs <- straight_runs(path)
+    expect_gte(nrow(runs), 2L, label = label)
+    # an E/W path turns twice, once out of its source and once into its
+    # target, unless its slot sits on the source layer's own centre line:
+    # then the first run has no length, the path leaves its node vertically
+    # and there is one bend to make
+    off_source_line <- runs$axis[[1]] == "v" && runs$axis[[nrow(runs)]] == "h"
+    expect_gte(nrow(bends), if (off_source_line) 1L else 2L, label = label)
     expect_equal(res$meta$n_waypoints[i], nrow(bends), label = label)
     expect_true(all(is.na(bends$layer)), label = label)
     expect_orthogonal_outside_corners(path, bends, rc_used, label = label)
-
-    runs <- straight_runs(path)
-    expect_gte(nrow(runs), 2L, label = label)
     if (stub_always || res$meta$clearance_ok[i]) {
       floor <- cap_default + max(head_default, rc_used) - 1e-9
       expect_gte(
@@ -5023,18 +5039,36 @@ test_that("route_constants() derives the minimum slot separation and takes an ov
   expect_lte(route_constants(6)$sep_min, route_constants(6)$sep_e)
 })
 
-# The slot x of each edge of the narrow band, in edge order.
-narrow_band_slots <- function(scene, res) {
-  layers <- infer_layers(scene$nodes, r_default)
+# The x of the vertical run each path of a single-gap scene crosses the gap
+# on, in edge order. The run is found by its place in the path rather than by
+# its distance from a layer: the last rung may put a slot within sep_e of a
+# layer line, or exactly on it, and slot_xs() reports neither.
+ladder_slots <- function(res) {
   vapply(
     res$paths,
     function(path) {
-      x <- slot_xs(path, layers$x)
-      expect_length(x, 1)
-      x
+      runs <- straight_runs(path)
+      unique(runs$coord[runs$axis == "v"])
     },
     numeric(1)
   )
+}
+
+# Every vertical run of every path of a scene with a single gap, flat rather
+# than one value per path, for a scene whose paths do not each cross the gap
+# exactly once.
+crossing_slots <- function(res) {
+  unlist(lapply(res$paths, function(path) {
+    runs <- straight_runs(path)
+    runs$coord[runs$axis == "v"]
+  }))
+}
+
+# The distinct slots a scene draws inside the gap between the layer lines
+# `lo` and `hi`, for a scene of more than one gap.
+slots_in_gap <- function(res, lo, hi) {
+  xs <- crossing_slots(res)
+  sort(unique(round(xs[xs > lo + 1e-6 & xs < hi - 1e-6], 9)))
 }
 
 test_that("orthogonal ladder: a 40 mm gap takes the stub slack and keeps its slots", {
@@ -5047,7 +5081,7 @@ test_that("orthogonal ladder: a 40 mm gap takes the stub slack and keeps its slo
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
   expect_true(all(res$meta$clearance_ok))
   expect_equal(
-    narrow_band_slots(scene, res),
+    ladder_slots(res),
     c(45.4, 41.8, 38.2, 34.6),
     tolerance = 1e-6
   )
@@ -5077,7 +5111,7 @@ test_that("orthogonal ladder: a 30 mm gap tightens the spacing", {
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
   expect_true(all(res$meta$clearance_ok))
   expect_equal(
-    sort(narrow_band_slots(scene, res)),
+    sort(ladder_slots(res)),
     c(37.2, 39.0667, 40.9333, 42.8),
     tolerance = 1e-4
   )
@@ -5106,17 +5140,57 @@ test_that("orthogonal ladder: a 27 mm gap tightens the corner radius", {
   expect_equal(gaps$spacing, sep_min_default)
   expect_orthogonal_scene(scene, res, stub_always = TRUE)
 
-  slots <- sort(narrow_band_slots(scene, res))
+  slots <- sort(ladder_slots(res))
   expect_equal(diff(slots), rep(sep_min_default, 3), tolerance = 1e-6)
   expect_gte(min(slots), 26.5 + 11.25 - 1e-6)
   expect_lte(max(slots), 53.5 - 11.25 + 1e-6)
 })
 
-test_that("orthogonal ladder: a 20 mm gap keeps the target-side slot a head's run clear", {
-  # rung 4: no stub fits, and 20 mm holds R_soft + cap + head, so the slot
-  # nearest the target sits cap + head from the target's layer and the rest
-  # follow it at the gap's spacing. The gap's edges lose their clearance
-  # either way; what the floor buys is a straight run for every head.
+test_that("orthogonal ladder: rung 3 keeps its stub floor", {
+  # The head margin belongs to the last rung alone. Rung 3 buys its band by
+  # shrinking the corner radius, and its stub with it, to cap + head + rc:
+  # 11.083 mm on the treatment scene and 11.0 on large_epi, both of which
+  # leave the whole head and less than the 1.8 mm behind it that the last
+  # rung leaves. Carrying the margin here would push these two gaps to the
+  # last rung and redraw both scenes, for a crossing no census observes
+  # below it, so the stub floor stands where it is.
+  scene <- canonical_scene("treatment", c(100, 70))
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, c(2, 2, 3))
+  expect_equal(gaps$stub[[3]], 11.083333, tolerance = 1e-6)
+  expect_equal(res$ortho$rc, 1.083333, tolerance = 1e-6)
+  expect_lt(gaps$stub[[3]], head_run_margin_default)
+  expect_gt(gaps$stub[[3]], head_run_default)
+  slots <- slots_in_gap(ortho(scene, corners = "sharp"), 190 / 3, 90)
+  expect_equal(
+    slots,
+    c(74.416667, 75.916667, 77.416667, 78.916667),
+    tolerance = 1e-6
+  )
+  expect_equal(min(slots) - 190 / 3, gaps$stub[[3]], tolerance = 1e-6)
+  expect_equal(90 - max(slots), gaps$stub[[3]], tolerance = 1e-6)
+
+  scene <- canonical_scene("large_epi", c(160, 110))
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, c(1, 1, 1, 1, 3))
+  expect_equal(gaps$stub[[5]], 11, tolerance = 1e-6)
+  expect_equal(res$ortho$rc, 1, tolerance = 1e-6)
+  slots <- slots_in_gap(ortho(scene, corners = "sharp"), 122, 150)
+  expect_equal(slots, c(133, 134.5, 136, 137.5, 139), tolerance = 1e-6)
+  expect_equal(min(slots) - 122, 11, tolerance = 1e-6)
+  expect_equal(150 - max(slots), 11, tolerance = 1e-6)
+})
+
+test_that("orthogonal ladder: a 20 mm gap keeps the head run and its margin clear", {
+  # rung 4: no stub fits, so the four slots are spread over the band from
+  # the source's soft margin to the head run and its margin, 11.8 mm before
+  # the target's layer. The band is 1 mm wide against the 4.5 mm four slots
+  # need at sep_min, so the spread is anchored at the head run and overflows
+  # toward the source. The gap's edges lose their clearance either way; what
+  # the rule buys is a straight run for every head with nothing drawn across
+  # the base of it.
   scene <- narrow_band_scene(gap = 20)
   res <- ortho(scene)
   expect_true(all(res$meta$routed))
@@ -5125,23 +5199,25 @@ test_that("orthogonal ladder: a 20 mm gap keeps the target-side slot a head's ru
   gaps <- res$ortho$gaps
   expect_equal(gaps$rung, 4)
   expect_equal(gaps$width, 20)
+  expect_equal(gaps$spacing, sep_min_default)
 
-  slots <- sort(narrow_band_slots(scene, res))
+  slots <- sort(ladder_slots(res))
   expect_length(unique(round(slots, 9)), 4)
-  expect_equal(max(slots), 50 - head_run_default, tolerance = 1e-6)
+  expect_equal(slots, 38.2 - sep_min_default * (3:0), tolerance = 1e-6)
+  expect_equal(max(slots), 50 - head_run_margin_default, tolerance = 1e-6)
   expect_true(all(diff(slots) >= sep_min_default - 1e-9))
-  # 20 mm is 2.8 mm short of the floor and the two soft bands together, and
-  # the source side is the one that gives that up: its slot is inside the
-  # source's band, and still inside the gap
+  # the source's band is the one that gives way: the slot nearest the source
+  # is inside it, and still inside the gap
   expect_lt(min(slots), 30 + r_soft)
   expect_gte(min(slots), 30)
 })
 
 test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", {
   # edge_sep_min = edge_sep makes rung 2 a no-op and rung 3 unreachable, so
-  # a 30 mm gap drops to rung 4 with the slots the fallback drew: sep_e
-  # apart, without clearance, and 0.4 mm nearer the source than the gap
-  # midpoint, which is what the target-side floor costs here
+  # a 30 mm gap drops to rung 4, where four slots a full separation apart
+  # span 10.8 mm of the band's 11, and are centred in it: 0.1 mm short of
+  # the head run at the target end and 0.1 mm clear of the soft margin at
+  # the source's
   scene <- narrow_band_scene(gap = 30)
   res <- route_scene(
     scene,
@@ -5153,9 +5229,14 @@ test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", 
   expect_equal(res$ortho$gaps$rung, 4)
   expect_equal(res$ortho$gaps$spacing, sep_e_default)
 
-  slots <- narrow_band_slots(scene, res)
-  expect_equal(sort(slots), c(34.2, 37.8, 41.4, 45.0), tolerance = 1e-6)
-  expect_equal(max(slots), 55 - head_run_default, tolerance = 1e-6)
+  slots <- ladder_slots(res)
+  expect_equal(sort(slots), c(32.3, 35.9, 39.5, 43.1), tolerance = 1e-6)
+  expect_equal(
+    max(slots),
+    55 - head_run_margin_default - 0.1,
+    tolerance = 1e-6
+  )
+  expect_equal(min(slots), 25 + r_soft + 0.1, tolerance = 1e-6)
 })
 
 # `k` sources into one target across one gap, the saturated scene's worst
@@ -5220,9 +5301,10 @@ test_that("orthogonal ladder: nine arrivals in a 41.63 mm gap reach the second r
 
 test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap give the target its head run", {
   # 24.4 + 1.5 * 8 = 36.4 and 21.6 + 1.5 * 8 = 33.6 both exceed the gap, so
-  # it falls to rung 4, where the nine slots would sit r + m_min from either
-  # layer. The gap is wider than R_soft + cap + head, so the nine slide
-  # 2.8 mm toward the source to leave the target's arrival its head run.
+  # it falls to rung 4. Nine slots at sep_min span 12 mm against the 9.93 mm
+  # band from the soft margin to the head run and its margin, so the spread
+  # is anchored at the head run and reaches back to 5.13 mm from the source's
+  # layer, inside its soft band and clear of its centre line.
   scene <- nine_arrival_scene(28.93)
   res <- ortho(scene)
   expect_true(all(res$meta$routed))
@@ -5232,37 +5314,16 @@ test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap give the target it
 
   slots <- gap_slots(scene, res)
   expect_length(unique(round(slots, 9)), 9)
-  expect_equal(max(slots), 48.93 - head_run_default, tolerance = 1e-6)
+  expect_equal(diff(slots), rep(sep_min_default, 8), tolerance = 1e-6)
+  expect_equal(
+    max(slots),
+    48.93 - head_run_margin_default,
+    tolerance = 1e-6
+  )
   # the source side is inside its own soft band, and inside the gap
   expect_lt(min(slots), 20 + r_soft)
   expect_gte(min(slots), 20)
 })
-
-# The x of the vertical run of every path of a scene with a single gap,
-# wherever that run sits. ladder_slots() drops a run that lands on a layer's
-# centre line, which is the very position a containment claim has to see.
-crossing_slots <- function(res) {
-  unlist(lapply(res$paths, function(path) {
-    runs <- straight_runs(path)
-    runs$coord[runs$axis == "v"]
-  }))
-}
-
-# The x of the vertical run of every path that is not on a layer line. At
-# rung 4 a slot can sit closer to a layer than sep_e, or outside the gap
-# altogether, and slot_xs() reports neither.
-ladder_slots <- function(scene, res) {
-  layers <- infer_layers(scene$nodes, r_default)
-  vapply(
-    res$paths,
-    function(path) {
-      runs <- straight_runs(path)
-      x <- runs$coord[runs$axis == "v"]
-      x[!vapply(x, function(v) any(abs(v - layers$x) < 1e-6), logical(1))]
-    },
-    numeric(1)
-  )
-}
 
 # Two arrivals crossing one gap into two targets, their y-intervals
 # overlapping, so they take two ranks and each head arrives on its target's
@@ -5287,19 +5348,77 @@ mirrored_two_arrival_scene <- function(gap) {
   scene
 }
 
-test_that("orthogonal ladder: two rung-4 slots span the band from R_soft to the head run", {
-  # 20.8 mm is R_soft + cap + head + sep_e, the width at which two slots a
-  # separation apart fit the band exactly: the far one keeps cap + head from
-  # the target's layer and the near one R_soft from the source's
+test_that("orthogonal ladder: two rung-4 slots span the band from R_soft to the head margin", {
+  # 20.8 mm is R_soft + cap + head + head_margin + sep_e / 2, the width at
+  # which two slots fit the band exactly at half a separation: the far one
+  # keeps the head run and its margin from the target's layer and the near
+  # one R_soft from the source's
   scene <- two_arrival_scene(20.8)
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
   expect_equal(res$ortho$gaps$ranks, 2)
   expect_equal(res$ortho$gaps$width, 20.8)
+  expect_equal(res$ortho$gaps$spacing, sep_e_default / 2, tolerance = 1e-6)
 
   expect_equal(
-    sort(ladder_slots(scene, res)),
-    c(30 + r_soft, 50.8 - head_run_default),
+    sort(ladder_slots(res)),
+    c(30 + r_soft, 50.8 - head_run_margin_default),
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal ladder: the last rung spreads over the band it is given", {
+  # The band runs from R_soft at the source layer to cap + head + head_margin
+  # before the target layer, and the slots are placed in it four ways as it
+  # narrows. Measured from the source layer in each case.
+  band_slots <- function(scene, left) {
+    sort(ladder_slots(ortho(scene, corners = "sharp"))) - left
+  }
+
+  # centred in the band: at 23 mm it is 4 mm wide and two slots a full
+  # separation apart span 3.6 of it, so each sits 0.2 mm inside an end
+  scene <- two_arrival_scene(23)
+  expect_equal(ortho(scene)$ortho$gaps$spacing, sep_e_default)
+  expect_equal(band_slots(scene, 30), c(7.4, 11), tolerance = 1e-6)
+
+  # filling it exactly: four ranks over the 4.6 mm band of a 23.6 mm gap
+  # take 4.6 / 3 apiece, where the centred and anchored placements coincide
+  scene <- k_arrival_scene(23.6, 4)
+  expect_equal(ortho(scene)$ortho$gaps$ranks, 4)
+  expect_equal(ortho(scene)$ortho$gaps$spacing, 4.6 / 3, tolerance = 1e-6)
+  expect_equal(
+    band_slots(scene, 20),
+    r_soft + (4.6 / 3) * (0:3),
+    tolerance = 1e-6
+  )
+
+  # anchored at the head run and overflowing toward the source: seven ranks
+  # at sep_min need 9 mm against the 8.1 mm band of a 27.1 mm gap
+  scene <- k_arrival_scene(27.1, 7)
+  expect_equal(ortho(scene)$ortho$gaps$spacing, sep_min_default)
+  expect_equal(
+    band_slots(scene, 20),
+    6.3 + sep_min_default * (0:6),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    27.1 - max(band_slots(scene, 20)),
+    head_run_margin_default,
+    tolerance = 1e-6
+  )
+
+  # stopped by the source layer's centre line: the same seven ranks in the
+  # 20.82 mm gap the gallery's largest scene draws, where the overflow has
+  # 0.02 mm to spare and the target still keeps its whole run
+  scene <- k_arrival_scene(20.82, 7)
+  expect_equal(
+    band_slots(scene, 20),
+    0.02 + sep_min_default * (0:6),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    20.82 - max(band_slots(scene, 20)),
+    head_run_margin_default,
     tolerance = 1e-6
   )
 })
@@ -5313,16 +5432,18 @@ test_that("orthogonal ladder: a rung-4 gap crossed leftwards floors its left slo
   expect_equal(res$ortho$gaps$ranks, 2)
 
   expect_equal(
-    sort(ladder_slots(scene, res)),
-    c(30 + head_run_default, 50.8 - r_soft),
+    sort(ladder_slots(res)),
+    c(30 + head_run_margin_default, 50.8 - r_soft),
     tolerance = 1e-6
   )
 })
 
-test_that("orthogonal ladder: a gap under 17.2 mm keeps the slots it had", {
-  # 16 mm cannot hold the target's floor and the source's soft band at once,
-  # so the rung's centred slots stand: four of them 1.5 mm apart about the
-  # midpoint at 40, the arrangement this gap has always drawn
+test_that("orthogonal ladder: a gap too narrow for the band overflows to the source's line", {
+  # 16 mm cannot hold four slots at sep_min and the head run with its margin
+  # at once: the spread is anchored 11.8 mm from the target, overflows the
+  # source's centre line by 0.3 mm, and is shifted back onto that line, so
+  # the target keeps 11.5 mm of run instead of 11.8. The head still has its
+  # whole run; what the gap cannot afford is the margin behind it.
   scene <- narrow_band_scene(gap = 16)
   res <- ortho(scene)
   gaps <- res$ortho$gaps
@@ -5330,11 +5451,13 @@ test_that("orthogonal ladder: a gap under 17.2 mm keeps the slots it had", {
   expect_lt(gaps$width, head_run_gap_default)
   expect_equal(gaps$spacing, sep_min_default)
 
-  expect_equal(
-    sort(narrow_band_slots(scene, res)),
-    c(37.75, 39.25, 40.75, 42.25),
-    tolerance = 1e-6
-  )
+  slots <- sort(ladder_slots(res))
+  expect_equal(slots, c(32, 33.5, 35, 36.5), tolerance = 1e-6)
+  # the source layer's centre line, the hard stop the overflow reaches
+  expect_equal(min(slots), 32, tolerance = 1e-9)
+  expect_equal(48 - max(slots), 11.5, tolerance = 1e-6)
+  expect_gt(48 - max(slots), head_run_default)
+  expect_lt(48 - max(slots), head_run_margin_default)
 })
 
 # Two layers `gap` apart crossed in both directions: `a1 -> b1` rightwards
@@ -5386,11 +5509,12 @@ test_that("orthogonal ladder: ten rung-4 arrivals keep every slot inside the gap
   expect_lte(max(slots), 43)
 })
 
-test_that("orthogonal ladder: the band caps the slide short of the head run", {
-  # 18 mm is 0.8 mm past the 17.2 mm gate, so the nine centred slots may
-  # move 0.8 mm and no further: the target-side slot stops 3.8 mm from the
-  # target's layer rather than at the 10 mm head run, and the source-side
-  # slot keeps 2.2 mm from the source's layer
+test_that("orthogonal ladder: the source's line caps the spread short of the head run", {
+  # nine slots at sep_min need 12 mm and the head run with its margin
+  # another 11.8, against an 18 mm gap. The spread is anchored at the head
+  # run, overflows the source's centre line, and is shifted back onto it, so
+  # the slot nearest the target stops 6 mm out, short of the head's own run,
+  # and the gap is not floored at all.
   scene <- nine_arrival_scene(18)
   res <- ortho(scene)
   gaps <- res$ortho$gaps
@@ -5398,10 +5522,10 @@ test_that("orthogonal ladder: the band caps the slide short of the head run", {
   expect_equal(gaps$ranks, 9)
   expect_equal(gaps$spacing, sep_min_default)
 
-  slots <- sort(ladder_slots(scene, res))
-  expect_equal(slots, 22.2 + sep_min_default * (0:8), tolerance = 1e-6)
-  expect_equal(min(slots) - 20, 2.2, tolerance = 1e-6)
-  expect_equal(38 - max(slots), 3.8, tolerance = 1e-6)
+  slots <- sort(ladder_slots(res))
+  expect_equal(slots, 20 + sep_min_default * (0:8), tolerance = 1e-6)
+  expect_equal(min(slots), 20, tolerance = 1e-9)
+  expect_equal(38 - max(slots), 6, tolerance = 1e-6)
   expect_lt(38 - max(slots), head_run_default)
 })
 
@@ -5415,7 +5539,7 @@ test_that("orthogonal ladder: a rung-4 gap crossed both ways keeps its centred s
   expect_equal(gaps$rung, 4)
   expect_equal(gaps$ranks, 2)
   expect_equal(
-    sort(ladder_slots(scene, res)),
+    sort(ladder_slots(res)),
     40 + c(-1, 1) * sep_e_default / 2,
     tolerance = 1e-6
   )
@@ -5425,8 +5549,13 @@ test_that("orthogonal ladder: a rung-4 gap crossed both ways keeps its centred s
   rightwards <- scene
   rightwards$edges <- mm_edges(c("a1", "a2"), c("b1", "b2"))
   expect_equal(
-    sort(ladder_slots(rightwards, ortho(rightwards))),
-    c(36.4, 40),
+    sort(ladder_slots(ortho(rightwards))),
+    c(36.7, 38.2),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    50 - max(ladder_slots(ortho(rightwards))),
+    head_run_margin_default,
     tolerance = 1e-6
   )
 })
@@ -5439,15 +5568,17 @@ test_that("orthogonal ladder: a mixed hyperedge keeps its slot on the midpoint",
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
   expect_equal(res$ortho$gaps$ranks, 1)
-  expect_equal(unique(ladder_slots(scene, res)), 40, tolerance = 1e-6)
+  expect_equal(unique(ladder_slots(res)), 40, tolerance = 1e-6)
 })
 
-test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides of the soft bands", {
+test_that("orthogonal ladder: rung 4 keeps nine slots at sep_min across the soft bands", {
   # 2 R_soft = 14.4 is the width at which the two layers' soft bands meet.
   # A spread of band / (K - 1) alone gives 0.00125 mm just above that width
   # against sep_e just below it: a 14.4 mm jump in the drawing, and eight
-  # verticals a reader takes for one. The floor holds the spacing at
-  # sep_min = 1.5 on both sides of the boundary.
+  # verticals a reader takes for one. The spacing floor holds the nine slots
+  # at sep_min = 1.5 on both sides of the boundary; at either width they
+  # overflow the band and sit on the source's centre line, so the two
+  # arrangements are the same one.
   wide <- nine_arrival_scene(14.41)
   narrow <- nine_arrival_scene(14.39)
   res_wide <- ortho(wide)
@@ -5461,8 +5592,8 @@ test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides
   }
 
   # nine sources, so every pair of slots comes from a different source
-  slots_wide <- sort(ladder_slots(wide, res_wide))
-  slots_narrow <- sort(ladder_slots(narrow, res_narrow))
+  slots_wide <- sort(ladder_slots(res_wide))
+  slots_narrow <- sort(ladder_slots(res_narrow))
   expect_length(slots_wide, 9)
   expect_length(slots_narrow, 9)
   expect_true(all(diff(slots_wide) >= sep_min_default - 1e-9))
@@ -5471,38 +5602,68 @@ test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides
   expect_lte(max(abs(slots_wide - slots_narrow)), sep_e_default)
 })
 
-test_that("orthogonal ladder: the target-side slot moves continuously as the gap widens", {
-  # The gap swept from rung 4 through rungs 3 and 2, finely across 17.2 mm,
-  # the width from which the target-side floor applies. The slot nearest the
-  # target is the one every head in the gap is drawn on, so it is the slot a
-  # reader follows: it may not move by more than a separation between
-  # neighbouring widths. The slots behind it do step at the 3 / 4 handover,
-  # where rung 3 measures from its stub and rung 4 from the floor, which is
-  # why the property is stated about the target-side slot alone. Within
-  # rung 4, including across 17.2 mm, no slot may step at all.
+# One scene's ladder swept over a list of gap widths, on the sharp polyline
+# so that a jog the corners round away entirely still reports the slot it
+# turns at. The reduction is the largest step any slot takes between
+# neighbouring widths within the last rung, the largest step of the slot
+# nearest the target overall and within the last rung, the largest step of
+# that slot at a change of rung, and the rungs the sweep visited.
+ladder_sweep <- function(maker, gaps) {
   previous <- NULL
   previous_rung <- NA_integer_
-  worst_target <- 0
-  worst_rung4 <- 0
-  gaps <- sort(unique(c(seq(13, 45, by = 0.05), seq(16.8, 17.6, by = 0.01))))
+  out <- list(rung4 = 0, target = 0, target4 = 0, handover = 0)
+  rungs <- integer(0)
   for (gap in gaps) {
-    scene <- nine_arrival_scene(gap)
-    # on the sharp polyline, so that a jog the corners round away entirely
-    # still reports the slot it turns at
-    res <- ortho(scene, corners = "sharp")
-    slots <- sort(ladder_slots(scene, res))
+    res <- ortho(maker(gap), corners = "sharp")
+    slots <- sort(ladder_slots(res))
     rung <- res$ortho$gaps$rung
     if (!is.null(previous)) {
-      worst_target <- max(worst_target, abs(max(slots) - max(previous)))
-      if (rung == 4 && previous_rung == 4) {
-        worst_rung4 <- max(worst_rung4, max(abs(slots - previous)))
+      step <- max(abs(slots - previous))
+      target <- abs(max(slots) - max(previous))
+      out$target <- max(out$target, target)
+      if (rung == 4L && previous_rung == 4L) {
+        out$rung4 <- max(out$rung4, step)
+        out$target4 <- max(out$target4, target)
+      } else if (rung != previous_rung) {
+        out$handover <- max(out$handover, target)
       }
     }
     previous <- slots
     previous_rung <- rung
+    rungs <- c(rungs, rung)
   }
-  expect_lte(worst_target, sep_e_default + 1e-9)
-  expect_lte(worst_rung4, sep_e_default + 1e-9)
+  out$rungs <- unique(rungs)
+  out
+}
+
+test_that("orthogonal ladder: the target-side slot moves continuously as the gap widens", {
+  # The gap swept from rung 4 through rungs 3 and 2. The slot nearest the
+  # target is the one every head in the gap is drawn on, so it is the slot a
+  # reader follows: it may not move by more than a separation between
+  # neighbouring widths, and within the last rung no slot may move faster
+  # than the gap widens at all, which the 0.01 mm sweeps below measure at
+  # exactly 0.01 mm a step. The handover from rung 3 is the one step the
+  # ladder takes: the target-side slot moves from the rung-3 stub out to the
+  # head run with its margin, 1.25 mm at two ranks and 1.0 at nine, read to
+  # the sweep's own 0.01 mm resolution.
+  coarse <- ladder_sweep(
+    nine_arrival_scene,
+    sort(unique(c(seq(13, 45, by = 0.05), seq(16.8, 17.6, by = 0.01))))
+  )
+  expect_true(all(c(2L, 3L, 4L) %in% coarse$rungs))
+  expect_lte(coarse$target, sep_e_default + 1e-9)
+  expect_lte(coarse$rung4, sep_e_default + 1e-9)
+
+  # two ranks and nine, each swept across its own rung 3 / 4 handover
+  for (sweep in list(
+    ladder_sweep(two_arrival_scene, seq(20, 26, by = 0.01)),
+    ladder_sweep(nine_arrival_scene, seq(30, 36, by = 0.01))
+  )) {
+    expect_lte(sweep$rung4, 0.0101)
+    expect_lte(sweep$target4, 0.0101)
+    expect_gt(sweep$handover, 0.9)
+    expect_lte(sweep$handover, 1.26)
+  }
 })
 
 test_that("orthogonal channels: an S/N channel retries at the shorter stub", {
@@ -6027,9 +6188,9 @@ canonical_arrival_offsets <- function(name, node, panel = c(100, 70)) {
 }
 
 test_that("orthogonal ports: a floored rung-4 gap gives its arrivals rows", {
-  # At 20.8 mm the gap's slots have slid until the one nearest the target
-  # sits cap + head from its layer, so the run each head is drawn on holds a
-  # row as well as the head. The pair straddles the target's centre line at
+  # At 20.8 mm the slot nearest the target sits cap + head + head_margin
+  # from its layer, so the run each head is drawn on holds a row as well as
+  # the head. The pair straddles the target's centre line at
   # +- sep_e / 2, the arrangement two arrivals with no level owner take, and
   # each tip lands on the disc face of its own row.
   scene <- floored_pair_scene(20.8)
@@ -6039,11 +6200,15 @@ test_that("orthogonal ports: a floored rung-4 gap gives its arrivals rows", {
   expect_equal(gaps$ranks, 2)
   expect_equal(gaps$width, 20.8)
 
-  # the slots are the ones round four placed: the rule reads them, it does
-  # not move them
-  slots <- sort(ladder_slots(scene, ortho(scene, corners = "sharp")))
-  expect_equal(slots, c(27.2, 30.8), tolerance = 1e-6)
-  expect_equal(40.8 - max(slots), head_run_default, tolerance = 1e-6)
+  # the slots are the ones the ladder placed: the row rule reads them, it
+  # does not move them
+  slots <- sort(ladder_slots(ortho(scene, corners = "sharp")))
+  expect_equal(slots, c(27.2, 29), tolerance = 1e-6)
+  expect_equal(
+    40.8 - max(slots),
+    head_run_margin_default,
+    tolerance = 1e-6
+  )
 
   offs <- arrival_offsets(scene, res, "t")
   expect_equal(unname(offs[["s1->t"]]), -sep_e_default / 2, tolerance = 1e-6)
@@ -6068,37 +6233,27 @@ test_that("orthogonal ports: a floored rung-4 gap gives its arrivals rows", {
 })
 
 test_that("orthogonal ports: a rung-4 gap short of the floor keeps the centre row", {
-  # 16 mm cannot hold the target's floor and the source's soft band at once,
-  # so the slots do not move and the run left to the target is 7.2 mm, too
-  # short to carry a row as well as a head. Both arrivals stay on the centre
-  # line, exactly as they are drawn today.
-  scene <- floored_pair_scene(16)
+  # A gap holds the whole head run only from cap + head + sep_min (K - 1) mm
+  # on: at 11.4 mm two slots at sep_min sit on the source's centre line and
+  # the run left to the target is 9.9 mm, too short to carry a row as well
+  # as a head. Both arrivals stay on the centre line, exactly as they are
+  # drawn today.
+  scene <- floored_pair_scene(11.4)
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
-  expect_equal(
-    sort(ladder_slots(scene, ortho(scene, corners = "sharp"))),
-    c(27.2, 28.8),
-    tolerance = 1e-6
-  )
+  slots <- sort(ladder_slots(ortho(scene, corners = "sharp")))
+  expect_equal(slots, c(20, 21.5), tolerance = 1e-6)
+  expect_equal(31.4 - max(slots), 9.9, tolerance = 1e-6)
+  expect_lt(31.4 - max(slots), head_run_default)
   expect_equal(unname(arrival_offsets(scene, res, "t")), c(0, 0))
 
-  # 18 mm is past the 17.2 mm gate but the band caps the slide at 0.8 mm, so
-  # the slot nearest the target stops 8 mm from its layer, short of the
-  # 10 mm floor. A partly floored gap is not a floored one.
-  scene <- floored_pair_scene(18)
-  res <- ortho(scene)
-  expect_equal(res$ortho$gaps$rung, 4)
-  slots <- sort(ladder_slots(scene, ortho(scene, corners = "sharp")))
-  expect_equal(slots, c(26.4, 30), tolerance = 1e-6)
-  expect_lt(38 - max(slots), head_run_default)
-  expect_equal(unname(arrival_offsets(scene, res, "t")), c(0, 0))
-
-  # the nine-source gap at the same width is the room-capped case of the
-  # same thing: its target-side slot stops 3.8 mm out and all nine arrivals
-  # keep the centre row
+  # the nine-source gap at 18 mm is the same case with nine slots: they take
+  # 12 mm of an 18 mm gap, the target-side slot stops 6 mm out, and all nine
+  # arrivals keep the centre row
   scene <- nine_arrival_scene(18)
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
+  expect_lt(38 - max(sort(ladder_slots(res))), head_run_default)
   expect_equal(unname(arrival_offsets(scene, res, "t")), rep(0, 9))
 })
 
@@ -6274,18 +6429,15 @@ test_that("orthogonal ports: the other floored shared targets take their rows", 
 })
 
 test_that("orthogonal ladder: a scene with no floored gap is unchanged", {
-  # The 16 mm band is too narrow to reach the floor, so nothing about it
-  # moves: the four slots are the ones pinned before rows in rung-4 gaps
-  # existed, and every arrival is still drawn on its target's centre line.
-  scene <- narrow_band_scene(gap = 16)
+  # A 14 mm band holds four slots at sep_min and 9.5 mm of run before the
+  # target, half a millimetre short of the floor, so no arrival takes a row:
+  # every one is still drawn on its target's centre line.
+  scene <- narrow_band_scene(gap = 14)
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
-  expect_lt(res$ortho$gaps$width, head_run_gap_default)
-  expect_equal(
-    sort(narrow_band_slots(scene, res)),
-    c(37.75, 39.25, 40.75, 42.25),
-    tolerance = 1e-6
-  )
+  slots <- sort(ladder_slots(res))
+  expect_equal(slots, c(33, 34.5, 36, 37.5), tolerance = 1e-6)
+  expect_lt(47 - max(slots), head_run_default)
   for (node in c("b1", "b2", "b3", "b4")) {
     expect_equal(unname(arrival_offsets(scene, res, node)), 0, tolerance = 1e-6)
   }
@@ -6298,8 +6450,8 @@ test_that("orthogonal ladder: a scene with no floored gap is unchanged", {
   expect_equal(unname(arrival_offsets(scene, res, "b1")), 0, tolerance = 1e-6)
   expect_equal(unname(arrival_offsets(scene, res, "b2")), 0, tolerance = 1e-6)
   expect_equal(
-    sort(ladder_slots(scene, ortho(scene, corners = "sharp"))),
-    c(30 + r_soft, 50.8 - head_run_default),
+    sort(ladder_slots(ortho(scene, corners = "sharp"))),
+    c(30 + r_soft, 50.8 - head_run_margin_default),
     tolerance = 1e-6
   )
 })
@@ -7056,6 +7208,418 @@ test_that("orthogonal: the reported very_big level chords are horizontal", {
 })
 
 
+# The head-crossing census ------------------------------------------------------
+
+# The nearest point of each segment (x0, y0) - (x1, y1) to the point
+# (px, py), vectorised over the segments.
+nearest_on_segment <- function(px, py, x0, y0, x1, y1) {
+  dx <- x1 - x0
+  dy <- y1 - y0
+  len2 <- dx^2 + dy^2
+  along <- ifelse(len2 > 0, ((px - x0) * dx + (py - y0) * dy) / len2, 0)
+  along <- pmin(pmax(along, 0), 1)
+  qx <- x0 + along * dx
+  qy <- y0 + along * dy
+  list(d = sqrt((px - qx)^2 + (py - qy)^2), qx = qx, qy = qy)
+}
+
+# Whether the segment a properly crosses each segment b, vectorised over b.
+segments_meet <- function(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1) {
+  cross <- function(ux, uy, vx, vy) ux * vy - uy * vx
+  d1 <- cross(ax1 - ax0, ay1 - ay0, bx0 - ax0, by0 - ay0)
+  d2 <- cross(ax1 - ax0, ay1 - ay0, bx1 - ax0, by1 - ay0)
+  d3 <- cross(bx1 - bx0, by1 - by0, ax0 - bx0, ay0 - by0)
+  d4 <- cross(bx1 - bx0, by1 - by0, ax1 - bx0, ay1 - by0)
+  (d1 * d2 < 0) & (d3 * d4 < 0)
+}
+
+# The distance from a drawn head's axis, the segment from its tip to its
+# base, to each segment of another path, with the nearest point on that
+# segment so that a crossing hidden under a node's disc can be dropped.
+head_axis_dist <- function(tip, base, x0, y0, x1, y1) {
+  crossed <- segments_meet(
+    tip[[1]],
+    tip[[2]],
+    base[[1]],
+    base[[2]],
+    x0,
+    y0,
+    x1,
+    y1
+  )
+  a <- nearest_on_segment(tip[[1]], tip[[2]], x0, y0, x1, y1)
+  b <- nearest_on_segment(base[[1]], base[[2]], x0, y0, x1, y1)
+  c0 <- nearest_on_segment(x0, y0, tip[[1]], tip[[2]], base[[1]], base[[2]])
+  c1 <- nearest_on_segment(x1, y1, tip[[1]], tip[[2]], base[[1]], base[[2]])
+  d <- pmin(a$d, b$d, c0$d, c1$d)
+  d[crossed] <- 0
+  best <- max.col(-cbind(a$d, b$d, c0$d, c1$d), ties.method = "first")
+  list(
+    d = d,
+    qx = ifelse(
+      best == 1,
+      a$qx,
+      ifelse(best == 2, b$qx, ifelse(best == 3, x0, x1))
+    ),
+    qy = ifelse(
+      best == 1,
+      a$qy,
+      ifelse(best == 2, b$qy, ifelse(best == 3, y0, y1))
+    )
+  )
+}
+
+# Every foreign shaft drawn across an arrowhead of a scene. The head of an
+# edge is the arc of its path from the tip, `resect_head` from its end, to
+# the base a further `head` back, and it is head_w wide; a segment of
+# another edge's path is drawn across it when it comes within
+# head_w / 2 + tol of that axis, which at the default tolerance of half the
+# shaft width is where the two inks overlap. Segments whose nearest point is
+# hidden under a node's disc draw nothing, and an edge sharing the head's
+# target is not foreign: those are the merged rows and shared runs of a
+# stack, which the port rules own. Each hit carries the gap its segment
+# crosses when that segment is a vertical inside one, so that a hit in a gap
+# wide enough to have avoided it can be told from a hit in one that could
+# not.
+head_crossings <- function(scene, res, tol = shaft_default / 2) {
+  layers <- infer_layers(scene$nodes, r_default)
+  gaps <- res$ortho$gaps
+  paths <- lapply(res$paths, dedupe_path)
+  drawn <- vapply(paths, nrow, integer(1)) >= 2L
+  labels <- edge_labels(scene$edges)
+  hits <- list()
+  for (i in seq_len(nrow(scene$edges))) {
+    if (!drawn[[i]]) {
+      next
+    }
+    resect <- res$meta$resect_head[[i]]
+    tip <- arc_from_end(paths[[i]], resect)
+    base <- arc_from_end(paths[[i]], resect + head_default)
+    for (j in seq_len(nrow(scene$edges))) {
+      if (j == i || !drawn[[j]] || scene$edges$to[[j]] == scene$edges$to[[i]]) {
+        next
+      }
+      path <- paths[[j]]
+      n <- nrow(path)
+      d <- head_axis_dist(
+        tip,
+        base,
+        path$x[-n],
+        path$y[-n],
+        path$x[-1],
+        path$y[-1]
+      )
+      near <- which(d$d < head_w_default / 2 + tol)
+      hidden <- vapply(
+        near,
+        function(k) {
+          any(
+            sqrt(
+              (scene$nodes$x - d$qx[[k]])^2 + (scene$nodes$y - d$qy[[k]])^2
+            ) <
+              scene$nodes$r - 1e-9
+          )
+        },
+        logical(1)
+      )
+      near <- near[!hidden]
+      if (length(near) == 0) {
+        next
+      }
+      k <- near[[which.min(d$d[near])]]
+      vertical <- abs(path$x[[k + 1L]] - path$x[[k]]) < 1e-6 &&
+        abs(path$y[[k + 1L]] - path$y[[k]]) > 1e-6
+      x <- path$x[[k]]
+      inside <- vertical &&
+        !any(abs(layers$x - x) < sep_e_default / 2 + 1e-6) &&
+        x > layers$x[[1]] &&
+        x < layers$x[[layers$n]]
+      gap <- if (inside) max(which(layers$x < x)) else NA_integer_
+      row <- if (!is.na(gap) && !is.null(gaps)) {
+        gaps[gaps$gap == gap, , drop = FALSE]
+      } else {
+        NULL
+      }
+      hits[[length(hits) + 1L]] <- data.frame(
+        head = labels[[i]],
+        cross = labels[[j]],
+        dist = d$d[[k]],
+        gap = gap,
+        width = if (is.null(row) || nrow(row) != 1) NA_real_ else row$width,
+        ranks = if (is.null(row) || nrow(row) != 1) NA_real_ else row$ranks,
+        rung = if (is.null(row) || nrow(row) != 1) NA_integer_ else row$rung,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  if (length(hits) == 0) {
+    return(data.frame(
+      head = character(),
+      cross = character(),
+      dist = numeric(),
+      gap = integer(),
+      width = numeric(),
+      ranks = numeric(),
+      rung = integer(),
+      stringsAsFactors = FALSE
+    ))
+  }
+  do.call(rbind, hits)
+}
+
+# Whether each hit's crossing segment is a vertical in a rung-4 gap wide
+# enough to hold the head run with its margin at the tightest spacing the
+# ladder allows, which is the gap the last rung could have kept clear.
+in_a_wide_gap <- function(hits) {
+  !is.na(hits$rung) &
+    hits$rung == 4 &
+    hits$width >=
+      head_run_margin_default + sep_min_default * (hits$ranks - 1) - 1e-9
+}
+
+# Every gap of a scene that is crossed in one direction, with the shortest
+# run any vertical drawn in it leaves before the target layer's centre line.
+# A gap crossed both ways has no target side and is left out.
+gap_head_runs <- function(scene, res) {
+  layers <- infer_layers(scene$nodes, r_default)
+  gaps <- res$ortho$gaps
+  if (is.null(gaps) || nrow(gaps) == 0) {
+    return(NULL)
+  }
+  layer_of <- stats::setNames(layers$id, scene$nodes$name)
+  out <- list()
+  for (g in gaps$gap) {
+    lo <- layers$x[[g]]
+    hi <- layers$x[[g + 1L]]
+    sides <- integer(0)
+    run <- Inf
+    for (i in seq_len(nrow(scene$edges))) {
+      if (res$meta$mode[[i]] != "orthogonal") {
+        next
+      }
+      from <- layer_of[[scene$edges$from[[i]]]]
+      to <- layer_of[[scene$edges$to[[i]]]]
+      runs <- straight_runs(dedupe_path(res$paths[[i]]))
+      inside <- runs$axis == "v" &
+        runs$coord > lo + 1e-6 &
+        runs$coord < hi - 1e-6
+      if (!any(inside)) {
+        next
+      }
+      if (min(from, to) <= g && max(from, to) > g) {
+        sides <- c(sides, sign(to - from))
+      }
+      target <- if (to > from) hi else lo
+      run <- min(run, min(abs(target - runs$coord[inside])))
+    }
+    if (length(unique(sides)) != 1L || !is.finite(run)) {
+      next
+    }
+    row <- gaps[gaps$gap == g, , drop = FALSE]
+    out[[length(out) + 1L]] <- data.frame(
+      gap = g,
+      width = row$width,
+      ranks = row$ranks,
+      rung = row$rung,
+      run = run,
+      stringsAsFactors = FALSE
+    )
+  }
+  if (length(out) == 0) {
+    return(NULL)
+  }
+  do.call(rbind, out)
+}
+
+test_that("orthogonal ladder: a gap that can hold the head margin holds it", {
+  # Over every census scene at every size. A rung-4 gap holds the head run
+  # and its margin once it is 11.8 + sep_min (K - 1) mm wide, and in every
+  # gap that wide no vertical is drawn nearer the target's layer than
+  # 11.8 mm, with the nearest sitting exactly there. The gaps too narrow for
+  # that are counted, not pinned: their ranks and the head run cannot both
+  # be had, and the spread gives up the source's side of the gap first.
+  wide <- 0L
+  narrow <- 0L
+  nearest <- Inf
+  for (scene in oblique_census_scenes()) {
+    res <- ortho(scene)
+    tab <- gap_head_runs(scene, res)
+    if (is.null(tab)) {
+      next
+    }
+    tab <- tab[tab$rung == 4, , drop = FALSE]
+    for (k in seq_len(nrow(tab))) {
+      bound <- head_run_margin_default + sep_min_default * (tab$ranks[[k]] - 1)
+      if (tab$width[[k]] < bound - 1e-9) {
+        narrow <- narrow + 1L
+        next
+      }
+      wide <- wide + 1L
+      nearest <- min(nearest, tab$run[[k]])
+      expect_gte(
+        tab$run[[k]],
+        head_run_margin_default - 1e-9,
+        label = paste0(
+          scene$name %||% "fixture",
+          " gap ",
+          tab$gap[[k]],
+          " at ",
+          paste(round(scene$bounds[3:4], 2), collapse = " x ")
+        )
+      )
+    }
+  }
+  expect_equal(nearest, head_run_margin_default, tolerance = 1e-9)
+  # the census is worth having only if the pictures put arrivals in such
+  # gaps, and only if the narrow ones are there to be excluded honestly
+  expect_gt(wide, 60L)
+  expect_gt(narrow, 0L)
+})
+
+test_that("orthogonal heads: no foreign shaft is drawn on a head out of a gap that can spare it", {
+  # The same scenes, read as ink rather than as slots: every shaft drawn
+  # within half its own width of an arrowhead of another edge. None of them
+  # is a vertical in a gap wide enough to have avoided it. The thirty that
+  # remain are all in the two sizes at which the gallery's largest scene has
+  # 8.1 and 14.5 mm gaps to fit eleven layers into, where no arrangement of
+  # six or eight ranks leaves a head its run.
+  hits <- list()
+  for (scene in oblique_census_scenes()) {
+    res <- ortho(scene)
+    found <- head_crossings(scene, res)
+    if (nrow(found) == 0) {
+      next
+    }
+    hits[[length(hits) + 1L]] <- cbind(
+      scene = scene$name %||% "fixture",
+      found,
+      stringsAsFactors = FALSE
+    )
+  }
+  hits <- do.call(rbind, hits)
+  expect_equal(sum(in_a_wide_gap(hits)), 0L)
+  expect_equal(nrow(hits), 30L)
+  expect_setequal(unique(hits$scene), "very_big")
+})
+
+test_that("orthogonal heads: very_big draws no foreign shaft on a head at 10 x 6", {
+  # The scene the ladder's floor was reported on. At 10 x 6 its eleven
+  # layers sit 20.815 mm apart, which every gap can spare the margin out of,
+  # and no shaft touches a head. At the two smaller sizes the gaps are 8.1
+  # and 14.5 mm and the count stands where the ranks leave it.
+  counts <- vapply(
+    gallery_panels,
+    function(panel) {
+      scene <- very_big_scene(panel)
+      nrow(head_crossings(scene, ortho(scene)))
+    },
+    integer(1)
+  )
+  expect_equal(counts, c(17L, 13L, 0L))
+
+  scene <- very_big_scene(gallery_panels[[3]])
+  res <- ortho(scene)
+  sharp <- ortho(scene, corners = "sharp")
+  layers <- infer_layers(scene$nodes, r_default)
+  verticals <- function(label) {
+    runs <- straight_runs(dedupe_path(sharp$paths[[edge_index(scene, label)]]))
+    runs$coord[runs$axis == "v"]
+  }
+
+  # the vertical that ran down the base of both medication heads, and the
+  # two heads themselves, which end on medication's layer at their own rows
+  expect_equal(
+    verticals("bmi->insulin_resistance"),
+    133.906448,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    layers$x[[7]] - 133.906448,
+    head_run_margin_default,
+    tolerance = 1e-6
+  )
+  for (label in c("healthcare_access->medication", "depression->medication")) {
+    i <- edge_index(scene, label)
+    path <- res$paths[[i]]
+    expect_equal(path$x[[nrow(path)]], layers$x[[7]], tolerance = 1e-6)
+    expect_equal(
+      res$meta$resect_head[[i]],
+      port_resect_at(sep_e_default / 2),
+      tolerance = 1e-6
+    )
+  }
+
+  # gap 7's target-side vertical, which ran through the bodies of five heads
+  # at smoking, bp and diabetes
+  expect_equal(max(verticals("stress->smoking")), 154.721655, tolerance = 1e-6)
+  expect_equal(
+    layers$x[[8]] - 154.721655,
+    head_run_margin_default,
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal ports: gap 7 of very_big at 10 x 6 is floored", {
+  # Seven ranks at sep_min take 9 mm of the gap's 20.815 and the head run
+  # with its margin another 11.8, so the spread reaches to 0.02 mm of the
+  # source layer's centre line and the target keeps its whole run. The gap
+  # is floored, so its arrivals take rows: smoking's three heads and bp's
+  # four are drawn on their own lines instead of piled on one.
+  scene <- very_big_scene(gallery_panels[[3]])
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  row <- gaps[gaps$gap == 7, , drop = FALSE]
+  expect_equal(row$ranks, 7)
+  expect_equal(row$rung, 4)
+  expect_equal(row$spacing, sep_min_default)
+
+  resects <- function(offs) {
+    vapply(
+      names(offs),
+      function(label) res$meta$resect_head[[edge_index(scene, label)]],
+      numeric(1)
+    )
+  }
+  offs <- arrival_offsets(scene, res, "smoking")
+  expect_equal(
+    offs[c("adversity->smoking", "education->smoking", "stress->smoking")],
+    c(
+      "adversity->smoking" = 0,
+      "education->smoking" = -sep_e_default,
+      "stress->smoking" = sep_e_default
+    ),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    unname(resects(offs)),
+    c(cap_default, rep(port_resect_at(sep_e_default), 2)),
+    tolerance = 1e-6
+  )
+
+  offs <- arrival_offsets(scene, res, "bp")
+  expect_equal(
+    offs[c("alcohol->bp", "bmi->bp", "medication->bp", "phys_act->bp")],
+    c(
+      "alcohol->bp" = -port_row_max,
+      "bmi->bp" = -port_row_max / 3,
+      "medication->bp" = port_row_max / 3,
+      "phys_act->bp" = port_row_max
+    ),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    unname(resects(offs)),
+    port_resect_at(c(
+      port_row_max,
+      port_row_max / 3,
+      port_row_max / 3,
+      port_row_max
+    )),
+    tolerance = 1e-6
+  )
+})
+
+
 # Channel packing --------------------------------------------------------------
 
 # Four layers at x = 20, 70, 120, 170 on a 190 x 110 mm panel; each 50 mm gap
@@ -7438,8 +8002,8 @@ test_that("orthogonal packing: genetics -> chol runs on chol's line at 10 x 6", 
   # The defect the round was reported on. genetics -> chol is placed last of
   # the twenty-two spanning edges and finds chol's line 31.71 blocked only by
   # bmi -> inflammation's run at 30.45; that run slides up one sep_e and
-  # genetics -> chol takes the line, drawn as a 10 mm stub, a 3.4 mm drop and
-  # a 134 mm run into chol's centre. At HEAD every candidate is infeasible
+  # genetics -> chol takes the line, drawn as a 9 mm stub, a 3.4 mm drop and
+  # a 136 mm run into chol's centre. At HEAD every candidate is infeasible
   # and the edge is clamped at 19.65, 15.5 mm down and 8.7 mm back up.
   scene <- very_big_scene(gallery_panels[[3]])
   res <- ortho(scene)
@@ -7448,21 +8012,21 @@ test_that("orthogonal packing: genetics -> chol runs on chol's line at 10 x 6", 
   expect_equal(res$meta$mode[gc], "orthogonal")
   expect_equal(res$meta$n_waypoints[gc], 2)
   wp <- res$waypoints[[gc]]
-  expect_equal(wp$x, c(52.445621, 52.445621), tolerance = 1e-6)
+  expect_equal(wp$x, c(50.645621, 50.645621), tolerance = 1e-6)
   expect_equal(wp$y, c(36.72236, 31.711827), tolerance = 1e-6)
   # the run is on chol's own line, so the edge owns its target's centre row
   # and the head is drawn at the plain cap
   run <- longest_run(res$paths[[gc]])
   expect_equal(run$coord, node_xy(scene, "chol")[[2]], tolerance = 1e-6)
   expect_equal(run$coord, 31.711827, tolerance = 1e-6)
-  expect_equal(c(run$lo, run$hi), c(53.245621, 187.336862), tolerance = 1e-6)
+  expect_equal(c(run$lo, run$hi), c(51.445621, 187.336862), tolerance = 1e-6)
   expect_equal(res$meta$resect_head[gc], cap_default)
 
   bi <- edge_index(scene, "bmi->inflammation")
   wp <- res$waypoints[[bi]]
   expect_equal(
     wp$x,
-    c(135.706448, 135.706448, 174.129258, 174.129258),
+    c(133.906448, 133.906448, 174.036862, 174.036862),
     tolerance = 1e-6
   )
   expect_equal(
@@ -7491,7 +8055,7 @@ test_that("orthogonal packing: genetics -> chol runs on chol's line at 10 x 6", 
   wp <- res$waypoints[[eh]]
   expect_equal(
     wp$x,
-    c(48.845621, 48.845621, 113.287439, 113.287439),
+    c(48.830414, 48.830414, 111.591241, 111.591241),
     tolerance = 1e-6
   )
   expect_equal(
@@ -7546,25 +8110,26 @@ channel_excursions <- function(scenes) {
 
 test_that("orthogonal packing: the excursion census loses the crowded channel", {
   # Over the head census scenes and the gallery's largest scene at 10 x 6,
-  # 118 E/W channels are drawn and six of them are excursions at HEAD. The
-  # slide removes exactly one, genetics -> chol, whose 24.1 mm of vertical
-  # travel for a 5.0 mm difference becomes the 3.4 mm the two corner arcs
-  # leave. The five that stay are forced detours, not crowding: a blocked
-  # line, a band with no free y, or a channel over a stack that fills the
-  # panel.
+  # 117 E/W channels are drawn and three of them are excursions. The slide
+  # removed genetics -> chol, whose 24.1 mm of vertical travel for a 5.0 mm
+  # difference became the 3.4 mm the two corner arcs leave. Two more went
+  # with the last rung's spread: gene -> cancer leaves its source vertically,
+  # off a census that counts channels leaving through an E port, and
+  # phys_act -> bp's travel falls from 24.1 to 18.8 mm, inside twice its
+  # endpoints' difference. The three that stay are forced detours, not
+  # crowding: a blocked line, a band with no free y, or a channel over a
+  # stack that fills the panel.
   scenes <- c(head_census_scenes(), list(very_big_scene(gallery_panels[[3]])))
   x <- channel_excursions(scenes)
 
-  expect_equal(nrow(x), 118L)
-  expect_equal(sum(x$flagged), 5L)
+  expect_equal(nrow(x), 117L)
+  expect_equal(sum(x$flagged), 3L)
   expect_setequal(
     x$edge[x$flagged],
     c(
-      "gene->cancer",
       "adversity->smoking",
       "education->smoking",
-      "parental_ses->nutrition",
-      "phys_act->bp"
+      "parental_ses->nutrition"
     )
   )
   expect_false(any(x$flagged[x$edge == "genetics->chol"]))
@@ -7602,10 +8167,12 @@ channel_lines <- function(name, panel = c(100, 70)) {
 test_that("orthogonal packing: the scenes with no crowded endpoint line are untouched", {
   # The slide fires only where a feasible endpoint line is crowded, which
   # among the tracked scenes is very_big at 10 x 6 alone. Over every other
-  # census scene the drawn geometry is the one HEAD draws, pinned as the
-  # aggregate of the orthogonal, spline and straight routings: the number of
-  # routed edges, their waypoints, their total drawn length and, for the
-  # orthogonal channels, their total vertical travel.
+  # census scene the drawn geometry is pinned as the aggregate of the
+  # orthogonal, spline and straight routings: the number of routed edges,
+  # their waypoints, their total drawn length and, for the orthogonal
+  # channels, their total vertical travel. The last rung's spread moves the
+  # orthogonal aggregate, and only it: 27 of these scenes' departures now
+  # leave on their source's own centre line, which is one bend fewer each.
   scenes <- c(
     head_census_scenes(),
     list(
@@ -7639,11 +8206,12 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
 
   a <- aggregate_of("orthogonal")
   expect_equal(a$routed, 420L)
-  expect_equal(a$waypoints, 948L)
-  expect_equal(a$drawn, 35454.969137, tolerance = 1e-9)
-  expect_equal(a$travel, 11664.879909, tolerance = 1e-9)
+  expect_equal(a$waypoints, 921L)
+  expect_equal(a$drawn, 35386.220552, tolerance = 1e-9)
+  expect_equal(a$travel, 11608.754659, tolerance = 1e-9)
 
-  # the slide is an orthogonal rule, so neither curved mode moves at all
+  # the slide and the ladder are orthogonal rules, so neither curved mode
+  # moves at all
   b <- aggregate_of("spline")
   expect_equal(b$routed, 78L)
   expect_equal(b$waypoints, 155L)
@@ -7752,16 +8320,17 @@ grob_head_tilts <- function(res) {
   )
 }
 
-test_that("routed arrows: a head at the end of a cap + head run is drawn along it", {
+test_that("routed arrows: a head at the end of a head run and margin is drawn along it", {
   skip_if_not_installed("ggarrow")
-  # The 20 mm gap's target-side slot leaves exactly cap + head of run before
-  # the disc, the shortest run the floor allows. ggarrow cuts the path at
-  # the router's resect and aims the head at the path's last point, so both
-  # lie on that run and every head is drawn along it.
+  # The 20 mm gap's target-side slot leaves exactly cap + head + head_margin
+  # of run before the disc, the shortest run the last rung leaves where the
+  # gap can afford it. ggarrow cuts the path at the router's resect and aims
+  # the head at the path's last point, so both lie on that run and every
+  # head is drawn along it.
   scene <- narrow_band_scene(gap = 20)
   sharp <- ortho(scene, corners = "sharp")
   runs <- vapply(sharp$paths, function(path) last_run(path)$length, numeric(1))
-  expect_equal(min(runs), head_run_default, tolerance = 1e-6)
+  expect_equal(min(runs), head_run_margin_default, tolerance = 1e-6)
 
   res <- ortho(scene)
   # each of the four targets takes one arrival, so every head is cut at the
