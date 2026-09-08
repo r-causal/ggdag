@@ -40,6 +40,14 @@ sep_min_default <- 1.5
 rc_min_default <- 0.8
 stub_min_default <- cap_default + max(head_default, rc_default) + rc_default
 
+# Where the ladder's last rung places a slot, the run left between it and
+# the target's layer is the run the arrowhead is drawn on: cap + head = 10
+# mm of it holds the whole head. A gap holds that floor and the source's
+# soft band together from R_soft + cap + head = 17.2 mm on, which is where
+# the target-side floor starts to apply.
+head_run_default <- cap_default + head_default
+head_run_gap_default <- r_soft + head_run_default
+
 # The drawn head is head_w = 1.3 mm wide, so a port row stays within
 # h = r - head_w / 2 = 5.35 mm of the centre line and the whole head is drawn
 # on the disc. A stack of arrival rows keeps them while they are at least
@@ -4825,9 +4833,11 @@ test_that("orthogonal ladder: a 27 mm gap tightens the corner radius", {
   expect_lte(max(slots), 53.5 - 11.25 + 1e-6)
 })
 
-test_that("orthogonal ladder: a 20 mm gap spreads the slots between the discs", {
-  # rung 4: no stub fits, so the slots are spread over the band that keeps
-  # r + m_min from either layer and the gap's edges lose their clearance
+test_that("orthogonal ladder: a 20 mm gap keeps the target-side slot a head's run clear", {
+  # rung 4: no stub fits, and 20 mm holds R_soft + cap + head, so the slot
+  # nearest the target sits cap + head from the target's layer and the rest
+  # follow it at the gap's spacing. The gap's edges lose their clearance
+  # either way; what the floor buys is a straight run for every head.
   scene <- narrow_band_scene(gap = 20)
   res <- ortho(scene)
   expect_true(all(res$meta$routed))
@@ -4839,14 +4849,20 @@ test_that("orthogonal ladder: a 20 mm gap spreads the slots between the discs", 
 
   slots <- sort(narrow_band_slots(scene, res))
   expect_length(unique(round(slots, 9)), 4)
-  expect_gte(min(slots), 30 + r_default + 1.2 - 1e-6)
-  expect_lte(max(slots), 50 - r_default - 1.2 + 1e-6)
+  expect_equal(max(slots), 50 - head_run_default, tolerance = 1e-6)
+  expect_true(all(diff(slots) >= sep_min_default - 1e-9))
+  # 20 mm is 2.8 mm short of the floor and the two soft bands together, and
+  # the source side is the one that gives that up: its slot is inside the
+  # source's band, and still inside the gap
+  expect_lt(min(slots), 30 + r_soft)
+  expect_gte(min(slots), 30)
 })
 
 test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", {
   # edge_sep_min = edge_sep makes rung 2 a no-op and rung 3 unreachable, so
   # a 30 mm gap drops to rung 4 with the slots the fallback drew: sep_e
-  # apart about the gap midpoint, without clearance
+  # apart, without clearance, and 0.4 mm nearer the source than the gap
+  # midpoint, which is what the target-side floor costs here
   scene <- narrow_band_scene(gap = 30)
   res <- route_scene(
     scene,
@@ -4857,11 +4873,10 @@ test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", 
   expect_false(any(res$meta$clearance_ok))
   expect_equal(res$ortho$gaps$rung, 4)
   expect_equal(res$ortho$gaps$spacing, sep_e_default)
-  expect_equal(
-    sort(narrow_band_slots(scene, res)),
-    c(34.6, 38.2, 41.8, 45.4),
-    tolerance = 1e-6
-  )
+
+  slots <- narrow_band_slots(scene, res)
+  expect_equal(sort(slots), c(34.2, 37.8, 41.4, 45.0), tolerance = 1e-6)
+  expect_equal(max(slots), 55 - head_run_default, tolerance = 1e-6)
 })
 
 # Nine sources into one target across one gap, the saturated scene's worst
@@ -4917,10 +4932,11 @@ test_that("orthogonal ladder: nine arrivals in a 41.63 mm gap reach the second r
   expect_gte(61.63 - max(slots), r_full)
 })
 
-test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap stay clear of both layers", {
+test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap give the target its head run", {
   # 24.4 + 1.5 * 8 = 36.4 and 21.6 + 1.5 * 8 = 33.6 both exceed the gap, so
-  # it falls to rung 4: the slots keep r + m_min from either layer and the
-  # gap's edges report no clearance
+  # it falls to rung 4, where the nine slots would sit r + m_min from either
+  # layer. The gap is wider than R_soft + cap + head, so the nine slide
+  # 2.8 mm toward the source to leave the target's arrival its head run.
   scene <- nine_arrival_scene(28.93)
   res <- ortho(scene)
   expect_true(all(res$meta$routed))
@@ -4930,8 +4946,10 @@ test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap stay clear of both
 
   slots <- gap_slots(scene, res)
   expect_length(unique(round(slots, 9)), 9)
-  expect_gte(min(slots), 20 + r_default + 1.2 - 1e-6)
-  expect_lte(max(slots), 48.93 - r_default - 1.2 + 1e-6)
+  expect_equal(max(slots), 48.93 - head_run_default, tolerance = 1e-6)
+  # the source side is inside its own soft band, and inside the gap
+  expect_lt(min(slots), 20 + r_soft)
+  expect_gte(min(slots), 20)
 })
 
 # The x of the vertical run of every path that is not on a layer line. At
@@ -4949,6 +4967,79 @@ ladder_slots <- function(scene, res) {
     numeric(1)
   )
 }
+
+# Two arrivals crossing one gap into two targets, their y-intervals
+# overlapping, so they take two ranks and each head arrives on its target's
+# centre row at the full cap resect. The layers sit `gap` apart.
+two_arrival_scene <- function(gap) {
+  list(
+    nodes = mm_nodes(
+      c("a1", "a2", "b1", "b2"),
+      c(30, 30, 30 + gap, 30 + gap),
+      c(20, 35, 50, 65)
+    ),
+    edges = mm_edges(c("a1", "a2"), c("b1", "b2")),
+    bounds = c(0, 0, 60 + gap, 90)
+  )
+}
+
+# The same scene drawn the other way: the sources are on the right layer and
+# the two targets on the left, so the target side of the gap is the left one.
+mirrored_two_arrival_scene <- function(gap) {
+  scene <- two_arrival_scene(gap)
+  scene$edges <- mm_edges(scene$edges$to, scene$edges$from)
+  scene
+}
+
+test_that("orthogonal ladder: two rung-4 slots span the band from R_soft to the head run", {
+  # 20.8 mm is R_soft + cap + head + sep_e, the width at which two slots a
+  # separation apart fit the band exactly: the far one keeps cap + head from
+  # the target's layer and the near one R_soft from the source's
+  scene <- two_arrival_scene(20.8)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(res$ortho$gaps$ranks, 2)
+  expect_equal(res$ortho$gaps$width, 20.8)
+
+  expect_equal(
+    sort(ladder_slots(scene, res)),
+    c(30 + r_soft, 50.8 - head_run_default),
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal ladder: a rung-4 gap crossed leftwards floors its left slot", {
+  # the mirror of the same width: the target's layer is the left one, so the
+  # floor is measured from it and the source's band is on the right
+  scene <- mirrored_two_arrival_scene(20.8)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(res$ortho$gaps$ranks, 2)
+
+  expect_equal(
+    sort(ladder_slots(scene, res)),
+    c(30 + head_run_default, 50.8 - r_soft),
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal ladder: a gap under 17.2 mm keeps the slots it had", {
+  # 16 mm cannot hold the target's floor and the source's soft band at once,
+  # so the rung's centred slots stand: four of them 1.5 mm apart about the
+  # midpoint at 40, the arrangement this gap has always drawn
+  scene <- narrow_band_scene(gap = 16)
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 4)
+  expect_lt(gaps$width, head_run_gap_default)
+  expect_equal(gaps$spacing, sep_min_default)
+
+  expect_equal(
+    sort(narrow_band_slots(scene, res)),
+    c(37.75, 39.25, 40.75, 42.25),
+    tolerance = 1e-6
+  )
+})
 
 test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides of the soft bands", {
   # 2 R_soft = 14.4 is the width at which the two layers' soft bands meet.
@@ -4979,26 +5070,38 @@ test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides
   expect_lte(max(abs(slots_wide - slots_narrow)), sep_e_default)
 })
 
-test_that("orthogonal ladder: the nine slots move continuously as the gap widens", {
-  # The gap swept 0.05 mm at a time from rung 4 through rungs 3 and 2. No
-  # slot may move by more than a separation between neighbouring widths.
-  # Rungs 2 and 3 agree at the width where they hand over; the largest step
-  # is at the 3 / 4 boundary, where nine ranks reach rung 3 at 33.6 with a
-  # soft band still wide enough for 2.39 mm of rung 4 spread, and the
-  # outermost slot of the nine steps by exactly sep_e.
+test_that("orthogonal ladder: the target-side slot moves continuously as the gap widens", {
+  # The gap swept from rung 4 through rungs 3 and 2, finely across 17.2 mm,
+  # the width from which the target-side floor applies. The slot nearest the
+  # target is the one every head in the gap is drawn on, so it is the slot a
+  # reader follows: it may not move by more than a separation between
+  # neighbouring widths. The slots behind it do step at the 3 / 4 handover,
+  # where rung 3 measures from its stub and rung 4 from the floor, which is
+  # why the property is stated about the target-side slot alone. Within
+  # rung 4, including across 17.2 mm, no slot may step at all.
   previous <- NULL
-  worst <- 0
-  for (gap in seq(13, 45, by = 0.05)) {
+  previous_rung <- NA_integer_
+  worst_target <- 0
+  worst_rung4 <- 0
+  gaps <- sort(unique(c(seq(13, 45, by = 0.05), seq(16.8, 17.6, by = 0.01))))
+  for (gap in gaps) {
     scene <- nine_arrival_scene(gap)
     # on the sharp polyline, so that a jog the corners round away entirely
     # still reports the slot it turns at
-    slots <- sort(ladder_slots(scene, ortho(scene, corners = "sharp")))
+    res <- ortho(scene, corners = "sharp")
+    slots <- sort(ladder_slots(scene, res))
+    rung <- res$ortho$gaps$rung
     if (!is.null(previous)) {
-      worst <- max(worst, max(abs(slots - previous)))
+      worst_target <- max(worst_target, abs(max(slots) - max(previous)))
+      if (rung == 4 && previous_rung == 4) {
+        worst_rung4 <- max(worst_rung4, max(abs(slots - previous)))
+      }
     }
     previous <- slots
+    previous_rung <- rung
   }
-  expect_lte(worst, sep_e_default + 1e-9)
+  expect_lte(worst_target, sep_e_default + 1e-9)
+  expect_lte(worst_rung4, sep_e_default + 1e-9)
 })
 
 test_that("orthogonal channels: an S/N channel retries at the shorter stub", {
@@ -5679,14 +5782,9 @@ test_that("orthogonal ports: an offset port's path ends at its axis point", {
   }
 })
 
-test_that("orthogonal heads: no head is drawn at an angle to the run it sits on", {
-  # The arrow layer cuts each path at its own resect and aims the head from
-  # the cut point at the path's last point, so a head is straight exactly
-  # when those two share a coordinate. Over every hand fixture and every
-  # canonical scene whose gaps all hold a stub, no head is drawn more than
-  # half a degree off its run. The scenes whose gaps fall to the ladder's
-  # last rung are excluded: there the slot nearest the target sits inside
-  # the cap and the tip lands on a corner, which is a separate question.
+# The scenes the head census runs over: the hand fixtures and the canonical
+# DAGs at both panels.
+head_census_scenes <- function() {
   scenes <- list(
     fan_scene(),
     four_layer_scene(),
@@ -5706,10 +5804,20 @@ test_that("orthogonal heads: no head is drawn at an angle to the run it sits on"
       scenes[[length(scenes) + 1]] <- canonical_scene(nm, panel)
     }
   }
+  scenes
+}
 
+test_that("orthogonal heads: no head is drawn at an angle to the run it sits on", {
+  # The arrow layer cuts each path at its own resect and aims the head from
+  # the cut point at the path's last point, so a head is straight exactly
+  # when those two share a coordinate. Over every hand fixture and every
+  # canonical scene whose gaps all hold a stub, no head is drawn more than
+  # half a degree off its run. The scenes whose gaps fall to the ladder's
+  # last rung are excluded: there the slot nearest the target sits inside
+  # the cap and the tip lands on a corner, which is a separate question.
   n_scenes <- 0L
   n_heads <- 0L
-  for (scene in scenes) {
+  for (scene in head_census_scenes()) {
     res <- ortho(scene)
     gaps <- res$ortho$gaps
     if (!is.null(gaps) && nrow(gaps) > 0 && any(gaps$rung > 3)) {
@@ -5730,6 +5838,151 @@ test_that("orthogonal heads: no head is drawn at an angle to the run it sits on"
   # above draw hundreds of orthogonal heads between them
   expect_gt(n_scenes, 30)
   expect_gt(n_heads, 200)
+})
+
+# The index of the gap an arrival comes out of: the gap holding the x where
+# the path's last run begins, or `NA` when the arrival takes no slot there,
+# as an S/N channel arriving along a layer line does.
+arrival_gap <- function(scene, res, i) {
+  if (res$meta$mode[[i]] != "orthogonal") {
+    return(NA_integer_)
+  }
+  layers <- infer_layers(scene$nodes, r_default)
+  path <- dedupe_path(res$paths[[i]])
+  runs <- straight_runs(path)
+  last <- runs[nrow(runs), ]
+  if (last$axis != "h") {
+    return(NA_integer_)
+  }
+  x <- path$x[[last$from]]
+  g <- which(
+    layers$x[-layers$n] < x - 1e-6 & layers$x[-1] > x + 1e-6
+  )
+  if (length(g) != 1) {
+    return(NA_integer_)
+  }
+  g
+}
+
+test_that("orthogonal heads: a rung-4 arrival is straight once the gap holds the floor", {
+  # The scenes of the census above, this time keeping the ones whose gaps
+  # fall to the ladder's last rung. A gap of at least R_soft + cap + head
+  # keeps the slot nearest the target a head's run from its layer, so every
+  # head that arrives out of one of those gaps is drawn along its own run.
+  # The narrower gaps cannot hold the floor and are counted, not pinned:
+  # over half of their arrivals are still drawn on a corner, which is a
+  # question about gaps too narrow for a head, not about the floor.
+  wide <- 0L
+  wide_tilted <- 0L
+  narrow <- 0L
+  for (scene in head_census_scenes()) {
+    res <- ortho(scene)
+    gaps <- res$ortho$gaps
+    if (is.null(gaps) || nrow(gaps) == 0) {
+      next
+    }
+    for (i in seq_len(nrow(scene$edges))) {
+      g <- arrival_gap(scene, res, i)
+      if (is.na(g)) {
+        next
+      }
+      row <- gaps[gaps$gap == g, , drop = FALSE]
+      if (nrow(row) != 1 || row$rung != 4) {
+        next
+      }
+      if (row$width < head_run_gap_default - 1e-9) {
+        narrow <- narrow + 1L
+        next
+      }
+      wide <- wide + 1L
+      tilt <- head_tilt_degrees(res$paths[[i]], res$meta$resect_head[[i]])
+      if (tilt > 0.5) {
+        wide_tilted <- wide_tilted + 1L
+      }
+      expect_lte(
+        tilt,
+        0.5,
+        label = paste0(
+          scene$name %||% "fixture",
+          " ",
+          edge_labels(scene$edges)[[i]],
+          " head tilt"
+        )
+      )
+    }
+  }
+  expect_equal(wide_tilted, 0L)
+  # the census is worth having only if the pictures put arrivals in such
+  # gaps: forty of the scenes' arrivals come out of one
+  expect_gt(wide, 30L)
+  expect_gt(narrow, 0L)
+})
+
+# The panel's routed paths as the arrow grob the layer draws them with, so
+# that the resect each head is cut at is the one ggarrow is handed. The
+# colours and widths play no part in where a head points; they are here
+# because `routed_arrow_grob()` reads them off the drawn data.
+routed_grob <- function(res) {
+  n <- length(res$paths)
+  edges <- data.frame(
+    linewidth = rep(0.5, n),
+    colour = "black",
+    stroke_colour = NA_character_,
+    alpha = NA_real_,
+    linetype = 1,
+    stroke_width = 0,
+    stringsAsFactors = FALSE
+  )
+  par <- list(
+    resect = list(head = cap_default, fins = 0),
+    length = list(head = NULL, fins = NULL, mid = 4),
+    arrow = list(head = ggarrow::arrow_head_wings(), fins = NULL, mid = NULL),
+    justify = 0,
+    force_arrow = FALSE,
+    mid_place = 0.5,
+    linejoin = "round",
+    linemitre = 10,
+    lineend = "butt"
+  )
+  routed_arrow_grob(edges, res$paths, par, res$meta)
+}
+
+# The angle of every head the grob draws, in degrees off its own run, read
+# from the grob's own millimetres and its own resect.
+grob_head_tilts <- function(res) {
+  grob <- routed_grob(res)
+  x <- as.numeric(grid::convertX(grob$x, "mm"))
+  y <- as.numeric(grid::convertY(grob$y, "mm"))
+  resect <- rep_len(
+    as.numeric(grid::convertUnit(grob$resect$head, "mm")),
+    length(res$paths)
+  )
+  id <- rep(seq_along(res$paths), vapply(res$paths, nrow, integer(1)))
+  vapply(
+    seq_along(res$paths),
+    function(i) {
+      head_tilt_degrees(data.frame(x = x[id == i], y = y[id == i]), resect[[i]])
+    },
+    numeric(1)
+  )
+}
+
+test_that("routed arrows: a head at the end of a cap + head run is drawn along it", {
+  skip_if_not_installed("ggarrow")
+  # The 20 mm gap's target-side slot leaves exactly cap + head of run before
+  # the disc, the shortest run the floor allows. ggarrow cuts the path at
+  # the router's resect and aims the head at the path's last point, so both
+  # lie on that run and every head is drawn along it.
+  scene <- narrow_band_scene(gap = 20)
+  sharp <- ortho(scene, corners = "sharp")
+  runs <- vapply(sharp$paths, function(path) last_run(path)$length, numeric(1))
+  expect_equal(min(runs), head_run_default, tolerance = 1e-6)
+
+  res <- ortho(scene)
+  # each of the four targets takes one arrival, so every head is cut at the
+  # full cap
+  expect_equal(res$meta$resect_head, rep(cap_default, 4), tolerance = 1e-9)
+  expect_true(all(grob_head_tilts(res) < 0.5))
 })
 
 # Helper: infer_layers -----------------------------------------------------------
