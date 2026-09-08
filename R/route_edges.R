@@ -224,7 +224,8 @@ route_constants <- function(
 #'   `ranks`, `rung`, `stub`, and `spacing` (see `ortho_slot_positions()`;
 #'   `stub` is `NA` on the last rung, where no stub fits and the slots are
 #'   centred on the gap, moved toward the source where the gap has the room
-#'   for the target side's head run).
+#'   for the target side's head run; once that run is whole the gap's
+#'   arrivals take rows at their targets as arrivals out of wider gaps do).
 #' @noRd
 route_edges_mm <- function(
   nodes,
@@ -4040,15 +4041,20 @@ ortho_gap_segments <- function(
 #'   soft band but never leave the gap. Either cap can bind first, the room
 #'   once the ranks are many enough to fill the gap, and the slot nearest
 #'   the target then stops short of its head run. A gap crossed in both
-#'   directions has no target side and keeps the centred slots.
+#'   directions has no target side and keeps the centred slots. A gap whose
+#'   slot nearest the target reaches `cap + head` from the target layer's
+#'   centre line is `floored`: the head run out of it holds a row as well
+#'   as a head, so its arrivals take rows at their targets like arrivals
+#'   out of a wider gap, while those out of a narrow gap short of the floor,
+#'   or one with no target side, keep the centre row.
 #'
 #' @param direction One value per segment: `1` when its edges all point to
 #'   the right layer, `-1` when they all point to the left one, and `0` when
 #'   the segment carries both, from `ortho_target_side()`.
 #' @return A list with `x` (the slot of every segment, `NA` for a degenerate
-#'   one), `narrow`, `rc` (the corner radius the gap needs), and `ladder`, a
-#'   one-row data frame with `width`, `ranks`, `rung`, `stub`, and
-#'   `spacing`, `NULL` when no segment took a slot.
+#'   one), `narrow`, `floored`, `rc` (the corner radius the gap needs), and
+#'   `ladder`, a one-row data frame with `width`, `ranks`, `rung`, `stub`,
+#'   and `spacing`, `NULL` when no segment took a slot.
 #' @noRd
 ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
   x <- rep(NA_real_, length(segs$lo))
