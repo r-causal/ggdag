@@ -3378,6 +3378,9 @@ route_orthogonal_scene <- function(
   slot_first <- rep(NA_real_, n_edges)
   slot_last <- rep(NA_real_, n_edges)
   narrow <- logical(n_edges)
+  # an edge arrives through its last gap, or its only one; the row it may
+  # take at its target depends on that gap alone
+  arrival_narrow <- logical(n_edges)
   ladder <- list()
   rc_used <- rc
   ew <- which(kind == "ew")
@@ -3418,6 +3421,10 @@ route_orthogonal_scene <- function(
       slot_last[m[!is_first]] <- pos$x[[k]]
       if (pos$narrow) {
         narrow[m] <- TRUE
+        if (!pos$floored) {
+          arrives <- m[(is_first & span[m] == 1L) | !is_first]
+          arrival_narrow[arrives] <- TRUE
+        }
       }
     }
     if (!is.null(pos$ladder)) {
@@ -3453,15 +3460,22 @@ route_orthogonal_scene <- function(
   # otherwise each group merges onto one row, at its first offset beside an
   # owner and at +- sep_e / 2 (or the centre, for one group alone) without
   # one, and the ladder keeps the joins clear of the stub. The copies of a
-  # parallel bundle are spread sep_m apart already, and an arrival through
-  # a gap too narrow for any stub has no room for a row, so both keep the
-  # centre row
+  # parallel bundle are spread sep_m apart already, so they keep the centre
+  # row. So does an arrival out of a gap too narrow for any stub, unless
+  # the gap is floored: its slots have moved until the one nearest the
+  # target leaves a whole head run before the target's layer, and that run
+  # holds a row as well as a head. Only the arrival gap counts, so an edge
+  # that crosses a narrow gap early and arrives through a wide or floored
+  # one takes a row like any other
   port_y <- numeric(n_edges)
   row_floor <- max(opts$sep_e / 2, opts$sep_min)
   via_last <- span >= 2
   arrival_slot <- ifelse(via_last, slot_last, slot_first)
   arrival_entry <- ifelse(via_last, y_ch, Sy)
-  arrival <- kind == "ew" & !is.na(arrival_slot) & shift == 0 & !narrow
+  arrival <- kind == "ew" &
+    !is.na(arrival_slot) &
+    shift == 0 &
+    !arrival_narrow
   owner <- (kind == "straight" & routable & horizontal & !vertical) |
     (kind == "ew" & via_last & is.na(slot_last))
   for (t in unique(b[arrival])) {
@@ -4040,7 +4054,13 @@ ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
   x <- rep(NA_real_, length(segs$lo))
   live <- which(!segs$degenerate)
   if (length(live) == 0) {
-    return(list(x = x, narrow = FALSE, rc = opts$rc, ladder = NULL))
+    return(list(
+      x = x,
+      narrow = FALSE,
+      floored = FALSE,
+      rc = opts$rc,
+      ladder = NULL
+    ))
   }
   ranks <- ortho_slot_ranks(
     segs$lo[live],
@@ -4066,6 +4086,7 @@ ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
   width0 <- G - 2 * stub0
   even <- width0 >= 0 && (K < 2 || width0 / (K + 1) >= sep_e - eps)
   narrow <- FALSE
+  floored <- FALSE
   rc_g <- rc
   if (even) {
     rung <- 0L
@@ -4131,12 +4152,23 @@ ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
         }
         pos <- pos - target * min(max(overrun, 0), band, max(room, 0))
       }
+      # the gap is floored once the slot nearest the target leaves the
+      # whole head run before the target's layer
+      if (target != 0L) {
+        to_target <- if (target > 0) {
+          gap[[2]] - max(pos)
+        } else {
+          min(pos) - gap[[1]]
+        }
+        floored <- to_target >= head_run - eps
+      }
     }
   }
   x[live] <- pos
   list(
     x = x,
     narrow = narrow,
+    floored = floored,
     rc = rc_g,
     ladder = df_cols(
       width = G,
