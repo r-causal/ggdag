@@ -183,3 +183,29 @@ dagify(
 
 There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.
 
+The `ggarrow` edge engine can also route an edge around a node that sits on its path, either as a smooth curve (`edge_route = "spline"`) or as axis-aligned runs (`edge_route = "orthogonal"`). Routing happens when the plot is drawn, in the millimetres of the device, and `edge_route_options()` carries the constants the router draws with. A field you leave unset is derived from the drawn node size, so one object holds at every plot size.
+
+```{r routing}
+routed_dag <- dagify(y ~ x + m, m ~ x, coords = time_ordered_coords())
+
+#  a spline detour with a shallower maximum bow
+ggdag(
+  routed_dag,
+  edge_engine = "ggarrow",
+  edge_route = "spline",
+  edge_route_options = edge_route_options(max_bow = 0.12)
+) +
+  theme_dag()
+```
+
+```{r routing-orthogonal}
+#  orthogonal runs with sharp corners and a little more daylight
+ggdag(
+  routed_dag,
+  edge_engine = "ggarrow",
+  edge_route = "orthogonal",
+  edge_route_options = edge_route_options(corners = "sharp", clearance = 4)
+) +
+  theme_dag()
+```
+

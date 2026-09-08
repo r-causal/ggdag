@@ -1,5 +1,6 @@
 AST
 Anscombe's
+Bezier
 Bidirected
 CES
 CMD
@@ -61,10 +62,12 @@ lineheight
 linetype
 linewidth
 magrittr
+millimetre
 millimetres
 mismeasure
 misspecified
 mitre
+neighbouring
 parentless
 plotmath
 pos
@@ -72,6 +75,7 @@ pts
 resected
 reversable
 roxygen
+sagitta
 tbl
 tdy
 tetrads
