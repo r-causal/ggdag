@@ -5436,6 +5436,77 @@ test_that("orthogonal ladder: a rung-4 gap crossed leftwards floors its left slo
     c(30 + head_run_margin_default, 50.8 - r_soft),
     tolerance = 1e-6
   )
+
+  # and in the order the ranks give them: rank 1 is the crossing-free slot
+  # nearest the source layer, which is the right one here, so b1 -> a1 takes
+  # 43.6 and b2 -> a2 41.8, the mirror image of the rightward 39.0 and 37.2
+  expect_equal(
+    ladder_slots(res),
+    c(50.8 - r_soft, 30 + head_run_margin_default),
+    tolerance = 1e-6
+  )
+})
+
+# Three arrivals crossing one gap leftwards: the sources sit on the right
+# layer and the targets on the left, their y-intervals overlapping in a
+# chain, so the three segments take three ranks measured from the right.
+mirrored_three_arrival_scene <- function(gap) {
+  list(
+    nodes = mm_nodes(
+      c("a1", "a2", "a3", "b1", "b2", "b3"),
+      c(rep(30, 3), rep(30 + gap, 3)),
+      c(20, 35, 50, 50, 65, 80)
+    ),
+    edges = mm_edges(c("b1", "b2", "b3"), c("a1", "a2", "a3")),
+    bounds = c(0, 0, 60 + gap, 105)
+  )
+}
+
+# Crossings between the runs of different paths of a scene: a horizontal run
+# of one path meeting a vertical run of another at a point interior to both.
+# The runs are compared directly rather than through count_paths_crossing(),
+# which reads such a meeting as a touch whenever the sampling puts a vertex
+# on it, as an axis-aligned crossing usually does.
+count_run_crossings <- function(res, tol = 1e-6) {
+  runs <- lapply(res$paths, straight_runs)
+  pairs <- expand.grid(i = seq_along(runs), j = seq_along(runs))
+  pairs <- pairs[pairs$i != pairs$j, ]
+  sum(vapply(
+    seq_len(nrow(pairs)),
+    function(k) {
+      h <- runs[[pairs$i[k]]]
+      v <- runs[[pairs$j[k]]]
+      h <- h[h$axis == "h", ]
+      v <- v[v$axis == "v", ]
+      grid <- expand.grid(a = seq_len(nrow(h)), b = seq_len(nrow(v)))
+      sum(
+        v$coord[grid$b] > h$lo[grid$a] + tol &
+          v$coord[grid$b] < h$hi[grid$a] - tol &
+          h$coord[grid$a] > v$lo[grid$b] + tol &
+          h$coord[grid$a] < v$hi[grid$b] - tol
+      )
+    },
+    integer(1)
+  ))
+}
+
+test_that("orthogonal ladder: leftward rung-4 slots keep the crossing-free order", {
+  # the ranks are geometric, so measuring them from the source layer is what
+  # keeps the runs apart: three leftward arrivals draw no crossing at any
+  # width the last rung covers, anchored at 16 mm, centred at 23 and 24 mm,
+  # against the rung-0 control at 40 mm
+  for (gap in c(16, 23, 24)) {
+    res <- ortho(mirrored_three_arrival_scene(gap), corners = "sharp")
+    expect_equal(res$ortho$gaps$rung, 4)
+    expect_equal(res$ortho$gaps$ranks, 3)
+    expect_identical(count_run_crossings(res), 0L)
+    # the slots descend with the ranks, away from the source layer
+    expect_true(all(diff(ladder_slots(res)) < 0))
+  }
+
+  res <- ortho(mirrored_three_arrival_scene(40), corners = "sharp")
+  expect_equal(res$ortho$gaps$rung, 0)
+  expect_identical(count_run_crossings(res), 0L)
 })
 
 test_that("orthogonal ladder: a gap too narrow for the band overflows to the source's line", {
