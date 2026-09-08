@@ -53,7 +53,9 @@
 # numbered by longest path, and placed on the first rung of a ladder that
 # holds them: the nominal stub and an even spread, then a shorter stub, a
 # tighter spacing, a smaller corner radius, and finally slots spread between
-# the layers' soft bands without clearance. The arrivals on a node's W side
+# the layers' soft bands without clearance, moved toward the source where the
+# gap can give the slot nearest the target a straight run for its arrowhead.
+# The arrivals on a node's W side
 # take stacked rows beside its centre line, the level chord keeping the
 # centre, the rows centred on the node when no chord is level with it, and
 # a group whose rows would sit closer than half the edge separation merging
@@ -220,7 +222,8 @@ route_constants <- function(
 #'   carries `ortho`: `rc`, the corner radius the scene was drawn with, and
 #'   `gaps`, one row per gap that holds a slot with `gap`, `width`,
 #'   `ranks`, `rung`, `stub`, and `spacing` (see `ortho_slot_positions()`;
-#'   `stub` is `NA` on the last rung, where no stub fits).
+#'   `stub` is `NA` on the last rung, where no stub fits and the slots are
+#'   placed from the target side's head run instead).
 #' @noRd
 route_edges_mm <- function(
   nodes,
@@ -3395,11 +3398,17 @@ route_orthogonal_scene <- function(
       nodes,
       tol
     )
+    direction <- vapply(
+      segs$members,
+      function(m) ortho_target_side(ifelse(info$reversed[m], -1L, 1L)),
+      integer(1)
+    )
     pos <- ortho_slot_positions(
       segs,
       c(layers$x[[g]], layers$x[[g + 1L]]),
       opts,
-      cap
+      cap,
+      direction
     )
     for (k in seq_along(segs$members)) {
       m <- segs$members[[k]]
@@ -4003,14 +4012,27 @@ ortho_gap_segments <- function(
 #'   slots of different sources collapse onto one x, which draws a line the
 #'   DAG does not have, and the spacing jumps by a whole band at the rung
 #'   boundary. The gap is flagged `narrow` and its edges lose their
-#'   clearance.
+#'   clearance. The slot nearest the target is the run every arrowhead out
+#'   of the gap is drawn on, and a centred slot sits `R_soft` from the
+#'   target's layer, inside the cap, so the head would sit on the corner.
+#'   When the gap holds `R_soft + cap + head`, the source's soft band and a
+#'   whole head run, the slots keep their spacing and move toward the
+#'   source until that slot is `cap + head` from the target layer's centre
+#'   line, by no more than the band `G - (R_soft + cap + head)` the gap has
+#'   to spare: nothing moves at that width, the move grows continuously
+#'   with the gap, and the source side may enter its soft band but never
+#'   leave the gap. A gap crossed in both directions has no target side and
+#'   keeps the centred slots.
 #'
+#' @param direction One value per segment: `1` when its edges all point to
+#'   the right layer, `-1` when they all point to the left one, and `0` when
+#'   the segment carries both, from `ortho_target_side()`.
 #' @return A list with `x` (the slot of every segment, `NA` for a degenerate
 #'   one), `narrow`, `rc` (the corner radius the gap needs), and `ladder`, a
 #'   one-row data frame with `width`, `ranks`, `rung`, `stub`, and
 #'   `spacing`, `NULL` when no segment took a slot.
 #' @noRd
-ortho_slot_positions <- function(segs, gap, opts, cap) {
+ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
   x <- rep(NA_real_, length(segs$lo))
   live <- which(!segs$degenerate)
   if (length(live) == 0) {
@@ -4089,6 +4111,17 @@ ortho_slot_positions <- function(segs, gap, opts, cap) {
         sep_e
       }
       pos <- centred(spacing)
+      target <- ortho_target_side(direction[live])
+      head_run <- cap + opts$head
+      band <- G - (opts$R_soft + head_run)
+      if (target != 0L && band > eps) {
+        overrun <- if (target > 0) {
+          max(pos) - (gap[[2]] - head_run)
+        } else {
+          (gap[[1]] + head_run) - min(pos)
+        }
+        pos <- pos - target * min(max(overrun, 0), band)
+      }
     }
   }
   x[live] <- pos
@@ -4104,6 +4137,25 @@ ortho_slot_positions <- function(segs, gap, opts, cap) {
       spacing = spacing
     )
   )
+}
+
+#' The side of a gap its arrowheads point to
+#'
+#' `direction` holds `1` for an edge or segment pointing to the right layer
+#' of a gap and `-1` for one pointing to the left, with `0` for a segment
+#' already known to carry both. The result is `1` or `-1` when every entry
+#' agrees, and `0` when the gap is crossed in both directions, in which case
+#' neither layer is the target side.
+#'
+#' @noRd
+ortho_target_side <- function(direction) {
+  if (all(direction == 1L)) {
+    1L
+  } else if (all(direction == -1L)) {
+    -1L
+  } else {
+    0L
+  }
 }
 
 #' Order the vertical segments of a gap left to right
