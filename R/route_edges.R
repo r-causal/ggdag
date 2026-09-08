@@ -3432,20 +3432,22 @@ route_orthogonal_scene <- function(
   )
 
   # W ports: the level chords into a node, straight or running at the
-  # node's own line, own its centre row. The other arrivals take rows above
-  # and below it in the order of their slots, the leftmost slot nearest the
-  # centre, which is the crossing-free order; without a level chord the
-  # larger group's first member takes the centre. A group stacks only while
-  # two rows hold it and the rows stay at least sep_min apart; a group that
-  # fails either test merges onto one row of its own at its first offset,
-  # and the ladder keeps its joins clear of the stub. The copies of a
+  # node's own line, own its centre row. Beside an owner the other arrivals
+  # take rows above and below it in the order of their slots, the leftmost
+  # slot nearest the centre, which is the crossing-free order. Without an
+  # owner the rows are centred on the node's centre line, the arrivals from
+  # above on the upper rows and those from below on the lower ones, each
+  # group in that same order, so a lone arrival takes the centre and a pair
+  # straddles it. A stack keeps its rows while they are at least
+  # max(sep_e / 2, sep_min) apart within the height the head fits in;
+  # otherwise each group merges onto one row, at its first offset beside an
+  # owner and at +- sep_e / 2 (or the centre, for one group alone) without
+  # one, and the ladder keeps the joins clear of the stub. The copies of a
   # parallel bundle are spread sep_m apart already, and an arrival through
   # a gap too narrow for any stub has no room for a row, so both keep the
   # centre row
   port_y <- numeric(n_edges)
-  merge_group <- function(mult) {
-    if (length(mult) == 0) mult else rep(min(mult), length(mult))
-  }
+  row_floor <- max(opts$sep_e / 2, opts$sep_min)
   via_last <- span >= 2
   arrival_slot <- ifelse(via_last, slot_last, slot_first)
   arrival_entry <- ifelse(via_last, y_ch, Sy)
@@ -3457,34 +3459,35 @@ route_orthogonal_scene <- function(
     idx <- idx[order(arrival_slot[idx], Sy[idx], a[idx], method = "radix")]
     above <- idx[arrival_entry[idx] > Ty[idx]]
     below <- idx[arrival_entry[idx] <= Ty[idx]]
-    has0 <- any(owner & b == t)
     ka <- length(above)
     kb <- length(below)
-    a0 <- !has0 && ka > 0 && ka >= kb
-    b0 <- !has0 && kb > ka
-    row_of <- function(k) min(opts$sep_e, (nodes$r[[t]] - opts$head_w / 2) / k)
-    mult_a <- seq_len(ka) - a0
-    mult_b <- seq_len(kb) - b0
-    if (ka > 0 && max(mult_a) > 2) {
-      mult_a <- merge_group(mult_a)
-    }
-    if (kb > 0 && max(mult_b) > 2) {
-      mult_b <- merge_group(mult_b)
-    }
-    k <- max(mult_a, mult_b, 0)
-    # rows the ladder would not let two slots keep draw one head over the
-    # next, so a stack that small merges as a group of three or more does
-    if (k > 0 && row_of(k) < opts$sep_min) {
-      mult_a <- merge_group(mult_a)
-      mult_b <- merge_group(mult_b)
-      k <- max(mult_a, mult_b, 0)
-    }
-    if (k == 0) {
+    h <- nodes$r[[t]] - opts$head_w / 2
+    if (any(owner & b == t)) {
+      mult_a <- seq_len(ka)
+      mult_b <- seq_len(kb)
+      s <- min(opts$sep_e, h / max(ka, kb))
+      if (s < row_floor) {
+        mult_a <- rep(1, ka)
+        mult_b <- rep(1, kb)
+        s <- min(opts$sep_e, h)
+      }
+      port_y[above] <- mult_a * s
+      port_y[below] <- -mult_b * s
       next
     }
-    s <- row_of(k)
-    port_y[above] <- mult_a * s
-    port_y[below] <- -mult_b * s
+    n <- ka + kb
+    s <- if (n >= 2) min(opts$sep_e, 2 * h / (n - 1)) else 0
+    rows_a <- rev(seq_len(ka))
+    rows_b <- ka + seq_len(kb)
+    if (n >= 2 && s < row_floor) {
+      n <- (ka > 0) + (kb > 0)
+      s <- if (n == 2) min(opts$sep_e, 2 * h) else 0
+      rows_a <- rep(1, ka)
+      rows_b <- rep(n, kb)
+    }
+    row_at <- function(j) ((n + 1) / 2 - j) * s
+    port_y[above] <- row_at(rows_a)
+    port_y[below] <- row_at(rows_b)
   }
 
   # polylines: port, bends, port; then corners and sampling. A path starts
@@ -3522,6 +3525,26 @@ route_orthogonal_scene <- function(
     at_e <- face_resect(nodes$r[[b[[e]]]], geom$off_t)
     resect_head[[e]] <- if (info$reversed[[e]]) at_s else at_e
     resect_fins[[e]] <- if (info$reversed[[e]]) at_e else at_s
+
+    # a span-1 arrival whose source lies within rc of its row cannot show
+    # two proper corners, so it is the straight chord from the source to
+    # the row's axis point, as a level chord is to the centre, and the slot
+    # it was assigned goes unused
+    if (
+      kind[[e]] == "ew" &&
+        span[[e]] == 1L &&
+        abs(fr$S[[2]] - geom$port_t[[2]]) <= rc_used + 1e-9
+    ) {
+      path <- df_cols(
+        x = c(fr$S[[1]], geom$port_t[[1]]),
+        y = c(fr$S[[2]], geom$port_t[[2]])
+      )
+      if (info$reversed[[e]]) {
+        path <- df_cols(x = rev(path$x), y = rev(path$y))
+      }
+      paths[[e]] <- path
+      next
+    }
 
     # the bends are the turns between the ports
     poly <- drop_collinear(dedupe_points(rbind(
