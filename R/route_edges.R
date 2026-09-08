@@ -4019,10 +4019,13 @@ ortho_gap_segments <- function(
 #'   whole head run, the slots keep their spacing and move toward the
 #'   source until that slot is `cap + head` from the target layer's centre
 #'   line, by no more than the band `G - (R_soft + cap + head)` the gap has
-#'   to spare: nothing moves at that width, the move grows continuously
-#'   with the gap, and the source side may enter its soft band but never
-#'   leave the gap. A gap crossed in both directions has no target side and
-#'   keeps the centred slots.
+#'   to spare and no more than the room the source-side slot has to the
+#'   source layer's centre line: nothing moves at that width, the move
+#'   grows continuously with the gap, and the source side may enter its
+#'   soft band but never leave the gap. Either cap can bind first, the room
+#'   once the ranks are many enough to fill the gap, and the slot nearest
+#'   the target then stops short of its head run. A gap crossed in both
+#'   directions has no target side and keeps the centred slots.
 #'
 #' @param direction One value per segment: `1` when its edges all point to
 #'   the right layer, `-1` when they all point to the left one, and `0` when
@@ -4120,7 +4123,12 @@ ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
         } else {
           (gap[[1]] + head_run) - min(pos)
         }
-        pos <- pos - target * min(max(overrun, 0), band)
+        room <- if (target > 0) {
+          min(pos) - gap[[1]]
+        } else {
+          gap[[2]] - max(pos)
+        }
+        pos <- pos - target * min(max(overrun, 0), band, max(room, 0))
       }
     }
   }
