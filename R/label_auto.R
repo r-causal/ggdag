@@ -859,12 +859,21 @@ place_dag_labels <- function(
   # label is sitting on, when that label can move to an admissible spot of
   # its own. Like the ray candidates, the grid is part of filling the space
   # around the anchors, so an infinite `reach` builds none.
-  grid_added <- !is.finite(reach) | logical(n)
-  add_grid <- function(i) {
-    if (grid_added[i]) {
+  #
+  # `within` asks for the part of the grid whose boxes clear the label's own
+  # disc by no more than that distance, and `grid_offered` records how far
+  # out each label has been offered: `-Inf` before it has seen any of the
+  # grid, `Inf` once it has seen all of it. A label asked for more than it
+  # holds gains only the boxes between the two distances, so the grid it
+  # ends up with is the same set of candidates either way, whether it was
+  # built in one pass or two.
+  grid_offered <- rep(if (is.finite(reach)) -Inf else Inf, n)
+  add_grid <- function(i, within = Inf) {
+    if (within <= grid_offered[i]) {
       return(FALSE)
     }
-    grid_added[i] <<- TRUE
+    offered <- grid_offered[i]
+    grid_offered[i] <<- within
     grid <- label_grid_candidates(
       labels$x[i],
       labels$y[i],
@@ -873,11 +882,40 @@ place_dag_labels <- function(
       bounds,
       rank_from = n_angles * n_rings + 1
     )
+    if (length(grid$x) > 0 && (is.finite(offered) || is.finite(within))) {
+      clearance <- rect_point_dist(
+        grid$xmin,
+        grid$ymin,
+        grid$xmax,
+        grid$ymax,
+        labels$x[i],
+        labels$y[i]
+      ) -
+        radius[i]
+      grid <- lapply(grid, `[`, clearance > offered & clearance <= within)
+    }
     if (length(grid$x) == 0) {
       return(FALSE)
     }
     add_candidates(i, grid)
     TRUE
+  }
+  # How much of the panel grid an occluded label is worth offering. The
+  # candidate it sits on occludes an edge, so band 3 says it is within the
+  # occlusion gate and carries no ownership demotion, and every grid box
+  # clearing the disc by more than both that gate and `leader` is in band 4
+  # or above: beyond the gate a clear box is past the reach and past the
+  # leader as well, and an occluding one starts at band 3 and is raised two.
+  # A band outranks every score inside it, so no box beyond the window could
+  # win the settle that follows. An occluding candidate in band 4 or above
+  # sits beyond the gate itself or carries the demotion, neither of which
+  # that argument covers, so its label is offered the whole grid.
+  occlusion_window <- function(i) {
+    if (band_static[[i]][chosen[i]] == 3) {
+      max(label_occlusion_reach * reach, leader)
+    } else {
+      Inf
+    }
   }
   settle <- function(i) {
     scored <- evaluate(i)
@@ -952,7 +990,7 @@ place_dag_labels <- function(
     for (i in stuck) {
       if (!chosen_violates(i)) {
         before <- chosen[i]
-        if (add_grid(i)) {
+        if (add_grid(i, occlusion_window(i))) {
           settle(i)
           if (chosen[i] != before) {
             changed <- TRUE
