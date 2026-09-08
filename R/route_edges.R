@@ -4330,8 +4330,9 @@ slide_channels <- function(
   fixed <- channel_fixed(kind, lines$y, field("Sy", 1), field("Ty", 1)) |
     keys[1, ] == cand_key
 
-  # the cascade: every moved channel sits on the lattice y0 + k sep_e, so
-  # a channel moves at most once and the queue drains
+  # the cascade: every moved channel sits on the lattice y0 + k sep_e, and
+  # a move only ever raises a channel's level on it, so no channel returns
+  # to a level it left and the queue drains
   moved <- logical(n)
   target <- rep(NA_real_, n)
   target[conflicts] <- y0 + dir * sep_e
