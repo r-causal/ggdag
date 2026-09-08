@@ -316,11 +316,17 @@ perf_traced_render <- function(plot, size, measure) {
 
 # The exact arguments `makeContent.dag_labels_auto()` hands to
 # `place_dag_labels()` for one scene, captured by tracing the engine during a
-# real render.
+# real render. The render is only the way to those arguments: whether the
+# scene resolves is pinned by the placement fixture and by
+# test-label-auto-occlusion.R, so the warning a scene with a label on the ink
+# raises is muffled here rather than reported from every timing block.
 perf_engine_inputs <- function(scene, route, size = c(7, 5)) {
   with_perf_options(route, {
     plot <- perf_label_plot(perf_label_dags[[scene]]())
-    perf_traced_render(plot, size, function(tree) invisible(NULL))$inputs
+    withCallingHandlers(
+      perf_traced_render(plot, size, function(tree) invisible(NULL))$inputs,
+      ggdag_label_unresolved_warning = function(cnd) rlang::cnd_muffle(cnd)
+    )
   })
 }
 

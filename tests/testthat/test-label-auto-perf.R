@@ -44,8 +44,22 @@ test_that("automatic label placement matches the pinned 7 x 5 fixture", {
 
   for (key in names(fixture)) {
     parts <- strsplit(key, "|", fixed = TRUE)[[1]]
-    placed <- perf_scene_placement(parts[[1]], parts[[2]])
     expected <- fixture[[key]]
+    # A scene whose pinned placement leaves a label on the ink warns once
+    # when it is drawn, naming that label; a scene placed clear does not.
+    warned <- 0L
+    placed <- withCallingHandlers(
+      perf_scene_placement(parts[[1]], parts[[2]]),
+      ggdag_label_unresolved_warning = function(cnd) {
+        warned <<- warned + 1L
+        rlang::cnd_muffle(cnd)
+      }
+    )
+    expect_identical(
+      warned,
+      as.integer(length(expected$unresolved) > 0),
+      label = paste(key, "unresolved warnings per draw")
+    )
 
     expect_equal(
       placed$boxes,
