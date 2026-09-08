@@ -86,8 +86,10 @@ Spline mode only.}
 
 \item{tight_penalty}{The price of threading a gap at the soft margin rather
 than at the full clearance. \code{NULL}, the router's own
-\code{2 (clearance - 1.2) / r}: 0.6 at the default node size. Spline mode
-only.}
+\code{2 (clearance - soft) / r}, where \code{soft}, the soft margin, is
+\code{min(1.2, clearance)}: 0.6 at the default node size, and \code{0} under a
+\code{clearance} of 1.2 mm or less, where the soft margin is the clearance
+itself and there is nothing to price. Spline mode only.}
 
 \item{parallel_sep}{The translation in millimetres between the parallel
 edges of one node pair. \code{NULL}, the router's own \code{max(r, 2.5)}: 6 mm at
@@ -130,23 +132,39 @@ better off without one of them.
 }
 
 \examples{
-dag <- dagify(y ~ x + m, m ~ x, coords = time_ordered_coords())
+# x, m, and y sit on one line, so x -> y is blocked by m and detours
+mediator <- dagify(
+  y ~ x + m,
+  m ~ x,
+  coords = list(
+    x = c(x = 0, m = 1, y = 2),
+    y = c(x = 0, m = 0, y = 0)
+  )
+)
 
-# a spline detour with a shallower maximum bow
+# a spline detour with twice the daylight around the node it passes
 ggdag(
-  dag,
+  mediator,
   edge_engine = "ggarrow",
   edge_route = "spline",
-  edge_route_options = edge_route_options(max_bow = 0.12)
+  edge_route_options = edge_route_options(clearance = 6)
 ) +
   theme_dag()
 
-# orthogonal runs with sharp corners and a little more daylight
+fan <- dagify(
+  b ~ a,
+  c ~ a,
+  d ~ a,
+  e ~ b + c + a,
+  coords = time_ordered_coords()
+)
+
+# orthogonal runs, with the bends kept square instead of rounded
 ggdag(
-  dag,
+  fan,
   edge_engine = "ggarrow",
   edge_route = "orthogonal",
-  edge_route_options = edge_route_options(corners = "sharp", clearance = 4)
+  edge_route_options = edge_route_options(corners = "sharp")
 ) +
   theme_dag()
 

@@ -157,8 +157,10 @@ edge_route_rc_min <- 0.8
 #'   Spline mode only.
 #' @param tight_penalty The price of threading a gap at the soft margin rather
 #'   than at the full clearance. `NULL`, the router's own
-#'   `2 (clearance - 1.2) / r`: 0.6 at the default node size. Spline mode
-#'   only.
+#'   `2 (clearance - soft) / r`, where `soft`, the soft margin, is
+#'   `min(1.2, clearance)`: 0.6 at the default node size, and `0` under a
+#'   `clearance` of 1.2 mm or less, where the soft margin is the clearance
+#'   itself and there is nothing to price. Spline mode only.
 #' @param parallel_sep The translation in millimetres between the parallel
 #'   edges of one node pair. `NULL`, the router's own `max(r, 2.5)`: 6 mm at
 #'   the default node size. Both modes read it.
@@ -185,23 +187,39 @@ edge_route_rc_min <- 0.8
 #'   `edge_route` and `edge_route_options` options.
 #'
 #' @examples
-#' dag <- dagify(y ~ x + m, m ~ x, coords = time_ordered_coords())
+#' # x, m, and y sit on one line, so x -> y is blocked by m and detours
+#' mediator <- dagify(
+#'   y ~ x + m,
+#'   m ~ x,
+#'   coords = list(
+#'     x = c(x = 0, m = 1, y = 2),
+#'     y = c(x = 0, m = 0, y = 0)
+#'   )
+#' )
 #'
-#' # a spline detour with a shallower maximum bow
+#' # a spline detour with twice the daylight around the node it passes
 #' ggdag(
-#'   dag,
+#'   mediator,
 #'   edge_engine = "ggarrow",
 #'   edge_route = "spline",
-#'   edge_route_options = edge_route_options(max_bow = 0.12)
+#'   edge_route_options = edge_route_options(clearance = 6)
 #' ) +
 #'   theme_dag()
 #'
-#' # orthogonal runs with sharp corners and a little more daylight
+#' fan <- dagify(
+#'   b ~ a,
+#'   c ~ a,
+#'   d ~ a,
+#'   e ~ b + c + a,
+#'   coords = time_ordered_coords()
+#' )
+#'
+#' # orthogonal runs, with the bends kept square instead of rounded
 #' ggdag(
-#'   dag,
+#'   fan,
 #'   edge_engine = "ggarrow",
 #'   edge_route = "orthogonal",
-#'   edge_route_options = edge_route_options(corners = "sharp", clearance = 4)
+#'   edge_route_options = edge_route_options(corners = "sharp")
 #' ) +
 #'   theme_dag()
 #'

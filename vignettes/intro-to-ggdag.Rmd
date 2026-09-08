@@ -186,25 +186,40 @@ There are also geoms based on those in `ggrepel` for inserting text and labels, 
 The `ggarrow` edge engine can also route an edge around a node that sits on its path, either as a smooth curve (`edge_route = "spline"`) or as axis-aligned runs (`edge_route = "orthogonal"`). Routing happens when the plot is drawn, in the millimetres of the device, and `edge_route_options()` carries the constants the router draws with. A field you leave unset is derived from the drawn node size, so one object holds at every plot size.
 
 ```{r routing}
-routed_dag <- dagify(y ~ x + m, m ~ x, coords = time_ordered_coords())
+routed_dag <- dagify(
+  y ~ x + m,
+  m ~ x,
+  coords = list(
+    x = c(x = 0, m = 1, y = 2),
+    y = c(x = 0, m = 0, y = 0)
+  )
+)
 
-#  a spline detour with a shallower maximum bow
+# x -> y is blocked by m, so it detours; this one keeps twice the daylight
 ggdag(
   routed_dag,
   edge_engine = "ggarrow",
   edge_route = "spline",
-  edge_route_options = edge_route_options(max_bow = 0.12)
+  edge_route_options = edge_route_options(clearance = 6)
 ) +
   theme_dag()
 ```
 
 ```{r routing-orthogonal}
-#  orthogonal runs with sharp corners and a little more daylight
+fan_dag <- dagify(
+  b ~ a,
+  c ~ a,
+  d ~ a,
+  e ~ b + c + a,
+  coords = time_ordered_coords()
+)
+
+# orthogonal runs, with the bends kept square instead of rounded
 ggdag(
-  routed_dag,
+  fan_dag,
   edge_engine = "ggarrow",
   edge_route = "orthogonal",
-  edge_route_options = edge_route_options(corners = "sharp", clearance = 4)
+  edge_route_options = edge_route_options(corners = "sharp")
 ) +
   theme_dag()
 ```
