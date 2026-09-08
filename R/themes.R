@@ -19,6 +19,73 @@ expand_plot <- function(
   )
 }
 
+# `expand_plot()` for a plot of `data`, the tidy DAG the plot is drawn from.
+#
+# A DAG whose nodes all share one coordinate, a chain along a single line for
+# instance, trains that axis to a zero-width range. A multiplicative expansion
+# of a zero-width range adds nothing, so ggplot2 falls back to a placeholder a
+# tenth of a unit wide, and under `coord_fixed()` the panel is then only
+# millimetres tall and the node discs are clipped flat. A degenerate axis
+# instead takes an additive expansion of an eighth of the other axis's raw
+# span on each side, which for the unit-spaced layouts this package draws is
+# plus or minus half a unit, the width ggplot2 gives a zero-width scale.
+#
+# The other axis keeps the expansion the caller asked for, and when both axes
+# are degenerate there is no span to borrow from, so nothing changes. The
+# adjustment is made here rather than in a coord, so that a user's own
+# `coord_fixed()` still composes.
+expand_dag_plot <- function(
+  data,
+  expand_x = expansion(c(0.10, 0.10)),
+  expand_y = expansion(c(0.10, 0.10))
+) {
+  if (is.tidy_dagitty(data)) {
+    data <- pull_dag_data(data)
+  }
+
+  range_x <- dag_axis_range(data, "x")
+  range_y <- dag_axis_range(data, "y")
+  flat_x <- is_zero_range(range_x)
+  flat_y <- is_zero_range(range_y)
+
+  if (flat_x && !flat_y) {
+    expand_x <- expansion(mult = 0, add = diff(range_y) / 8)
+  }
+  if (flat_y && !flat_x) {
+    expand_y <- expansion(mult = 0, add = diff(range_x) / 8)
+  }
+
+  expand_plot(expand_x = expand_x, expand_y = expand_y)
+}
+
+# The raw range of one axis of tidy DAG data, node positions and edge ends
+# together, before any expansion. `NULL` when the data holds no finite value
+# on that axis, which leaves its expansion alone.
+dag_axis_range <- function(data, axis) {
+  values <- c(data[[axis]], data[[paste0(axis, "end")]])
+  values <- values[is.finite(values)]
+  if (length(values) == 0) {
+    return(NULL)
+  }
+  range(values)
+}
+
+# Whether a range is zero-width, by the rule ggplot2 applies when it expands
+# one: endpoints that are equal, or equal to within a relative tolerance.
+is_zero_range <- function(range) {
+  if (is.null(range) || anyNA(range)) {
+    return(FALSE)
+  }
+  if (range[[1]] == range[[2]]) {
+    return(TRUE)
+  }
+  smallest <- min(abs(range))
+  if (smallest == 0) {
+    return(FALSE)
+  }
+  abs(diff(range) / smallest) < 1000 * .Machine$double.eps
+}
+
 #' Minimalist DAG themes
 #'
 #' @inheritParams ggplot2::theme_minimal

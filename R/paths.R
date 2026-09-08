@@ -333,18 +333,21 @@ ggdag_paths <- function(
   edge_type <- check_edge_type(edge_type)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
-  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+  path_dag <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
       to = to,
       adjust_for = adjust_for,
       limit = limit,
       directed = directed
-    ) |>
+    )
+
+  p <- path_dag |>
     ggplot2::ggplot(aes_dag(color = .data$path_type)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
     breaks(c("direct", "backdoor", "other"), name = "path") +
-    expand_plot(
+    expand_dag_plot(
+      path_dag,
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
     )
@@ -517,7 +520,7 @@ ggdag_paths_fan <- function(
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
-  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+  path_dag <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
       to = to,
@@ -525,8 +528,9 @@ ggdag_paths_fan <- function(
       limit = limit,
       directed = directed,
       paths_only = !shadow
-    ) |>
-    ggplot2::ggplot(aes_dag())
+    )
+
+  p <- ggplot2::ggplot(path_dag, aes_dag())
 
   if (use_edges) {
     if (identical(edge_engine, "ggarrow")) {
@@ -595,7 +599,8 @@ ggdag_paths_fan <- function(
   }
 
   p <- p +
-    expand_plot(
+    expand_dag_plot(
+      path_dag,
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
     )

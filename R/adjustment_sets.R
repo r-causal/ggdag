@@ -145,7 +145,7 @@ ggdag_adjustment_set <- function(
   ) +
     ggplot2::facet_wrap(~set) +
     scale_adjusted() +
-    expand_plot(expand_x = expand_x, expand_y = expand_y)
+    expand_dag_plot(.tdy_dag, expand_x = expand_x, expand_y = expand_y)
 
   if (use_edges) {
     if (identical(edge_engine, "ggarrow")) {
@@ -447,7 +447,7 @@ ggdag_adjust <- function(
   p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag(col = .data$adjusted, shape = .data$adjusted)) +
     scale_adjusted(include_alpha = TRUE) +
-    expand_plot(expand_y = expansion(c(0.2, 0.2)))
+    expand_dag_plot(.tdy_dag, expand_y = expansion(c(0.2, 0.2)))
 
   if (use_edges) {
     if (identical(edge_engine, "ggarrow")) {

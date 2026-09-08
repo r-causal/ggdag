@@ -181,7 +181,8 @@ ggdag_equivalent_dags <- function(
   if (dplyr::n_distinct(pull_dag_data(.tdy_dag)$dag) > 1) {
     p <- p +
       ggplot2::facet_wrap(~dag) +
-      expand_plot(
+      expand_dag_plot(
+        .tdy_dag,
         expand_x = expansion(c(0.25, 0.25)),
         expand_y = expansion(c(0.25, 0.25))
       )

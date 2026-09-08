@@ -315,7 +315,7 @@ ggdag_drelationship <- function(
     ) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("d-connected", "d-separated"), name = "d-relationship") +
-    expand_plot(expand_y = expansion(c(0.2, 0.2)))
+    expand_dag_plot(df, expand_y = expansion(c(0.2, 0.2)))
 
   p
 }

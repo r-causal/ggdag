@@ -2289,12 +2289,14 @@ is_quo_logical <- function(x) {
 #' @rdname ggplot.tidy_dagitty
 #' @importFrom ggplot2 ggplot aes
 ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
-  p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
+  dag_data <- fortify(data)
+  p <- ggplot2::ggplot(dag_data, mapping = mapping, ...)
 
   p <- silence_scales(p)
 
   p +
-    expand_plot(
+    expand_dag_plot(
+      dag_data,
       expand_x = expansion(c(0.10, 0.10)),
       expand_y = expansion(c(0.10, 0.10))
     )
