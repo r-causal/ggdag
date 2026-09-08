@@ -4527,13 +4527,17 @@ ortho_gap_segments <- function(
 #'   run so that the overflow goes toward the source, entering the
 #'   source's soft band and stopping at the source layer's centre line,
 #'   where the whole spread shifts back and the slot nearest the target
-#'   gives up its run instead. So the head run and its margin come first,
-#'   the spacing second, the source's soft band third, and the source
-#'   layer's centre line is the hard stop. The spacing floor keeps the
-#'   slots of different sources from collapsing onto one x, which would
-#'   draw a line the DAG does not have; every term is continuous in the
-#'   gap width, so no slot moves faster than the gap widens within the
-#'   rung. A gap crossed in both directions has no target side and keeps
+#'   gives up its run instead. So the source's soft band gives way first,
+#'   the margin behind the head run next, once the spread has reached the
+#'   source layer's centre line, and the head's own run last of all; the
+#'   `sep_min` spacing never gives way, and the source layer's centre line
+#'   is the hard stop. The band is measured from the source layer whichever
+#'   side of the gap it is, while the ranks run left to right, so they are
+#'   reversed in a gap crossed leftwards and rank 1 keeps the leftmost slot
+#'   either way. The spacing floor keeps the slots of different sources
+#'   from collapsing onto one x, which would draw a line the DAG does not
+#'   have; every term is continuous in the gap width, so no slot moves
+#'   faster than the gap widens within the rung. A gap crossed in both directions has no target side and keeps
 #'   the slots centred between the two soft bands. A gap whose slot nearest
 #'   the target reaches `cap + head` from the target layer's centre line is
 #'   `floored`: the head run out of it holds a row as well as a head, so
@@ -4654,10 +4658,15 @@ ortho_slot_positions <- function(segs, gap, opts, cap, direction) {
         } else {
           sep_e
         }
+        # the ranks run left to right, while the offsets are measured from
+        # the source layer, so they are reversed when the source is the
+        # right layer: rank 1 keeps the leftmost slot either way, which is
+        # the order `ortho_slot_ranks()` chose to avoid crossings
+        rk <- if (target > 0) ranks else K + 1L - ranks
         off <- if ((K - 1) * spacing <= band_w + eps) {
-          (band_lo + band_hi) / 2 + (ranks - (K + 1) / 2) * spacing
+          (band_lo + band_hi) / 2 + (rk - (K + 1) / 2) * spacing
         } else {
-          anchored <- band_hi - (K - ranks) * spacing
+          anchored <- band_hi - (K - rk) * spacing
           anchored - min(min(anchored), 0)
         }
         pos <- if (target > 0) gap[[1]] + off else gap[[2]] - off
