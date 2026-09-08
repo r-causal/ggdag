@@ -4879,11 +4879,13 @@ test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", 
   expect_equal(max(slots), 55 - head_run_default, tolerance = 1e-6)
 })
 
-# Nine sources into one target across one gap, the saturated scene's worst
-# gap in miniature. Every interval contains the target's y, so the nine
-# segments overlap pairwise and take nine ranks.
-nine_arrival_scene <- function(gap) {
-  ys <- c(15, 25, 35, 45, 65, 75, 85, 95, 105)
+# `k` sources into one target across one gap, the saturated scene's worst
+# gap in miniature. The sources sit 10 mm apart on the left layer, skipping
+# the row beside the target, so every interval contains the target's y and
+# the segments overlap pairwise and take `k` ranks. `k` is at least 4, so
+# that the skipped row falls among the sources.
+k_arrival_scene <- function(gap, k) {
+  ys <- setdiff(seq(15, by = 10, length.out = k + 1), 55)
   names <- paste0("s", seq_along(ys))
   list(
     nodes = mm_nodes(
@@ -4892,8 +4894,13 @@ nine_arrival_scene <- function(gap) {
       c(ys, 60)
     ),
     edges = mm_edges(names, rep("t", length(ys))),
-    bounds = c(0, 0, 40 + gap, 120)
+    bounds = c(0, 0, 40 + gap, 10 * (k + 1) + 20)
   )
+}
+
+# The nine-source case, the width the rungs of the ladder are pinned at.
+nine_arrival_scene <- function(gap) {
+  k_arrival_scene(gap, 9)
 }
 
 # The x of every vertical run of a routed scene that lies strictly inside
@@ -4951,6 +4958,16 @@ test_that("orthogonal ladder: nine arrivals in a 28.93 mm gap give the target it
   expect_lt(min(slots), 20 + r_soft)
   expect_gte(min(slots), 20)
 })
+
+# The x of the vertical run of every path of a scene with a single gap,
+# wherever that run sits. ladder_slots() drops a run that lands on a layer's
+# centre line, which is the very position a containment claim has to see.
+crossing_slots <- function(res) {
+  unlist(lapply(res$paths, function(path) {
+    runs <- straight_runs(path)
+    runs$coord[runs$axis == "v"]
+  }))
+}
 
 # The x of the vertical run of every path that is not on a layer line. At
 # rung 4 a slot can sit closer to a layer than sep_e, or outside the gap
@@ -5039,6 +5056,111 @@ test_that("orthogonal ladder: a gap under 17.2 mm keeps the slots it had", {
     c(37.75, 39.25, 40.75, 42.25),
     tolerance = 1e-6
   )
+})
+
+# Two layers `gap` apart crossed in both directions: `a1 -> b1` rightwards
+# and `b2 -> a2` leftwards, their y-intervals overlapping, so the two
+# segments take two ranks and neither layer is the gap's target side.
+mixed_direction_scene <- function(gap) {
+  list(
+    nodes = mm_nodes(
+      c("a1", "a2", "b1", "b2"),
+      c(30, 30, 30 + gap, 30 + gap),
+      c(20, 80, 50, 35)
+    ),
+    edges = mm_edges(c("a1", "b2"), c("b1", "a2")),
+    bounds = c(0, 0, 60 + gap, 110)
+  )
+}
+
+# One port crossed in both directions: `a1 -> b1` and `b2 -> a1` both use
+# a1's right side, so they share one segment that points both ways.
+mixed_port_scene <- function(gap) {
+  list(
+    nodes = mm_nodes(
+      c("a1", "b1", "b2"),
+      c(30, 30 + gap, 30 + gap),
+      c(20, 55, 80)
+    ),
+    edges = mm_edges(c("a1", "b2"), c("b1", "a1")),
+    bounds = c(0, 0, 60 + gap, 110)
+  )
+}
+
+test_that("orthogonal ladder: ten rung-4 arrivals keep every slot inside the gap", {
+  # ten ranks at sep_min span 13.5 mm, so the centred slots come within
+  # 4.75 mm of the source's layer, less than the 5.25 mm the target-side
+  # slot would have to move to earn its head run and less than the 5.8 mm
+  # band. The slide stops where the source-side slot reaches the source's
+  # layer: a slot past it draws a run on the far side of the layer the edge
+  # starts from, outside the gap it is crossing.
+  scene <- k_arrival_scene(23, 10)
+  res <- ortho(scene, corners = "sharp")
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 4)
+  expect_equal(gaps$ranks, 10)
+  expect_equal(gaps$width, 23)
+
+  slots <- sort(crossing_slots(res))
+  expect_length(slots, 10)
+  expect_gte(min(slots), 20)
+  expect_lte(max(slots), 43)
+})
+
+test_that("orthogonal ladder: the band caps the slide short of the head run", {
+  # 18 mm is 0.8 mm past the 17.2 mm gate, so the nine centred slots may
+  # move 0.8 mm and no further: the target-side slot stops 3.8 mm from the
+  # target's layer rather than at the 10 mm head run, and the source-side
+  # slot keeps 2.2 mm from the source's layer
+  scene <- nine_arrival_scene(18)
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 4)
+  expect_equal(gaps$ranks, 9)
+  expect_equal(gaps$spacing, sep_min_default)
+
+  slots <- sort(ladder_slots(scene, res))
+  expect_equal(slots, 22.2 + sep_min_default * (0:8), tolerance = 1e-6)
+  expect_equal(min(slots) - 20, 2.2, tolerance = 1e-6)
+  expect_equal(38 - max(slots), 3.8, tolerance = 1e-6)
+  expect_lt(38 - max(slots), head_run_default)
+})
+
+test_that("orthogonal ladder: a rung-4 gap crossed both ways keeps its centred slots", {
+  # `a1 -> b1` with `b2 -> a2` leaves the gap without a target side, so
+  # neither layer's head run is the one to leave clear: the two slots stay
+  # centred on the midpoint a separation apart
+  scene <- mixed_direction_scene(20)
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 4)
+  expect_equal(gaps$ranks, 2)
+  expect_equal(
+    sort(ladder_slots(scene, res)),
+    40 + c(-1, 1) * sep_e_default / 2,
+    tolerance = 1e-6
+  )
+
+  # the same geometry crossed rightwards by both edges does slide toward
+  # the source, so the centred slots above are the mixed gap's own answer
+  rightwards <- scene
+  rightwards$edges <- mm_edges(c("a1", "a2"), c("b1", "b2"))
+  expect_equal(
+    sort(ladder_slots(rightwards, ortho(rightwards))),
+    c(36.4, 40),
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal ladder: a mixed hyperedge keeps its slot on the midpoint", {
+  # `a1 -> b1` and `b2 -> a1` share one port on a1, so one segment carries
+  # both directions: it has no target side either, and its single slot
+  # stays on the gap's midpoint
+  scene <- mixed_port_scene(20)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(res$ortho$gaps$ranks, 1)
+  expect_equal(unique(ladder_slots(scene, res)), 40, tolerance = 1e-6)
 })
 
 test_that("orthogonal ladder: rung 4 spreads nine slots at sep_min on both sides of the soft bands", {
