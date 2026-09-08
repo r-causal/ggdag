@@ -7055,6 +7055,537 @@ test_that("orthogonal: the reported very_big level chords are horizontal", {
   }
 })
 
+
+# Channel packing --------------------------------------------------------------
+
+# Four layers at x = 20, 70, 120, 170 on a 190 x 110 mm panel; each 50 mm gap
+# holds two ranks on the ladder's first rung. m -> n has both its endpoint
+# lines blocked (p on 30 at 8 mm, p2 on 80 at 2 mm), so it runs through layer
+# 2's free interval at its chord's median. s -> t has its source line 55
+# blocked by q (7 mm) and n3 (5 mm) and its target line 50 clear of every
+# disc, so the only thing between it and that line is m -> n's placed run.
+# s0 sits above s, m below s, n3 below n and t_top above t, which closes
+# every S/N side: neither edge has a channel past a stack to fall back on.
+crowded_line_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("s", "m", "s0", "p", "p2", "n3", "n", "t", "t_top", "q"),
+      c(20, 20, 20, 70, 70, 120, 120, 170, 170, 70),
+      c(55, 30, 80, 22, 78, 60, 80, 50, 80, 62)
+    ),
+    edges = mm_edges(c("m", "s"), c("n", "t")),
+    bounds = c(0, 0, 190, 110)
+  )
+}
+
+with_node <- function(scene, name, x, y) {
+  scene$nodes <- rbind(scene$nodes, mm_nodes(name, x, y))
+  scene
+}
+
+# The longest run of a path along one axis, as one row of `straight_runs()`.
+longest_run <- function(path, axis = "h") {
+  runs <- straight_runs(dedupe_path(path))
+  runs <- runs[runs$axis == axis, , drop = FALSE]
+  expect_gt(nrow(runs), 0)
+  runs[which.max(runs$length), , drop = FALSE]
+}
+
+test_that("orthogonal packing: a crowded target line slides the interior run away", {
+  # s -> t is placed second, being the longer span, and finds its target's
+  # line 50 clear of every disc, of the panel margin and of the pieces
+  # already committed, and crowded only by m -> n's interior run at 53. The
+  # run on that line is worth more than the price of moving m -> n out of the
+  # way, so m -> n slides one sep_e below the line, to 46.4, and s -> t is
+  # drawn as the two-bend run into t's centre. At HEAD nothing moves and the
+  # stacking rule pushes s -> t down to 49.4, which costs it a second pair of
+  # bends and a 0.6 mm jog into the target.
+  scene <- crowded_line_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  st <- edge_index(scene, "s->t")
+  expect_equal(res$meta$mode[st], "orthogonal")
+  expect_true(res$meta$clearance_ok[st])
+  expect_equal(res$meta$n_waypoints[st], 2)
+  wp <- res$waypoints[[st]]
+  expect_equal(wp$x, c(47.966667, 47.966667), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 50), tolerance = 1e-6)
+  # the whole span from the first slot to t is one run on t's own line, and
+  # the head sits on it at the plain cap
+  run <- longest_run(res$paths[[st]])
+  expect_equal(run$coord, 50, tolerance = 1e-6)
+  expect_equal(c(run$lo, run$hi), c(50.066667, 170), tolerance = 1e-6)
+  expect_equal(run$length, 119.933333, tolerance = 1e-6)
+  expect_equal(res$meta$resect_head[st], cap_default)
+
+  mn <- edge_index(scene, "m->n")
+  expect_equal(res$meta$mode[mn], "orthogonal")
+  expect_true(res$meta$clearance_ok[mn])
+  expect_equal(res$meta$n_waypoints[mn], 4)
+  wp <- res$waypoints[[mn]]
+  expect_equal(wp$x, c(42.033333, 42.033333, 95, 95), tolerance = 1e-6)
+  expect_equal(wp$y, c(30, 46.4, 46.4, 80), tolerance = 1e-6)
+  # the slid run sits exactly one separation below the line it made room for
+  expect_equal(
+    longest_run(res$paths[[mn]])$coord,
+    50 - sep_e_default,
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal packing: the slide is refused when the crowding run cannot clear a disc either way", {
+  # w at (70, 40) leaves m -> n nowhere to go: 46.4 is 6.4 mm from w and 53.6
+  # is 8.4 mm from q, both inside R = 9. With no feasible direction the slide
+  # is refused and every path is the one HEAD draws, s -> t pushed to 49.4
+  # with four waypoints and m -> n on its median at 53.
+  scene <- with_node(crowded_line_scene(), "w", 70, 40)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  st <- edge_index(scene, "s->t")
+  expect_equal(res$meta$n_waypoints[st], 4)
+  wp <- res$waypoints[[st]]
+  expect_equal(wp$x, c(47.966667, 47.966667, 145, 145), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 49.4, 49.4, 50), tolerance = 1e-6)
+  expect_equal(longest_run(res$paths[[st]])$coord, 49.4, tolerance = 1e-6)
+
+  mn <- edge_index(scene, "m->n")
+  expect_equal(res$meta$n_waypoints[mn], 4)
+  expect_equal(longest_run(res$paths[[mn]])$coord, 53, tolerance = 1e-6)
+})
+
+test_that("orthogonal packing: ties go above", {
+  # m -> n's chord median is exactly t's line 50, so sliding it up to 53.6 and
+  # sliding it down to 46.4 change its displacement by the same amount and
+  # neither gains a bend. The tie is broken the way every side tie in the
+  # router is: above.
+  scene <- list(
+    nodes = mm_nodes(
+      c("s", "m", "s0", "m0", "p", "q", "p2", "n", "t", "t_top"),
+      c(20, 20, 20, 20, 70, 70, 70, 120, 170, 170),
+      c(55, 30, 80, 12, 22, 63.5, 78, 70, 50, 80)
+    ),
+    edges = mm_edges(c("m", "s"), c("n", "t")),
+    bounds = c(0, 0, 190, 110)
+  )
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  mn <- edge_index(scene, "m->n")
+  wp <- res$waypoints[[mn]]
+  expect_equal(wp$x, c(42.033333, 42.033333, 95, 95), tolerance = 1e-6)
+  expect_equal(wp$y, c(30, 53.6, 53.6, 70), tolerance = 1e-6)
+  expect_equal(
+    longest_run(res$paths[[mn]])$coord,
+    50 + sep_e_default,
+    tolerance = 1e-6
+  )
+
+  st <- edge_index(scene, "s->t")
+  expect_equal(res$meta$n_waypoints[st], 2)
+  wp <- res$waypoints[[st]]
+  expect_equal(wp$x, c(47.966667, 47.966667), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 50), tolerance = 1e-6)
+})
+
+test_that("orthogonal packing: a sibling on the source's line never moves", {
+  # s -> t2 is placed first and runs on s's own line 55; s -> v's source line
+  # is then crowded by it, and v's line 75 is blocked, so s -> v takes the
+  # interior run at 65. Its sibling is both a channel of its own hyperedge
+  # and a run on an endpoint line, either of which makes it immovable, so no
+  # slide is even priced and the picture is HEAD's.
+  scene <- list(
+    nodes = mm_nodes(
+      c("s", "s0", "p2", "n", "v", "t2"),
+      c(20, 20, 70, 120, 170, 170),
+      c(55, 80, 78, 80, 75, 52)
+    ),
+    edges = mm_edges(c("s", "s"), c("v", "t2")),
+    bounds = c(0, 0, 190, 110)
+  )
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  t2 <- edge_index(scene, "s->t2")
+  wp <- res$waypoints[[t2]]
+  expect_equal(wp$x, c(145, 145), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 52), tolerance = 1e-6)
+
+  v <- edge_index(scene, "s->v")
+  wp <- res$waypoints[[v]]
+  expect_equal(wp$x, c(45, 45, 145, 145), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 65, 65, 75), tolerance = 1e-6)
+  expect_equal(longest_run(res$paths[[v]])$coord, 65, tolerance = 1e-6)
+})
+
+# One record of the placement loop, in the shape `slide_channels()` reads:
+# m -> n of `crowded_line_scene()` as it stands when s -> t is priced, on
+# the interior line `y`, spanning layers 1 to 3 with the discs of layer 2
+# crossed and its chord's y there at 55.
+crowded_record <- function(y = 53, kind = "ew", keys = c("s2", "e2-7")) {
+  d <- c(120, 80) - c(20, 30)
+  u <- d / sqrt(sum(d^2))
+  list(
+    e = 1L,
+    kind = kind,
+    side = -1,
+    y = y,
+    xr = c(36.1, 103.9),
+    la = 1L,
+    lb = 3L,
+    keys = keys,
+    Sy = 30,
+    Ty = 80,
+    fr = list(
+      S = c(20, 30),
+      E = c(120, 80),
+      u = u,
+      n = c(-u[[2]], u[[1]]),
+      Lc = sqrt(sum(d^2)),
+      a = 2L,
+      b = 7L
+    ),
+    tight = 0L,
+    state = list(
+      members = c(4L, 5L, 10L),
+      yc = 55,
+      xr_ew = c(36.1, 103.9),
+      y_min = 3,
+      y_max = 107,
+      extra = 0,
+      R_soft = rep(r_soft, 10)
+    )
+  )
+}
+
+test_that("slide_channels() refuses an immovable channel", {
+  # The three kinds of channel that never move, on the records of the crowded
+  # scene: an S/N channel, whose y is tied to its stubs; a channel of the
+  # candidate's own hyperedge; and a channel already running on its own
+  # source's or target's line, which is the shape this pass exists to create
+  # and is never taken from another edge. Each makes the direction
+  # infeasible, so the helper returns NULL rather than a cheaper packing.
+  has_slide <- exists(
+    "slide_channels",
+    envir = asNamespace("ggdag"),
+    inherits = FALSE
+  )
+  expect_true(has_slide, label = "slide_channels() is defined in the package")
+
+  if (has_slide) {
+    scene <- crowded_line_scene()
+    opts <- route_constants(r_default)
+    empty <- data.frame(
+      key = character(0),
+      left = numeric(0),
+      right = numeric(0),
+      stringsAsFactors = FALSE
+    )
+    slide <- function(records, dir, cand_key = "s1") {
+      slide_channels(
+        records = records,
+        conflicts = 1L,
+        y0 = 50,
+        dir = dir,
+        sep_e = opts$sep_e,
+        nodes = scene$nodes,
+        R_node = scene$nodes$r + opts$m,
+        pieces_base = list(empty, empty, empty),
+        cand_pieces = list(
+          list(g = 1L, key = "s1", left = 55, right = 50),
+          list(g = 3L, key = "e1-8", left = 50, right = 50)
+        ),
+        opts = opts,
+        cand_key = cand_key,
+        gap_mid = c(45, 95, 145)
+      )
+    }
+
+    expect_null(slide(list(crowded_record(kind = "sn")), -1))
+    expect_null(slide(list(crowded_record()), -1, cand_key = "s2"))
+    expect_null(slide(list(crowded_record(y = 30)), -1))
+    expect_null(slide(list(crowded_record(y = 80)), -1))
+
+    # the crowded scene itself: below the line the one record moves to 46.4
+    # for 1.1, and above it q leaves nowhere to go
+    down <- slide(list(crowded_record()), -1)
+    expect_equal(down$y, 46.4, tolerance = 1e-6)
+    expect_equal(down$moved, 1L)
+    expect_equal(down$cost, 1.1, tolerance = 1e-6)
+    expect_null(slide(list(crowded_record()), 1))
+  }
+})
+
+test_that("orthogonal packing: genetics -> chol runs on chol's line at 10 x 6", {
+  # The defect the round was reported on. genetics -> chol is placed last of
+  # the twenty-two spanning edges and finds chol's line 31.71 blocked only by
+  # bmi -> inflammation's run at 30.45; that run slides up one sep_e and
+  # genetics -> chol takes the line, drawn as a 10 mm stub, a 3.4 mm drop and
+  # a 134 mm run into chol's centre. At HEAD every candidate is infeasible
+  # and the edge is clamped at 19.65, 15.5 mm down and 8.7 mm back up.
+  scene <- very_big_scene(gallery_panels[[3]])
+  res <- ortho(scene)
+
+  gc <- edge_index(scene, "genetics->chol")
+  expect_equal(res$meta$mode[gc], "orthogonal")
+  expect_equal(res$meta$n_waypoints[gc], 2)
+  wp <- res$waypoints[[gc]]
+  expect_equal(wp$x, c(52.445621, 52.445621), tolerance = 1e-6)
+  expect_equal(wp$y, c(36.72236, 31.711827), tolerance = 1e-6)
+  # the run is on chol's own line, so the edge owns its target's centre row
+  # and the head is drawn at the plain cap
+  run <- longest_run(res$paths[[gc]])
+  expect_equal(run$coord, node_xy(scene, "chol")[[2]], tolerance = 1e-6)
+  expect_equal(run$coord, 31.711827, tolerance = 1e-6)
+  expect_equal(c(run$lo, run$hi), c(53.245621, 187.336862), tolerance = 1e-6)
+  expect_equal(res$meta$resect_head[gc], cap_default)
+
+  bi <- edge_index(scene, "bmi->inflammation")
+  wp <- res$waypoints[[bi]]
+  expect_equal(
+    wp$x,
+    c(135.706448, 135.706448, 174.129258, 174.129258),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    wp$y,
+    c(42.120806, 35.311827, 35.311827, 20.581418),
+    tolerance = 1e-6
+  )
+  # the run it slid to is one separation above the line it made room for
+  expect_equal(wp$y[[2]] - run$coord, sep_e_default, tolerance = 1e-6)
+
+  # chol's other arrival takes the row above the new owner of its centre
+  expect_equal(
+    arrival_row(scene, res, "smoking->chol"),
+    35.311827,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    res$meta$resect_head[edge_index(scene, "smoking->chol")],
+    port_resect_at(sep_e_default),
+    tolerance = 1e-9
+  )
+
+  # nothing else in the region moves: education -> healthcare_access keeps
+  # the 2 mm jog beside its own trunk, on the slot the re-ranking gives it
+  eh <- edge_index(scene, "education->healthcare_access")
+  wp <- res$waypoints[[eh]]
+  expect_equal(
+    wp$x,
+    c(48.845621, 48.845621, 113.287439, 113.287439),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    wp$y,
+    c(49.652769, 46.052769, 46.052769, 53.251215),
+    tolerance = 1e-6
+  )
+})
+
+# The excursion census: over every orthogonal E/W channel, the vertical
+# travel V of its drawn path against the endpoints' y difference dy. A run on
+# either endpoint's line spends dy and at most one row offset, so V / dy near
+# 1 is the straight picture, while a run e mm outside the chord's y range
+# spends dy + 2 e. A channel is flagged when V > 2 max(dy, sep_e): that is an
+# excursion of more than half the difference, with the floor at sep_e so that
+# a level chord is not flagged for a jog narrower than one channel.
+channel_excursions <- function(scenes) {
+  rows <- list()
+  for (scene in scenes) {
+    res <- ortho(scene)
+    layers <- infer_layers(scene$nodes, r_default)
+    layer_of <- stats::setNames(layers$id, scene$nodes$name)
+    for (i in seq_len(nrow(scene$edges))) {
+      if (res$meta$mode[[i]] != "orthogonal") {
+        next
+      }
+      span <- abs(
+        layer_of[[scene$edges$to[[i]]]] - layer_of[[scene$edges$from[[i]]]]
+      )
+      if (span < 2L) {
+        next
+      }
+      runs <- straight_runs(dedupe_path(res$paths[[i]]))
+      # an E/W channel leaves through an E port, so its first run is
+      # horizontal; an S/N channel leaves vertically and is a different shape
+      if (nrow(runs) == 0 || runs$axis[[1]] != "h") {
+        next
+      }
+      ends <- edge_endpoints(scene, i)
+      dy <- abs(ends$to[[2]] - ends$from[[2]])
+      travel <- sum(runs$length[runs$axis == "v"])
+      rows[[length(rows) + 1L]] <- data.frame(
+        edge = edge_labels(scene$edges)[[i]],
+        travel = travel,
+        flagged = travel > 2 * max(dy, sep_e_default),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  do.call(rbind, rows)
+}
+
+test_that("orthogonal packing: the excursion census loses the crowded channel", {
+  # Over the head census scenes and the gallery's largest scene at 10 x 6,
+  # 118 E/W channels are drawn and six of them are excursions at HEAD. The
+  # slide removes exactly one, genetics -> chol, whose 24.1 mm of vertical
+  # travel for a 5.0 mm difference becomes the 3.4 mm the two corner arcs
+  # leave. The five that stay are forced detours, not crowding: a blocked
+  # line, a band with no free y, or a channel over a stack that fills the
+  # panel.
+  scenes <- c(head_census_scenes(), list(very_big_scene(gallery_panels[[3]])))
+  x <- channel_excursions(scenes)
+
+  expect_equal(nrow(x), 118L)
+  expect_equal(sum(x$flagged), 5L)
+  expect_setequal(
+    x$edge[x$flagged],
+    c(
+      "gene->cancer",
+      "adversity->smoking",
+      "education->smoking",
+      "parental_ses->nutrition",
+      "phys_act->bp"
+    )
+  )
+  expect_false(any(x$flagged[x$edge == "genetics->chol"]))
+})
+
+# The line each spanning orthogonal channel of a canonical scene runs on,
+# named by its edge.
+channel_lines <- function(name, panel = c(100, 70)) {
+  scene <- canonical_scene(name, panel)
+  res <- ortho(scene)
+  layers <- infer_layers(scene$nodes, r_default)
+  layer_of <- stats::setNames(layers$id, scene$nodes$name)
+  out <- numeric(0)
+  for (i in seq_len(nrow(scene$edges))) {
+    if (res$meta$mode[[i]] != "orthogonal") {
+      next
+    }
+    span <- abs(
+      layer_of[[scene$edges$to[[i]]]] - layer_of[[scene$edges$from[[i]]]]
+    )
+    if (span < 2L) {
+      next
+    }
+    out <- c(
+      out,
+      stats::setNames(
+        longest_run(res$paths[[i]])$coord,
+        edge_labels(scene$edges)[[i]]
+      )
+    )
+  }
+  out
+}
+
+test_that("orthogonal packing: the scenes with no crowded endpoint line are untouched", {
+  # The slide fires only where a feasible endpoint line is crowded, which
+  # among the tracked scenes is very_big at 10 x 6 alone. Over every other
+  # census scene the drawn geometry is the one HEAD draws, pinned as the
+  # aggregate of the orthogonal, spline and straight routings: the number of
+  # routed edges, their waypoints, their total drawn length and, for the
+  # orthogonal channels, their total vertical travel.
+  scenes <- c(
+    head_census_scenes(),
+    list(
+      very_big_scene(gallery_panels[[1]]),
+      very_big_scene(gallery_panels[[2]])
+    )
+  )
+  path_length <- function(path) sum(sqrt(diff(path$x)^2 + diff(path$y)^2))
+  aggregate_of <- function(mode) {
+    routed <- 0L
+    waypoints <- 0L
+    drawn <- 0
+    travel <- 0
+    for (scene in scenes) {
+      res <- route_scene(scene, mode = mode, opts = route_constants(r_default))
+      routed <- routed + sum(res$meta$mode != "straight")
+      waypoints <- waypoints + sum(res$meta$n_waypoints)
+      for (i in seq_along(res$paths)) {
+        drawn <- drawn + path_length(res$paths[[i]])
+        if (res$meta$mode[[i]] != "orthogonal") {
+          next
+        }
+        runs <- straight_runs(dedupe_path(res$paths[[i]]))
+        if (nrow(runs) > 0) {
+          travel <- travel + sum(runs$length[runs$axis == "v"])
+        }
+      }
+    }
+    list(routed = routed, waypoints = waypoints, drawn = drawn, travel = travel)
+  }
+
+  a <- aggregate_of("orthogonal")
+  expect_equal(a$routed, 420L)
+  expect_equal(a$waypoints, 948L)
+  expect_equal(a$drawn, 35454.969137, tolerance = 1e-9)
+  expect_equal(a$travel, 11664.879909, tolerance = 1e-9)
+
+  # the slide is an orthogonal rule, so neither curved mode moves at all
+  b <- aggregate_of("spline")
+  expect_equal(b$routed, 78L)
+  expect_equal(b$waypoints, 155L)
+  expect_equal(b$drawn, 29163.380127, tolerance = 1e-9)
+  expect_equal(b$travel, 0)
+
+  d <- aggregate_of("straight")
+  expect_equal(d$routed, 0L)
+  expect_equal(d$waypoints, 0L)
+  expect_equal(d$drawn, 28040.89615, tolerance = 1e-9)
+
+  # the canonical scenes the design names as untouched, channel by channel
+  expect_equal(
+    channel_lines("epidemiology"),
+    c(
+      "ses->health" = 27.12531,
+      "edu->health" = 30.72531,
+      "age->health" = 10,
+      "gene->health" = 43.79243
+    ),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    channel_lines("large_epi"),
+    c(
+      "age->smoking" = 13.82503,
+      "age->bmi" = 26.24295,
+      "age->health" = 10,
+      "ses->health" = 22.62148,
+      "smoking->health" = 35.50176,
+      "diet->health" = 62.66901,
+      "bmi->health" = 56.86856,
+      "gene->cancer" = 62.66901
+    ),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    channel_lines("triple_confound"),
+    c(
+      "u->y" = 27.2835,
+      "v->m" = 43.28865,
+      "w->y" = 20.10208,
+      "x->y" = 63.65081
+    ),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    channel_lines("multi_mediator"),
+    c(
+      "x->m2" = 37.26801,
+      "x->m3" = 46.26801,
+      "m1->y" = 26.58446,
+      "m2->y" = 37.26801,
+      "u->y" = 49.86801
+    ),
+    tolerance = 1e-6
+  )
+})
+
 # The panel's routed paths as the arrow grob the layer draws them with, so
 # that the resect each head is cut at is the one ggarrow is handed. The
 # colours and widths play no part in where a head points; they are here
@@ -7560,4 +8091,31 @@ test_that("route_edges_mm() routes large_epi at a small device size at interacti
   # the development machine. The gate is 25 ms so that only a real
   # regression trips it.
   expect_lt(as.numeric(timing$median), 0.025)
+})
+
+test_that("route_edges_mm() routes very_big under orthogonal at the large panel at interactive speed", {
+  skip_on_cran()
+  skip_on_ci()
+  # Opt-in pin; see test-layout-perf.R for the GGDAG_RUN_PERF_TESTS contract.
+  skip_if(
+    Sys.getenv("GGDAG_RUN_PERF_TESTS") == "",
+    "GGDAG_RUN_PERF_TESTS is not set"
+  )
+  skip_if_not_installed("bench")
+
+  # very_big at 10 x 6 is the densest orthogonal scene the gallery draws:
+  # thirty nodes over eleven layers, twenty-two spanning channels, every gap
+  # on the ladder's last rung. It is also the scene the channel packing pass
+  # fires on, so this gate bounds what that pass may cost.
+  scene <- very_big_scene(gallery_panels[[3]])
+
+  timing <- bench::mark(
+    route_scene(scene, mode = "orthogonal", opts = route_constants(r_default)),
+    iterations = 30,
+    filter_gc = FALSE
+  )
+  # The scene measures 28 to 30 ms on the development machine without the
+  # packing pass and about 34 with a prototype of it. The gate is 45 ms so
+  # that only a real regression trips it.
+  expect_lt(as.numeric(timing$median), 0.045)
 })
