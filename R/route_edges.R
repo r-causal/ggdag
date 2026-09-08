@@ -32,10 +32,12 @@
 #
 # Orthogonal mode shares the orientation, the layers, the side cost, and the
 # parallel-edge spreading, but draws every edge as axis-aligned runs whether
-# or not a node blocks its chord. Chords that are already axis-aligned stay
-# straight: vertical chords, level chords (tilted by no more than the corner
-# radius) between adjacent layers, level spanning chords that no crossed
-# disc blocks, and chords between two nodes of one layer. A spanning edge
+# or not a node blocks its chord. Vertical chords and chords between two
+# nodes of one layer stay straight. A level chord (tilted by no more than
+# the corner radius) between adjacent layers, or a level spanning chord
+# whose run no crossed disc blocks, is drawn as the horizontal run on its
+# target's line: the head keeps the target's centre and the tail leaves its
+# node through the port on that line, so no run is oblique. A spanning edge
 # chooses the cheapest of its candidate channels, each priced by
 # displacement, bends, crossings, and congestion: an S or N channel past
 # the crossed stacks when its endpoints are the extreme nodes of their
@@ -56,8 +58,9 @@
 # the layers' soft bands without clearance, moved toward the source where the
 # gap can give the slot nearest the target a straight run for its arrowhead.
 # The arrivals on a node's W side
-# take stacked rows beside its centre line, the level chord keeping the
-# centre, the rows centred on the node when no chord is level with it, and
+# take stacked rows beside its centre line, the level chord, which runs on
+# that line, keeping the centre, the rows centred on the node when no chord
+# is level with it, and
 # a group whose rows would sit closer than half the edge separation merging
 # onto one row; two channel stubs on one N or S side sit sep_e / 2 either
 # side of the centre line. So no stub carries two edges in opposite
@@ -202,10 +205,14 @@ route_constants <- function(
 #'   with one vertical run per crossed gap at an assigned slot, or, for a
 #'   spanning edge between the extreme nodes of their layers, S and N ports
 #'   with a channel run past the crossed stacks. Corners are rounded unless
-#'   `opts$corners` is `"sharp"`. A chord that is already axis-aligned stays
-#'   straight: a vertical chord, a horizontal chord between adjacent layers,
-#'   or a horizontal spanning chord that no crossed disc blocks; so does a
-#'   chord between two nodes of one layer.
+#'   `opts$corners` is `"sharp"`. A vertical chord stays straight, and so
+#'   does a chord between two nodes of one layer. A level chord, tilted by
+#'   no more than the corner radius, is drawn as the horizontal run on its
+#'   target's line when it joins adjacent layers or when no crossed disc
+#'   blocks that run: the head keeps the target's centre and the tail leaves
+#'   its node through the port on that line. Such an edge keeps the mode
+#'   `"straight"`, which means it has no bend, not that it joins the two
+#'   centres.
 #' @param opts Constants from `route_constants()`.
 #' @return A list with `paths` (one `data.frame(x, y)` per edge, in input
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
@@ -218,7 +225,10 @@ route_constants <- function(
 #'   the arc length in mm the arrow layer cuts from each end of the path:
 #'   `cap - r + sqrt(r^2 - o^2)` for a port offset `o` from the centre line
 #'   of a node of radius `r`, exactly `cap` at a centre port, so that every
-#'   head tip sits `cap - r` past the disc face on its own run; and the result
+#'   head tip sits `cap - r` past the disc face on its own run. The tail of a
+#'   level chord leaves through the port on its target's line, so its
+#'   `resect_fins` is that value at the offset between the two centres, and
+#'   so is the tail of an arrival drawn as the run on its row; and the result
 #'   carries `ortho`: `rc`, the corner radius the scene was drawn with, and
 #'   `gaps`, one row per gap that holds a slot with `gap`, `width`,
 #'   `ranks`, `rung`, `stub`, and `spacing` (see `ortho_slot_positions()`;
@@ -3108,12 +3118,19 @@ parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
 #' Route a canonically oriented scene with axis-aligned runs
 #'
 #' Every routable edge that needs a bend to be axis-aligned is drawn
-#' orthogonally whether or not a node blocks its chord. A chord that is
-#' already axis-aligned stays a two-row straight path: a vertical chord, a
-#' horizontal chord between adjacent layers, and a horizontal spanning chord
-#' that no non-endpoint disc comes within `R` of. A chord between two
-#' nodes of one layer stays straight as well, since the layer has no gap to
-#' route it through.
+#' orthogonally whether or not a node blocks its chord. A vertical chord
+#' stays a two-row straight path, and so does a chord between two nodes of
+#' one layer, since the layer has no gap to route it through. A level chord,
+#' one tilted by no more than the corner radius `rc`, is drawn as the
+#' two-row horizontal run on its target's line when it joins adjacent layers
+#' or when no non-endpoint disc comes within `R` of that run: the head end
+#' keeps the target's centre, the tail leaves its node through the port on
+#' the target's line, and the tail's resect is the face resect of the port's
+#' offset. Its mode stays `"straight"`, which means no bend rather than
+#' centre to centre. A reversed level chord takes the mirror shape, the
+#' tail port on the right node at its target's y, while still claiming the
+#' right node's W centre row as its own; an arrival row on that side can
+#' come within the row floor of the departure when the offset exceeds it.
 #'
 #' A spanning edge chooses among the channels `ortho_channel()` prices: an
 #' S or N channel `R` beyond the crossed stacks when both endpoints are the
