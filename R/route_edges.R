@@ -45,7 +45,15 @@
 # when no S/N channel fits, a run through a free interval of every crossed
 # layer. A channel that would cut a disc or run inside the panel margin is
 # infeasible; channels that would share a y over overlapping x-ranges are
-# stacked sep_e apart, the shorter span inside. Every other edge leaves
+# stacked sep_e apart, the shorter span inside. A spanning edge whose run
+# on its own source's or target's line is clear of the discs, the margin,
+# and the committed pieces, and is crowded only by the channels placed
+# before it, slides those channels sep_e away from the line (each pushing
+# the next in turn) and takes the line when the price of their moves, their
+# displacement and any bend they gain, is less than the price of the
+# pushed alternatives; an S/N channel, a channel of the edge's own
+# hyperedge, and a channel already on its own endpoint line never move,
+# and a slide that would need one is refused. Every other edge leaves
 # through the E port and enters through the W port, with one vertical run
 # per crossed gap. Within a gap the vertical runs are hyperedge segments (a
 # fan leaving one port shares one); segments from different sources never
@@ -3142,7 +3150,12 @@ parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
 #' `ortho_slot_ranks()`. Channels are placed shortest span first, and one
 #' that would run within `sep_e` of a placed channel over an overlapping
 #' x-range is pushed outward past it, so longer edges nest outside shorter
-#' ones and no channel is shared.
+#' ones and no channel is shared. A run on an endpoint line that only the
+#' placed interior runs crowd slides them `sep_e` away, each pushing the
+#' next in turn, when the price of their moves is less than that of the
+#' pushed alternatives (`slide_channels()`); an S/N channel, a channel of
+#' the edge's own hyperedge, and a channel on its own endpoint line never
+#' move, so a slide that would need one is refused.
 #'
 #' Every drawn segment belongs to one edge unless two edges share a port.
 #' Edges leaving one port form a hyperedge trunk and edges entering one port
@@ -3254,16 +3267,6 @@ route_orthogonal_scene <- function(
   seg_key <- function(e, first) {
     if (first) paste0("s", a[[e]]) else paste0("e", a[[e]], "-", b[[e]])
   }
-  add_piece <- function(pieces, g, key, left, right) {
-    if (abs(left - right) < tol) {
-      return(pieces)
-    }
-    pieces[[g]] <- df_bind(
-      pieces[[g]],
-      df_cols(key = key, left = left, right = right)
-    )
-    pieces
-  }
   for (e in which(kind == "ew" & span == 1L)) {
     pieces <- add_piece(
       pieces,
@@ -3273,6 +3276,8 @@ route_orthogonal_scene <- function(
       Ty[[e]]
     )
   }
+  # the pieces of the span-1 edges alone; a slide rebuilds the rest on them
+  pieces_base <- pieces
   intervals <- lapply(seq_len(layers$n), function(k) {
     layer_free_intervals(
       df_rows(nodes, layers$members[[k]]),
@@ -3287,7 +3292,11 @@ route_orthogonal_scene <- function(
   # channels of spanning edges, shortest first so that a longer edge nests
   # outside the channels already placed, priced against the chords of the
   # edges not yet placed and the channels of those already placed; ties on
-  # span and length are broken by the endpoint positions, never by name
+  # span and length are broken by the endpoint positions, never by name.
+  # Every placed channel keeps a record of what `slide_channels()` needs
+  # to move it later: an edge whose own endpoint line is clear of
+  # everything but the placed channels has them slide out of its way when
+  # that costs less than the pushed alternatives
   side <- rep(NA_real_, n_edges)
   y_ch <- rep(NA_real_, n_edges)
   clamped <- logical(n_edges)
@@ -3296,10 +3305,63 @@ route_orthogonal_scene <- function(
     side = numeric(0),
     y = numeric(0),
     lo = numeric(0),
-    hi = numeric(0)
+    hi = numeric(0),
+    key = character(0),
+    fixed = logical(0)
   )
+  records <- list()
   ctx <- list(nodes = nodes, from = from, to = to, Lc = info$Lc)
   gap_mid <- (layers$x[-layers$n] + layers$x[-1]) / 2
+
+  # the cheapest slide among the crowded endpoint lines `ortho_channel()`
+  # priced for edge `e`: an option's total is its own price plus that of
+  # the cheaper feasible direction, ties above, and the best option is
+  # taken when its total is below the cost of the best pushed candidate,
+  # which is infinite when that candidate had to be clamped
+  best_slide <- function(ch, e, keys) {
+    best <- NULL
+    best_total <- ch$cost
+    for (p in ch$slide) {
+      cand_pieces <- list(
+        list(g = info$la[[e]], key = keys[[1]], left = Sy[[e]], right = p$y),
+        list(
+          g = info$lb[[e]] - 1L,
+          key = keys[[2]],
+          left = p$y,
+          right = Ty[[e]]
+        )
+      )
+      sl <- NULL
+      for (dir in c(1, -1)) {
+        s <- slide_channels(
+          records,
+          p$conflicts,
+          p$y,
+          dir,
+          opts$sep_e,
+          nodes,
+          R_node,
+          pieces_base,
+          cand_pieces,
+          opts,
+          keys[[1]],
+          gap_mid
+        )
+        if (!is.null(s) && (is.null(sl) || s$cost < sl$cost)) {
+          sl <- s
+        }
+      }
+      if (is.null(sl)) {
+        next
+      }
+      total <- round(p$cost + sl$cost, opts$cost_digits)
+      if (total < best_total) {
+        best_total <- total
+        best <- c(sl, list(option = p))
+      }
+    }
+    best
+  }
 
   spanning <- which(kind == "ew" & span >= 2)
   spanning <- spanning[order(
@@ -3314,6 +3376,7 @@ route_orthogonal_scene <- function(
   )]
   for (e in spanning) {
     fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
+    keys <- c(seg_key(e, TRUE), seg_key(e, FALSE))
     ch <- ortho_channel(
       fr,
       edge_cost_context(fr, e, ctx),
@@ -3334,9 +3397,38 @@ route_orthogonal_scene <- function(
       channels,
       intervals,
       pieces,
-      c(seg_key(e, TRUE), seg_key(e, FALSE)),
+      keys,
       opts
     )
+    sl <- if (length(ch$slide) > 0) best_slide(ch, e, keys) else NULL
+    if (is.null(sl)) {
+      if (ch$kind == "ew") {
+        pieces <- add_piece(pieces, info$la[[e]], keys[[1]], Sy[[e]], ch$y)
+        pieces <- add_piece(pieces, info$lb[[e]] - 1L, keys[[2]], ch$y, Ty[[e]])
+      }
+    } else {
+      # the moved channels take their new lines wherever they are
+      # registered, and the edge takes its own line, unclamped
+      for (k in sl$moved) {
+        r <- records[[k]]
+        records[[k]]$y <- sl$y[[k]]
+        channels$y[[k]] <- sl$y[[k]]
+        y_ch[[r$e]] <- sl$y[[k]]
+        placed <- place_edge(
+          placed,
+          r$e,
+          c(
+            r$fr$S[[1]],
+            gap_mid[c(r$la, r$la, r$lb - 1L, r$lb - 1L)],
+            r$fr$E[[1]]
+          ),
+          c(r$fr$S[[2]], r$Sy, sl$y[[k]], sl$y[[k]], r$Ty, r$fr$E[[2]])
+        )
+      }
+      pieces <- sl$pieces
+      fields <- c("kind", "side", "y", "wp", "clamped", "channel")
+      ch[fields] <- sl$option[fields]
+    }
     kind[[e]] <- ch$kind
     side[[e]] <- ch$side
     y_ch[[e]] <- ch$y
@@ -3348,16 +3440,20 @@ route_orthogonal_scene <- function(
       c(fr$S[[1]], ch$wp$x, fr$E[[1]]),
       c(fr$S[[2]], ch$wp$y, fr$E[[2]])
     )
-    if (ch$kind == "ew") {
-      pieces <- add_piece(pieces, info$la[[e]], seg_key(e, TRUE), Sy[[e]], ch$y)
-      pieces <- add_piece(
-        pieces,
-        info$lb[[e]] - 1L,
-        seg_key(e, FALSE),
-        ch$y,
-        Ty[[e]]
-      )
-    }
+    records[[length(records) + 1L]] <- list(
+      e = e,
+      kind = ch$kind,
+      side = ch$side,
+      y = ch$y,
+      xr = c(ch$channel$lo, ch$channel$hi),
+      la = info$la[[e]],
+      lb = info$lb[[e]],
+      keys = keys,
+      Sy = Sy[[e]],
+      Ty = Ty[[e]],
+      fr = fr,
+      state = ch$state
+    )
   }
 
   # N and S ports: two channel stubs on one side of a node sit sep_e / 2
@@ -3749,15 +3845,31 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #' nothing is feasible the least displaced candidate other than an endpoint
 #' run is clamped to the margin and reported without clearance.
 #'
+#' An endpoint line that the placed channels crowd, but that the run could
+#' take with them out of the way, is returned as a slide option: the run
+#' priced as if the band were empty, with the channels in its way. The
+#' caller decides through `slide_channels()` whether moving them costs less
+#' than the pushed alternatives. A line crowded by a channel that never
+#' moves, an S/N channel, a channel on its own endpoint line, or one of the
+#' edge's own hyperedge (its trunk or a sibling), is not offered.
+#'
 #' @param stub The nominal stub and the stub floor, in that order.
 #' @param sn_sides Logical pair: are S/N ports available above and below.
-#' @param channels The channels placed so far: `side`, `y`, `lo`, `hi`.
+#' @param channels The channels placed so far: `side`, `y`, `lo`, `hi`,
+#'   `key`, the segment key of the channel's first gap, and `fixed`,
+#'   whether `channel_fixed()` holds it.
 #' @param intervals Free intervals per layer from `layer_free_intervals()`.
 #' @param pieces Committed horizontal pieces per gap: `key`, `left`,
 #'   `right`.
 #' @param keys The edge's segment keys in its first and last gap.
 #' @return A list with `kind` (`"sn"` or `"ew"`), `side`, `y`, `wp` (the
-#'   bends used for pricing), `clamped`, and `channel` (the row to register).
+#'   bends used for pricing), `cost`, `clamped`, `channel` (the row to
+#'   register), `slide` (the options above, each in the same shape plus
+#'   `conflicts`, the rows of `channels` in its way), and `state`, what a
+#'   later slide needs to re-check this edge at another line: the discs it
+#'   crosses (`members`), its chord's ordinates there (`yc`), its E/W
+#'   extent (`xr_ew`), the panel margins (`y_min`, `y_max`), and its
+#'   parallel bundle's `extra` margin.
 #' @noRd
 ortho_channel <- function(
   fr,
@@ -3818,26 +3930,15 @@ ortho_channel <- function(
     }
   }
   bends_count <- function(kind, y) {
-    if (kind == "sn") {
-      return(2L)
-    }
-    P <- drop_collinear(dedupe_points(rbind(
-      fr$S,
-      c(x_a, Sy),
-      c(x_a, y),
-      c(x_b, y),
-      c(x_b, Ty),
-      fr$E
-    )))
-    nrow(P) - 2L
+    if (kind == "sn") 2L else ew_bend_count(fr, x_a, x_b, y)
   }
   coincides <- function(kind, y) {
     kind == "ew" &&
       (pieces_coincide(pieces[[la]], keys[[1]], Sy, y) ||
         pieces_coincide(pieces[[lb - 1L]], keys[[2]], y, Ty))
   }
-  candidate <- function(kind, side, y) {
-    y <- stack_channel(y, side, extent_of(kind), channels, opts$sep_e)
+  # the feasibility and price of a run at y, the placed channels aside
+  price <- function(kind, side, y) {
     wp <- bends_of(kind, y)
     displacement <- sum(abs(y - yc))
     feasible <- y >= y_min &&
@@ -3859,7 +3960,34 @@ ortho_channel <- function(
       cost = round(cost, opts$cost_digits)
     )
   }
+  # a candidate is the run pushed past the placed channels it would crowd
+  candidate <- function(kind, side, y) {
+    price(
+      kind,
+      side,
+      stack_channel(y, side, extent_of(kind), channels, opts$sep_e)
+    )
+  }
   costs <- function(cands) vapply(cands, function(c) c$cost, numeric(1))
+  result_of <- function(cand, clamped) {
+    xr <- extent_of(cand$kind)
+    list(
+      kind = cand$kind,
+      side = cand$side,
+      y = cand$y,
+      wp = cand$wp,
+      cost = cand$cost,
+      clamped = clamped,
+      channel = df_cols(
+        side = cand$side,
+        y = cand$y,
+        lo = xr[[1]],
+        hi = xr[[2]],
+        key = keys[[1]],
+        fixed = channel_fixed(cand$kind, cand$y, Sy, Ty)
+      )
+    )
+  }
 
   # an S/N channel keeps the nominal stub when its run fits inside the panel
   # margin, and otherwise retries at the stub floor before it is given up
@@ -3890,8 +4018,8 @@ ortho_channel <- function(
   # when the stacks lie on both sides of it, the side of the chord its line
   # lies on. Then the runs beyond the crossed stacks
   yc_mid <- stats::median(yc)
-  at_end <- function(y) {
-    s <- if (all(nodes$y[members] > y)) {
+  side_at <- function(y) {
+    if (all(nodes$y[members] > y)) {
       -1
     } else if (all(nodes$y[members] < y)) {
       1
@@ -3900,7 +4028,9 @@ ortho_channel <- function(
     } else {
       -1
     }
-    cand <- candidate("ew", s, y)
+  }
+  at_end <- function(y) {
+    cand <- candidate("ew", side_at(y), y)
     cand$endpoint <- TRUE
     cand
   }
@@ -3919,6 +4049,31 @@ ortho_channel <- function(
       if (!is.na(y)) {
         cands <- c(cands, list(candidate("ew", s, y)))
       }
+    }
+  }
+
+  # the slide options: each endpoint line the placed channels crowd that
+  # the run could take with the band empty, priced so; the caller decides
+  # whether moving those channels is worth it. A line crowded by a channel
+  # that never moves, one fixed by its kind or line or one of this edge's
+  # own hyperedge, is no option and is not priced (`slide_channels()`
+  # applies the same rule to the channels a cascade reaches)
+  xr_ew <- extent_of("ew")
+  slide <- list()
+  for (y0 in unique(c(Sy, Ty))) {
+    conflicts <- channel_conflicts(y0, xr_ew, channels, opts$sep_e)
+    if (
+      length(conflicts) == 0 ||
+        any(channels$fixed[conflicts] | channels$key[conflicts] == keys[[1]])
+    ) {
+      next
+    }
+    p <- price("ew", side_at(y0), y0)
+    if (is.finite(p$cost)) {
+      slide <- c(
+        slide,
+        list(c(result_of(p, FALSE), list(conflicts = conflicts)))
+      )
     }
   }
 
@@ -3942,15 +4097,59 @@ ortho_channel <- function(
     best$wp <- bends_of(best$kind, best$y)
     clamped <- TRUE
   }
-  xr <- extent_of(best$kind)
-  list(
-    kind = best$kind,
-    side = best$side,
-    y = best$y,
-    wp = best$wp,
-    clamped = clamped,
-    channel = df_cols(side = best$side, y = best$y, lo = xr[[1]], hi = xr[[2]])
+  c(
+    result_of(best, clamped),
+    list(
+      slide = slide,
+      state = list(
+        members = members,
+        yc = yc,
+        xr_ew = xr_ew,
+        y_min = y_min,
+        y_max = y_max,
+        extra = extra
+      )
+    )
   )
+}
+
+#' The bends of an E/W channel at `y`
+#'
+#' The turns of the polyline from the source through the first gap's slot,
+#' along the channel, and through the last gap's slot to the target, with
+#' the vertices a run on an endpoint line makes collinear dropped: two for
+#' such a run, four otherwise.
+#'
+#' @param fr The edge frame, `S` its source and `E` its target.
+#' @param x_a,x_b The x of the first and last gap's slot.
+#' @noRd
+ew_bend_count <- function(fr, x_a, x_b, y) {
+  P <- drop_collinear(dedupe_points(rbind(
+    fr$S,
+    c(x_a, fr$S[[2]]),
+    c(x_a, y),
+    c(x_b, y),
+    c(x_b, fr$E[[2]]),
+    fr$E
+  )))
+  nrow(P) - 2L
+}
+
+#' Commit a horizontal piece in a gap
+#'
+#' A piece shorter than the coincidence tolerance is no piece: the edge
+#' enters and leaves its slot on one line.
+#'
+#' @noRd
+add_piece <- function(pieces, g, key, left, right) {
+  if (abs(left - right) < 1e-3) {
+    return(pieces)
+  }
+  pieces[[g]] <- df_bind(
+    pieces[[g]],
+    df_cols(key = key, left = left, right = right)
+  )
+  pieces
 }
 
 #' Whether a piece would coincide with a committed piece in both orders
@@ -4019,15 +4218,192 @@ common_free_y <- function(ints, y0, side) {
 #'
 #' @noRd
 stack_channel <- function(y, side, xr, channels, sep_e) {
-  same <- channels$hi > min(xr) + 1e-9 & channels$lo < max(xr) - 1e-9
-  ys <- channels$y[same]
   repeat {
-    near <- abs(ys - y) < sep_e - 1e-9
-    if (!any(near)) {
+    near <- channel_conflicts(y, xr, channels, sep_e)
+    if (length(near) == 0) {
       return(y)
     }
-    y <- if (side > 0) max(ys[near]) + sep_e else min(ys[near]) - sep_e
+    ys <- channels$y[near]
+    y <- if (side > 0) max(ys) + sep_e else min(ys) - sep_e
   }
+}
+
+#' The placed channels a run would sit within `sep_e` of
+#'
+#' A channel conflicts with a run at `y` over the x-range `xr` when its own
+#' x-range properly overlaps `xr` and its y lies within `sep_e` of `y`,
+#' whichever side it was placed on. The stacking rule and the channel slide
+#' share this one test.
+#'
+#' @param channels Channels with `y`, `lo`, and `hi`.
+#' @return The row indices of the conflicting channels.
+#' @noRd
+channel_conflicts <- function(y, xr, channels, sep_e) {
+  same <- channels$hi > min(xr) + 1e-9 & channels$lo < max(xr) - 1e-9
+  which(same & abs(channels$y - y) < sep_e - 1e-9)
+}
+
+#' Whether a channel never moves to make room for another edge's run
+#'
+#' An S/N channel's y is tied to its stubs, and a channel running on its
+#' own source's or target's line has the shape the slide exists to create,
+#' which is never taken from another edge. Vectorised over channels.
+#'
+#' @noRd
+channel_fixed <- function(kind, y, Sy, Ty) {
+  kind != "ew" | abs(y - Sy) < 1e-6 | abs(y - Ty) < 1e-6
+}
+
+#' Slide the placed channels crowding a line away from it
+#'
+#' `records` are the spanning edges placed so far, in placement order, each
+#' with its `kind`, `side`, `y`, extent `xr`, gaps `la` and `lb`, segment
+#' `keys`, endpoint ordinates `Sy` and `Ty`, frame `fr`, and the `state`
+#' `ortho_channel()` priced it with. The channels in `conflicts` move to
+#' `sep_e` beyond `y0` on the side `dir`, and every placed channel then
+#' within `sep_e` of a moved one over an overlapping extent moves `sep_e`
+#' beyond it in turn, the queue in placement order, until nothing is within
+#' `sep_e`. Three kinds of channel never move, and the direction is
+#' infeasible when the cascade reaches one: an S/N channel, whose y is tied
+#' to its stubs; a channel of the candidate's own hyperedge (`cand_key`),
+#' its trunk or a sibling on the source's line; and a channel running on
+#' its own source's or target's line, the shape this pass exists to create,
+#' which is never taken from another edge. A moved channel must stay inside
+#' the panel margin, clear its crossed discs at the margin it was placed
+#' with, and keep its pieces free of coincidence, tested against the pieces
+#' rebuilt from `pieces_base` (those of the span-1 edges) with every
+#' channel at its new line and the candidate's own `cand_pieces` committed.
+#'
+#' The price is the moved channels' change in displacement, the sum of
+#' `|y - yc|` over their crossed layers weighted as `side_cost()` weighs it,
+#' plus `bend_penalty` per bend gained. Their crossings are not repriced:
+#' a moved channel keeps its side, and a chord between its old and new
+#' lines within its extent is rare enough to leave out until a scene shows
+#' the gap, which is why the price is kept in this one place.
+#'
+#' @param cand_pieces The candidate's own pieces, each a list with `g`,
+#'   `key`, `left`, and `right`.
+#' @param gap_mid The x of every gap's midpoint, where the bends are priced.
+#' @return `NULL` when the direction is infeasible; otherwise a list with
+#'   `y`, the line of every record after the slide, `moved`, the indices of
+#'   the records that moved, the `cost`, and `pieces`, the committed pieces
+#'   with the moved channels and the candidate in place.
+#' @noRd
+slide_channels <- function(
+  records,
+  conflicts,
+  y0,
+  dir,
+  sep_e,
+  nodes,
+  R_node,
+  pieces_base,
+  cand_pieces,
+  opts,
+  cand_key,
+  gap_mid
+) {
+  n <- length(records)
+  field <- function(f, type) vapply(records, `[[`, type, f)
+  kind <- field("kind", "")
+  xr <- field("xr", numeric(2))
+  keys <- field("keys", character(2))
+  lines <- df_cols(y = field("y", 1), lo = xr[1, ], hi = xr[2, ])
+  fixed <- channel_fixed(kind, lines$y, field("Sy", 1), field("Ty", 1)) |
+    keys[1, ] == cand_key
+
+  # the cascade: every moved channel sits on the lattice y0 + k sep_e, so
+  # a channel moves at most once and the queue drains
+  moved <- logical(n)
+  target <- rep(NA_real_, n)
+  target[conflicts] <- y0 + dir * sep_e
+  queue <- conflicts
+  while (length(queue) > 0) {
+    k <- queue[[1]]
+    queue <- queue[-1]
+    if (fixed[[k]]) {
+      return(NULL)
+    }
+    want <- target[[k]]
+    if (dir * (lines$y[[k]] - want) >= -1e-9) {
+      next
+    }
+    lines$y[[k]] <- want
+    moved[[k]] <- TRUE
+    near <- channel_conflicts(want, records[[k]]$xr, lines, sep_e)
+    near <- near[near != k]
+    if (any(fixed[near])) {
+      return(NULL)
+    }
+    for (j in near) {
+      need <- want + dir * sep_e
+      if (is.na(target[[j]]) || dir * (need - target[[j]]) > 1e-9) {
+        target[[j]] <- need
+        queue <- c(queue, j)
+      }
+    }
+  }
+
+  # every moved channel inside the panel margin and clear of its crossed
+  # discs at the margin it was placed with
+  moved <- which(moved)
+  for (k in moved) {
+    st <- records[[k]]$state
+    y <- lines$y[[k]]
+    clear <- y >= st$y_min &&
+      y <= st$y_max &&
+      all(
+        abs(y - nodes$y[st$members]) >= R_node[st$members] + st$extra - 1e-9
+      )
+    if (!clear) {
+      return(NULL)
+    }
+  }
+
+  # the committed pieces with every channel at its line and the candidate's
+  # own pieces in place, rebuilt on the span-1 pieces one gap at a time; a
+  # channel's first-gap piece precedes its last-gap piece as when they were
+  # committed one by one
+  ew <- kind == "ew"
+  y_ew <- lines$y[ew]
+  cand <- function(f, type) vapply(cand_pieces, `[[`, type, f)
+  g <- c(
+    as.vector(rbind(field("la", 1)[ew], field("lb", 1)[ew] - 1)),
+    cand("g", 1)
+  )
+  key <- c(as.vector(keys[, ew]), cand("key", ""))
+  left <- c(as.vector(rbind(field("Sy", 1)[ew], y_ew)), cand("left", 1))
+  right <- c(as.vector(rbind(y_ew, field("Ty", 1)[ew])), cand("right", 1))
+  keep <- abs(left - right) >= 1e-3
+  pieces <- pieces_base
+  for (gap in unique(g[keep])) {
+    at <- keep & g == gap
+    pieces[[gap]] <- df_bind(
+      pieces[[gap]],
+      df_cols(key = key[at], left = left[at], right = right[at])
+    )
+  }
+
+  cost <- 0
+  for (k in moved) {
+    r <- records[[k]]
+    y <- lines$y[[k]]
+    if (
+      pieces_coincide(pieces[[r$la]], r$keys[[1]], r$Sy, y) ||
+        pieces_coincide(pieces[[r$lb - 1L]], r$keys[[2]], y, r$Ty)
+    ) {
+      return(NULL)
+    }
+    x_a <- gap_mid[[r$la]]
+    x_b <- gap_mid[[r$lb - 1L]]
+    cost <- cost +
+      opts$displacement_weight *
+        (sum(abs(y - r$state$yc)) - sum(abs(r$y - r$state$yc))) /
+        opts$r_ref +
+      opts$bend_penalty *
+        (ew_bend_count(r$fr, x_a, x_b, y) - ew_bend_count(r$fr, x_a, x_b, r$y))
+  }
+  list(y = lines$y, moved = moved, cost = cost, pieces = pieces)
 }
 
 #' The hyperedge segments of one gap
