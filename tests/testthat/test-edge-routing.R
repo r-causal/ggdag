@@ -1499,6 +1499,54 @@ route_drawn_scene <- function(scene, options, mode) {
   )
 }
 
+# The axis-aligned runs a routed path is drawn as: one row per run, with the
+# axis it holds, the coordinate it holds it at, and its length. The short
+# segments a rounded corner is sampled as fall under `min_length` and are
+# dropped, so a route reads the same here whether its corners are rounded or
+# sharp.
+mm_axis_runs <- function(path, min_length = 1, tol = 1e-6) {
+  keep <- c(TRUE, abs(diff(path$x)) > tol | abs(diff(path$y)) > tol)
+  points <- path[keep, , drop = FALSE]
+  n <- nrow(points)
+  if (n < 2) {
+    return(data.frame(axis = character(0), coord = numeric(0), length = 0)[0, ])
+  }
+  dx <- diff(points$x)
+  dy <- diff(points$y)
+  axis <- ifelse(abs(dy) < tol, "h", ifelse(abs(dx) < tol, "v", "o"))
+  coord <- ifelse(axis == "h", points$y[-n], points$x[-n])
+  id <- cumsum(c(
+    TRUE,
+    axis[-1] != axis[-(n - 1)] | abs(diff(coord)) > tol
+  ))
+  first <- !duplicated(id)
+  runs <- data.frame(
+    axis = axis[first],
+    coord = coord[first],
+    length = as.numeric(tapply(sqrt(dx^2 + dy^2), id, sum)),
+    stringsAsFactors = FALSE
+  )
+  runs[runs$axis != "o" & runs$length >= min_length, , drop = FALSE]
+}
+
+# A drawn scene names its nodes by position, so a scene laid out with a
+# `coords` list is read back by ordering: layer first, then height. `names`
+# is that order, and the result maps each name to the key the scene carries.
+mm_scene_keys <- function(scene, names) {
+  ordered <- scene$nodes$name[order(scene$nodes$x, scene$nodes$y)]
+  stats::setNames(ordered, names)
+}
+
+# The height of a named node of a drawn scene, in millimetres.
+mm_node_y <- function(scene, keys, name) {
+  scene$nodes$y[[match(keys[[name]], scene$nodes$name)]]
+}
+
+# The index of the edge running between two named nodes of a drawn scene.
+mm_named_edge <- function(scene, keys, from, to) {
+  which(scene$edges$from == keys[[from]] & scene$edges$to == keys[[to]])
+}
+
 # The entry points ---------------------------------------------------------------
 
 test_that("edge_route_options is spelled the same at every entry point", {
@@ -1977,4 +2025,144 @@ test_that("edge_route_options visuals: an orthogonal scene with sharp corners", 
   )
 
   expect_doppelganger("edge-route-options-orthogonal-sharp", p)
+})
+
+test_that("orthogonal visuals: a level chord runs on its target's line", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # Two departures from one source, both leaving its east face. `t` sits
+  # 0.009 data units above `s`, which the 10 by 8 inch device the vdiffr
+  # writer opens draws as 1.5 mm, inside the 2.1 mm corner radius, so s->t
+  # is level; `u` sits a full unit above, so s->u is not.
+  p <- ggdag(
+    dagify(
+      t ~ s,
+      u ~ s,
+      coords = list(
+        x = c(s = 0, t = 1, u = 1),
+        y = c(s = 0, t = 0.009, u = 1)
+      )
+    ),
+    edge_engine = "ggarrow",
+    edge_route = "orthogonal"
+  ) +
+    theme_dag()
+
+  # A baseline is worth keeping only when the picture is known to be the one
+  # the router drew, so the scene the layer routes is measured before it is
+  # drawn.
+  scene <- routed_scene_mm(p)
+  routed <- route_drawn_scene(scene, edge_route_options(), "orthogonal")
+  keys <- mm_scene_keys(scene, c("s", "t", "u"))
+  st <- mm_named_edge(scene, keys, "s", "t")
+  su <- mm_named_edge(scene, keys, "s", "u")
+  level <- routed$paths[[st]]
+  level_runs <- mm_axis_runs(level)
+  trunk_runs <- mm_axis_runs(routed$paths[[su]])
+  s_y <- mm_node_y(scene, keys, "s")
+  t_y <- mm_node_y(scene, keys, "t")
+  u_y <- mm_node_y(scene, keys, "u")
+  stopifnot(
+    # the scene is the one the level rule is about: one target off level by
+    # less than the corner radius and by more than a rounding, and one far
+    # enough above to need a trunk
+    abs(t_y - s_y) > 1,
+    abs(t_y - s_y) < 2.1,
+    abs(u_y - s_y) > 100,
+    # the level chord is drawn as the single horizontal run on t's line,
+    # from the port on that line to t's centre
+    routed$meta$mode[[st]] == "straight",
+    identical(nrow(level), 2L),
+    abs(level$y[[1]] - level$y[[2]]) < 1e-6,
+    abs(level$y[[1]] - t_y) < 1e-6,
+    identical(nrow(level_runs), 1L),
+    identical(level_runs$axis, "h"),
+    # and the sibling keeps the trunk it drew before: out along s's own
+    # line, one vertical at the slot, and in to u
+    identical(nrow(trunk_runs), 3L),
+    identical(trunk_runs$axis, c("h", "v", "h")),
+    abs(trunk_runs$coord[[1]] - s_y) < 1e-6,
+    abs(trunk_runs$coord[[3]] - u_y) < 1e-6
+  )
+
+  expect_doppelganger(
+    "orthogonal level chord leaves its source at the target's height",
+    p
+  )
+})
+
+test_that("orthogonal visuals: rows in a narrow gap keep the heads apart", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # The napkin, laid out so that the gap the three arrivals at `a` cross is
+  # 0.319 data units wide, which the 10 by 8 inch device the vdiffr writer
+  # opens draws as 20 mm: too narrow for a stub, so the gap is floored and
+  # the arrivals take rows instead of one shared line. Every other gap is a
+  # full unit, three times as wide.
+  gap <- 0.319
+  p <- ggdag(
+    dagify(
+      z ~ u1,
+      a ~ u1 + u2 + z,
+      y ~ u2 + a + m,
+      m ~ a,
+      coords = list(
+        x = c(
+          u1 = 0,
+          u2 = 1,
+          z = 1,
+          a = 1 + gap,
+          m = 2 + gap,
+          y = 3 + gap
+        ),
+        y = c(
+          u1 = 0.030,
+          u2 = -0.390,
+          z = 0.387,
+          a = 0.025,
+          m = 0.239,
+          y = -0.285
+        )
+      )
+    ),
+    edge_engine = "ggarrow",
+    edge_route = "orthogonal"
+  ) +
+    theme_dag()
+
+  scene <- routed_scene_mm(p)
+  routed <- route_drawn_scene(scene, edge_route_options(), "orthogonal")
+  keys <- mm_scene_keys(scene, c("u1", "u2", "z", "a", "m", "y"))
+  gaps <- routed$ortho$gaps
+  narrow <- gaps[which.min(gaps$width), , drop = FALSE]
+  arrivals <- lapply(
+    c("u1", "u2", "z"),
+    function(from) routed$paths[[mm_named_edge(scene, keys, from, "a")]]
+  )
+  rows <- vapply(arrivals, function(path) path$y[[nrow(path)]], numeric(1))
+  last_run_rise <- vapply(
+    arrivals,
+    function(path) abs(diff(path$y[nrow(path) - 1:0])),
+    numeric(1)
+  )
+  stopifnot(
+    # the gap before `a` is the narrow one, and it is floored: rung 4, with
+    # no room left for a stub
+    abs(narrow$width - 20) < 0.5,
+    narrow$rung == 4,
+    is.na(narrow$stub),
+    min(gaps$width[-which.min(gaps$width)]) > 60,
+    # the three heads arrive on three rows a separation apart, the level
+    # one owning the centre row
+    length(unique(round(rows, 6))) == 3L,
+    min(diff(sort(rows))) > 3.6 - 1e-6,
+    abs(rows[[1]] - mm_node_y(scene, keys, "a")) < 1e-6,
+    # and each of them is drawn along its own row, not across the corner
+    # behind it
+    all(last_run_rise < 1e-6)
+  )
+
+  expect_doppelganger("orthogonal rows in a narrow gap keep the heads apart", p)
 })
