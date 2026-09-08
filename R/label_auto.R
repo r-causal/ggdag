@@ -2878,7 +2878,10 @@ makeContent.dag_labels_auto <- function(x) {
 #' drawn with, on the same node discs, panel bounds, cap, and options, and
 #' keeps each path at the router's own sampling, so a long axis-aligned run
 #' stays an obstacle along its whole length. Edges no routed layer draws are
-#' returned untouched.
+#' returned untouched. Every row carries the arc length the arrow layer cuts
+#' from its edge's start (`cap_fins`) and end (`cap_head`): the resect the
+#' router reports for the edge's ports when it reports one, the cap
+#' otherwise, so that `label_ink()` hides exactly the head each edge draws.
 #'
 #' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
 #' @param spec The routing columns of the same rows, as the stat carried them.
@@ -2889,7 +2892,8 @@ makeContent.dag_labels_auto <- function(x) {
 #'   router breaks a tie by name.
 #' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
-#' @return `edges`, with each routed edge's two rows replaced by its path.
+#' @return `edges`, with each routed edge's two rows replaced by its path and
+#'   the columns `cap_head` and `cap_fins` added.
 #' @noRd
 route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   tagged <- !is.na(spec$route_style)
@@ -2991,6 +2995,8 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   radius <- node_radius_mm(par$node_size)
 
   paths <- vector("list", nrow(chords))
+  cap_head <- rep(par$edge_cap, nrow(chords))
+  cap_fins <- rep(par$edge_cap, nrow(chords))
   groups <- paste(
     chords$style,
     chords$layer_axis,
@@ -3027,6 +3033,12 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       )
     )
     paths[rows] <- routed$paths[seq_along(rows)]
+    # the arrow layer cuts each routed end by the resect the router reports
+    # for its port, where the router reports one
+    if (!is.null(routed$meta$resect_head)) {
+      cap_head[rows] <- routed$meta$resect_head[seq_along(rows)]
+      cap_fins[rows] <- routed$meta$resect_fins[seq_along(rows)]
+    }
   }
 
   # The router's path is the drawn path, point for point; `label_ink()`
@@ -3038,15 +3050,17 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
         edge_id = chords$edge_id[[i]],
         x = paths[[i]]$x,
         y = paths[[i]]$y,
+        cap_head = cap_head[[i]],
+        cap_fins = cap_fins[[i]],
         stringsAsFactors = FALSE
       )
     })
   )
 
-  rbind(
-    edges[!tagged, c("edge_id", "x", "y"), drop = FALSE],
-    routed_rows
-  )
+  untouched <- edges[!tagged, c("edge_id", "x", "y"), drop = FALSE]
+  untouched$cap_head <- rep(par$edge_cap, nrow(untouched))
+  untouched$cap_fins <- rep(par$edge_cap, nrow(untouched))
+  rbind(untouched, routed_rows)
 }
 
 #' Leader line from a node disc to its label box
@@ -3117,15 +3131,19 @@ label_ink_spacing <- 0.5
 #' Turns the traced edge polylines into the obstacle points the engine is
 #' scored against. A traced polyline with no bend is collapsed to its chord,
 #' which is the path the straight engine draws; every path is then resampled
-#' every `spacing` mm, segment by segment, and the points within `cap` mm of
-#' either end are dropped, because that is where the arrow layer resects the
-#' path to make room for the node and its arrowhead. What remains is the
-#' part of each edge actually on the page, with its last `label_arrow_zone`
-#' mm carrying the drawn head. An edge shorter than twice the cap disappears
-#' entirely.
+#' every `spacing` mm, segment by segment, and the points within the resect
+#' of either end are dropped, because that is where the arrow layer cuts the
+#' path to make room for the node and its arrowhead. The resect is the
+#' edge's own `cap_fins` at its start and `cap_head` at its end when the
+#' edges carry those columns, and `cap` at both ends otherwise. What remains
+#' is the part of each edge actually on the page, with its last
+#' `label_arrow_zone` mm carrying the drawn head. An edge shorter than its
+#' two resects together disappears entirely.
 #'
-#' @param edges Data frame with columns `edge_id`, `x`, and `y`, in mm.
-#' @param cap Length in mm cut from each end.
+#' @param edges Data frame with columns `edge_id`, `x`, and `y`, in mm, and
+#'   optionally `cap_head` and `cap_fins`, constant within an edge.
+#' @param cap Length in mm cut from each end of an edge that carries no
+#'   resect of its own.
 #' @param spacing Resampling spacing in mm.
 #' @return A data frame with columns `edge_id`, `x`, and `y`.
 #' @noRd
@@ -3134,6 +3152,8 @@ label_ink <- function(edges, cap, spacing = label_ink_spacing) {
   if (nrow(edges) == 0) {
     return(empty)
   }
+  cap_head <- edges$cap_head %||% rep(cap, nrow(edges))
+  cap_fins <- edges$cap_fins %||% rep(cap, nrow(edges))
 
   pieces <- lapply(
     split(
@@ -3144,11 +3164,14 @@ label_ink <- function(edges, cap, spacing = label_ink_spacing) {
       path <- polyline_chord(edges$x[rows], edges$y[rows])
       dense <- densify_polyline(path$x, path$y, spacing)
       n <- length(dense$x)
-      to_ends <- pmin(
-        sqrt((dense$x - dense$x[[1]])^2 + (dense$y - dense$y[[1]])^2),
-        sqrt((dense$x - dense$x[[n]])^2 + (dense$y - dense$y[[n]])^2)
+      from_start <- sqrt(
+        (dense$x - dense$x[[1]])^2 + (dense$y - dense$y[[1]])^2
       )
-      keep <- to_ends > cap
+      from_end <- sqrt(
+        (dense$x - dense$x[[n]])^2 + (dense$y - dense$y[[n]])^2
+      )
+      keep <- from_start > cap_fins[[rows[[1]]]] &
+        from_end > cap_head[[rows[[1]]]]
       if (sum(keep) < 2) {
         return(NULL)
       }
