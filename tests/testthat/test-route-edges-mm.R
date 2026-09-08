@@ -7189,6 +7189,48 @@ test_that("orthogonal packing: ties go above", {
   expect_equal(wp$y, c(55, 50), tolerance = 1e-6)
 })
 
+test_that("orthogonal packing: the slide does not depend on floating noise in the crowding run", {
+  # The tie scene with every y moved up by 0.1 mm. Nothing has moved relative
+  # to anything else, so the picture is the one the unshifted scene draws.
+  # The shift does change the arithmetic: m -> n's chord ordinate at layer 2
+  # lands 7e-15 mm off t's line rather than on it, which puts m -> n's
+  # vertical leg across the line the option would run on. The option is
+  # priced with the channels the slide moves out of the crossing count, so
+  # that leg is not there to be counted and the noise cannot reach the price.
+  shift <- 0.1
+  scene <- list(
+    nodes = mm_nodes(
+      c("s", "m", "s0", "m0", "p", "q", "p2", "n", "t", "t_top"),
+      c(20, 20, 20, 20, 70, 70, 70, 120, 170, 170),
+      c(55, 30, 80, 12, 22, 63.5, 78, 70, 50, 80) + shift
+    ),
+    edges = mm_edges(c("m", "s"), c("n", "t")),
+    bounds = c(0, 0, 190, 110)
+  )
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  mn <- edge_index(scene, "m->n")
+  wp <- res$waypoints[[mn]]
+  expect_equal(wp$x, c(42.033333, 42.033333, 95, 95), tolerance = 1e-6)
+  expect_equal(
+    wp$y,
+    c(30, 53.6, 53.6, 70) + shift,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    longest_run(res$paths[[mn]])$coord,
+    50 + shift + sep_e_default,
+    tolerance = 1e-6
+  )
+
+  st <- edge_index(scene, "s->t")
+  expect_equal(res$meta$n_waypoints[st], 2)
+  wp <- res$waypoints[[st]]
+  expect_equal(wp$x, c(47.966667, 47.966667), tolerance = 1e-6)
+  expect_equal(wp$y, c(55, 50) + shift, tolerance = 1e-6)
+})
+
 test_that("orthogonal packing: a sibling on the source's line never moves", {
   # s -> t2 is placed first and runs on s's own line 55; s -> v's source line
   # is then crowded by it, and v's line 75 is blocked, so s -> v takes the
@@ -7315,6 +7357,81 @@ test_that("slide_channels() refuses an immovable channel", {
     expect_equal(down$cost, 1.1, tolerance = 1e-6)
     expect_null(slide(list(crowded_record()), 1))
   }
+})
+
+test_that("slide_channels() prices the bends a moved channel sheds", {
+  # A record whose own target's line is exactly one separation above the
+  # crowded line 50: the slide puts its run on that line, where the run and
+  # the leg into the target are collinear and two of its four bends are gone.
+  # The price is the change in displacement, 2.6 mm over the reference
+  # radius, less `bend_penalty` for each bend shed, so the move is worth
+  # less than nothing. Without the bend term the same move prices at
+  # +0.433 and the shape the pass exists to create is never preferred.
+  opts <- route_constants(r_default)
+  nodes <- mm_nodes(c("a", "b"), c(70, 70), c(5, 105))
+  empty <- data.frame(
+    key = character(0),
+    left = numeric(0),
+    right = numeric(0),
+    stringsAsFactors = FALSE
+  )
+  Ty <- 50 + opts$sep_e
+  d <- c(120, Ty) - c(20, 30)
+  u <- d / sqrt(sum(d^2))
+  # the chord's ordinate at the one crossed layer, midway between its ends
+  yc <- 30 + (Ty - 30) / 2
+  record <- list(
+    e = 1L,
+    kind = "ew",
+    side = 1,
+    y = 51,
+    xr = c(36, 104),
+    la = 1L,
+    lb = 3L,
+    keys = c("s2", "e2-7"),
+    Sy = 30,
+    Ty = Ty,
+    fr = list(
+      S = c(20, 30),
+      E = c(120, Ty),
+      u = u,
+      n = c(-u[[2]], u[[1]]),
+      Lc = sqrt(sum(d^2)),
+      a = 2L,
+      b = 7L
+    ),
+    state = list(
+      members = c(1L, 2L),
+      yc = yc,
+      xr_ew = c(36, 104),
+      y_min = 3,
+      y_max = 107,
+      extra = 0
+    )
+  )
+
+  up <- slide_channels(
+    records = list(record),
+    conflicts = 1L,
+    y0 = 50,
+    dir = 1,
+    sep_e = opts$sep_e,
+    nodes = nodes,
+    R_node = nodes$r + opts$m,
+    pieces_base = list(empty, empty),
+    cand_pieces = list(list(g = 1L, key = "s1", left = 55, right = 50)),
+    opts = opts,
+    cand_key = "s1",
+    gap_mid = c(45, 95)
+  )
+  expect_equal(up$y, Ty, tolerance = 1e-6)
+  expect_equal(up$moved, 1L)
+  expect_equal(
+    up$cost,
+    (abs(Ty - yc) - abs(51 - yc)) / r_default - 2 * opts$bend_penalty,
+    tolerance = 1e-6
+  )
+  expect_equal(up$cost, 2.6 / 6 - 4, tolerance = 1e-6)
 })
 
 test_that("orthogonal packing: genetics -> chol runs on chol's line at 10 x 6", {
