@@ -5666,6 +5666,335 @@ test_that("orthogonal: a canonical sub-corner jog onto a port row is drawn strai
   expect_lt(tilt, 5)
 })
 
+# Rows out of a floored rung-4 gap -----------------------------------------------
+
+# Two sources one gap to the left of a single target, one above it and one
+# below, their y-intervals meeting at the target, so the gap carries two
+# ranks and both heads arrive at the same node. The layers sit `gap` apart.
+floored_pair_scene <- function(gap) {
+  list(
+    nodes = mm_nodes(c("s1", "s2", "t"), c(20, 20, 20 + gap), c(40, 70, 55)),
+    edges = mm_edges(c("s1", "s2"), c("t", "t")),
+    bounds = c(0, 0, 40 + gap, 110)
+  )
+}
+
+# The same pair with a leftward edge across the same gap, so the gap is
+# crossed both ways and neither layer is its target side.
+mixed_pair_scene <- function(gap) {
+  scene <- floored_pair_scene(gap)
+  scene$nodes <- rbind(scene$nodes, mm_nodes("u", 20 + gap, 95))
+  scene$edges <- rbind(scene$edges, mm_edges("u", "s2"))
+  scene$bounds <- c(0, 0, 40 + gap, 130)
+  scene
+}
+
+# The offset from `node`'s centre line at which each arrival's head is drawn:
+# the constant coordinate of the path's last axis-aligned run, or the path's
+# own end for a chord drawn straight, which has no run to read.
+arrival_offsets <- function(scene, res, node) {
+  centre <- node_xy(scene, node)[[2]]
+  labels <- edge_labels(scene$edges)[scene$edges$to == node]
+  vapply(
+    labels,
+    function(lab) {
+      path <- res$paths[[edge_index(scene, lab)]]
+      runs <- straight_runs(path)
+      end <- if (nrow(runs) == 0) {
+        path$y[[nrow(path)]]
+      } else {
+        runs$coord[[nrow(runs)]]
+      }
+      end - centre
+    },
+    numeric(1)
+  )
+}
+
+# The offsets a canonical node's arrivals are drawn at, at the small panel.
+canonical_arrival_offsets <- function(name, node, panel = c(100, 70)) {
+  scene <- canonical_scene(name, panel)
+  arrival_offsets(scene, ortho(scene), node)
+}
+
+test_that("orthogonal ports: a floored rung-4 gap gives its arrivals rows", {
+  # At 20.8 mm the gap's slots have slid until the one nearest the target
+  # sits cap + head from its layer, so the run each head is drawn on holds a
+  # row as well as the head. The pair straddles the target's centre line at
+  # +- sep_e / 2, the arrangement two arrivals with no level owner take, and
+  # each tip lands on the disc face of its own row.
+  scene <- floored_pair_scene(20.8)
+  res <- ortho(scene)
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$rung, 4)
+  expect_equal(gaps$ranks, 2)
+  expect_equal(gaps$width, 20.8)
+
+  # the slots are the ones round four placed: the rule reads them, it does
+  # not move them
+  slots <- sort(ladder_slots(scene, ortho(scene, corners = "sharp")))
+  expect_equal(slots, c(27.2, 30.8), tolerance = 1e-6)
+  expect_equal(40.8 - max(slots), head_run_default, tolerance = 1e-6)
+
+  offs <- arrival_offsets(scene, res, "t")
+  expect_equal(unname(offs[["s1->t"]]), -sep_e_default / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["s2->t"]]), sep_e_default / 2, tolerance = 1e-6)
+  expect_gte(abs(diff(unname(offs))), row_floor_default - 1e-9)
+  expect_lte(max(abs(offs)), port_row_max + 1e-9)
+  expect_equal(shared_run_length(res$paths[[1]], res$paths[[2]]), 0)
+
+  # the head of a ported arrival stops at its row's face, and it is drawn
+  # along the run, not across the corner behind it
+  expect_equal(
+    res$meta$resect_head,
+    rep(port_resect_at(sep_e_default / 2), 2),
+    tolerance = 1e-6
+  )
+  for (i in 1:2) {
+    expect_lte(
+      head_tilt_degrees(res$paths[[i]], res$meta$resect_head[[i]]),
+      0.5
+    )
+  }
+})
+
+test_that("orthogonal ports: a rung-4 gap short of the floor keeps the centre row", {
+  # 16 mm cannot hold the target's floor and the source's soft band at once,
+  # so the slots do not move and the run left to the target is 7.2 mm, too
+  # short to carry a row as well as a head. Both arrivals stay on the centre
+  # line, exactly as they are drawn today.
+  scene <- floored_pair_scene(16)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(
+    sort(ladder_slots(scene, ortho(scene, corners = "sharp"))),
+    c(27.2, 28.8),
+    tolerance = 1e-6
+  )
+  expect_equal(unname(arrival_offsets(scene, res, "t")), c(0, 0))
+
+  # 18 mm is past the 17.2 mm gate but the band caps the slide at 0.8 mm, so
+  # the slot nearest the target stops 8 mm from its layer, short of the
+  # 10 mm floor. A partly floored gap is not a floored one.
+  scene <- floored_pair_scene(18)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  slots <- sort(ladder_slots(scene, ortho(scene, corners = "sharp")))
+  expect_equal(slots, c(26.4, 30), tolerance = 1e-6)
+  expect_lt(38 - max(slots), head_run_default)
+  expect_equal(unname(arrival_offsets(scene, res, "t")), c(0, 0))
+
+  # the nine-source gap at the same width is the room-capped case of the
+  # same thing: its target-side slot stops 3.8 mm out and all nine arrivals
+  # keep the centre row
+  scene <- nine_arrival_scene(18)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(unname(arrival_offsets(scene, res, "t")), rep(0, 9))
+})
+
+test_that("orthogonal ports: a rung-4 gap with no target side keeps the centre row", {
+  # `u -> s2` crosses the same gap leftwards, so neither layer is the gap's
+  # target side and the slots stay centred on the midpoint. Without the
+  # slide there is no floor to reach, so the two arrivals at `t` keep the
+  # centre row at a width that would otherwise give them rows.
+  scene <- mixed_pair_scene(20.8)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(res$ortho$gaps$ranks, 2)
+  expect_equal(
+    sort(unique(round(crossing_slots(ortho(scene, corners = "sharp")), 6))),
+    30.4 + c(-1, 1) * sep_e_default / 2,
+    tolerance = 1e-6
+  )
+  expect_equal(unname(arrival_offsets(scene, res, "t")), c(0, 0))
+})
+
+test_that("orthogonal ports: rows hold as the floored gap widens", {
+  # Swept from just past the width at which the floor is first reached
+  # (58 / 3 = 19.33 mm for this pair) up to 30 mm, across the rung 4, 3, 2
+  # and 1 handovers. The rows are a property of the target, not of the
+  # ladder, so they may not move at all over the sweep, and no slot may step
+  # by more than a separation. The switch itself is excluded by design: rows
+  # appear at the width the floor is reached, and that is a step.
+  rows <- c(-sep_e_default / 2, sep_e_default / 2)
+  worst_row <- 0
+  worst_slot <- 0
+  previous <- NULL
+  rungs <- integer(0)
+  for (gap in seq(19.35, 30, by = 0.05)) {
+    scene <- floored_pair_scene(gap)
+    res <- ortho(scene, corners = "sharp")
+    rungs <- c(rungs, res$ortho$gaps$rung)
+    offs <- sort(unname(arrival_offsets(scene, res, "t")))
+    worst_row <- max(worst_row, max(abs(offs - rows)))
+    slots <- sort(crossing_slots(res))
+    if (!is.null(previous)) {
+      worst_slot <- max(worst_slot, max(abs(slots - previous)))
+    }
+    previous <- slots
+  }
+  expect_true(4L %in% rungs)
+  expect_true(any(rungs < 4L))
+  expect_lte(worst_row, 1e-6)
+  expect_lte(worst_slot, sep_e_default + 1e-9)
+})
+
+test_that("orthogonal ports: napkin's shared target draws its arrivals apart", {
+  # At the small panel every gap of the napkin falls to rung 4 and every one
+  # of them reaches the floor. `u1 -> a` is level with `a` and keeps its
+  # centre row as the level owner; the other two take the first free row on
+  # their own side, so the three heads are drawn on three lines instead of
+  # one.
+  scene <- canonical_scene("napkin", c(100, 70))
+  res <- ortho(scene)
+  expect_true(all(res$ortho$gaps$rung == 4))
+  expect_true(all(res$ortho$gaps$width >= head_run_gap_default))
+
+  offs <- arrival_offsets(scene, res, "a")
+  expect_equal(unname(offs[["u1->a"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["u2->a"]]), -sep_e_default, tolerance = 1e-6)
+  expect_equal(unname(offs[["z->a"]]), sep_e_default, tolerance = 1e-6)
+  expect_equal(res$meta$mode[edge_index(scene, "u1->a")], "straight")
+
+  # the two ported heads no longer land on the same point
+  tip_of <- function(lab) {
+    i <- edge_index(scene, lab)
+    arc_from_end(res$paths[[i]], res$meta$resect_head[[i]])
+  }
+  expect_equal(
+    sqrt(sum((tip_of("u2->a") - tip_of("z->a"))^2)),
+    2 * sep_e_default,
+    tolerance = 1e-6
+  )
+  expect_gte(sqrt(sum((tip_of("u2->a") - tip_of("u1->a"))^2)), 3.5)
+  expect_gte(sqrt(sum((tip_of("z->a") - tip_of("u1->a"))^2)), 3.5)
+
+  # y's arrival from u2 runs level into it and owns the centre row; the two
+  # arrivals above fit at h / 2 = 2.675, the spacing R4 allows without
+  # merging
+  offs <- arrival_offsets(scene, res, "y")
+  expect_equal(unname(offs[["u2->y"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["a->y"]]), port_row_max / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["m->y"]]), port_row_max, tolerance = 1e-6)
+})
+
+test_that("orthogonal ports: five floored arrivals are centred on their target", {
+  # epidemiology's health takes five arrivals at the small panel, none of
+  # them level with it, so R3 centres the five rows on its centre line and
+  # R4 sets the spacing at 2 h / (n - 1) = 2.675, above the 1.8 mm floor.
+  scene <- canonical_scene("epidemiology", c(100, 70))
+  res <- ortho(scene)
+  offs <- arrival_offsets(scene, res, "health")
+  expect_length(offs, 5)
+  expect_equal(
+    sort(unname(offs)),
+    port_row_max * c(-1, -0.5, 0, 0.5, 1),
+    tolerance = 1e-6
+  )
+  expect_equal(unname(offs[["age->health"]]), -port_row_max, tolerance = 1e-6)
+  expect_equal(
+    unname(offs[["ses->health"]]),
+    -port_row_max / 2,
+    tolerance = 1e-6
+  )
+  expect_equal(unname(offs[["edu->health"]]), 0, tolerance = 1e-6)
+  expect_equal(
+    unname(offs[["gene->health"]]),
+    port_row_max / 2,
+    tolerance = 1e-6
+  )
+  expect_equal(unname(offs[["income->health"]]), port_row_max, tolerance = 1e-6)
+  expect_equal(mean(offs), 0, tolerance = 1e-6)
+  expect_gte(min(diff(sort(unname(offs)))), row_floor_default - 1e-9)
+})
+
+test_that("orthogonal ports: a floored stack merges under the row floor", {
+  # multi_mediator at the small panel. y takes a level chord from x and a
+  # level run from m1, both on its centre row, and three arrivals from
+  # above: h / 3 = 1.783 is under the 1.8 mm floor, so the three merge onto
+  # the first free row at sep_e and their heads still coincide, the degrade
+  # R4 accepts rather than move the floor. m2 has an owner and one arrival
+  # on each side, which fit, and m3 has a pair with no owner.
+  offs <- canonical_arrival_offsets("multi_mediator", "y")
+  expect_equal(unname(offs[["x->y"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["m1->y"]]), 0, tolerance = 1e-6)
+  expect_equal(
+    unname(offs[c("m2->y", "m3->y", "u->y")]),
+    rep(sep_e_default, 3),
+    tolerance = 1e-6
+  )
+  expect_lt(port_row_max / 3, row_floor_default)
+
+  offs <- canonical_arrival_offsets("multi_mediator", "m2")
+  expect_equal(unname(offs[["x->m2"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["m1->m2"]]), -sep_e_default, tolerance = 1e-6)
+  expect_equal(unname(offs[["u->m2"]]), sep_e_default, tolerance = 1e-6)
+
+  offs <- canonical_arrival_offsets("multi_mediator", "m3")
+  expect_equal(unname(offs[["m2->m3"]]), -sep_e_default / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["x->m3"]]), sep_e_default / 2, tolerance = 1e-6)
+})
+
+test_that("orthogonal ports: the other floored shared targets take their rows", {
+  # The remaining canonical scenes whose small-panel gaps reach the floor.
+  # deep_confound's b is a pair with no owner and straddles the centre; its
+  # d is an owner with two arrivals above; its c an owner with one. The
+  # complex chain's c and e are the same two shapes again.
+  offs <- canonical_arrival_offsets("deep_confound", "b")
+  expect_equal(unname(offs[["a->b"]]), -sep_e_default / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["u->b"]]), sep_e_default / 2, tolerance = 1e-6)
+
+  offs <- canonical_arrival_offsets("deep_confound", "d")
+  expect_equal(unname(offs[["a->d"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["b->d"]]), port_row_max / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["c->d"]]), port_row_max, tolerance = 1e-6)
+
+  offs <- canonical_arrival_offsets("deep_confound", "c")
+  expect_equal(unname(offs[["u->c"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["b->c"]]), -sep_e_default, tolerance = 1e-6)
+
+  offs <- canonical_arrival_offsets("complex_chain", "c")
+  expect_equal(unname(offs[["a->c"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["b->c"]]), sep_e_default, tolerance = 1e-6)
+
+  offs <- canonical_arrival_offsets("complex_chain", "e")
+  expect_equal(unname(offs[["a->e"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["c->e"]]), port_row_max / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["d->e"]]), port_row_max, tolerance = 1e-6)
+})
+
+test_that("orthogonal ladder: a scene with no floored gap is unchanged", {
+  # The 16 mm band is too narrow to reach the floor, so nothing about it
+  # moves: the four slots are the ones pinned before rows in rung-4 gaps
+  # existed, and every arrival is still drawn on its target's centre line.
+  scene <- narrow_band_scene(gap = 16)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_lt(res$ortho$gaps$width, head_run_gap_default)
+  expect_equal(
+    sort(narrow_band_slots(scene, res)),
+    c(37.75, 39.25, 40.75, 42.25),
+    tolerance = 1e-6
+  )
+  for (node in c("b1", "b2", "b3", "b4")) {
+    expect_equal(unname(arrival_offsets(scene, res, node)), 0, tolerance = 1e-6)
+  }
+
+  # two arrivals into separate targets across a floored gap are unchanged as
+  # well: a row assignment of one arrival is the centre row
+  scene <- two_arrival_scene(20.8)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+  expect_equal(unname(arrival_offsets(scene, res, "b1")), 0, tolerance = 1e-6)
+  expect_equal(unname(arrival_offsets(scene, res, "b2")), 0, tolerance = 1e-6)
+  expect_equal(
+    sort(ladder_slots(scene, ortho(scene, corners = "sharp"))),
+    c(30 + r_soft, 50.8 - head_run_default),
+    tolerance = 1e-6
+  )
+})
+
 test_that("orthogonal ports: the chain's N ports keep their sep_e / 2 stack", {
   # a's departure and c's arrival share no side, and the two edges at c's N
   # side keep the +- sep_e / 2 offsets the two-member stack reproduces
@@ -6038,6 +6367,72 @@ test_that("orthogonal heads: a rung-4 arrival is straight once the gap holds the
   # gaps: forty of the scenes' arrivals come out of one
   expect_gt(wide, 30L)
   expect_gt(narrow, 0L)
+})
+
+test_that("orthogonal heads: a row in a floored gap keeps its head on its run", {
+  # The head census again, over the arrivals that come out of a rung-4 gap
+  # wide enough to hold the floor. Each is drawn along its own row: the last
+  # run of the sharp polyline sits on the row, the resect is the face resect
+  # of that row, and the head is not tilted. The count of arrivals drawn off
+  # the centre line is pinned too, since a rule that gave rows to none of
+  # them would satisfy everything else here.
+  wide <- 0L
+  ported <- 0L
+  for (scene in head_census_scenes()) {
+    res <- ortho(scene)
+    sharp <- ortho(scene, corners = "sharp")
+    gaps <- res$ortho$gaps
+    if (is.null(gaps) || nrow(gaps) == 0) {
+      next
+    }
+    for (i in seq_len(nrow(scene$edges))) {
+      g <- arrival_gap(scene, res, i)
+      if (is.na(g)) {
+        next
+      }
+      row <- gaps[gaps$gap == g, , drop = FALSE]
+      if (nrow(row) != 1 || row$rung != 4) {
+        next
+      }
+      if (row$width < head_run_gap_default - 1e-9) {
+        next
+      }
+      wide <- wide + 1L
+      label <- paste0(
+        scene$name %||% "fixture",
+        " ",
+        edge_labels(scene$edges)[[i]]
+      )
+      centre <- node_xy(scene, scene$edges$to[[i]])[[2]]
+      last <- last_run(res$paths[[i]])
+      last_sharp <- last_run(sharp$paths[[i]])
+      off <- last$coord - centre
+      if (abs(off) > 1e-9) {
+        ported <- ported + 1L
+      }
+      expect_lte(abs(off), port_row_max + 1e-9, label = label)
+      expect_equal(last_sharp$axis, "h", label = label)
+      expect_equal(
+        last_sharp$coord,
+        last$coord,
+        tolerance = 1e-6,
+        label = label
+      )
+      expect_equal(
+        res$meta$resect_head[[i]],
+        port_resect_at(off),
+        tolerance = 1e-6,
+        label = label
+      )
+      expect_lte(
+        head_tilt_degrees(res$paths[[i]], res$meta$resect_head[[i]]),
+        0.5,
+        label = label
+      )
+    }
+  }
+  expect_gt(wide, 30L)
+  expect_gt(ported, 20L)
 })
 
 # The panel's routed paths as the arrow grob the layer draws them with, so
