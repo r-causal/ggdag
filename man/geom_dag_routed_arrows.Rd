@@ -12,6 +12,7 @@ geom_dag_routed_arrows(
   clearance = NULL,
   edge_sep = NULL,
   edge_sep_min = NULL,
+  edge_route_options = NULL,
   layer_axis = c("auto", "x", "y"),
   node_size = NULL,
   curvature = 0.3,
@@ -64,6 +65,11 @@ tighten \code{edge_sep} to when a gap between layers is too narrow for its
 slots at the full separation, or \code{NULL} (the default) for a quarter of
 the node radius with a floor of 1.5 mm. Set it equal to \code{edge_sep} to
 keep the separation fixed. Spline routing does not use it.}
+
+\item{edge_route_options}{An object from \code{\link[=edge_route_options]{edge_route_options()}} carrying
+the rest of the constants the router draws with, or \code{NULL} (the default)
+for the router's own. \code{clearance}, \code{edge_sep}, and \code{edge_sep_min} above
+override the object's fields of those names for this layer.}
 
 \item{layer_axis}{The axis the layout's layers run along, one of \code{"auto"}
 (the default), \code{"x"}, or \code{"y"}. Routing sends a detour along the

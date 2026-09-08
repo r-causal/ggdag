@@ -239,9 +239,7 @@ geom_dag_routed_arrow_geom <- function() {
         panel_params,
         coord,
         route = "spline",
-        clearance = NULL,
-        edge_sep = NULL,
-        edge_sep_min = NULL,
+        edge_route_options = NULL,
         layer_axis = "auto",
         node_size = NULL,
         arrow = list(
@@ -318,9 +316,7 @@ geom_dag_routed_arrow_geom <- function() {
           edges = edges,
           params = list(
             route = route,
-            clearance = clearance,
-            edge_sep = edge_sep,
-            edge_sep_min = edge_sep_min,
+            edge_route_options = edge_route_options,
             layer_axis = layer_axis,
             node_size = node_size %||% ggdag_option("node_size", 16),
             arrow = arrow,
@@ -441,11 +437,9 @@ makeContent.dag_routed_edges <- function(x) {
     bounds = c(0, 0, panel_width, panel_height),
     cap = routed_cap_mm(edges, par$resect),
     mode = par$route,
-    opts = route_opts(
-      r_ref = radius,
-      m = par$clearance,
-      sep_e = par$edge_sep,
-      sep_min = par$edge_sep_min,
+    opts = route_opts_from(
+      par$edge_route_options,
+      radius,
       layer_axis = par$layer_axis %||% "auto"
     )
   )
@@ -1192,6 +1186,7 @@ dag_routed_arrow_layer <- function(
   clearance = NULL,
   edge_sep = NULL,
   edge_sep_min = NULL,
+  edge_route_options = NULL,
   layer_axis = "auto",
   node_size = NULL,
   arrow_head,
@@ -1212,6 +1207,15 @@ dag_routed_arrow_layer <- function(
   inherit.aes = TRUE,
   ...
 ) {
+  # the three millimetre arguments are per-call overrides of the object's
+  # fields, so they are folded in here and the layer carries one object
+  edge_route_options <- merge_edge_route_options(
+    edge_route_options,
+    clearance = clearance,
+    edge_sep = edge_sep,
+    edge_sep_min = edge_sep_min
+  )
+
   dag_arrow_layer(ggplot2::layer(
     data = routed_edge_data(data_directed),
     mapping = with_routed_draw(mapping),
@@ -1222,9 +1226,7 @@ dag_routed_arrow_layer <- function(
     inherit.aes = inherit.aes,
     params = rlang::list2(
       route = route,
-      clearance = clearance,
-      edge_sep = edge_sep,
-      edge_sep_min = edge_sep_min,
+      edge_route_options = edge_route_options,
       layer_axis = layer_axis,
       node_size = node_size,
       arrow = list(head = arrow_head, fins = arrow_fins, mid = arrow_mid),
@@ -1294,6 +1296,10 @@ dag_routed_arrow_layer <- function(
 #'   slots at the full separation, or `NULL` (the default) for a quarter of
 #'   the node radius with a floor of 1.5 mm. Set it equal to `edge_sep` to
 #'   keep the separation fixed. Spline routing does not use it.
+#' @param edge_route_options An object from [edge_route_options()] carrying
+#'   the rest of the constants the router draws with, or `NULL` (the default)
+#'   for the router's own. `clearance`, `edge_sep`, and `edge_sep_min` above
+#'   override the object's fields of those names for this layer.
 #' @param layer_axis The axis the layout's layers run along, one of `"auto"`
 #'   (the default), `"x"`, or `"y"`. Routing sends a detour along the
 #'   within-layer axis, so a layout laid out down the panel rather than
@@ -1334,6 +1340,7 @@ geom_dag_routed_arrows <- function(
   clearance = NULL,
   edge_sep = NULL,
   edge_sep_min = NULL,
+  edge_route_options = NULL,
   layer_axis = c("auto", "x", "y"),
   node_size = NULL,
   curvature = 0.3,
@@ -1387,6 +1394,7 @@ geom_dag_routed_arrows <- function(
       clearance = clearance,
       edge_sep = edge_sep,
       edge_sep_min = edge_sep_min,
+      edge_route_options = edge_route_options,
       layer_axis = layer_axis,
       node_size = node_size,
       arrow_head = arrow_head,

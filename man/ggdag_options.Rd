@@ -80,6 +80,14 @@ with. The option applies to the ggarrow engine with
 \code{edge_type = "link_arc"} or \code{"link"}; it is a no-op for \code{"arc"} and
 \code{"diagonal"}, which already bend every edge.
 
+\code{edge_route_options} carries the constants the router draws with, built by
+\code{\link[=edge_route_options]{edge_route_options()}}. It is read only when \code{edge_route} names a routing
+mode. A field left unset is derived when the plot is drawn, from the node
+size the plot uses, so an object set once holds at every plot size.
+\code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}} takes the same object, and its own \code{clearance},
+\code{edge_sep}, and \code{edge_sep_min} arguments override the object's fields for
+that layer.
+
 \code{label_wrap} is a width in characters that \code{\link[=geom_dag]{geom_dag()}} and \code{\link[=ggdag]{ggdag()}} hand
 to the automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
 \code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, which wrap their text to it before the labels are

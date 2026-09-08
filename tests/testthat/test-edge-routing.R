@@ -717,7 +717,11 @@ test_that("clearance widens the corridor the drawn path keeps", {
     geom_dag_routed_arrows(clearance = 4) +
     geom_dag_point()
 
-  expect_equal(routed_layer_of(p)$geom_params$clearance, 4)
+  # the layer folds the millimetre argument into the object it carries
+  expect_equal(
+    routed_layer_of(p)$geom_params$edge_route_options$clearance,
+    4
+  )
 
   drawn <- mediator_detour(routed_gtree(p))
 
@@ -803,14 +807,17 @@ test_that("a routed arrows layer is discovered as a routing spec", {
   expect_identical(nrow(routed), 3L)
   expect_contains(
     names(routed),
-    c("x", "y", "xend", "yend", "route_style", "route_clearance", "route_sep")
+    c("x", "y", "xend", "yend", "route_style", "route_options")
   )
   expect_true(all(routed$route_style == "spline"))
 
   # clearance and separation are the router's defaults unless the geom sets
-  # them, and the spec says so rather than guessing a number
-  expect_true(all(is.na(routed$route_clearance)))
-  expect_true(all(is.na(routed$route_sep)))
+  # them, and the object says so rather than guessing a number
+  expect_true(all(vapply(
+    routed$route_options,
+    function(options) is.null(options$clearance) && is.null(options$edge_sep),
+    logical(1)
+  )))
 
   edges <- pull_dag_data(tidy_dag)
   edges <- edges[!is.na(edges$to), , drop = FALSE]

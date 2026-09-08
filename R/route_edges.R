@@ -107,7 +107,7 @@
 #'   Orthogonal mode always prices crossings linearly.
 #' @return A named list of constants.
 #' @noRd
-route_opts <- function(
+route_constants <- function(
   r_ref,
   m = NULL,
   sep_e = NULL,
@@ -201,7 +201,7 @@ route_opts <- function(
 #'   straight: a vertical chord, a horizontal chord between adjacent layers,
 #'   or a horizontal spanning chord that no crossed disc blocks; so does a
 #'   chord between two nodes of one layer.
-#' @param opts Constants from `route_opts()`.
+#' @param opts Constants from `route_constants()`.
 #' @return A list with `paths` (one `data.frame(x, y)` per edge, in input
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
 #'   `n_waypoints`, `waypoint_layers`, `clearance_ok`, `sagitta_ratio`,
@@ -224,7 +224,7 @@ route_edges_mm <- function(
   bounds,
   cap = 8,
   mode = c("spline", "orthogonal", "straight"),
-  opts = route_opts(stats::median(nodes$r))
+  opts = route_constants(stats::median(nodes$r))
 ) {
   mode <- check_route_mode(mode)
   scene <- canonicalize_scene(

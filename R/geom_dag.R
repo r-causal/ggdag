@@ -1511,6 +1511,7 @@ quick_plot_arrow_edges <- function(
   ...
 ) {
   edge_route <- ggdag_option("edge_route", "straight")
+  edge_route_options <- ggdag_option("edge_route_options", NULL)
 
   directed <- if (identical(edge_route, "straight")) {
     geom_dag_arrow_arc(
@@ -1530,6 +1531,7 @@ quick_plot_arrow_edges <- function(
       mapping = mapping,
       data_directed = data_directed,
       edge_route = edge_route,
+      edge_route_options = edge_route_options,
       arrow_head = arrow_head,
       arrow_fins = arrow_fins,
       arrow_mid = NULL,
@@ -1574,6 +1576,7 @@ routed_directed_layer <- function(
   mapping,
   data_directed,
   edge_route,
+  edge_route_options,
   arrow_head,
   arrow_fins,
   arrow_mid,
@@ -1588,6 +1591,7 @@ routed_directed_layer <- function(
     mapping = mapping,
     data_directed = data_directed,
     route = edge_route,
+    edge_route_options = edge_route_options,
     node_size = node_size,
     arrow_head = arrow_head,
     arrow_fins = arrow_fins,
@@ -1619,7 +1623,8 @@ geom_dag_ggarrow_edges <- function(
   sizes,
   show.legend = NA,
   data = NULL,
-  edge_route = ggdag_option("edge_route", "straight")
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL)
 ) {
   rlang::check_installed(
     "ggarrow",
@@ -1647,6 +1652,7 @@ geom_dag_ggarrow_edges <- function(
         mapping = dag_mapping,
         data_directed = data_fn,
         edge_route = edge_route,
+        edge_route_options = edge_route_options,
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1695,6 +1701,7 @@ geom_dag_ggarrow_edges <- function(
         mapping = dag_mapping,
         data_directed = data,
         edge_route = edge_route,
+        edge_route_options = edge_route_options,
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1803,6 +1810,9 @@ geom_dag_ggarrow_edges <- function(
 #'   curve; `"orthogonal"` draws every edge as axis-aligned runs with rounded
 #'   corners. Both decide the geometry in the units of the device when the
 #'   plot is drawn. The ggraph engine cannot route and warns when asked to.
+#' @param edge_route_options An object from [edge_route_options()] carrying
+#'   the constants the router draws with, or `NULL` (the default) for the
+#'   router's own. It is read only when `edge_route` names a routing mode.
 #' @param node_size The size of the nodes.
 #' @param text_size The size of the text.
 #' @param label_size The size of the labels.
@@ -1893,6 +1903,7 @@ geom_dag <- function(
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -1947,7 +1958,8 @@ geom_dag <- function(
         sizes = sizes,
         show.legend = edge_show_legend,
         data = data,
-        edge_route = edge_route
+        edge_route = edge_route,
+        edge_route_options = edge_route_options
       )
     } else {
       if (edge_type == "link_arc") {

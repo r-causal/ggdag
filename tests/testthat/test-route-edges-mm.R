@@ -987,8 +987,8 @@ expect_orthogonal_scene <- function(
 
 # Constants ----------------------------------------------------------------------
 
-test_that("route_opts() derives the design constants from the reference radius", {
-  opts <- route_opts(6)
+test_that("route_constants() derives the design constants from the reference radius", {
+  opts <- route_constants(6)
   expect_type(opts, "list")
   expect_equal(opts$r_ref, 6)
   # clearance margin m = max(0.5 r, 1.2) and its soft floor
@@ -1015,8 +1015,8 @@ test_that("route_opts() derives the design constants from the reference radius",
   expect_equal(opts$verify_tol, 0.1)
 })
 
-test_that("route_opts() applies the millimetre floors at small radii", {
-  opts <- route_opts(2)
+test_that("route_constants() applies the millimetre floors at small radii", {
+  opts <- route_constants(2)
   expect_equal(opts$m, 1.2)
   expect_equal(opts$R, 3.2)
   expect_equal(opts$R_soft, 3.2)
@@ -1025,8 +1025,8 @@ test_that("route_opts() applies the millimetre floors at small radii", {
   expect_equal(opts$tol_layer, 2)
 })
 
-test_that("route_opts() scales with the radius above the floors", {
-  opts <- route_opts(12)
+test_that("route_constants() scales with the radius above the floors", {
+  opts <- route_constants(12)
   expect_equal(opts$m, 6)
   expect_equal(opts$R, 18)
   expect_equal(opts$R_soft, 13.2)
@@ -1034,18 +1034,18 @@ test_that("route_opts() scales with the radius above the floors", {
   expect_equal(opts$sep_m, 12)
 })
 
-test_that("route_opts() derives the corner radius and defaults to rounded corners", {
-  opts <- route_opts(6)
+test_that("route_constants() derives the corner radius and defaults to rounded corners", {
+  opts <- route_constants(6)
   expect_true(all(c("corners", "rc") %in% names(opts)))
   expect_equal(opts$corners, "rounded")
   # rc = clamp(0.35 r, 0.8, 2.5): 0.35 * 6 = 2.1 lies inside the clamp
   expect_equal(opts$rc, 2.1)
   # 0.35 * 2 = 0.7 is lifted to the 0.8 mm floor
-  expect_equal(route_opts(2)$rc, 0.8)
+  expect_equal(route_constants(2)$rc, 0.8)
   # 0.35 * 10 = 3.5 is cut to the 2.5 mm ceiling
-  expect_equal(route_opts(10)$rc, 2.5)
-  expect_equal(route_opts(6, corners = "sharp")$corners, "sharp")
-  expect_error(route_opts(6, corners = "bevel"))
+  expect_equal(route_constants(10)$rc, 2.5)
+  expect_equal(route_constants(6, corners = "sharp")$corners, "sharp")
+  expect_error(route_constants(6, corners = "bevel"))
 })
 
 # Output structure ------------------------------------------------------------
@@ -2995,9 +2995,9 @@ test_that("continuity: sliding m through the obstruction threshold never pops th
 # and congestion terms, ties above.
 ortho <- function(scene, corners = NULL, ...) {
   opts <- if (is.null(corners)) {
-    route_opts(r_default)
+    route_constants(r_default)
   } else {
-    route_opts(r_default, corners = corners)
+    route_constants(r_default, corners = corners)
   }
   route_scene(scene, mode = "orthogonal", opts = opts, ...)
 }
@@ -3426,7 +3426,7 @@ test_that("orthogonal: an oblique chord between two nodes of one layer stays str
   res <- route_scene(
     scene,
     mode = "orthogonal",
-    opts = route_opts(r_default, layer_axis = "x")
+    opts = route_constants(r_default, layer_axis = "x")
   )
 
   i <- edge_index(scene, "a->b")
@@ -3459,7 +3459,7 @@ test_that("orthogonal: a same-layer chord in the last layer stays straight like 
   res <- route_scene(
     scene,
     mode = "orthogonal",
-    opts = route_opts(r_default, layer_axis = "x")
+    opts = route_constants(r_default, layer_axis = "x")
   )
 
   i <- edge_index(scene, "a->b")
@@ -3581,7 +3581,7 @@ test_that("orthogonal: layers along y are transposed in and the result transpose
   res <- route_scene(
     rotated,
     mode = "orthogonal",
-    opts = route_opts(r_default, layer_axis = "y")
+    opts = route_constants(r_default, layer_axis = "y")
   )
 
   expect_identical(res$meta$routed, ref$meta$routed)
@@ -3696,7 +3696,7 @@ test_that("orthogonal: bends scale exactly with k while rc stays inside its clam
 
 test_that("spline and straight mode ignore the corners option", {
   scene <- fan_scene()
-  sharp <- route_opts(r_default, corners = "sharp")
+  sharp <- route_constants(r_default, corners = "sharp")
   expect_identical(route_scene(scene, opts = sharp), route_scene(scene))
   expect_identical(
     route_scene(scene, mode = "straight", opts = sharp),
@@ -4361,12 +4361,12 @@ test_that("orthogonal channels: a node beside the source in its layer rules out 
 
 # Bend-priced candidates -----------------------------------------------------------
 
-test_that("route_opts() prices a bend at two reference radii by default", {
+test_that("route_constants() prices a bend at two reference radii by default", {
   # two bends are the price of one detour, so four bends cost a second one
-  expect_equal(route_opts(r_default)$bend_penalty, 2)
-  expect_equal(route_opts(r_default, bend_penalty = 0)$bend_penalty, 0)
-  expect_equal(route_opts(r_default, bend_penalty = 2.5)$bend_penalty, 2.5)
-  expect_equal(route_opts(3)$bend_penalty, 2)
+  expect_equal(route_constants(r_default)$bend_penalty, 2)
+  expect_equal(route_constants(r_default, bend_penalty = 0)$bend_penalty, 0)
+  expect_equal(route_constants(r_default, bend_penalty = 2.5)$bend_penalty, 2.5)
+  expect_equal(route_constants(3)$bend_penalty, 2)
 })
 
 test_that("orthogonal pricing: the collinear mediator keeps its two-bend channel until bends are free", {
@@ -4392,7 +4392,7 @@ test_that("orthogonal pricing: the collinear mediator keeps its two-bend channel
   free <- route_scene(
     scene,
     mode = "orthogonal",
-    opts = route_opts(r_default, bend_penalty = 0)
+    opts = route_constants(r_default, bend_penalty = 0)
   )
   expect_equal(free$meta$mode[i], "orthogonal")
   expect_true(free$meta$clearance_ok[i])
@@ -4705,15 +4705,15 @@ test_that("orthogonal: the four-layer sweep keeps its channel at the large panel
 
 # The ladder ---------------------------------------------------------------------
 
-test_that("route_opts() derives the minimum slot separation and takes an override", {
+test_that("route_constants() derives the minimum slot separation and takes an override", {
   # sep_min = max(0.25 r, 1.5), the floor the ladder tightens the slot
   # spacing to, never wider than the nominal separation
-  expect_equal(route_opts(6)$sep_min, sep_min_default)
-  expect_equal(route_opts(2)$sep_min, 1.5)
-  expect_equal(route_opts(10)$sep_min, 2.5)
+  expect_equal(route_constants(6)$sep_min, sep_min_default)
+  expect_equal(route_constants(2)$sep_min, 1.5)
+  expect_equal(route_constants(10)$sep_min, 2.5)
   # the user option fixes the spacing at the separation
-  expect_equal(route_opts(6, sep_min = 3.6)$sep_min, 3.6)
-  expect_lte(route_opts(6)$sep_min, route_opts(6)$sep_e)
+  expect_equal(route_constants(6, sep_min = 3.6)$sep_min, 3.6)
+  expect_lte(route_constants(6)$sep_min, route_constants(6)$sep_e)
 })
 
 # The slot x of each edge of the narrow band, in edge order.
@@ -4831,7 +4831,7 @@ test_that("orthogonal ladder: a fixed sep_min falls back to the centred slots", 
   res <- route_scene(
     scene,
     mode = "orthogonal",
-    opts = route_opts(r_default, sep_min = sep_e_default)
+    opts = route_constants(r_default, sep_min = sep_e_default)
   )
   expect_true(all(res$meta$routed))
   expect_false(any(res$meta$clearance_ok))
@@ -5161,7 +5161,7 @@ test_that("orthogonal ports: arrivals that cannot hold their rows merge instead 
   # 1.8 that a single row affords, and the level chord keeps the centre.
   scene <- stacked_port_scene(2)
   scene$nodes$r <- 3
-  opts <- route_opts(3)
+  opts <- route_constants(3)
   expect_equal(opts$sep_e, 1.8)
   expect_equal(opts$sep_min, 1.5)
   res <- route_scene(scene, mode = "orthogonal", opts = opts)

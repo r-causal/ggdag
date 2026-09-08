@@ -31,6 +31,14 @@
 #' `edge_type = "link_arc"` or `"link"`; it is a no-op for `"arc"` and
 #' `"diagonal"`, which already bend every edge.
 #'
+#' `edge_route_options` carries the constants the router draws with, built by
+#' [edge_route_options()]. It is read only when `edge_route` names a routing
+#' mode. A field left unset is derived when the plot is drawn, from the node
+#' size the plot uses, so an object set once holds at every plot size.
+#' [geom_dag_routed_arrows()] takes the same object, and its own `clearance`,
+#' `edge_sep`, and `edge_sep_min` arguments override the object's fields for
+#' that layer.
+#'
 #' `label_wrap` is a width in characters that [geom_dag()] and [ggdag()] hand
 #' to the automatic label geoms, [geom_dag_label_auto()] and
 #' [geom_dag_text_auto()], which wrap their text to it before the labels are
@@ -97,6 +105,7 @@ ggdag_defaults <- list(
   arrow_fins = NULL,
   arrow_mid = NULL,
   edge_route = "straight",
+  edge_route_options = NULL,
   label_wrap = NULL,
   curvature = 0.3,
   debug_repel_points = FALSE
@@ -326,6 +335,17 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       abort(
         c(
           "{.arg edge_route} must be one of {.val {valid_routes}}.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "edge_route_options") {
+    if (!inherits(value, "ggdag_edge_route_options")) {
+      abort(
+        c(
+          "{.arg edge_route_options} must be an object from {.fun edge_route_options}.",
           "x" = "You provided {.obj_type_friendly {value}}."
         ),
         error_class = "ggdag_type_error",

@@ -11,6 +11,7 @@ ggdag(
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
@@ -60,6 +61,10 @@ detours an edge whose path a node blocks around that node with a smooth
 curve; \code{"orthogonal"} draws every edge as axis-aligned runs with rounded
 corners. Both decide the geometry in the units of the device when the
 plot is drawn. The ggraph engine cannot route and warns when asked to.}
+
+\item{edge_route_options}{An object from \code{\link[=edge_route_options]{edge_route_options()}} carrying
+the constants the router draws with, or \code{NULL} (the default) for the
+router's own. It is read only when \code{edge_route} names a routing mode.}
 
 \item{node_size}{The size of the nodes.}
 
