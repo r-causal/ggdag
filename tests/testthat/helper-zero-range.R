@@ -38,3 +38,17 @@ built_ranges <- function(p) {
   panel <- ggplot2::ggplot_build(p)$layout$panel_params[[1]]
   list(x = panel$x.range, y = panel$y.range)
 }
+
+# The span every layer of a built plot draws over, on each axis: the range the
+# scales trained on before the expansion was added, whatever coordinates the
+# layout gave the nodes.
+drawn_extent <- function(p) {
+  built <- ggplot2::ggplot_build(p)
+  axis <- function(fields) {
+    values <- unlist(lapply(built$data, function(layer) {
+      unlist(layer[intersect(fields, names(layer))], use.names = FALSE)
+    }))
+    range(values[is.finite(values)])
+  }
+  list(x = axis(c("x", "xend")), y = axis(c("y", "yend")))
+}

@@ -95,23 +95,28 @@ test_that("a zero-range x axis is expanded in a faceted plot", {
 })
 
 test_that("plots with two non-degenerate axes keep their expansion", {
+  # An axis that spans anything at all keeps the multiplicative expansion of
+  # its `expand_plot()` call site, a tenth of the drawn span on each side for
+  # `ggdag()` and a quarter on the x axis of the faceted path plots. The
+  # expectation is derived from what the layers of the built plot draw rather
+  # than written out, so this block follows the layout instead of pinning the
+  # coordinates one layout gives today.
+  expanded <- function(limits, fraction) {
+    limits + c(-1, 1) * fraction * diff(limits)
+  }
+
   ranges <- built_ranges(ggdag(test_dag))
+  extent <- drawn_extent(ggdag(test_dag))
 
-  expect_equal(
-    ranges$x,
-    c(0.625099210480681, 4.30680916268357),
-    tolerance = 1e-8
-  )
-  expect_equal(ranges$y, c(-0.6426, 0.6366), tolerance = 1e-8)
+  expect_equal(ranges$x, expanded(extent$x, 0.1), tolerance = 1e-8)
+  expect_equal(ranges$y, expanded(extent$y, 0.1), tolerance = 1e-8)
 
-  path_ranges <- built_ranges(ggdag_paths(test_dag, from = "x", to = "y"))
+  paths <- ggdag_paths(test_dag, from = "x", to = "y")
+  path_ranges <- built_ranges(paths)
+  path_extent <- drawn_extent(paths)
 
-  expect_equal(
-    path_ranges$x,
-    c(0.164885466455319, 4.76702290670894),
-    tolerance = 1e-8
-  )
-  expect_equal(path_ranges$y, c(-0.6426, 0.6366), tolerance = 1e-8)
+  expect_equal(path_ranges$x, expanded(path_extent$x, 0.25), tolerance = 1e-8)
+  expect_equal(path_ranges$y, expanded(path_extent$y, 0.1), tolerance = 1e-8)
 })
 
 test_that("a plot with two zero-range axes is left alone", {

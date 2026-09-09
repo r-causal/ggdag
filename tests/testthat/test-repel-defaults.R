@@ -10,14 +10,16 @@
 # * geom_dag(use_labels = TRUE) threads box.padding 0.5 to node-aware label
 #   geoms and no longer overrides label.padding, so the constructor default
 #   survives.
-# * Rendering the default repel labels is reproducible and leaves the
-#   session RNG state untouched.
+# * Rendering the default repel labels is reproducible on any device and
+#   leaves the session RNG state untouched.
 #
 # Everything here is snapshot-free.
 
-# The render-based tests below measure geometry on the svg device the vdiffr
+# The quality tripwires below measure geometry on the svg device the vdiffr
 # baselines use, so they run only where those baselines reproduce, matching
-# the platform policy in helper-vdiffr.R.
+# the platform policy in helper-vdiffr.R. The determinism blocks compare two
+# renders of one session instead of a render with a recorded picture, so they
+# ask for no platform.
 skip_unless_render_platform <- function() {
   testthat::skip_if_not_installed("vdiffr")
   testthat::skip_on_os(c("windows", "linux", "solaris"))
@@ -45,15 +47,30 @@ padding_lines <- function(padding) {
   }
 }
 
-# Node centers and repel label boxes of `plot`, in inches on a fixed-size
-# svg device (the same device the vdiffr baselines render on). Everything
-# is converted inside the panel viewport, so node and label geometry share
-# one coordinate system. Labels are sorted so grob order cannot decide a
-# comparison.
-rendered_repel_geometry <- function(plot) {
+# Open a fixed-size off-screen device of 10 x 8 inches and return the file it
+# writes to. `"svglite"` is the device vdiffr renders the baselines on, which
+# is where the quality tripwires below read their geometry; `"ragg"` is a
+# raster device that runs everywhere, which is what the determinism blocks
+# need, because reproducing a placement is a property of the layer rather
+# than of any one device or platform.
+open_repel_device <- function(device) {
+  if (identical(device, "ragg")) {
+    file <- tempfile(fileext = ".png")
+    ragg::agg_png(file, width = 10, height = 8, units = "in", res = 96)
+    return(file)
+  }
   file <- tempfile(fileext = ".svg")
   svg_device <- utils::getFromNamespace("svglite", "vdiffr")
   svg_device(file, width = 10, height = 8)
+  file
+}
+
+# Node centers and repel label boxes of `plot`, in inches on a fixed-size
+# device. Everything is converted inside the panel viewport, so node and
+# label geometry share one coordinate system. Labels are sorted so grob order
+# cannot decide a comparison.
+rendered_repel_geometry <- function(plot, device = "svglite") {
+  file <- open_repel_device(device)
   on.exit(
     {
       grDevices::dev.off()
@@ -219,6 +236,36 @@ test_that("rendering the default repel labels leaves the session RNG alone", {
   seed_before <- get(".Random.seed", envir = globalenv())
 
   invisible(rendered_repel_geometry(p))
+
+  expect_identical(get(".Random.seed", envir = globalenv()), seed_before)
+})
+
+test_that("the default repel labels place identically on a raster device", {
+  skip_if_not_installed("ragg")
+
+  # The determinism the seeded layer promises belongs to every platform, so
+  # this block compares two renders of one session on a device that runs
+  # everywhere rather than on the one the macOS baselines are recorded with.
+  p <- default_repel_plot()
+
+  withr::local_seed(4321)
+
+  first <- rendered_repel_geometry(p, device = "ragg")
+  second <- rendered_repel_geometry(p, device = "ragg")
+
+  expect_gt(nrow(first$labels), 0)
+  expect_equal(first, second)
+})
+
+test_that("a raster render of the repel labels leaves the session RNG alone", {
+  skip_if_not_installed("ragg")
+
+  p <- default_repel_plot()
+
+  withr::local_seed(4321)
+  seed_before <- get(".Random.seed", envir = globalenv())
+
+  invisible(rendered_repel_geometry(p, device = "ragg"))
 
   expect_identical(get(".Random.seed", envir = globalenv()), seed_before)
 })

@@ -370,6 +370,62 @@ test_that("a long leader over open space beats a short one over ink", {
   expect_equal(res$y, 9.07106781186548, tolerance = 1e-9)
 })
 
+# A scene where the leader's own length is the only thing left to choose on.
+# The node sits at the origin with a radius of 4 and a 20 x 4 label. Ink fills
+# every candidate the grid offers except two: the E ray from a clearance of 4
+# and the N ray from a clearance of 9. Both are admissible, both are in the
+# same band, one node means no ownership or soft term, and neither leader
+# passes within a millimetre of any ink, so the two differ only in how far the
+# box sits from the node and how long a leader reaches it. The E box at
+# clearance 4 is 18 mm out on a 4 mm leader and the N box at clearance 9 is
+# 15 mm out on a 9 mm leader: 0.2 * (18 + 4) = 4.4 against 0.2 * (15 + 9) =
+# 4.8 with the leader's own length priced, and 3.6 against 3.0 without it, so
+# the picture flips if that term ever stops being paid.
+leader_length_scene <- function() {
+  list(
+    labels = data.frame(id = "a", x = 0, y = 0, width = 20, height = 4),
+    nodes = data.frame(x = 0, y = 0, radius = 4),
+    edges = rbind(
+      # inside every N box, and within the arrowhead zone of the last one
+      data.frame(edge_id = "north", x = 9, y = seq(6, 10.5, by = 0.5)),
+      # the same the whole way down the S ray
+      data.frame(edge_id = "south", x = 9, y = seq(-35, -6, by = 0.5)),
+      # inside the two E boxes nearest the node
+      data.frame(edge_id = "east", x = c(5.9, 5.9), y = c(1.9, -1.9)),
+      # a stub in each of the eight diagonal ring boxes
+      data.frame(edge_id = "ne1", x = c(14, 14.5), y = c(6, 6)),
+      data.frame(edge_id = "ne2", x = c(20, 20.5), y = c(13, 13)),
+      data.frame(edge_id = "nw1", x = c(-14, -14.5), y = c(6, 6)),
+      data.frame(edge_id = "nw2", x = c(-20, -20.5), y = c(13, 13)),
+      data.frame(edge_id = "se1", x = c(14, 14.5), y = c(-6, -6)),
+      data.frame(edge_id = "se2", x = c(20, 20.5), y = c(-13, -13)),
+      data.frame(edge_id = "sw1", x = c(-14, -14.5), y = c(-6, -6)),
+      data.frame(edge_id = "sw2", x = c(-20, -20.5), y = c(-13, -13))
+    ),
+    bounds = c(-60, -60, 60, 60)
+  )
+}
+
+test_that("a shorter leader wins when nothing else separates two spots", {
+  scene <- leader_length_scene()
+  res <- place_dag_labels(
+    scene$labels,
+    scene$nodes,
+    scene$edges,
+    scene$bounds,
+    gap = 2,
+    n_angles = 7L,
+    n_rings = 2L,
+    n_rays = 4L,
+    reach = 9,
+    leader = 1
+  )
+
+  expect_identical(res$anchor, "e")
+  expect_equal(res$x, 18, tolerance = 1e-9)
+  expect_equal(res$y, 0, tolerance = 1e-9)
+})
+
 # Placements that must not move -------------------------------------------------
 
 placement_fixture <- function() {

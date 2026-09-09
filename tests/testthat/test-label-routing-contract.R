@@ -99,15 +99,37 @@ arrow_grob_paths <- function(grob) {
   unname(split(points, factor(ids, levels = unique(ids))))
 }
 
-# Render `plot` on an off-screen raster device, force the grob tree so that
-# every `makeContent()` method has run, and return the gTrees whose own name
+# Open an off-screen device of `width` by `height` inches and return the file
+# it writes to. `"ragg"` is the raster device the contract blocks measure
+# millimetres on; `"svglite"` is the device vdiffr renders a baseline on, so a
+# block that guards a baseline measures the picture that baseline holds
+# rather than a second rendering of the same plot somewhere else.
+open_panel_device <- function(device, width, height) {
+  if (identical(device, "svglite")) {
+    file <- tempfile(fileext = ".svg")
+    svg_device <- utils::getFromNamespace("svglite", "vdiffr")
+    svg_device(file, width = width, height = height)
+    return(file)
+  }
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  file
+}
+
+# Render `plot` on an off-screen device, force the grob tree so that every
+# `makeContent()` method has run, and return the gTrees whose own name
 # matches `pattern` together with the panel's size in millimetres. The
 # measurement is taken inside the panel viewport, which is the viewport the
 # two grobs measured themselves in, so `npc * width` is the millimetre a
 # position was converted to at draw time.
-forced_panel_scene <- function(plot, pattern, width = 7, height = 5) {
-  file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+forced_panel_scene <- function(
+  plot,
+  pattern,
+  width = 7,
+  height = 5,
+  device = "ragg"
+) {
+  file <- open_panel_device(device, width, height)
   on.exit(
     {
       grDevices::dev.off()
@@ -143,9 +165,14 @@ forced_panel_scene <- function(plot, pattern, width = 7, height = 5) {
 # its own viewport, so a grob's positions convert to the millimetres that
 # panel drew them in, and the label boxes are read while the device that drew
 # them is still open, because a closed device leaves nothing to measure in.
-forced_panel_scenes <- function(plot, pattern, width = 7, height = 5) {
-  file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+forced_panel_scenes <- function(
+  plot,
+  pattern,
+  width = 7,
+  height = 5,
+  device = "ragg"
+) {
+  file <- open_panel_device(device, width, height)
   on.exit(
     {
       grDevices::dev.off()
@@ -268,14 +295,29 @@ densify_mm_polyline <- function(path, spacing = 0.5) {
   data.frame(x = dense_x, y = dense_y)
 }
 
-# Does any point of `path` fall inside `box`?
+# Does `path` come closer to `box` than the engine's own clearances allow?
+# The engine keeps `label_edge_clearance` from a drawn edge and the wider
+# `label_arrow_clearance` over the last `label_arrow_zone` of it, where the
+# arrowhead is drawn, which is what `ink_hits_box()` measures in
+# test-label-placement-quality.R. A path point inside the box is one case of
+# this, so a guard on the margins is the stricter reading of the same rule.
 path_meets_box <- function(path, box) {
-  any(
-    path$x >= box[["xmin"]] &
-      path$x <= box[["xmax"]] &
-      path$y >= box[["ymin"]] &
-      path$y <= box[["ymax"]]
+  segments <- sqrt(diff(path$x)^2 + diff(path$y)^2)
+  to_head <- c(rev(cumsum(rev(segments))), 0)
+  margin <- ifelse(
+    to_head <= label_arrow_zone,
+    label_arrow_clearance,
+    label_edge_clearance
   )
+  distance <- rect_point_dist(
+    box[["xmin"]],
+    box[["ymin"]],
+    box[["xmax"]],
+    box[["ymax"]],
+    path$x,
+    path$y
+  )
+  any(distance < margin)
 }
 
 # The one forced gTree of `scene` whose name says it was drawn by `cl`.
@@ -801,6 +843,65 @@ test_that("the label grob routes the edge the arrow grob drew", {
   expect_lt(parity, 0.5)
 })
 
+test_that("the router's obstacles have to name the nodes they route past", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  p <- ggdag(
+    tidy_dagitty(collinear_mediator_dag()),
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  scene <- forced_panel_scene(p, "dag_labels_auto")
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+  edges_mm <- data.frame(
+    edge_id = label_tree$edges$edge_id,
+    x = label_tree$edges$x * scene$width,
+    y = label_tree$edges$y * scene$height,
+    stringsAsFactors = FALSE
+  )
+  nodes_mm <- data.frame(
+    x = label_tree$nodes$x * scene$width,
+    y = label_tree$nodes$y * scene$height,
+    radius = node_radius_mm(label_tree$nodes$node_size),
+    stringsAsFactors = FALSE
+  )
+  bounds <- c(0, 0, scene$width, scene$height)
+
+  # The router breaks ties between equally priced routes by node name, so a
+  # caller with no names for its nodes cannot be routing the picture the
+  # arrows were drawn from, whatever names were invented for it here.
+  expect_error(
+    route_label_obstacles(
+      edges_mm,
+      label_tree$edges,
+      nodes_mm,
+      label_tree$params,
+      bounds
+    ),
+    class = "ggdag_type_error"
+  )
+
+  # the same inputs, named the way the routed layer names them, route
+  nodes_mm$name <- routed_position_keys(
+    label_tree$nodes$x,
+    label_tree$nodes$y
+  )
+  routed <- route_label_obstacles(
+    edges_mm,
+    label_tree$edges,
+    nodes_mm,
+    label_tree$params,
+    bounds
+  )
+
+  expect_true(all(c("cap_head", "cap_fins") %in% names(routed)))
+  expect_gt(nrow(routed), nrow(edges_mm))
+})
+
 test_that("the label grob routes every orthogonal channel the arrow grob drew", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
@@ -1300,7 +1401,7 @@ test_that("an edge the user pinned is shown to the router as it is drawn", {
 
 test_that("label-auto visuals: labels keep off the routed detours", {
   skip_if_not_installed("ggarrow")
-  skip_if_not_installed("ragg")
+  skip_if_not_installed("vdiffr")
 
   dag <- dagify(
     b ~ a,
@@ -1331,11 +1432,14 @@ test_that("label-auto visuals: labels keep off the routed detours", {
   # A baseline is only worth keeping if the picture is right, so the placement
   # is measured before it is drawn: no label box may sit on a path the router
   # drew, over the part of that path the label engine treats as an obstacle.
+  # The measurement is taken on the device and at the size vdiffr renders the
+  # baseline with, so the geometry guarded here is the geometry drawn below.
   scene <- forced_panel_scenes(
     p,
     "dag_routed_edges|dag_labels_auto",
     width = 10,
-    height = 8
+    height = 8,
+    device = "svglite"
   )[[1]]
   routed_tree <- scene_gtree(scene, "dag_routed_edges")
   drawn <- unlist(
