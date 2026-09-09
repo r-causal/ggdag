@@ -4030,6 +4030,7 @@ empty_pieces <- function() {
 #' @param s The channel's side, `1` for a stub above the node and `-1` for
 #'   one below.
 #' @param cap Edge cap in mm.
+#' @param opts Routing constants from `route_constants()`.
 #' @return A one-row frame with `x`, `lo`, `hi`, and `s`.
 #' @noRd
 head_zone <- function(x, y, s, cap, opts) {
@@ -4100,11 +4101,18 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #' infeasible. So is a run priced at a fixed line inside a zone, which a
 #' slide option is and a push cannot move. Only the channel run is tested:
 #' the departure and arrival legs stay within the endpoint layers' gaps,
-#' short of the x of any crossed layer a stub could stand in, and the stubs
+#' short of the x of any crossed layer a stub could stand in, except in the
+#' room-capped last rung, where a slot driven back to its gap's source
+#' layer's centre line can put a leg at a crossed layer's x; and the stubs
 #' of the endpoint layers themselves rise beyond the extreme nodes, on the
-#' far side of the endpoints' own lines. Since `clear_of()` already refuses
-#' a run within `R` of the head node, only the outer part of the band is
-#' ever live and the push is at most `head + head_margin - m`.
+#' far side of the endpoints' own lines. An S/N run is tested like any
+#' other, though a zone of one of its own endpoint layers can never hold
+#' it: the run sits a stub past both endpoint lines, and the stub floor
+#' `stub_min` reaches past a zone's `cap + head + head_margin` (12.2 mm
+#' against 11.8 at the default node size and cap). Since `clear_of()` already
+#' refuses a run within `R` of the head node, only the outer part of the
+#' band is ever live and the push is at most `cap + head + head_margin -
+#' R`.
 #'
 #' A candidate is infeasible when its run comes closer than the clearance
 #' margin `m` to the panel bounds, when its margin band would cut a disc of
@@ -4220,9 +4228,9 @@ ortho_channel <- function(
       (pieces_coincide(pieces[[la]], keys[[1]], Sy, y) ||
         pieces_coincide(pieces[[lb - 1L]], keys[[2]], y, Ty))
   }
-  # the head zones an E/W run at y over the extent xr enters, in one
-  # comparison over the zone table: the run is strictly inside the band and
-  # its extent reaches the stub's x
+  # the head zones a run at y over the extent xr enters, in one comparison
+  # over the zone table: the run is strictly inside the band and its extent
+  # reaches the stub's x
   zone_w <- opts$sep_e / 2
   zones_at <- function(y, xr) {
     which(
@@ -4233,14 +4241,17 @@ ortho_channel <- function(
     )
   }
   in_zone <- function(kind, y) {
-    kind == "ew" && length(zones_at(y, extent_of(kind))) > 0
+    length(zones_at(y, extent_of(kind))) > 0
   }
   # the run moved to the far edge of the zones holding it and stacked past
   # the channels it then crowds, until it is clear of both; `NA` when zones
-  # of opposite sides hold it, since neither direction leads out. The
-  # stacking follows the zone's side rather than the candidate's, so a run
-  # pushed out of a zone is never pushed back into it, and every pass moves
-  # the run outward by the band or a whole separation, which bounds the loop
+  # of opposite sides hold it at once, since neither direction leads out.
+  # The stacking follows the zone's side rather than the candidate's, so a
+  # run pushed out of a zone is never pushed back into that zone, and while
+  # the passes keep to one side each moves the run outward by the band or a
+  # whole separation. A push that lands the run in a zone of the other side
+  # can reverse that, and the 20-pass bound is what terminates such a case,
+  # the candidate reported infeasible
   push_past_zones <- function(y, xr) {
     for (i in seq_len(20)) {
       hit <- zones_at(y, xr)
@@ -4294,19 +4305,17 @@ ortho_channel <- function(
   }
   # a candidate is the run pushed past the placed channels it would crowd
   # and past the head zones it would enter; a run with no way out of the
-  # zones is priced where it started and refused
+  # zones is priced where the stacking left it and refused
   candidate <- function(kind, side, y) {
     xr <- extent_of(kind)
     y_run <- stack_channel(y, side, xr, channels, opts$sep_e)
-    if (kind == "ew") {
-      y_run <- push_past_zones(y_run, xr)
-      if (is.na(y_run)) {
-        cand <- price(kind, side, y)
-        cand$cost <- Inf
-        return(cand)
-      }
+    y_out <- push_past_zones(y_run, xr)
+    if (is.na(y_out)) {
+      cand <- price(kind, side, y_run)
+      cand$cost <- Inf
+      return(cand)
     }
-    price(kind, side, y_run)
+    price(kind, side, y_out)
   }
   costs <- function(cands) vapply(cands, function(c) c$cost, numeric(1))
   result_of <- function(cand, clamped) {
