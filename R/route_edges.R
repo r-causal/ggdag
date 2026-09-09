@@ -5604,13 +5604,21 @@ route_scene_mm <- function(
   to_route <- routable &
     (seq_len(n_edges) %in% hits$edge | shift != 0 | info$Lc >= 2 * opts$R)
   order_e <- which(to_route)
-  # chord lengths are rounded to a micrometre so that two skip edges of one
-  # row tie on length and the name order decides, not a floating difference
+  # Chord lengths are rounded to a micrometre so that two skip edges of one
+  # row tie on length rather than on a floating difference. What settles the
+  # tie is where the endpoints are, the source's x then its y and then the
+  # target's, followed by the input order, as a parallel group's members are
+  # ordered. An edge is routed around the ones placed before it, so ordering
+  # by node name would let two callers who name one picture differently draw
+  # a tied pair in opposite orders.
   order_e <- order_e[order(
     -info$span[order_e],
     -round(info$Lc[order_e], 6),
-    from_name[order_e],
-    to_name[order_e],
+    nodes$x[from[order_e]],
+    nodes$y[from[order_e]],
+    nodes$x[to[order_e]],
+    nodes$y[to[order_e]],
+    order_e,
     method = "radix"
   )]
 

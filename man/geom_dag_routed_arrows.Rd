@@ -63,8 +63,9 @@ detour, or \code{NULL} (the default) for the router's own separation.}
 \item{edge_sep_min}{The gap in millimetres the orthogonal router may
 tighten \code{edge_sep} to when a gap between layers is too narrow for its
 slots at the full separation, or \code{NULL} (the default) for a quarter of
-the node radius with a floor of 1.5 mm. Set it equal to \code{edge_sep} to
-keep the separation fixed. Spline routing does not use it.}
+the node radius with a floor of 1.5 mm. A value above the separation in
+force, whether typed or derived, is reduced to it. Set it equal to
+\code{edge_sep} to keep the separation fixed. Spline routing does not use it.}
 
 \item{edge_route_options}{An object from \code{\link[=edge_route_options]{edge_route_options()}} carrying
 the rest of the constants the router draws with, or \code{NULL} (the default)
@@ -162,7 +163,9 @@ user set still counts as an obstacle the other edges route around.
 The layer carries every row of the plot data, so the router can treat
 every drawn node as an obstacle, and draws the rows \code{data_directed}
 selects. Edge rows of a data frame you supply that are not among the plot
-rows are drawn as well, and their endpoints join the obstacles. Scales and
+rows are drawn as well, and their endpoints join the obstacles. The
+automatic label geoms take their obstacles from the plot's own nodes, so a
+label may be placed across an edge appended this way. Scales and
 legends therefore see exactly what the other DAG layers see. Edges are
 resected to the plot's node size exactly as in \code{\link[=geom_dag_arrow]{geom_dag_arrow()}}, and the
 same node size gives the router the radius of the discs it must clear.

@@ -509,8 +509,11 @@ routed_cap_mm <- function(edges, resect) {
 # The same millimetres, computed from a routed layer before it is drawn, so
 # that the routing spec the label engine is given names the cap the edges are
 # drawn with. The layer's own parameters are read the way `draw_panel()` reads
-# them, including a `resect_head` mapped per edge.
-routed_layer_cap_mm <- function(layer, layer_data) {
+# them, including a `resect_head` mapped per edge. A resection the layer has
+# not settled yet is resolved from the whole plot, the way the routed layer
+# resolves it at build, so that the answer does not depend on whether the
+# label layer or the node layer was added first.
+routed_layer_cap_mm <- function(layer, layer_data, plot = NULL) {
   mapped <- layer$mapping$resect_head
   head <- if (!is.null(mapped)) {
     tryCatch(
@@ -527,10 +530,14 @@ routed_layer_cap_mm <- function(layer, layer_data) {
   }
 
   edges <- list(resect_head = head)
-  resect <- inject_dag_resect(
-    layer$geom_params$resect %||% list(head = NULL, fins = NULL),
-    edges
-  )
+  params <- layer$geom_params$resect %||% list(head = NULL, fins = NULL)
+  if (is.null(params$head) && !is.null(plot)) {
+    discovered <- discover_node_size(plot)
+    if (!is.null(discovered)) {
+      params$head <- node_size_to_cap(discovered)
+    }
+  }
+  resect <- inject_dag_resect(params, edges)
   routed_cap_mm(edges, resect)
 }
 
@@ -1217,16 +1224,18 @@ dag_routed_arrow_layer <- function(
   na.rm,
   show.legend,
   inherit.aes = TRUE,
+  call = rlang::caller_env(),
   ...
 ) {
   # the three millimetre arguments are per-call overrides of the object's
-  # fields, so they are folded in here and the layer carries one object
+  # fields, so they are folded in here and the layer carries one object. The
+  # call travels with them: what the user wrote is a layer, not this builder.
   edge_route_options <- merge_edge_route_options(
     edge_route_options,
     clearance = clearance,
     edge_sep = edge_sep,
     edge_sep_min = edge_sep_min,
-    call = rlang::caller_env()
+    call = call
   )
 
   dag_arrow_layer(ggplot2::layer(
@@ -1281,7 +1290,9 @@ dag_routed_arrow_layer <- function(
 #' The layer carries every row of the plot data, so the router can treat
 #' every drawn node as an obstacle, and draws the rows `data_directed`
 #' selects. Edge rows of a data frame you supply that are not among the plot
-#' rows are drawn as well, and their endpoints join the obstacles. Scales and
+#' rows are drawn as well, and their endpoints join the obstacles. The
+#' automatic label geoms take their obstacles from the plot's own nodes, so a
+#' label may be placed across an edge appended this way. Scales and
 #' legends therefore see exactly what the other DAG layers see. Edges are
 #' resected to the plot's node size exactly as in [geom_dag_arrow()], and the
 #' same node size gives the router the radius of the discs it must clear.
@@ -1310,8 +1321,9 @@ dag_routed_arrow_layer <- function(
 #' @param edge_sep_min The gap in millimetres the orthogonal router may
 #'   tighten `edge_sep` to when a gap between layers is too narrow for its
 #'   slots at the full separation, or `NULL` (the default) for a quarter of
-#'   the node radius with a floor of 1.5 mm. Set it equal to `edge_sep` to
-#'   keep the separation fixed. Spline routing does not use it.
+#'   the node radius with a floor of 1.5 mm. A value above the separation in
+#'   force, whether typed or derived, is reduced to it. Set it equal to
+#'   `edge_sep` to keep the separation fixed. Spline routing does not use it.
 #' @param edge_route_options An object from [edge_route_options()] carrying
 #'   the rest of the constants the router draws with, or `NULL` (the default)
 #'   for the router's own. `clearance`, `edge_sep`, and `edge_sep_min` above
@@ -1432,6 +1444,7 @@ geom_dag_routed_arrows <- function(
       na.rm = na.rm,
       show.legend = show.legend,
       inherit.aes = inherit.aes,
+      call = rlang::current_env(),
       ...
     ),
     geom_dag_arrow_arc(

@@ -63,6 +63,10 @@ ggdag <- function(
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
 
+  # and the routing object is checked here, before `geom_dag()` sees it, so
+  # that an object that is not one names the function the user called
+  check_edge_route_options(edge_route_options, call = rlang::current_env())
+
   if_not_tidy_daggity(.tdy_dag, ...) |>
     ggplot2::ggplot(aes_dag()) +
     geom_dag(

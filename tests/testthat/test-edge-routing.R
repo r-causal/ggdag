@@ -1635,6 +1635,19 @@ test_that("a routing object that is not one names the function the user called",
     erroring_call(geom_dag_routed_arrows(edge_route_options = "bad")),
     "geom_dag_routed_arrows"
   )
+
+  expect_ggdag_error(geom_dag(
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    edge_route_options = "bad"
+  ))
+  expect_ggdag_error(ggdag(
+    mediator_dag(),
+    edge_engine = "ggarrow",
+    edge_route = "spline",
+    edge_route_options = list(clearance = 1)
+  ))
+  expect_ggdag_error(geom_dag_routed_arrows(edge_route_options = "bad"))
 })
 
 test_that("a bad millimetre override names the layer the user wrote", {

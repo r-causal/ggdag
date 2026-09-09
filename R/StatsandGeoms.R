@@ -1564,7 +1564,7 @@ discover_edge_geometry <- function(plot) {
   for (existing in plot$layers) {
     spec <- edge_layer_geometry(existing, plot_data) %||%
       arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
-      routed_layer_geometry(existing, plot_data, plot$mapping)
+      routed_layer_geometry(existing, plot_data, plot$mapping, plot)
     if (!is.null(spec)) {
       specs[[length(specs) + 1]] <- spec
     }
@@ -1777,7 +1777,12 @@ arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
 # it draws. Waypoints are not communicated: both the edge grob and the label
 # grob call the same pure router on the same inputs at draw time, so the spec
 # says how the edges are routed rather than where they go.
-routed_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
+routed_layer_geometry <- function(
+  layer,
+  plot_data,
+  plot_mapping = NULL,
+  plot = NULL
+) {
   if (!inherits(layer$geom, "GeomDAGRoutedArrow")) {
     return(NULL)
   }
@@ -1824,7 +1829,7 @@ routed_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
     curvature = curvature,
     route_style = layer$geom_params$route %||% "spline",
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
-    route_cap = routed_layer_cap_mm(layer, layer_data),
+    route_cap = routed_layer_cap_mm(layer, layer_data, plot),
     stringsAsFactors = FALSE
   )
   geometry$route_options <- rep(

@@ -180,6 +180,11 @@ test_that("edge_route_options() rejects an infinite value", {
     edge_route_options(steep_angle = -Inf),
     class = "ggdag_type_error"
   )
+
+  # the rules the two kinds are named by say what they are, so the messages
+  # are the ones a finite value out of range gets
+  expect_ggdag_error(edge_route_options(clearance = Inf))
+  expect_ggdag_error(edge_route_options(head_penalty = Inf))
 })
 
 test_that("edge_route_options() rejects a value that is not one of its choices", {

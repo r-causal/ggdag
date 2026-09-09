@@ -36,8 +36,11 @@ margin a straight edge keeps from another edge's drawn arrowhead.}
 \item{edge_sep_min}{The floor in millimetres the orthogonal ladder may
 tighten \code{edge_sep} to in a gap too narrow for the full spacing. \code{NULL},
 the router's own \verb{max(0.25 r, 1.5)} clamped to \code{edge_sep}: 1.5 mm at the
-default node size. It must not be greater than \code{edge_sep}; setting the
-two equal fixes the orthogonal spacing, since there is then nothing left
+default node size. A value above the separation in force, whether typed
+or derived, is reduced to it: \code{edge_sep_min = 10} beside a separation the
+router derives as 3.6 mm is drawn as 3.6. It must not be greater than
+\code{edge_sep} when you set both; setting the two equal fixes the orthogonal
+spacing, since there is then nothing left
 to tighten. Raising it also raises the spread the widest rung of the
 ladder reaches, which pushes the outermost slots further into the
 neighbouring layers. Orthogonal mode only.}

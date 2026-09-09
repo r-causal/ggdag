@@ -1,87 +1,99 @@
 # The fifteen fields the user-facing routing object exposes: the name the
 # user writes, the name the router reads it under, the rule the constructor
-# validates it against, and the unit the print method names it in. This table
-# is the only place a user field is translated into a router constant.
+# validates it against, the unit the print method names it in, and whether it
+# travels to `route_constants()` as an argument, which a field one of the
+# router's derivations reads has to. This table is the only place a user field
+# is translated into a router constant.
 edge_route_option_fields <- list(
-  clearance = list(router = "m", check = "mm", unit = "mm", derived = TRUE),
-  edge_sep = list(router = "sep_e", check = "mm", unit = "mm", derived = TRUE),
+  clearance = list(
+    router = "m",
+    check = "mm",
+    unit = "mm",
+    constructor_argument = TRUE
+  ),
+  edge_sep = list(
+    router = "sep_e",
+    check = "mm",
+    unit = "mm",
+    constructor_argument = TRUE
+  ),
   edge_sep_min = list(
     router = "sep_min",
     check = "mm",
     unit = "mm",
-    derived = TRUE
+    constructor_argument = TRUE
   ),
   corners = list(
     router = "corners",
     check = "corners",
     unit = "",
-    derived = TRUE
+    constructor_argument = TRUE
   ),
   corner_radius = list(
     router = "rc",
     check = "corner_radius",
     unit = "mm",
-    derived = FALSE
+    constructor_argument = FALSE
   ),
   max_bow = list(
     router = "sagitta_max",
     check = "fraction",
     unit = "of the chord",
-    derived = FALSE
+    constructor_argument = FALSE
   ),
   bend_penalty = list(
     router = "bend_penalty",
     check = "price",
     unit = "",
-    derived = TRUE
+    constructor_argument = TRUE
   ),
   crossing_penalty = list(
     router = "crossing_penalty",
     check = "price",
     unit = "",
-    derived = FALSE
+    constructor_argument = FALSE
   ),
   crossing_saturation = list(
     router = "crossing_saturation",
     check = "flag",
     unit = "",
-    derived = TRUE
+    constructor_argument = TRUE
   ),
   congestion_penalty = list(
     router = "congestion_penalty",
     check = "price",
     unit = "",
-    derived = FALSE
+    constructor_argument = FALSE
   ),
   head_penalty = list(
     router = "head_penalty",
     check = "price",
     unit = "",
-    derived = TRUE
+    constructor_argument = TRUE
   ),
   tight_penalty = list(
     router = "tight_penalty",
     check = "price",
     unit = "",
-    derived = TRUE
+    constructor_argument = TRUE
   ),
   parallel_sep = list(
     router = "sep_m",
     check = "mm",
     unit = "mm",
-    derived = FALSE
+    constructor_argument = FALSE
   ),
   steep_angle = list(
     router = "steep_deg",
     check = "angle",
     unit = "degrees",
-    derived = FALSE
+    constructor_argument = FALSE
   ),
   tangent_clamp = list(
     router = "tangent_clamp",
     check = "angle",
     unit = "degrees",
-    derived = FALSE
+    constructor_argument = FALSE
   )
 )
 
@@ -116,11 +128,14 @@ edge_route_rc_min <- 0.8
 #' @param edge_sep_min The floor in millimetres the orthogonal ladder may
 #'   tighten `edge_sep` to in a gap too narrow for the full spacing. `NULL`,
 #'   the router's own `max(0.25 r, 1.5)` clamped to `edge_sep`: 1.5 mm at the
-#'   default node size. It must not be greater than `edge_sep`; setting the
-#'   two equal fixes the orthogonal spacing, since there is then nothing left
-#'   to tighten. Raising it also raises the spread the widest rung of the
-#'   ladder reaches, which pushes the outermost slots further into the
-#'   neighbouring layers. Orthogonal mode only.
+#'   default node size. A value above the separation in force, whether typed
+#'   or derived, is reduced to it: `edge_sep_min = 10` beside a separation the
+#'   router derives as 3.6 mm is drawn as 3.6. It must not be greater than
+#'   `edge_sep` when you set both; setting the two equal fixes the orthogonal
+#'   spacing, since there is then nothing left to tighten. Raising it also
+#'   raises the spread the widest rung of the ladder reaches, which pushes the
+#'   outermost slots further into the neighbouring layers. Orthogonal mode
+#'   only.
 #' @param corners Whether orthogonal bends are `"rounded"`, the router's own
 #'   value, or kept `"sharp"`. `NULL` leaves it to the router. Orthogonal mode
 #'   only.
@@ -271,23 +286,53 @@ edge_route_options <- function(
   })
   names(fields) <- names(given)
 
-  # the router clamps its own derived floor to the separation, which is right
-  # for a number nobody typed and wrong for a pair the user wrote down
-  if (
-    !is.null(fields$edge_sep) &&
-      !is.null(fields$edge_sep_min) &&
-      fields$edge_sep_min > fields$edge_sep
-  ) {
+  check_edge_sep_floor(fields$edge_sep_min, fields$edge_sep, call = call)
+
+  structure(fields, class = "ggdag_edge_route_options")
+}
+
+# The one cross-field rule the object has. The router clamps its own derived
+# floor to the separation, which is right for a number nobody typed and wrong
+# for a pair the user wrote down: the two together say something the router
+# cannot do. Both the constructor and the merge that folds a layer's own
+# millimetres into an object check it, so whichever of the two the user wrote
+# is the call the error names.
+check_edge_sep_floor <- function(
+  edge_sep_min,
+  edge_sep,
+  call = rlang::caller_env()
+) {
+  if (is.null(edge_sep) || is.null(edge_sep_min) || edge_sep_min <= edge_sep) {
+    return(invisible(NULL))
+  }
+
+  abort(
+    c(
+      "{.arg edge_sep_min} must not be greater than {.arg edge_sep}.",
+      "x" = "You provided {.val {edge_sep_min}} and {.val {edge_sep}}."
+    ),
+    error_class = "ggdag_type_error",
+    call = call
+  )
+}
+
+# Whether a value offered where a routing object belongs is one. Every entry
+# point that takes the object checks it against its own call, so the error
+# names the function the user wrote rather than the layer builder or the
+# constructor it reaches.
+check_edge_route_options <- function(options, call = rlang::caller_env()) {
+  if (!is.null(options) && !inherits(options, "ggdag_edge_route_options")) {
     abort(
       c(
-        "{.arg edge_sep_min} must not be greater than {.arg edge_sep}.",
-        "x" = "You provided {.val {fields$edge_sep_min}} and {.val {fields$edge_sep}}."
+        "{.arg edge_route_options} must be an object from {.fun edge_route_options}.",
+        "x" = "You provided {.obj_type_friendly {options}}."
       ),
-      error_class = "ggdag_type_error"
+      error_class = "ggdag_type_error",
+      call = call
     )
   }
 
-  structure(fields, class = "ggdag_edge_route_options")
+  invisible(options)
 }
 
 # One field of the object, checked against the rule its kind names. `NULL` is
@@ -333,7 +378,13 @@ check_edge_route_field <- function(
     return(value)
   }
 
-  numeric_ok <- is.numeric(value) && length(value) == 1 && !is.na(value)
+  # an infinite clearance is wider than any panel and an infinite price
+  # outbids every rule the router weighs, so neither is a value the router
+  # can draw with
+  numeric_ok <- is.numeric(value) &&
+    length(value) == 1 &&
+    !is.na(value) &&
+    is.finite(value)
   in_range <- numeric_ok &&
     switch(
       kind,
@@ -416,9 +467,9 @@ route_opts_field_map <- function() {
 route_opts_from <- function(options, r_ref, layer_axis = "auto") {
   options <- options %||% edge_route_options()
   field_map <- route_opts_field_map()
-  derived <- vapply(
+  constructor_argument <- vapply(
     edge_route_option_fields,
-    function(field) field$derived,
+    function(field) field$constructor_argument,
     logical(1)
   )
 
@@ -426,14 +477,14 @@ route_opts_from <- function(options, r_ref, layer_axis = "auto") {
   # runs, so they travel as arguments; the rest are leaf constants, exact
   # under a substitution after the fact
   args <- list(r_ref = r_ref, layer_axis = layer_axis %||% "auto")
-  for (name in names(field_map)[derived]) {
+  for (name in names(field_map)[constructor_argument]) {
     if (!is.null(options[[name]])) {
       args[[field_map[[name]]]] <- options[[name]]
     }
   }
   opts <- do.call(route_constants, args)
 
-  for (name in names(field_map)[!derived]) {
+  for (name in names(field_map)[!constructor_argument]) {
     if (!is.null(options[[name]])) {
       opts[[field_map[[name]]]] <- options[[name]]
     }
@@ -451,21 +502,29 @@ merge_edge_route_options <- function(
   edge_sep_min = NULL,
   call = rlang::caller_env()
 ) {
-  if (!is.null(options) && !inherits(options, "ggdag_edge_route_options")) {
-    abort(
-      c(
-        "{.arg edge_route_options} must be an object from {.fun edge_route_options}.",
-        "x" = "You provided {.obj_type_friendly {options}}."
-      ),
-      error_class = "ggdag_type_error",
-      call = call
-    )
-  }
+  check_edge_route_options(options, call = call)
   options <- options %||% edge_route_options()
+
+  # the three overrides are checked here rather than left to the constructor
+  # this function calls, so that a value out of range names the layer the
+  # user wrote it on and not the internal call that merges it
+  clearance <- check_edge_route_field(clearance, "clearance", "mm", call = call)
+  edge_sep <- check_edge_route_field(edge_sep, "edge_sep", "mm", call = call)
+  edge_sep_min <- check_edge_route_field(
+    edge_sep_min,
+    "edge_sep_min",
+    "mm",
+    call = call
+  )
+  clearance <- clearance %||% options$clearance
+  edge_sep <- edge_sep %||% options$edge_sep
+  edge_sep_min <- edge_sep_min %||% options$edge_sep_min
+  check_edge_sep_floor(edge_sep_min, edge_sep, call = call)
+
   edge_route_options(
-    clearance = clearance %||% options$clearance,
-    edge_sep = edge_sep %||% options$edge_sep,
-    edge_sep_min = edge_sep_min %||% options$edge_sep_min,
+    clearance = clearance,
+    edge_sep = edge_sep,
+    edge_sep_min = edge_sep_min,
     corners = options$corners,
     corner_radius = options$corner_radius,
     max_bow = options$max_bow,

@@ -1529,6 +1529,7 @@ quick_plot_arrow_edges <- function(
   linewidth,
   length,
   show.legend = NA,
+  call = rlang::caller_env(),
   ...
 ) {
   edge_route <- ggdag_option("edge_route", "straight")
@@ -1561,6 +1562,7 @@ quick_plot_arrow_edges <- function(
       linewidth = linewidth,
       node_size = NULL,
       show.legend = show.legend,
+      call = call,
       ...
     )
   }
@@ -1606,6 +1608,7 @@ routed_directed_layer <- function(
   linewidth,
   node_size,
   show.legend,
+  call = rlang::caller_env(),
   ...
 ) {
   dag_routed_arrow_layer(
@@ -1613,6 +1616,7 @@ routed_directed_layer <- function(
     data_directed = data_directed,
     route = edge_route,
     edge_route_options = edge_route_options,
+    call = call,
     node_size = node_size,
     arrow_head = arrow_head,
     arrow_fins = arrow_fins,
@@ -1645,7 +1649,8 @@ geom_dag_ggarrow_edges <- function(
   show.legend = NA,
   data = NULL,
   edge_route = ggdag_option("edge_route", "straight"),
-  edge_route_options = ggdag_option("edge_route_options", NULL)
+  edge_route_options = ggdag_option("edge_route_options", NULL),
+  call = rlang::caller_env()
 ) {
   rlang::check_installed(
     "ggarrow",
@@ -1681,7 +1686,8 @@ geom_dag_ggarrow_edges <- function(
         resect = resect,
         linewidth = linewidth,
         node_size = sizes[["node"]],
-        show.legend = show.legend
+        show.legend = show.legend,
+        call = call
       )
     } else {
       geom_dag_arrow_arc(
@@ -1730,7 +1736,8 @@ geom_dag_ggarrow_edges <- function(
         resect = resect,
         linewidth = linewidth,
         node_size = sizes[["node"]],
-        show.legend = show.legend
+        show.legend = show.legend,
+        call = call
       )
     } else {
       geom_dag_arrow(
@@ -1952,6 +1959,7 @@ geom_dag <- function(
   use_nodes <- check_arg_node(node, use_nodes)
   use_stylized <- check_arg_stylized(stylized, use_stylized)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  check_edge_route_options(edge_route_options, call = rlang::current_env())
 
   sizes <- c(
     cap = edge_cap,
