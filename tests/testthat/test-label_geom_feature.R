@@ -370,3 +370,64 @@ test_that("label_geom works with custom geom functions", {
   p <- ggdag(dag, use_labels = TRUE, label_geom = custom_label_geom)
   expect_s3_class(p, "gg")
 })
+
+# label_wrap on the quick plots -----------------------------------------------
+#
+# `label_wrap` reaches a quick plot's label layer the way `use_labels` and
+# `label_geom` do, whether it is written in the call or set as an option.
+
+# The parameters of the automatic label layer of `plot`.
+auto_label_params <- function(plot) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$stat, "StatNodesLabelAuto")
+  }))
+  expect_length(index, 1)
+  layer <- plot$layers[[index]]
+  c(layer$stat_params, layer$geom_params)
+}
+
+test_that("a quick plot hands label_wrap to the auto label geom", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      x = "Physical activity",
+      y = "Cardiovascular disease",
+      z = "Socioeconomic status"
+    )
+  )
+
+  plot <- ggdag_paths(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto,
+    label_wrap = 6
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 6)
+})
+
+test_that("the label_wrap option reaches a quick plot's auto label geom", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      x = "Physical activity",
+      y = "Cardiovascular disease",
+      z = "Socioeconomic status"
+    )
+  )
+
+  withr::local_options(ggdag.label_wrap = 8)
+  plot <- ggdag_adjustment_set(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 8)
+})

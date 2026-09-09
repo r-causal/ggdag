@@ -1653,3 +1653,145 @@ test_that("label-auto visuals: labels wrapped at ten characters", {
     theme_dag()
   expect_doppelganger("label-auto-wrapped-ten-nodes", p)
 })
+
+# Constructor validation ------------------------------------------------------
+#
+# `wrap` and `min.segment.length` are read at draw time, deep inside the
+# placement engine, so a value the engine cannot use has to be caught where the
+# user wrote it. The blocks below pin the accepted forms of each and the text
+# of the refusal, and the wrapping block pins that a label the user broke by
+# hand keeps the breaks they wrote.
+
+test_that("wrap_label_text() keeps hand-written line breaks", {
+  expect_identical(wrap_label_text("Air\npollution", 20), "Air\npollution")
+  expect_identical(
+    wrap_label_text("Blood pressure\nmedication use", 10),
+    "Blood\npressure\nmedication\nuse"
+  )
+  expect_identical(wrap_label_text("a\n\nb", 10), "a\n\nb")
+})
+
+test_that("wrap_label_text() is the identity for NULL and NA widths", {
+  labels <- c("Air\npollution", "Cardiovascular disease")
+  expect_identical(wrap_label_text(labels, NULL), labels)
+  expect_identical(wrap_label_text(labels, NA), labels)
+})
+
+test_that("the auto geoms reject a wrap that is not a character count", {
+  bad <- list("abc", 0, -2, 2.5, c(10, 3))
+  for (value in bad) {
+    expect_error(
+      geom_dag_label_auto(ggplot2::aes(label = label), wrap = value),
+      class = "ggdag_type_error"
+    )
+    expect_error(
+      geom_dag_text_auto(ggplot2::aes(label = label), wrap = value),
+      class = "ggdag_type_error"
+    )
+  }
+})
+
+test_that("the auto geoms accept every width a label can wrap to", {
+  good <- list(NULL, NA, 12L, 12)
+  for (value in good) {
+    expect_s3_class(
+      geom_dag_label_auto(ggplot2::aes(label = label), wrap = value),
+      "dag_layer"
+    )
+    expect_s3_class(
+      geom_dag_text_auto(ggplot2::aes(label = label), wrap = value),
+      "dag_layer"
+    )
+  }
+})
+
+test_that("the auto geoms reject a min.segment.length that is not a distance", {
+  bad <- list("abc", -1, 0, c(1, 2), NA, grid::unit(0, "lines"))
+  for (value in bad) {
+    expect_error(
+      geom_dag_label_auto(
+        ggplot2::aes(label = label),
+        min.segment.length = value
+      ),
+      class = "ggdag_type_error"
+    )
+    expect_error(
+      geom_dag_text_auto(
+        ggplot2::aes(label = label),
+        min.segment.length = value
+      ),
+      class = "ggdag_type_error"
+    )
+  }
+})
+
+# The ten-node scene of `helper-label-perf.R` at 7 x 5, read back through the
+# forced grob tree the same way `perf_scene_placement()` reads it.
+leader_scene_placement <- function(...) {
+  plot <- ggplot(perf_ten_node_dag(), aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges_link() +
+    geom_dag_label_auto(ggplot2::aes(label = label), ...) +
+    theme_dag()
+  perf_measure_render(plot, c(7, 5), perf_placement)
+}
+
+test_that("min.segment.length in grid units places the labels as mm do", {
+  skip_if_not_installed("ragg")
+
+  in_mm <- leader_scene_placement(min.segment.length = 5)
+  in_units <- leader_scene_placement(min.segment.length = grid::unit(5, "mm"))
+
+  expect_equal(in_units$boxes, in_mm$boxes)
+  expect_equal(in_units$leaders, in_mm$leaders)
+})
+
+test_that("a min.segment.length in lines draws no more leaders than 5 mm", {
+  skip_if_not_installed("ragg")
+
+  # A line is wider than 5 mm at the default text size, so raising the
+  # threshold can only take leaders away.
+  in_mm <- leader_scene_placement(min.segment.length = 5)
+  in_lines <- leader_scene_placement(
+    min.segment.length = grid::unit(2, "lines")
+  )
+
+  expect_lte(nrow(in_lines$leaders), nrow(in_mm$leaders))
+})
+
+# The label mapping ------------------------------------------------------------
+#
+# `geom_dag(use_labels = TRUE)` maps `label` whether or not the DAG carries
+# labels, so the automatic label layer treats that one mapping as nothing to
+# place. Any other mapping is the user's own and is evaluated by ggplot2, which
+# is what names a column that does not exist.
+
+test_that("a mistyped label mapping is an error on a labelled DAG", {
+  dag <- labelled_triangle()
+
+  typos <- list(
+    ggplot2::aes(label = labell),
+    ggplot2::aes(label = .data$labell),
+    ggplot2::aes(label = paste(name, labell))
+  )
+
+  for (mapping in typos) {
+    p <- ggplot(dag, aes_dag()) +
+      geom_dag_point() +
+      geom_dag_label_auto(mapping)
+    expect_error(ggplot2::ggplot_build(p), "labell")
+  }
+})
+
+test_that("use_labels with no label column is still a silent no-op", {
+  dag <- dagify(y ~ x)
+
+  p <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto)
+  expect_no_condition(ggplot2::ggplot_build(p))
+
+  direct <- ggplot(dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_label_auto(ggplot2::aes(label = label))
+  expect_no_condition(ggplot2::ggplot_build(direct))
+  expect_length(auto_layer_index(direct), 0)
+})
