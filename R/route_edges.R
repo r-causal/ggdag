@@ -3305,12 +3305,14 @@ parallel_groups <- function(from, to, nodes, routable, sep_m) {
 #' candidate may run on that node's line, and where two of them reach one
 #' node the chord from the farthest layer keeps the row while the others
 #' bend at their slots like ordinary arrivals, so that no node is drawn two
-#' heads on one row. A reversed level chord takes the mirror shape, the
-#' tail port on the right node at its target's y; its own run lies on the
-#' left node's line, whose E centre row it owns, and leaves the right
-#' node's line free, although the row pass still claims that node's W
-#' centre row for it and an arrival row on that side can come within the
-#' row floor of the departure when the offset exceeds it.
+#' heads on one row. The row pass claims the departure side as well, the E
+#' centre row of the node the chord leaves, whose corner radius its tail
+#' port lies within: an arrival row on that side can come within the row
+#' floor of the departure when the port's offset exceeds it. A reversed
+#' level chord takes the mirror shape, the tail port on the right node at
+#' its target's y; its own run lies on the left node's line, whose E centre
+#' row it owns, and leaves the right node's line free, although the row
+#' pass claims that node's W centre row for it in the same way.
 #'
 #' A spanning edge chooses among the channels `ortho_channel()` prices: an
 #' S or N channel `R` beyond the crossed stacks when both endpoints are the
@@ -3478,7 +3480,11 @@ route_orthogonal_scene <- function(
   # leaving one source port belong to one hyperedge segment. The gap beside
   # the source is the edge's first gap when it is drawn rightwards and its
   # last when it is drawn leftwards; an arrival at a node's side is not a
-  # piece leaving that node's port, so it takes the edge's own key
+  # piece leaving that node's port, so it takes the edge's own key. As a
+  # piece key the choice can only split a group or merge two, which
+  # `pieces_coincide()` cannot see, since it asks for a mutual match
+  # inside one group; what it decides is which channels
+  # `slide_channels()` reads as one hyperedge
   n_gaps <- max(layers$n - 1L, 0L)
   pieces <- rep(list(empty_pieces()), n_gaps)
   seg_key <- function(e, first) {
@@ -3543,7 +3549,7 @@ route_orthogonal_scene <- function(
   # the cheaper feasible direction, ties above, and the best option is
   # taken when its total is below the cost of the best pushed candidate,
   # which is infinite when that candidate had to be clamped
-  best_slide <- function(ch, e, keys) {
+  best_slide <- function(ch, e, keys, src_key) {
     best <- NULL
     best_total <- ch$cost
     for (p in ch$slide) {
@@ -3569,7 +3575,7 @@ route_orthogonal_scene <- function(
           pieces_base,
           cand_pieces,
           opts,
-          keys[[1]],
+          src_key,
           gap_mid
         )
         if (!is.null(s) && (is.null(sl) || s$cost < sl$cost)) {
@@ -3602,6 +3608,9 @@ route_orthogonal_scene <- function(
   for (e in spanning) {
     fr <- edge_frame(nodes, from[[e]], to[[e]], info$reversed[[e]])
     keys <- c(seg_key(e, TRUE), seg_key(e, FALSE))
+    # the key of the piece this edge draws in the gap beside its source,
+    # which is its first gap drawn rightwards and its last drawn leftwards
+    src_key <- seg_key(e, !rev_e[[e]])
     ch <- ortho_channel(
       fr,
       edge_cost_context(fr, e, ctx),
@@ -3629,7 +3638,7 @@ route_orthogonal_scene <- function(
       opts,
       zones
     )
-    sl <- if (length(ch$slide) > 0) best_slide(ch, e, keys) else NULL
+    sl <- if (length(ch$slide) > 0) best_slide(ch, e, keys, src_key) else NULL
     if (is.null(sl)) {
       if (ch$kind == "ew") {
         pieces <- add_piece(pieces, info$la[[e]], keys[[1]], Sy[[e]], ch$y)
@@ -3678,6 +3687,7 @@ route_orthogonal_scene <- function(
       la = info$la[[e]],
       lb = info$lb[[e]],
       keys = keys,
+      src_key = src_key,
       Sy = Sy[[e]],
       Ty = Ty[[e]],
       owned = head_node[[e]] %in% level_owned,
@@ -4660,17 +4670,19 @@ channel_fixed <- function(kind, y, Sy, Ty) {
 #'
 #' `records` are the spanning edges placed so far, in placement order, each
 #' with its `kind`, `side`, `y`, extent `xr`, gaps `la` and `lb`, segment
-#' `keys`, endpoint ordinates `Sy` and `Ty`, whether a level chord `owned`
-#' the centre row of the node this edge's head arrives at and `owned_y`,
-#' the line that row lies on, frame `fr`, and the `state`
-#' `ortho_channel()` priced it with. The channels in `conflicts` move to
+#' `keys` and the `src_key` of the pieces leaving its source port, endpoint
+#' ordinates `Sy` and `Ty`, whether a level chord `owned` the centre row of
+#' the node this edge's head arrives at and `owned_y`, the line that row
+#' lies on, frame `fr`, and the `state` `ortho_channel()` priced it with. The channels in `conflicts` move to
 #' `sep_e` beyond `y0` on the side `dir`, and every placed channel then
 #' within `sep_e` of a moved one over an overlapping extent moves `sep_e`
 #' beyond it in turn, the queue in placement order, until nothing is within
 #' `sep_e`. Three kinds of channel never move, and the direction is
 #' infeasible when the cascade reaches one: an S/N channel, whose y is tied
-#' to its stubs; a channel of the candidate's own hyperedge (`cand_key`),
-#' its trunk or a sibling on the source's line; and a channel running on
+#' to its stubs; a channel of the candidate's own hyperedge, its trunk or a
+#' sibling on the source's line, which is a channel whose own `src_key` is
+#' the candidate's `cand_key`, since which gap a piece leaving the source
+#' is drawn in depends on the way the edge runs; and a channel running on
 #' its own source's or target's line, the shape this pass exists to create,
 #' which is never taken from another edge. A moved channel must stay inside
 #' the panel margin, clear its crossed discs at the margin it was placed
@@ -4719,7 +4731,7 @@ slide_channels <- function(
   keys <- field("keys", character(2))
   lines <- df_cols(y = field("y", 1), lo = xr[1, ], hi = xr[2, ])
   fixed <- channel_fixed(kind, lines$y, field("Sy", 1), field("Ty", 1)) |
-    keys[1, ] == cand_key
+    field("src_key", "") == cand_key
 
   # the cascade: every moved channel sits on the lattice y0 + k sep_e, and
   # a move only ever raises a channel's level on it, so no channel returns
@@ -4833,11 +4845,12 @@ slide_channels <- function(
 #' leaves that source's port, and the pieces leaving one port are one
 #' segment, as are the pieces of duplicate edges; a piece in any other gap
 #' is the edge's alone. The gap beside the source is the first gap of an
-#' edge drawn rightwards and the last gap of one drawn leftwards, so a
-#' first-gap piece enters at its source's y only when the edge runs
-#' rightwards, and every arrival at a node's side takes a segment of its
-#' own however the edge runs. The y-interval of a segment is the range of
-#' its pieces. Segments are returned in canonical order: source segments by
+#' edge drawn rightwards and the last gap of one drawn leftwards, and the
+#' only gap of a span-1 edge, which lies beside that edge's source
+#' whichever way it is drawn. So a first-gap piece enters at its source's y
+#' only when the edge runs rightwards, and every arrival at a node's side
+#' takes a segment of its own however the edge runs. The y-interval of a
+#' segment is the range of its pieces. Segments are returned in canonical order: source segments by
 #' the position of their source, then the rest by the positions of both
 #' ends, with node row indices as the final tie-break, so that the order
 #' never depends on node names.
