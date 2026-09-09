@@ -139,6 +139,7 @@ label_scene <- function(tree) {
 
   list(
     unresolved = as.character(tree$unresolved),
+    dropped = as.character(tree$dropped),
     labels = as.character(tree$labels$label),
     texts = vapply(
       texts,
@@ -317,6 +318,33 @@ test_that("dropping every unresolved label still warns, naming them", {
   expect_true(any(grepl("Outcome", messages, fixed = TRUE)))
 })
 
+test_that("dropping some of them names the ones that stayed as well", {
+  skip_if_not_installed("ragg")
+
+  # An allowance between the counts of two unresolved labels keeps one and
+  # drops the others. The one that stayed is still sitting on the ink, so
+  # the reader is owed its name beside the names of the two that went.
+  scene <- saturated_scene(5)
+  kept <- setdiff(scene$unresolved, scene$dropped)
+  stopifnot(
+    "an allowance of five keeps one unresolved label and drops two" = identical(
+      kept,
+      "Weight"
+    ) &&
+      identical(scene$dropped, c("Blood pressure", "Outcome"))
+  )
+
+  warnings <- unresolved_warnings(
+    draw_once(saturated_plot(5), saturated_size)
+  )
+  messages <- warning_messages(warnings)
+
+  expect_length(warnings, 1)
+  expect_true(any(grepl("Weight", messages, fixed = TRUE)))
+  expect_true(any(grepl("Blood pressure", messages, fixed = TRUE)))
+  expect_true(any(grepl("Outcome", messages, fixed = TRUE)))
+})
+
 test_that("forcing a drawn scene a second time does not warn again", {
   skip_if_not_installed("ragg")
 
@@ -327,6 +355,37 @@ test_that("forcing a drawn scene a second time does not warn again", {
   )
 
   expect_length(warnings, 1)
+})
+
+test_that("the same grobs drawn smaller warn about that draw", {
+  skip_if_not_installed("ragg")
+
+  # One gtable drawn on two devices is two draws of one picture. Every label
+  # is placed clear at 7 x 5, so that draw says nothing; the same grobs at
+  # 4 x 3 leave three on the ink, and the reader who resized the window is
+  # owed the warning for the picture in front of them. Drawing that picture
+  # again replays a draw that has already warned and stays quiet.
+  gtable <- ggplot2::ggplot_gtable(
+    ggplot2::ggplot_build(perf_label_plot(perf_saturated_dag()))
+  )
+  draw_gtable <- function(size) {
+    local_label_device(size)
+    grid::grid.newpage()
+    grid::grid.draw(gtable)
+    invisible(NULL)
+  }
+
+  expect_length(unresolved_warnings(draw_gtable(c(7, 5))), 0)
+
+  warnings <- unresolved_warnings(draw_gtable(saturated_size))
+  expect_length(warnings, 1)
+  expect_true(any(grepl(
+    "Blood pressure",
+    warning_messages(warnings),
+    fixed = TRUE
+  )))
+
+  expect_length(unresolved_warnings(draw_gtable(saturated_size)), 0)
 })
 
 test_that("a faceted plot warns once for the whole draw", {
@@ -352,7 +411,19 @@ test_that("a faceted plot warns once for the whole draw", {
   messages <- warning_messages(warnings)
 
   expect_length(warnings, 1)
-  expect_true(any(grepl("Blood pressure", messages, fixed = TRUE)))
+
+  # The warning belongs to the draw, so it names the union over the panels
+  # rather than whatever the panel that completed the tally was left with.
+  # No label of this DAG is a substring of another, so a name is in the
+  # message only if the warning put it there.
+  union <- unique(unlist(lapply(scenes, function(scene) scene$unresolved)))
+  every_label <- unname(perf_ten_node_labels)
+  named <- vapply(
+    every_label,
+    function(label) any(grepl(label, messages, fixed = TRUE)),
+    logical(1)
+  )
+  expect_setequal(every_label[named], union)
 })
 
 # max.overlaps ---------------------------------------------------------------
