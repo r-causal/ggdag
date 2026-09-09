@@ -1754,7 +1754,15 @@ test_that("geom_dag() errors when the plot maps only some DAG aesthetics", {
 test_that("geom_dag() accepts a plot mapped with aes_dag()", {
   dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
 
-  expect_no_error(ggplot(dag, aes_dag()) + geom_dag())
+  p <- ggplot(dag, aes_dag()) + geom_dag()
+  expect_no_error(ggplot2::ggplot_build(p))
+
+  # the fast path: a layer whose aesthetics are already mapped is added
+  # unwrapped, rather than through a `setup_layer()` override
+  expect_equal(
+    unique(vapply(p$layers, function(layer) class(layer)[[1]], character(1))),
+    "LayerInstance"
+  )
 })
 
 test_that("geom_dag(use_edges = FALSE) asks only for the node aesthetics", {

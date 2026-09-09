@@ -1438,7 +1438,9 @@ auto_label_column_missing <- function(layer, plot) {
     return(FALSE)
   }
 
-  # The three ways the generated mapping can be written.
+  # `geom_dag()` writes the generated mapping as the bare symbol. The two
+  # pronoun forms name the same column and are accepted with it, so a mapping
+  # written by hand in either of them is treated the same way.
   label_expr <- rlang::get_expr(label_quo)
   generated <- identical(label_expr, quote(label)) ||
     identical(label_expr, quote(.data$label)) ||

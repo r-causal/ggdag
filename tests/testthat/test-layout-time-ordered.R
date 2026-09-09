@@ -3553,10 +3553,16 @@ test_that("the engines draw arcs to the depths engine_trace_curvature() models",
 })
 
 test_that("engine_trace_curvature() rejects an engine it cannot draw for", {
-  # A raw option reaches the layout unchecked, so a partial or misspelt one
-  # has to fail here rather than quietly pick a side.
+  # A raw option reaches the layout unchecked, so a name that matches neither
+  # engine, and an abbreviation short enough to match both, have to fail here
+  # rather than quietly pick a side. An abbreviation of one engine alone
+  # resolves to that engine.
   expect_error(engine_trace_curvature(0.3, "ggarow"))
   expect_error(engine_trace_curvature(0.3, "gg"))
+  expect_equal(
+    engine_trace_curvature(0.3, "ggr"),
+    engine_trace_curvature(0.3, "ggraph")
+  )
 })
 
 # Drawn clearance --------------------------------------------------------------
@@ -3748,9 +3754,11 @@ test_that("compute_time_ordered_layout: the edge engine decides the arc side", {
 
   # The magnitudes agree less exactly than that, and not because of
   # rounding. Stages 1 to 3 run before either engine is consulted and hand
-  # both runs the same layout, which is not itself mirror-symmetric; only
-  # the greedy correction reads the engine, and it pushes the offending node
-  # off that common start in opposite directions. The two runs therefore
+  # both runs the same layout, which is not itself mirror-symmetric. The
+  # engine is read only after that, by `better_positions()` when it chooses
+  # between the even-spacing and median candidates and by the greedy
+  # correction, which pushes the offending node off that common start in
+  # opposite directions. The two runs therefore
   # cover different distances, stop after different numbers of passes, and
   # land a few parts in a hundred thousand apart. The tolerance below bounds
   # that gap, not floating-point noise, which would be some ten orders of

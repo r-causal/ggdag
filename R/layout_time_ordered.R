@@ -1669,7 +1669,7 @@ compute_time_ordered_layout <- function(
   node_scale = 1,
   node_radius = 26 * node_scale,
   arc_curvature = ggdag_option("curvature"),
-  edge_type = ggdag_option("edge_type", "link_arc"),
+  edge_type = ggdag_option("edge_type"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   layer_gap = 180,
   node_gap = max(85, min_spacing + 13),
