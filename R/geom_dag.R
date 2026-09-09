@@ -829,14 +829,33 @@ quick_plot_dag_edges <- function(
     ))
   }
 
-  edge_type_switch(edge_type)(
-    mapping,
-    data = data,
-    edge_width = edge_width * size,
-    arrow = grid::arrow(length = arrow_size, type = "closed"),
-    show.legend = show.legend,
-    ...
+  do.call(
+    edge_type_switch(edge_type),
+    c(
+      list(
+        mapping,
+        data = data,
+        edge_width = edge_width * size,
+        arrow = grid::arrow(length = arrow_size, type = "closed"),
+        show.legend = show.legend,
+        ...
+      ),
+      arc_curvature_args(edge_type)
+    )
   )
+}
+
+# The arc layers a packaged plot builds bend by the amount `curvature` resolves
+# to, so that the two edge engines bow the same edge by the same amount and a
+# user who moves the option moves both pictures. Only the arc type takes it:
+# the diagonal type's curvature is ggraph's S-curve strength, a different
+# quantity, and the link types have no bend at all.
+arc_curvature_args <- function(edge_type) {
+  if (!identical(edge_type, "arc")) {
+    return(list())
+  }
+
+  list(curvature = ggdag_option("curvature"))
 }
 
 # `geom_dag_edges()` builds a layer for directed edges and one for bidirected
@@ -904,9 +923,11 @@ expand_edge_aes <- function(mapping) {
 #'   produce a data frame. See fortify() for which variables will be created. A
 #'   function will be called with a single argument, the plot data. The return
 #'   value must be a data.frame., and will be used as the layer data.
-#' @param curvature The bend of the curve. 1 approximates a halfcircle while 0
-#'   will give a straight line. Negative number will change the direction of the
-#'   curve. Only used if layout circular = FALSE.
+#' @param curvature The bend of the bidirected arc. 1 approximates a halfcircle
+#'   while 0 will give a straight line. Negative number will change the
+#'   direction of the curve. Only used if layout circular = FALSE. Defaults to
+#'   the `curvature` option, which both edge engines read, so that a bidirected
+#'   edge bends by the same amount however it is drawn.
 #' @param arrow_directed,arrow_bidirected specification for arrow heads, as
 #'   created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
@@ -975,7 +996,7 @@ geom_dag_edges <- function(
   mapping = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
-  curvature = 0.3,
+  curvature = ggdag_option("curvature"),
   arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
   arrow_bidirected = grid::arrow(
     length = grid::unit(5, "pt"),
@@ -1984,18 +2005,24 @@ geom_dag <- function(
         )
       } else {
         edge_function <- edge_type_switch(edge_type)
-        edge_geom <- edge_function(
-          ggplot2::aes(
-            start_cap = ggraph::circle(sizes[["cap"]], "mm"),
-            end_cap = ggraph::circle(sizes[["cap"]], "mm")
-          ),
-          data = data,
-          edge_width = sizes[["edge"]],
-          arrow = grid::arrow(
-            length = grid::unit(sizes[["arrow"]], "pt"),
-            type = "closed"
-          ),
-          show.legend = edge_show_legend
+        edge_geom <- do.call(
+          edge_function,
+          c(
+            list(
+              ggplot2::aes(
+                start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+                end_cap = ggraph::circle(sizes[["cap"]], "mm")
+              ),
+              data = data,
+              edge_width = sizes[["edge"]],
+              arrow = grid::arrow(
+                length = grid::unit(sizes[["arrow"]], "pt"),
+                type = "closed"
+              ),
+              show.legend = edge_show_legend
+            ),
+            arc_curvature_args(edge_type)
+          )
         )
       }
     }

@@ -8,7 +8,7 @@ geom_dag_edges(
   mapping = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
-  curvature = 0.3,
+  curvature = ggdag_option("curvature"),
   arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
   arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type =
     "closed"),
@@ -34,9 +34,11 @@ produce a data frame. See fortify() for which variables will be created. A
 function will be called with a single argument, the plot data. The return
 value must be a data.frame., and will be used as the layer data.}
 
-\item{curvature}{The bend of the curve. 1 approximates a halfcircle while 0
-will give a straight line. Negative number will change the direction of the
-curve. Only used if layout circular = FALSE.}
+\item{curvature}{The bend of the bidirected arc. 1 approximates a halfcircle
+while 0 will give a straight line. Negative number will change the
+direction of the curve. Only used if layout circular = FALSE. Defaults to
+the \code{curvature} option, which both edge engines read, so that a bidirected
+edge bends by the same amount however it is drawn.}
 
 \item{arrow_directed, arrow_bidirected}{specification for arrow heads, as
 created by arrow()}
