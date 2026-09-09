@@ -81,6 +81,31 @@ test_that("quick plots forward edge_type correctly", {
   )
 })
 
+
+test_that("the quick plotters bend their ggraph arcs by the curvature option", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+  local_ggdag_option_state()
+
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  # `ggdag_paths()` builds its own ggraph edge layers so that it can colour
+  # them by path, and `ggdag_collider_triangle()` goes through `geom_dag()`
+  path_arcs <- function() {
+    arc_edge_strengths(ggdag_paths(dag, edge_type = "arc")$layers)
+  }
+  triangle_arcs <- function() {
+    arc_edge_strengths(ggdag_collider_triangle(edge_type = "arc")$layers)
+  }
+
+  expect_equal(unique(path_arcs()), 0.3)
+  expect_equal(unique(triangle_arcs()), 0.3)
+
+  ggdag_options_set(curvature = 0.5)
+
+  expect_equal(unique(path_arcs()), 0.5)
+  expect_equal(unique(triangle_arcs()), 0.5)
+})
+
 # The ten wrappers in R/quick_plots.R, each callable with no arguments.
 quick_plot_wrappers <- function() {
   list(

@@ -1449,6 +1449,69 @@ for (plotter_name in names(curved_plotters)) {
   })
 }
 
+# -- the curvature option reaches the ggraph arc layers -----------------------
+
+test_that("geom_dag() bends its ggraph arcs by the curvature option", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  p <- ggplot(test_dag, aes_dag()) + geom_dag(edge_type = "arc")
+
+  expect_equal(arc_edge_strengths(p$layers), ggdag_option("curvature"))
+  expect_equal(arc_edge_strengths(p$layers), 0.3)
+})
+
+test_that("a set curvature option moves the ggraph arcs geom_dag() draws", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+  local_ggdag_option_state()
+  ggdag_options_set(curvature = 0.5)
+
+  p <- ggplot(test_dag, aes_dag()) + geom_dag(edge_type = "arc")
+
+  expect_equal(arc_edge_strengths(p$layers), 0.5)
+})
+
+test_that("geom_dag_edges() bends its bidirected arc by the curvature option", {
+  local_ggdag_option_state()
+
+  expect_equal(arc_edge_strengths(geom_dag_edges()), ggdag_option("curvature"))
+  expect_equal(arc_edge_strengths(geom_dag_edges()), 0.3)
+
+  ggdag_options_set(curvature = 0.5)
+
+  expect_equal(arc_edge_strengths(geom_dag_edges()), 0.5)
+})
+
+test_that("the diagonal edge type keeps ggraph's own strength", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+  local_ggdag_option_state()
+  ggdag_options_set(curvature = 0.5)
+
+  p <- ggplot(test_dag, aes_dag()) + geom_dag(edge_type = "diagonal")
+  diagonals <- purrr::keep(
+    p$layers,
+    \(layer) inherits(layer$stat, "StatEdgeDiagonal")
+  )
+
+  expect_equal(diagonals[[1]]$stat_params$strength, 1)
+})
+
+test_that("both edge engines bow one plot's arcs by the same amount", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(curvature = 0.45)
+
+  ggraph_arcs <- ggplot(test_dag, aes_dag()) +
+    geom_dag(edge_type = "arc", edge_engine = "ggraph")
+  ggarrow_arcs <- ggplot(test_dag, aes_dag()) +
+    geom_dag(edge_type = "arc", edge_engine = "ggarrow")
+
+  expect_equal(
+    unique(arc_edge_strengths(ggraph_arcs$layers)),
+    unique(arrow_arc_curvatures(ggarrow_arcs$layers))
+  )
+  expect_equal(unique(arc_edge_strengths(ggraph_arcs$layers)), 0.45)
+})
+
 # -- edge caps sync to the node layer in either layer order -------------------
 
 built_edge_cap <- function(plot) {

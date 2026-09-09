@@ -132,3 +132,25 @@ built_node_data <- function(plot) {
 
   dplyr::bind_rows(purrr::map(indices, \(i) built$data[[i]]))
 }
+
+# The bend the ggraph arc layers among `layers` were built with, in drawing
+# order. `geom_dag_edges_arc()` hands ggraph's arc stat the curvature it was
+# given as `strength`.
+arc_edge_strengths <- function(layers) {
+  arc_layers <- purrr::keep(layers, \(layer) {
+    inherits(layer$stat, "StatEdgeArc")
+  })
+
+  unname(purrr::map_dbl(arc_layers, \(layer) layer$stat_params$strength))
+}
+
+# The bend the ggarrow arc layers among `layers` were built with, in drawing
+# order. `geom_dag_arrow_arc()` keeps its curvature as a geom parameter.
+arrow_arc_curvatures <- function(layers) {
+  arc_layers <- purrr::keep(
+    layers,
+    \(layer) inherits(layer$geom, "GeomDAGArrowCurve")
+  )
+
+  unname(purrr::map_dbl(arc_layers, \(layer) layer$geom_params$curvature))
+}
