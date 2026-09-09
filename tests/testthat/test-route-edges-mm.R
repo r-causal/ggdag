@@ -11785,8 +11785,8 @@ test_that("route_edges_mm() routes large_epi under a set max_bow at interactive 
     iterations = 30,
     filter_gc = FALSE
   )
-  # The scene measures 46 to 48 ms on the development machine against 22 to
-  # 24 ms with the cap unset, so the gate is 60 ms: it is loose enough that
+  # The scene measures 45 to 52 ms on the development machine against 22 to
+  # 23 ms with the cap unset, so the gate is 60 ms: it is loose enough that
   # a slower machine does not trip it and tight enough to catch a route
   # that stopped short-circuiting out of the pool.
   expect_lt(as.numeric(timing$median), 0.06)

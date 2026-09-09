@@ -263,11 +263,16 @@ route_constants <- function(
 #'   layers' slots. `clearance_ok` is `FALSE` when the drawn curve could
 #'   not be kept `R` from every node disc, when its arch had to stop on
 #'   another edge's arch in a shared slot, or when it left the panel and
-#'   was clamped to it. `sagitta_capped` says that the sagitta cap acted on
-#'   the route rather than that the route met it: a free bow over the cap
-#'   was rebuilt at the soft margin, or, where `sagitta_max_spanning` is set
-#'   and nothing the spanning tier could offer met it, the shallowest
-#'   attempt that verified was drawn in place of the best-ranked one.
+#'   was clamped to it. `sagitta_capped` says that the route was held down
+#'   rather than that it met a cap, and it has three sources: a spanning
+#'   route was drawn through a tight slot, which is threaded and verified
+#'   at the soft margin as a capped bow is; a free bow over `sagitta_max`
+#'   was rebuilt at the soft margin; or, where `sagitta_max_spanning` is
+#'   set and nothing the spanning tier could offer met it, the shallowest
+#'   attempt that verified was drawn in place of the best-ranked one. Only
+#'   the last of the three needs a cap on the spanning tier to have been
+#'   written, so under the default constants, where that cap is `Inf`, a
+#'   `TRUE` is not evidence that a bow was rebuilt over a cap.
 #'   In orthogonal mode `meta` also carries `resect_head` and `resect_fins`,
 #'   the arc length in mm the arrow layer cuts from each end of the path:
 #'   `cap - r + sqrt(r^2 - o^2)` for a port offset `o` from the centre line
@@ -2748,9 +2753,9 @@ edge_cost_context <- function(fr, e, ctx) {
 #'   indexed by; `ints` unless the edge carries an extra margin.
 #' @return `NULL` when every candidate has a slot with no free y; otherwise
 #'   the candidates ranked best first, each a list with `wp`, `side`,
-#'   `scope`, `disordered`, `overlap`, `over_cap`, and `ints`, the free
-#'   intervals the candidate was placed in (clipped for a periphery
-#'   candidate).
+#'   `scope`, `cost`, `disordered`, `overlap`, `tight`, `over_cap`, and
+#'   `ints`, the free intervals the candidate was placed in (clipped for a
+#'   periphery candidate).
 #' @noRd
 assign_spanning_waypoints <- function(
   fr,

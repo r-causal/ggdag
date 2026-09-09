@@ -163,9 +163,10 @@ edge_route_rc_min <- 0.8
 #'   meets the cap the shallowest route the router could verify is drawn. The
 #'   cap is a preference and not a bound. One trade is worth knowing: a
 #'   tightened cap can replace a route through the slots, drawn at the full
-#'   `clearance`, with a shallower bow drawn at the soft margin, which leaves
-#'   a node it passes half the daylight the deeper route did. Spline mode
-#'   only.
+#'   `clearance`, with a shallower bow drawn at the soft margin, so the
+#'   replacement passes a node with only the soft margin's daylight, which
+#'   is `min(1.2, clearance)` millimetres (see `tight_penalty`), where the
+#'   deeper route kept the whole `clearance`. Spline mode only.
 #' @param bend_penalty The price of one orthogonal bend, in reference radii of
 #'   displacement. `NULL`, the router's own `2`, at which two bends cost one
 #'   detour. `0` buys every bend a shorter run can pay for. Orthogonal mode
