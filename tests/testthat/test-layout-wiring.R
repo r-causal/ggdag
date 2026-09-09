@@ -918,7 +918,8 @@ test_that("ggraph arc edges draw positive curvature on the left of travel", {
   # left, so tracing an arc it draws means negating the curvature handed to
   # sample_curved_edge(). This pins the two conventions against each other:
   # any code that traces a ggraph arc must flip the sign, and a silent
-  # inversion in either convention fails here.
+  # inversion in either convention fails here. Only the side is at issue;
+  # the depth the two engines reach is engine_trace_curvature()'"'"'s to settle.
   edge <- data.frame(
     name = "a",
     x = 0,
@@ -961,8 +962,8 @@ test_that("ggraph arc edges draw positive curvature on the left of travel", {
 })
 
 # Minimum distance from a node's center to the drawn arc of a directed edge,
-# traced on the side the ggraph arc edge geom draws (the negated curvature;
-# see the convention test above). Coordinates are in data units.
+# traced the way the ggraph arc edge geom draws it: on the far side of
+# travel, and only as deep as that geom bows. Coordinates are in data units.
 drawn_arc_clearance <- function(coords, from, to, node, curvature) {
   at <- function(nm, col) coords[[col]][coords$name == nm]
   arc <- sample_curved_edge(
@@ -970,7 +971,7 @@ drawn_arc_clearance <- function(coords, from, to, node, curvature) {
     at(from, "y"),
     at(to, "x"),
     at(to, "y"),
-    -curvature
+    engine_trace_curvature(curvature, "ggraph")
   )
   min(sqrt((at(node, "x") - arc$x)^2 + (at(node, "y") - arc$y)^2))
 }

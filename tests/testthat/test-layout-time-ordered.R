@@ -3288,66 +3288,198 @@ test_that("visual: exposure/outcome shift with a bidirected outcome", {
   expect_doppelganger("time-ordered-exp-out-bidirected", ggdag(td))
 })
 
-# Engine-aware arc side --------------------------------------------------------
+# Engine-aware arc side and depth ----------------------------------------------
 
-# Points of the arrow outline the ggarrow engine draws, in millimetres. The
-# engine builds its curve at draw time, so the drawn side has to be read off
-# the rendered plot rather than the layer data.
-rendered_arrow_shaft <- function(plot) {
-  grDevices::pdf(NULL)
+# Every leaf grob under `grob`.
+grob_leaves <- function(grob) {
+  if (!is.null(grob$children) && length(grob$children)) {
+    return(unlist(lapply(grob$children, grob_leaves), recursive = FALSE))
+  }
+  list(grob)
+}
+
+# The ink a rendered panel puts down, in millimetres: every edge path drawn
+# in the panel, the centres of `nodes` mapped through the panel's own
+# ranges, and the radius the node points are drawn at. Both engines are read
+# off the rendered plot rather than the layer data, because ggarrow builds
+# its curve at draw time and so has no drawn path to inspect until then.
+drawn_panel_ink <- function(plot, nodes) {
+  ranges <- ggplot2::ggplot_build(plot)$layout$panel_params[[1]]
+
+  grDevices::pdf(NULL, width = 7, height = 7)
   on.exit(grDevices::dev.off(), add = TRUE)
   print(plot)
   grid::grid.force()
-  shaft <- NULL
-  for (nm in grid::grid.ls(print = FALSE)$name) {
-    grob <- tryCatch(grid::grid.get(nm, grep = TRUE), error = function(e) NULL)
-    if (!inherits(grob, "pathgrob") || length(grob$x) < 20) {
+
+  listing <- grid::grid.ls(viewports = TRUE, print = FALSE)
+  panel_vp <- grep(
+    "^panel\\.",
+    listing$name[listing$type == "vpListing"],
+    value = TRUE
+  )[1]
+  in_panel <- listing$type %in%
+    c("grobListing", "gTreeListing") &
+    grepl(panel_vp, listing$vpPath, fixed = TRUE)
+  grid::seekViewport(panel_vp)
+
+  radius <- NA_real_
+  paths <- list()
+  for (nm in unique(listing$name[in_panel])) {
+    grob <- tryCatch(grid::grid.get(nm), error = function(e) NULL)
+    if (is.null(grob)) {
       next
     }
-    shaft <- data.frame(
-      x = as.numeric(grid::convertX(grob$x, "mm")),
-      y = as.numeric(grid::convertY(grob$y, "mm"))
-    )
+    for (leaf in grob_leaves(grob)) {
+      if (inherits(leaf, "points") && is.na(radius)) {
+        # R draws pch 19 at 0.375 of the fontsize the grob carries.
+        radius <- 0.375 * leaf$gp$fontsize[1] / 72.27 * 25.4
+      }
+      if (!inherits(leaf, c("pathgrob", "polyline", "lines", "segments"))) {
+        next
+      }
+      if (grepl("^panel\\.(grid|background|border)", leaf$name)) {
+        next
+      }
+      paths[[length(paths) + 1L]] <- data.frame(
+        x = as.numeric(grid::convertX(leaf$x, "mm")),
+        y = as.numeric(grid::convertY(leaf$y, "mm"))
+      )
+    }
   }
-  shaft
+
+  path <- do.call(rbind, paths)
+  path <- path[stats::complete.cases(path), , drop = FALSE]
+  as_npc <- function(v, range) grid::unit((v - range[1]) / diff(range), "npc")
+
+  list(
+    radius = radius,
+    path = path,
+    nodes = data.frame(
+      name = nodes$name,
+      x = as.numeric(grid::convertX(as_npc(nodes$x, ranges$x.range), "mm")),
+      y = as.numeric(grid::convertY(as_npc(nodes$y, ranges$y.range), "mm"))
+    )
+  )
 }
 
-# The side of the chord an edge engine draws a positive arc on, measured from
-# an edge running left to right: positive is above the chord, which is the
-# left of travel.
+# The single layer `engine` draws a curved edge with under `edge_type`. The
+# diagonal type has no curvature of its own on the ggraph side: its bend is
+# ggraph's S-curve strength, which the layer defaults on its own.
+curved_edge_layer <- function(engine, edge_type, edge_data, curvature = 0.3) {
+  mapping <- ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+
+  if (identical(engine, "ggarrow")) {
+    return(geom_dag_arrow_arc(
+      mapping = mapping,
+      data = edge_data,
+      curvature = curvature
+    ))
+  }
+
+  if (identical(edge_type, "diagonal")) {
+    return(geom_dag_edges_diagonal(mapping = mapping, data = edge_data))
+  }
+
+  geom_dag_edges_arc(
+    mapping = mapping,
+    data = edge_data,
+    curvature = curvature
+  )
+}
+
+# The bow `engine` draws, as a signed fraction of the half chord, measured
+# off a rendered left-to-right edge: positive is above the chord, the left
+# of travel. The panel is pinned square because ggarrow's curve is a circle
+# in device space, so the depth it reaches in data units carries the aspect.
 drawn_arc_offset <- function(engine, curvature = 0.3) {
   edge <- data.frame(
     name = "a",
     x = 0,
     y = 0,
+    to = "b",
     xend = 2,
     yend = 0,
     direction = factor("->", levels = c("->", "<->"))
   )
-  mapping <- ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+  ends <- data.frame(name = c("a", "b"), x = c(0, 2), y = c(0, 0))
 
-  if (identical(engine, "ggraph")) {
-    drawn <- ggplot2::ggplot_build(
-      ggplot2::ggplot(edge, mapping) + geom_dag_edges_arc(curvature = curvature)
-    )$data[[1]]
-    return(drawn$y[which.min(abs(drawn$x - 1))] - edge$y)
-  }
-
-  shaft <- rendered_arrow_shaft(
-    ggplot2::ggplot(edge, mapping) + geom_dag_arrow_arc(curvature = curvature)
+  ink <- drawn_panel_ink(
+    ggplot2::ggplot(
+      edge,
+      ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+    ) +
+      curved_edge_layer(engine, "arc", edge, curvature) +
+      ggplot2::coord_fixed(),
+    ends
   )
-  span <- diff(range(shaft$x))
-  ends <- abs(shaft$x - mean(range(shaft$x))) > 0.45 * span
-  middle <- abs(shaft$x - mean(range(shaft$x))) < 0.05 * span
-  mean(shaft$y[middle]) - mean(shaft$y[ends])
+
+  # The drawn path is a finite sample, so the apex is averaged over the
+  # points within a twentieth of the half chord of the midpoint, which reads
+  # a few parts in a thousand shallow.
+  half_chord <- diff(ink$nodes$x) / 2
+  middle <- abs(ink$path$x - mean(ink$nodes$x)) < 0.05 * half_chord
+  (mean(ink$path$y[middle]) - ink$nodes$y[1]) / half_chord
 }
 
-# The curvature `sample_curved_edge()` traces `engine`'s drawn arc with.
-# `sample_curved_edge()` offsets to the right of travel, so an engine that
-# draws to the left is traced with the negated curvature.
+# The curvature `sample_curved_edge()` traces `engine`'s drawn arc with,
+# read off the drawing: the drawn bow, signed the way the tracer signs one,
+# put back through the tracer's own `tan(curvature * pi / 2)` depth.
 drawn_trace_curvature <- function(engine, curvature = 0.3) {
-  if (drawn_arc_offset(engine, curvature) > 0) -curvature else curvature
+  atan(-drawn_arc_offset(engine, curvature)) * 2 / pi
 }
+
+# What the drawn edge from `from` to `to` leaves every node of `dag`, in
+# millimetres, beside the radius the nodes are drawn at. The layout is the
+# one `engine` and `edge_type` produce, and the plot draws that one edge so
+# that the measured path is unambiguously the arc under test.
+drawn_ink_clearances <- function(dag, from, to, engine, edge_type) {
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = engine,
+    ggdag.edge_type = edge_type
+  ))
+
+  tidy <- tidy_dagitty(dag)
+  dag_data <- as.data.frame(pull_dag_data(tidy))
+  edge <- dag_data[
+    !is.na(dag_data$to) & dag_data$name == from & dag_data$to == to,
+    ,
+    drop = FALSE
+  ]
+  nodes <- dplyr::distinct(dag_data, name, x, y)
+
+  ink <- drawn_panel_ink(
+    ggplot2::ggplot(
+      tidy,
+      ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+    ) +
+      curved_edge_layer(engine, edge_type, edge) +
+      geom_dag_point() +
+      ggplot2::coord_fixed(),
+    nodes
+  )
+
+  data.frame(
+    name = ink$nodes$name,
+    clearance = vapply(
+      seq_len(nrow(ink$nodes)),
+      function(i) {
+        min(sqrt(
+          (ink$nodes$x[i] - ink$path$x)^2 + (ink$nodes$y[i] - ink$path$y)^2
+        ))
+      },
+      numeric(1)
+    ),
+    radius = ink$radius
+  )
+}
+
+# Millimetres of daylight demanded between a node and the drawn edge, on top
+# of the drawn node radius. The edge caps stop the ink `node_size / 2`
+# millimetres short of a node the edge runs to, which is more than the
+# `0.375 * node_size` the node itself is drawn at, so the two endpoints of
+# the traced edge clear this margin along with everyone else.
+drawn_clearance_margin <- 1
 
 # Minimum distance, in data units, from a node's center to the edge from
 # `from` to `to` traced at `curvature`.
@@ -3369,13 +3501,115 @@ arc_clearance_floor <- function(node_scale = 1) {
   (26 * node_scale + 8) / 180
 }
 
-test_that("the ggraph engine and the ggarrow engine draw arcs on opposite sides", {
+test_that("the engines draw arcs on opposite sides of the chord", {
   # Everything below rests on the two engines disagreeing about which side of
   # travel a positive arc bows to, so pin the premise itself.
   expect_gt(drawn_arc_offset("ggraph"), 0)
   expect_lt(drawn_arc_offset("ggarrow"), 0)
-  expect_equal(drawn_trace_curvature("ggraph"), -0.3)
-  expect_equal(drawn_trace_curvature("ggarrow"), 0.3)
+})
+
+test_that("the engines draw arcs to the depths engine_trace_curvature() models", {
+  # Neither engine bows as deep as the tracer's own tan(curvature * pi / 2),
+  # and they do not bow to the same depth as each other: ggraph's cubic
+  # Bezier reaches (3 / 4) * sin(strength * pi / 2) half chords, while
+  # ggarrow's X-spline runs just inside the circle of sagitta `curvature`
+  # half chords that grid lays its control points on.
+  expect_equal(
+    drawn_arc_offset("ggraph"),
+    0.75 * sin(0.3 * pi / 2),
+    tolerance = 5e-3
+  )
+  expect_equal(drawn_arc_offset("ggarrow"), -0.3, tolerance = 0.03)
+  expect_lt(abs(drawn_arc_offset("ggarrow")), 0.3)
+  expect_gt(drawn_arc_offset("ggraph"), abs(drawn_arc_offset("ggarrow")))
+
+  # What the layout traces with has to be what the drawing does.
+  expect_equal(
+    drawn_trace_curvature("ggraph"),
+    engine_trace_curvature(0.3, "ggraph"),
+    tolerance = 5e-3
+  )
+  expect_equal(
+    drawn_trace_curvature("ggarrow"),
+    engine_trace_curvature(0.3, "ggarrow"),
+    tolerance = 0.03
+  )
+})
+
+test_that("engine_trace_curvature() rejects an engine it cannot draw for", {
+  # A raw option reaches the layout unchecked, so a partial or misspelt one
+  # has to fail here rather than quietly pick a side.
+  expect_error(engine_trace_curvature(0.3, "ggarow"))
+  expect_error(engine_trace_curvature(0.3, "gg"))
+})
+
+# Drawn clearance --------------------------------------------------------------
+
+test_that("the drawn bidirected arc clears every node, ggraph engine", {
+  # x <-> y spans two layers with m between them, and its arc is the only
+  # curved edge the DAG draws. A layout that models the bow deeper than the
+  # engine draws it leaves m sitting on the arc the reader sees.
+  cleared <- drawn_ink_clearances(
+    dagify(y ~ x + m, m ~ x, x ~ ~y),
+    "x",
+    "y",
+    "ggraph",
+    "link_arc"
+  )
+  expect_gte(
+    min(cleared$clearance),
+    cleared$radius[[1]] + drawn_clearance_margin
+  )
+})
+
+test_that("the drawn bidirected arc clears every node, ggarrow engine", {
+  cleared <- drawn_ink_clearances(
+    dagify(y ~ x + m, m ~ x, x ~ ~y),
+    "x",
+    "y",
+    "ggarrow",
+    "link_arc"
+  )
+  expect_gte(
+    min(cleared$clearance),
+    cleared$radius[[1]] + drawn_clearance_margin
+  )
+})
+
+test_that("the drawn spanning arc clears every node, ggraph engine", {
+  # z -> y spans two layers with x between them, and the arc and diagonal
+  # edge types both draw it curved.
+  for (edge_type in c("arc", "diagonal")) {
+    cleared <- drawn_ink_clearances(
+      dagify(y ~ x + z, x ~ z),
+      "z",
+      "y",
+      "ggraph",
+      edge_type
+    )
+    expect_gte(
+      min(cleared$clearance),
+      cleared$radius[[1]] + drawn_clearance_margin,
+      label = paste0("ggraph ", edge_type, " clearance")
+    )
+  }
+})
+
+test_that("the drawn spanning arc clears every node, ggarrow engine", {
+  for (edge_type in c("arc", "diagonal")) {
+    cleared <- drawn_ink_clearances(
+      dagify(y ~ x + z, x ~ z),
+      "z",
+      "y",
+      "ggarrow",
+      edge_type
+    )
+    expect_gte(
+      min(cleared$clearance),
+      cleared$radius[[1]] + drawn_clearance_margin,
+      label = paste0("ggarrow ", edge_type, " clearance")
+    )
+  }
 })
 
 test_that("a bidirected arc is cleared on the side the ggraph engine draws", {
@@ -3491,7 +3725,20 @@ test_that("compute_time_ordered_layout: the edge engine decides the arc side", {
   # that clear them are mirror images of each other.
   expect_equal(ggraph_coords$name, ggarrow_coords$name)
   expect_equal(ggraph_coords$x, ggarrow_coords$x)
-  # the mirror holds to the floating-point noise the two paths accumulate
+
+  # Every node ends up on the far side of the chord from the arc, which is
+  # the property the correction pass actually guarantees.
+  expect_equal(sign(ggraph_coords$y), -sign(ggarrow_coords$y))
+
+  # The magnitudes agree less exactly than that, and not because of
+  # rounding. Stages 1 to 3 run before either engine is consulted and hand
+  # both runs the same layout, which is not itself mirror-symmetric; only
+  # the greedy correction reads the engine, and it pushes the offending node
+  # off that common start in opposite directions. The two runs therefore
+  # cover different distances, stop after different numbers of passes, and
+  # land a few parts in a hundred thousand apart. The tolerance below bounds
+  # that gap, not floating-point noise, which would be some ten orders of
+  # magnitude smaller.
   expect_equal(ggraph_coords$y, -ggarrow_coords$y, tolerance = 1e-4)
 })
 
@@ -3515,6 +3762,9 @@ test_that("compute_time_ordered_layout: the edge engine option sets the side", {
       edge_engine = "ggarrow"
     )
   )
-  # an argument overrides the option, which mirrors the layout back
+  # An argument overrides the option, which mirrors the layout back. The
+  # tolerance is the correction pass stopping at slightly different places
+  # on the two sides, as above, not rounding.
+  expect_equal(sign(from_option$y), -sign(from_argument$y))
   expect_equal(from_option$y, -from_argument$y, tolerance = 1e-4)
 })
