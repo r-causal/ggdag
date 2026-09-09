@@ -55,6 +55,14 @@ head_margin_default <- sep_e_default / 2
 head_run_margin_default <- head_run_default + head_margin_default
 head_run_gap_default <- r_soft + head_run_default
 
+# The drawn head is an obstacle for a chord that clears every disc too: it is
+# a pseudo-disc of radius head / 2 = 1 mm at the head's centre, cap + head / 2
+# before the target, and a chord passing within head / 2 + head_margin = 2.8
+# mm of that centre is nudged past it, which leaves the curve head_margin
+# from the head's own axis.
+head_r_default <- head_default / 2
+head_clear_default <- head_r_default + head_margin_default
+
 # The drawn head is head_w = 1.3 mm wide, so a port row stays within
 # h = r - head_w / 2 = 5.35 mm of the centre line and the whole head is drawn
 # on the disc. A stack of arrival rows keeps them while they are at least
@@ -2480,6 +2488,170 @@ test_that("a chord just longer than 2R is still routed around a hit", {
   expect_lt(max(abs(turning_angles(path))), 12)
 })
 
+# Heads as soft obstacles -------------------------------------------------------
+
+# A chord clear of every disc that runs under another edge's arrowhead.
+# c -> d is vertical, crossing a -> b at x = 80; its head (8 to 10 mm
+# before d) sits at y_d - 10 to y_d - 8, centre y_d - 9.
+head_on_chord_scene <- function(y_d, x_c = 80) {
+  list(
+    nodes = mm_nodes(
+      c("a", "b", "c", "d"),
+      c(20, 140, x_c, 80),
+      c(50, 50, y_d - 45, y_d)
+    ),
+    edges = mm_edges(c("a", "c"), c("b", "d")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+head_centre <- function(path, cap = cap_default, head = head_default) {
+  (tip(path, cap) + point_before_end(path, cap + head)) / 2
+}
+
+test_that("a clear chord under another edge's arrowhead is nudged past it", {
+  # d is 9.5 mm above the chord, clear of it; the head of c -> d has its
+  # centre 0.5 mm above the chord. The chord is nudged 2.3 mm below, away
+  # from d, and passes 2.8 mm from the head's centre, 1.8 from its axis.
+  scene <- head_on_chord_scene(59.5)
+  res <- route_scene(scene)
+  path <- res$paths[[1]]
+  ends <- edge_endpoints(scene, 1)
+  crossed <- res$paths[[2]]
+
+  expect_true(res$meta$routed[1])
+  expect_equal(res$meta$mode[1], "soft")
+  expect_true(res$meta$clearance_ok[1])
+  wp <- res$waypoints[[1]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(80, 47.7))
+  expect_gte(
+    path_min_dist(path, head_centre(crossed)),
+    head_clear_default - verify_tol
+  )
+  expect_gte(
+    path_to_segment_dist(
+      path,
+      tip(crossed),
+      point_before_end(crossed, cap_default + head_default)
+    ),
+    head_margin_default - verify_tol
+  )
+  off <- chord_offset(path, ends$from, ends$to)
+  expect_lte(max(off), 1e-9)
+  expect_gte(min(off), -(head_clear_default - 0.5) - verify_tol)
+  expect_lt(res$meta$sagitta_ratio[1], 0.03)
+  expect_lt(max(abs(turning_angles(path))), 12)
+  expect_exact_endpoints(path, ends$from, ends$to)
+  # the edge whose head it is stays straight
+  expect_false(res$meta$routed[2])
+  expect_straight_path(crossed, node_xy(scene, "c"), node_xy(scene, "d"))
+})
+
+test_that("the head nudge is continuous with straight and clears the head at every step", {
+  # d slides from 8.5 mm above the chord (a grazed disc) to 14.5 (clear);
+  # the head centre from 0.5 below the chord to 5.5 above. The route moves
+  # by at most 0.2 mm per 0.1 mm of slide, keeps exactly one waypoint while
+  # routed, keeps the head centre 2.8 mm off, and is straight once the
+  # centre is more than 2.8 mm from the chord.
+  prev <- NULL
+  for (y in seq(58.5, 64.5, by = 0.1)) {
+    scene <- head_on_chord_scene(y)
+    res <- route_scene(scene)
+    path <- res$paths[[1]]
+    label <- sprintf("y_d = %.1f", y)
+    if (y - 9 - 50 < head_clear_default + 1e-9) {
+      expect_true(res$meta$routed[1], label = label)
+      expect_equal(res$meta$mode[1], "soft", label = label)
+      expect_identical(nrow(res$waypoints[[1]]), 1L, label = label)
+      expect_gte(
+        path_min_dist(path, c(80, y - 9)),
+        head_clear_default - verify_tol,
+        label = label
+      )
+    } else {
+      expect_false(res$meta$routed[1], label = label)
+    }
+    if (!is.null(prev)) {
+      expect_lt(polyline_hausdorff(path, prev), 0.2, label = label)
+    }
+    prev <- path
+  }
+  # the boundary itself
+  expect_true(route_scene(head_on_chord_scene(61.5))$meta$routed[1])
+  expect_equal(route_scene(head_on_chord_scene(61.5))$waypoints[[1]]$y, 49.7)
+  expect_false(route_scene(head_on_chord_scene(62.0))$meta$routed[1])
+})
+
+test_that("a head hit merges with the grazed disc it arrives at", {
+  # d is 8 mm above the chord, a soft hit whose own nudge is 1 mm; the head
+  # of c -> d has its centre 1 mm below the chord. One waypoint, the
+  # head's: 3.8 mm below the chord, away from d.
+  scene <- head_on_chord_scene(58.0)
+  res <- route_scene(scene)
+  wp <- res$waypoints[[1]]
+  expect_equal(res$meta$mode[1], "soft")
+  expect_identical(nrow(wp), 1L)
+  expect_equal(c(wp$x, wp$y), c(80, 46.2))
+  expect_gte(
+    path_min_dist(res$paths[[1]], c(80, 49)),
+    head_clear_default - verify_tol
+  )
+  expect_gte(
+    path_min_dist(res$paths[[1]], node_xy(scene, "d")),
+    r_full - verify_tol
+  )
+  expect_true(res$meta$clearance_ok[1])
+})
+
+test_that("a short chord is nudged past a head too", {
+  # a 32 mm chord under a head 1 mm above it: one waypoint 1.8 mm below
+  scene <- list(
+    nodes = mm_nodes(
+      c("a", "b", "c", "d"),
+      c(20, 52, 36, 36),
+      c(50, 50, 15, 60)
+    ),
+    edges = mm_edges(c("a", "c"), c("b", "d")),
+    bounds = c(0, 0, 160, 110)
+  )
+  res <- route_scene(scene)
+  expect_equal(res$meta$mode[1], "soft")
+  expect_equal(c(res$waypoints[[1]]$x, res$waypoints[[1]]$y), c(36, 48.2))
+  expect_gte(
+    path_min_dist(res$paths[[1]], c(36, 51)),
+    head_clear_default - verify_tol
+  )
+})
+
+test_that("heads into the chord's own target or source do not block it", {
+  # c -> b arrives at b 12 degrees above the chord; its head centre is
+  # 1.89 mm above the chord, inside the head clearance, but the two edges
+  # share their target and the arrival rules own their tips: a -> b stays
+  # straight.
+  scene <- list(
+    nodes = mm_nodes(c("a", "b", "c"), c(20, 140, 70), c(50, 50, 65)),
+    edges = mm_edges(c("a", "c"), c("b", "b")),
+    bounds = c(0, 0, 160, 110)
+  )
+  res <- route_scene(scene)
+  expect_false(res$meta$routed[1])
+  expect_lt(abs(head_centre(res$paths[[2]])[2] - 50), head_clear_default)
+
+  # c -> a arrives at a from the upper right; its head centre is 2.59 mm
+  # above the chord 8.6 mm from a, where a -> b leaves. Which port an edge
+  # leaves its own source on is not the router's question: a -> b stays
+  # straight.
+  scene <- list(
+    nodes = mm_nodes(c("a", "b", "c"), c(20, 140, 70), c(50, 50, 65)),
+    edges = mm_edges(c("a", "c"), c("b", "a")),
+    bounds = c(0, 0, 160, 110)
+  )
+  res <- route_scene(scene)
+  expect_false(res$meta$routed[1])
+  expect_lt(abs(head_centre(res$paths[[2]])[2] - 50), head_clear_default)
+})
+
 # Layer axis and edge direction ------------------------------------------------
 
 test_that("layers along y: the scene is transposed and the result transposed back", {
@@ -2717,7 +2889,7 @@ canonical_label <- function(scene, i, panel) {
   )
 }
 
-test_that("canonical DAGs: unblocked chords are straight, hit chords are routed, endpoints exact", {
+test_that("canonical DAGs: hit chords are routed, endpoints exact", {
   for (panel in canonical_panels) {
     for (nm in names(canonical_dag_specs)) {
       scene <- canonical_scene(nm, panel)
@@ -2731,16 +2903,59 @@ test_that("canonical DAGs: unblocked chords are straight, hit chords are routed,
         d <- chord_min_clearance(scene, i)
 
         expect_exact_endpoints(path, ends$from, ends$to)
-        if (d >= r_full) {
-          expect_false(res$meta$routed[i], label = label)
-          expect_identical(nrow(path), 2L, label = label)
-        }
         if (d < r_soft && chord_length(ends$from, ends$to) >= 2 * r_full) {
           expect_true(res$meta$routed[i], label = label)
         }
       }
     }
   }
+})
+
+test_that("canonical DAGs: a chord clear of every disc is straight or a head nudge", {
+  # Clearing every disc no longer settles the drawing: a chord that also
+  # clears every arrowhead is straight, and one that does not is nudged
+  # past the head by at most head_r + head_margin. The four chords named
+  # below are the ones the canonical layouts run under a head, all of them
+  # at the small device size where the panel packs the layers closer.
+  nudged <- character()
+  for (panel in canonical_panels) {
+    for (nm in names(canonical_dag_specs)) {
+      scene <- canonical_scene(nm, panel)
+      res <- route_scene(scene)
+      for (i in seq_len(nrow(scene$edges))) {
+        if (chord_min_clearance(scene, i) < r_full) {
+          next
+        }
+        label <- canonical_label(scene, i, panel)
+        ends <- edge_endpoints(scene, i)
+        path <- res$paths[[i]]
+        expect_exact_endpoints(path, ends$from, ends$to)
+        if (!res$meta$routed[i]) {
+          expect_identical(nrow(path), 2L, label = label)
+          next
+        }
+        expect_equal(res$meta$mode[i], "soft", label = label)
+        expect_lte(
+          max(abs(chord_offset(path, ends$from, ends$to))),
+          head_clear_default + verify_tol,
+          label = label
+        )
+        nudged <- c(
+          nudged,
+          paste(nm, edge_labels(scene$edges)[i], paste(panel, collapse = "x"))
+        )
+      }
+    }
+  }
+  expect_setequal(
+    nudged,
+    c(
+      "wide_dag x3->y 100x70",
+      "large_epi bmi->health 100x70",
+      "triple_confound x->y 100x70",
+      "multi_mediator x->m3 100x70"
+    )
+  )
 })
 
 test_that("canonical DAGs: routed edges clear obstacles, turn gently, and progress monotonically", {
@@ -7379,7 +7594,7 @@ head_axis_dist <- function(tip, base, x0, y0, x1, y1) {
 # crosses when that segment is a vertical inside one, so that a hit in a gap
 # wide enough to have avoided it can be told from a hit in one that could
 # not.
-head_crossings <- function(scene, res, tol = shaft_default / 2) {
+head_crossings <- function(scene, res, tol = shaft_default / 2, resect = NULL) {
   layers <- infer_layers(scene$nodes, r_default)
   gaps <- res$ortho$gaps
   paths <- lapply(res$paths, dedupe_path)
@@ -7390,9 +7605,9 @@ head_crossings <- function(scene, res, tol = shaft_default / 2) {
     if (!drawn[[i]]) {
       next
     }
-    resect <- res$meta$resect_head[[i]]
-    tip <- arc_from_end(paths[[i]], resect)
-    base <- arc_from_end(paths[[i]], resect + head_default)
+    resect_i <- resect %||% res$meta$resect_head[[i]]
+    tip <- arc_from_end(paths[[i]], resect_i)
+    base <- arc_from_end(paths[[i]], resect_i + head_default)
     for (j in seq_len(nrow(scene$edges))) {
       if (j == i || !drawn[[j]] || scene$edges$to[[j]] == scene$edges$to[[i]]) {
         next
@@ -7717,6 +7932,177 @@ test_that("orthogonal ports: gap 7 of very_big at 10 x 6 is floored", {
       port_row_max
     )),
     tolerance = 1e-6
+  )
+})
+
+
+# Spline heads, repair waypoints, and the fallback depth --------------------------
+
+test_that("spline heads: very_big draws fewer foreign shafts on heads at 10 x 6", {
+  # The head census read in spline mode, where the resect is the cap at
+  # every end. Treating a head as a soft obstacle removes the chord and
+  # nudge crossings at 10 x 6; the 4 x 3 and 7 x 5 counts stand where the
+  # detours leave them, since an edge with a hard disc hit never sees a
+  # head.
+  counts <- vapply(
+    gallery_panels,
+    function(panel) {
+      scene <- very_big_scene(panel)
+      res <- route_scene(
+        scene,
+        mode = "spline",
+        opts = route_constants(r_default)
+      )
+      nrow(head_crossings(scene, res, resect = cap_default))
+    },
+    integer(1)
+  )
+  expect_equal(counts, c(33L, 13L, 11L))
+})
+
+# A repair waypoint is inserted at the chord parameter of the violating
+# sample, which is not a layer position. Reporting it as layer 0 puts it on
+# a layer no scene has. A spanning route is laid out one waypoint per
+# crossed layer, so its repair takes the crossed layer nearest the violating
+# sample and is drawn on that layer's x; a free bow is not laid out on the
+# grid at all, so its repair belongs to no layer and reports none.
+
+test_that("no routed edge reports a waypoint on a layer the scene does not have", {
+  scenes <- c(forward_census_scenes(), lapply(gallery_panels, very_big_scene))
+  reported <- 0L
+  for (scene in scenes) {
+    res <- route_scene(
+      scene,
+      mode = "spline",
+      opts = route_constants(r_default)
+    )
+    labels <- edge_labels(scene$edges)
+    size <- paste(round(scene$bounds[3:4], 1), collapse = " x ")
+    for (i in which(res$meta$routed)) {
+      layer_ids <- res$meta$waypoint_layers[[i]]
+      label <- paste(scene$name %||% "fixture", labels[[i]], "at", size)
+      expect_false(any(layer_ids == 0, na.rm = TRUE), label = label)
+      reported <- reported + sum(!is.na(layer_ids))
+    }
+  }
+  # the census is worth having only if the routes report layers at all
+  expect_gt(reported, 150L)
+})
+
+test_that("a spanning route's repair waypoint sits on the crossed layer it reports", {
+  # very_big at 7 x 5: education -> healthcare_access is an interior route
+  # whose repair falls between the layers at 28.930 and 43.396. It takes
+  # the nearer of the two and is drawn on it, like every other waypoint of
+  # a spanning route.
+  scene <- very_big_scene(gallery_panels[[2]])
+  res <- route_scene(scene, mode = "spline", opts = route_constants(r_default))
+  i <- edge_index(scene, "education->healthcare_access")
+  layers <- infer_layers(scene$nodes, r_default)
+  layer_of <- stats::setNames(layers$id, scene$nodes$name)
+  ends <- c(layer_of[["education"]], layer_of[["healthcare_access"]])
+  crossed <- seq(min(ends) + 1L, max(ends) - 1L)
+  layer_ids <- res$meta$waypoint_layers[[i]]
+
+  expect_equal(res$meta$mode[i], "interior")
+  expect_false(anyNA(layer_ids))
+  expect_true(all(layer_ids %in% crossed))
+  expect_equal(res$waypoints[[i]]$x, layers$x[layer_ids], tolerance = 1e-6)
+})
+
+test_that("a free bow's repair waypoint reports no layer", {
+  # very_big at 7 x 5: education -> occupation is a free bow whose repair
+  # sits between layers and belongs to neither.
+  scene <- very_big_scene(gallery_panels[[2]])
+  res <- route_scene(scene, mode = "spline", opts = route_constants(r_default))
+  i <- edge_index(scene, "education->occupation")
+
+  expect_equal(res$meta$mode[i], "bow")
+  expect_true(anyNA(res$meta$waypoint_layers[[i]]))
+})
+
+test_that("an unverified fallback is chosen by its disc violation, not its capsule intrusions", {
+  # A capsule intrusion is priced and repaired leniently, so it must not
+  # decide between two curves that both cut a disc: a fallback is the least
+  # disc violation, with the summed disc and capsule depth breaking a tie
+  # within the verification tolerance. very_big at 4 x 3 is where the two
+  # orderings part; all three edges stay unverified either way, and it is
+  # which curve they settle on that moves.
+  scene <- very_big_scene(gallery_panels[[1]])
+  res <- route_scene(scene, mode = "spline", opts = route_constants(r_default))
+  reading <- function(label) {
+    i <- edge_index(scene, label)
+    list(
+      mode = res$meta$mode[i],
+      side = res$meta$side[i],
+      ok = res$meta$clearance_ok[i],
+      sagitta = round(res$meta$sagitta_ratio[i], 3)
+    )
+  }
+
+  smoking <- reading("adversity->smoking")
+  expect_equal(smoking$mode, "interior")
+  expect_equal(smoking$side, 1)
+  expect_false(smoking$ok)
+
+  inflammation <- reading("bmi->inflammation")
+  expect_equal(inflammation$mode, "bow")
+  expect_equal(inflammation$side, 1)
+  expect_false(inflammation$ok)
+
+  alcohol <- reading("stress->alcohol")
+  expect_equal(alcohol$mode, "bow")
+  expect_equal(alcohol$side, -1)
+  expect_false(alcohol$ok)
+  expect_equal(alcohol$sagitta, 0.514)
+})
+
+# The gallery's bow-first policy scene: ten nodes on a 12-column grid, two
+# rows of five above and below a source and a target on the centre line,
+# joined by fourteen edges. Its two long skips over a node of their own row,
+# c -> f and e -> h, are the deepest arches the spanning tier draws at the
+# small device size.
+policy_bow_first_scene <- function(panel) {
+  list(
+    name = "policy_bow_first",
+    nodes = mm_nodes(
+      c("a", "b", "c", "d", "e", "f", "g", "h", "x", "y"),
+      c(1, 3, 3, 5, 5, 7, 7, 9, 9, 11) / 12 * panel[1],
+      c(6, 1, 11, 1, 11, 11, 1, 11, 1, 6) / 12 * panel[2]
+    ),
+    edges = mm_edges(
+      c("a", "a", "b", "b", "c", "c", "d", "e", "e", "f", "g", "g", "h", "x"),
+      c("b", "c", "d", "e", "e", "f", "g", "g", "h", "h", "x", "y", "y", "y")
+    ),
+    bounds = c(0, 0, panel)
+  )
+}
+
+test_that("policy_bow_first: the two arches at 4 x 3 keep the depth the repair gives them", {
+  # Heads count as obstacles only for an edge that clears every disc, so
+  # neither arch moves: both cut a disc, both are repaired along the head
+  # axis as before, and both stay verified interior routes on the side away
+  # from the node they skip.
+  scene <- policy_bow_first_scene(gallery_panels[[1]])
+  res <- route_scene(scene, mode = "spline", opts = route_constants(r_default))
+  routed <- edge_labels(scene$edges)[res$meta$routed]
+  expect_setequal(routed, c("c->f", "e->h"))
+
+  for (label in c("c->f", "e->h")) {
+    i <- edge_index(scene, label)
+    expect_equal(res$meta$mode[i], "interior", label = label)
+    expect_equal(res$meta$side[i], -1, label = label)
+    expect_true(res$meta$clearance_ok[i], label = label)
+    expect_false(res$meta$sagitta_capped[i], label = label)
+  }
+  expect_equal(
+    res$meta$sagitta_ratio[edge_index(scene, "c->f")],
+    0.9582,
+    tolerance = 1e-4
+  )
+  expect_equal(
+    res$meta$sagitta_ratio[edge_index(scene, "e->h")],
+    0.8812,
+    tolerance = 1e-4
   )
 })
 
@@ -8321,11 +8707,12 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
   expect_equal(a$travel, 11608.754659, tolerance = 1e-9)
 
   # the slide and the ladder are orthogonal rules, so neither curved mode
-  # moves at all
+  # travels at all; the spline aggregate carries the five census chords
+  # that run under an arrowhead and are nudged past it
   b <- aggregate_of("spline")
-  expect_equal(b$routed, 78L)
-  expect_equal(b$waypoints, 155L)
-  expect_equal(b$drawn, 29163.380127, tolerance = 1e-9)
+  expect_equal(b$routed, 83L)
+  expect_equal(b$waypoints, 160L)
+  expect_equal(b$drawn, 29164.596238, tolerance = 1e-9)
   expect_equal(b$travel, 0)
 
   d <- aggregate_of("straight")
