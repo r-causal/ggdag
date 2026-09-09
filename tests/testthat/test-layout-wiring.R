@@ -444,9 +444,11 @@ test_that("a free bidirected pair ends adjacent in its layer", {
 })
 
 test_that("greedy_post_correction clears bidirected arcs when asked", {
-  # x <-> y spans two layers, so its drawn arc (curvature 0.3) bows below the
-  # chord. z sits right on that arc: invisible to the straight-line check,
-  # but a real overlap once the arc is traced.
+  # x <-> y spans two layers, and traced at 0.3 its arc bows below the chord.
+  # z sits right on that arc: invisible to the straight-line check, but a
+  # real overlap once the arc is traced. The traced side is passed in, since
+  # which side the drawn arc falls on is the caller's to resolve from the
+  # edge engine.
   edges <- data.frame(
     name = c("x", "z", "x"),
     to = c("z", "y", "y"),
@@ -488,7 +490,8 @@ test_that("greedy_post_correction clears bidirected arcs when asked", {
     positions,
     edges,
     layer_assign,
-    check_bidirected = TRUE
+    check_bidirected = TRUE,
+    trace_curvature = 0.3
   )
   expect_identical(
     count_node_edge_overlaps(
@@ -509,7 +512,9 @@ test_that("the layout clears bidirected arcs at the curvature option", {
   # so the engine must model the arc at that curvature when it clears nodes.
   # At 0.15 the arc passes between the chord and the deeper 0.3 bow, exactly
   # where a middle-layer node settles when the engine clears only the 0.3
-  # arc: an engine that hardcodes 0.3 leaves m1 clipping the drawn arc.
+  # arc: an engine that hardcodes 0.3 leaves m1 clipping the drawn arc. The
+  # default edge engine draws the arc on the left of travel, which
+  # sample_curved_edge() traces at the negated curvature.
   edges <- data.frame(
     name = c("x", "x", "m1", "m2", "x"),
     to = c("m1", "m2", "y", "y", "y"),
@@ -518,7 +523,7 @@ test_that("the layout clears bidirected arcs at the curvature option", {
   )
   coords <- compute_time_ordered_layout(edges)
 
-  curvature <- ifelse(edges$direction == "<->", 0.15, 0)
+  curvature <- ifelse(edges$direction == "<->", -0.15, 0)
   expect_identical(
     count_node_edge_overlaps(
       coords,
@@ -536,7 +541,7 @@ test_that("better_positions scores bidirected rows as drawn arcs", {
 
   # One bidirected edge u <-> v plus an isolated node w. The candidates tie
   # on every straight-line criterion: no crossings, w clears the chord in
-  # both, and the stress term skips the disconnected w. Only the drawn arc
+  # both, and the stress term skips the disconnected w. Only the traced arc
   # separates them: arc_hugging parks w on the 0.3 arc below the chord,
   # arc_clear keeps w far from it, so arc-aware scoring must choose
   # arc_clear.
@@ -599,7 +604,7 @@ test_that("better_positions scores bidirected rows as drawn arcs", {
   )
 
   expect_identical(
-    better_positions(arc_hugging, arc_clear, edges, 26),
+    better_positions(arc_hugging, arc_clear, edges, 26, trace_curvature = 0.3),
     arc_clear
   )
 })
@@ -907,12 +912,12 @@ test_that("manual tiers still optimize when reordering removes a crossing", {
 
 # Arc-aware spanning edges ------------------------------------------------------
 
-test_that("arc edges draw positive curvature on the left of travel", {
+test_that("ggraph arc edges draw positive curvature on the left of travel", {
   # sample_curved_edge() offsets its through-point along the right normal of
-  # travel, while the arc edge geom draws positive curvature on the left, so
-  # tracing a drawn arc means negating the curvature handed to
+  # travel, while the ggraph arc edge geom draws positive curvature on the
+  # left, so tracing an arc it draws means negating the curvature handed to
   # sample_curved_edge(). This pins the two conventions against each other:
-  # any code that traces a drawn arc must flip the sign, and a silent
+  # any code that traces a ggraph arc must flip the sign, and a silent
   # inversion in either convention fails here.
   edge <- data.frame(
     name = "a",
@@ -956,8 +961,8 @@ test_that("arc edges draw positive curvature on the left of travel", {
 })
 
 # Minimum distance from a node's center to the drawn arc of a directed edge,
-# traced on the side the arc edge geom draws (the negated curvature; see the
-# convention test above). Coordinates are in data units.
+# traced on the side the ggraph arc edge geom draws (the negated curvature;
+# see the convention test above). Coordinates are in data units.
 drawn_arc_clearance <- function(coords, from, to, node, curvature) {
   at <- function(nm, col) coords[[col]][coords$name == nm]
   arc <- sample_curved_edge(
