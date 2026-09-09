@@ -1691,7 +1691,11 @@ nearest_on_segment <- function(p, a, b) {
 #' the end arm when the last waypoint is close, so the arrival is measured
 #' again `cap` from the target after sampling and the end tangent turned
 #' toward the chosen bearing, up to four passes, keeping the pass whose
-#' arrival is widest of the other arrivals. Separating an arrival is not a
+#' arrival is widest of the other arrivals. That correction runs only where
+#' `separate_arrival()` moved the tangent: an arrival it left on its
+#' original bearing is drawn as it was sampled, so a curve whose tangent is
+#' already clear of the other arrivals but whose sampled bearing is not is
+#' left alone. Separating an arrival is not a
 #' licence to draw the curve through a neighbour's arrowhead, so a bearing
 #' from the wider window stands only while it reaches no further into the
 #' head zones than the narrow window's bearing does, and no pass may reach
@@ -2186,7 +2190,7 @@ keep_side <- function(d, ref, prefer) {
 #' side.
 #'
 #' The window has two steps. The narrow one is used whenever some candidate
-#' in it keeps `floor` degrees from every arrival; only a squeeze deeper
+#' in it keeps `gap_floor` degrees from every arrival; only a squeeze deeper
 #' than that opens the wide one, and the ranking there is the same. A
 #' scalar `clamp` is one window, which is what the ranking's own unit pins
 #' are written against.
@@ -2194,8 +2198,8 @@ keep_side <- function(d, ref, prefer) {
 #' @param d_in Current unit direction into the target.
 #' @param arrivals Two-column matrix of unit directions into the target.
 #' @param chord_in Unit chord direction into the target.
-#' @param clamp The window, `c(narrow, wide, floor)` in degrees, or a
-#'   scalar for a single window with `floor` at `theta_min`.
+#' @param clamp The window, `c(narrow, wide, gap_floor)` in degrees, or a
+#'   scalar for a single window with `gap_floor` at `theta_min`.
 #' @noRd
 separate_arrival <- function(
   d_in,
@@ -2207,7 +2211,7 @@ separate_arrival <- function(
 ) {
   narrow <- clamp[[1L]]
   wide <- if (length(clamp) >= 2L) clamp[[2L]] else narrow
-  floor <- if (length(clamp) >= 3L) clamp[[3L]] else theta_min
+  gap_floor <- if (length(clamp) >= 3L) clamp[[3L]] else theta_min
   cur <- signed_angle(chord_in, d_in)
   arr <- atan2(
     chord_in[[1]] * arrivals[, 2L] - chord_in[[2]] * arrivals[, 1L],
@@ -2233,7 +2237,7 @@ separate_arrival <- function(
     list(cands = cands, gaps = vapply(cands, min_gap, numeric(1)))
   }
   set <- window(narrow)
-  if (wide > narrow && max(set$gaps) < floor - 1e-9) {
+  if (wide > narrow && max(set$gaps) < gap_floor - 1e-9) {
     set <- window(wide)
   }
   cands <- set$cands

@@ -11488,11 +11488,13 @@ test_that("route_edges_mm() routes large_epi at a small device size at interacti
     iterations = 30,
     filter_gc = FALSE
   )
-  # Head zones and arrival separation cost this scene about twice the curve
-  # and verification iterations, at about 1.6 times the work per iteration,
-  # so what measured 4.7 to 5.0 ms without them measures 19 ms with them on
-  # the development machine. The gate is 25 ms so that only a real
-  # regression trips it.
+  # Arrival separation and the head zones are most of what this scene costs.
+  # It measures 22.3 to 22.7 ms on the development machine, up from 19 ms
+  # before the arrival loop was closed on a chosen bearing and its hooks
+  # held off the other edges' head zones. The gate stays at 25 ms, which
+  # now leaves about 10 percent of headroom rather than the 25 percent it
+  # once did, so a median in the low 24s is a slower machine or a noisy run
+  # rather than a regression: measure a suspect change against 22.5 ms.
   expect_lt(as.numeric(timing$median), 0.025)
 })
 
