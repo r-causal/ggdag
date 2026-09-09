@@ -3139,9 +3139,7 @@ makeContent.dag_labels_auto <- function(x) {
 #' @param spec The routing columns of the same rows, as the stat carried them.
 #' @param nodes Node centres in millimetres with their `radius`, and the
 #'   `name` each node is routed under by the routed layer (the position key
-#'   of its npc coordinates); without a `name` column the nodes are named by
-#'   their millimetre position, which routes the same paths except where the
-#'   router breaks a tie by name.
+#'   of its npc coordinates).
 #' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
 #' @return `edges`, with each routed edge's two rows replaced by its path and
@@ -3188,9 +3186,20 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
 
   # The router breaks ties between equally priced routes by node name, so
   # the nodes carry the names the routed layer routed with; an endpoint is
-  # matched to its node by position, whichever layer measured it.
+  # matched to its node by position, whichever layer measured it. Names the
+  # caller does not have are names the router could break a tie the other way
+  # on, so there is nothing sensible to invent here.
+  if (is.null(nodes$name)) {
+    abort(
+      c(
+        "{.arg nodes} must carry a {.code name} column.",
+        "i" = "The label grob names its nodes by their npc position so the router ties break as the drawn layer's do."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
   router_nodes <- data.frame(
-    name = nodes$name %||% routed_position_keys(nodes$x, nodes$y),
+    name = nodes$name,
     x = nodes$x,
     y = nodes$y,
     r = nodes$radius,
