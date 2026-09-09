@@ -327,6 +327,31 @@ dense_arrival_scene <- function() {
   )
 }
 
+# The same five nodes on an arbitrary panel: the DAG behind
+# dense_arrival_scene() is one the gallery draws at three device sizes, and
+# the crowding at y is the same at all three. Node coordinates are the data
+# grid x in 0:3 and y in -0.5:0.5, each range expanded a tenth either side
+# and mapped onto the panel, which is what a ggplot panel does with them.
+dense_gallery_scene <- function(panel) {
+  dx <- c(a = 1, b = 1, c = 0, x = 2, y = 3)
+  dy <- c(a = 0.5, b = -0.5, c = 0, x = 0, y = 0)
+  span <- function(v, expand) {
+    (v - min(v) + expand) / (diff(range(v)) + 2 * expand)
+  }
+  list(
+    nodes = mm_nodes(
+      names(dx),
+      unname(span(dx, 0.3)) * panel[1],
+      unname(span(dy, 0.1)) * panel[2]
+    ),
+    edges = mm_edges(
+      c("a", "a", "b", "b", "c", "c", "c", "x"),
+      c("x", "y", "x", "y", "a", "b", "y", "y")
+    ),
+    bounds = c(0, 0, panel)
+  )
+}
+
 # S -> T runs along a row 10 mm below the top of the panel and is dead on B,
 # one layer in from T; u sits 14 mm below the row in the middle layer. The
 # candidate above the chord ranks first and clears every disc, but its curve
@@ -1079,6 +1104,26 @@ test_that("route_constants() derives the corner radius and defaults to rounded c
   expect_error(route_constants(6, corners = "bevel"))
 })
 
+test_that("route_constants() carries the arrival window and the floor that opens it", {
+  # An arrival bearing is chosen inside the tangent clamp and only widens to
+  # arrival_clamp when the narrow window leaves the nearest rival closer than
+  # squeeze_floor mm of drawn tip; head_clamp bounds the end tangent the
+  # feedback loop turns to reach the bearing it was given. The three are
+  # design constants, not quantities derived from the reference radius, and
+  # the tangent clamp keeps its own value and its every other use.
+  opts <- route_constants(6)
+  expect_equal(opts$tangent_clamp, 40)
+  expect_equal(opts$arrival_clamp, 60)
+  expect_equal(opts$head_clamp, 85)
+  expect_equal(opts$squeeze_floor, 2.5)
+
+  large <- route_constants(12)
+  expect_equal(large$tangent_clamp, 40)
+  expect_equal(large$arrival_clamp, 60)
+  expect_equal(large$head_clamp, 85)
+  expect_equal(large$squeeze_floor, 2.5)
+})
+
 # Output structure ------------------------------------------------------------
 
 test_that("route_edges_mm() returns paths, meta, and waypoints in input edge order", {
@@ -1313,6 +1358,65 @@ test_that("separate_arrival() takes the midpoint when no angle clears them all",
   )
 
   expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 13.95), 0.5)
+
+  # the clamp is also read as c(narrow, wide, floor). With the two windows
+  # equal there is no wider set to fall back to, so the answer is the scalar
+  # form's, and the whole argument is consumed rather than recycled into the
+  # bounds on the candidate set.
+  expect_no_warning(
+    same <- separate_arrival(
+      unit(-10.6),
+      arrivals,
+      theta_min_default,
+      c(1, 0),
+      c(40, 40, theta_min_default),
+      -1
+    )
+  )
+  expect_lt(abs(atan2(same[2], same[1]) * 180 / pi + 13.95), 0.5)
+})
+
+test_that("separate_arrival() opens the wide window for a deep squeeze", {
+  # The rivals of the case above. Inside the 40 degree window the best any
+  # direction reaches is the midpoint at -13.95, whose minimum gap is 13.95
+  # degrees and so 2 cap sin(13.95 / 2 deg) = 1.94 mm of drawn tip. That is
+  # below the floor the clamp carries, 17.99 degrees, which is 2.5 mm, so the
+  # window widens to 60 degrees and the same ranking chooses in the wider
+  # set. Four candidates there clear every rival by theta_min, at -60, -53.91,
+  # +53.91 and +60, and the smallest rotation of the four wins: theta_min
+  # outside the rival at -27.9, which is -53.91.
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+  arrivals <- rbind(unit(-27.9), unit(27.9), unit(0))
+
+  d <- separate_arrival(
+    unit(-10.6),
+    arrivals,
+    theta_min_default,
+    c(1, 0),
+    c(40, 60, 17.99),
+    0
+  )
+
+  expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 53.91), 0.1)
+})
+
+test_that("separate_arrival() leaves a shallow squeeze in the narrow window", {
+  # The same squeeze against a lower floor. 13.95 degrees clears 11, so the
+  # narrow window has not failed and its midpoint stands: the wider window is
+  # opened by the depth of a squeeze, not by every squeeze.
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+  arrivals <- rbind(unit(-27.9), unit(27.9), unit(0))
+
+  d <- separate_arrival(
+    unit(-10.6),
+    arrivals,
+    theta_min_default,
+    c(1, 0),
+    c(40, 60, 11),
+    0
+  )
+
+  expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 13.95), 0.5)
 })
 
 test_that("separate_arrival() takes the nearest clear angle when one exists", {
@@ -1342,56 +1446,64 @@ test_that("separate_arrival() takes the nearest clear angle on the minus side", 
   expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 15), 0.5)
 })
 
-test_that("arrival_deficit() turns away from one rival rather than between two", {
-  # The sampled curve runs straight into its target with two other edges
-  # arriving there: one 10 degrees off the chord, inside theta_min, and one
-  # 30 degrees off it, already clear. Only one of the two is a squeeze, so
-  # the rotation is 1.2 times that one's deficit away from it. The midpoint
-  # rule, applied without asking whether both rivals are inside theta_min,
-  # would turn 10 degrees and put the arrival on top of the near rival.
+test_that("arrival_state() drives the sampled arrival to the bearing chosen for it", {
+  # The sampled curve runs straight into its target, so its arrival bearing
+  # is 0 degrees from the chord. arrival_state() reads that bearing once and
+  # reports both the least angle to any rival and the rotation that would put
+  # the bearing on the one separate_arrival() chose.
   pts <- data.frame(x = seq(0, 100, by = 0.5), y = 0)
-  fr <- list(S = c(0, 0), E = c(100, 0))
+  fr <- list(S = c(0, 0), E = c(100, 0), u = c(1, 0))
   unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
 
-  turn <- arrival_deficit(
+  # Two edges arrive there, one 10 degrees off the chord and inside
+  # theta_min, one 30 degrees off it and already clear. The whole rotation to
+  # the chosen bearing is asked for at once, with no reference to which rival
+  # is nearest and no multiple of anyone's shortfall.
+  crowded <- arrival_state(
     pts,
     fr,
     cap_default,
     rbind(unit(10), unit(-30)),
-    "E",
-    theta_min_default
+    -36.01,
+    theta_min_default,
+    "E"
   )
+  expect_equal(crowded$gap, 10)
+  expect_equal(crowded$turn, -36.01)
 
-  expect_equal(turn, -1.2 * (theta_min_default - 10), tolerance = 1e-6)
-  expect_gt(abs(turn), 15)
-})
-
-test_that("arrival_deficit() equalises the two gaps of a true squeeze", {
-  # Both rivals are inside theta_min and on opposite sides of the sampled
-  # direction, so no rotation clears them both and the arrival aims for the
-  # midpoint of the two gaps instead: the rivals sit 10 degrees one way and
-  # 12 the other, so the turn is 1 degree towards the wider gap.
-  pts <- data.frame(x = seq(0, 100, by = 0.5), y = 0)
-  fr <- list(S = c(0, 0), E = c(100, 0))
-  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
-
-  turn <- arrival_deficit(
+  # Both rivals clear theta_min, which is the condition an arrival needs no
+  # separation at all: the bearing is left where the unrotated curve puts it.
+  clear <- arrival_state(
     pts,
     fr,
     cap_default,
-    rbind(unit(10), unit(-12)),
-    "E",
-    theta_min_default
+    rbind(unit(40), unit(-40)),
+    20,
+    theta_min_default,
+    "E"
   )
+  expect_equal(clear$gap, 40)
+  expect_equal(clear$turn, 0)
 
-  expect_equal(turn, -1, tolerance = 1e-6)
+  # a step under half a degree does not earn a resample
+  tiny <- arrival_state(
+    pts,
+    fr,
+    cap_default,
+    rbind(unit(10)),
+    0.3,
+    theta_min_default,
+    "E"
+  )
+  expect_equal(tiny$turn, 0)
 })
 
-test_that("dense arrival: c->y lands midway between the arrivals crowding it", {
-  # c -> y detours above x and arrives between x -> y along the row and
-  # a -> y from the corner. Neither gap can reach theta_min, so the two are
-  # equalised instead: rotating to the clamp leaves 6.1 degrees to a -> y
-  # and the two tips 0.85 mm apart, which reads as one arrowhead.
+test_that("dense arrival: c->y clears the arrivals crowding it", {
+  # c -> y detours above x and lands between x -> y along the row and a -> y
+  # from the corner, which are 27.9 degrees apart. No bearing inside the
+  # tangent clamp keeps theta_min from both, so the window widens and the
+  # arrival hooks in above a -> y: theta_min from it and a wide margin from
+  # x -> y, rather than a compromise that splits the difference between them.
   scene <- dense_arrival_scene()
   res <- route_scene(scene)
   labels <- edge_labels(scene$edges)
@@ -1401,10 +1513,9 @@ test_that("dense arrival: c->y lands midway between the arrivals crowding it", {
   y <- node_xy(scene, "y")
 
   gaps <- vapply(rivals, function(p) arrival_separation(path, p, y), numeric(1))
-  expect_gte(min(gaps), theta_min_default / 2)
-  expect_lt(abs(diff(gaps)), 2)
+  expect_gte(min(gaps), theta_min_default - 1)
   tips <- vapply(rivals, function(p) tip_distance(path, p), numeric(1))
-  expect_gt(min(tips), 1.8)
+  expect_gte(min(tips), sep_e_default - verify_tol)
 
   # the detour itself is unchanged: the same slot above x, on the same side
   expect_true(res$meta$routed[i])
@@ -1412,7 +1523,10 @@ test_that("dense arrival: c->y lands midway between the arrivals crowding it", {
   expect_equal(res$meta$side[i], 1)
   expect_true(res$meta$clearance_ok[i])
   expect_gte(path_min_dist(path, node_xy(scene, "x")), r_full - verify_tol)
-  expect_lt(arrival_angle(path, y), 15)
+  # the hook is a steeper arrival than an unseparated curve draws; the head
+  # is still aimed within 20 degrees of the centre, which is what keeps it
+  # reading as an arrow into y rather than one drawn past it
+  expect_lt(arrival_angle(path, y), 20)
 })
 
 # Fixture 3: four-layer periphery ----------------------------------------------
@@ -9410,6 +9524,118 @@ test_that("spline heads: very_big draws fewer foreign shafts on heads at 10 x 6"
     integer(1)
   )
   expect_equal(counts, c(33L, 13L, 11L))
+})
+
+# Arrival separation at the gallery panels -------------------------------------
+
+# The distance between the drawn tips of each pair of edges arriving at one
+# target, over the pairs with at least one routed curve. A straight chord is
+# not routed at all and a soft nudge is a chord that stepped around one
+# obstacle, so the separation rule has nothing to move in a pair of those.
+hard_arrival_tips <- function(scene, res, target) {
+  labels <- edge_labels(scene$edges)
+  at <- which(scene$edges$to == target)
+  hard <- res$meta$mode %in% c("bow", "interior", "periphery")
+  out <- numeric()
+  nm <- character()
+  for (i in seq_along(at)) {
+    for (j in seq_len(i - 1L)) {
+      a <- at[[i]]
+      b <- at[[j]]
+      if (!hard[[a]] && !hard[[b]]) {
+        next
+      }
+      out <- c(out, tip_distance(res$paths[[a]], res$paths[[b]]))
+      nm <- c(nm, paste(labels[[a]], labels[[b]]))
+    }
+  }
+  stats::setNames(out, nm)
+}
+
+test_that("dense: the crowded arrival at y is separated at every gallery panel", {
+  # The scene the round was reported on, at the three sizes the gallery
+  # draws it. a -> y comes in from the corner and c -> y detours above x to
+  # reach the same node; the two heads are drawn at the same radius about y,
+  # so the picture reads as two arrows only while their tips stay about
+  # sep_e apart. Measured 3.57, 3.54 and 3.48 mm.
+  tips <- vapply(
+    gallery_panels,
+    function(panel) {
+      scene <- dense_gallery_scene(panel)
+      res <- route_scene(scene)
+      labels <- edge_labels(scene$edges)
+      tip_distance(
+        res$paths[[match("a->y", labels)]],
+        res$paths[[match("c->y", labels)]]
+      )
+    },
+    numeric(1)
+  )
+
+  expect_gte(min(tips), sep_e_default - 0.2)
+})
+
+test_that("saturated: no routed arrival at y is drawn under another head", {
+  # Nine edges arrive at y in a 97 degree fan, and nine arrivals theta_min
+  # apart would need 208 degrees: the target is over-subscribed and no
+  # assignment separates them all. What holds is the weaker invariant that
+  # the rule governs: where a pair has a routed curve to move, its two tips
+  # are further apart than a drawn head is wide, so neither head is drawn on
+  # top of the other. Measured 1.35, 1.76 and 1.64 mm.
+  least <- vapply(
+    gallery_panels,
+    function(panel) {
+      scene <- saturated_scene(panel)
+      min(hard_arrival_tips(scene, route_scene(scene), "y"))
+    },
+    numeric(1)
+  )
+
+  expect_gt(min(least), head_w_default)
+})
+
+test_that("saturated: the fan's worst pair at 10 x 6 is drawn as two arrows", {
+  # a -> y takes the interior and e -> y comes in as a chord; unseparated
+  # their tips sit 0.03 mm apart, the closest pair anywhere in the gallery.
+  scene <- saturated_scene(gallery_panels[[3]])
+  res <- route_scene(scene)
+  labels <- edge_labels(scene$edges)
+
+  expect_gte(
+    tip_distance(
+      res$paths[[match("a->y", labels)]],
+      res$paths[[match("e->y", labels)]]
+    ),
+    3.5
+  )
+})
+
+test_that("very_big: alcohol->bp keeps the pass that separated it best", {
+  # Four edges arrive at bp at 4 x 3 and alcohol->bp bows into the middle of
+  # them. Driving the sampled arrival onto the bearing chosen for it
+  # overshoots: the last pass of the loop leaves the curve 14 degrees from
+  # phys_act->bp and an earlier pass leaves it 28, so the earlier pass is the
+  # one the arrival is drawn from.
+  scene <- very_big_scene(gallery_panels[[1]])
+  res <- route_scene(scene)
+  labels <- edge_labels(scene$edges)
+  i <- match("alcohol->bp", labels)
+  rivals <- setdiff(which(scene$edges$to == "bp"), i)
+  bp <- node_xy(scene, "bp")
+
+  gaps <- vapply(
+    rivals,
+    function(j) arrival_separation(res$paths[[i]], res$paths[[j]], bp),
+    numeric(1)
+  )
+  tips <- vapply(
+    rivals,
+    function(j) tip_distance(res$paths[[i]], res$paths[[j]]),
+    numeric(1)
+  )
+
+  expect_gte(min(gaps), theta_min_default - 1)
+  expect_gte(min(tips), sep_e_default - verify_tol)
 })
 
 # Two soft nudges too close together along the chord cannot both be
