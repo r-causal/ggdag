@@ -185,7 +185,11 @@ edge_route_rc_min <- 0.8
 #'   `NULL`, the router's own `60`. Spline mode only.
 #' @param tangent_clamp The bound in degrees on how far a departure or arrival
 #'   tangent may turn off the chord. `NULL`, the router's own `40`. Spline
-#'   mode only.
+#'   mode only. An arrival crowded by other arrivals at the same node may
+#'   turn further than `40` when nothing inside it separates the two
+#'   arrowheads; a value you set here bounds that too, so a tight clamp
+#'   keeps every tangent tight at the cost of the crowded arrivals it would
+#'   have separated.
 #'
 #' @section Fields that price a rule:
 #' `bend_penalty`, `crossing_penalty`, `congestion_penalty`, `head_penalty`,
@@ -488,6 +492,16 @@ route_opts_from <- function(options, r_ref, layer_axis = "auto") {
     if (!is.null(options[[name]])) {
       opts[[field_map[[name]]]] <- options[[name]]
     }
+  }
+
+  # `tangent_clamp` bounds an arrival tangent as well as a departure one, so
+  # a value the user wrote down bounds the two windows the arrival
+  # separation opens: a tight clamp suppresses the widening a squeeze would
+  # otherwise earn, which is what asking for tight tangents means. Left
+  # unset, the router keeps its own wider arrival window.
+  if (!is.null(options$tangent_clamp)) {
+    opts$arrival_clamp <- min(opts$arrival_clamp, opts$tangent_clamp)
+    opts$head_clamp <- min(opts$head_clamp, opts$tangent_clamp)
   }
   opts
 }

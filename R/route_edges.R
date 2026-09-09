@@ -178,7 +178,15 @@ route_constants <- function(
     steep_deg = 60,
     sagitta_max = 0.22,
     t_clamp = c(0.2, 0.8),
+    # the bound on a departure or arrival tangent off the chord, the wider
+    # window an arrival bearing may be chosen in when the narrow one leaves
+    # the nearest rival closer than `squeeze_floor` mm of drawn tip, and the
+    # bound on the end tangent the arrival feedback loop turns to reach the
+    # bearing it was given
     tangent_clamp = 40,
+    arrival_clamp = 60,
+    head_clamp = 85,
+    squeeze_floor = 2.5,
     arm_fraction = 0.45,
     alpha = 0.5,
     sample_spacing = 0.5,
@@ -1435,6 +1443,50 @@ verify_clearance <- function(
   df_cols(obstacle = cand[keep], sample = j[keep], depth = depth[keep])
 }
 
+#' How far a drawn arm reaches into the arrowhead zones of other edges
+#'
+#' The zones are the capsules `verify_clearance()` measures, the segment
+#' from `zx, zy` to `zx2, zy2` grown by its clearance, and `lim` is that
+#' clearance less the tolerance. The depth is summed over the zones the arm
+#' is inside of, as it is there. The arrival separation moves only the end
+#' arm, so reading the depth over that arm alone is what tells a hooked
+#' arrival from one drawn across a neighbour's head.
+#'
+#' @param px,py The samples of the arm, already trimmed to what is drawn.
+#' @noRd
+head_zone_depth <- function(px, py, zx, zy, zx2, zy2, lim) {
+  if (length(px) == 0 || length(lim) == 0) {
+    return(0)
+  }
+  # a zone whose box, grown by its clearance, misses the arm's box cannot be
+  # reached, so only the rest are measured
+  near <- which(
+    max(px) >= pmin(zx, zx2) - lim &
+      min(px) <= pmax(zx, zx2) + lim &
+      max(py) >= pmin(zy, zy2) - lim &
+      min(py) <= pmax(zy, zy2) + lim
+  )
+  if (length(near) == 0) {
+    return(0)
+  }
+  # every (sample, zone) pair at once, as `dist_to_edge()` measures one:
+  # the distance to the axis, with the projection clamped to its ends
+  n <- length(px)
+  i <- rep(near, each = n)
+  qx <- rep.int(px, length(near))
+  qy <- rep.int(py, length(near))
+  ax <- zx[i]
+  ay <- zy[i]
+  ux <- zx2[i] - ax
+  uy <- zy2[i] - ay
+  t <- ((qx - ax) * ux + (qy - ay) * uy) / (ux^2 + uy^2)
+  t[!is.finite(t)] <- 0
+  t <- pmin(pmax(t, 0), 1)
+  d <- matrix(sqrt((qx - ax - t * ux)^2 + (qy - ay - t * uy)^2), nrow = n)
+  least <- vapply(seq_along(near), function(k) min(d[, k]), numeric(1))
+  sum(pmax(0, lim[near] - least))
+}
+
 #' Push waypoints away from the obstacles a sampled curve violates
 #'
 #' Deepest violation first. In the spanning tier a violating node that sits
@@ -1634,15 +1686,20 @@ nearest_on_segment <- function(p, a, b) {
 #' curve as verified even when a head zone is still touched, since head
 #' zones sit where the geometry often forces a curve to pass.
 #'
-#' When other edges arrive at the edge's true target, the arrival direction
-#' is separated from theirs by `separate_arrival()`; the sampled curve bends
-#' inside the end arm when the last waypoint is close, so the arrival is
-#' measured again `cap` from the target after sampling and the tangent
-#' rotated further by 1.2 times the deficit, up to four passes. A separated
-#' arrival that cannot be verified against the discs is routed again
-#' without the separation, and the verified result wins; when the
-#' separation never moved a tangent the two routes are the same curve and
-#' the second is not built.
+#' When other edges arrive at the edge's true target, a bearing clear of
+#' theirs is chosen by `separate_arrival()`; the sampled curve bends inside
+#' the end arm when the last waypoint is close, so the arrival is measured
+#' again `cap` from the target after sampling and the end tangent turned
+#' toward the chosen bearing, up to four passes, keeping the pass whose
+#' arrival is widest of the other arrivals. Separating an arrival is not a
+#' licence to draw the curve through a neighbour's arrowhead, so a bearing
+#' from the wider window stands only while it reaches no further into the
+#' head zones than the narrow window's bearing does, and no pass may reach
+#' further into them than the bearing it started from. A separated arrival
+#' that cannot be verified against the discs is routed again without the
+#' separation, and the verified result wins; when the separation never
+#' moved a tangent the two routes are the same curve and the second is not
+#' built.
 #'
 #' @param fr Edge frame from `edge_frame()`.
 #' @param wp Waypoints with `x`, `y`, `layer`.
@@ -1753,6 +1810,20 @@ route_spline_curve <- function(
   capsule <- obstacles$capsule %||% logical(nrow(obstacles))
   separate <- !is.null(arrivals) && nrow(arrivals) > 0
   separated <- FALSE
+  # the wide window opens only where the narrow one leaves the nearest
+  # rival closer than `squeeze_floor` mm of drawn tip, which on the cap
+  # circle the tips sit on is this angle
+  gap_floor <- 2 * asin(min(1, opts$squeeze_floor / (2 * cap))) * 180 / pi
+  arrival_window <- c(opts$tangent_clamp, opts$arrival_clamp, gap_floor)
+  phi_star <- 0
+  # the arrowhead zones of the other edges, as the capsule ends and the
+  # clearance `head_zone_depth()` reads them at
+  zone <- if (separate) which(capsule) else integer()
+  zone_x <- obstacles$x[zone]
+  zone_y <- obstacles$y[zone]
+  zone_x2 <- (obstacles$x2 %||% obstacles$x)[zone]
+  zone_y2 <- (obstacles$y2 %||% obstacles$y)[zone]
+  zone_lim <- rep_len(R_vec, nrow(obstacles))[zone] - opts$verify_tol
   best <- NULL
   best_depth <- Inf
   best_ok <- NULL
@@ -1765,31 +1836,48 @@ route_spline_curve <- function(
     n <- nrow(P)
     d_s <- clamp_direction(P[2, ] - P[1, ], fr$E - fr$S, opts$tangent_clamp)
     d_e <- clamp_direction(P[n, ] - P[n - 1, ], fr$E - fr$S, opts$tangent_clamp)
+    moved <- FALSE
     if (separate) {
-      if (head_end == "E") {
-        prefer <- if (is.na(side)) sign(signed_angle(fr$u, d_e)) else -side
-        d_sep <- separate_arrival(
-          d_e,
+      # the arrival direction is the tangent into the true target, which is
+      # the end tangent when the edge runs to `E` and the reverse of the
+      # departure tangent when it runs to `S`
+      chord_in <- if (head_end == "E") fr$u else -fr$u
+      d_raw <- if (head_end == "E") d_e else -d_s
+      prefer <- if (is.na(side)) {
+        sign(signed_angle(chord_in, d_raw))
+      } else if (head_end == "E") {
+        -side
+      } else {
+        side
+      }
+      d_sep <- separate_arrival(
+        d_raw,
+        arrivals,
+        theta_min,
+        chord_in,
+        arrival_window,
+        prefer
+      )
+      phi_star <- signed_angle(chord_in, d_sep)
+      moved <- any(d_sep != d_raw)
+      # a bearing past the tangent clamp is one only the wide window could
+      # have given, and the narrow window's answer is worked out again to
+      # compare the two curves; a wide window that changed the answer
+      # without leaving the clamp draws no hook and is left alone
+      widened <- abs(phi_star) > opts$tangent_clamp + 1e-9
+      if (widened) {
+        d_narrow <- separate_arrival(
+          d_raw,
           arrivals,
           theta_min,
-          fr$u,
+          chord_in,
           opts$tangent_clamp,
           prefer
         )
-        separated <- separated || any(d_sep != d_e)
+      }
+      if (head_end == "E") {
         d_e <- d_sep
       } else {
-        d_in <- -d_s
-        prefer <- if (is.na(side)) sign(signed_angle(-fr$u, d_in)) else side
-        d_sep <- separate_arrival(
-          d_in,
-          arrivals,
-          theta_min,
-          -fr$u,
-          opts$tangent_clamp,
-          prefer
-        )
-        separated <- separated || any(d_sep != d_in)
         d_s <- -d_sep
       }
     }
@@ -1802,54 +1890,25 @@ route_spline_curve <- function(
       opts$arm_fraction
     )
     pts <- sample_beziers(B, opts$sample_spacing, opts$sample_min_n)
-    if (separate) {
+    if (separate && moved) {
       arms <- attr(B, "arms")
-      K <- length(B)
-      for (pass in 1:4) {
-        turn <- arrival_deficit(pts, fr, cap, arrivals, head_end, theta_min)
-        if (turn == 0) {
-          break
-        }
-        separated <- TRUE
-        # only the end control point on the rotated tangent moves, so only
-        # that segment is sampled again, and a rotation the clamp and the
-        # side constraint absorb entirely leaves nothing to resample
-        if (head_end == "E") {
-          prefer <- if (is.na(side)) 0 else -side
-          d_new <- keep_side(
-            clamp_direction(rotate(d_e, turn), fr$u, opts$tangent_clamp),
-            fr$u,
-            prefer
-          )
-          if (all(d_new == d_e)) {
-            break
-          }
-          d_e <- d_new
-          n_old <- bezier_sample_counts(
-            B[K],
-            opts$sample_spacing,
-            opts$sample_min_n
-          )
-          B[[K]][3, ] <- P[n, ] - arms[[2]] * d_e
-        } else {
-          prefer <- if (is.na(side)) 0 else side
-          d_in <- keep_side(
-            clamp_direction(rotate(-d_s, turn), -fr$u, opts$tangent_clamp),
-            -fr$u,
-            prefer
-          )
-          if (all(d_in == -d_s)) {
-            break
-          }
-          d_s <- -d_in
-          n_old <- bezier_sample_counts(
-            B[1L],
-            opts$sample_spacing,
-            opts$sample_min_n
-          )
-          B[[1L]][2, ] <- P[1, ] + arms[[1]] * d_s
-        }
-        pts <- resample_end(
+      # only the control point on the arrival tangent moves, so a pass is
+      # remembered as the direction that puts it there and the samples it
+      # draws, and only the segment it belongs to is sampled again
+      ctrl_seg <- if (head_end == "E") length(B) else 1L
+      ctrl_row <- if (head_end == "E") 3L else 2L
+      end_pt <- if (head_end == "E") P[n, ] else P[1, ]
+      arm <- if (head_end == "E") arms[[2]] else arms[[1]]
+      arrival_ctrl <- function(d) end_pt - arm * d
+      end_samples <- function(B) {
+        bezier_sample_counts(
+          B[ctrl_seg],
+          opts$sample_spacing,
+          opts$sample_min_n
+        )
+      }
+      draw <- function(pts, B, n_old) {
+        resample_end(
           pts,
           B,
           n_old,
@@ -1858,6 +1917,131 @@ route_spline_curve <- function(
           opts$sample_min_n
         )
       }
+      state <- function(pts) {
+        arrival_state(pts, fr, cap, arrivals, phi_star, theta_min, head_end)
+      }
+      # the drawn part of the arrival arm: its `n_arm` samples in order of
+      # approach, less the last `cap` the arrow layer resects and draws
+      # nothing of
+      drawn_arm <- function(pts, n_arm) {
+        N <- length(pts$x)
+        rows <- if (head_end == "E") {
+          seq.int(N - n_arm + 1L, N)
+        } else {
+          rev(seq_len(n_arm))
+        }
+        x <- pts$x[rows]
+        y <- pts$y[rows]
+        to_target <- rev(cumsum(rev(c(sqrt(diff(x)^2 + diff(y)^2), 0))))
+        drawn <- to_target >= cap
+        list(x = x[drawn], y = y[drawn])
+      }
+      arm_depth <- function(arm) {
+        if (length(zone) == 0) {
+          return(0)
+        }
+        head_zone_depth(
+          arm$x,
+          arm$y,
+          zone_x,
+          zone_y,
+          zone_x2,
+          zone_y2,
+          zone_lim
+        )
+      }
+      # `resample_end()` replaces the arm's samples, so what the new arm
+      # holds is what the path gained plus what it replaced
+      arm_count <- function(pts, n_before, n_old) {
+        length(pts$x) - n_before + n_old
+      }
+
+      # The wider window is a window on the bearing, not a licence to draw
+      # the curve through a neighbour's arrowhead: a squeeze deep enough to
+      # open it keeps the bearing the narrow window gave whenever the wider
+      # one reaches further into the head zones.
+      d_arr <- d_sep
+      # the count the samples carry for the arm, read before the control
+      # point moves, is what says which of them to replace
+      n_arm <- end_samples(B)
+      if (widened) {
+        wide_depth <- arm_depth(drawn_arm(pts, n_arm))
+        wide_pts <- pts
+        wide_ctrl <- B[[ctrl_seg]][ctrl_row, ]
+        n_before <- length(pts$x)
+        B[[ctrl_seg]][ctrl_row, ] <- arrival_ctrl(d_narrow)
+        pts <- draw(pts, B, n_arm)
+        n_narrow <- arm_count(pts, n_before, n_arm)
+        if (
+          wide_depth <= arm_depth(drawn_arm(pts, n_narrow)) + opts$verify_tol
+        ) {
+          B[[ctrl_seg]][ctrl_row, ] <- wide_ctrl
+          pts <- wide_pts
+        } else {
+          d_arr <- d_narrow
+          n_arm <- n_narrow
+          phi_star <- signed_angle(chord_in, d_narrow)
+        }
+      }
+
+      # the arrival is never left worse separated than the pass before it,
+      # so a loop that overshoots cannot cost the picture
+      st <- state(pts)
+      start <- list(gap = st$gap, pts = pts, dir = d_arr, n = n_arm)
+      keep <- start
+      loop_prefer <- if (is.na(side)) {
+        0
+      } else if (head_end == "E") {
+        -side
+      } else {
+        side
+      }
+      for (pass in 1:4) {
+        if (st$turn == 0) {
+          break
+        }
+        d_new <- keep_side(
+          clamp_direction(rotate(d_arr, st$turn), chord_in, opts$head_clamp),
+          chord_in,
+          loop_prefer
+        )
+        # a rotation the clamp and the side constraint absorb entirely
+        # leaves nothing to sample again
+        if (all(d_new == d_arr)) {
+          break
+        }
+        d_arr <- d_new
+        n_before <- length(pts$x)
+        B[[ctrl_seg]][ctrl_row, ] <- arrival_ctrl(d_arr)
+        pts <- draw(pts, B, n_arm)
+        n_arm <- arm_count(pts, n_before, n_arm)
+        st <- state(pts)
+        if (st$gap > keep$gap + 1e-9) {
+          keep <- list(gap = st$gap, pts = pts, dir = d_arr, n = n_arm)
+        }
+      }
+      # A pass that turns the arrival tangent past the ordinary clamp draws
+      # a hook, and separating an arrival is no licence to draw one across
+      # a neighbour's arrowhead: the loop's result stands only while it
+      # reaches no further into the head zones than the bearing it was
+      # given does. A result inside the clamp is no more hooked than an
+      # unseparated arrival may be, and the zones are not read for it.
+      if (
+        !identical(keep$dir, start$dir) &&
+          abs(signed_angle(chord_in, keep$dir)) > opts$tangent_clamp + 1e-9 &&
+          arm_depth(drawn_arm(keep$pts, keep$n)) >
+            arm_depth(drawn_arm(start$pts, start$n)) + opts$verify_tol
+      ) {
+        keep <- start
+      }
+      pts <- keep$pts
+      B[[ctrl_seg]][ctrl_row, ] <- arrival_ctrl(keep$dir)
+      if (head_end == "E") {
+        d_e <- keep$dir
+      } else {
+        d_s <- -keep$dir
+      }
+      separated <- separated || any(keep$dir != d_raw)
     }
     viol <- verify_clearance(
       pts,
@@ -1987,23 +2171,31 @@ keep_side <- function(d, ref, prefer) {
 #' Choose an arrival direction clear of the other arrivals at a target
 #'
 #' Directions into the target are parametrised by their signed angle from
-#' the chord direction into it. Admissible angles lie within the tangent
-#' clamp and on the detour's side of the chord (`prefer`, the sign of the
-#' admissible angles, or 0 for either side). The candidates are the current
-#' direction, the clamp edges, the angles `theta_min` either side of each
-#' arrival, and the midpoint of each pair of arrivals adjacent in angle.
-#' The current direction stands when it already keeps `theta_min` from
-#' every arrival. Otherwise, among the admissible candidates that keep it
-#' from every arrival, the one nearest the current direction wins, ties
-#' going to the preferred side. When no candidate keeps `theta_min` from
-#' every arrival, the one with the largest minimum gap wins, which in a
-#' squeeze is the midpoint of the pair the arrival is caught between, ties
-#' going to the smallest rotation from the current direction and then to
-#' the preferred side.
+#' the chord direction into it. Admissible angles lie within the window and
+#' on the detour's side of the chord (`prefer`, the sign of the admissible
+#' angles, or 0 for either side). The candidates are the current direction,
+#' the window edges, the angles `theta_min` either side of each arrival,
+#' and the midpoint of each pair of arrivals adjacent in angle. The current
+#' direction stands when it already keeps `theta_min` from every arrival.
+#' Otherwise, among the admissible candidates that keep it from every
+#' arrival, the one nearest the current direction wins, ties going to the
+#' preferred side. When no candidate keeps `theta_min` from every arrival,
+#' the one with the largest minimum gap wins, which in a squeeze is the
+#' midpoint of the pair the arrival is caught between, ties going to the
+#' smallest rotation from the current direction and then to the preferred
+#' side.
+#'
+#' The window has two steps. The narrow one is used whenever some candidate
+#' in it keeps `floor` degrees from every arrival; only a squeeze deeper
+#' than that opens the wide one, and the ranking there is the same. A
+#' scalar `clamp` is one window, which is what the ranking's own unit pins
+#' are written against.
 #'
 #' @param d_in Current unit direction into the target.
 #' @param arrivals Two-column matrix of unit directions into the target.
 #' @param chord_in Unit chord direction into the target.
+#' @param clamp The window, `c(narrow, wide, floor)` in degrees, or a
+#'   scalar for a single window with `floor` at `theta_min`.
 #' @noRd
 separate_arrival <- function(
   d_in,
@@ -2013,6 +2205,9 @@ separate_arrival <- function(
   clamp,
   prefer
 ) {
+  narrow <- clamp[[1L]]
+  wide <- if (length(clamp) >= 2L) clamp[[2L]] else narrow
+  floor <- if (length(clamp) >= 3L) clamp[[3L]] else theta_min
   cur <- signed_angle(chord_in, d_in)
   arr <- atan2(
     chord_in[[1]] * arrivals[, 2L] - chord_in[[2]] * arrivals[, 1L],
@@ -2020,8 +2215,6 @@ separate_arrival <- function(
   ) *
     180 /
     pi
-  lo <- if (prefer > 0) 0 else -clamp
-  hi <- if (prefer < 0) 0 else clamp
   min_gap <- function(phi) min(abs(((arr - phi + 180) %% 360) - 180))
   if (min_gap(cur) >= theta_min - 1e-9) {
     return(d_in)
@@ -2032,9 +2225,19 @@ separate_arrival <- function(
   } else {
     numeric()
   }
-  cands <- c(cur, lo, hi, arr + theta_min, arr - theta_min, mids)
-  cands <- cands[cands >= lo - 1e-9 & cands <= hi + 1e-9]
-  gaps <- vapply(cands, min_gap, numeric(1))
+  window <- function(limit) {
+    lo <- if (prefer > 0) 0 else -limit
+    hi <- if (prefer < 0) 0 else limit
+    cands <- c(cur, lo, hi, arr + theta_min, arr - theta_min, mids)
+    cands <- cands[cands >= lo - 1e-9 & cands <= hi + 1e-9]
+    list(cands = cands, gaps = vapply(cands, min_gap, numeric(1)))
+  }
+  set <- window(narrow)
+  if (wide > narrow && max(set$gaps) < floor - 1e-9) {
+    set <- window(wide)
+  }
+  cands <- set$cands
+  gaps <- set$gaps
   ok <- which(gaps >= theta_min - 1e-9)
   turn <- round(abs(cands - cur), 9)
   off_side <- sign(cands) != prefer
@@ -2047,54 +2250,59 @@ separate_arrival <- function(
   rotate(chord_in, phi)
 }
 
-#' How much further to turn a sampled arrival away from its nearest rival
+#' The sampled arrival, measured once per pass
 #'
-#' Measures the direction of the sampled curve into the true target at
-#' `cap` before it and finds the arrival it falls short of `theta_min`
-#' from by the most (a shortfall under half a degree is accepted). Returns
-#' the signed rotation to apply to the end tangent, or 0 when every arrival
-#' is far enough. In a true squeeze, where both of the two nearest arrivals
-#' fall short of `theta_min` and lie on opposite sides of the sampled
-#' direction, the rotation aims for the midpoint of those two gaps.
-#' Otherwise it is 1.2 times the deficit away from the worst arrival.
+#' Reads the direction of the sampled curve into its true target at `cap`
+#' before it, and reports both the least angle to any arrival (`gap`) and
+#' the rotation that would put that direction on `phi_star`, the bearing
+#' `separate_arrival()` chose for it (`turn`). The loop drives the sampled
+#' arrival to the bearing it was given rather than to a target re-derived
+#' from whichever rival is nearest on the pass, so the objective is fixed
+#' and the iteration cannot ping-pong between two rivals.
 #'
+#' `turn` is zero when the sampled arrival already keeps `theta_min` from
+#' every rival, so an arrival that needs no separation is left where the
+#' unrotated curve puts it, and zero again when the step is under half a
+#' degree and would not earn a resample.
+#'
+#' @param phi_star The chosen arrival bearing, signed from the chord.
 #' @noRd
-arrival_deficit <- function(pts, fr, cap, arrivals, head_end, theta_min) {
+arrival_state <- function(
+  pts,
+  fr,
+  cap,
+  arrivals,
+  phi_star,
+  theta_min,
+  head_end
+) {
   if (head_end == "E") {
     q <- arc_point_before_end(pts$x, pts$y, cap)
     target <- fr$E
+    chord_in <- fr$u
   } else {
     q <- arc_point_before_end(rev(pts$x), rev(pts$y), cap)
     target <- fr$S
+    chord_in <- -fr$u
   }
   own <- target - q
-  own <- own / sqrt(sum(own^2))
+  l <- sqrt(sum(own^2))
+  if (l == 0) {
+    return(list(gap = Inf, turn = 0))
+  }
+  own <- own / l
   gap <- atan2(
     arrivals[, 1L] * own[[2]] - arrivals[, 2L] * own[[1]],
     arrivals[, 1L] * own[[1]] + arrivals[, 2L] * own[[2]]
   ) *
     180 /
     pi
-  short <- theta_min - abs(gap)
-  k <- which.max(short)
-  if (length(k) == 0 || short[[k]] <= 0.5) {
-    return(0)
+  least <- min(abs(gap))
+  if (least >= theta_min - 0.5) {
+    return(list(gap = least, turn = 0))
   }
-  if (length(gap) > 1L) {
-    near <- order(abs(gap))[1:2]
-    g1 <- gap[[near[[1L]]]]
-    g2 <- gap[[near[[2L]]]]
-    squeezed <- abs(g1) < theta_min && abs(g2) < theta_min
-    if (squeezed && g1 * g2 < 0) {
-      turn <- -(g1 + g2) / 2
-      return(if (abs(turn) <= 0.5) 0 else turn)
-    }
-  }
-  s <- sign(gap[[k]])
-  if (s == 0) {
-    s <- 1
-  }
-  s * short[[k]] * 1.2
+  turn <- ((phi_star - signed_angle(chord_in, own) + 180) %% 360) - 180
+  list(gap = least, turn = if (abs(turn) <= 0.5) 0 else turn)
 }
 
 #' The point `d` mm of arc before the end of a polyline

@@ -105,7 +105,11 @@ above which an edge takes the free-bow tier rather than an interior slot.
 
 \item{tangent_clamp}{The bound in degrees on how far a departure or arrival
 tangent may turn off the chord. \code{NULL}, the router's own \code{40}. Spline
-mode only.}
+mode only. An arrival crowded by other arrivals at the same node may
+turn further than \code{40} when nothing inside it separates the two
+arrowheads; a value you set here bounds that too, so a tight clamp
+keeps every tangent tight at the cost of the crowded arrivals it would
+have separated.}
 }
 \value{
 An object of class \code{ggdag_edge_route_options}, a list of the

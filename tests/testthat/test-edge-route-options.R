@@ -261,6 +261,29 @@ test_that("route_opts_from() leaves every field the object does not set to the r
   expect_identical(defaults$crossing_saturation, TRUE)
 })
 
+test_that("route_opts_from() bounds the arrival window by an explicit tangent_clamp", {
+  # tangent_clamp is documented as the bound on a departure or arrival
+  # tangent, and a crowded arrival is otherwise allowed a wider window and a
+  # wider end tangent than it. A value the user wrote down wins over both, so
+  # asking for tight tangents suppresses the widening a squeeze would earn;
+  # left unset, the router keeps its own.
+  defaults <- route_opts_from(edge_route_options(), r_ref)
+  expect_equal(defaults$arrival_clamp, 60)
+  expect_equal(defaults$head_clamp, 85)
+
+  tight <- route_opts_from(edge_route_options(tangent_clamp = 10), r_ref)
+  expect_equal(tight$tangent_clamp, 10)
+  expect_equal(tight$arrival_clamp, 10)
+  expect_equal(tight$head_clamp, 10)
+
+  # a clamp above the router's own arrival window does not widen it: the
+  # field bounds those windows rather than setting them
+  loose <- route_opts_from(edge_route_options(tangent_clamp = 75), r_ref)
+  expect_equal(loose$tangent_clamp, 75)
+  expect_equal(loose$arrival_clamp, 60)
+  expect_equal(loose$head_clamp, 75)
+})
+
 test_that("route_opts_from() derives the size-dependent fields from the radius it is given", {
   # the five millimetre fields and the tight-slot price are the reason an
   # unset field cannot be resolved in the constructor: they are the node size
