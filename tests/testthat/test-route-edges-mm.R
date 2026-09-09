@@ -8325,6 +8325,458 @@ test_that("orthogonal ports: no target is drawn two heads on its centre row", {
   )
 })
 
+# S/N head zones ------------------------------------------------------------
+
+# The densest scene the gallery draws, in the coordinates the router is
+# handed: the ten nodes of a saturated six-layer DAG, each at its layer's
+# share of the panel width and its own fraction of the panel height, joined
+# by all forty-one edges. It is the one drawing in which an east-west
+# channel run is priced onto the line an arrowhead at the end of a
+# north-south stub already occupies.
+saturated_nodes <- data.frame(
+  name = c("a", "b", "c", "d", "e", "f", "g", "h", "x", "y"),
+  layer = c(1L, 2L, 2L, 3L, 3L, 4L, 4L, 5L, 5L, 6L),
+  fraction = c(
+    0.401783941558,
+    0.12084356444,
+    0.611467637823,
+    0.0833333333333,
+    0.916666666667,
+    0.867176624013,
+    0.14527495897,
+    0.397846631473,
+    0.724010538671,
+    0.424646889132
+  )
+)
+
+saturated_edge_specs <- c(
+  "a->b",
+  "a->c",
+  "a->d",
+  "a->e",
+  "a->f",
+  "a->g",
+  "a->h",
+  "a->x",
+  "a->y",
+  "b->d",
+  "b->e",
+  "b->f",
+  "b->g",
+  "b->h",
+  "b->x",
+  "b->y",
+  "c->d",
+  "c->e",
+  "c->f",
+  "c->g",
+  "c->h",
+  "c->x",
+  "c->y",
+  "d->f",
+  "d->g",
+  "d->h",
+  "d->x",
+  "d->y",
+  "e->f",
+  "e->g",
+  "e->h",
+  "e->x",
+  "e->y",
+  "f->h",
+  "f->x",
+  "f->y",
+  "g->h",
+  "g->x",
+  "g->y",
+  "h->y",
+  "x->y"
+)
+
+saturated_scene <- function(panel) {
+  parts <- strsplit(saturated_edge_specs, "->", fixed = TRUE)
+  list(
+    name = "saturated",
+    nodes = mm_nodes(
+      saturated_nodes$name,
+      (2 * saturated_nodes$layer - 1) / 12 * panel[1],
+      saturated_nodes$fraction * panel[2]
+    ),
+    edges = mm_edges(
+      vapply(parts, `[[`, character(1), 1L),
+      vapply(parts, `[[`, character(1), 2L)
+    ),
+    bounds = c(0, 0, panel)
+  )
+}
+
+# The band an arrowhead at the end of a north-south stub occupies, plus the
+# margin the router keeps everywhere else: from cap - head_margin to
+# cap + head + head_margin past the head node's centre along the stub,
+# over the stub's x give or take sep_e / 2. `sn_head_zones()` reads one out
+# of the drawing rather than out of the router's state, so a channel that
+# reached its run by any route is read the same way.
+sn_head_zones <- function(scene, res) {
+  zones <- list()
+  for (i in seq_along(res$paths)) {
+    if (res$meta$mode[[i]] != "orthogonal") {
+      next
+    }
+    runs <- straight_runs(dedupe_path(res$paths[[i]]))
+    if (nrow(runs) < 2) {
+      next
+    }
+    if (runs$axis[[1]] != "v" || runs$axis[[nrow(runs)]] != "v") {
+      next
+    }
+    t <- match(scene$edges$to[[i]], scene$nodes$name)
+    band <- sort(
+      scene$nodes$y[[t]] +
+        res$meta$side[[i]] *
+          c(
+            cap_default - head_margin_default,
+            cap_default + head_default + head_margin_default
+          )
+    )
+    zones[[length(zones) + 1L]] <- data.frame(
+      e = i,
+      x = scene$nodes$x[[t]],
+      lo = band[[1]],
+      hi = band[[2]],
+      to = scene$edges$to[[i]],
+      stringsAsFactors = FALSE
+    )
+  }
+  if (length(zones) == 0) {
+    return(NULL)
+  }
+  do.call(rbind, zones)
+}
+
+# The horizontal runs of other edges lying strictly inside one of those
+# zones. An edge that shares the head's target is not foreign: those are
+# the merged rows of a stack, which the port rules own.
+zone_intrusions <- function(scene, res) {
+  zones <- sn_head_zones(scene, res)
+  if (is.null(zones)) {
+    return(NULL)
+  }
+  labels <- edge_labels(scene$edges)
+  found <- list()
+  for (k in seq_len(nrow(zones))) {
+    for (j in seq_along(res$paths)) {
+      if (scene$edges$to[[j]] == zones$to[[k]]) {
+        next
+      }
+      runs <- straight_runs(dedupe_path(res$paths[[j]]))
+      runs <- runs[runs$axis == "h", , drop = FALSE]
+      if (nrow(runs) == 0) {
+        next
+      }
+      inside <- runs$coord > zones$lo[[k]] + 1e-9 &
+        runs$coord < zones$hi[[k]] - 1e-9 &
+        runs$lo < zones$x[[k]] + sep_e_default / 2 - 1e-9 &
+        runs$hi > zones$x[[k]] - sep_e_default / 2 + 1e-9
+      if (!any(inside)) {
+        next
+      }
+      found[[length(found) + 1L]] <- data.frame(
+        head = labels[[zones$e[[k]]]],
+        run = labels[[j]],
+        y = runs$coord[inside][[1]],
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  if (length(found) == 0) {
+    return(NULL)
+  }
+  do.call(rbind, found)
+}
+
+test_that("orthogonal heads: saturated at 10 x 6 draws no horizontal run through an S/N head", {
+  # b -> g is an S channel whose stub rises from y = 3.35 to g, so its
+  # arrowhead stands 8 to 10 mm below g's centre. d -> h's cheapest run is
+  # its own source line at 12.35, which crosses that stub 9.18 mm below g:
+  # the middle of the head, and no farther from g than the R = 9 every run
+  # beyond a stack keeps from the extreme node of the layer it crosses.
+  # The run gives up its line for the head's margin, which costs it 2.62 mm
+  # and one step down at its first slot.
+  scene <- saturated_scene(gallery_panels[[3]])
+  res <- ortho(scene)
+  expect_equal(nrow(head_crossings(scene, res)), 0L)
+
+  g_y <- node_xy(scene, "g")[[2]]
+  g_x <- node_xy(scene, "g")[[1]]
+  dh <- edge_index(scene, "d->h")
+  expect_equal(res$meta$n_waypoints[[dh]], 4L)
+  expect_equal(res$meta$resect_head[[dh]], 6.8, tolerance = 1e-9)
+  expect_equal(
+    res$waypoints[[dh]]$x,
+    c(128.4912411789, 128.4912411789, 167.478900112217, 167.478900112217),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$waypoints[[dh]]$y,
+    c(
+      12.3485401964784,
+      9.72720404460215,
+      9.72720404460215,
+      55.353901449358
+    ),
+    tolerance = 1e-9
+  )
+
+  # the run sits the head and its margin below g, which leaves 1.8 mm of
+  # daylight under the arrowhead's base at g's y - 10
+  run <- channel_run(res$paths[[dh]], g_x)$coord
+  expect_equal(
+    run,
+    g_y - (cap_default + head_default + head_margin_default),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    g_y - head_run_default - run,
+    head_margin_default,
+    tolerance = 1e-9
+  )
+
+  # b -> g keeps its S channel, and b -> h the run its own slot gave it
+  bg <- edge_index(scene, "b->g")
+  expect_equal(res$meta$n_waypoints[[bg]], 2L)
+  expect_equal(res$meta$resect_head[[bg]], 8, tolerance = 1e-9)
+  expect_equal(
+    res$waypoints[[bg]]$y,
+    rep(3.34854019647839, 2),
+    tolerance = 1e-9
+  )
+  bh <- edge_index(scene, "b->h")
+  expect_equal(
+    res$waypoints[[bh]]$y,
+    c(17.906899355684, 44.1322729380839, 44.1322729380839, 55.353901449358),
+    tolerance = 1e-9
+  )
+
+  # d -> y loses the line beside b -> g's channel, which the push and the
+  # stacking rule together take below the panel margin, and crosses the
+  # middle band instead; b -> y, which held that line, sits sep_e lower
+  expect_equal(
+    channel_run(res$paths[[edge_index(scene, "d->y")]], g_x)$coord,
+    36.9322729380839,
+    tolerance = 1e-9
+  )
+  expect_equal(
+    channel_run(res$paths[[edge_index(scene, "b->y")]], g_x)$coord,
+    33.3322729380839,
+    tolerance = 1e-9
+  )
+
+  # two runs fewer in the third gap drop its ladder a rung
+  gaps <- res$ortho$gaps
+  expect_equal(gaps$ranks[gaps$gap == 3], 5L)
+  expect_equal(gaps$rung[gaps$gap == 3], 1L)
+
+  # the two smaller panels are the drawing they already were: at 4 x 3 the
+  # scene is over-constrained and its count stands where the ranks leave
+  # it, and at 7 x 5 no shaft touches a head
+  counts <- vapply(
+    gallery_panels[1:2],
+    function(panel) {
+      scene <- saturated_scene(panel)
+      nrow(head_crossings(scene, ortho(scene)))
+    },
+    integer(1)
+  )
+  expect_equal(counts, c(23L, 0L))
+})
+
+# An east-west channel whose only affordable run is the line beyond the
+# stack of the layer it crosses, which sits R = 9 mm past that layer's top
+# node: exactly the centre of the arrowhead of an N stub standing there.
+# p -> n takes the N channel and its stub at n carries the head from
+# `top` + 8 to `top` + 10; s -> t has both endpoint lines blocked, no
+# feasible S/N side, and no interior slot, so the run beyond the stack is
+# all it has.
+stub_head_scene <- function(top = 80) {
+  list(
+    name = "stub_head",
+    nodes = mm_nodes(
+      c("p", "s", "m1", "m6", "n", "m2", "m3", "m4", "m5", "t"),
+      c(20, 20, 70, 70, 120, 120, 120, 120, 120, 170),
+      c(top, 60, 60, top, top, 60, 44, 28, 11, 60)
+    ),
+    edges = mm_edges(c("p", "s"), c("n", "t")),
+    bounds = c(0, 0, 190, 110)
+  )
+}
+
+test_that("orthogonal channels: a run beyond a stack is pushed past the head of the stub standing there", {
+  scene <- stub_head_scene()
+  res <- ortho(scene)
+  pn <- edge_index(scene, "p->n")
+  st <- edge_index(scene, "s->t")
+
+  # p -> n is placed first and is untouched by the rule
+  expect_equal(res$meta$n_waypoints[[pn]], 2L)
+  expect_equal(res$meta$resect_head[[pn]], 8, tolerance = 1e-9)
+  expect_equal(res$waypoints[[pn]]$y, rep(96.1, 2), tolerance = 1e-9)
+  expect_equal(tilted_heads(res), 0L)
+
+  # s -> t's run is pushed from the head's centre at 89 to the far edge of
+  # the zone, 11.8 mm past n, and keeps its clearance there
+  expect_equal(
+    channel_run(res$paths[[st]], 95)$coord,
+    80 + cap_default + head_default + head_margin_default,
+    tolerance = 1e-9
+  )
+  expect_equal(res$waypoints[[st]]$x, c(45, 45, 145, 145), tolerance = 1e-9)
+  expect_equal(
+    res$waypoints[[st]]$y,
+    c(60, 91.8, 91.8, 60),
+    tolerance = 1e-9
+  )
+  expect_true(res$meta$clearance_ok[[st]])
+  expect_equal(nrow(head_crossings(scene, res)), 0L)
+})
+
+test_that("orthogonal channels: the pushed run follows the head", {
+  # The push is continuous in the geometry it reads: as the head node rises
+  # the pushed run rises with it, millimetre for millimetre, and never
+  # jumps. The candidate set's own discontinuity is unchanged: once the gap
+  # between the head node and the node below it opens to sep_e the interior
+  # slot at 69 becomes feasible and wins, at the same width as it always
+  # did.
+  tops <- seq(74, 81.5, by = 0.1)
+  runs <- vapply(
+    tops,
+    function(top) {
+      scene <- stub_head_scene(top)
+      channel_run(ortho(scene)$paths[[edge_index(scene, "s->t")]], 95)$coord
+    },
+    numeric(1)
+  )
+  expect_equal(
+    runs,
+    tops + cap_default + head_default + head_margin_default,
+    tolerance = 1e-9
+  )
+  expect_lt(max(abs(diff(runs))), 0.1 + 1e-9)
+
+  scene <- stub_head_scene(82)
+  expect_equal(
+    channel_run(ortho(scene)$paths[[edge_index(scene, "s->t")]], 95)$coord,
+    69,
+    tolerance = 1e-9
+  )
+})
+
+test_that("orthogonal heads: no horizontal run lies inside an S/N head zone", {
+  # The census the rule is a guarantee for. Over every scene the oblique
+  # census reads, in both directions, and the saturated scene at the three
+  # gallery panels, no drawn horizontal run lies in the band an S/N stub's
+  # arrowhead and its margin occupy. The census is worth having only if the
+  # drawings put S/N stubs in it at all, so the number of zones is pinned
+  # too.
+  scenes <- c(oblique_census_scenes(), lapply(gallery_panels, saturated_scene))
+  zones <- 0L
+  found <- list()
+  for (scene in scenes) {
+    res <- ortho(scene)
+    z <- sn_head_zones(scene, res)
+    zones <- zones + if (is.null(z)) 0L else nrow(z)
+    hits <- zone_intrusions(scene, res)
+    if (!is.null(hits)) {
+      found[[length(found) + 1L]] <- cbind(
+        scene = scene$name %||% "fixture",
+        panel = paste(round(scene$bounds[3:4], 2), collapse = " x "),
+        hits,
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  expect_equal(zones, 25L)
+  intruding <- if (length(found) == 0) {
+    character()
+  } else {
+    rows <- do.call(rbind, found)
+    paste(rows$scene, rows$panel, rows$head, rows$run)
+  }
+  expect_equal(intruding, character())
+})
+
+test_that("orthogonal heads: the head zones move the saturated scene at 10 x 6 alone", {
+  # The rule reaches a candidate only where a placed S/N stub stands in the
+  # layers it crosses, which among the tracked scenes is the saturated
+  # drawing at its largest panel and nothing else. Everything else is
+  # pinned as the aggregate of the three routing modes: the number of
+  # routed edges, their waypoints, their total drawn length and, for the
+  # orthogonal channels, their total vertical travel.
+  scenes <- c(forward_census_scenes(), lapply(gallery_panels, very_big_scene))
+  path_length <- function(path) sum(sqrt(diff(path$x)^2 + diff(path$y)^2))
+  aggregate_of <- function(mode, over) {
+    routed <- 0L
+    waypoints <- 0L
+    drawn <- 0
+    travel <- 0
+    for (scene in over) {
+      res <- route_scene(scene, mode = mode, opts = route_constants(r_default))
+      routed <- routed + sum(res$meta$mode != "straight")
+      waypoints <- waypoints + sum(res$meta$n_waypoints)
+      for (i in seq_along(res$paths)) {
+        drawn <- drawn + path_length(res$paths[[i]])
+        if (res$meta$mode[[i]] != "orthogonal") {
+          next
+        }
+        runs <- straight_runs(dedupe_path(res$paths[[i]]))
+        if (nrow(runs) > 0) {
+          travel <- travel + sum(runs$length[runs$axis == "v"])
+        }
+      }
+    }
+    list(routed = routed, waypoints = waypoints, drawn = drawn, travel = travel)
+  }
+
+  a <- aggregate_of("orthogonal", scenes)
+  expect_equal(a$routed, 473L)
+  expect_equal(a$waypoints, 1051L)
+  expect_equal(a$drawn, 39526.869597425, tolerance = 1e-9)
+  expect_equal(a$travel, 13395.630720657, tolerance = 1e-9)
+
+  b <- aggregate_of("spline", scenes)
+  expect_equal(b$routed, 113L)
+  expect_equal(b$waypoints, 211L)
+  expect_equal(b$drawn, 32390.876311216, tolerance = 1e-9)
+  expect_equal(b$travel, 0)
+
+  d <- aggregate_of("straight", scenes)
+  expect_equal(d$routed, 0L)
+  expect_equal(d$waypoints, 0L)
+  expect_equal(d$drawn, 31105.225680966, tolerance = 1e-9)
+
+  # the saturated scene panel by panel: the two smaller drawings stand, and
+  # the largest gains the two bends of the pushed run while its vertical
+  # travel falls, because d -> y no longer climbs to y from the bottom of
+  # the panel
+  sat <- lapply(gallery_panels, function(panel) {
+    aggregate_of("orthogonal", list(saturated_scene(panel)))
+  })
+  expect_equal(
+    vapply(sat, `[[`, integer(1), "waypoints"),
+    c(114L, 118L, 116L)
+  )
+  expect_equal(
+    vapply(sat, `[[`, numeric(1), "drawn"),
+    c(2466.330081929, 4111.887778253, 5523.001089904),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    vapply(sat, `[[`, numeric(1), "travel"),
+    c(1030.544156900, 1594.796952492, 1839.496924575),
+    tolerance = 1e-9
+  )
+})
+
 # Spline heads, repair waypoints, and the fallback depth --------------------------
 
 test_that("spline heads: very_big draws fewer foreign shafts on heads at 10 x 6", {
