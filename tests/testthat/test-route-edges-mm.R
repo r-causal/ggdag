@@ -8716,6 +8716,110 @@ test_that("orthogonal channels: the pushed run follows the head", {
   )
 })
 
+# Two north-south channels one behind the other. a1 -> t takes an N channel
+# whose stub carries its arrowhead from 8 to 10 mm above t, so its zone runs
+# from 66.2 to 71.8 over t's x. p -> t2 crosses t's layer and its own N
+# channel is priced at the top of that stack, t's centre plus R = 9: the
+# middle of the head standing there. The zone is a rule about runs, not
+# about the kind of channel the run belongs to, so this one is pushed to the
+# zone's far edge like any other.
+sn_through_head_scene <- function() {
+  list(
+    name = "sn_through_head",
+    nodes = mm_nodes(
+      c("a1", "p", "t", "f1", "q", "t2"),
+      c(20, 70, 120, 120, 170, 220),
+      c(58, 52, 60, 8, 40, 52)
+    ),
+    edges = mm_edges(c("a1", "p"), c("t", "t2")),
+    bounds = c(0, 0, 240, 110)
+  )
+}
+
+test_that("orthogonal heads: an S/N run is pushed past the head zone it crosses", {
+  scene <- sn_through_head_scene()
+  res <- ortho(scene)
+  a1t <- edge_index(scene, "a1->t")
+  pt2 <- edge_index(scene, "p->t2")
+  t_xy <- node_xy(scene, "t")
+
+  # a1 -> t is placed first and keeps its N channel at t's y plus the
+  # nominal stub, the highest of the three terms its run is the maximum of
+  expect_equal(res$meta$n_waypoints[[a1t]], 2L)
+  expect_equal(res$meta$resect_head[[a1t]], 8, tolerance = 1e-9)
+  expect_equal(res$waypoints[[a1t]]$x, c(20, 120), tolerance = 1e-9)
+  expect_equal(res$waypoints[[a1t]]$y, rep(76.1, 2), tolerance = 1e-9)
+
+  # p -> t2 keeps its own N channel, and its run leaves a1 -> t's head
+  # whole: pushed from 69, t's centre plus R, to the far edge of the zone
+  expect_equal(res$meta$n_waypoints[[pt2]], 2L)
+  expect_equal(res$waypoints[[pt2]]$x, c(70, 220), tolerance = 1e-9)
+  run <- channel_run(res$paths[[pt2]], t_xy[[1]])$coord
+  expect_equal(
+    run,
+    t_xy[[2]] + cap_default + head_default + head_margin_default,
+    tolerance = 1e-9
+  )
+  expect_equal(run, 71.8, tolerance = 1e-9)
+
+  # the push leaves the two channels at least sep_e apart, so the restack
+  # from the zone's edge moves the run no further
+  expect_gte(76.1 - run, sep_e_default - 1e-9)
+  expect_true(res$meta$clearance_ok[[pt2]])
+  expect_equal(nrow(head_crossings(scene, res)), 0L)
+  expect_null(zone_intrusions(scene, res))
+})
+
+# A scene whose one affordable line for s -> t is s's own line, which lies
+# inside the head zone of p -> n's N stub. The line is fixed: a run on it is
+# an endpoint run, which the push never moves, so the only thing that keeps
+# s -> t off it is `price()` refusing a run inside a zone outright. Without
+# that refusal s -> t slides down onto 89.2 and is drawn through p -> n's
+# arrowhead; with it s -> t climbs to its N channel above the stack.
+fixed_line_zone_scene <- function() {
+  list(
+    name = "fixed_line_zone",
+    nodes = mm_nodes(
+      c("p", "s", "u", "k1", "m1", "m2", "m4", "m5", "m6", "n", "m3", "t", "w"),
+      c(-30, 20, 20, 20, 70, 70, 70, 70, 70, 120, 120, 170, 170),
+      c(80, 89.2, 84, 8, 78, 60, 42, 24, 6, 80, 8, 91.6, 84)
+    ),
+    edges = mm_edges(c("p", "u", "s"), c("n", "w", "t")),
+    bounds = c(-50, 0, 190, 130)
+  )
+}
+
+test_that("orthogonal heads: a run priced at a fixed line inside a head zone is refused", {
+  scene <- fixed_line_zone_scene()
+  res <- ortho(scene)
+  pn <- edge_index(scene, "p->n")
+  uw <- edge_index(scene, "u->w")
+  st <- edge_index(scene, "s->t")
+  n_y <- node_xy(scene, "n")[[2]]
+
+  # p -> n is placed first, at s's centre plus R, and its stub at n holds
+  # the zone from 86.2 to 91.8
+  expect_equal(res$meta$n_waypoints[[pn]], 2L)
+  expect_equal(res$meta$resect_head[[pn]], 8, tolerance = 1e-9)
+  expect_equal(channel_run(res$paths[[pn]], 95)$coord, 98.2, tolerance = 1e-9)
+
+  # u -> w is an east-west run pushed to the zone's far edge
+  expect_equal(res$meta$n_waypoints[[uw]], 4L)
+  expect_equal(
+    channel_run(res$paths[[uw]], 95)$coord,
+    n_y + cap_default + head_default + head_margin_default,
+    tolerance = 1e-9
+  )
+
+  # s -> t has no line left below, and its own source line at 89.2 sits
+  # inside the zone, so it takes its N channel at t's y plus the nominal
+  # stub rather than the fixed line the push could not have moved
+  expect_equal(res$meta$n_waypoints[[st]], 2L)
+  expect_equal(channel_run(res$paths[[st]], 95)$coord, 107.7, tolerance = 1e-9)
+  expect_equal(nrow(head_crossings(scene, res)), 0L)
+  expect_null(zone_intrusions(scene, res))
+})
+
 test_that("orthogonal heads: no horizontal run lies inside an S/N head zone", {
   # The census the rule is a guarantee for. Over every scene the oblique
   # census reads, in both directions, and the saturated scene at the three
