@@ -4,10 +4,13 @@
 # few waypoints: one per crossed layer, snapped into the free slots of that
 # layer, or a single bow around the obstacle for short and steep chords. A
 # chord shorter than 2R stays straight, since no bow fits between endpoint
-# discs that close. The slots of a layer are the gaps between its padded
-# discs; a gap narrower than the edge separation is a sliver and is not a
-# slot, and a periphery slot keeps the clearance margin m from the panel
-# bounds, as every drawn curve does. The side of a detour is chosen by a cost that
+# discs that close. A chord that clears every disc but passes within
+# head / 2 + head_margin of another edge's drawn arrowhead is nudged past
+# it as a grazed disc is, away from that head's target; a chord clear of
+# the heads too stays straight. The slots of a layer are the gaps between
+# its padded discs; a gap narrower than the edge separation is a sliver and
+# is not a slot, and a periphery slot keeps the clearance margin m from the
+# panel bounds, as every drawn curve does. The side of a detour is chosen by a cost that
 # weighs edge crossings, displacement, and the crowding of the endpoints'
 # fans. Every routed curve is sampled, verified against the node discs, and
 # repaired by pushing its waypoints outward; a periphery arch is levelled
@@ -203,7 +206,9 @@ route_constants <- function(
 #' user-curved and pass through untouched, drawn from their pre-sampled
 #' `fixed_path` when one is supplied and as their chord otherwise. Every
 #' other edge whose chord comes closer to a non-endpoint node than that
-#' node's radius plus the clearance margin is routed; the rest stay straight.
+#' node's radius plus the clearance margin, or crosses another edge's drawn
+#' arrowhead, which nudges it as a grazed disc does, is routed; the rest
+#' stay straight.
 #'
 #' @param nodes Data frame with columns `name`, `x`, `y`, and `r` (mm).
 #' @param edges Data frame with columns `from`, `to`, and optionally
@@ -230,9 +235,13 @@ route_constants <- function(
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
 #'   `n_waypoints`, `waypoint_layers`, `clearance_ok`, `sagitta_ratio`,
 #'   `sagitta_capped`), and `waypoints` (one `data.frame(x, y, layer)` per
-#'   edge). `clearance_ok` is `FALSE` when the drawn curve could not be kept
-#'   `R` from every node disc, when its arch had to stop on another edge's
-#'   arch in a shared slot, or when it left the panel and was clamped to it.
+#'   edge). `mode` is `"soft"` for a chord nudged past a grazed disc or
+#'   another edge's drawn arrowhead, `"bow"` for a free bow, and
+#'   `"interior"` or `"periphery"` for a spanning route through the
+#'   layers' slots. `clearance_ok` is `FALSE` when the drawn curve could
+#'   not be kept `R` from every node disc, when its arch had to stop on
+#'   another edge's arch in a shared slot, or when it left the panel and
+#'   was clamped to it.
 #'   In orthogonal mode `meta` also carries `resect_head` and `resect_fins`,
 #'   the arc length in mm the arrow layer cuts from each end of the path:
 #'   `cap - r + sqrt(r^2 - o^2)` for a port offset `o` from the centre line
@@ -2139,17 +2148,19 @@ register_head <- function(reg, e, x, y, cap) {
   reg
 }
 
-#' The head zones and co-arrivals that constrain one edge's detour
+#' The head zones and co-arrivals that constrain one edge's route
 #'
-#' The head zones of the other edges are capsule obstacles for the detour,
+#' The head zones of the other edges are capsule obstacles for a detour and,
+#' through `head_hits()`, their drawn heads are soft obstacles for a chord,
 #' except those of edges into the same target (their arrivals are
-#' separated instead), of edges into the detour's own source (they meet at
+#' separated instead), of edges into the edge's own source (they meet at
 #' the port it leaves through), and of edges between the same two nodes.
 #' The arrivals are the directions into the true target of the other edges
 #' that end there.
 #'
 #' @return A list with `heads`, a data frame of capsules with `x`, `y`,
-#'   `x2`, `y2`, and `arrivals`, a two-column matrix of unit directions.
+#'   `x2`, `y2` and the unit direction `ux`, `uy` into the target, and
+#'   `arrivals`, a two-column matrix of unit directions.
 #' @noRd
 head_constraints <- function(reg, e, from, to) {
   source <- from[[e]]
@@ -2163,7 +2174,9 @@ head_constraints <- function(reg, e, from, to) {
       x = reg$x[zone],
       y = reg$y[zone],
       x2 = reg$x2[zone],
-      y2 = reg$y2[zone]
+      y2 = reg$y2[zone],
+      ux = reg$ux[zone],
+      uy = reg$uy[zone]
     ),
     arrivals = cbind(reg$ux[arriving], reg$uy[arriving])
   )
@@ -2746,19 +2759,138 @@ free_bow_waypoints <- function(hits, fr, extra, bounds, ectx, placed, opts) {
   )
 }
 
-#' Sub-2 mm nudges for grazed nodes
+#' Sub-2 mm nudges for grazed nodes and arrowheads
 #'
-#' Every hit is in the soft band, so the curve only needs to move out to `R`
-#' on the node's far side: an offset of `h - sign(h) * R`, at most
-#' `m - m_min` in magnitude. Opposite-side nudges form an S too shallow to
-#' see.
+#' Every hit is in the soft band, so the curve only needs to move out to
+#' the hit's clearance on its far side: an offset of `h - sign(h) * R`, at
+#' most `m - m_min` in magnitude for a disc. Each hit carries its own
+#' clearance margin in `mm` (the disc margin `m` when the column is absent),
+#' and a hit that names its `side` is nudged to that side rather than to
+#' the far side of its centre: a head hit is nudged away from the head's
+#' target. Opposite-side nudges form an S too shallow to see.
 #'
 #' @noRd
 soft_nudge_waypoints <- function(hits, fr, extra, opts) {
   s <- -sign(hits$h)
   s[s == 0] <- 1
-  o <- hits$h + s * (hits$r + opts$m + extra)
+  if (!is.null(hits$side)) {
+    named <- !is.na(hits$side)
+    s[named] <- hits$side[named]
+  }
+  mm <- hits$mm %||% rep(opts$m, nrow(hits))
+  o <- hits$h + s * (hits$r + mm + extra)
   df_rows(bow_points(hits, fr, o, opts), order(hits$t))
+}
+
+#' The drawn arrowheads a chord passes too close to
+#'
+#' The drawn head of another edge is a pseudo-disc of radius `head / 2`
+#' centred `cap + head / 2` before that edge's target along its current
+#' path. The chord is trimmed by `cap` at both ends, since the ink inside a
+#' cap is never drawn, and a head whose centre lies within `head / 2 +
+#' head_margin` of the trimmed chord is a soft hit at the centre's chord
+#' parameter, to be nudged away from the head's target: the side is
+#' `-sign(h_target)`, `+1` when the target sits on the chord. A head is
+#' never a hard hit, and a chord too short to have drawn ink between its
+#' caps has no head hits.
+#'
+#' @param fr The edge frame.
+#' @param heads The head zones from `head_constraints()`.
+#' @return Hits in the frame with the columns of the disc hits (`node` is
+#'   `NA`, `layer` is `NA`, `r` is `head / 2`, `hard` is `FALSE`) plus the
+#'   clearance margin `mm` and the nudge `side`.
+#' @noRd
+head_hits <- function(fr, heads, cap, opts) {
+  r_h <- opts$head / 2
+  clear <- r_h + opts$head_margin
+  empty <- df_cols(
+    node = integer(),
+    h = numeric(),
+    t = numeric(),
+    layer = integer(),
+    r = numeric(),
+    hard = logical(),
+    mm = numeric(),
+    side = numeric()
+  )
+  if (nrow(heads) == 0 || fr$Lc <= 2 * cap) {
+    return(empty)
+  }
+  cx <- heads$x2 - r_h * heads$ux
+  cy <- heads$y2 - r_h * heads$uy
+  S2 <- fr$S + cap * fr$u
+  E2 <- fr$E - cap * fr$u
+  d <- dist_to_edge(cx, cy, S2[[1]], S2[[2]], E2[[1]], E2[[2]])
+  keep <- which(d < clear)
+  if (length(keep) == 0) {
+    return(empty)
+  }
+  dx <- cx[keep] - fr$S[[1]]
+  dy <- cy[keep] - fr$S[[2]]
+  tx <- heads$x2[keep] + cap * heads$ux[keep] - fr$S[[1]]
+  ty <- heads$y2[keep] + cap * heads$uy[keep] - fr$S[[2]]
+  side <- -sign(tx * fr$n[[1]] + ty * fr$n[[2]])
+  side[side == 0] <- 1
+  n <- length(keep)
+  df_cols(
+    node = rep(NA_integer_, n),
+    h = dx * fr$n[[1]] + dy * fr$n[[2]],
+    t = (dx * fr$u[[1]] + dy * fr$u[[2]]) / fr$Lc,
+    layer = rep(NA_integer_, n),
+    r = rep(r_h, n),
+    hard = rep(FALSE, n),
+    mm = rep(opts$head_margin, n),
+    side = side
+  )
+}
+
+#' Merge head hits with the hits within reach of them along the chord
+#'
+#' Two soft nudges within reach of each other along the chord cannot both
+#' be honoured by one curve: a head hit within a disc hit's clearance `R`
+#' of it along the chord, or within twice its own clearance of another
+#' head hit, is merged with that hit. The hit whose nudge takes the
+#' curve further from the chord on their common side is kept; when the two
+#' nudge to opposite sides the head hit gives way, to the disc hit or to
+#' the later of two head hits. Disc hits are never merged with one another.
+#'
+#' @param eh The hits of one edge, ordered along the chord, with `mm` and
+#'   `side`.
+#' @param Lc The chord length.
+#' @noRd
+merge_head_hits <- function(eh, Lc) {
+  n <- nrow(eh)
+  if (n < 2) {
+    return(eh)
+  }
+  is_head <- is.na(eh$node)
+  s <- -sign(eh$h)
+  s[s == 0] <- 1
+  named <- !is.na(eh$side)
+  s[named] <- eh$side[named]
+  o <- eh$h + s * (eh$r + eh$mm)
+  drop <- logical(n)
+  for (k in which(is_head)) {
+    for (j in seq_len(n)) {
+      if (j == k || drop[[j]] || drop[[k]]) {
+        next
+      }
+      reach <- if (is_head[[j]]) {
+        2 * (eh$r[[k]] + eh$mm[[k]])
+      } else {
+        eh$r[[j]] + eh$mm[[j]]
+      }
+      if (abs(eh$t[[j]] - eh$t[[k]]) * Lc >= reach) {
+        next
+      }
+      if (sign(o[[k]]) == sign(o[[j]]) && abs(o[[k]]) > abs(o[[j]])) {
+        drop[[j]] <- TRUE
+      } else {
+        drop[[k]] <- TRUE
+      }
+    }
+  }
+  df_rows(eh, which(!drop))
 }
 
 #' Waypoints offset from the chord at each hit's clamped parameter
@@ -2899,8 +3031,8 @@ empty_occupancy <- function() {
 #' detour is verified against the arrowhead capsules of the other edges as
 #' well, at the margin of a disc (`m`, or `m_min` for a capped route), and
 #' its arrival is separated from the other arrivals at its target; a soft
-#' nudge is visually straight and gets neither, since a straight edge
-#' through a head is the picture the scene already has.
+#' nudge is visually straight and gets neither, and is kept off the drawn
+#' heads by the blocking test instead (`head_hits()`).
 #'
 #' @noRd
 route_candidate <- function(
@@ -5278,7 +5410,11 @@ route_scene_mm <- function(
   extra <- grp$extra
   shift <- grp$shift
 
-  to_route <- routable & (seq_len(n_edges) %in% hits$edge | shift != 0)
+  # every chord long enough to bow is visited, since a chord clear of the
+  # discs may still run under another edge's drawn arrowhead; one that
+  # clears the heads too comes back as its chord
+  to_route <- routable &
+    (seq_len(n_edges) %in% hits$edge | shift != 0 | info$Lc >= 2 * opts$R)
   order_e <- which(to_route)
   # chord lengths are rounded to a micrometre so that two skip edges of one
   # row tie on length and the name order decides, not a floating difference
@@ -5333,6 +5469,22 @@ route_scene_mm <- function(
       eh,
       order(eh$t, nodes$x[idx], nodes$y[idx], idx, method = "radix")
     )
+    eh$mm <- rep(opts$m, nrow(eh))
+    eh$side <- rep(NA_real_, nrow(eh))
+    # a chord with no hard hit is nudged past the drawn arrowheads of the
+    # other edges as it is past a grazed disc; an edge with a hard hit
+    # detours, and the head zones govern its detour instead
+    if (!any(eh$hard)) {
+      hh <- head_hits(fr, constraints$heads, cap, opts)
+      if (nrow(hh) > 0) {
+        eh <- df_bind(eh, hh)
+        eh <- df_rows(eh, order(eh$t, method = "radix"))
+        eh <- merge_head_hits(eh, fr$Lc)
+      }
+    }
+    if (nrow(eh) == 0 && shift[[e]] == 0) {
+      return(list(straight = TRUE))
+    }
 
     others <- seq_len(nrow(nodes))[-c(fr$a, fr$b)]
     job <- list(
@@ -5555,6 +5707,11 @@ route_scene_mm <- function(
         df_rows(reserved, which(reserved$edge == e))
       }
       res <- route_one(e, placed, occ, held, heads)
+      if (isTRUE(res$straight)) {
+        # a chord clear of the discs and the heads stays as it is placed
+        out[[e]] <- res
+        next
+      }
       placed <- place_edge(placed, e, res$path$x, res$path$y)
       # the registry keeps every path source to target
       heads <- if (info$reversed[[e]]) {
@@ -5578,6 +5735,9 @@ route_scene_mm <- function(
 
   for (e in order_e) {
     res <- pass$results[[e]]
+    if (isTRUE(res$straight)) {
+      next
+    }
     fr <- res$fr
     path <- res$path
     if (info$reversed[[e]]) {
