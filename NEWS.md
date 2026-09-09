@@ -338,7 +338,7 @@
 
 * Repelled labels now avoid nodes whose label is missing, the shape `dagify(labels = )` produces whenever only some variables are labeled. The repulsion geometry was built from the rows that survive label filtering, so an unlabeled node contributed neither a point size nor a skeleton disc and a label box could come to rest on top of it. With only one node labeled, the skeleton disappeared for that node as well.
 
-* Repelled labels now avoid the curve a bidirected edge is drawn along, and the curve of `geom_dag_edges_arc()`, rather than the straight line between the two nodes. The invisible points that push labels off edges were interpolated along the chord, which left the drawn arc unprotected while pushing labels off empty space. Edges drawn by `geom_dag_edges_diagonal()`, `geom_dag_edges_fan()`, and the ggarrow engine are still traced along the chord.
+* Repelled labels now avoid the curve a bidirected edge is drawn along, and the curve of `geom_dag_edges_arc()`, rather than the straight line between the two nodes. The invisible points that push labels off edges were interpolated along the chord, which left the drawn arc unprotected while pushing labels off empty space. Edges drawn by the ggarrow engine are still traced along the chord.
 
 * `geom_dag_text_repel()` and `geom_dag_label_repel()` now accept a `Stat` ggproto object for `stat`, as ggplot2's convention allows. Comparing the argument with `==` raised a low-level error about comparison of non-atomic types, which also left `stat = ggplot2::StatIdentity` as the only route to plain identity behavior unusable.
 

@@ -255,9 +255,9 @@ one it is larger and labels are pushed further away than they need to be.
 Set \code{n_node_points = 0} to rely on \code{point.size} alone.
 
 Points along an edge trace the path that edge is drawn along, including the
-arc of a bidirected edge and of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}}. Edges drawn by
-\code{\link[=geom_dag_edges_diagonal]{geom_dag_edges_diagonal()}}, \code{\link[=geom_dag_edges_fan]{geom_dag_edges_fan()}}, and the ggarrow engine
-are traced along the straight line between their nodes.
+arc of a bidirected edge and of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} and the curves of
+\code{\link[=geom_dag_edges_diagonal]{geom_dag_edges_diagonal()}} and \code{\link[=geom_dag_edges_fan]{geom_dag_edges_fan()}}. Edges drawn by the
+ggarrow engine are traced along the straight line between their nodes.
 
 Additional segment parameters can be passed through \code{...}, including:
 \itemize{

@@ -339,9 +339,9 @@ geom_dag_label <- function(
 #' Set `n_node_points = 0` to rely on `point.size` alone.
 #'
 #' Points along an edge trace the path that edge is drawn along, including the
-#' arc of a bidirected edge and of [geom_dag_edges_arc()]. Edges drawn by
-#' [geom_dag_edges_diagonal()], [geom_dag_edges_fan()], and the ggarrow engine
-#' are traced along the straight line between their nodes.
+#' arc of a bidirected edge and of [geom_dag_edges_arc()] and the curves of
+#' [geom_dag_edges_diagonal()] and [geom_dag_edges_fan()]. Edges drawn by the
+#' ggarrow engine are traced along the straight line between their nodes.
 #'
 #' Additional segment parameters can be passed through `...`, including:
 #' - `segment.linetype`: Line style

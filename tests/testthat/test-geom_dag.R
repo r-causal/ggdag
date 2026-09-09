@@ -1495,7 +1495,7 @@ test_that("the diagonal edge type keeps ggraph's own strength", {
   expect_equal(diagonals[[1]]$stat_params$strength, 1)
 })
 
-test_that("both edge engines bow one plot's arcs by the same amount", {
+test_that("both edge engines read one plot's curvature option", {
   skip_if_not_installed("ggarrow")
   local_ggdag_option_state()
   ggdag_options_set(curvature = 0.45)
