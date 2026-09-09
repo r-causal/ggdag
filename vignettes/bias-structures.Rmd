@@ -191,7 +191,7 @@ coords <- tibble::tribble(
   2,
   "vits_error",
   0,
-  2,
+  2
 )
 
 bladder_dag <- dagify(

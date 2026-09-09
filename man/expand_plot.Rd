@@ -13,7 +13,11 @@ expand_plot(
 \item{expand_x, expand_y}{Vector of range expansion constants used to add some
 padding around the data, to ensure that they are placed some distance away
 from the axes. Use the convenience function \code{ggplot2::expansion()} to
-generate the values for the expand argument.}
+generate the values for the expand argument. The DAG plotting functions
+replace this value on an axis whose nodes all share one coordinate: a
+multiplicative expansion of a zero-width range adds nothing, so such an
+axis takes an additive expansion of an eighth of the other axis's span on
+each side instead.}
 }
 \description{
 \code{expand_plot()} is a convenience function that expands the scales of a

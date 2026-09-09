@@ -616,7 +616,7 @@ order_layers <- function(
   # then the incumbent, then plain barycenter, breaking ties in that order
   refined_score <- count_crossings(real_layers, directed, layer_assign)
   incumbent_score <- count_crossings(layer_nodes, directed, layer_assign)
-  bary_layers <- barycenter_sort(layer_nodes, directed, layer_assign, 40L)
+  bary_layers <- barycenter_sort(layer_nodes, directed, 40L)
   bary_score <- count_crossings(bary_layers, directed, layer_assign)
 
   choice <- which.min(c(refined_score, incumbent_score, bary_score))

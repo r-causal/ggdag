@@ -55,7 +55,8 @@
 #'   and types.
 #' @param name Character string. The option name (without the `ggdag.` prefix).
 #'   If `NULL`, returns all currently-set ggdag options.
-#' @param default Default value to return if the option is not set.
+#' @param default Default value to return if the option is not set. Defaults
+#'   to the entry for `name` in `ggdag_defaults`.
 #' @param base_default The base default for this option (e.g., 8 for edge_cap).
 #' @param override_default The override default used by certain functions
 #'   (e.g., 10 for edge_cap in adjustment set functions).
@@ -192,7 +193,7 @@ ggdag_options_reset <- function() {
 
 #' @export
 #' @rdname ggdag_options
-ggdag_option <- function(name, default) {
+ggdag_option <- function(name, default = ggdag_defaults[[name]]) {
   getOption(paste0("ggdag.", name), default = default)
 }
 

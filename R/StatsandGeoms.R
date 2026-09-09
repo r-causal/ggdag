@@ -1169,7 +1169,7 @@ StatNodesRepel <- ggplot2::ggproto(
     "edge_geometry"
   ),
   compute_layer = function(data, params, layout) {
-    node_size <- params$node_size %||% 16
+    node_size <- params$node_size %||% ggdag_option("node_size")
     n_edge_points <- params$n_edge_points %||% 50
     n_node_points <- params$n_node_points %||% 12
     has_edges <- all(c("xend", "yend") %in% names(data))
@@ -1280,7 +1280,7 @@ StatDebugRepelPoints <- ggplot2::ggproto(
     "edge_geometry"
   ),
   compute_layer = function(data, params, layout) {
-    node_size <- params$node_size %||% 16
+    node_size <- params$node_size %||% ggdag_option("node_size")
     n_edge_points <- params$n_edge_points %||% 50
     n_node_points <- params$n_node_points %||% 12
     has_edges <- all(c("xend", "yend") %in% names(data))
@@ -1664,7 +1664,7 @@ arrow_layer_geometry <- function(layer, plot_data) {
   # whatever its `unset` parameter says an unset edge means: a chord for a
   # directed layer, the layer's own curvature for a bidirected one. The geom
   # decides it the same way, so the trace follows the picture.
-  fallback <- layer$geom_params$curvature %||% 0.3
+  fallback <- layer$geom_params$curvature %||% ggdag_option("curvature")
   unset <- if (identical(layer$geom_params$unset, "curvature")) {
     fallback
   } else {
@@ -1764,6 +1764,10 @@ routed_layer_geometry <- function(layer, plot_data) {
   geometry
 }
 
+# The rows a layer draws, from its own data or the plot's. Every geometry
+# builder shares it, and every one of them reads the coordinate columns of
+# those rows rather than the layer's positional mappings: a layer that maps
+# `aes(x = other)` is still traced at the data's `x`.
 resolve_layer_data <- function(
   layer,
   plot_data,

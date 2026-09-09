@@ -700,7 +700,7 @@ test_that("order_layers: never worse than barycenter_sort on canonical DAGs", {
     layer_assign <- longest_path_layers(edges)
     layer_nodes <- layers_from_assign(layer_assign)
 
-    bary <- barycenter_sort(layer_nodes, edges, layer_assign)
+    bary <- barycenter_sort(layer_nodes, edges)
     out <- order_layers(layer_nodes, edges, layer_assign)
 
     expect_lte(

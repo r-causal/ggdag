@@ -26,3 +26,4 @@ docs
 ^\.beads$
 ^\.braid
 ^tests/testthat/_snaps/.*\.new\.(svg|md)$
+^Rplots\.pdf$

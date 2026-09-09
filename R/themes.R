@@ -7,7 +7,11 @@
 #' @param expand_x,expand_y Vector of range expansion constants used to add some
 #'   padding around the data, to ensure that they are placed some distance away
 #'   from the axes. Use the convenience function `ggplot2::expansion()` to
-#'   generate the values for the expand argument.
+#'   generate the values for the expand argument. The DAG plotting functions
+#'   replace this value on an axis whose nodes all share one coordinate: a
+#'   multiplicative expansion of a zero-width range adds nothing, so such an
+#'   axis takes an additive expansion of an eighth of the other axis's span on
+#'   each side instead.
 #' @export
 expand_plot <- function(
   expand_x = expansion(c(0.10, 0.10)),
@@ -24,8 +28,9 @@ expand_plot <- function(
 # A DAG whose nodes all share one coordinate, a chain along a single line for
 # instance, trains that axis to a zero-width range. A multiplicative expansion
 # of a zero-width range adds nothing, so ggplot2 falls back to a placeholder a
-# tenth of a unit wide, and under `coord_fixed()` the panel is then only
-# millimetres tall and the node discs are clipped flat. A degenerate axis
+# tenth of a unit on each side of the value under the expansion used here (a
+# twentieth under ggplot2's own default), and under `coord_fixed()` the panel
+# is then only millimetres tall and the node discs are clipped flat. A degenerate axis
 # instead takes an additive expansion of an eighth of the other axis's raw
 # span on each side, which for the unit-spaced layouts this package draws is
 # plus or minus half a unit, the width ggplot2 gives a zero-width scale.

@@ -1549,7 +1549,7 @@ quick_plot_arrow_edges <- function(
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_bidirected,
-      curvature = ggdag_option("curvature", 0.3),
+      curvature = ggdag_option("curvature"),
       unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
@@ -1635,7 +1635,7 @@ geom_dag_ggarrow_edges <- function(
     ggarrow::arrow_head_wings()
   arrow_fins <- ggdag_option("arrow_fins", NULL)
   arrow_mid <- ggdag_option("arrow_mid", NULL)
-  curvature <- ggdag_option("curvature", 0.3)
+  curvature <- ggdag_option("curvature")
   resect <- sizes[["cap"]]
   linewidth <- sizes[["edge"]]
   arrow_length <- arrow_length_unit(sizes[["arrow"]])

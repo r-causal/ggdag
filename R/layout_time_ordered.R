@@ -550,8 +550,8 @@ but are pinned to different times: {.val {pin_values + 1L}}."
 #'
 #' @param layer_nodes List of character vectors, one per layer (ordered by
 #'   within-layer position).
-#' @param edges_df Data frame with `name` and `to` columns (rows with `to = NA`
-#'   ignored).
+#' @param edges_df Data frame with `name` and `to` columns. Rows with
+#'   `to = NA` or naming nodes absent from `layer_assign` are ignored.
 #' @param layer_assign Named integer vector (node -> 0-based layer index).
 #' @return Integer count of crossings.
 #' @noRd
@@ -593,11 +593,10 @@ count_crossings <- function(layer_nodes, edges_df, layer_assign) {
 #'
 #' @param layer_nodes List of character vectors (one per layer).
 #' @param edges_df Data frame with `name` and `to` columns.
-#' @param layer_assign Named integer vector (node -> 0-based layer).
 #' @param sweeps Number of forward+backward sweep iterations.
 #' @return Reordered `layer_nodes` list.
 #' @noRd
-barycenter_sort <- function(layer_nodes, edges_df, layer_assign, sweeps = 40L) {
+barycenter_sort <- function(layer_nodes, edges_df, sweeps = 40L) {
   directed <- edges_df[!is.na(edges_df$to), , drop = FALSE]
   if (nrow(directed) == 0 || length(layer_nodes) < 2) {
     return(layer_nodes)
@@ -1162,7 +1161,7 @@ greedy_post_correction <- function(
   min_spacing = 72,
   max_passes = 50L,
   check_bidirected = FALSE,
-  arc_curvature = ggdag_option("curvature", 0.3),
+  arc_curvature = ggdag_option("curvature"),
   spanning_arcs = FALSE
 ) {
   target_clearance <- node_radius + 12
@@ -1307,6 +1306,11 @@ greedy_post_correction <- function(
       near <- which(
         abs(pts$x - positions$x[[w]]) < 2 * node_radius + 24
       )
+      # No sampled point sits near the node's x, so the arc's extent there is
+      # not defined and there is nothing to displace the node past.
+      if (length(near) == 0) {
+        next
+      }
       arc_extent <- if (side > 0) max(pts$y[near]) else min(pts$y[near])
       positions$y[[w]] <- arc_extent + side * target_clearance
     }
@@ -1492,11 +1496,7 @@ prefer_spread_grid <- function(
   curvature
 ) {
   layers <- sort(unique(layer_assign))
-  axis_points <- if (!is.null(time_points) && length(time_points) > 0) {
-    as.numeric(time_points)
-  } else {
-    seq_along(layers)
-  }
+  axis_points <- unname(layer_axis_points(layer_assign, time_points))
   tiers <- lapply(layers, function(l) names(layer_assign)[layer_assign == l])
   grid <- purrr::map2_dfr(
     axis_points,
@@ -1600,7 +1600,7 @@ compute_time_ordered_layout <- function(
   force_y = TRUE,
   node_scale = 1,
   node_radius = 26 * node_scale,
-  arc_curvature = ggdag_option("curvature", 0.3),
+  arc_curvature = ggdag_option("curvature"),
   edge_type = ggdag_option("edge_type", "link_arc"),
   layer_gap = 180,
   node_gap = max(85, min_spacing + 13),
@@ -2073,7 +2073,7 @@ better_positions <- function(
   b,
   edges_df,
   node_radius,
-  arc_curvature = ggdag_option("curvature", 0.3),
+  arc_curvature = ggdag_option("curvature"),
   layer_assign = NULL,
   spanning_arcs = FALSE
 ) {
@@ -2116,6 +2116,37 @@ better_positions <- function(
   a
 }
 
+#' Axis positions for the layers of a layout
+#'
+#' One position on the time axis per occupied layer, named by layer index.
+#' `time_points` gives them explicitly; otherwise `fixed_time` keeps the
+#' user's 1-based time points (internal 0-based plus one) and the plain case
+#' numbers the layers from one in ascending order.
+#'
+#' @param layer_assign Named integer vector (node -> 0-based layer).
+#' @param time_points Optional numeric vector of axis positions, one per
+#'   distinct layer in ascending layer order; takes precedence over
+#'   `fixed_time`.
+#' @param fixed_time Named vector of user pins, or `NULL`.
+#' @return A numeric vector of axis positions, named by layer index.
+#' @noRd
+layer_axis_points <- function(
+  layer_assign,
+  time_points = NULL,
+  fixed_time = NULL
+) {
+  unique_layers <- sort(unique(layer_assign))
+  positions <- if (!is.null(time_points) && length(time_points) > 0) {
+    as.numeric(time_points)
+  } else if (!is.null(fixed_time) && length(fixed_time) > 0) {
+    unique_layers + 1L
+  } else {
+    seq_along(unique_layers)
+  }
+
+  stats::setNames(positions, as.character(unique_layers))
+}
+
 #' Normalize pixel-space positions to ggdag-friendly coordinates
 #'
 #' @param positions List with `$x` and `$y` (named numeric vectors).
@@ -2141,29 +2172,9 @@ normalize_positions <- function(
 ) {
   node_names <- names(positions$x)
 
-  # x: map layer indices to sequential integers
-  # When fixed_time is used, preserve the actual layer values (shifted to start
-
-  # at 1) so pinned nodes keep their requested time point.
-  unique_layers <- sort(unique(layer_assign))
-  if (!is.null(time_points) && length(time_points) > 0) {
-    # The caller supplies one axis position per layer, ascending
-    layer_map <- stats::setNames(
-      as.numeric(time_points),
-      as.character(unique_layers)
-    )
-  } else if (!is.null(fixed_time) && length(fixed_time) > 0) {
-    # Preserve user's 1-based time points: internal 0-based + 1
-    layer_map <- stats::setNames(
-      unique_layers + 1L,
-      as.character(unique_layers)
-    )
-  } else {
-    layer_map <- stats::setNames(
-      seq_along(unique_layers),
-      as.character(unique_layers)
-    )
-  }
+  # x: one axis position per layer, so pinned nodes keep the time point they
+  # were given and the plain case numbers the layers from one
+  layer_map <- layer_axis_points(layer_assign, time_points, fixed_time)
   norm_x <- vapply(
     node_names,
     function(n) {

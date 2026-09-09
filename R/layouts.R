@@ -122,7 +122,7 @@ time_ordered_coords <- function(
         fixed_time = fixed_time,
         adjust_exposure_outcome = adjust_exposure_outcome,
         force_y = force_y,
-        node_scale = ggdag_option("node_size", 16) / 16,
+        node_scale = ggdag_option("node_size") / 16,
         ...
       )
     }
@@ -221,7 +221,7 @@ time_ordered_coords <- function(
       time_points = tier_points,
       fixed_layers_arg = ".vars",
       force_y = force_y,
-      node_scale = ggdag_option("node_size", 16) / 16,
+      node_scale = ggdag_option("node_size") / 16,
       ...
     )
   }

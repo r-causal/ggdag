@@ -838,9 +838,7 @@ test_that("barycenter_sort keeps the incumbent order on ties", {
     to = c("q", "p", "z"),
     stringsAsFactors = FALSE
   )
-  layer_assign <- c(a = 0L, q = 1L, p = 1L, z = 1L)
-
-  out <- barycenter_sort(layer_nodes, edges, layer_assign)
+  out <- barycenter_sort(layer_nodes, edges)
   expect_identical(out[[2]], c("q", "p", "z"))
 })
 

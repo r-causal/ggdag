@@ -252,7 +252,7 @@ compute_layout_coords <- function(layout, edges_df, nodes, dag = NULL) {
     compute_time_ordered_layout(
       exposure = exposure,
       outcome = outcome,
-      node_scale = ggdag_option("node_size", 16) / 16
+      node_scale = ggdag_option("node_size") / 16
     ) |>
     coords2list()
 }

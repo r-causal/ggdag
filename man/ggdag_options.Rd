@@ -17,7 +17,7 @@ ggdag_options_get(name = NULL)
 
 ggdag_options_reset()
 
-ggdag_option(name, default)
+ggdag_option(name, default = ggdag_defaults[[name]])
 
 ggdag_option_proportional(name, base_default, override_default)
 }
@@ -28,7 +28,8 @@ and types.}
 \item{name}{Character string. The option name (without the \code{ggdag.} prefix).
 If \code{NULL}, returns all currently-set ggdag options.}
 
-\item{default}{Default value to return if the option is not set.}
+\item{default}{Default value to return if the option is not set. Defaults
+to the entry for \code{name} in \code{ggdag_defaults}.}
 
 \item{base_default}{The base default for this option (e.g., 8 for edge_cap).}
 

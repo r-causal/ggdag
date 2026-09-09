@@ -422,7 +422,7 @@ test_that("barycenter_sort: resolves known crossing", {
   )
   layer_assign <- c(A = 0L, B = 0L, C = 1L, D = 1L)
 
-  result <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  result <- barycenter_sort(layer_nodes, edges_df)
   crossings_after <- count_crossings(result, edges_df, layer_assign)
   expect_equal(crossings_after, 0L)
 })
@@ -434,9 +434,7 @@ test_that("barycenter_sort: already optimal stays unchanged", {
     to = c("C", "D"),
     stringsAsFactors = FALSE
   )
-  layer_assign <- c(A = 0L, B = 0L, C = 1L, D = 1L)
-
-  result <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  result <- barycenter_sort(layer_nodes, edges_df)
   expect_equal(result, layer_nodes)
 })
 
@@ -463,7 +461,7 @@ test_that("barycenter_sort: three-layer DAG reduces crossings", {
   layer_assign <- c(A = 0L, B = 0L, C = 1L, D = 1L, E = 2L, F = 2L)
 
   before <- count_crossings(layer_nodes, edges_df, layer_assign)
-  result <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  result <- barycenter_sort(layer_nodes, edges_df)
   after <- count_crossings(result, edges_df, layer_assign)
   expect_lte(after, before)
 })
@@ -603,7 +601,7 @@ test_that("force_directed_y: napkin DAG has 0 overlaps", {
   layer_nodes <- lapply(seq(0, max_layer), function(l) {
     names(layer_assign[layer_assign == l])
   })
-  layer_nodes <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  layer_nodes <- barycenter_sort(layer_nodes, edges_df)
 
   result <- force_directed_y(layer_nodes, layer_assign, edges_df)
   overlaps <- count_test_overlaps(result, edges_df, layer_assign)
@@ -831,7 +829,7 @@ test_zero_overlaps <- function(label, edge_pairs) {
     layer_nodes <- lapply(seq(0, max_layer), function(l) {
       names(layer_assign[layer_assign == l])
     })
-    layer_nodes <- barycenter_sort(layer_nodes, directed, layer_assign)
+    layer_nodes <- barycenter_sort(layer_nodes, directed)
     positions <- force_directed_y(layer_nodes, layer_assign, directed)
     positions <- greedy_post_correction(positions, directed, layer_assign)
     overlaps <- find_overlaps(positions, directed, layer_assign)

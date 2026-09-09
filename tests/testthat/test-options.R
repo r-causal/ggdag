@@ -121,6 +121,15 @@ test_that("ggdag_option() returns global option when set, default otherwise", {
   expect_equal(ggdag_option("node_size", 16), 24)
 })
 
+test_that("ggdag_option() falls back to the packaged default", {
+  withr::local_options(ggdag.node_size = NULL, ggdag.curvature = NULL)
+  expect_equal(ggdag_option("node_size"), 16)
+  expect_equal(ggdag_option("curvature"), 0.3)
+
+  withr::local_options(ggdag.node_size = 24)
+  expect_equal(ggdag_option("node_size"), 24)
+})
+
 test_that("ggdag_option_proportional() returns override_default when unset", {
   withr::local_options(ggdag.edge_cap = NULL)
   expect_equal(ggdag_option_proportional("edge_cap", 8, 10), 10)

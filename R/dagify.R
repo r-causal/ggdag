@@ -158,20 +158,12 @@ dagify <- function(
     } else if (is.list(coords)) {
       dagitty::coordinates(dgty) <- coords
     } else if (is.function(coords)) {
-      edge_df <- dgty |>
-        get_dagitty_edges() |>
-        edges2df() |>
-        add_isolated_nodes(names(dgty))
-      coord_result <- if ("..." %in% names(formals(coords))) {
-        coords(
-          edge_df,
-          exposure = dagitty::exposures(dgty),
-          outcome = dagitty::outcomes(dgty)
-        )
-      } else {
-        coords(edge_df)
-      }
-      dagitty::coordinates(dgty) <- coords2list(coord_result)
+      dagitty::coordinates(dgty) <- compute_layout_coords(
+        coords,
+        get_dagitty_edges(dgty),
+        names(dgty),
+        dag = dgty
+      )
     } else {
       abort(
         c(
