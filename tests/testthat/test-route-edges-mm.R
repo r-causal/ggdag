@@ -804,16 +804,17 @@ corner_points <- function(path, bends, radius) {
   apply(d, 1, min) <= radius
 }
 
-# Distinct x values of the vertical runs of a path strictly inside the gap
-# (x_left, x_right). A vertical run within sep_e of a layer x is a port
-# stub, not a slot: an S/N port sits on the layer x, or sep_e / 2 beside it
-# when a node's arrivals and departures share a side, and a slot never comes
-# closer than the stub to a layer.
+# Distinct x values of the vertical runs of a path inside the gap
+# (x_left, x_right), the layer lines included. The last rung of the ladder
+# spreads its slots to the source layer's own centre line, so a slot can sit
+# anywhere in the gap and no distance from a layer tells a slot from a port
+# stub. The callers are ladder scenes whose nodes take no S/N port, so every
+# vertical inside the gap is a slot.
 slot_xs <- function(path, gap, tol = 1e-6) {
   runs <- straight_runs(path, tol)
   inside <- runs$axis == "v" &
-    runs$coord > gap[1] + sep_e_default &
-    runs$coord < gap[2] - sep_e_default
+    runs$coord >= gap[1] - tol &
+    runs$coord <= gap[2] + tol
   unique(round(runs$coord[inside], 9))
 }
 
@@ -948,7 +949,9 @@ expect_orthogonal_scene <- function(
     } else {
       scene$edges$to[i]
     }
-    # port stubs within sep_e of a layer x are not slots (see slot_xs())
+    # a vertical run within sep_e of a layer x is a port stub rather than a
+    # slot: an S/N port sits on the layer x, or sep_e / 2 beside it when a
+    # node's arrivals and departures share a side
     vertical <- runs[runs$axis == "v", , drop = FALSE]
     for (g in seq_len(nrow(gaps))) {
       inside <- vertical$coord > gaps[g, 1] + sep_e_default &
@@ -4544,6 +4547,50 @@ test_that("orthogonal channels: a channel that would cut a disc gives way to a r
   }
 })
 
+# Two spans across one middle layer, arranged so that the free interval
+# between the middle layer's discs is only just wide enough for a run and
+# the first channel placed sits beside it. m1 (60, 20) and m2 (60, 42) leave
+# the interval [29, 33] between them at the full R = 9; s1 -> t1 is placed
+# first and takes its own source line 30, which is inside that interval, so
+# s2 -> t2's interior candidate at 29 is pushed one separation past it to
+# 33.6, where it is 8.4 mm from m2 and cuts the disc. The refusal sends
+# s2 -> t2 to the run below the layer at 20 - 9 = 11.
+pushed_into_disc_scene <- function() {
+  list(
+    nodes = mm_nodes(
+      c("s1", "s2", "m1", "m2", "t1", "t2"),
+      c(20, 20, 60, 60, 100, 100),
+      c(30, 12, 20, 42, 34, 36)
+    ),
+    edges = mm_edges(c("s1", "s2"), c("t1", "t2")),
+    bounds = c(0, 0, 120, 60)
+  )
+}
+
+test_that("orthogonal channels: a candidate pushed onto a disc is refused", {
+  # The disc check is applied to the pushed y, not to the y the candidate
+  # was priced at: skipping it once a candidate has been stacked would put
+  # s2 -> t2's run at 33.6, inside m2's disc.
+  scene <- pushed_into_disc_scene()
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  a <- edge_index(scene, "s1->t1")
+  expect_equal(res$meta$mode[a], "orthogonal")
+  expect_equal(res$meta$n_waypoints[a], 2)
+  expect_equal(channel_run(res$paths[[a]], 60)$coord, 30, tolerance = 1e-6)
+
+  b <- edge_index(scene, "s2->t2")
+  expect_equal(res$meta$mode[b], "orthogonal")
+  expect_equal(res$meta$side[b], -1)
+  expect_equal(res$meta$n_waypoints[b], 4)
+  run <- channel_run(res$paths[[b]], 60)
+  expect_equal(run$coord, 11, tolerance = 1e-6)
+  for (nm in c("m1", "m2")) {
+    expect_gte(abs(run$coord - node_xy(scene, nm)[[2]]), r_full - 1e-6)
+  }
+})
+
 # The collinear mediator with z at (7.3, 75) above x in x's layer. x is not
 # the top of its layer, so there is no N channel (one would have to pass
 # z's disc from x's N port); x->y takes the S channel at min(55 - 9,
@@ -5255,9 +5302,8 @@ test_that("route_constants() derives the minimum slot separation and takes an ov
 })
 
 # The x of the vertical run each path of a single-gap scene crosses the gap
-# on, in edge order. The run is found by its place in the path rather than by
-# its distance from a layer: the last rung may put a slot within sep_e of a
-# layer line, or exactly on it, and slot_xs() reports neither.
+# on, in edge order, one value per path where slot_xs() reports the distinct
+# x values of a whole scene.
 ladder_slots <- function(res) {
   vapply(
     res$paths,
@@ -5636,6 +5682,13 @@ test_that("orthogonal ladder: the last rung spreads over the band it is given", 
     head_run_margin_default,
     tolerance = 1e-6
   )
+
+  # the gap census reads all seven, the leftmost 0.02 mm inside the source
+  # layer's own centre line rather than a separation clear of it
+  slots <- gap_slots(scene, ortho(scene, corners = "sharp"))
+  expect_length(slots, 7)
+  expect_equal(min(slots), 20.02, tolerance = 1e-6)
+  expect_equal(diff(slots), rep(sep_min_default, 6), tolerance = 1e-6)
 })
 
 test_that("orthogonal ladder: a rung-4 gap crossed leftwards floors its left slot", {
@@ -7797,8 +7850,9 @@ test_that("orthogonal heads: no foreign shaft is drawn on a head out of a gap th
   # scene has 8.1 and 14.5 mm gaps to fit eleven layers into, where no
   # arrangement of six or eight ranks leaves a head its run: thirty of them
   # (17 and 13) drawn left to right and thirty-three (26 and 7) in the
-  # mirror image, which reverses the ranks and so packs the narrow gaps
-  # differently. At the largest size both copies draw none.
+  # mirror image, where the arrivals of a gap are counted from the other
+  # side and each gap takes a rank count of its own, so the narrow ones are
+  # packed differently. At the largest size both copies draw none.
   hits <- list()
   for (scene in oblique_census_scenes()) {
     res <- ortho(scene)
@@ -8146,6 +8200,94 @@ longest_run <- function(path, axis = "h") {
   runs[which.max(runs$length), , drop = FALSE]
 }
 
+test_that("orthogonal channels: a placed channel pushes a candidate on the other side", {
+  # cascade's a -> f and b -> e have the same chord median, so both want the
+  # same line and the second placed is stacked one separation off it. The
+  # stacking rule reads every placed channel whose x-range overlaps, on
+  # either side, which is what keeps a -> f off the line b -> e holds: were
+  # only same-side channels counted, a -> f's candidate below the line would
+  # sit on 55, undisplaced and cheaper than the 58.6 above.
+  for (panel in list(c(160, 110), gallery_panels[[2]])) {
+    scene <- canonical_scene("cascade", panel)
+    res <- ortho(scene)
+    label <- paste0(round(panel[[1]], 2), " mm panel: ")
+    expect_orthogonal_scene(scene, res, stub_always = TRUE, prefix = label)
+
+    af <- edge_index(scene, "a->f")
+    be <- edge_index(scene, "b->e")
+    run_af <- longest_run(res$paths[[af]])
+    run_be <- longest_run(res$paths[[be]])
+    # the runs cross the same gaps, so the two channels are in conflict
+    expect_gt(min(run_af$hi, run_be$hi) - max(run_af$lo, run_be$lo), 0)
+    expect_equal(
+      run_af$coord - run_be$coord,
+      sep_e_default,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(
+      shared_run_length(res$paths[[af]], res$paths[[be]]),
+      0,
+      label = label
+    )
+  }
+
+  # the two lines at each size, so that a channel drawn on the other's line
+  # is named rather than only measured as a difference
+  expect_equal(
+    vapply(
+      c("a->f", "b->e"),
+      function(lab) {
+        scene <- canonical_scene("cascade", c(160, 110))
+        longest_run(ortho(scene)$paths[[edge_index(scene, lab)]])$coord
+      },
+      numeric(1)
+    ),
+    c("a->f" = 58.6, "b->e" = 55),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    vapply(
+      c("a->f", "b->e"),
+      function(lab) {
+        scene <- canonical_scene("cascade", gallery_panels[[2]])
+        longest_run(ortho(scene)$paths[[edge_index(scene, lab)]])$coord
+      },
+      numeric(1)
+    ),
+    c("a->f" = 64.991241, "b->e" = 61.391241),
+    tolerance = 1e-6
+  )
+})
+
+test_that("orthogonal channels: very_big keeps its pushed channels off the discs at 10 x 6", {
+  # The two channels of the gallery's largest scene that a skipped disc
+  # check moves: both run past the layers they cross at least R = 9 from
+  # every disc whose x their run spans. The census is deliberately narrow.
+  # Not every channel of the scene keeps R today, bmi -> bp's run at 90.443
+  # being the counter-example, so a blanket sweep would be false.
+  scene <- very_big_scene(gallery_panels[[3]])
+  res <- ortho(scene)
+  lines <- c("phys_act->cvd" = 114.814880, "education->smoking" = 23.251112)
+
+  for (label in names(lines)) {
+    i <- edge_index(scene, label)
+    run <- longest_run(res$paths[[i]])
+    expect_equal(run$coord, lines[[label]], tolerance = 1e-6, label = label)
+
+    ends <- c(scene$edges$from[[i]], scene$edges$to[[i]])
+    crossed <- scene$nodes$x >= run$lo - 1e-9 &
+      scene$nodes$x <= run$hi + 1e-9 &
+      !scene$nodes$name %in% ends
+    expect_gt(sum(crossed), 0L)
+    expect_gte(
+      min(abs(run$coord - scene$nodes$y[crossed])),
+      r_full - 1e-6,
+      label = label
+    )
+  }
+})
+
 test_that("orthogonal packing: a crowded target line slides the interior run away", {
   # s -> t is placed second, being the longer span, and finds its target's
   # line 50 clear of every disc, of the panel margin and of the pieces
@@ -8343,15 +8485,13 @@ crowded_record <- function(y = 53, kind = "ew", keys = c("s2", "e2-7")) {
       a = 2L,
       b = 7L
     ),
-    tight = 0L,
     state = list(
       members = c(4L, 5L, 10L),
       yc = 55,
       xr_ew = c(36.1, 103.9),
       y_min = 3,
       y_max = 107,
-      extra = 0,
-      R_soft = rep(r_soft, 10)
+      extra = 0
     )
   )
 }
@@ -8610,9 +8750,9 @@ test_that("orthogonal packing: the excursion census loses the crowded channel", 
   # endpoints' difference. The three that stay are forced detours, not
   # crowding: a blocked line, a band with no free y, or a channel over a
   # stack that fills the panel.
-  # the counts below are the drawing the gallery makes, so they read the
+  # The counts below are the drawing the gallery makes, so they read the
   # left-to-right scenes alone; the mirrored copies belong to the censuses
-  # that assert invariants rather than tallies
+  # that assert invariants rather than tallies.
   scenes <- c(
     forward_census_scenes(),
     list(very_big_scene(gallery_panels[[3]]))
@@ -8670,9 +8810,9 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
   # channels, their total vertical travel. The last rung's spread moves the
   # orthogonal aggregate, and only it: 27 of these scenes' departures now
   # leave on their source's own centre line, which is one bend fewer each.
-  # the aggregates are the drawing the gallery makes, so they read the
+  # The aggregates are the drawing the gallery makes, so they read the
   # left-to-right scenes alone; the mirrored copies belong to the censuses
-  # that assert invariants rather than tallies
+  # that assert invariants rather than tallies.
   scenes <- c(
     forward_census_scenes(),
     list(
