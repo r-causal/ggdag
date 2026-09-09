@@ -1654,6 +1654,52 @@ test_that("label-auto visuals: labels wrapped at ten characters", {
   expect_doppelganger("label-auto-wrapped-ten-nodes", p)
 })
 
+# Three labels, two of them broken where the author wanted the break and one
+# long enough that the width has to break it: `strwrap("Socioeconomic
+# status", 20)` gives "Socioeconomic" and "status".
+hand_broken_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    labels = c(
+      x = "Air\npollution",
+      y = "Cardiovascular\ndisease",
+      z = "Socioeconomic status"
+    ),
+    coords = list(x = c(x = 0, z = 1, y = 2), y = c(x = 0, z = 1, y = 0))
+  )
+}
+
+test_that("label-auto visuals: a hand-written line break survives wrap", {
+  skip_if_not_installed("ragg")
+
+  p <- ggdag(
+    hand_broken_dag(),
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto,
+    label_wrap = 20
+  ) +
+    theme_dag()
+
+  # A baseline taken from a picture that had joined the author's lines would
+  # pin the defect, so the drawn text is read first: the break the author
+  # wrote is drawn where they wrote it, and a label too long for the width is
+  # still broken.
+  drawn <- wrap_boxes(p)
+  stopifnot(
+    "the hand-written break is drawn where it was written" = identical(
+      drawn$text[drawn$key == "Air pollution"],
+      "Air\npollution"
+    ),
+    "a label longer than the width is still wrapped" = identical(
+      drawn$text[drawn$key == "Socioeconomic status"],
+      "Socioeconomic\nstatus"
+    )
+  )
+
+  expect_doppelganger("label-auto-hand-broken-labels", p)
+})
+
 # Constructor validation ------------------------------------------------------
 #
 # `wrap` and `min.segment.length` are read at draw time, deep inside the
@@ -1706,7 +1752,15 @@ test_that("the auto geoms accept every width a label can wrap to", {
 })
 
 test_that("the auto geoms reject a min.segment.length that is not a distance", {
-  bad <- list("abc", -1, 0, c(1, 2), NA, grid::unit(0, "lines"))
+  bad <- list(
+    "abc",
+    -1,
+    0,
+    c(1, 2),
+    NA,
+    grid::unit(0, "lines"),
+    grid::unit(NA, "mm")
+  )
   for (value in bad) {
     expect_error(
       geom_dag_label_auto(

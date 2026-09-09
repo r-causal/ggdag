@@ -2739,7 +2739,7 @@ check_min_segment_length <- function(value, call = rlang::caller_env()) {
   ok <- if (grid::is.unit(value)) {
     amount <- tryCatch(as.numeric(value), error = function(e) NULL)
     length(value) == 1 &&
-      (length(amount) != 1 || is.na(amount) || amount > 0)
+      (length(amount) != 1 || (!is.na(amount) && amount > 0))
   } else {
     is.numeric(value) &&
       length(value) == 1 &&
