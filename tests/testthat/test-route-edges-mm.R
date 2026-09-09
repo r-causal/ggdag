@@ -6571,6 +6571,26 @@ mirror_scene <- function(scene) {
   scene
 }
 
+# The scene reflected in the panel's vertical centre line, which reverses
+# the layer order and sends every edge from right to left. `mirror_scene()`
+# reflects y instead, so it cannot produce this picture. The name carries a
+# suffix so a census failure says which copy it read, and the canonical
+# layer index is renumbered from the far end to stay the index of the layer
+# the node now sits in.
+mirror_scene_x <- function(scene) {
+  scene$nodes$x <- scene$bounds[[1]] + scene$bounds[[3]] - scene$nodes$x
+  if (!is.null(scene$layer)) {
+    scene$layer <- max(scene$layer) + 1L - scene$layer
+  }
+  scene$name <- paste(scene$name %||% "fixture", "mirrored")
+  scene
+}
+
+# A scene list alongside the mirror image of each of its scenes.
+with_mirrored_scenes <- function(scenes) {
+  c(scenes, lapply(scenes, mirror_scene_x))
+}
+
 mirror_path <- function(path, scene) {
   path$y <- scene$bounds[[2]] + scene$bounds[[4]] - path$y
   path
@@ -6765,9 +6785,9 @@ test_that("orthogonal ports: an offset port's path ends at its axis point", {
   }
 })
 
-# The scenes the head census runs over: the hand fixtures and the canonical
-# DAGs at both panels.
-head_census_scenes <- function() {
+# The hand fixtures and the canonical DAGs at both panels, every one of them
+# ordered left to right as a gallery layout is.
+forward_census_scenes <- function() {
   scenes <- list(
     fan_scene(),
     four_layer_scene(),
@@ -6788,6 +6808,13 @@ head_census_scenes <- function() {
     }
   }
   scenes
+}
+
+# The scenes the head census runs over: those, and the mirror image of each.
+# Every scene above runs left to right, so without the mirrored copies no
+# census reads the router's leftward branches.
+head_census_scenes <- function() {
+  with_mirrored_scenes(forward_census_scenes())
 }
 
 test_that("orthogonal heads: no head is drawn at an angle to the run it sits on", {
@@ -7161,16 +7188,16 @@ very_big_scene <- function(panel) {
 
 # The scenes the oblique census runs over: everything the head census sees,
 # plus the canonical DAGs and the gallery's largest scene at each of the
-# three device sizes.
+# three device sizes, and the mirror image of every one of them.
 oblique_census_scenes <- function() {
-  scenes <- head_census_scenes()
+  scenes <- forward_census_scenes()
   for (panel in gallery_panels) {
     for (nm in names(canonical_dag_specs)) {
       scenes[[length(scenes) + 1L]] <- canonical_scene(nm, panel)
     }
     scenes[[length(scenes) + 1L]] <- very_big_scene(panel)
   }
-  scenes
+  with_mirrored_scenes(scenes)
 }
 
 test_that("orthogonal: no run in any scene is drawn at an angle", {
@@ -7550,10 +7577,13 @@ test_that("orthogonal ladder: a gap that can hold the head margin holds it", {
 test_that("orthogonal heads: no foreign shaft is drawn on a head out of a gap that can spare it", {
   # The same scenes, read as ink rather than as slots: every shaft drawn
   # within half its own width of an arrowhead of another edge. None of them
-  # is a vertical in a gap wide enough to have avoided it. The thirty that
-  # remain are all in the two sizes at which the gallery's largest scene has
-  # 8.1 and 14.5 mm gaps to fit eleven layers into, where no arrangement of
-  # six or eight ranks leaves a head its run.
+  # is a vertical in a gap wide enough to have avoided it. The sixty-three
+  # that remain are all in the two sizes at which the gallery's largest
+  # scene has 8.1 and 14.5 mm gaps to fit eleven layers into, where no
+  # arrangement of six or eight ranks leaves a head its run: thirty of them
+  # (17 and 13) drawn left to right and thirty-three (26 and 7) in the
+  # mirror image, which reverses the ranks and so packs the narrow gaps
+  # differently. At the largest size both copies draw none.
   hits <- list()
   for (scene in oblique_census_scenes()) {
     res <- ortho(scene)
@@ -7569,8 +7599,8 @@ test_that("orthogonal heads: no foreign shaft is drawn on a head out of a gap th
   }
   hits <- do.call(rbind, hits)
   expect_equal(sum(in_a_wide_gap(hits)), 0L)
-  expect_equal(nrow(hits), 30L)
-  expect_setequal(unique(hits$scene), "very_big")
+  expect_equal(nrow(hits), 63L)
+  expect_setequal(unique(hits$scene), c("very_big", "very_big mirrored"))
 })
 
 test_that("orthogonal heads: very_big draws no foreign shaft on a head at 10 x 6", {
@@ -8190,7 +8220,13 @@ test_that("orthogonal packing: the excursion census loses the crowded channel", 
   # endpoints' difference. The three that stay are forced detours, not
   # crowding: a blocked line, a band with no free y, or a channel over a
   # stack that fills the panel.
-  scenes <- c(head_census_scenes(), list(very_big_scene(gallery_panels[[3]])))
+  # the counts below are the drawing the gallery makes, so they read the
+  # left-to-right scenes alone; the mirrored copies belong to the censuses
+  # that assert invariants rather than tallies
+  scenes <- c(
+    forward_census_scenes(),
+    list(very_big_scene(gallery_panels[[3]]))
+  )
   x <- channel_excursions(scenes)
 
   expect_equal(nrow(x), 117L)
@@ -8244,8 +8280,11 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
   # channels, their total vertical travel. The last rung's spread moves the
   # orthogonal aggregate, and only it: 27 of these scenes' departures now
   # leave on their source's own centre line, which is one bend fewer each.
+  # the aggregates are the drawing the gallery makes, so they read the
+  # left-to-right scenes alone; the mirrored copies belong to the censuses
+  # that assert invariants rather than tallies
   scenes <- c(
-    head_census_scenes(),
+    forward_census_scenes(),
     list(
       very_big_scene(gallery_panels[[1]]),
       very_big_scene(gallery_panels[[2]])
