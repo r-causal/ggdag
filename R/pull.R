@@ -142,7 +142,7 @@ rebuilt_coordinates <- function(value, layout, dag) {
   # data that does not name its nodes is rejected by `prep_dag_data()`, which
   # is left to report it rather than laying the DAG out first
   rebuilding <- all(c("name", "to") %in% names(value)) &&
-    any(c("x", "y", "xend", "yend") %nin% names(value))
+    incomplete_coordinates(value)
 
   if (!rebuilding) {
     return(list(rebuilding = FALSE, coords = NULL))
@@ -219,6 +219,20 @@ node_positions <- function(data) {
   )
 }
 
+#' Does the data arrive without a full set of coordinates?
+#'
+#' `prep_dag_data()` regenerates the layout, and so consults the `coords` it
+#' is given, only when a coordinate column is missing. Everything that has to
+#' know whether the coordinates it is holding will be used asks here, so that
+#' the question is settled in one place.
+#'
+#' @param value A data frame that may carry coordinate columns.
+#' @return `TRUE` when any of `x`, `y`, `xend`, or `yend` is absent.
+#' @noRd
+incomplete_coordinates <- function(value) {
+  any(c("x", "y", "xend", "yend") %nin% names(value))
+}
+
 prep_dag_data <- function(
   value,
   layout = ggdag_option("layout", "nicely"),
@@ -249,7 +263,7 @@ prep_dag_data <- function(
     value$direction <- ifelse(is.na(value$to), NA_character_, "->")
   }
 
-  if (any(c("x", "y", "xend", "yend") %nin% names(value))) {
+  if (incomplete_coordinates(value)) {
     # a partial set of coordinate columns can't be reconciled with a freshly
     # generated layout, so drop them and regenerate all four consistently
     value <- dplyr::select(value, -dplyr::any_of(c("x", "y", "xend", "yend")))

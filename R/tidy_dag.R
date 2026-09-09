@@ -302,11 +302,16 @@ as_tidy_dagitty.data.frame <- function(
   # the axis the layers run along belongs to the coordinates the data is laid
   # out with, so the layout is resolved here, whether it was handed in or is
   # about to be computed, and the coordinates are passed on rather than
-  # computed a second time
-  if (is.null(coords)) {
+  # computed a second time. Data that arrives with its coordinates is laid
+  # out by them, and `prep_dag_data()` never reaches for the ones handed in,
+  # so a grid it leaves unused names no axis.
+  rebuilding <- incomplete_coordinates(x)
+
+  if (rebuilding && is.null(coords)) {
     coords <- rebuilt_coordinates(dplyr::ungroup(x), layout, dag = NULL)$coords
   }
-  recorded_direction <- layout_direction(coords)
+
+  recorded_direction <- if (rebuilding) layout_direction(coords) else NULL
 
   tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
   .dagitty <- compile_dag_from_df(x)
