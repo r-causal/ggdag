@@ -3271,3 +3271,233 @@ test_that("visual: exposure/outcome shift with a bidirected outcome", {
   expect_true(node_x("y") == node_x("w"))
   expect_doppelganger("time-ordered-exp-out-bidirected", ggdag(td))
 })
+
+# Engine-aware arc side --------------------------------------------------------
+
+# Points of the arrow outline the ggarrow engine draws, in millimetres. The
+# engine builds its curve at draw time, so the drawn side has to be read off
+# the rendered plot rather than the layer data.
+rendered_arrow_shaft <- function(plot) {
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  print(plot)
+  grid::grid.force()
+  shaft <- NULL
+  for (nm in grid::grid.ls(print = FALSE)$name) {
+    grob <- tryCatch(grid::grid.get(nm, grep = TRUE), error = function(e) NULL)
+    if (!inherits(grob, "pathgrob") || length(grob$x) < 20) {
+      next
+    }
+    shaft <- data.frame(
+      x = as.numeric(grid::convertX(grob$x, "mm")),
+      y = as.numeric(grid::convertY(grob$y, "mm"))
+    )
+  }
+  shaft
+}
+
+# The side of the chord an edge engine draws a positive arc on, measured from
+# an edge running left to right: positive is above the chord, which is the
+# left of travel.
+drawn_arc_offset <- function(engine, curvature = 0.3) {
+  edge <- data.frame(
+    name = "a",
+    x = 0,
+    y = 0,
+    xend = 2,
+    yend = 0,
+    direction = factor("->", levels = c("->", "<->"))
+  )
+  mapping <- ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+
+  if (identical(engine, "ggraph")) {
+    drawn <- ggplot2::ggplot_build(
+      ggplot2::ggplot(edge, mapping) + geom_dag_edges_arc(curvature = curvature)
+    )$data[[1]]
+    return(drawn$y[which.min(abs(drawn$x - 1))] - edge$y)
+  }
+
+  shaft <- rendered_arrow_shaft(
+    ggplot2::ggplot(edge, mapping) + geom_dag_arrow_arc(curvature = curvature)
+  )
+  span <- diff(range(shaft$x))
+  ends <- abs(shaft$x - mean(range(shaft$x))) > 0.45 * span
+  middle <- abs(shaft$x - mean(range(shaft$x))) < 0.05 * span
+  mean(shaft$y[middle]) - mean(shaft$y[ends])
+}
+
+# The curvature `sample_curved_edge()` traces `engine`'s drawn arc with.
+# `sample_curved_edge()` offsets to the right of travel, so an engine that
+# draws to the left is traced with the negated curvature.
+drawn_trace_curvature <- function(engine, curvature = 0.3) {
+  if (drawn_arc_offset(engine, curvature) > 0) -curvature else curvature
+}
+
+# Minimum distance, in data units, from a node's center to the edge from
+# `from` to `to` traced at `curvature`.
+arc_clearance <- function(coords, from, to, node, curvature) {
+  at <- function(nm, col) coords[[col]][coords$name == nm]
+  arc <- sample_curved_edge(
+    at(from, "x"),
+    at(from, "y"),
+    at(to, "x"),
+    at(to, "y"),
+    curvature
+  )
+  min(sqrt((at(node, "x") - arc$x)^2 + (at(node, "y") - arc$y)^2))
+}
+
+# The clearance floor the engine itself works to: node radius plus 8 internal
+# pixels, mapped to data units by the 180-pixel layer gap.
+arc_clearance_floor <- function(node_scale = 1) {
+  (26 * node_scale + 8) / 180
+}
+
+test_that("the ggraph engine and the ggarrow engine draw arcs on opposite sides", {
+  # Everything below rests on the two engines disagreeing about which side of
+  # travel a positive arc bows to, so pin the premise itself.
+  expect_gt(drawn_arc_offset("ggraph"), 0)
+  expect_lt(drawn_arc_offset("ggarrow"), 0)
+  expect_equal(drawn_trace_curvature("ggraph"), -0.3)
+  expect_equal(drawn_trace_curvature("ggarrow"), 0.3)
+})
+
+test_that("a bidirected arc is cleared on the side the ggraph engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggraph",
+    ggdag.node_size = 24
+  ))
+
+  # x <-> y spans two layers with m between them, and at this node size the
+  # arc decides where m settles. The drawn arc bows to one side of the chord,
+  # so a layout that traces the mirror side clears nothing the reader can
+  # see: m ends up sitting on the arc it was meant to avoid.
+  td <- tidy_dagitty(dagify(y ~ x + m, m ~ x, x ~ ~y))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "x",
+    "y",
+    "m",
+    drawn_trace_curvature("ggraph")
+  )
+  expect_gte(clearance, arc_clearance_floor(24 / 16))
+})
+
+test_that("a bidirected arc is cleared on the side the ggarrow engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggarrow",
+    ggdag.node_size = 24
+  ))
+
+  # The same DAG under the other engine: the arc is drawn on the other side
+  # of the chord, and the layout has to follow it there.
+  td <- tidy_dagitty(dagify(y ~ x + m, m ~ x, x ~ ~y))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "x",
+    "y",
+    "m",
+    drawn_trace_curvature("ggarrow")
+  )
+  expect_gte(clearance, arc_clearance_floor(24 / 16))
+})
+
+test_that("a spanning arc is cleared on the side the ggraph engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggraph",
+    ggdag.edge_type = "arc"
+  ))
+
+  # z -> y spans two layers, and under the arc edge type it is drawn curved,
+  # bowing toward x. The layout must clear the arc on the side the engine
+  # draws it.
+  td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "z",
+    "y",
+    "x",
+    drawn_trace_curvature("ggraph")
+  )
+  expect_gte(clearance, arc_clearance_floor())
+})
+
+test_that("a spanning arc is cleared on the side the ggarrow engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggarrow",
+    ggdag.edge_type = "arc"
+  ))
+
+  # The same spanning edge under the other engine bows to the other side of
+  # the chord, so the node it has to clear is on the other side too.
+  td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "z",
+    "y",
+    "x",
+    drawn_trace_curvature("ggarrow")
+  )
+  expect_gte(clearance, arc_clearance_floor())
+})
+
+test_that("compute_time_ordered_layout: the edge engine decides the arc side", {
+  edges <- as.data.frame(get_dagitty_edges(dagify(y ~ x + m, m ~ x, x ~ ~y)))
+
+  ggraph_coords <- compute_time_ordered_layout(
+    edges,
+    node_scale = 24 / 16,
+    edge_engine = "ggraph"
+  )
+  ggarrow_coords <- compute_time_ordered_layout(
+    edges,
+    node_scale = 24 / 16,
+    edge_engine = "ggarrow"
+  )
+
+  # The engines bow the arc to opposite sides of the chord, so the layouts
+  # that clear them are mirror images of each other.
+  expect_equal(ggraph_coords$name, ggarrow_coords$name)
+  expect_equal(ggraph_coords$x, ggarrow_coords$x)
+  expect_equal(ggraph_coords$y, -ggarrow_coords$y, tolerance = 1e-6)
+})
+
+test_that("compute_time_ordered_layout: the edge engine option sets the side", {
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.edge_engine = "ggarrow"))
+
+  edges <- as.data.frame(get_dagitty_edges(dagify(y ~ x + m, m ~ x, x ~ ~y)))
+  from_option <- compute_time_ordered_layout(edges, node_scale = 24 / 16)
+  from_argument <- compute_time_ordered_layout(
+    edges,
+    node_scale = 24 / 16,
+    edge_engine = "ggraph"
+  )
+
+  expect_equal(
+    from_option,
+    compute_time_ordered_layout(
+      edges,
+      node_scale = 24 / 16,
+      edge_engine = "ggarrow"
+    )
+  )
+  # an argument overrides the option, which mirrors the layout back
+  expect_equal(from_option$y, -from_argument$y, tolerance = 1e-6)
+})
