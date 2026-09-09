@@ -7195,6 +7195,257 @@ test_that("orthogonal ports: two channel stubs on an S side stack in the mirror 
   }
 })
 
+# Leftward rows ------------------------------------------------------------------
+
+# Rows belong to the head end of an edge. An edge drawn rightwards arrives
+# at its target's W side and one drawn leftwards at its target's E side,
+# while the node an edge leaves keeps the centre of the side it departs
+# through. Every scene below is one of the scenes above reflected in the
+# panel's vertical centre line, so it draws the mirror image of the rows the
+# forward scene draws.
+
+test_that("orthogonal ports: a leftward pair straddles its target's centre line", {
+  # centred_port_scene(2) drawn right to left. The two arrivals at t take
+  # the rows +- sep_e / 2 on t's E side, each tip lands on the face of its
+  # own row, and the two heads are drawn on two points rather than one. The
+  # sources keep their own centres, since the row belongs to the end the
+  # head is at.
+  forward <- centred_port_scene(2)
+  scene <- mirror_scene_x(forward)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(
+    unname(rows[["b1->t"]]),
+    55 - sep_e_default / 2,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    unname(rows[["b2->t"]]),
+    55 + sep_e_default / 2,
+    tolerance = 1e-6
+  )
+  expect_equal(
+    unname(rows),
+    unname(arrival_rows(forward, ortho(forward), "t")),
+    tolerance = 1e-6
+  )
+  expect_gte(abs(diff(unname(rows))), row_floor_default - 1e-9)
+
+  # each head stops at the face of its own row and is drawn along the run
+  expect_equal(
+    res$meta$resect_head,
+    rep(port_resect_at(sep_e_default / 2), 2),
+    tolerance = 1e-6
+  )
+  for (i in 1:2) {
+    expect_lte(
+      head_tilt_degrees(res$paths[[i]], res$meta$resect_head[[i]]),
+      0.5
+    )
+  }
+  tips <- lapply(
+    1:2,
+    function(i) arc_from_end(res$paths[[i]], res$meta$resect_head[[i]])
+  )
+  expect_gte(abs(tips[[1]][[2]] - tips[[2]][[2]]), row_floor_default - 1e-9)
+
+  # the departures leave b1 and b2 through their own centres, so the first
+  # run of each path is at its source's y and the tail keeps the whole cap
+  for (i in 1:2) {
+    runs <- straight_runs(dedupe_path(res$paths[[i]]))
+    expect_equal(
+      runs$coord[[1]],
+      node_xy(scene, scene$edges$from[[i]])[[2]],
+      tolerance = 1e-6,
+      label = edge_labels(scene$edges)[[i]]
+    )
+  }
+  expect_equal(res$meta$resect_fins, rep(cap_default, 2))
+})
+
+# One source on the right with nine targets on the left, every edge crossing
+# the same gap leftwards.
+leftward_fan_scene <- function(gap = 30) {
+  n <- 9L
+  list(
+    nodes = mm_nodes(
+      c("s", paste0("t", seq_len(n))),
+      c(20 + gap, rep(20, n)),
+      c(100, 100 + 22.5 * (seq_len(n) - (n + 1) / 2))
+    ),
+    edges = mm_edges(rep("s", n), paste0("t", seq_len(n))),
+    bounds = c(0, 0, 40 + gap, 200)
+  )
+}
+
+test_that("orthogonal ports: a leftward fan leaves its source through its centre", {
+  # Nine targets to the left of one source. A departure holds the centre of
+  # the side it leaves through, so every path's first run is at s's own y
+  # and every tail keeps the whole cap; each target takes one arrival, and
+  # a lone arrival is drawn on its target's centre row.
+  scene <- leftward_fan_scene()
+  res <- ortho(scene)
+  labels <- edge_labels(scene$edges)
+  for (i in seq_along(labels)) {
+    runs <- straight_runs(dedupe_path(res$paths[[i]]))
+    expect_equal(runs$coord[[1]], 100, tolerance = 1e-6, label = labels[[i]])
+    expect_equal(
+      runs$coord[[nrow(runs)]],
+      node_xy(scene, scene$edges$to[[i]])[[2]],
+      tolerance = 1e-6,
+      label = labels[[i]]
+    )
+  }
+  expect_equal(res$meta$resect_fins, rep(cap_default, length(labels)))
+  expect_equal(res$meta$resect_head, rep(cap_default, length(labels)))
+})
+
+# One node with an arrival on the side it also departs through: u -> t comes
+# in from the left and t -> v leaves to the left, both across t's W side.
+mixed_side_scene <- function() {
+  list(
+    nodes = mm_nodes(c("t", "u", "v"), c(100, 20, 20), c(55, 70, 40)),
+    edges = mm_edges(c("u", "t"), c("t", "v")),
+    bounds = c(0, 0, 140, 110)
+  )
+}
+
+test_that("orthogonal ports: an arrival beside a departure takes the row above it", {
+  # t -> v leaves t through the centre of its W side and owns that centre
+  # row, so u -> t takes the first row above it, s = min(sep_e, h) = 3.6,
+  # and its head stops at the face of that row. Reflected, the same two
+  # edges draw the same two rows on t's E side.
+  for (scene in list(mixed_side_scene(), mirror_scene_x(mixed_side_scene()))) {
+    res <- ortho(scene)
+    label <- scene$name %||% "forward"
+    ut <- edge_index(scene, "u->t")
+    tv <- edge_index(scene, "t->v")
+
+    expect_equal(
+      arrival_row(scene, res, "u->t"),
+      55 + sep_e_default,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(
+      res$meta$resect_head[[ut]],
+      port_resect_at(sep_e_default),
+      tolerance = 1e-9,
+      label = label
+    )
+
+    # the departure keeps t's centre line and arrives at v's own centre
+    runs <- straight_runs(dedupe_path(res$paths[[tv]]))
+    expect_equal(runs$coord[[1]], 55, tolerance = 1e-6, label = label)
+    expect_equal(
+      arrival_row(scene, res, "t->v"),
+      40,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(res$meta$resect_head[[tv]], cap_default, label = label)
+    expect_equal(res$meta$resect_fins[[tv]], cap_default, label = label)
+  }
+})
+
+test_that("orthogonal ports: a leftward stack takes the rows of its forward twin", {
+  # stacked_port_scene(2) reflected. The level chord from a arrives at t's E
+  # side and keeps its centre row, and the two arrivals above it take 2.675
+  # and 5.35: the same three rows and the same three resects the forward
+  # scene draws, and every head is drawn on the disc.
+  forward <- stacked_port_scene(2)
+  scene <- mirror_scene_x(forward)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(unname(rows), c(55, 57.675, 60.35), tolerance = 1e-6)
+  expect_equal(
+    unname(rows),
+    unname(arrival_rows(forward, ortho(forward), "t")),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    res$meta$resect_head,
+    port_resect_at(c(0, 2.675, 5.35)),
+    tolerance = 1e-6
+  )
+  expect_lte(max(abs(rows - 55)), port_row_max + 1e-9)
+})
+
+test_that("orthogonal ports: a floored gap crossed leftwards gives its arrivals rows", {
+  # floored_pair_scene(20.8) reflected. The gap still reaches the floor, so
+  # the run each head is drawn on holds a row as well as the head and the
+  # pair straddles t's centre line at +- sep_e / 2 on the E side, the mirror
+  # image of the rows the forward scene draws.
+  forward <- floored_pair_scene(20.8)
+  scene <- mirror_scene_x(forward)
+  res <- ortho(scene)
+  expect_equal(res$ortho$gaps$rung, 4)
+
+  offs <- arrival_offsets(scene, res, "t")
+  expect_equal(unname(offs[["s1->t"]]), -sep_e_default / 2, tolerance = 1e-6)
+  expect_equal(unname(offs[["s2->t"]]), sep_e_default / 2, tolerance = 1e-6)
+  expect_equal(
+    unname(offs),
+    unname(arrival_offsets(forward, ortho(forward), "t")),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    res$meta$resect_head,
+    rep(port_resect_at(sep_e_default / 2), 2),
+    tolerance = 1e-6
+  )
+})
+
+# The offset of every head drawn on a horizontal run from its target's
+# centre line, with the resect that head is cut at. A head on a vertical
+# stub keeps its own port whichever way the scene runs, so it is left out.
+head_row_table <- function(scene) {
+  res <- ortho(scene)
+  labels <- edge_labels(scene$edges)
+  keep <- which(vapply(
+    res$paths,
+    function(path) identical(last_run(path)$axis, "h"),
+    logical(1)
+  ))
+  data.frame(
+    edge = labels[keep],
+    offset = vapply(
+      keep,
+      function(i) {
+        last_run(res$paths[[i]])$coord -
+          node_xy(scene, scene$edges$to[[i]])[[2]]
+      },
+      numeric(1)
+    ),
+    resect = res$meta$resect_head[keep],
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("orthogonal ports: a reflected hand fixture draws the mirror of its rows", {
+  # The four hand fixtures reflected. Their rows and head resects are the
+  # same edge by edge whichever way the scene runs, which is what it means
+  # for the row to belong to the head end. Whole paths are not compared:
+  # the canonical tie-breaks read x, so a reflected scene may pack its
+  # channels differently.
+  for (scene in list(
+    fan_scene(),
+    four_layer_scene(),
+    mediator_scene(),
+    chain_scene()
+  )) {
+    expect_equal(
+      head_row_table(mirror_scene_x(scene)),
+      head_row_table(scene),
+      tolerance = 1e-6
+    )
+  }
+})
+
 # Per-edge resects ---------------------------------------------------------------
 
 test_that("orthogonal resects: the router puts every tip cap - r from the disc face", {
@@ -8337,12 +8588,14 @@ centre_row_owners <- function(scene, res) {
 
 test_that("orthogonal ports: no target is drawn two heads on its centre row", {
   # Over every census scene at every size, each target's centre row carries
-  # one owner. The four that carried two are multi_mediator's y at each of
-  # its four sizes, where the level chord from x and the channel from m1
-  # both ran on y's line. The mirrored copies still carry five: rows are
-  # assigned at the right-hand node of every edge, so a leftward arrival
-  # gets no row of its own, which is the leftward rule's own defect and not
-  # this one.
+  # one owner. The four that carried two are multi_mediator's y at four of
+  # its five sizes, where the level chord from x and the channel from m1
+  # both ran on y's line. The mirrored copies carry one: rows belong to the
+  # head end, so a leftward arrival takes a row of its own and leaves the
+  # centre to its owner. The one that remains is very_big's cvd, where two
+  # leftward channels are allowed to run on one line because they share a
+  # hyperedge segment, a segment being keyed on the left-hand node of an
+  # edge rather than on its source.
   rows <- list()
   for (scene in oblique_census_scenes()) {
     found <- centre_row_owners(scene, ortho(scene))
@@ -8362,11 +8615,11 @@ test_that("orthogonal ports: no target is drawn two heads on its centre row", {
   expect_equal(sum(forward$n), 179L)
   expect_equal(sum(forward$n >= 2L), 0L)
 
-  expect_equal(nrow(mirrored), 179L)
-  expect_equal(sum(mirrored$n), 184L)
+  expect_equal(nrow(mirrored), 110L)
+  expect_equal(sum(mirrored$n), 111L)
   expect_setequal(
     paste(mirrored$scene[mirrored$n >= 2L], mirrored$target[mirrored$n >= 2L]),
-    c(rep("multi_mediator mirrored y", 4), "very_big mirrored cvd")
+    "very_big mirrored cvd"
   )
 })
 
@@ -9689,6 +9942,98 @@ test_that("slide_channels() prices the bends a moved channel sheds", {
     tolerance = 1e-6
   )
   expect_equal(up$cost, 2.6 / 6 - 4, tolerance = 1e-6)
+})
+
+# A record of the placement loop whose target's centre row a level chord
+# owns, on the line `y` and spanning layers 1 to 3 with one crossed layer.
+owned_record <- function(y, Ty, owned, keys = c("s2", "e2-7")) {
+  d <- c(120, Ty) - c(20, 30)
+  u <- d / sqrt(sum(d^2))
+  list(
+    e = 1L,
+    kind = "ew",
+    side = 1,
+    y = y,
+    xr = c(36, 104),
+    la = 1L,
+    lb = 3L,
+    keys = keys,
+    Sy = 30,
+    Ty = Ty,
+    owned = owned,
+    fr = list(
+      S = c(20, 30),
+      E = c(120, Ty),
+      u = u,
+      n = c(-u[[2]], u[[1]]),
+      Lc = sqrt(sum(d^2)),
+      a = 2L,
+      b = 7L
+    ),
+    state = list(
+      members = c(1L, 2L),
+      yc = 30 + (Ty - 30) / 2,
+      xr_ew = c(36, 104),
+      y_min = 3,
+      y_max = 107,
+      extra = 0
+    )
+  )
+}
+
+test_that("slide_channels() never moves a channel onto its own owned line", {
+  # The lattice a slide moves on is y0 + k sep_e, and a record's own
+  # target's line can sit on it: the move that shed two bends in the test
+  # above puts the run exactly on the target's line. Where a level chord
+  # already arrives on that line the target's centre row has an owner, and
+  # no run may take it, so the direction is infeasible instead. The same
+  # holds for a channel moved by the cascade rather than by the conflict.
+  opts <- route_constants(r_default)
+  nodes <- mm_nodes(c("a", "b"), c(70, 70), c(5, 105))
+  empty <- data.frame(
+    key = character(0),
+    left = numeric(0),
+    right = numeric(0),
+    stringsAsFactors = FALSE
+  )
+  slide <- function(records) {
+    slide_channels(
+      records = records,
+      conflicts = 1L,
+      y0 = 50,
+      dir = 1,
+      sep_e = opts$sep_e,
+      nodes = nodes,
+      R_node = nodes$r + opts$m,
+      pieces_base = list(empty, empty),
+      cand_pieces = list(list(g = 1L, key = "s1", left = 55, right = 50)),
+      opts = opts,
+      cand_key = "s1",
+      gap_mid = c(45, 95)
+    )
+  }
+  own_line <- 50 + opts$sep_e
+
+  # the conflicting channel itself: it takes its target's line when the row
+  # is free and the direction is refused when a chord owns it
+  free <- slide(list(owned_record(51, own_line, FALSE)))
+  expect_equal(free$y, own_line, tolerance = 1e-6)
+  expect_equal(free$moved, 1L)
+  expect_null(slide(list(owned_record(51, own_line, TRUE))))
+
+  # and a channel the cascade moves: the first record is pushed to 53.6,
+  # which crowds the second and pushes it a further separation, onto the
+  # line of its own target
+  cascaded <- function(owned) {
+    list(
+      owned_record(51, 80, FALSE),
+      owned_record(55.5, 50 + 2 * opts$sep_e, owned, keys = c("s3", "e3-9"))
+    )
+  }
+  both <- slide(cascaded(FALSE))
+  expect_equal(both$y, c(own_line, 50 + 2 * opts$sep_e), tolerance = 1e-6)
+  expect_equal(both$moved, c(1L, 2L))
+  expect_null(slide(cascaded(TRUE)))
 })
 
 test_that("orthogonal packing: genetics -> chol runs on chol's line at 10 x 6", {
