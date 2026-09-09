@@ -1053,7 +1053,10 @@ geom_dag_edges <- function(
 #'   value must be a data.frame., and will be used as the layer data.
 #' @param curvature The bend of the curve. 1 approximates a halfcircle while 0
 #'   will give a straight line. Negative number will change the direction of the
-#'   curve. Only used if layout circular = FALSE.
+#'   curve. Only used if layout circular = FALSE. `geom_dag_edges_arc()` keeps
+#'   its own default rather than reading the `curvature` option: the option
+#'   sets the bend of the arcs the packaged plots draw, and a layer you build
+#'   yourself takes the value you give it.
 #' @param arrow specification for arrow heads, as created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
 #'   call to a position adjustment function.
@@ -1830,8 +1833,9 @@ geom_dag_ggarrow_edges <- function(
 #' @param edge_engine The engine used to draw edges. Either `"ggraph"`
 #'   (default) or `"ggarrow"`. When `"ggarrow"`, edges are drawn using
 #'   [ggarrow][ggarrow::ggarrow-package] geoms, which support additional
-#'   customization via the `arrow_head`, `arrow_fins`, `arrow_mid`, and
-#'   `curvature` global options (see [ggdag_options_set()]).
+#'   customization via the `arrow_head`, `arrow_fins`, and `arrow_mid` global
+#'   options (see [ggdag_options_set()]). The `curvature` option is read by
+#'   both engines, so an arc bends by the same amount whichever draws it.
 #' @param edge_route How the ggarrow engine draws directed edges, one of
 #'   `"straight"` (the default), `"spline"`, or `"orthogonal"`. `"spline"`
 #'   detours an edge whose path a node blocks around that node with a smooth

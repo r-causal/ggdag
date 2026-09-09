@@ -40,10 +40,10 @@ default node size. A value above the separation in force, whether typed
 or derived, is reduced to it: \code{edge_sep_min = 10} beside a separation the
 router derives as 3.6 mm is drawn as 3.6. It must not be greater than
 \code{edge_sep} when you set both; setting the two equal fixes the orthogonal
-spacing, since there is then nothing left
-to tighten. Raising it also raises the spread the widest rung of the
-ladder reaches, which pushes the outermost slots further into the
-neighbouring layers. Orthogonal mode only.}
+spacing, since there is then nothing left to tighten. Raising it also
+raises the spread the widest rung of the ladder reaches, which pushes the
+outermost slots further into the neighbouring layers. Orthogonal mode
+only.}
 
 \item{corners}{Whether orthogonal bends are \code{"rounded"}, the router's own
 value, or kept \code{"sharp"}. \code{NULL} leaves it to the router. Orthogonal mode

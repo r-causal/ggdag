@@ -1290,12 +1290,12 @@ dag_routed_arrow_layer <- function(
 #' The layer carries every row of the plot data, so the router can treat
 #' every drawn node as an obstacle, and draws the rows `data_directed`
 #' selects. Edge rows of a data frame you supply that are not among the plot
-#' rows are drawn as well, and their endpoints join the obstacles. The
-#' automatic label geoms take their obstacles from the plot's own nodes, so a
-#' label may be placed across an edge appended this way. Scales and
+#' rows are drawn as well, and their endpoints join the obstacles. Scales and
 #' legends therefore see exactly what the other DAG layers see. Edges are
 #' resected to the plot's node size exactly as in [geom_dag_arrow()], and the
-#' same node size gives the router the radius of the discs it must clear.
+#' same node size gives the router the radius of the discs it must clear. The
+#' automatic label geoms take their obstacles from the plot's own nodes, so a
+#' label may be placed across an edge appended this way.
 #'
 #' A routed path is stroked at one width along its length, so
 #' `linewidth_head` and `linewidth_fins` taper only the arcs drawn for
@@ -1331,10 +1331,12 @@ dag_routed_arrow_layer <- function(
 #' @param layer_axis The axis the layout's layers run along, one of `"auto"`
 #'   (the default), `"x"`, or `"y"`. Routing sends a detour along the
 #'   within-layer axis, so a layout laid out down the panel rather than across
-#'   it needs the axis it runs along. Under `"auto"`, a layout from
-#'   [time_ordered_coords()] is taken at its word and every other scene has
-#'   its layers inferred from the node positions; name the axis for a layout
-#'   ggdag did not compute.
+#'   it needs the axis it runs along. Under `"auto"`, a layout that ordered
+#'   time down the panel, such as [time_ordered_coords()] with
+#'   `direction = "y"`, is taken at its word, and every other scene has its
+#'   layers inferred from the node positions. The direction is read from the
+#'   plot's data, which carries the axis the layout recorded; name the axis
+#'   yourself for a layout ggdag did not compute.
 #' @param node_size The size of the drawn nodes, in the units
 #'   [geom_dag_point()] takes, giving the router the radius of the discs it
 #'   clears. `NULL`, the default, takes it from the plot's node layer.

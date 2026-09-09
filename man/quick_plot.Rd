@@ -456,8 +456,9 @@ option sets it for every plot.}
 \item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
 (default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
 \link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
-customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
-\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
+customization via the \code{arrow_head}, \code{arrow_fins}, and \code{arrow_mid} global
+options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}). The \code{curvature} option is read by
+both engines, so an arc bends by the same amount whichever draws it.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

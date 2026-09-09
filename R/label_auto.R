@@ -276,11 +276,14 @@ label_anchor_sign_y <- c(1, 1, -1, -1, 1, -1, 0, 0)
 #'   placed on when `reach` is finite.
 #' @return A data frame with one row per label in input order and columns
 #'   `id`, `x`, `y` (box centers), `anchor` (a `*` suffix marks a slid
-#'   variant), and `score`, the total the chosen candidate was chosen by.
-#'   For an admissible candidate past `leader` the band multiplier in that
-#'   total is formed from the candidates whose leaders were priced, which
-#'   orders the label's candidates the same way but is not the multiplier
-#'   pricing every leader would give.
+#'   variant), and `score`, the chosen candidate's total under the final
+#'   placement of the other labels: the total it was chosen by for a label
+#'   that ended up admissible, and the total under full leader pricing, which
+#'   the deferred totals do not give, for one that ended up violating. For an
+#'   admissible candidate past `leader` the band multiplier in that total is
+#'   formed from the candidates whose leaders were priced, which orders the
+#'   label's candidates the same way but is not the multiplier pricing every
+#'   leader would give.
 #' @noRd
 place_dag_labels <- function(
   labels,
@@ -674,19 +677,16 @@ place_dag_labels <- function(
     rowSums(matrix(unlist(cols, use.names = FALSE), nrow = n_cand))
   }
 
-  # The number of other labels' placed boxes the leader of each candidate of
-  # label `i` would cross, priced like the ink and discs it crosses.
-  leader_box_crossings <- function(i) {
-    crossing_counts[[i]]
-  }
-
   # Every candidate of label `i` scored against the current placement of the
   # others: the total, and whether it violates a hard constraint.
+  # `crossing_counts[[i]]` holds the number of other labels' placed boxes the
+  # leader of each candidate would cross, priced like the ink and discs it
+  # crosses.
   score_against_placed <- function(i) {
     refresh_columns(i)
     overlap <- placed_overlap(i)
     within <- within_static[[i]] +
-      dist_weight * label_leader_box_cost * leader_box_crossings(i)
+      dist_weight * label_leader_box_cost * crossing_counts[[i]]
     soft <- band_static[[i]] * (max(within) + 1) + within
     violating <- violating_static[[i]] | overlap > 0
     hard <- hard_static[[i]] + weights[["label"]] * overlap
@@ -864,9 +864,11 @@ place_dag_labels <- function(
   # disc by no more than that distance, and `grid_offered` records how far
   # out each label has been offered: `-Inf` before it has seen any of the
   # grid, `Inf` once it has seen all of it. A label asked for more than it
-  # holds gains only the boxes between the two distances, so the grid it
-  # ends up with is the same set of candidates either way, whether it was
-  # built in one pass or two.
+  # holds gains only the boxes between the two distances, so a grid built in
+  # two passes is the same set of candidates as one built in a single pass.
+  # It is that set only in the end, not at every sweep: a label offered the
+  # near grid first sees the rest of it when the second offer is made, a
+  # repair round later.
   grid_offered <- rep(if (is.finite(reach)) -Inf else Inf, n)
   add_grid <- function(i, within = Inf) {
     if (within <= grid_offered[i]) {
@@ -1904,7 +1906,12 @@ ink_box_edge_hits <- function(xmin, ymin, xmax, ymax, ink) {
 #' @param own A list with the label's own node center `x`, `y` and disc
 #'   `radius`; the nearest disc to it is exempt from the soft term, the
 #'   proximity pull measures from it, and clearance is measured from its
-#'   disc. `NULL` disables the proximity terms.
+#'   disc. `NULL` disables the proximity pull, the bands, the leader pricing,
+#'   the occlusion tier, and the ownership term; the soft term still applies,
+#'   and with no own disc to exempt it applies to every disc. The exemption
+#'   is granted to the row of `nodes` nearest the center given, so nodes the
+#'   caller placed at the same coordinates make it a tie broken by row order,
+#'   and the wrong one of them may be the disc exempted.
 #' @param price_violating Whether to price the leaders of candidates that
 #'   violate a hard constraint. When `FALSE`, those candidates' `within`
 #'   omits the leader term and `unpriced` marks them, so the caller can
