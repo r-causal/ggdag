@@ -105,6 +105,36 @@ test_that("dplyr verbs preserve group_by() grouping", {
   )
 })
 
+test_that("a grouped verb can drop the coordinates and rebuild the layout", {
+  library(dplyr, warn.conflicts = FALSE)
+  dag <- tidy_dagitty(m_bias(), seed = 42, layout = "nicely")
+  expect_null(attr(pull_dag(dag), "layout_direction"))
+
+  withr::local_options(ggdag.layout = time_ordered_coords(direction = "y"))
+  grouped <- group_by(dag, name)
+
+  # the rebuilt layout reads the whole edge list, which the grouping must not
+  # split into one layout per node
+  narrowed <- select(grouped, name, to)
+  dropped <- select(grouped, -any_of(c("x", "y", "xend", "yend")))
+
+  expect_s3_class(narrowed, "tidy_dagitty")
+  expect_s3_class(dropped, "tidy_dagitty")
+  expect_equal(group_vars(pull_dag_data(narrowed)), "name")
+  expect_equal(
+    pull_dag_data(ungroup(narrowed)),
+    pull_dag_data(select(dag, name, to))
+  )
+
+  # the layout that rebuilt the coordinates names the axis, grouped or not
+  expect_identical(attr(pull_dag(narrowed), "layout_direction"), "y")
+  expect_identical(attr(pull_dag(dropped), "layout_direction"), "y")
+  expect_identical(
+    attr(pull_dag(select(dag, name, to)), "layout_direction"),
+    "y"
+  )
+})
+
 test_that("grouping still drives computations later in the pipeline", {
   library(dplyr, warn.conflicts = FALSE)
   dag <- tidy_dagitty(m_bias(), seed = 42)

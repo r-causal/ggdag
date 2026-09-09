@@ -434,6 +434,71 @@ test_that("update_dag_data(): coordinates from elsewhere drop the axis", {
   expect_null(attr(pull_dag(tidy_down), "layout_direction"))
 })
 
+test_that("as_tidy_dagitty(): the coordinates a data frame is laid out with name the axis", {
+  edges_df <- data.frame(
+    name = c("x", "m"),
+    to = c("m", "y"),
+    stringsAsFactors = FALSE
+  )
+
+  from_coords <- as_tidy_dagitty(
+    edges_df,
+    coords = time_ordered_coords(
+      list("x", "m", "y"),
+      direction = "y",
+      optimize = FALSE
+    )
+  )
+  expect_identical(attr(pull_dag(from_coords), "layout_direction"), "y")
+
+  from_layout <- as_tidy_dagitty(
+    edges_df,
+    layout = time_ordered_coords(direction = "y")
+  )
+  expect_identical(attr(pull_dag(from_layout), "layout_direction"), "y")
+
+  # coordinates from anywhere else name no axis
+  by_hand <- as_tidy_dagitty(
+    edges_df,
+    coords = data.frame(
+      name = c("x", "m", "y"),
+      x = c(0, 1, 2),
+      y = c(0, 0, 0)
+    )
+  )
+  expect_null(attr(pull_dag(by_hand), "layout_direction"))
+})
+
+test_that("dag_saturate(): reused coordinates keep the axis they name", {
+  adjusted <- control_for(tidy_dagitty(down_panel_dag()), "m")
+
+  saturated <- dag_saturate(adjusted, use_existing_coords = TRUE)
+  expect_identical(attr(pull_dag(saturated), "layout_direction"), "y")
+
+  # the bidirected edges of the input are put back on a rebuilt dagitty
+  # object, which keeps the axis as well
+  bidirected <- tidy_dagitty(dagify(
+    y ~ x + m,
+    m ~ x,
+    x ~ ~y,
+    coords = time_ordered_coords(
+      list("x", "m", "y"),
+      direction = "y",
+      optimize = FALSE
+    )
+  ))
+  expect_identical(
+    attr(
+      pull_dag(dag_saturate(bidirected, use_existing_coords = TRUE)),
+      "layout_direction"
+    ),
+    "y"
+  )
+
+  # a fresh layout replaces the coordinates, and the axis with them
+  expect_null(attr(pull_dag(dag_saturate(adjusted)), "layout_direction"))
+})
+
 test_that("the axis survives the verbs that rebuild the dagitty object", {
   skip_if_not_installed("ggarrow")
   local_routing_options()
