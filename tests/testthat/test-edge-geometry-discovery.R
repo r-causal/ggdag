@@ -450,3 +450,157 @@ test_that("StatNodesLabelAuto receives edge obstacles from a routed layer", {
   )
   expect_lt(max(on_chords), 1e-8)
 })
+
+# Discovery: plot-level mappings --------------------------------------------
+
+test_that("a plot-level edge_curvature mapping is discovered as type curve", {
+  dag <- base_dag() |> curve_edge("x", "y", 0.4)
+  p <- ggplot(dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_arrow_arc() +
+    geom_dag_point()
+
+  geometry <- discover_edge_geometry(p)
+  expect_false(is.null(geometry))
+  geometry <- geometry[order(geometry$xend), , drop = FALSE]
+
+  # the layer inherits the plot's aesthetics, so the mapped column gives each
+  # edge its own drawn curvature just as a layer-level mapping does
+  expect_equal(geometry$type, c("curve", "curve"))
+  expect_equal(geometry$strength, c(0, 0.4))
+
+  # the traced points follow the arc the edge is drawn as rather than its chord
+  curved <- geometry[geometry$strength != 0, , drop = FALSE]
+  traced <- drawn_edge_points(curved, 1L, 10, include_endpoints = TRUE)
+  expected <- sample_curved_edge(0, 0, 2, 0, curvature = 0.4, n = 12)
+  expect_equal(traced$x, expected$x)
+  expect_equal(traced$y, expected$y)
+  expect_lt(min(traced$y), -0.4)
+})
+
+test_that("a layer that ignores the plot mapping keeps its scalar curvature", {
+  dag <- base_dag() |> curve_edge("x", "y", 0.4)
+  p <- ggplot(dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_arrow_arc(
+      aes(x = x, y = y, xend = xend, yend = yend),
+      data = pull_dag_data(dag),
+      inherit.aes = FALSE,
+      curvature = 0.25
+    ) +
+    geom_dag_point()
+
+  geometry <- discover_edge_geometry(p)
+  expect_equal(unique(geometry$type), "ggarrow_curve")
+  expect_equal(unique(geometry$curvature), 0.25)
+})
+
+test_that("a plot-level mapping under another name reaches the curve spec", {
+  dag <- base_dag() |>
+    curve_edge("x", "y", 0.4) |>
+    dplyr::mutate(bend = edge_curvature)
+  p <- ggplot(dag, aes_dag(edge_curvature = bend)) +
+    geom_dag_arrow_arc() +
+    geom_dag_point()
+
+  geometry <- discover_edge_geometry(p)
+  geometry <- geometry[order(geometry$xend), , drop = FALSE]
+  expect_equal(geometry$type, c("curve", "curve"))
+  expect_equal(geometry$strength, c(0, 0.4))
+})
+
+# Repeated coordinates ------------------------------------------------------
+
+test_that("coordinates repeated across panels give one spec row per edge", {
+  p <- ggdag_equivalent_dags(
+    dagify(
+      y ~ x + z,
+      x ~ z,
+      coords = list(x = c(x = 1, y = 2, z = 0), y = c(x = 1, y = 0, z = 0))
+    ),
+    edge_type = "arc"
+  )
+
+  geometry <- discover_edge_geometry(p)
+  arcs <- geometry[geometry$type == "arc", , drop = FALSE]
+
+  plot_data <- p$data
+  if (inherits(plot_data, "tidy_dagitty")) {
+    plot_data <- pull_dag_data(plot_data)
+  }
+  edges <- plot_data[!is.na(plot_data$to), , drop = FALSE]
+  drawn <- unique(paste(
+    edges$x,
+    edges$y,
+    edges$xend,
+    edges$yend,
+    edges$name,
+    edges$to,
+    edges$direction
+  ))
+
+  # every panel draws the same node positions, so the same edge is repeated in
+  # the layer's data once per panel that draws it
+  expect_lt(nrow(arcs), nrow(edges))
+  expect_equal(nrow(arcs), length(drawn))
+  expect_equal(
+    anyDuplicated(paste(
+      arcs$x,
+      arcs$y,
+      arcs$xend,
+      arcs$yend,
+      arcs$from,
+      arcs$to
+    )),
+    0
+  )
+})
+
+test_that("a plain facet keeps one spec row per drawn edge", {
+  p <- ggplot(base_dag(), aes_dag()) +
+    geom_dag_edges_arc(curvature = 0.4) +
+    geom_dag_point() +
+    ggplot2::facet_wrap(~name)
+
+  geometry <- discover_edge_geometry(p)
+  expect_equal(nrow(geometry), 2)
+})
+
+test_that("parallel edges between one pair of nodes keep a spec row each", {
+  # a directed and a bidirected edge run between the same two nodes on the
+  # same coordinates; a fan spreads them apart only because there are two of
+  # them, so both rows have to survive
+  dag <- dagify(
+    y ~ x,
+    x ~ ~y,
+    coords = list(x = c(x = 0, y = 2), y = c(x = 0, y = 0))
+  ) |>
+    tidy_dagitty()
+
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag_edges_fan(spread = 0.7) +
+    geom_dag_point()
+
+  geometry <- discover_edge_geometry(p)
+  fans <- geometry[geometry$type == "fan", , drop = FALSE]
+  expect_equal(nrow(fans), 2)
+})
+
+test_that("parallel edges drawn at different curvature keep a spec row each", {
+  dag <- dagify(
+    y ~ x,
+    x ~ ~y,
+    coords = list(x = c(x = 0, y = 2), y = c(x = 0, y = 0))
+  ) |>
+    tidy_dagitty() |>
+    dplyr::mutate(
+      edge_curvature = ifelse(as.character(direction) == "->", 0.3, -0.3)
+    )
+
+  p <- ggplot(dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_arrow_arc() +
+    geom_dag_point()
+
+  geometry <- discover_edge_geometry(p)
+  curves <- geometry[geometry$type == "curve", , drop = FALSE]
+  expect_equal(nrow(curves), 2)
+  expect_setequal(curves$strength, c(0.3, -0.3))
+})
