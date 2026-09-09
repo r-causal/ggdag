@@ -1523,7 +1523,7 @@ test_that("geom_dag_arrow_arc() skewed angle snapshot", {
 
 test_that("geom_dag() with edge_engine='ggraph' returns ggraph edge layers (default)", {
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggraph")
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggraph")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # Should contain ggraph edge geoms, not ggarrow
   expect_false(any(grepl("DAGArrow", layer_classes)))
@@ -1533,7 +1533,7 @@ test_that("geom_dag() with edge_engine='ggarrow' returns ggarrow edge layers", {
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow")
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # Should contain ggarrow-based geoms
 
@@ -1544,7 +1544,8 @@ test_that("geom_dag() with edge_engine='ggarrow' and edge_type='link' uses strai
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow", edge_type = "link")
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "link")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true(any(grepl("DAGArrow", layer_classes)))
   # Should NOT have curve geom for link-only
@@ -1555,7 +1556,8 @@ test_that("geom_dag() with edge_engine='ggarrow' and edge_type='arc' uses curved
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow", edge_type = "arc")
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "arc")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true(any(grepl("DAGArrowCurve", layer_classes)))
 })
@@ -1565,7 +1567,7 @@ test_that("geom_dag() picks up global edge_engine option", {
 
   dag <- dagify(y ~ x + z, x ~ z)
   withr::local_options(ggdag.edge_engine = "ggarrow")
-  p <- ggplot(dag) + geom_dag()
+  p <- ggplot(dag, aes_dag()) + geom_dag()
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true(any(grepl("DAGArrow", layer_classes)))
 })

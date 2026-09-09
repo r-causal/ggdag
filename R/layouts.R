@@ -167,15 +167,11 @@ time_ordered_coords <- function(
     .vars <- split(.vars[[1]], times)
   }
 
-  if (!isTRUE(optimize)) {
-    return(purrr::map2_dfr(
-      time_points %||% seq_along(.vars),
-      .vars,
-      spread_coords,
-      direction = direction
-    ))
-  }
-
+  # `.vars` and `time_points` describe the same time periods whether or not the
+  # layout is optimized, so both paths validate them here. Left to the
+  # unoptimized path, a longer `time_points` reaches `purrr::map2_dfr()` as a
+  # recycling error and a shorter one is recycled, putting every variable at the
+  # first time point.
   tiers <- lapply(.vars, as.character)
 
   all_names <- unlist(tiers)
@@ -200,6 +196,15 @@ time_ordered_coords <- function(
       ),
       error_class = "ggdag_type_error"
     )
+  }
+
+  if (!isTRUE(optimize)) {
+    return(purrr::map2_dfr(
+      tier_points,
+      .vars,
+      spread_coords,
+      direction = direction
+    ))
   }
 
   # An empty time period holds no variables but keeps its place on the axis:

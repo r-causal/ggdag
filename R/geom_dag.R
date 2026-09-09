@@ -2160,12 +2160,38 @@ geom_dag <- function(
   )
 }
 
+# `geom_dag()` takes no mapping of its own and every layer it builds inherits
+# from the plot, so the plot mapping is the only place the DAG aesthetics can
+# come from. Without them the edge stats reach a layer with no positions and
+# fail on the empty subscript, so say what is missing before any layer is added.
+check_dag_mapping <- function(plot_data, plot_mapping) {
+  needed <- c("x", "y", "xend", "yend")
+  missing_aes <- setdiff(needed, names(plot_mapping))
+
+  # data without the DAG columns is not a tidy DAG at all, and `aes_dag()`
+  # would not fix it, so leave that plot to ggplot2 to report
+  if (length(missing_aes) == 0 || !all(needed %in% names(plot_data))) {
+    return(invisible(NULL))
+  }
+
+  abort(
+    c(
+      "{.fun geom_dag} needs the DAG aesthetics on the plot.",
+      "x" = "The plot mapping does not set {.field {missing_aes}}.",
+      "i" = "Build the plot with {.code ggplot(dag, aes_dag()) + geom_dag()}."
+    ),
+    error_class = "ggdag_missing_error",
+    call = quote(geom_dag())
+  )
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
     plot_data <- pull_dag_data(plot_data)
   }
+  check_dag_mapping(plot_data, plot$mapping)
   has_curvature <- "edge_curvature" %in% names(plot_data)
   wants_curve <- wants_edge_curvature(plot_data)
   curvature_ignored <- FALSE

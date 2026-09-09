@@ -1669,6 +1669,8 @@ test_that("geom_dag() errors when the plot maps no DAG aesthetics", {
     ggplot(pull_dag_data(dag)) + geom_dag(),
     class = "ggdag_missing_error"
   )
+
+  expect_ggdag_error(ggplot(dag) + geom_dag())
 })
 
 test_that("geom_dag() errors when the plot maps only some DAG aesthetics", {
@@ -1678,6 +1680,8 @@ test_that("geom_dag() errors when the plot maps only some DAG aesthetics", {
     ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag(),
     class = "ggdag_missing_error"
   )
+
+  expect_ggdag_error(ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag())
 })
 
 test_that("geom_dag() accepts a plot mapped with aes_dag()", {

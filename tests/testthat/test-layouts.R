@@ -182,6 +182,9 @@ test_that("time_ordered_coords(): a longer time_points errors with optimize = FA
     time_ordered_coords(list("a", "b"), time_points = 1:3, optimize = FALSE),
     class = "ggdag_type_error"
   )
+  expect_ggdag_error(
+    time_ordered_coords(list("a", "b"), time_points = 1:3, optimize = FALSE)
+  )
 })
 
 test_that("time_ordered_coords(): a shorter time_points errors with optimize = FALSE", {
@@ -192,6 +195,13 @@ test_that("time_ordered_coords(): a shorter time_points errors with optimize = F
       optimize = FALSE
     ),
     class = "ggdag_type_error"
+  )
+  expect_ggdag_error(
+    time_ordered_coords(
+      list("a", c("b", "c")),
+      time_points = 1,
+      optimize = FALSE
+    )
   )
 })
 
