@@ -1665,11 +1665,8 @@ nearest_on_segment <- function(p, a, b) {
 #'   when the edge runs right to left.
 #' @param theta_min Least angle between arrival directions, in degrees.
 #' @param side The detour's side, or `NA` when either side is allowed.
-#' @return A list with `path`, `wp`, `clearance_ok`, and `depth` (the disc
-#'   violation depth of the returned curve, 0 when it verifies). Like
-#'   `clearance_ok`, `depth` is a statement about the discs: a capsule
-#'   intrusion is priced and repaired leniently and does not choose between
-#'   two curves that both cut a disc.
+#' @return A list with `path`, `wp`, `clearance_ok`, and `depth` (the total
+#'   violation depth of the returned curve, 0 when it verifies).
 #' @noRd
 route_spline_edge <- function(
   fr,
@@ -1876,7 +1873,6 @@ route_spline_curve <- function(
     )
     total <- sum(viol$depth)
     disc_viol <- df_rows(viol, which(!capsule[viol$obstacle]))
-    disc_depth <- sum(disc_viol$depth)
     if (nrow(disc_viol) == 0 && nrow(viol) > 0) {
       # the discs are clear: repair the head zones while the budget lasts
       # and keep the curve that leaves them the shallowest
@@ -1920,14 +1916,15 @@ route_spline_curve <- function(
         path = pts,
         wp = wp,
         clearance_ok = FALSE,
-        depth = disc_depth,
+        depth = total,
         separated = separated
       ))
     }
-    # the unverified curve kept is the one that cuts the discs least
-    if (disc_depth < best_depth) {
+    # a curve that cuts a disc is ranked by its whole violation, the discs
+    # and the arrowhead zones together
+    if (total < best_depth) {
       best <- list(path = pts, wp = wp)
-      best_depth <- disc_depth
+      best_depth <- total
     }
     if (iter == opts$repair_iter) {
       break
@@ -5655,7 +5652,7 @@ route_scene_mm <- function(
                 break
               }
               # when nothing verifies, the attempt inside the margin with
-              # the least disc violation is kept, and the free bow may still
+              # the least violation is kept, and the free bow may still
               # replace it below; attempts within the verification
               # tolerance of each other are equally bad and the pool rank
               # decides, so a floating difference between two mirror
