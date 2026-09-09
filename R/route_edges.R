@@ -48,7 +48,9 @@
 # when no S/N channel fits, a run through a free interval of every crossed
 # layer. A channel that would cut a disc or run inside the panel margin is
 # infeasible; channels that would share a y over overlapping x-ranges are
-# stacked sep_e apart, the shorter span inside. A spanning edge whose run
+# stacked sep_e apart, the shorter span inside. An E/W run that would cross
+# the arrowhead at the end of a placed S/N stub is pushed past the head and
+# its margin first. A spanning edge whose run
 # on its own source's or target's line is clear of the discs, the margin,
 # and the committed pieces, and is crowded only by the channels placed
 # before it, slides those channels sep_e away from the line (each pushing
@@ -221,15 +223,16 @@ route_constants <- function(
 #'   axis-aligned runs whether or not its chord is blocked: E and W ports
 #'   with one vertical run per crossed gap at an assigned slot, or, for a
 #'   spanning edge between the extreme nodes of their layers, S and N ports
-#'   with a channel run past the crossed stacks. Corners are rounded unless
-#'   `opts$corners` is `"sharp"`. A vertical chord stays straight, and so
-#'   does a chord between two nodes of one layer. A level chord, tilted by
-#'   no more than the corner radius, is drawn as the horizontal run on its
-#'   target's line when it joins adjacent layers or when no crossed disc
-#'   blocks that run: the head keeps the target's centre and the tail leaves
-#'   its node through the port on that line. Such an edge keeps the mode
-#'   `"straight"`, which means it has no bend, not that it joins the two
-#'   centres.
+#'   with a channel run past the crossed stacks. An E/W channel run keeps
+#'   the head margin past the arrowhead of any S/N stub it crosses. Corners
+#'   are rounded unless `opts$corners` is `"sharp"`. A vertical chord stays
+#'   straight, and so does a chord between two nodes of one layer. A level
+#'   chord, tilted by no more than the corner radius, is drawn as the
+#'   horizontal run on its target's line when it joins adjacent layers or
+#'   when no crossed disc blocks that run: the head keeps the target's
+#'   centre and the tail leaves its node through the port on that line.
+#'   Such an edge keeps the mode `"straight"`, which means it has no bend,
+#'   not that it joins the two centres.
 #' @param opts Constants from `route_constants()`.
 #' @return A list with `paths` (one `data.frame(x, y)` per edge, in input
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
@@ -3511,6 +3514,9 @@ route_orthogonal_scene <- function(
     fixed = logical(0)
   )
   records <- list()
+  # the head zones of the S/N channels placed so far: the band each stub's
+  # arrowhead occupies, plus its margin, which no later channel run enters
+  zones <- empty_head_zones()
   ctx <- list(nodes = nodes, from = from, to = to, Lc = info$Lc)
   gap_mid <- (layers$x[-layers$n] + layers$x[-1]) / 2
 
@@ -3601,7 +3607,8 @@ route_orthogonal_scene <- function(
       pieces,
       keys,
       b[[e]] %in% level_owned,
-      opts
+      opts,
+      zones
     )
     sl <- if (length(ch$slide) > 0) best_slide(ch, e, keys) else NULL
     if (is.null(sl)) {
@@ -3657,6 +3664,12 @@ route_orthogonal_scene <- function(
       fr = fr,
       state = ch$state
     )
+    if (ch$kind == "sn") {
+      zones <- df_bind(
+        zones,
+        head_zone(nodes$x[[to[[e]]]], nodes$y[[to[[e]]]], ch$side, cap, opts)
+      )
+    }
   }
 
   # N and S ports: two channel stubs on one side of a node sit sep_e / 2
@@ -4004,6 +4017,34 @@ empty_pieces <- function() {
   df_cols(key = character(0), left = numeric(0), right = numeric(0))
 }
 
+#' The head zone of a placed S/N channel
+#'
+#' The stub of an S/N channel rises from its head node's centre to the
+#' channel's run, and the drawn arrowhead stands on it from `cap` to
+#' `cap + head` past the centre. Its zone is that band with `head_margin`
+#' at each end, the room the router leaves behind a head base everywhere
+#' else, over the stub's x give or take `sep_e / 2`: the space an E/W run
+#' has to keep out of to leave the head whole.
+#'
+#' @param x,y The head node's centre.
+#' @param s The channel's side, `1` for a stub above the node and `-1` for
+#'   one below.
+#' @param cap Edge cap in mm.
+#' @return A one-row frame with `x`, `lo`, `hi`, and `s`.
+#' @noRd
+head_zone <- function(x, y, s, cap, opts) {
+  band <- sort(
+    y + s * c(cap - opts$head_margin, cap + opts$head + opts$head_margin)
+  )
+  df_cols(x = x, lo = band[[1]], hi = band[[2]], s = s)
+}
+
+#' No head zones
+#' @noRd
+empty_head_zones <- function() {
+  df_cols(x = numeric(0), lo = numeric(0), hi = numeric(0), s = numeric(0))
+}
+
 #' Find the level chords whose run a disc blocks
 #'
 #' A level chord is drawn as the horizontal run on its target's line, so
@@ -4052,6 +4093,19 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #' that would run within `sep_e` of an already placed channel over an
 #' overlapping x-range is pushed outward past it.
 #'
+#' A channel run that would lie in the head zone of a placed S/N stub, the
+#' band its arrowhead and margin occupy, is pushed outward along the zone's
+#' side to the zone's far edge and stacked again from there, until it lies
+#' in no zone; a run that zones of both sides hold has no way out and is
+#' infeasible. So is a run priced at a fixed line inside a zone, which a
+#' slide option is and a push cannot move. Only the channel run is tested:
+#' the departure and arrival legs stay within the endpoint layers' gaps,
+#' short of the x of any crossed layer a stub could stand in, and the stubs
+#' of the endpoint layers themselves rise beyond the extreme nodes, on the
+#' far side of the endpoints' own lines. Since `clear_of()` already refuses
+#' a run within `R` of the head node, only the outer part of the band is
+#' ever live and the push is at most `head + head_margin - m`.
+#'
 #' A candidate is infeasible when its run comes closer than the clearance
 #' margin `m` to the panel bounds, when its margin band would cut a disc of
 #' a layer it passes, when its horizontal pieces in a gap would coincide
@@ -4085,6 +4139,9 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #' @param keys The edge's segment keys in its first and last gap.
 #' @param owned Whether a level chord arrives at the target on the target's
 #'   own line, which makes that line no candidate for this edge.
+#' @param zones The head zones of the S/N channels placed so far: `x`, the
+#'   stub's x, `lo` and `hi`, the band it holds, and `s`, the side of the
+#'   head node the stub stands on.
 #' @return A list with `kind` (`"sn"` or `"ew"`), `side`, `y`, `wp` (the
 #'   bends used for pricing), `cost`, `clamped`, `channel` (the row to
 #'   register), `slide` (the options above, each in the same shape plus
@@ -4114,7 +4171,8 @@ ortho_channel <- function(
   pieces,
   keys,
   owned,
-  opts
+  opts,
+  zones
 ) {
   crossed <- (la + 1L):(lb - 1L)
   members <- unlist(layers$members[crossed], use.names = FALSE)
@@ -4162,6 +4220,47 @@ ortho_channel <- function(
       (pieces_coincide(pieces[[la]], keys[[1]], Sy, y) ||
         pieces_coincide(pieces[[lb - 1L]], keys[[2]], y, Ty))
   }
+  # the head zones an E/W run at y over the extent xr enters, in one
+  # comparison over the zone table: the run is strictly inside the band and
+  # its extent reaches the stub's x
+  zone_w <- opts$sep_e / 2
+  zones_at <- function(y, xr) {
+    which(
+      zones$lo + 1e-9 < y &
+        y < zones$hi - 1e-9 &
+        zones$x - zone_w < xr[[2]] - 1e-9 &
+        zones$x + zone_w > xr[[1]] + 1e-9
+    )
+  }
+  in_zone <- function(kind, y) {
+    kind == "ew" && length(zones_at(y, extent_of(kind))) > 0
+  }
+  # the run moved to the far edge of the zones holding it and stacked past
+  # the channels it then crowds, until it is clear of both; `NA` when zones
+  # of opposite sides hold it, since neither direction leads out. The
+  # stacking follows the zone's side rather than the candidate's, so a run
+  # pushed out of a zone is never pushed back into it, and every pass moves
+  # the run outward by the band or a whole separation, which bounds the loop
+  push_past_zones <- function(y, xr) {
+    for (i in seq_len(20)) {
+      hit <- zones_at(y, xr)
+      if (length(hit) == 0) {
+        return(y)
+      }
+      s <- unique(zones$s[hit])
+      if (length(s) != 1) {
+        return(NA_real_)
+      }
+      y <- stack_channel(
+        if (s > 0) max(zones$hi[hit]) else min(zones$lo[hit]),
+        s,
+        xr,
+        channels,
+        opts$sep_e
+      )
+    }
+    NA_real_
+  }
   # the feasibility and price of a run at y, the placed channels aside; the
   # edges in `drop` are left out of the crossing count, the channels a slide
   # option would move off the line before the run is drawn
@@ -4172,7 +4271,8 @@ ortho_channel <- function(
       y >= y_min &&
       y <= y_max &&
       clear_of(y, if (kind == "sn") sn_nodes else members) &&
-      !coincides(kind, y)
+      !coincides(kind, y) &&
+      !in_zone(kind, y)
     cost <- if (feasible) {
       ec <- ectx
       if (length(drop) > 0) {
@@ -4193,12 +4293,20 @@ ortho_channel <- function(
     )
   }
   # a candidate is the run pushed past the placed channels it would crowd
+  # and past the head zones it would enter; a run with no way out of the
+  # zones is priced where it started and refused
   candidate <- function(kind, side, y) {
-    price(
-      kind,
-      side,
-      stack_channel(y, side, extent_of(kind), channels, opts$sep_e)
-    )
+    xr <- extent_of(kind)
+    y_run <- stack_channel(y, side, xr, channels, opts$sep_e)
+    if (kind == "ew") {
+      y_run <- push_past_zones(y_run, xr)
+      if (is.na(y_run)) {
+        cand <- price(kind, side, y)
+        cand$cost <- Inf
+        return(cand)
+      }
+    }
+    price(kind, side, y_run)
   }
   costs <- function(cands) vapply(cands, function(c) c$cost, numeric(1))
   result_of <- function(cand, clamped) {
