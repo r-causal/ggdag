@@ -1527,11 +1527,24 @@ repair_waypoints <- function(
     t_p <- sum((p - fr$S) * fr$u) / fr$Lc
     t_wp <- ((wp$x - fr$S[[1]]) * fr$u[[1]] + (wp$y - fr$S[[2]]) * fr$u[[2]]) /
       fr$Lc
+    # a capsule belongs to no layer: in the spanning tier its repair takes
+    # the crossed layer nearest the violating sample, so a waypoint it
+    # inserts sits on that layer's x like every other waypoint of the route
+    # and a waypoint already there is moved instead; in the free tier the
+    # waypoint reports no layer
     layer_c <- o_layer[[ob]]
-    if (is.na(layer_c)) {
-      layer_c <- 0L
+    if (capsule[[ob]]) {
+      layer_c <- if (tier == "spanning" && lb - la >= 2) {
+        between <- (la + 1L):(lb - 1L)
+        between[[which.min(abs(layers$x[between] - p[[1]]))]]
+      } else {
+        NA_integer_
+      }
     }
-    crossed <- tier == "spanning" && layer_c > la && layer_c < lb
+    crossed <- !capsule[[ob]] &&
+      tier == "spanning" &&
+      layer_c > la &&
+      layer_c < lb
     s_chord <- sign(sum(nv * fr$n))
     if (s_chord == 0) {
       s_chord <- 1
@@ -1558,8 +1571,10 @@ repair_waypoints <- function(
           level <- level | abs(wp$y - wp$y[[j]]) < 1e-9
         }
         near <- which(level)
+        # a disc pushes the plateau to the side its layer's waypoint is
+        # on; a capsule always pushes along its axis
         at_layer <- which(wp$layer == layer_c)
-        s <- if (length(at_layer) > 0) {
+        s <- if (!capsule[[ob]] && length(at_layer) > 0) {
           sign(wp$y[[at_layer[[1]]]] - C[[2]])
         } else {
           sign(nv[[2]])
@@ -1583,6 +1598,13 @@ repair_waypoints <- function(
         y = fr$S[[2]] + tc * fr$Lc * fr$u[[2]] + o * fr$n[[2]],
         layer = layer_c
       )
+      if (capsule[[ob]] && !is.na(layer_c) && abs(fr$u[[1]]) > 1e-9) {
+        # the same offset from the chord, on the crossed layer's x
+        x_l <- layers$x[[layer_c]]
+        t_l <- (x_l - fr$S[[1]] - o * fr$n[[1]]) / (fr$Lc * fr$u[[1]])
+        new$x <- x_l
+        new$y <- fr$S[[2]] + t_l * fr$Lc * fr$u[[2]] + o * fr$n[[2]]
+      }
       wp <- sort_waypoints(df_bind(wp, new), fr)
     }
   }
