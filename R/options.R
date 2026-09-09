@@ -365,22 +365,7 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       )
     }
   } else if (name == "label_wrap") {
-    if (
-      !is.numeric(value) ||
-        length(value) != 1 ||
-        is.na(value) ||
-        value < 1 ||
-        value != round(value)
-    ) {
-      abort(
-        c(
-          "{.arg label_wrap} must be a single positive whole number of characters.",
-          "x" = "You provided {.obj_type_friendly {value}}."
-        ),
-        error_class = "ggdag_type_error",
-        call = call
-      )
-    }
+    check_label_wrap(value, arg = "label_wrap", allow_na = FALSE, call = call)
   } else if (name == "curvature") {
     if (!is.numeric(value) || length(value) != 1 || is.na(value)) {
       abort(
@@ -393,4 +378,50 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       )
     }
   }
+}
+
+#' Check a label wrapping width
+#'
+#' The width is a count of characters, so it has to be a whole number of them
+#' and at least one. The automatic label geoms also accept `NA`, which wraps
+#' nothing, because that is what their `wrap` argument has always meant; the
+#' option does not, because an option is unset with `NULL`.
+#'
+#' @param value The width to check.
+#' @param arg The name of the argument `value` was given as, for the message.
+#' @param allow_na Whether a single `NA` is accepted.
+#' @param call The calling environment, for the error message.
+#' @return `value`, invisibly.
+#' @noRd
+check_label_wrap <- function(
+  value,
+  arg = "label_wrap",
+  allow_na = FALSE,
+  call = rlang::caller_env()
+) {
+  if (is.null(value)) {
+    return(invisible(value))
+  }
+  if (allow_na && length(value) == 1 && is.na(value)) {
+    return(invisible(value))
+  }
+
+  ok <- is.numeric(value) &&
+    length(value) == 1 &&
+    !is.na(value) &&
+    value >= 1 &&
+    value == round(value)
+
+  if (!ok) {
+    abort(
+      c(
+        "{.arg {arg}} must be a single positive whole number of characters.",
+        "x" = "You provided {.obj_type_friendly {value}}."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  invisible(value)
 }

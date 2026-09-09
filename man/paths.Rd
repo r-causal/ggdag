@@ -43,6 +43,7 @@ ggdag_paths(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
@@ -75,6 +76,7 @@ ggdag_paths_fan(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -152,6 +154,12 @@ used is controlled by \code{label_geom}.}
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
+
+\item{label_wrap}{Width in characters to wrap the label text to. Only the
+automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, wrap their text; the repel label geoms are not
+given it. \code{NULL}, the default, wraps nothing, and the \code{ggdag.label_wrap}
+option sets it for every plot.}
 
 \item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
 (default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using

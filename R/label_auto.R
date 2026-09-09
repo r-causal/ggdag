@@ -2683,6 +2683,11 @@ GeomDagTextAuto <- ggplot2::ggproto(
 
 #' Wrap label text to a width in characters
 #'
+#' A line break the user wrote is a break they meant, so each label is split
+#' on its own newlines first and every piece is wrapped on its own. A label
+#' already broken to fit keeps the shape it was given, and a run of two
+#' newlines stays an empty line.
+#'
 #' @param label Character vector of label text.
 #' @param width Width in characters, or `NULL`/`NA` for no wrapping.
 #' @return `label`, with each element's lines joined by newlines.
@@ -2699,11 +2704,64 @@ wrap_label_text <- function(label, width) {
       }
       # `strwrap()` never breaks a word, so a label with no space in it, or
       # one whose words are longer than the width, is left as it is
-      paste(strwrap(text, width = width[[1]]), collapse = "\n")
+      pieces <- strsplit(text, "\n", fixed = TRUE)[[1]]
+      if (length(pieces) == 0) {
+        return(text)
+      }
+      wrapped <- vapply(
+        pieces,
+        function(piece) {
+          paste(strwrap(piece, width = width[[1]]), collapse = "\n")
+        },
+        character(1),
+        USE.NAMES = FALSE
+      )
+      paste(wrapped, collapse = "\n")
     },
     character(1),
     USE.NAMES = FALSE
   )
+}
+
+#' Check a leader threshold
+#'
+#' `min.segment.length` is a distance in the millimetres the placement works
+#' in, and a `grid::unit()` is accepted because that is how a distance is
+#' written everywhere else in a ggplot2 layer; it is resolved to millimetres
+#' at draw time, where a device is open. A unit built by arithmetic has no
+#' amount to read until then, so only its length is checked here.
+#'
+#' @param value The threshold to check.
+#' @param call The calling environment, for the error message.
+#' @return `value`, invisibly.
+#' @noRd
+check_min_segment_length <- function(value, call = rlang::caller_env()) {
+  ok <- if (grid::is.unit(value)) {
+    amount <- tryCatch(as.numeric(value), error = function(e) NULL)
+    length(value) == 1 &&
+      (length(amount) != 1 || is.na(amount) || amount > 0)
+  } else {
+    is.numeric(value) &&
+      length(value) == 1 &&
+      !is.na(value) &&
+      value > 0
+  }
+
+  if (!ok) {
+    abort(
+      c(
+        paste0(
+          "{.arg min.segment.length} must be a single positive number of ",
+          "millimetres, {.code Inf}, or a {.fn grid::unit}."
+        ),
+        "x" = "You provided {.obj_type_friendly {value}}."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  invisible(value)
 }
 
 #' A tally of the labels one drawn layer could not place
@@ -2816,6 +2874,17 @@ warn_unresolved_labels <- function(unresolved, dropped) {
 makeContent.dag_labels_auto <- function(x) {
   labels <- x$labels
   par <- x$params
+
+  # A leader threshold given as a unit is resolved here, where the device the
+  # plot is drawn on is open, so everything downstream reads one number of
+  # millimetres.
+  if (grid::is.unit(par$min.segment.length)) {
+    par$min.segment.length <- grid::convertWidth(
+      par$min.segment.length,
+      "mm",
+      valueOnly = TRUE
+    )
+  }
 
   # The text is wrapped before it is measured, so the boxes the engine places
   # are the boxes the reader sees. The tree keeps the labels as the stat
@@ -3462,9 +3531,11 @@ densify_polyline <- function(px, py, spacing) {
 #' @param label.r Radius of the label box corners, as a [grid::unit()].
 #' @param label.size Width of the label box border in millimetres. The
 #'   default, `NA`, draws no border.
-#' @param min.segment.length Distance in millimetres from the node disc past
-#'   which a label gets a leader line back to its node. A label is placed
-#'   past it only when no admissible spot within it exists.
+#' @param min.segment.length Distance from the node disc past which a label
+#'   gets a leader line back to its node, as a single positive number of
+#'   millimetres or a [grid::unit()], which is resolved to millimetres on the
+#'   device the plot is drawn on. A label is placed past it only when no
+#'   admissible spot within it exists.
 #' @param segment.colour,segment.size Colour and linewidth of the leader
 #'   lines.
 #' @param max.overlaps Maximum number of things a label's final box may still
@@ -3476,9 +3547,11 @@ densify_polyline <- function(px, py, spacing) {
 #'   `max.overlaps = 0` leaves out exactly the labels reported as
 #'   `unresolved`. The labels that stay do not move.
 #' @param wrap Width in characters to wrap the label text to, through
-#'   [base::strwrap()]. The wrapped text is what is measured, placed, and
-#'   drawn, and a word longer than the width is left whole. `NULL`, the
-#'   default, and `NA` wrap nothing.
+#'   [base::strwrap()], as a single positive whole number. The wrapped text is
+#'   what is measured, placed, and drawn; a word longer than the width is left
+#'   whole, and a line break already in the label is kept, with the text on
+#'   either side of it wrapped on its own. `NULL`, the default, and `NA` wrap
+#'   nothing.
 #' @param box.padding Accepted for compatibility with the repel label geoms
 #'   and ignored.
 #'
@@ -3529,6 +3602,9 @@ geom_dag_label_auto <- function(
   show.legend = NA,
   inherit.aes = TRUE
 ) {
+  check_label_wrap(wrap, arg = "wrap", allow_na = TRUE)
+  check_min_segment_length(min.segment.length)
+
   layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -3587,6 +3663,9 @@ geom_dag_text_auto <- function(
   show.legend = NA,
   inherit.aes = TRUE
 ) {
+  check_label_wrap(wrap, arg = "wrap", allow_na = TRUE)
+  check_min_segment_length(min.segment.length)
+
   layer <- ggplot2::layer(
     data = data,
     mapping = mapping,

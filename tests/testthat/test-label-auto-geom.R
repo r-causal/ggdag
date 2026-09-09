@@ -1795,3 +1795,18 @@ test_that("use_labels with no label column is still a silent no-op", {
   expect_no_condition(ggplot2::ggplot_build(direct))
   expect_length(auto_layer_index(direct), 0)
 })
+
+test_that("the auto geoms name the argument they refuse", {
+  expect_ggdag_error(
+    geom_dag_label_auto(ggplot2::aes(label = label), wrap = 2.5)
+  )
+  expect_ggdag_error(
+    geom_dag_text_auto(ggplot2::aes(label = label), wrap = 2.5)
+  )
+  expect_ggdag_error(
+    geom_dag_label_auto(ggplot2::aes(label = label), min.segment.length = -1)
+  )
+  expect_ggdag_error(
+    geom_dag_text_auto(ggplot2::aes(label = label), min.segment.length = -1)
+  )
+})

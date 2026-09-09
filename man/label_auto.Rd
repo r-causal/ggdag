@@ -95,9 +95,11 @@ default, uses the \code{ggdag.edge_cap} option (8 mm).}
 \item{label.size}{Width of the label box border in millimetres. The
 default, \code{NA}, draws no border.}
 
-\item{min.segment.length}{Distance in millimetres from the node disc past
-which a label gets a leader line back to its node. A label is placed
-past it only when no admissible spot within it exists.}
+\item{min.segment.length}{Distance from the node disc past which a label
+gets a leader line back to its node, as a single positive number of
+millimetres or a \code{\link[grid:unit]{grid::unit()}}, which is resolved to millimetres on the
+device the plot is drawn on. A label is placed past it only when no
+admissible spot within it exists.}
 
 \item{segment.colour, segment.size}{Colour and linewidth of the leader
 lines.}
@@ -112,9 +114,11 @@ every label whose box hits more than that many things, so
 \code{unresolved}. The labels that stay do not move.}
 
 \item{wrap}{Width in characters to wrap the label text to, through
-\code{\link[base:strwrap]{base::strwrap()}}. The wrapped text is what is measured, placed, and
-drawn, and a word longer than the width is left whole. \code{NULL}, the
-default, and \code{NA} wrap nothing.}
+\code{\link[base:strwrap]{base::strwrap()}}, as a single positive whole number. The wrapped text is
+what is measured, placed, and drawn; a word longer than the width is left
+whole, and a line break already in the label is kept, with the text on
+either side of it wrapped on its own. \code{NULL}, the default, and \code{NA} wrap
+nothing.}
 
 \item{box.padding}{Accepted for compatibility with the repel label geoms
 and ignored.}

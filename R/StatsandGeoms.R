@@ -1421,11 +1421,13 @@ plot_aware_layer <- function(layer, resolve) {
   )
 }
 
-# Whether an automatic label layer maps its labels to columns the data does
-# not hold. `geom_dag(use_labels = TRUE)` maps `label` whether or not the DAG
-# carries labels, and a DAG without them has no `label` column at all, so the
-# automatic label layer treats that mapping as "nothing to place" rather than
-# an error. The repel geoms are unaffected.
+# Whether an automatic label layer maps its labels to a `label` column the
+# data does not hold. `geom_dag(use_labels = TRUE)` maps `label` whether or
+# not the DAG carries labels, and a DAG without them has no `label` column at
+# all, so the automatic label layer treats that one mapping as "nothing to
+# place" rather than an error. Any other mapping is the user's own, and is
+# left to ggplot2 to evaluate, which is what names a column that does not
+# exist. The repel geoms are unaffected.
 auto_label_column_missing <- function(layer, plot) {
   if (!inherits(layer$stat, "StatNodesLabelAuto")) {
     return(FALSE)
@@ -1433,6 +1435,15 @@ auto_label_column_missing <- function(layer, plot) {
 
   label_quo <- layer$mapping$label
   if (is.null(label_quo)) {
+    return(FALSE)
+  }
+
+  # The three ways the generated mapping can be written.
+  label_expr <- rlang::get_expr(label_quo)
+  generated <- identical(label_expr, quote(label)) ||
+    identical(label_expr, quote(.data$label)) ||
+    identical(label_expr, quote(.data[["label"]]))
+  if (!generated) {
     return(FALSE)
   }
 
@@ -1454,8 +1465,7 @@ auto_label_column_missing <- function(layer, plot) {
     return(FALSE)
   }
 
-  vars <- setdiff(all.vars(rlang::get_expr(label_quo)), ".data")
-  length(vars) > 0 && !all(vars %in% names(layer_data))
+  !"label" %in% names(layer_data)
 }
 
 #' @exportS3Method ggplot2::ggplot_add

@@ -48,6 +48,7 @@ ggdag_children(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -75,6 +76,7 @@ ggdag_parents(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -102,6 +104,7 @@ ggdag_ancestors(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -129,6 +132,7 @@ ggdag_descendants(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -156,6 +160,7 @@ ggdag_markov_blanket(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -183,6 +188,7 @@ ggdag_adjacent(
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
   label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   text = NULL,
   label = NULL,
@@ -247,6 +253,12 @@ used is controlled by \code{label_geom}.}
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}.}
+
+\item{label_wrap}{Width in characters to wrap the label text to. Only the
+automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, wrap their text; the repel label geoms are not
+given it. \code{NULL}, the default, wraps nothing, and the \code{ggdag.label_wrap}
+option sets it for every plot.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes
