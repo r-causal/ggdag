@@ -48,19 +48,19 @@
 # when no S/N channel fits, a run through a free interval of every crossed
 # layer. A channel that would cut a disc or run inside the panel margin is
 # infeasible; channels that would share a y over overlapping x-ranges are
-# stacked sep_e apart, the shorter span inside. An E/W run that would cross
-# the arrowhead at the end of a placed S/N stub is pushed past the head and
-# its margin first. A spanning edge whose run
-# on its own source's or target's line is clear of the discs, the margin,
-# and the committed pieces, and is crowded only by the channels placed
-# before it, slides those channels sep_e away from the line (each pushing
-# the next in turn) and takes the line when the price of their moves, their
-# displacement and any bend they gain, is less than the price of the
-# pushed alternatives; an S/N channel, a channel of the edge's own
-# hyperedge, and a channel already on its own endpoint line never move,
-# and a slide that would need one is refused. Every other edge leaves
-# through the E port and enters through the W port, with one vertical run
-# per crossed gap. Within a gap the vertical runs are hyperedge segments (a
+# stacked sep_e apart, the shorter span inside. A channel run that would
+# cross the arrowhead at the end of a placed S/N stub, whichever direction
+# it runs, is pushed past the head and its margin first. A spanning edge
+# whose run on its own source's or target's line is clear of the discs, the
+# margin, and the committed pieces, and is crowded only by the channels
+# placed before it, slides those channels sep_e away from the line (each
+# pushing the next in turn) and takes the line when the price of their
+# moves, their displacement and any bend they gain, is less than the price
+# of the pushed alternatives; an S/N channel, a channel of the edge's own
+# hyperedge, and a channel already on its own endpoint line never move, and
+# a slide that would need one is refused. Every other edge leaves through
+# the E port and enters through the W port, with one vertical run per
+# crossed gap. Within a gap the vertical runs are hyperedge segments (a
 # fan leaving one port shares one); segments from different sources never
 # share a slot, even when they only meet or come within sep_e. They are
 # ordered by a dependency graph weighted by the crossings each order would
@@ -223,16 +223,16 @@ route_constants <- function(
 #'   axis-aligned runs whether or not its chord is blocked: E and W ports
 #'   with one vertical run per crossed gap at an assigned slot, or, for a
 #'   spanning edge between the extreme nodes of their layers, S and N ports
-#'   with a channel run past the crossed stacks. An E/W channel run keeps
-#'   the head margin past the arrowhead of any S/N stub it crosses. Corners
-#'   are rounded unless `opts$corners` is `"sharp"`. A vertical chord stays
-#'   straight, and so does a chord between two nodes of one layer. A level
-#'   chord, tilted by no more than the corner radius, is drawn as the
-#'   horizontal run on its target's line when it joins adjacent layers or
-#'   when no crossed disc blocks that run: the head keeps the target's
-#'   centre and the tail leaves its node through the port on that line.
-#'   Such an edge keeps the mode `"straight"`, which means it has no bend,
-#'   not that it joins the two centres.
+#'   with a channel run past the crossed stacks. A channel run of either
+#'   direction keeps the head margin past the arrowhead of any S/N stub
+#'   it crosses. Corners are rounded unless `opts$corners` is `"sharp"`.
+#'   A vertical chord stays straight, and so does a chord between two
+#'   nodes of one layer. A level chord, tilted by no more than the corner
+#'   radius, is drawn as the horizontal run on its target's line when it
+#'   joins adjacent layers or when no crossed disc blocks that run: the
+#'   head keeps the target's centre and the tail leaves its node through
+#'   the port on that line. Such an edge keeps the mode `"straight"`,
+#'   which means it has no bend, not that it joins the two centres.
 #' @param opts Constants from `route_constants()`.
 #' @return A list with `paths` (one `data.frame(x, y)` per edge, in input
 #'   order), `meta` (one row per edge: `edge`, `routed`, `mode`, `side`,
@@ -4055,7 +4055,7 @@ empty_pieces <- function() {
 #' channel's run, and the drawn arrowhead stands on it from `cap` to
 #' `cap + head` past the centre. Its zone is that band with `head_margin`
 #' at each end, the room the router leaves behind a head base everywhere
-#' else, over the stub's x give or take `sep_e / 2`: the space an E/W run
+#' else, over the stub's x give or take `sep_e / 2`: the space a channel run
 #' has to keep out of to leave the head whole.
 #'
 #' @param x,y The head node's centre.
