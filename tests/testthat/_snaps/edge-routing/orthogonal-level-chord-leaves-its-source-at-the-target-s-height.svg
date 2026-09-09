@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='708.04' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
+<circle cx='64.98' cy='524.59' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='520.50' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='70.29' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<path d='M 632.34 520.50 L 625.17 517.89 L 626.82 519.86 L 87.16 519.86 L 87.16 521.14 L 626.82 521.15 L 625.17 523.11 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 355.15 525.18 L 356.16 525.02 L 357.08 524.75 L 357.91 524.36 L 358.64 523.86 L 359.26 523.23 L 359.77 522.50 L 360.16 521.67 L 360.43 520.75 L 360.59 519.74 L 360.64 518.65 L 360.64 76.25 L 360.69 75.27 L 360.82 74.41 L 361.04 73.66 L 361.34 73.02 L 361.72 72.47 L 362.18 72.01 L 362.73 71.63 L 363.38 71.33 L 364.13 71.11 L 364.98 70.97 L 365.97 70.93 L 626.68 70.93 L 626.82 70.93 L 625.17 72.90 L 632.34 70.29 L 625.17 67.68 L 626.82 69.64 L 626.68 69.65 L 365.94 69.65 L 364.85 69.70 L 363.84 69.86 L 362.92 70.13 L 362.09 70.52 L 361.36 71.02 L 360.74 71.64 L 360.23 72.38 L 359.84 73.21 L 359.57 74.13 L 359.41 75.14 L 359.36 76.22 L 359.36 518.62 L 359.31 519.61 L 359.18 520.47 L 358.96 521.22 L 358.66 521.86 L 358.28 522.41 L 357.82 522.87 L 357.27 523.25 L 356.62 523.55 L 355.87 523.77 L 355.02 523.90 L 354.03 523.95 L 87.66 523.95 L 87.66 525.23 L 354.06 525.23 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<text x='64.98' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>s</text>
+<text x='655.02' y='524.30' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='3.07px' lengthAdjust='spacingAndGlyphs'>t</text>
+<text x='655.02' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='6.14px' lengthAdjust='spacingAndGlyphs'>u</text>
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='387.02px' lengthAdjust='spacingAndGlyphs'>orthogonal level chord leaves its source at the target's height</text>
+</g>
+</svg>
