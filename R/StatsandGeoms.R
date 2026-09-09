@@ -1553,8 +1553,8 @@ discover_edge_geometry <- function(plot) {
   specs <- list()
   for (existing in plot$layers) {
     spec <- edge_layer_geometry(existing, plot_data) %||%
-      arrow_layer_geometry(existing, plot_data) %||%
-      routed_layer_geometry(existing, plot_data)
+      arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
+      routed_layer_geometry(existing, plot_data, plot$mapping)
     if (!is.null(spec)) {
       specs[[length(specs) + 1]] <- spec
     }
@@ -1564,11 +1564,71 @@ discover_edge_geometry <- function(plot) {
     return(NULL)
   }
 
-  # Kept row for row: two edges drawn between the same pair of nodes are two
-  # rows, and a fan spreads them apart only because there are two of them.
   # Every type is one wide row per edge; the routing columns the other
   # builders do not fill are NA.
-  dplyr::bind_rows(specs)
+  dedupe_edge_geometry(dplyr::bind_rows(specs))
+}
+
+# One spec row per edge a layer draws. A spec is built from the layer's data
+# before that data is split into panels, so data repeating an edge's
+# coordinates across panels, as the equivalent-DAG scenes do, otherwise
+# describes the same drawn curve once per panel it appears in and stacks
+# obstacle points on top of each other. Rows are told apart by everything
+# that decides where the edge goes, the kind of edge included: two edges
+# drawn between the same pair of nodes are two rows, and a fan spreads them
+# apart only because there are two of them. Routed rows carry routing fields
+# of their own and are deduped with `dedupe_routed_geometry()` when they are
+# traced, so they are left as they are here.
+dedupe_edge_geometry <- function(geometry) {
+  if (nrow(geometry) == 0) {
+    return(geometry)
+  }
+
+  fields <- c(
+    "type",
+    "strength",
+    "n",
+    "fold",
+    "flipped",
+    "from",
+    "to",
+    "direction",
+    "circular",
+    "curvature"
+  )
+  key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  for (field in fields) {
+    key <- paste(key, spec_column(geometry, field, NA), sep = "\r")
+  }
+
+  is_routed <- !is.na(geometry$type) & geometry$type == "routed"
+  geometry[is_routed | !duplicated(key), , drop = FALSE]
+}
+
+# The curvature a layer draws each row of its data at, or `NULL` when no
+# aesthetic gives it one. A mapping on the layer wins; a layer inheriting the
+# plot's aesthetics also sees a mapping set there, which is where
+# `aes_dag(edge_curvature = ...)` puts it. The mapping is evaluated against
+# the layer's data, so a column of any name reaches the trace the way it
+# reaches the drawn edge.
+mapped_edge_curvature <- function(layer, layer_data, plot_mapping = NULL) {
+  mapping <- layer$mapping$edge_curvature
+  if (is.null(mapping) && !identical(layer$inherit.aes, FALSE)) {
+    mapping <- plot_mapping$edge_curvature
+  }
+  if (is.null(mapping)) {
+    return(NULL)
+  }
+
+  values <- tryCatch(
+    rlang::eval_tidy(mapping, data = layer_data),
+    error = function(e) NULL
+  )
+  if (!is.numeric(values) || length(values) != nrow(layer_data)) {
+    return(NULL)
+  }
+
+  values
 }
 
 # Which of ggdag's bent edge geometries a layer draws, if any. A straight link
@@ -1634,6 +1694,7 @@ edge_layer_geometry <- function(layer, plot_data) {
     flipped = isTRUE(layer$stat_params$flipped),
     from = from,
     to = to,
+    direction = as.character(column("direction", NA_character_)),
     curvature = NA_real_,
     stringsAsFactors = FALSE
   )
@@ -1646,7 +1707,7 @@ edge_layer_geometry <- function(layer, plot_data) {
 # A scalar-curvature layer without the mapping stays type "ggarrow_curve",
 # traced only when arrows are asked for. The straight ggarrow segment geom
 # needs no spec: an edge no layer claims is traced as a straight chord anyway.
-arrow_layer_geometry <- function(layer, plot_data) {
+arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
   if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
     return(NULL)
   }
@@ -1673,21 +1734,10 @@ arrow_layer_geometry <- function(layer, plot_data) {
     0
   }
   curvature <- rep(fallback, nrow(layer_data))
-  mapped_curvature <- layer$mapping$edge_curvature
-  per_edge <- FALSE
-  if (!is.null(mapped_curvature)) {
-    mapped <- tryCatch(
-      rlang::eval_tidy(mapped_curvature, data = layer_data),
-      error = function(e) NULL
-    )
-    if (
-      is.numeric(mapped) &&
-        length(mapped) == nrow(layer_data) &&
-        !all(is.na(mapped))
-    ) {
-      per_edge <- TRUE
-      curvature <- ifelse(is.na(mapped), unset, mapped)
-    }
+  mapped <- mapped_edge_curvature(layer, layer_data, plot_mapping)
+  per_edge <- !is.null(mapped) && !all(is.na(mapped))
+  if (per_edge) {
+    curvature <- ifelse(is.na(mapped), unset, mapped)
   }
 
   column <- function(name, default) {
@@ -1706,6 +1756,7 @@ arrow_layer_geometry <- function(layer, plot_data) {
     flipped = FALSE,
     from = as.character(column("name", NA_character_)),
     to = as.character(column("to", NA_character_)),
+    direction = as.character(column("direction", NA_character_)),
     curvature = if (per_edge) NA_real_ else curvature,
     stringsAsFactors = FALSE
   )
@@ -1716,7 +1767,7 @@ arrow_layer_geometry <- function(layer, plot_data) {
 # it draws. Waypoints are not communicated: both the edge grob and the label
 # grob call the same pure router on the same inputs at draw time, so the spec
 # says how the edges are routed rather than where they go.
-routed_layer_geometry <- function(layer, plot_data) {
+routed_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
   if (!inherits(layer$geom, "GeomDAGRoutedArrow")) {
     return(NULL)
   }
@@ -1740,6 +1791,13 @@ routed_layer_geometry <- function(layer, plot_data) {
     if (name %in% names(layer_data)) layer_data[[name]] else default
   }
 
+  # The geom reads the curvature of an edge it must not reroute from the
+  # aesthetic, so the spec resolves it the same way; a layer that maps none
+  # falls back to the data's own column, which is what the geom is handed
+  # then as well.
+  curvature <- mapped_edge_curvature(layer, layer_data, plot_mapping) %||%
+    as.numeric(column("edge_curvature", NA_real_))
+
   geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
@@ -1753,7 +1811,7 @@ routed_layer_geometry <- function(layer, plot_data) {
     flipped = FALSE,
     from = as.character(column("name", NA_character_)),
     to = as.character(column("to", NA_character_)),
-    curvature = as.numeric(column("edge_curvature", NA_real_)),
+    curvature = curvature,
     route_style = layer$geom_params$route %||% "spline",
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
     route_cap = routed_layer_cap_mm(layer, layer_data),
