@@ -90,13 +90,15 @@ size the plot uses, so an object set once holds at every plot size.
 that layer.
 
 \code{curvature} is the bend of the arcs a packaged plot draws: the bidirected
-arcs of \code{\link[=geom_dag_edges]{geom_dag_edges()}} and every edge under \code{edge_type = "arc"}. 1
-approximates a half circle and 0 a straight line, and a negative value bends
-the other way. Both edge engines read it, so an arc bends by the same
-amount whichever draws it, and it also sets the bow the time-ordered layout
-clears its nodes of. An edge layer you build yourself takes the \code{curvature}
-argument you give it, so \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} called directly keeps its
-own default of 0.5 rather than the option's 0.3.
+arcs of \code{\link[=geom_dag_edges]{geom_dag_edges()}}, every edge under \code{edge_type = "arc"}, and, under
+the ggarrow engine, every edge under \code{edge_type = "diagonal"}, which that
+engine draws as arcs. 1 approximates a half circle and 0 a straight line,
+and a negative value bends the other way. Both edge engines read it, but
+each draws that value with its own depth and to its own side, and it also
+sets the bow the time-ordered layout clears its nodes of. An edge layer you
+build yourself takes the \code{curvature} argument you give it, so
+\code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} called directly keeps its own default of 0.5 rather
+than the option's 0.3.
 
 \code{label_wrap} is a width in characters that \code{\link[=geom_dag]{geom_dag()}}, \code{\link[=ggdag]{ggdag()}}, and the
 quick plotting functions that take \code{use_labels} hand to the automatic label

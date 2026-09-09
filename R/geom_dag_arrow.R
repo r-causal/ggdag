@@ -1321,9 +1321,10 @@ dag_routed_arrow_layer <- function(
 #' @param edge_sep_min The gap in millimetres the orthogonal router may
 #'   tighten `edge_sep` to when a gap between layers is too narrow for its
 #'   slots at the full separation, or `NULL` (the default) for a quarter of
-#'   the node radius with a floor of 1.5 mm. A value above the separation in
-#'   force, whether typed or derived, is reduced to it. Set it equal to
-#'   `edge_sep` to keep the separation fixed. Spline routing does not use it.
+#'   the node radius with a floor of 1.5 mm. A value above a separation the
+#'   router derives for itself is reduced to it; a value above an `edge_sep`
+#'   you set as well is an error. Set it equal to `edge_sep` to keep the
+#'   separation fixed. Spline routing does not use it.
 #' @param edge_route_options An object from [edge_route_options()] carrying
 #'   the rest of the constants the router draws with, or `NULL` (the default)
 #'   for the router's own. `clearance`, `edge_sep`, and `edge_sep_min` above
@@ -1335,8 +1336,8 @@ dag_routed_arrow_layer <- function(
 #'   time down the panel, such as [time_ordered_coords()] with
 #'   `direction = "y"`, is taken at its word, and every other scene has its
 #'   layers inferred from the node positions. The direction is read from the
-#'   plot's data, which carries the axis the layout recorded; name the axis
-#'   yourself for a layout ggdag did not compute.
+#'   DAG the plot is drawn from, which carries the axis the layout recorded;
+#'   name the axis yourself for a layout ggdag did not compute.
 #' @param node_size The size of the drawn nodes, in the units
 #'   [geom_dag_point()] takes, giving the router the radius of the discs it
 #'   clears. `NULL`, the default, takes it from the plot's node layer.

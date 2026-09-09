@@ -128,8 +128,8 @@ edge_route_rc_min <- 0.8
 #' @param edge_sep_min The floor in millimetres the orthogonal ladder may
 #'   tighten `edge_sep` to in a gap too narrow for the full spacing. `NULL`,
 #'   the router's own `max(0.25 r, 1.5)` clamped to `edge_sep`: 1.5 mm at the
-#'   default node size. A value above the separation in force, whether typed
-#'   or derived, is reduced to it: `edge_sep_min = 10` beside a separation the
+#'   default node size. A value above a separation the router derives for
+#'   itself is reduced to it: `edge_sep_min = 10` beside a separation the
 #'   router derives as 3.6 mm is drawn as 3.6. It must not be greater than
 #'   `edge_sep` when you set both; setting the two equal fixes the orthogonal
 #'   spacing, since there is then nothing left to tighten. Raising it also

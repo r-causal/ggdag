@@ -458,7 +458,8 @@ option sets it for every plot.}
 \link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
 customization via the \code{arrow_head}, \code{arrow_fins}, and \code{arrow_mid} global
 options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}). The \code{curvature} option is read by
-both engines, so an arc bends by the same amount whichever draws it.}
+both engines, but each engine draws that value with its own depth and to
+its own side.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

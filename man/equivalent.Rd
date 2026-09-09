@@ -153,7 +153,8 @@ selection. Common options include \code{draw_key_dag_point},
 \link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
 customization via the \code{arrow_head}, \code{arrow_fins}, and \code{arrow_mid} global
 options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}). The \code{curvature} option is read by
-both engines, so an arc bends by the same amount whichever draws it.}
+both engines, but each engine draws that value with its own depth and to
+its own side.}
 
 \item{text}{The bare name of a column to use for \code{geom_dag_text()}. If
 \code{use_text = TRUE}, the default is to use \code{name}.}

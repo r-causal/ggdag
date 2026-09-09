@@ -845,11 +845,13 @@ quick_plot_dag_edges <- function(
   )
 }
 
-# The arc layers a packaged plot builds bend by the amount `curvature` resolves
-# to, so that the two edge engines bow the same edge by the same amount and a
-# user who moves the option moves both pictures. Only the arc type takes it:
-# the diagonal type's curvature is ggraph's S-curve strength, a different
-# quantity, and the link types have no bend at all.
+# The ggraph arc layers a packaged plot builds bend by the amount `curvature`
+# resolves to, so that a user who moves the option moves the ggraph pictures
+# as well as the ggarrow ones. Each engine draws that amount with its own
+# depth and to its own side; `engine_trace_curvature()` holds the pair. Only
+# the arc type takes it here: the diagonal type's curvature is ggraph's
+# S-curve strength, a different quantity, and the link types have no bend at
+# all.
 arc_curvature_args <- function(edge_type) {
   if (!identical(edge_type, "arc")) {
     return(list())
@@ -926,8 +928,8 @@ expand_edge_aes <- function(mapping) {
 #' @param curvature The bend of the bidirected arc. 1 approximates a halfcircle
 #'   while 0 will give a straight line. Negative number will change the
 #'   direction of the curve. Only used if layout circular = FALSE. Defaults to
-#'   the `curvature` option, which both edge engines read, so that a bidirected
-#'   edge bends by the same amount however it is drawn.
+#'   the `curvature` option, which both edge engines read, though each engine
+#'   draws that value with its own depth and to its own side.
 #' @param arrow_directed,arrow_bidirected specification for arrow heads, as
 #'   created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
@@ -1835,7 +1837,8 @@ geom_dag_ggarrow_edges <- function(
 #'   [ggarrow][ggarrow::ggarrow-package] geoms, which support additional
 #'   customization via the `arrow_head`, `arrow_fins`, and `arrow_mid` global
 #'   options (see [ggdag_options_set()]). The `curvature` option is read by
-#'   both engines, so an arc bends by the same amount whichever draws it.
+#'   both engines, but each engine draws that value with its own depth and to
+#'   its own side.
 #' @param edge_route How the ggarrow engine draws directed edges, one of
 #'   `"straight"` (the default), `"spline"`, or `"orthogonal"`. `"spline"`
 #'   detours an edge whose path a node blocks around that node with a smooth

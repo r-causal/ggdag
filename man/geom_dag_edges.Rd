@@ -37,8 +37,8 @@ value must be a data.frame., and will be used as the layer data.}
 \item{curvature}{The bend of the bidirected arc. 1 approximates a halfcircle
 while 0 will give a straight line. Negative number will change the
 direction of the curve. Only used if layout circular = FALSE. Defaults to
-the \code{curvature} option, which both edge engines read, so that a bidirected
-edge bends by the same amount however it is drawn.}
+the \code{curvature} option, which both edge engines read, though each engine
+draws that value with its own depth and to its own side.}
 
 \item{arrow_directed, arrow_bidirected}{specification for arrow heads, as
 created by arrow()}
