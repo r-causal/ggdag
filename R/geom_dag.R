@@ -2401,6 +2401,15 @@ is_quo_logical <- function(x) {
 #' @importFrom ggplot2 ggplot aes
 ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
   dag_data <- fortify(data)
+
+  # A layer that routes around the nodes needs the axis the layers run along,
+  # which the layout that placed them recorded; the plot's own data is where
+  # every layer can see it.
+  direction <- layout_direction(data)
+  if (!is.null(direction)) {
+    attr(dag_data, "layout_direction") <- direction
+  }
+
   p <- ggplot2::ggplot(dag_data, mapping = mapping, ...)
 
   p <- silence_scales(p)

@@ -245,7 +245,7 @@ compute_layout_coords <- function(layout, edges_df, nodes, dag = NULL) {
     } else {
       layout(input)
     }
-    return(coords2list(coords))
+    return(layout_coords_list(coords))
   }
 
   input |>
@@ -254,7 +254,7 @@ compute_layout_coords <- function(layout, edges_df, nodes, dag = NULL) {
       outcome = outcome,
       node_scale = ggdag_option("node_size") / 16
     ) |>
-    coords2list()
+    layout_coords_list()
 }
 
 #' Check that edge directions are ones ggdag understands

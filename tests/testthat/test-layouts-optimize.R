@@ -65,19 +65,25 @@ test_that("time_ordered_coords(): optimize = TRUE returns a layout closure", {
 test_that("time_ordered_coords(): optimize = FALSE reproduces the spread tibble", {
   vars <- list("a", c("b1", "b2"), c("c1", "c2", "c3"), "d")
 
+  # The coordinates also record the axis time runs along, which the spread
+  # the helper rebuilds knows nothing about; that mark has its own test in
+  # test-layouts.R.
   expect_equal(
     time_ordered_coords(vars, optimize = FALSE),
-    naive_tiers(vars)
+    naive_tiers(vars),
+    ignore_attr = "layout_direction"
   )
 
   expect_equal(
     time_ordered_coords(vars, time_points = c(1, 2, 4, 8), optimize = FALSE),
-    naive_tiers(vars, time_points = c(1, 2, 4, 8))
+    naive_tiers(vars, time_points = c(1, 2, 4, 8)),
+    ignore_attr = "layout_direction"
   )
 
   expect_equal(
     time_ordered_coords(vars, direction = "y", optimize = FALSE),
-    naive_tiers(vars, direction = "y")
+    naive_tiers(vars, direction = "y"),
+    ignore_attr = "layout_direction"
   )
 
   time_df <- data.frame(
@@ -89,7 +95,8 @@ test_that("time_ordered_coords(): optimize = FALSE reproduces the spread tibble"
     naive_tiers(
       split(time_df$name, time_df$time),
       time_points = sort(unique(time_df$time))
-    )
+    ),
+    ignore_attr = "layout_direction"
   )
 })
 

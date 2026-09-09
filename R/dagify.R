@@ -152,18 +152,25 @@ dagify <- function(
   if (!is.null(latent)) {
     dagitty::latents(dgty) <- latent
   }
+  # A layout records the axis it ordered time along on the coordinates it
+  # returns; coordinates from anywhere else name no axis.
+  coord_direction <- NULL
   if (!is.null(coords)) {
     if (is.data.frame(coords)) {
+      coord_direction <- layout_direction(coords)
       dagitty::coordinates(dgty) <- coords2list(coords)
     } else if (is.list(coords)) {
+      coord_direction <- layout_direction(coords)
       dagitty::coordinates(dgty) <- coords
     } else if (is.function(coords)) {
-      dagitty::coordinates(dgty) <- compute_layout_coords(
+      computed <- compute_layout_coords(
         coords,
         get_dagitty_edges(dgty),
         names(dgty),
         dag = dgty
       )
+      coord_direction <- layout_direction(computed)
+      dagitty::coordinates(dgty) <- computed
     } else {
       abort(
         c(
@@ -179,6 +186,11 @@ dagify <- function(
   }
   if (nrow(curved_edges) > 0) {
     attr(dgty, "curved_edges") <- curved_edges
+  }
+  # `dagitty::coordinates<-` strips custom attributes, so the direction is
+  # written after the coordinates it describes.
+  if (!is.null(coord_direction)) {
+    attr(dgty, "layout_direction") <- coord_direction
   }
   dgty
 }

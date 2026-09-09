@@ -726,6 +726,16 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
   needs_node_size <- inherits(layer$geom, "GeomDAGRoutedArrow") &&
     is.null(layer$geom_params$node_size)
 
+  # It also routes along the axis the layout ran its layers along, which the
+  # plot's data carries. An axis named at the call site is the user's own and
+  # is left alone.
+  if (
+    inherits(layer$geom, "GeomDAGRoutedArrow") &&
+      identical(layer$geom_params$layer_axis %||% "auto", "auto")
+  ) {
+    layer$geom_params$layer_axis <- layout_layer_axis(plot$data)
+  }
+
   if (length(needs_resect) > 0 || needs_node_size) {
     discovered <- discover_node_size(plot)
     if (!is.null(discovered)) {
@@ -1308,8 +1318,11 @@ dag_routed_arrow_layer <- function(
 #'   override the object's fields of those names for this layer.
 #' @param layer_axis The axis the layout's layers run along, one of `"auto"`
 #'   (the default), `"x"`, or `"y"`. Routing sends a detour along the
-#'   within-layer axis, so a layout laid out down the panel rather than
-#'   across it is routed correctly by naming its axis.
+#'   within-layer axis, so a layout laid out down the panel rather than across
+#'   it needs the axis it runs along. Under `"auto"`, a layout from
+#'   [time_ordered_coords()] is taken at its word and every other scene has
+#'   its layers inferred from the node positions; name the axis for a layout
+#'   ggdag did not compute.
 #' @param node_size The size of the drawn nodes, in the units
 #'   [geom_dag_point()] takes, giving the router the radius of the discs it
 #'   clears. `NULL`, the default, takes it from the plot's node layer.

@@ -20,7 +20,10 @@
 #'   of time periods (the length of `.vars`). A data frame carries its own time
 #'   points in its second column, so supplying both is an error.
 #' @param direction A character string indicating the axis along which the
-#'   variables should be time-ordered. Either "x" or "y". Default is "x".
+#'   variables should be time-ordered. Either "x" or "y". Default is "x". The
+#'   direction travels with the coordinates, so the edge router of
+#'   [geom_dag_routed_arrows()] knows which axis a layout that runs down the
+#'   panel ordered its layers along.
 #' @param auto_sort_direction If `.vars` is `NULL`: nodes will be placed as far
 #'   `"left"` or `"right"` of in the graph as is reasonable. Default is right,
 #'   meaning the nodes will be as close as possible in time to their
@@ -115,7 +118,7 @@ time_ordered_coords <- function(
 
   if (is.null(.vars)) {
     auto_time_ordered_coords <- function(.df, ...) {
-      compute_time_ordered_layout(
+      coords <- compute_time_ordered_layout(
         .df,
         direction = direction,
         sort_direction = auto_sort_direction,
@@ -125,6 +128,7 @@ time_ordered_coords <- function(
         node_scale = ggdag_option("node_size") / 16,
         ...
       )
+      record_layout_direction(coords, direction)
     }
 
     return(auto_time_ordered_coords)
@@ -199,12 +203,13 @@ time_ordered_coords <- function(
   }
 
   if (!isTRUE(optimize)) {
-    return(purrr::map2_dfr(
+    spread <- purrr::map2_dfr(
       tier_points,
       .vars,
       spread_coords,
       direction = direction
-    ))
+    )
+    return(record_layout_direction(spread, direction))
   }
 
   # An empty time period holds no variables but keeps its place on the axis:
@@ -219,7 +224,7 @@ time_ordered_coords <- function(
   )
 
   manual_time_ordered_coords <- function(.df, ...) {
-    compute_time_ordered_layout(
+    coords <- compute_time_ordered_layout(
       .df,
       direction = direction,
       fixed_layers = fixed_layers,
@@ -229,6 +234,7 @@ time_ordered_coords <- function(
       node_scale = ggdag_option("node_size") / 16,
       ...
     )
+    record_layout_direction(coords, direction)
   }
 
   manual_time_ordered_coords
@@ -262,4 +268,87 @@ calculate_spread <- function(n) {
   }
 
   spread
+}
+
+# The axis a layout ordered time along -----------------------------------------
+
+#' Record the direction a layout laid its layers out along
+#'
+#' `time_ordered_coords()` is where the direction is named, so it is where the
+#' coordinates are marked with it. The layout engine's own tibble is left
+#' alone: the pinned layouts and the invariance fixture compare it by value.
+#'
+#' @param coords A data frame of coordinates.
+#' @param direction `"x"` or `"y"`.
+#' @return `coords`, marked with the direction.
+#' @noRd
+record_layout_direction <- function(coords, direction) {
+  attr(coords, "layout_direction") <- direction
+  coords
+}
+
+#' The direction a layout laid its layers out along
+#'
+#' [time_ordered_coords()] records the direction on the coordinates it hands
+#' back, [dagify()] and [tidy_dagitty()] copy it onto the `dagitty` object,
+#' where the dplyr methods keep it, and `ggplot()` carries it onto the data a
+#' plot is drawn from. Anything that has to know which axis the layers run
+#' along asks here, whichever of those it is holding.
+#'
+#' @param x A `tidy_dagitty`, a `dagitty` object, a data frame of coordinates,
+#'   or anything else, including `NULL`.
+#' @return `"x"` or `"y"`, or `NULL` when no layout recorded a direction.
+#' @noRd
+layout_direction <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+
+  if (is.tidy_dagitty(x)) {
+    x <- pull_dag(x)
+  }
+
+  direction <- attr(x, "layout_direction", exact = TRUE)
+  if (identical(direction, "x") || identical(direction, "y")) {
+    direction
+  } else {
+    NULL
+  }
+}
+
+#' The layer axis a routed layer takes from the layout
+#'
+#' The edge router infers the axis its layers run along from the node
+#' positions, and the inference reads a scene it cannot separate as layers
+#' across the panel. A layout that ran down the panel is the case it can get
+#' wrong, so that is the one it is told about; a layout across the panel is
+#' what it assumes already.
+#'
+#' @param x Anything `layout_direction()` reads.
+#' @return `"y"`, or `"auto"` to leave the axis to the router.
+#' @noRd
+layout_layer_axis <- function(x) {
+  if (identical(layout_direction(x), "y")) {
+    "y"
+  } else {
+    "auto"
+  }
+}
+
+#' Coordinates for a `dagitty` object, keeping the direction they were laid
+#' out along
+#'
+#' [coords2list()] builds a fresh list, so the direction the layout recorded
+#' is copied onto it here.
+#'
+#' @param coords A data frame of coordinates.
+#' @return A list of `x` and `y` coordinates named by node.
+#' @noRd
+layout_coords_list <- function(coords) {
+  as_list <- coords2list(coords)
+  direction <- layout_direction(coords)
+  if (!is.null(direction)) {
+    attr(as_list, "layout_direction") <- direction
+  }
+  as_list
 }

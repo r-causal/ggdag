@@ -828,7 +828,13 @@ test_that("manual tiers keep the user's grid when optimizing gains nothing", {
     fixed_layers = c(x1 = 1, x2 = 1, y = 2, z1 = 3, z2 = 3, z3 = 3, a = 4),
     time_points = 1:4
   )
-  expect_equal(by_name(coords), by_name(grid))
+  # the grid the layout function hands back also records the axis time runs
+  # along, which the engine's own coordinates do not carry
+  expect_equal(
+    by_name(coords),
+    by_name(grid),
+    ignore_attr = "layout_direction"
+  )
 
   z_heights <- coords$y[match(c("z1", "z2", "z3"), coords$name)]
   expect_lt(z_heights[1], z_heights[2])

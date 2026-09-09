@@ -73,8 +73,11 @@ override the object's fields of those names for this layer.}
 
 \item{layer_axis}{The axis the layout's layers run along, one of \code{"auto"}
 (the default), \code{"x"}, or \code{"y"}. Routing sends a detour along the
-within-layer axis, so a layout laid out down the panel rather than
-across it is routed correctly by naming its axis.}
+within-layer axis, so a layout laid out down the panel rather than across
+it needs the axis it runs along. Under \code{"auto"}, a layout from
+\code{\link[=time_ordered_coords]{time_ordered_coords()}} is taken at its word and every other scene has
+its layers inferred from the node positions; name the axis for a layout
+ggdag did not compute.}
 
 \item{node_size}{The size of the drawn nodes, in the units
 \code{\link[=geom_dag_point]{geom_dag_point()}} takes, giving the router the radius of the discs it

@@ -26,7 +26,10 @@ of time periods (the length of \code{.vars}). A data frame carries its own time
 points in its second column, so supplying both is an error.}
 
 \item{direction}{A character string indicating the axis along which the
-variables should be time-ordered. Either "x" or "y". Default is "x".}
+variables should be time-ordered. Either "x" or "y". Default is "x". The
+direction travels with the coordinates, so the edge router of
+\code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}} knows which axis a layout that runs down the
+panel ordered its layers along.}
 
 \item{auto_sort_direction}{If \code{.vars} is \code{NULL}: nodes will be placed as far
 \code{"left"} or \code{"right"} of in the graph as is reasonable. Default is right,

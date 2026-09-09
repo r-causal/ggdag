@@ -79,20 +79,27 @@ tidy_dagitty <- function(
   # custom attributes from the dagitty object.
   curved_edges <- attr(.dagitty, "curved_edges")
 
+  # The axis the layers run along belongs to the coordinates: it is kept while
+  # they are and replaced whenever a layout computes new ones.
+  recorded_direction <- layout_direction(.dagitty)
+
   # Track whether we just computed coords in this call — if so, always pass
 
   # them to generate_layout regardless of use_existing_coords.
   computed_coords <- FALSE
   if (is.function(layout)) {
-    dagitty::coordinates(.dagitty) <- compute_layout_coords(
+    computed <- compute_layout_coords(
       layout,
       dag_edges,
       names(.dagitty),
       dag = .dagitty
     )
+    recorded_direction <- layout_direction(computed)
+    dagitty::coordinates(.dagitty) <- computed
     computed_coords <- TRUE
     layout <- "nicely"
   } else if (is.data.frame(layout)) {
+    recorded_direction <- layout_direction(layout)
     dagitty::coordinates(.dagitty) <- coords2list(layout)
     computed_coords <- TRUE
     layout <- "nicely"
@@ -101,6 +108,9 @@ tidy_dagitty <- function(
     has_coords <- !is.null(existing) &&
       !all(is.na(unlist(existing)))
     if (!isTRUE(use_existing_coords) || !has_coords) {
+      # whatever the DAG was laid out with before, these coordinates replace
+      # it, and only the layout that computes them names an axis
+      recorded_direction <- NULL
       time_ordered_coords <- tryCatch(
         compute_layout_coords(
           "time_ordered",
@@ -126,6 +136,7 @@ tidy_dagitty <- function(
       covers_all <- !is.null(time_ordered_coords) &&
         all(all_nodes %in% names(time_ordered_coords$x))
       if (covers_all) {
+        recorded_direction <- layout_direction(time_ordered_coords)
         dagitty::coordinates(.dagitty) <- time_ordered_coords
         computed_coords <- TRUE
       } else if (!is.null(time_ordered_coords)) {
@@ -140,6 +151,9 @@ tidy_dagitty <- function(
     layout <- "nicely"
   } else {
     check_verboten_layout(layout)
+    if (!isTRUE(use_existing_coords)) {
+      recorded_direction <- NULL
+    }
   }
 
   pass_coords <- computed_coords || isTRUE(use_existing_coords)
@@ -200,6 +214,11 @@ tidy_dagitty <- function(
   # Restore curved_edges attr stripped by dagitty::coordinates<-
   if (!is.null(curved_edges)) {
     attr(.dagitty, "curved_edges") <- curved_edges
+  }
+
+  # Same for the direction the layers were laid out along
+  if (!is.null(recorded_direction)) {
+    attr(.dagitty, "layout_direction") <- recorded_direction
   }
 
   new_tidy_dagitty(tidy_dag, .dagitty)

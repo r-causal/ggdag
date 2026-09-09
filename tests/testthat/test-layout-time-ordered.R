@@ -828,22 +828,19 @@ test_that("compute_time_ordered_layout: direction y scales the time-free axis", 
   expect_lt(diff(range(result$x)), 2 * diff(range(result$y)))
 })
 
-test_that("compute_time_ordered_layout: the coordinates record the axis of time", {
-  # The engine is the one place that knows which axis the layers run along.
-  # Everything downstream that has to route around them, the edge router most
-  # of all, reads it back off the coordinates.
+test_that("compute_time_ordered_layout: the coordinates carry the layout alone", {
+  # Which axis time runs along is the user's to name, and
+  # `time_ordered_coords()` records it on the coordinates it hands back. The
+  # engine's own tibble stays bare, because the pinned layouts and the
+  # invariance fixture compare it with `expect_identical()`.
   edges_df <- make_edges_df(c("A", "B"), c("B", "C"))
 
-  expect_identical(
-    attr(compute_time_ordered_layout(edges_df), "layout_direction"),
-    "x"
-  )
-  expect_identical(
+  expect_null(attr(compute_time_ordered_layout(edges_df), "layout_direction"))
+  expect_null(
     attr(
       compute_time_ordered_layout(edges_df, direction = "y"),
       "layout_direction"
-    ),
-    "y"
+    )
   )
 })
 
