@@ -377,8 +377,8 @@ test_that("visual: as_tidy_dagitty() renders isolated nodes", {
     data.frame(name = c("a", "b", "c"), to = c("b", NA, NA)),
     seed = 42
   )
-  # never record a baseline that is missing the isolated node
-  skip_if_not(setequal(unique(pull_dag_data(tidy_dag)$name), c("a", "b", "c")))
+  # a regression here must fail, not skip
+  expect_true(setequal(unique(pull_dag_data(tidy_dag)$name), c("a", "b", "c")))
   expect_doppelganger("as_tidy_dagitty renders isolated nodes", ggdag(tidy_dag))
 })
 
@@ -479,8 +479,8 @@ test_that("visual: partial coordinates are completed by the layout", {
     coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
   )
   tidy_dag <- suppressMessages(tidy_dagitty(dag))
-  # never record a baseline that still carries missing coordinates
-  skip_if_not(!anyNA(pull_dag_data(tidy_dag)$x))
+  # a regression here must fail, not skip
+  expect_false(anyNA(pull_dag_data(tidy_dag)$x))
   expect_doppelganger(
     "partial coordinates completed by layout",
     ggdag(tidy_dag)
@@ -597,8 +597,8 @@ test_that("visual: as_tidy_dagitty() renders supplied labels", {
       labels = c("c" = "confounder", "x" = "exposure", "y" = "outcome"),
       seed = 1234
     )
-  # never record a baseline from a DAG that dropped its labels
-  skip_if_not("label" %in% names(pull_dag_data(tidy_dag)))
+  # a regression here must fail, not skip
+  expect_true("label" %in% names(pull_dag_data(tidy_dag)))
   expect_doppelganger(
     "as_tidy_dagitty renders supplied labels",
     ggdag(tidy_dag, use_labels = TRUE)
@@ -623,11 +623,11 @@ test_that("as_tidy_dagitty() errors informatively on an empty list", {
 })
 
 test_that("as_tidy_dagitty() empty list error message", {
-  # never record a baseline from the pre-fix base R error
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(as_tidy_dagitty(list()), error = identity),
     "ggdag_type_error"
-  ))
+  )
 
   expect_ggdag_error(as_tidy_dagitty(list()))
 })
@@ -644,11 +644,11 @@ test_that("as_tidy_dagitty() errors informatively on empty time points", {
 })
 
 test_that("as_tidy_dagitty() empty time point error message", {
-  # never record a baseline from the pre-fix compile_dag_from_df() error
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(as_tidy_dagitty(list(character(0))), error = identity),
     "ggdag_type_error"
-  ))
+  )
 
   expect_ggdag_error(as_tidy_dagitty(list(character(0))))
   expect_ggdag_error(as_tidy_dagitty(list("a", character(0))))
@@ -672,8 +672,8 @@ test_that("as_tidy_dagitty() rejects unsupported direction values", {
 })
 
 test_that("as_tidy_dagitty() direction error message", {
-  # never record a baseline from the pre-fix silent coercion
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(
       as_tidy_dagitty(
         data.frame(name = "a", to = "b", direction = "<-"),
@@ -682,7 +682,7 @@ test_that("as_tidy_dagitty() direction error message", {
       error = identity
     ),
     "ggdag_dag_error"
-  ))
+  )
 
   expect_ggdag_error(
     as_tidy_dagitty(

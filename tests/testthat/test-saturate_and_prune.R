@@ -35,8 +35,8 @@ test_that("dag_saturate() keeps isolated nodes", {
 test_that("visual: dag_saturate() keeps isolated nodes", {
   withr::local_seed(1234)
   .saturated_dag <- dag_saturate(dagitty::dagitty("dag{x -> y; z}"))
-  # never record a baseline from a saturation that lost the isolated node
-  skip_if_not(
+  # a regression here must fail, not skip
+  expect_true(
     setequal(unique(pull_dag_data(.saturated_dag)$name), c("x", "y", "z"))
   )
   expect_doppelganger(
@@ -77,8 +77,8 @@ test_that("visual: dag_saturate() keeps labels", {
   ) |>
     tidy_dagitty() |>
     dag_saturate()
-  # never record a baseline from a saturation that lost the labels
-  skip_if_not("label" %in% names(pull_dag_data(.saturated_dag)))
+  # a regression here must fail, not skip
+  expect_true("label" %in% names(pull_dag_data(.saturated_dag)))
   expect_doppelganger(
     "dag_saturate keeps labels",
     ggdag(.saturated_dag, use_labels = TRUE)
@@ -155,8 +155,8 @@ test_that("visual: dag_prune() keeps a node when all of its edges are pruned", {
     tidy_dagitty(dagify(x ~ z, y ~ z)),
     c("z" = "x", "z" = "y")
   )
-  # never record a baseline from a prune that lost the node
-  skip_if_not(
+  # a regression here must fail, not skip
+  expect_true(
     setequal(unique(pull_dag_data(pruned_dag)$name), c("x", "y", "z"))
   )
   expect_doppelganger(
@@ -223,11 +223,11 @@ test_that("dag_prune() errors on edges that are not in the DAG", {
 test_that("missing edges produce an informative message", {
   withr::local_seed(1234)
   .tdy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
-  # never record a baseline from the pre-fix silent no-op
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(dag_prune(.tdy_dag, c("y" = "x")), error = identity),
     "ggdag_missing_edges_error"
-  ))
+  )
 
   expect_ggdag_error(dag_prune(.tdy_dag, c("y" = "x")))
 })
@@ -252,11 +252,11 @@ test_that("dag_prune() rejects a partially named edges vector", {
 test_that("unnamed edges produce an informative message", {
   withr::local_seed(1234)
   .tdy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
-  # never record a baseline from the raw stopifnot() message
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(dag_prune(.tdy_dag, "y"), error = identity),
     "ggdag_type_error"
-  ))
+  )
 
   expect_ggdag_error(dag_prune(.tdy_dag, "y"))
   expect_ggdag_error(dag_prune(.tdy_dag, c("z" = "x", "y")))
@@ -314,8 +314,8 @@ test_that("dag_saturate() handles a directed and a bidirected edge on one pair",
 test_that("visual: dag_saturate() keeps bidirected edges", {
   withr::local_seed(1234)
   .saturated_dag <- dag_saturate(dagify(y ~ x, y ~ z, x ~ ~z))
-  # never record a baseline from a saturation that lost the bidirected edge
-  skip_if_not(
+  # a regression here must fail, not skip
+  expect_true(
     any(pull_dag_data(.saturated_dag)$direction == "<->", na.rm = TRUE)
   )
   expect_doppelganger(
@@ -391,8 +391,8 @@ test_that("visual: dag_saturate() labels a bidirected node", {
     x ~ ~z,
     labels = c("x" = "X", "y" = "Y", "z" = "Z")
   ))
-  # never record a baseline from a saturation that lost a node's label
-  skip_if_not(!anyNA(pull_dag_data(.saturated_dag)[["label"]]))
+  # a regression here must fail, not skip
+  expect_false(anyNA(pull_dag_data(.saturated_dag)[["label"]]))
   expect_doppelganger(
     "dag_saturate labels a bidirected node",
     ggdag(.saturated_dag, use_labels = TRUE)

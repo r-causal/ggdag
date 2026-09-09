@@ -297,8 +297,8 @@ test_that("visual: ggdag_equivalent_class() with a directed and a bidirected edg
   dag <- dagify(b ~ a, a ~ ~b)
   edges <- pull_dag_data(node_equivalent_class(dag)) |>
     dplyr::filter(!is.na(to))
-  # never record a baseline while the bidirected edge is marked reversable
-  skip_if_not(!any(edges$reversable[edges$direction == "<->"]))
+  # a regression here must fail, not skip
+  expect_false(any(edges$reversable[edges$direction == "<->"]))
   expect_doppelganger(
     "ggdag_equivalent_class() with a bidirected edge",
     ggdag_equivalent_class(dag)

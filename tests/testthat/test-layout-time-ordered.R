@@ -2825,8 +2825,8 @@ test_that("visual: time-ordered layout with an isolated node", {
     layout = "time_ordered"
   )
   dag_data <- pull_dag_data(tidy_dag)
-  # never record a baseline from a layout that fell back to the default
-  skip_if_not(
+  # a regression here must fail, not skip
+  expect_true(
     setequal(unique(dag_data$name), c("x", "y", "z")) &&
       identical(
         unique(dag_data$x[dag_data$name == "z"]),
@@ -2900,8 +2900,8 @@ test_that("visual: bidirected pair joined by a directed path", {
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline from a layout that still draws edges backwards
-  skip_if_not(node_x("x") < node_x("m") && node_x("m") < node_x("y"))
+  # a regression here must fail, not skip
+  expect_true(node_x("x") < node_x("m") && node_x("m") < node_x("y"))
   expect_doppelganger("time-ordered-bidirected-directed-path", ggdag(td))
 })
 
@@ -3078,8 +3078,8 @@ test_that("visual: right sort pulls a lone ancestor toward its child", {
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline while `a` is still stranded at the far left
-  skip_if_not(node_x("b") - node_x("a") == 1)
+  # a regression here must fail, not skip
+  expect_true(node_x("b") - node_x("a") == 1)
   expect_doppelganger("time-ordered-right-cascade", ggdag(td))
 })
 
@@ -3140,8 +3140,8 @@ test_that("visual: single pin inside a bidirected group", {
   ))
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline from a layout that ignored the pin
-  skip_if_not(node_x("a") == 2 && node_x("b") == 2)
+  # a regression here must fail, not skip
+  expect_true(node_x("a") == 2 && node_x("b") == 2)
   expect_doppelganger("time-ordered-bidirected-single-pin", ggdag(td))
 })
 
@@ -3189,8 +3189,8 @@ test_that("visual: exposure/outcome shift blocked by a pinned child", {
   td <- tidy_dagitty(dag)
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline that draws a cause and its effect at one time
-  skip_if_not(node_x("y") < node_x("d"))
+  # a regression here must fail, not skip
+  expect_true(node_x("y") < node_x("d"))
   expect_doppelganger("time-ordered-exp-out-pinned-child", ggdag(td))
 })
 
@@ -3267,7 +3267,7 @@ test_that("visual: exposure/outcome shift with a bidirected outcome", {
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline with the bidirected pair split across layers
-  skip_if_not(node_x("y") == node_x("w"))
+  # a regression here must fail, not skip
+  expect_true(node_x("y") == node_x("w"))
   expect_doppelganger("time-ordered-exp-out-bidirected", ggdag(td))
 })

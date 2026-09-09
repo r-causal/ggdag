@@ -74,228 +74,39 @@ layout_node_coords <- function(.tdy_dag) {
 # triple_confound         4       4
 # regression_disc         0       0
 # multi_mediator          6       5   (strict improvement)
-canonical_wiring_dags <- list(
-  confounding = list(
-    spec = c("z->x", "z->y", "x->y"),
-    budget = 0L
-  ),
-  mediation = list(
-    spec = c("x->m", "m->y", "x->y"),
-    budget = 0L
-  ),
-  collider = list(
-    spec = c("x->c", "y->c"),
-    budget = 0L
-  ),
-  iv = list(
-    spec = c("z->x", "x->y", "u->x", "u->y"),
-    budget = 0L
-  ),
-  front_door = list(
-    spec = c("u->x", "u->y", "x->m", "m->y"),
-    budget = 0L
-  ),
-  m_bias = list(
-    spec = c("u1->a", "u1->m", "u2->m", "u2->y", "a->y"),
-    budget = 1L
-  ),
-  smoking = list(
-    spec = c(
-      "genetics->smoking",
-      "genetics->cancer",
-      "smoking->tar",
-      "tar->cancer",
-      "smoking->cancer"
-    ),
-    budget = 0L
-  ),
-  epidemiology = list(
-    spec = c(
-      "ses->edu",
-      "ses->health",
-      "edu->income",
-      "edu->health",
-      "income->health",
-      "age->ses",
-      "age->health",
-      "gene->health",
-      "gene->ses"
-    ),
-    budget = 1L
-  ),
-  selection_bias = list(
-    spec = c("a->y", "a->s", "u->s", "u->y", "l->a", "l->u"),
-    budget = 1L
-  ),
-  overcontrol = list(
-    # The symmetry override keeps the even-spacing arch here, which trades
-    # one crossing for mirror symmetry; see the dual-initialization
-    # symmetry override tests below.
-    spec = c("x->z", "z->y", "x->y", "w->x", "w->z"),
-    budget = 1L
-  ),
-  napkin = list(
-    spec = c(
-      "u1->z",
-      "u1->a",
-      "u2->a",
-      "u2->y",
-      "z->a",
-      "a->m",
-      "m->y",
-      "a->y"
-    ),
-    budget = 0L
-  ),
-  butterfly = list(
-    spec = c("x1->m", "x2->m", "m->y1", "m->y2", "x1->y1", "x2->y2"),
-    budget = 0L
-  ),
-  complex_chain = list(
-    spec = c(
-      "a->b",
-      "b->c",
-      "c->d",
-      "d->e",
-      "a->c",
-      "b->d",
-      "c->e",
-      "a->e"
-    ),
-    budget = 0L
-  ),
-  wide_dag = list(
-    spec = c(
-      "x1->m1",
-      "x2->m1",
-      "x3->m2",
-      "x1->m2",
-      "m1->y",
-      "m2->y",
-      "x2->y",
-      "x3->y"
-    ),
-    budget = 3L
-  ),
-  deep_confound = list(
-    spec = c(
-      "u->a",
-      "u->b",
-      "u->c",
-      "a->b",
-      "b->c",
-      "a->d",
-      "c->d",
-      "b->d"
-    ),
-    budget = 0L
-  ),
-  large_epi = list(
-    spec = c(
-      "age->ses",
-      "age->smoking",
-      "age->bmi",
-      "age->health",
-      "ses->smoking",
-      "ses->diet",
-      "ses->health",
-      "smoking->cancer",
-      "smoking->health",
-      "diet->bmi",
-      "diet->health",
-      "bmi->cancer",
-      "bmi->health",
-      "cancer->health",
-      "gene->cancer",
-      "gene->bmi",
-      "gene->smoking"
-    ),
-    budget = 12L
-  ),
-  treatment = list(
-    spec = c(
-      "c1->x",
-      "c2->x",
-      "c1->y",
-      "c2->y",
-      "x->m1",
-      "x->m2",
-      "m1->y",
-      "m2->y",
-      "u->m1",
-      "u->y"
-    ),
-    budget = 2L
-  ),
-  double_iv = list(
-    spec = c(
-      "z1->x",
-      "z2->x",
-      "x->m",
-      "m->y",
-      "u1->x",
-      "u1->m",
-      "u2->m",
-      "u2->y"
-    ),
-    budget = 0L
-  ),
-  cascade = list(
-    spec = c(
-      "a->b",
-      "a->d",
-      "b->c",
-      "c->d",
-      "b->e",
-      "d->e",
-      "c->f",
-      "e->f",
-      "a->f"
-    ),
-    budget = 3L
-  ),
-  triple_confound = list(
-    spec = c(
-      "u->x",
-      "u->y",
-      "v->x",
-      "v->m",
-      "w->m",
-      "w->y",
-      "x->m",
-      "m->y",
-      "x->y"
-    ),
-    budget = 4L
-  ),
-  regression_disc = list(
-    spec = c(
-      "z->x",
-      "x->y",
-      "x->w",
-      "w->y",
-      "z->w",
-      "u->w",
-      "u->y"
-    ),
-    budget = 0L
-  ),
-  multi_mediator = list(
-    spec = c(
-      "x->m1",
-      "x->m2",
-      "x->m3",
-      "m1->m2",
-      "m2->m3",
-      "m1->y",
-      "m2->y",
-      "m3->y",
-      "x->y",
-      "u->m2",
-      "u->y"
-    ),
-    budget = 5L
-  )
+# The specs themselves come from helper-canonical-dags.R, so the budgets here
+# and the layout fixtures always describe the same DAGs.
+canonical_wiring_budgets <- c(
+  confounding = 0L,
+  mediation = 0L,
+  collider = 0L,
+  iv = 0L,
+  front_door = 0L,
+  m_bias = 1L,
+  smoking = 0L,
+  epidemiology = 1L,
+  selection_bias = 1L,
+  # The symmetry override keeps the even-spacing arch on `overcontrol`, which
+  # trades one crossing for mirror symmetry; see the dual-initialization
+  # symmetry override tests below.
+  overcontrol = 1L,
+  napkin = 0L,
+  butterfly = 0L,
+  complex_chain = 0L,
+  wide_dag = 3L,
+  deep_confound = 0L,
+  large_epi = 12L,
+  treatment = 2L,
+  double_iv = 0L,
+  cascade = 3L,
+  triple_confound = 4L,
+  regression_disc = 0L,
+  multi_mediator = 5L
+)
+
+canonical_wiring_dags <- purrr::imap(
+  canonical_wiring_budgets,
+  \(budget, nm) list(spec = canonical_dag_specs[[nm]], budget = budget)
 )
 
 # Crossing gates ---------------------------------------------------------------
