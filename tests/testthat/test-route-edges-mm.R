@@ -7622,6 +7622,37 @@ test_that("orthogonal packing: a leftward level chord keeps its own target's lin
   }
 })
 
+test_that("orthogonal ports: two leftward level chords take one row each", {
+  # The dedup that leaves one owner per centre row reads the node each
+  # chord's head reaches and orders the pair on their sources, so a scene
+  # drawn leftwards is deduped exactly as its reflection is: `x1 -> y`
+  # keeps `y`'s line and `x2 -> y` takes the row above it. Read at the
+  # right-hand end of each chord instead, or with reversed chords left out
+  # of the pass, the two are never compared with each other, neither is
+  # moved, and `y` is drawn two heads on one row over 60 mm of shared run.
+  forward <- two_owner_scene()
+  scene <- mirror_scene_x(forward)
+  res <- ortho(scene)
+  keeper <- edge_index(scene, "x1->y")
+  moved <- edge_index(scene, "x2->y")
+
+  expect_equal(res$paths[[keeper]]$y, rep(55, 2), tolerance = 1e-9)
+  expect_equal(
+    res$paths[[moved]]$y,
+    rep(55 + sep_e_default, 2),
+    tolerance = 1e-9
+  )
+  offs <- arrival_offsets(scene, res, "y")
+  expect_equal(unname(offs[["x1->y"]]), 0, tolerance = 1e-9)
+  expect_equal(unname(offs[["x2->y"]]), sep_e_default, tolerance = 1e-9)
+  expect_equal(
+    arrival_rows(scene, res, "y"),
+    arrival_rows(forward, ortho(forward), "y"),
+    tolerance = 1e-9
+  )
+  expect_equal(shared_run_length(res$paths[[keeper]], res$paths[[moved]]), 0)
+})
+
 # Per-edge resects ---------------------------------------------------------------
 
 test_that("orthogonal resects: the router puts every tip cap - r from the disc face", {
@@ -9955,7 +9986,12 @@ test_that("orthogonal packing: a sibling on the source's line never moves", {
 # m -> n of `crowded_line_scene()` as it stands when s -> t is priced, on
 # the interior line `y`, spanning layers 1 to 3 with the discs of layer 2
 # crossed and its chord's y there at 55.
-crowded_record <- function(y = 53, kind = "ew", keys = c("s2", "e2-7")) {
+crowded_record <- function(
+  y = 53,
+  kind = "ew",
+  keys = c("s2", "e2-7"),
+  src_key = keys[[1]]
+) {
   d <- c(120, 80) - c(20, 30)
   u <- d / sqrt(sum(d^2))
   list(
@@ -9967,6 +10003,7 @@ crowded_record <- function(y = 53, kind = "ew", keys = c("s2", "e2-7")) {
     la = 1L,
     lb = 3L,
     keys = keys,
+    src_key = src_key,
     Sy = 30,
     Ty = 80,
     fr = list(
@@ -10034,6 +10071,15 @@ test_that("slide_channels() refuses an immovable channel", {
 
     expect_null(slide(list(crowded_record(kind = "sn")), -1))
     expect_null(slide(list(crowded_record()), -1, cand_key = "s2"))
+    # the hyperedge is read on the key of the pieces leaving the source
+    # port rather than on the key of a chosen gap: a channel drawn
+    # leftwards carries that key in its last gap, and the candidate's own
+    # key is its source's whichever way the candidate runs
+    expect_null(slide(
+      list(crowded_record(keys = c("e2-7", "s2"), src_key = "s2")),
+      -1,
+      cand_key = "s2"
+    ))
     expect_null(slide(list(crowded_record(y = 30)), -1))
     expect_null(slide(list(crowded_record(y = 80)), -1))
 
@@ -10077,6 +10123,7 @@ test_that("slide_channels() prices the bends a moved channel sheds", {
     la = 1L,
     lb = 3L,
     keys = c("s2", "e2-7"),
+    src_key = "s2",
     Sy = 30,
     Ty = Ty,
     fr = list(
@@ -10124,7 +10171,13 @@ test_that("slide_channels() prices the bends a moved channel sheds", {
 
 # A record of the placement loop whose target's centre row a level chord
 # owns, on the line `y` and spanning layers 1 to 3 with one crossed layer.
-owned_record <- function(y, Ty, owned, keys = c("s2", "e2-7")) {
+owned_record <- function(
+  y,
+  Ty,
+  owned,
+  keys = c("s2", "e2-7"),
+  src_key = keys[[1]]
+) {
   d <- c(120, Ty) - c(20, 30)
   u <- d / sqrt(sum(d^2))
   list(
@@ -10136,6 +10189,7 @@ owned_record <- function(y, Ty, owned, keys = c("s2", "e2-7")) {
     la = 1L,
     lb = 3L,
     keys = keys,
+    src_key = src_key,
     Sy = 30,
     Ty = Ty,
     owned = owned,
