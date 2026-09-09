@@ -111,7 +111,8 @@ edge_route_rc_min <- 0.8
 #'   default `node_size` of 16. Both modes read it.
 #' @param edge_sep The gap in millimetres between two routed paths that share
 #'   a slot. `NULL`, the router's own `max(0.6 r, 1.5)`: 3.6 mm at the default
-#'   node size. Both modes read it.
+#'   node size. Both modes read it. In spline mode half of it is also the
+#'   margin a straight edge keeps from another edge's drawn arrowhead.
 #' @param edge_sep_min The floor in millimetres the orthogonal ladder may
 #'   tighten `edge_sep` to in a gap too narrow for the full spacing. `NULL`,
 #'   the router's own `max(0.25 r, 1.5)` clamped to `edge_sep`: 1.5 mm at the

@@ -143,7 +143,10 @@ device, so the detour clears the drawn node discs whatever the shape of
 the panel and the picture re-routes when the plot is resized. Unblocked
 edges stay straight, bidirected edges are drawn as arcs by the same curve
 geom \code{\link[=geom_dag_arrows]{geom_dag_arrows()}} uses, and the routing is deterministic: the same
-DAG at the same size always draws the same paths.
+DAG at the same size always draws the same paths. In spline mode an
+unblocked edge that would run through another edge's drawn arrowhead is
+nudged past it by a few millimetres, so it still reads as straight and
+the arrowhead is drawn whole.
 }
 \details{
 Curvature the user set is never rerouted. When the data carries an

@@ -30,7 +30,8 @@ default \code{node_size} of 16. Both modes read it.}
 
 \item{edge_sep}{The gap in millimetres between two routed paths that share
 a slot. \code{NULL}, the router's own \verb{max(0.6 r, 1.5)}: 3.6 mm at the default
-node size. Both modes read it.}
+node size. Both modes read it. In spline mode half of it is also the
+margin a straight edge keeps from another edge's drawn arrowhead.}
 
 \item{edge_sep_min}{The floor in millimetres the orthogonal ladder may
 tighten \code{edge_sep} to in a gap too narrow for the full spacing. \code{NULL},
