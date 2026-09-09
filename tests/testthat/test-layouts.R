@@ -469,6 +469,30 @@ test_that("as_tidy_dagitty(): the coordinates a data frame is laid out with name
   expect_null(attr(pull_dag(by_hand), "layout_direction"))
 })
 
+test_that("as_tidy_dagitty(): a grid the data leaves unused names no axis", {
+  # a data frame that already carries all four coordinate columns, laid out
+  # across the panel
+  across_df <- as.data.frame(pull_dag_data(tidy_dagitty(
+    dagify(y ~ x + m, m ~ x, coords = time_ordered_coords())
+  )))
+
+  kept <- as_tidy_dagitty(
+    across_df,
+    coords = time_ordered_coords(
+      list("x", "m", "y"),
+      direction = "y",
+      optimize = FALSE
+    )
+  )
+
+  # the coordinates the data arrived with are the ones it keeps, so the grid
+  # describes nothing about where the nodes sit
+  expect_equal(pull_dag_data(kept)$name, across_df$name)
+  expect_equal(pull_dag_data(kept)$x, across_df$x)
+  expect_equal(pull_dag_data(kept)$y, across_df$y)
+  expect_null(attr(pull_dag(kept), "layout_direction"))
+})
+
 test_that("dag_saturate(): reused coordinates keep the axis they name", {
   adjusted <- control_for(tidy_dagitty(down_panel_dag()), "m")
 
