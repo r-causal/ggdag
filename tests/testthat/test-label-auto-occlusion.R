@@ -630,7 +630,9 @@ test_that("a draw names the labels the engine placed on the ink", {
 # The ten-node, dense, and saturated scenes are byte-identical under the tier
 # at 7 x 5 under both routes, and test-label-auto-ownership.R pins all three
 # against fixtures/label-placements-7x5.rds. The block below is the same
-# guard at the size that fixture does not carry.
+# guard at the size that fixture does not carry. The leader lengths follow the
+# drawn edges, so a change to the routing moves them; what must not move them
+# is the label engine.
 
 test_that("the saturated scene is unchanged at 10 x 6", {
   skip_on_cran()
@@ -639,7 +641,7 @@ test_that("the saturated scene is unchanged at 10 x 6", {
   skip_on_os(c("windows", "linux", "solaris"))
 
   expected <- list(
-    spline = list(leaders = 3L, longest = 20.699102873913),
+    spline = list(leaders = 3L, longest = 19.906232376133),
     straight = list(leaders = 1L, longest = 6.0474966524655)
   )
 

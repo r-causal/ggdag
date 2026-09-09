@@ -8020,13 +8020,14 @@ test_that("a free bow's repair waypoint reports no layer", {
   expect_true(anyNA(res$meta$waypoint_layers[[i]]))
 })
 
-test_that("an unverified fallback is chosen by its disc violation, not its capsule intrusions", {
-  # A capsule intrusion is priced and repaired leniently, so it must not
-  # decide between two curves that both cut a disc: a fallback is the least
-  # disc violation, with the summed disc and capsule depth breaking a tie
-  # within the verification tolerance. very_big at 4 x 3 is where the two
-  # orderings part; all three edges stay unverified either way, and it is
-  # which curve they settle on that moves.
+test_that("an unverified fallback is chosen by its summed disc and capsule depth", {
+  # When no attempt clears every obstacle, the curve kept is the shallowest
+  # by total violation depth, a disc cut and an arrowhead-zone intrusion
+  # counted alike. Ranking the discs alone instead sends these three edges
+  # to other curves and leaves far more shafts drawn across other edges'
+  # arrowheads. very_big at 4 x 3 is where the two orderings part; all three
+  # edges stay unverified either way, and it is which curve they settle on
+  # that moves.
   scene <- very_big_scene(gallery_panels[[1]])
   res <- route_scene(scene, mode = "spline", opts = route_constants(r_default))
   reading <- function(label) {
@@ -8035,26 +8036,29 @@ test_that("an unverified fallback is chosen by its disc violation, not its capsu
       mode = res$meta$mode[i],
       side = res$meta$side[i],
       ok = res$meta$clearance_ok[i],
-      sagitta = round(res$meta$sagitta_ratio[i], 3)
+      sagitta = res$meta$sagitta_ratio[i]
     )
   }
 
   smoking <- reading("adversity->smoking")
-  expect_equal(smoking$mode, "interior")
-  expect_equal(smoking$side, 1)
+  expect_equal(smoking$mode, "bow")
+  expect_equal(smoking$side, -1)
   expect_false(smoking$ok)
+  expect_equal(smoking$sagitta, 0.4756, tolerance = 1e-4)
 
   inflammation <- reading("bmi->inflammation")
-  expect_equal(inflammation$mode, "bow")
+  expect_equal(inflammation$mode, "interior")
   expect_equal(inflammation$side, 1)
   expect_false(inflammation$ok)
+  expect_equal(inflammation$sagitta, 0.5994, tolerance = 1e-4)
 
   alcohol <- reading("stress->alcohol")
-  expect_equal(alcohol$mode, "bow")
+  expect_equal(alcohol$mode, "interior")
   expect_equal(alcohol$side, -1)
   expect_false(alcohol$ok)
-  expect_equal(alcohol$sagitta, 0.514)
+  expect_equal(alcohol$sagitta, 0.4295, tolerance = 1e-4)
 })
+
 
 # The gallery's bow-first policy scene: ten nodes on a 12-column grid, two
 # rows of five above and below a source and a target on the centre line,
@@ -8712,7 +8716,7 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
   b <- aggregate_of("spline")
   expect_equal(b$routed, 83L)
   expect_equal(b$waypoints, 160L)
-  expect_equal(b$drawn, 29164.596238, tolerance = 1e-9)
+  expect_equal(b$drawn, 29166.767895, tolerance = 1e-9)
   expect_equal(b$travel, 0)
 
   d <- aggregate_of("straight")
