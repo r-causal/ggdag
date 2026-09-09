@@ -507,6 +507,41 @@ test_that("a plot-level mapping under another name reaches the curve spec", {
   expect_equal(geometry$strength, c(0, 0.4))
 })
 
+test_that("a plot-level mapping under another name reaches the routed spec", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- base_dag() |>
+    curve_edge("x", "y", 0.4) |>
+    dplyr::mutate(bend = edge_curvature)
+  p <- ggplot(dag, aes_dag(edge_curvature = bend)) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+
+  routed <- discover_edge_geometry(p)
+  routed <- routed[order(routed$xend), , drop = FALSE]
+
+  # the layer inherits the mapping, so the curved edge is the one the geom
+  # leaves alone and the other is the one it routes
+  expect_equal(routed$type, c("routed", "routed"))
+  expect_equal(routed$curvature, c(NA, 0.4))
+})
+
+test_that("a curvature column the plot maps nowhere leaves the spec NA", {
+  skip_if_not_installed("ggarrow")
+
+  dag <- base_dag() |> curve_edge("x", "y", 0.4)
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+
+  routed <- discover_edge_geometry(p)
+
+  # nothing maps the column, so it never reaches the geom and every edge is
+  # routed; a spec reading the column would trace an arc nobody draws
+  expect_equal(routed$type, c("routed", "routed"))
+  expect_true(all(is.na(routed$curvature)))
+})
+
 # Repeated coordinates ------------------------------------------------------
 
 test_that("coordinates repeated across panels give one spec row per edge", {

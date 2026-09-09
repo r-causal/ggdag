@@ -1802,11 +1802,11 @@ routed_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
   }
 
   # The geom reads the curvature of an edge it must not reroute from the
-  # aesthetic, so the spec resolves it the same way; a layer that maps none
-  # falls back to the data's own column, which is what the geom is handed
-  # then as well.
+  # resolved aesthetic, so the spec reads it from there and nowhere else. A
+  # column no mapping names never reaches the geom, which routes that edge;
+  # taking it from the data anyway would trace an arc nobody draws.
   curvature <- mapped_edge_curvature(layer, layer_data, plot_mapping) %||%
-    as.numeric(column("edge_curvature", NA_real_))
+    rep(NA_real_, nrow(layer_data))
 
   geometry <- data.frame(
     x = layer_data$x,
