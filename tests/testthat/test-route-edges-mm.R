@@ -1342,6 +1342,51 @@ test_that("separate_arrival() takes the nearest clear angle on the minus side", 
   expect_lt(abs(atan2(d[2], d[1]) * 180 / pi + 15), 0.5)
 })
 
+test_that("arrival_deficit() turns away from one rival rather than between two", {
+  # The sampled curve runs straight into its target with two other edges
+  # arriving there: one 10 degrees off the chord, inside theta_min, and one
+  # 30 degrees off it, already clear. Only one of the two is a squeeze, so
+  # the rotation is 1.2 times that one's deficit away from it. The midpoint
+  # rule, applied without asking whether both rivals are inside theta_min,
+  # would turn 10 degrees and put the arrival on top of the near rival.
+  pts <- data.frame(x = seq(0, 100, by = 0.5), y = 0)
+  fr <- list(S = c(0, 0), E = c(100, 0))
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+
+  turn <- arrival_deficit(
+    pts,
+    fr,
+    cap_default,
+    rbind(unit(10), unit(-30)),
+    "E",
+    theta_min_default
+  )
+
+  expect_equal(turn, -1.2 * (theta_min_default - 10), tolerance = 1e-6)
+  expect_gt(abs(turn), 15)
+})
+
+test_that("arrival_deficit() equalises the two gaps of a true squeeze", {
+  # Both rivals are inside theta_min and on opposite sides of the sampled
+  # direction, so no rotation clears them both and the arrival aims for the
+  # midpoint of the two gaps instead: the rivals sit 10 degrees one way and
+  # 12 the other, so the turn is 1 degree towards the wider gap.
+  pts <- data.frame(x = seq(0, 100, by = 0.5), y = 0)
+  fr <- list(S = c(0, 0), E = c(100, 0))
+  unit <- function(deg) c(cos(deg * pi / 180), sin(deg * pi / 180))
+
+  turn <- arrival_deficit(
+    pts,
+    fr,
+    cap_default,
+    rbind(unit(10), unit(-12)),
+    "E",
+    theta_min_default
+  )
+
+  expect_equal(turn, -1, tolerance = 1e-6)
+})
+
 test_that("dense arrival: c->y lands midway between the arrivals crowding it", {
   # c -> y detours above x and arrives between x -> y along the row and
   # a -> y from the corner. Neither gap can reach theta_min, so the two are
@@ -10355,19 +10400,27 @@ test_that("parallel copies are spread in the order of their endpoints", {
   expect_equal(range(ref$paths[[1]]$y), c(50, 63.1), tolerance = 1e-6)
   expect_equal(range(ref$paths[[2]]$y), c(36.9, 50), tolerance = 1e-6)
 
-  # in spline mode they do not, and the member order is not what is left to
-  # settle it: route_scene_mm() visits the edges in order of span, chord
-  # length and then node name, so the two namings route the copies in
-  # opposite orders and the second copy bows around the first. Under one
-  # naming the pair straddles the chord and under the other both copies bow
-  # under it. These are the two pictures; the second is the one to lose
-  # when the routing order reads the geometry too.
+  # and in spline mode they draw one picture too. The member order alone
+  # does not settle that: the second copy is routed around the first, so
+  # which of the two is routed first decides the pair. route_scene_mm()
+  # visits the edges in order of span and chord length, and reads the
+  # endpoints' positions to break the tie the two copies make, so both
+  # namings route the copy out of the left node first and the pair
+  # straddles the chord. Read from the node names, one naming straddles it
+  # and the other bows both copies under it, 24 mm from the other picture.
   ref <- route_scene(parallel_pair_scene("a", "z"), mode = "spline")
   res <- route_scene(parallel_pair_scene("z", "a"), mode = "spline")
+  keep <- setdiff(names(ref$meta), "edge")
+  expect_identical(res$meta[keep], ref$meta[keep])
+  for (i in seq_along(ref$paths)) {
+    expect_lt(
+      polyline_hausdorff(res$paths[[i]], ref$paths[[i]]),
+      1e-9,
+      label = paste("spline", i)
+    )
+  }
   expect_equal(range(ref$paths[[1]]$y), c(36, 50), tolerance = 1e-6)
   expect_equal(range(ref$paths[[2]]$y), c(50, 66), tolerance = 1e-6)
-  expect_equal(range(res$paths[[1]]$y), c(35.4, 50), tolerance = 1e-6)
-  expect_equal(range(res$paths[[2]]$y), c(42, 50), tolerance = 1e-6)
 
   # the members of a group of duplicates share both endpoints, so their
   # positions tie and the input order decides, as the name order did

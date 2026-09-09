@@ -1594,6 +1594,73 @@ test_that("edge_route_options is spelled the same at every entry point", {
   expect_false("edge_route_options" %in% names(formals(ggdag_paths)))
 })
 
+# The name of the function a condition names as its own call.
+erroring_call <- function(expr) {
+  condition <- tryCatch(
+    {
+      force(expr)
+      NULL
+    },
+    error = function(e) e
+  )
+  testthat::expect_s3_class(condition, "ggdag_type_error")
+  rlang::call_name(conditionCall(condition))
+}
+
+test_that("a routing object that is not one names the function the user called", {
+  skip_if_not_installed("ggarrow")
+
+  # The object is checked where the user writes it down, so the error names
+  # the function they called rather than the layer builder it reaches or the
+  # constructor the merge calls: neither of those appears in the code in
+  # front of them.
+  expect_identical(
+    erroring_call(geom_dag(
+      edge_engine = "ggarrow",
+      edge_route = "spline",
+      edge_route_options = "bad"
+    )),
+    "geom_dag"
+  )
+  expect_identical(
+    erroring_call(ggdag(
+      mediator_dag(),
+      edge_engine = "ggarrow",
+      edge_route = "spline",
+      edge_route_options = list(clearance = 1)
+    )),
+    "ggdag"
+  )
+  expect_identical(
+    erroring_call(geom_dag_routed_arrows(edge_route_options = "bad")),
+    "geom_dag_routed_arrows"
+  )
+})
+
+test_that("a bad millimetre override names the layer the user wrote", {
+  skip_if_not_installed("ggarrow")
+
+  # The three millimetre formals are folded into the object by an internal
+  # merge, which builds a new object out of them. The merge checks them
+  # itself, so a value out of range and a pair that contradict each other
+  # both name the layer rather than that internal construction.
+  expect_identical(
+    erroring_call(geom_dag_routed_arrows(edge_sep = "wide")),
+    "geom_dag_routed_arrows"
+  )
+  expect_identical(
+    erroring_call(geom_dag_routed_arrows(edge_sep_min = -1)),
+    "geom_dag_routed_arrows"
+  )
+  expect_identical(
+    erroring_call(geom_dag_routed_arrows(
+      edge_sep = 2,
+      edge_route_options = edge_route_options(edge_sep_min = 3)
+    )),
+    "geom_dag_routed_arrows"
+  )
+})
+
 test_that("a routed layer's own clearance overrides the object's field", {
   skip_if_not_installed("ggarrow")
 

@@ -358,8 +358,6 @@ label_route_spec <- function(tree, edge) {
   }
   list(
     style = pick(c("route", "route_style"), edge$route_style),
-    clearance = pick(c("clearance"), NA),
-    sep = pick(c("edge_sep"), NA),
     cap = pick(c("route_cap"), edge$route_cap),
     layer_axis = axis_or_auto(pick(
       c("layer_axis", "route_layer_axis"),
@@ -457,11 +455,17 @@ route_label_edge <- function(tree, scene, edge, route_options = NULL) {
   }
   # the engine routes every directed edge of the scene together, as the
   # arrow layer does, since a route depends on the other edges' chords and
-  # arrivals; the requested edge's path is picked out afterwards
+  # arrivals; the requested edge's path is picked out afterwards. Edges
+  # carrying different options objects are different calls to the router, so
+  # only the requested edge's own set is routed with it.
+  options <- route_options %||% label_route_options(edge)
   all_edges <- label_edge_input(tree, scene)
   all_edges <- all_edges[vapply(
     all_edges,
-    function(e) !is.na(label_route_spec(tree, e)$style),
+    function(e) {
+      !is.na(label_route_spec(tree, e)$style) &&
+        identical(label_route_options(e), label_route_options(edge))
+    },
     logical(1)
   )]
   ends <- function(e) {
@@ -482,16 +486,7 @@ route_label_edge <- function(tree, scene, edge, route_options = NULL) {
     bounds = c(0, 0, scene$width, scene$height),
     cap = if (is.na(spec$cap)) tree$params$edge_cap %||% 8 else spec$cap,
     mode = spec$style,
-    opts = if (is.null(route_options)) {
-      route_constants(
-        r_ref = radius,
-        m = if (is.na(spec$clearance)) NULL else spec$clearance,
-        sep_e = if (is.na(spec$sep)) NULL else spec$sep,
-        layer_axis = spec$layer_axis
-      )
-    } else {
-      route_opts_from(route_options, radius, layer_axis = spec$layer_axis)
-    }
+    opts = route_opts_from(options, radius, layer_axis = spec$layer_axis)
   )
   routed$paths[[at]]
 }
@@ -1184,6 +1179,165 @@ test_that("the cap the layer draws with is the cap the label grob routes with", 
   }
 
   expect_lt(parity, 0.5)
+})
+
+# The longest of a set of edge inputs, which on the collinear mediator is the
+# blocked one.
+longest_edge <- function(edges) {
+  lengths <- vapply(
+    edges,
+    function(edge) {
+      last <- nrow(edge)
+      sqrt(
+        (edge$x[[last]] - edge$x[[1]])^2 + (edge$y[[last]] - edge$y[[1]])^2
+      )
+    },
+    numeric(1)
+  )
+  edges[[which.max(lengths)]]
+}
+
+# The edges of a label grob's input that a routed layer draws.
+routed_label_edges <- function(tree, scene) {
+  edges <- label_edge_input(tree, scene)
+  edges[vapply(
+    edges,
+    function(edge) !is.na(edge$route_style[[1]]),
+    logical(1)
+  )]
+}
+
+test_that("the cap is the finished plot's however the layers were ordered", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # The label layer is written first and the node layer last, so when the
+  # label layer is added neither the routed layer nor the node size that
+  # settles its resection is on the plot. The cap belongs to the finished
+  # plot, not to the part of it a layer happened to be added to, so both
+  # grobs read the same 12 mm from a node size of 24 and draw one line.
+  p <- ggplot(tidy_dagitty(collinear_mediator_dag()), aes_dag()) +
+    geom_dag_label_auto(aes(label = label)) +
+    geom_dag_routed_arrows() +
+    geom_dag_point(size = 24)
+
+  scene <- forced_panel_scene(p, "dag_routed_edges|dag_labels_auto")
+  routed_tree <- scene_gtree(scene, "dag_routed_edges")
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+
+  expect_equal(as.numeric(routed_tree$params$resect$head), 12)
+
+  routed <- routed_label_edges(label_tree, scene)
+  expect_length(routed, 3)
+  for (edge in routed) {
+    expect_equal(as.numeric(label_route_spec(label_tree, edge)$cap), 12)
+  }
+
+  blocked <- longest_edge(routed)
+  label_path <- route_label_edge(label_tree, scene, blocked)
+  drawn_path <- drawn_path_for(routed_tree, blocked)
+
+  parity <- if (is.null(label_path) || is.null(drawn_path)) {
+    Inf
+  } else {
+    hausdorff_mm(trim_by_cap(label_path, 12), trim_by_cap(drawn_path, 12))
+  }
+
+  # a cap read from the option instead of the plot leaves the arms of the
+  # rebuilt path 0.11 mm off the drawn ones, so the threshold is tighter
+  # than the half millimetre the other parity blocks allow
+  expect_lt(parity, 0.05)
+})
+
+test_that("two routed layers each draw with the object they were given", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # One plot, two routed layers, one options object each: x -> y detours
+  # around the mediator under a 6 mm clearance and the two short edges are
+  # drawn under 2 mm. Each grob routes with its own layer's object, and the
+  # label grob is handed both, one per edge, so its obstacles are the two
+  # pictures the reader sees rather than one object applied to all three.
+  wide <- edge_route_options(clearance = 6)
+  narrow <- edge_route_options(clearance = 2)
+  blocked_rows <- function(data) {
+    data[!is.na(data$to) & data$name == "x" & data$to == "y", , drop = FALSE]
+  }
+  other_rows <- function(data) {
+    data[!is.na(data$to) & !(data$name == "x" & data$to == "y"), , drop = FALSE]
+  }
+
+  p <- ggplot(tidy_dagitty(collinear_mediator_dag()), aes_dag()) +
+    geom_dag_routed_arrows(
+      data_directed = blocked_rows,
+      edge_route_options = wide
+    ) +
+    geom_dag_routed_arrows(
+      data_directed = other_rows,
+      edge_route_options = narrow
+    ) +
+    geom_dag_point() +
+    geom_dag_label_auto(aes(label = label))
+
+  scene <- forced_panel_scene(p, "dag_routed_edges|dag_labels_auto")
+  routed_trees <- scene$grobs[grepl("dag_routed_edges", names(scene$grobs))]
+  expect_length(routed_trees, 2)
+  label_tree <- scene_gtree(scene, "dag_labels_auto")
+
+  drawn <- vapply(
+    routed_trees,
+    function(tree) tree$params$edge_route_options$clearance,
+    numeric(1)
+  )
+  expect_setequal(drawn, c(2, 6))
+
+  routed <- routed_label_edges(label_tree, scene)
+  expect_length(routed, 3)
+
+  # the whole object identifies the routing, so the two kinds are told apart
+  # by the key the engine groups its router calls with
+  keys <- vapply(
+    routed,
+    function(edge) route_options_keys(edge[1, , drop = FALSE]),
+    character(1)
+  )
+  expect_length(unique(keys), 2L)
+  clearances <- vapply(
+    routed,
+    function(edge) label_route_options(edge)$clearance,
+    numeric(1)
+  )
+  expect_equal(sort(clearances), c(2, 2, 6))
+
+  cap <- label_tree$params$edge_cap %||% 8
+  for (tree in routed_trees) {
+    options <- tree$params$edge_route_options
+    mine <- routed[vapply(
+      routed,
+      function(edge) identical(label_route_options(edge), options),
+      logical(1)
+    )]
+    for (edge in mine) {
+      label_path <- route_label_edge(label_tree, scene, edge)
+      drawn_path <- drawn_path_for(tree, edge)
+      expect_lt(
+        hausdorff_mm(
+          trim_by_cap(label_path, cap),
+          trim_by_cap(drawn_path, cap)
+        ),
+        0.5
+      )
+    }
+  }
+
+  # and the wider clearance is the one the blocked edge was drawn with: it
+  # leaves the mediator's centre by the disc plus the 6 mm asked for
+  blocked <- longest_edge(routed)
+  expect_equal(label_route_options(blocked)$clearance, 6)
+  expect_gte(
+    mid_chord_deviation(route_label_edge(label_tree, scene, blocked)),
+    node_radius_mm(16) + 6 - 0.1
+  )
 })
 
 # The fan of the router's own fixtures, in millimetres, as the label grob

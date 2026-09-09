@@ -150,6 +150,38 @@ test_that("edge_route_options() rejects a bow, a price, or an angle out of range
   expect_ggdag_error(edge_route_options(tangent_clamp = 0))
 })
 
+test_that("edge_route_options() rejects an infinite value", {
+  # An infinite millimetre is greater than zero and an infinite price is at
+  # least zero, so the range comparisons alone let both through and the
+  # router is handed a clearance no panel can hold or a price nothing can
+  # outbid. The bow cap and the two angles are bounded above, so their own
+  # ranges already reject an infinity.
+  expect_error(
+    edge_route_options(clearance = Inf),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    edge_route_options(edge_sep = Inf),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    edge_route_options(corner_radius = Inf),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    edge_route_options(head_penalty = Inf),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    edge_route_options(max_bow = Inf),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    edge_route_options(steep_angle = -Inf),
+    class = "ggdag_type_error"
+  )
+})
+
 test_that("edge_route_options() rejects a value that is not one of its choices", {
   expect_s3_class(edge_route_options(), "ggdag_edge_route_options")
 
@@ -240,6 +272,42 @@ test_that("route_opts_from() derives the size-dependent fields from the radius i
   fixed_small <- route_opts_from(edge_route_options(clearance = 4), 2)
   fixed_large <- route_opts_from(edge_route_options(clearance = 4), 12)
   expect_identical(fixed_small$m, fixed_large$m)
+})
+
+test_that("the field table names the flag that says how a field travels", {
+  # A field a derivation reads has to be in place before the derivation
+  # runs, so it travels to route_constants() as an argument; the rest are
+  # leaf constants, substituted afterwards. The flag that tells the two
+  # apart is named for what it decides.
+  flags <- vapply(
+    edge_route_option_fields,
+    function(field) field$constructor_argument,
+    logical(1)
+  )
+
+  expect_setequal(names(flags), tier_1_fields)
+  expect_true(flags[["clearance"]])
+  expect_true(flags[["edge_sep"]])
+  expect_false(flags[["max_bow"]])
+  expect_false(flags[["parallel_sep"]])
+})
+
+test_that("route_opts_from() reduces a separation floor above the separation in force", {
+  # The floor is a floor on the separation actually in force, so a value
+  # above it is reduced to it rather than raising it: with the separation
+  # left to the router, a 10 mm floor at a 6 mm radius resolves to the 3.6
+  # mm the router derived. The roxygen of both spellings says so, since
+  # nothing is raised at construction, where the derived separation is not
+  # yet known.
+  clamped <- route_opts_from(edge_route_options(edge_sep_min = 10), r_ref)
+  expect_equal(clamped$sep_min, 3.6)
+
+  # a floor the user typed beside a separation that holds it is kept
+  typed <- route_opts_from(
+    edge_route_options(edge_sep = 10, edge_sep_min = 10),
+    r_ref
+  )
+  expect_equal(typed$sep_min, 10)
 })
 
 test_that("the mapping table and the constructor's fields agree", {
