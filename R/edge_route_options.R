@@ -39,7 +39,7 @@ edge_route_option_fields <- list(
     router = "sagitta_max",
     check = "fraction",
     unit = "of the chord",
-    constructor_argument = FALSE
+    constructor_argument = TRUE
   ),
   bend_penalty = list(
     router = "bend_penalty",
@@ -147,11 +147,25 @@ edge_route_rc_min <- 0.8
 #'   a tighter rung of the ladder. Under `corners = "sharp"` no arc is drawn,
 #'   but the radius is still live: it is the tolerance within which a run
 #'   counts as level, and the stub still reserves it. Orthogonal mode only.
-#' @param max_bow The cap on the sagitta of a free bow, as a fraction of the
-#'   chord it spans. `NULL`, the router's own `0.22`. A shallower cap makes a
-#'   deep arch infeasible, so more edges take an interior slot or the clamped
-#'   fallback; a deeper one restores arches that the saturating crossing price
-#'   (see `crossing_saturation`) exists to avoid. Spline mode only.
+#' @param max_bow How deep a routed edge may bow off the chord it spans, as a
+#'   fraction of that chord. `NULL`, the router's own `0.22` for a free bow
+#'   and no cap at all on a route drawn through the layers' slots. A value
+#'   you write caps both, and `max_bow = 0.22` caps the slots as any other
+#'   value does: the field records that you chose the number, not that the
+#'   number is new. A free bow over the cap is redrawn shallower, so a
+#'   shallower cap makes a deep arch infeasible and more edges take a slot or
+#'   the clamped fallback, while a deeper one restores arches that the
+#'   saturating crossing price (see `crossing_saturation`) exists to avoid. A
+#'   route through the slots has no depth to shrink, since it already takes
+#'   the nearest free slot in each layer it crosses, so there the cap
+#'   chooses between routes: one drawn deeper than the cap gives way
+#'   to any route drawn inside it, and when neither a slot nor a free bow
+#'   meets the cap the shallowest route the router could verify is drawn. The
+#'   cap is a preference and not a bound. One trade is worth knowing: a
+#'   tightened cap can replace a route through the slots, drawn at the full
+#'   `clearance`, with a shallower bow drawn at the soft margin, which leaves
+#'   a node it passes half the daylight the deeper route did. Spline mode
+#'   only.
 #' @param bend_penalty The price of one orthogonal bend, in reference radii of
 #'   displacement. `NULL`, the router's own `2`, at which two bends cost one
 #'   detour. `0` buys every bend a shorter run can pay for. Orthogonal mode

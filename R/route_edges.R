@@ -127,6 +127,12 @@
 #'   so that in a tangle no route crosses fewer than several edges the
 #'   displacement decides. `FALSE` prices every crossing in full.
 #'   Orthogonal mode always prices crossings linearly.
+#' @param sagitta_max In spline mode, how deep a routed edge may bow off its
+#'   chord, as a fraction of the chord, or `NULL`. Two constants are derived
+#'   from it. `sagitta_max` is the free-bow tier's cap, which keeps its own
+#'   default of `0.22`; `sagitta_max_spanning` is the spanning tier's, which
+#'   is `Inf` unless a value was written here, so that a caller who names no
+#'   cap leaves the tier's choice of slot unconstrained.
 #' @return A named list of constants.
 #' @noRd
 route_constants <- function(
@@ -139,7 +145,8 @@ route_constants <- function(
   bend_penalty = 2,
   head_penalty = 4,
   tight_penalty = NULL,
-  crossing_saturation = TRUE
+  crossing_saturation = TRUE,
+  sagitta_max = NULL
 ) {
   layer_axis <- if (identical(layer_axis, c("auto", "x", "y"))) {
     "auto"
@@ -176,7 +183,11 @@ route_constants <- function(
     sep_m = max(1.0 * r_ref, 2.5),
     tol_layer = r_ref,
     steep_deg = 60,
-    sagitta_max = 0.22,
+    # the free-bow tier's cap keeps its own default; the spanning tier's is
+    # the value the caller wrote and nothing when they wrote none, since a
+    # cap there selects among slots rather than shrinking a bow
+    sagitta_max = sagitta_max %||% 0.22,
+    sagitta_max_spanning = sagitta_max %||% Inf,
     t_clamp = c(0.2, 0.8),
     # the bound on a departure or arrival tangent off the chord, the wider
     # window an arrival bearing may be chosen in when the narrow one leaves
@@ -252,7 +263,11 @@ route_constants <- function(
 #'   layers' slots. `clearance_ok` is `FALSE` when the drawn curve could
 #'   not be kept `R` from every node disc, when its arch had to stop on
 #'   another edge's arch in a shared slot, or when it left the panel and
-#'   was clamped to it.
+#'   was clamped to it. `sagitta_capped` says that the sagitta cap acted on
+#'   the route rather than that the route met it: a free bow over the cap
+#'   was rebuilt at the soft margin, or, where `sagitta_max_spanning` is set
+#'   and nothing the spanning tier could offer met it, the shallowest
+#'   attempt that verified was drawn in place of the best-ranked one.
 #'   In orthogonal mode `meta` also carries `resect_head` and `resect_fins`,
 #'   the arc length in mm the arrow layer cuts from each end of the path:
 #'   `cap - r + sqrt(r^2 - o^2)` for a port offset `o` from the centre line
@@ -2721,7 +2736,10 @@ edge_cost_context <- function(fr, e, ctx) {
 #' stack and the arch climbs as steeply as it descends; the levelled chain
 #' is spread and hulled again. Candidates are priced by `side_cost()` on
 #' the displacement the stacks require, measured before levelling, and on
-#' the crossings of the chain as drawn.
+#' the crossings of the chain as drawn. A candidate whose waypoints sit
+#' deeper off the chord than `sagitta_max_spanning` allows ranks below
+#' every candidate that meets the cap, whatever it costs; under an unset
+#' cap no candidate is over it and the ranking is the cost order alone.
 #'
 #' @param bounds Panel bounds.
 #' @param reserved Reservations for this edge from `slot_reservations()`,
@@ -2730,8 +2748,9 @@ edge_cost_context <- function(fr, e, ctx) {
 #'   indexed by; `ints` unless the edge carries an extra margin.
 #' @return `NULL` when every candidate has a slot with no free y; otherwise
 #'   the candidates ranked best first, each a list with `wp`, `side`,
-#'   `scope`, `disordered`, `overlap`, and `ints`, the free intervals the
-#'   candidate was placed in (clipped for a periphery candidate).
+#'   `scope`, `disordered`, `overlap`, `over_cap`, and `ints`, the free
+#'   intervals the candidate was placed in (clipped for a periphery
+#'   candidate).
 #' @noRd
 assign_spanning_waypoints <- function(
   fr,
@@ -2760,6 +2779,14 @@ assign_spanning_waypoints <- function(
 
   pints <- if ("periphery" %in% scopes) {
     lapply(ints, periphery_intervals, bounds = bounds, margin = opts$m)
+  }
+
+  # the cap as a perpendicular distance off this chord, and the offset of a
+  # waypoint chain in the same frame the drawn sagitta is measured in
+  cap_mm <- (opts$sagitta_max_spanning %||% Inf) * fr$Lc
+  chain_depth <- function(wp) {
+    offset <- (wp$x - fr$S[[1]]) * fr$n[[1]] + (wp$y - fr$S[[2]]) * fr$n[[2]]
+    max(abs(offset))
   }
 
   cands <- list()
@@ -2834,7 +2861,10 @@ assign_spanning_waypoints <- function(
         disordered = disordered,
         overlap = overlap,
         tight = tight,
-        ints = use
+        ints = use,
+        # measured after the hull and after a periphery arch is levelled,
+        # since that is the chain the curve is drawn through
+        over_cap = nrow(wp) > 0 && chain_depth(wp) > cap_mm
       )
     }
   }
@@ -2845,7 +2875,8 @@ assign_spanning_waypoints <- function(
   overlap <- vapply(cands, function(c) c$overlap, logical(1))
   interior <- vapply(cands, function(c) c$scope == "interior", logical(1))
   above <- vapply(cands, function(c) c$side > 0, logical(1))
-  cands[order(overlap, cost, !interior, !above)]
+  over_cap <- vapply(cands, function(c) c$over_cap, logical(1))
+  cands[order(over_cap, overlap, cost, !interior, !above)]
 }
 
 #' Whether a y is the centre line of a tight slot of a layer
@@ -5944,6 +5975,9 @@ route_scene_mm <- function(
       opts$m_min
     )
   })
+  # the spanning tier's cap on how deep a curve may be drawn off its chord,
+  # `Inf` unless the caller wrote one
+  cap_ratio <- opts$sagitta_max_spanning %||% Inf
   # two drawn tips theta degrees apart at one target are 2 cap sin(theta / 2)
   # apart, so arrivals this far apart keep their arrowheads sep_e apart
   theta_min <- 2 * asin(min(1, opts$sep_e / (2 * cap))) * 180 / pi
@@ -6094,12 +6128,45 @@ route_scene_mm <- function(
               opts
             )
           }
+          # the depth a candidate is actually drawn at, which is not the
+          # depth of its waypoints: the curve interpolated through a
+          # levelled chain bulges several millimetres past it, so a cap
+          # read off the waypoints would pass a curve that misses it
+          drawn_sagitta <- function(r) {
+            offset <- (r$path$x - fr$S[[1]]) *
+              fr$n[[1]] +
+              (r$path$y - fr$S[[2]]) * fr$n[[2]]
+            round(max(abs(offset)) / fr$Lc, opts$cost_digits)
+          }
+          meets_cap <- function(r) drawn_sagitta(r) <= cap_ratio
+          # the verified attempt with the shallowest drawn curve, kept for
+          # when no admissible slot and no bow meets the cap
+          shallowest <- NULL
+          keep_shallow <- function(r) {
+            if (!r$inside || !r$clearance_ok) {
+              return(invisible(NULL))
+            }
+            # two attempts within the verification tolerance of each other
+            # are equally shallow and the pool rank decides between them, so
+            # a floating difference between two mirror images cannot
+            if (
+              is.null(shallowest) ||
+                drawn_sagitta(r) <
+                  drawn_sagitta(shallowest) - opts$verify_tol / fr$Lc
+            ) {
+              shallowest <<- r
+            }
+            invisible(NULL)
+          }
+
           # the best-ranked candidate wins when its curve keeps the margin
-          # from the panel bounds and verifies against the discs
+          # from the panel bounds, verifies against the discs, and is drawn
+          # no deeper than the cap
           first <- try_cand(cands[[1]])
-          if (first$inside && first$clearance_ok) {
+          if (first$inside && first$clearance_ok && meets_cap(first)) {
             res <- first
           } else {
+            keep_shallow(first)
             # otherwise the free bow is priced with the remaining candidates
             # and the cheapest verified one inside the margin wins; a
             # lower-ranked slot never wins by default. The bow is priced
@@ -6130,10 +6197,11 @@ route_scene_mm <- function(
               } else {
                 tried <- try_cand(rest[[k]])
               }
-              if (tried$inside && tried$clearance_ok) {
+              if (tried$inside && tried$clearance_ok && meets_cap(tried)) {
                 res <- tried
                 break
               }
+              keep_shallow(tried)
               # when nothing verifies, the attempt inside the margin with
               # the least violation is kept, and the free bow may still
               # replace it below; attempts within the verification
@@ -6155,6 +6223,13 @@ route_scene_mm <- function(
                 fallback$depth > first$depth - opts$verify_tol
             ) {
               fallback <- first
+            }
+            # a cap nothing met is a preference rather than a bound: the
+            # shallowest route that did verify is drawn, and the flag says
+            # the cap acted on the route rather than that it was met
+            if (is.null(res) && !is.null(shallowest)) {
+              shallowest$capped <- TRUE
+              res <- shallowest
             }
             res <- res %||% fallback %||% first
           }
