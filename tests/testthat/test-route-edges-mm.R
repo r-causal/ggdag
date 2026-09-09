@@ -9982,6 +9982,64 @@ test_that("orthogonal packing: a sibling on the source's line never moves", {
   expect_equal(longest_run(res$paths[[v]])$coord, 65, tolerance = 1e-6)
 })
 
+# One source with three edges. `s -> t2` is level and drawn on t2's line;
+# `s -> t1` spans two gaps and is placed first, taking the line 60, which
+# is `y`'s; `s -> y` spans three and would rather run on 60 itself, and can
+# have it only by sliding its sibling aside.
+hyperedge_slide_scene <- function() {
+  list(
+    name = "hyperedge_slide",
+    nodes = mm_nodes(
+      c("y", "t1", "t2", "p1", "p2", "p3", "s0", "s"),
+      c(180, 140, 140, 100, 100, 100, 60, 60),
+      c(60, 20, 100, 70, 75, 95, 20, 100)
+    ),
+    edges = mm_edges(rep("s", 3), c("t1", "t2", "y")),
+    bounds = c(0, 0, 200, 115)
+  )
+}
+
+test_that("orthogonal packing: a leftward sibling of one hyperedge never moves", {
+  # `s -> t1` and `s -> y` leave one port, so they are one hyperedge and
+  # neither slides the other's channel aside. `s -> y` therefore takes the
+  # row a separation below the line its sibling holds and steps up to `y`
+  # at the end, whichever way the scene is drawn. Read on the key of a
+  # chosen gap rather than on the key of the pieces leaving the source, a
+  # leftward candidate cannot recognise its sibling: it slides it down to
+  # 56.4 and keeps 60 for itself, a picture the same scene drawn rightwards
+  # never gives.
+  # `expect_orthogonal_scene()` is not read here: the two siblings share
+  # the trunk they leave `s` on, and the helper takes the left-hand end of
+  # a run for its source, so it reads that one trunk as two sources in a
+  # slot when the scene is drawn leftwards.
+  forward <- hyperedge_slide_scene()
+  for (scene in list(forward, mirror_scene_x(forward))) {
+    res <- ortho(scene)
+    label <- scene$name
+    trunk <- function(lab) {
+      runs <- straight_runs(dedupe_path(res$paths[[edge_index(scene, lab)]]))
+      runs$coord[runs$axis == "v"][[1]]
+    }
+    expect_equal(trunk("s->t1"), trunk("s->y"), tolerance = 1e-6, label = label)
+
+    expect_equal(
+      longest_run(res$paths[[edge_index(scene, "s->t1")]])$coord,
+      60,
+      tolerance = 1e-6,
+      label = label
+    )
+    runs <- straight_runs(dedupe_path(res$paths[[edge_index(scene, "s->y")]]))
+    h <- runs[runs$axis == "h", , drop = FALSE]
+    expect_equal(
+      h$coord[[which.max(h$length)]],
+      60 - sep_e_default,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(h$coord[[nrow(h)]], 60, tolerance = 1e-6, label = label)
+  }
+})
+
 # One record of the placement loop, in the shape `slide_channels()` reads:
 # m -> n of `crowded_line_scene()` as it stands when s -> t is priced, on
 # the interior line `y`, spanning layers 1 to 3 with the discs of layer 2
