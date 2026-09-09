@@ -59,7 +59,7 @@ node_equivalent_dags <- function(
 
   updated_dag <- pull_dag(.dag)
   dagitty::coordinates(updated_dag) <- layout_coords
-  update_dag(.dag) <- updated_dag
+  update_dag(.dag) <- keep_layout_direction(updated_dag, pull_dag(.dag))
 
   if (extra_columns) {
     # extra columns come from edge-level rows, so keep one row per node to

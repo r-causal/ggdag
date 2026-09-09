@@ -352,3 +352,33 @@ layout_coords_list <- function(coords) {
   }
   as_list
 }
+
+#' Mark a `dagitty` object with the axis its layout ran its layers along
+#'
+#' The mark belongs to the coordinates, so it is written whenever they are:
+#' the axis a new layout names replaces the one before it, and coordinates
+#' that name no axis leave the object unmarked.
+#'
+#' @param x A `dagitty` object.
+#' @param direction `"x"`, `"y"`, or `NULL` to leave it unmarked.
+#' @return `x`, marked.
+#' @noRd
+set_layout_direction <- function(x, direction) {
+  attr(x, "layout_direction") <- direction
+  x
+}
+
+#' Carry the layout direction across a `dagitty` setter
+#'
+#' `dagitty`'s replacement functions rebuild the object from its text, which
+#' drops the attributes ggdag keeps on it. The node attribute being set says
+#' nothing about where the nodes sit, so the axis the layout ran along still
+#' describes the rebuilt object and goes back onto it.
+#'
+#' @param x The rebuilt `dagitty` object.
+#' @param from The object it was built from.
+#' @return `x`, marked as `from` was.
+#' @noRd
+keep_layout_direction <- function(x, from) {
+  set_layout_direction(x, layout_direction(from))
+}

@@ -219,7 +219,7 @@ add_adjusted_nodes <- function(.tdy_dag, .adjusted) {
 
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- .adjusted
-  update_dag(.tdy_dag) <- updated_dag
+  update_dag(.tdy_dag) <- keep_layout_direction(updated_dag, pull_dag(.tdy_dag))
 
   dplyr::mutate(
     .tdy_dag,

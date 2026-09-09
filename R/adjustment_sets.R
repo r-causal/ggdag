@@ -368,7 +368,7 @@ control_for <- function(
   validate_nodes_exist(.tdy_dag, var, arg = "var")
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
-  update_dag(.tdy_dag) <- updated_dag
+  update_dag(.tdy_dag) <- keep_layout_direction(updated_dag, pull_dag(.tdy_dag))
   if (isTRUE(activate_colliders)) {
     .tdy_dag <- activate_collider_paths(.tdy_dag, var)
   }

@@ -100,12 +100,121 @@ pull_dag_data.dagitty <- function(x, ...) {
 #' @export
 #' @rdname pull_dag
 `update_dag_data<-.tidy_dagitty` <- function(x, value) {
+  dag <- pull_dag(x)
+  previous <- pull_dag_data(x)
+  layout <- ggdag_option("layout", "nicely")
+  rebuilt <- rebuilt_coordinates(value, layout, dag)
+
   x$data <- prep_dag_data(
     value,
-    dag = pull_dag(x),
+    layout = layout,
+    coords = rebuilt$coords,
+    dag = dag,
     call = rlang::caller_env()
   )
+
+  x$dag <- set_layout_direction(
+    dag,
+    incoming_layout_direction(value, previous, dag, rebuilt)
+  )
+
   x
+}
+
+#' The coordinates a rebuilt layout gives the incoming data
+#'
+#' `prep_dag_data()` regenerates the layout when the data arrives without a
+#' full set of coordinate columns. Working them out before it does costs
+#' nothing, because they are handed to it rather than computed twice, and it
+#' is what lets the setter mark the DAG with the axis the new layout ran its
+#' layers along.
+#'
+#' @param value The incoming data.
+#' @param layout The layout the data will be laid out with.
+#' @param dag The `dagitty` object the data belongs to.
+#' @return A list of whether the layout is being rebuilt at all and, if it is,
+#'   the coordinates it gives, which are `NULL` when ggraph is to lay the DAG
+#'   out.
+#' @noRd
+rebuilt_coordinates <- function(value, layout, dag) {
+  # data that does not name its nodes is rejected by `prep_dag_data()`, which
+  # is left to report it rather than laying the DAG out first
+  rebuilding <- all(c("name", "to") %in% names(value)) &&
+    any(c("x", "y", "xend", "yend") %nin% names(value))
+
+  if (!rebuilding) {
+    return(list(rebuilding = FALSE, coords = NULL))
+  }
+
+  list(rebuilding = TRUE, coords = layout_coordinates(value, layout, dag))
+}
+
+#' The axis the DAG's layers run along once the data is replaced
+#'
+#' The mark describes where the nodes sit, so it holds only while the data
+#' holds the coordinates it was recorded for. A rebuilt layout takes the mark
+#' of the layout that rebuilt it; data that keeps its coordinates keeps the
+#' mark the DAG already carries; and coordinates written in from anywhere else
+#' belong to no layout ggdag laid out, so they leave the DAG unmarked.
+#'
+#' @param value The incoming data.
+#' @param previous The data it replaces.
+#' @param dag The `dagitty` object the data belongs to.
+#' @param rebuilt The report of `rebuilt_coordinates()`.
+#' @return `"x"`, `"y"`, or `NULL`.
+#' @noRd
+incoming_layout_direction <- function(value, previous, dag, rebuilt) {
+  if (isTRUE(rebuilt$rebuilding)) {
+    return(layout_direction(rebuilt$coords))
+  }
+
+  if (unmoved_coordinates(value, previous)) {
+    return(layout_direction(dag))
+  }
+
+  NULL
+}
+
+#' Does the incoming data still hold the coordinates it is replacing?
+#'
+#' A verb that leaves the coordinates alone leaves the layout that computed
+#' them in place, however else it reshapes the data: rows are dropped, added,
+#' and reordered by the analysis functions, so the nodes the two data frames
+#' have in common are what is compared.
+#'
+#' @param value The incoming data.
+#' @param previous The data it replaces.
+#' @return `TRUE` when every node the two share sits where it did.
+#' @noRd
+unmoved_coordinates <- function(value, previous) {
+  needed <- c("name", "x", "y")
+  if (any(needed %nin% names(value)) || any(needed %nin% names(previous))) {
+    return(FALSE)
+  }
+
+  incoming <- node_positions(value)
+  before <- node_positions(previous)
+  shared <- intersect(names(incoming), names(before))
+
+  length(shared) > 0 && identical(incoming[shared], before[shared])
+}
+
+#' Where each node of a data frame sits
+#'
+#' A node holds the same position on each of its rows, so the first row of
+#' each speaks for it. The positions are compared as text, which reads a
+#' coordinate the same whether it is stored as an integer or a double.
+#'
+#' @param data A data frame with `name`, `x`, and `y` columns.
+#' @return A character vector of positions, named by node.
+#' @noRd
+node_positions <- function(data) {
+  speaks_for_node <- !is.na(data$name) & !duplicated(data$name)
+
+  stats::setNames(
+    paste(data$x[speaks_for_node], data$y[speaks_for_node]),
+    data$name[speaks_for_node]
+  )
 }
 
 prep_dag_data <- function(
@@ -200,7 +309,7 @@ prep_dag_data <- function(
 #' @noRd
 layout_coordinates <- function(value, layout, dag = NULL) {
   if (is.data.frame(layout)) {
-    return(coords2list(layout))
+    return(layout_coords_list(layout))
   }
 
   if (is.function(layout) || identical(layout, "time_ordered")) {
@@ -375,8 +484,12 @@ recompile_dag <- function(.dag) {
     coords2list()
 
   # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
-  # so labels have to be set afterwards
-  set_node_labels(new_dag, label(pull_dag(.dag)))
+  # so the labels and the axis the layout ran along are set afterwards. The
+  # coordinates are the ones the data was laid out with, so the axis that
+  # describes them is still the DAG's own.
+  new_dag <- set_node_labels(new_dag, label(pull_dag(.dag)))
+
+  keep_layout_direction(new_dag, pull_dag(.dag))
 }
 
 compile_dag_from_df <- function(.df, call = rlang::caller_env()) {
