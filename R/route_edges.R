@@ -3251,11 +3251,15 @@ route_spanning_candidate <- function(
 #'
 #' Members share an unordered node pair. Each member of a group of `k` is
 #' routed with an extra clearance of `sep_m * (k - 1) / 2` and translated by
-#' `sep_m * (i - (k + 1) / 2)`, in the canonical order of its endpoint names.
+#' `sep_m * (i - (k + 1) / 2)`, in the order of its endpoints' positions:
+#' the source's x, then its y, then the target's x and y, and the input
+#' order for members whose endpoints coincide, which is every group of
+#' duplicates. Ordering by node name instead would let two callers who name
+#' one picture differently draw the copies on opposite sides.
 #'
 #' @return A list with `extra` and `shift`, one value per edge.
 #' @noRd
-parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
+parallel_groups <- function(from, to, nodes, routable, sep_m) {
   n_edges <- length(from)
   extra <- numeric(n_edges)
   shift <- numeric(n_edges)
@@ -3266,8 +3270,10 @@ parallel_groups <- function(from, to, from_name, to_name, routable, sep_m) {
       next
     }
     members <- members[order(
-      from_name[members],
-      to_name[members],
+      nodes$x[from[members]],
+      nodes$y[from[members]],
+      nodes$x[to[members]],
+      nodes$y[to[members]],
       method = "radix"
     )]
     size <- length(members)
@@ -3388,7 +3394,7 @@ route_orthogonal_scene <- function(
   at_top <- nodes$y >= layer_hi[layers$id] - 1e-9
   at_bottom <- nodes$y <= layer_lo[layers$id] + 1e-9
 
-  grp <- parallel_groups(from, to, from_name, to_name, routable, opts$sep_m)
+  grp <- parallel_groups(from, to, nodes, routable, opts$sep_m)
   shift <- grp$shift
   extra <- grp$extra
 
@@ -3734,14 +3740,19 @@ route_orthogonal_scene <- function(
   # max(sep_e / 2, sep_min) apart within the height the head fits in;
   # otherwise each group merges onto one row, at its first offset beside an
   # owner and at +- sep_e / 2 (or the centre, for one group alone) without
-  # one, and the ladder keeps the joins clear of the stub. The copies of a
-  # parallel bundle are spread sep_m apart already, so they keep the centre
-  # row. So does an arrival out of a gap too narrow for any stub, unless
-  # the gap is floored: the slot nearest the target leaves a whole head
-  # run before the target's layer, and that run holds a row as well as a
-  # head. Only the arrival gap counts, so an edge
-  # that crosses a narrow gap early and arrives through a wide or floored
-  # one takes a row like any other
+  # one, and the ladder keeps the joins clear of the stub. A merged row the
+  # floor still cannot hold collapses onto the centre row: the height a head
+  # fits in, h = r - head_w / 2, shrinks with the node radius faster than the
+  # floor does and turns negative under r = head_w / 2, so h is floored at 0
+  # and a stack that cannot be spread is drawn on the node's own line rather
+  # than a fraction of a millimetre from it or on the wrong side of it. The
+  # copies of a parallel bundle are spread sep_m apart already, so they keep
+  # the centre row. So does an arrival out of a gap too narrow for any stub,
+  # unless the gap is floored: the slot nearest the target leaves a whole
+  # head run before the target's layer, and that run holds a row as well as
+  # a head. Only the arrival gap counts, so an edge that crosses a narrow
+  # gap early and arrives through a wide or floored one takes a row like any
+  # other
   port_y <- numeric(n_edges)
   row_floor <- max(opts$sep_e / 2, opts$sep_min)
   via_last <- span >= 2
@@ -3760,7 +3771,7 @@ route_orthogonal_scene <- function(
     below <- idx[arrival_entry[idx] <= Ty[idx]]
     ka <- length(above)
     kb <- length(below)
-    h <- nodes$r[[t]] - opts$head_w / 2
+    h <- max(nodes$r[[t]] - opts$head_w / 2, 0)
     if (any(owner & b == t)) {
       mult_a <- seq_len(ka)
       mult_b <- seq_len(kb)
@@ -3769,6 +3780,9 @@ route_orthogonal_scene <- function(
         mult_a <- rep(1, ka)
         mult_b <- rep(1, kb)
         s <- min(opts$sep_e, h)
+      }
+      if (s < row_floor) {
+        s <- 0
       }
       port_y[above] <- mult_a * s
       port_y[below] <- -mult_b * s
@@ -3781,6 +3795,9 @@ route_orthogonal_scene <- function(
     if (n >= 2 && s < row_floor) {
       n <- (ka > 0) + (kb > 0)
       s <- if (n == 2) min(opts$sep_e, 2 * h) else 0
+      if (s < row_floor) {
+        s <- 0
+      }
       rows_a <- rep(1, ka)
       rows_b <- rep(n, kb)
     }
@@ -5424,7 +5441,7 @@ route_scene_mm <- function(
   # its endpoint discs, so it is drawn as it is
   hits <- df_rows(hits, which(info$Lc[hits$edge] >= 2 * opts$R))
 
-  grp <- parallel_groups(from, to, from_name, to_name, routable, opts$sep_m)
+  grp <- parallel_groups(from, to, nodes, routable, opts$sep_m)
   extra <- grp$extra
   shift <- grp$shift
 

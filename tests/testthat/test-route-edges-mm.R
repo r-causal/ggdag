@@ -9637,31 +9637,52 @@ test_that("parallel copies are spread in the order of their endpoints", {
   # names it makes the picture depend on what the caller calls the nodes:
   # naming the left node "a" and the right one "z" draws the left-to-right
   # copy on one side, and swapping the two names draws it on the other. In
-  # the order of the endpoints' positions the two namings draw one picture.
+  # the order of the endpoints' positions the copy out of the left node
+  # takes the first shift under either naming, in both modes: it bows under
+  # the chord in spline mode and runs over it in orthogonal mode.
   for (mode in c("spline", "orthogonal")) {
-    ref <- route_scene(parallel_pair_scene("a", "z"), mode = mode)
-    res <- route_scene(parallel_pair_scene("z", "a"), mode = mode)
-    keep <- setdiff(names(ref$meta), "edge")
-    expect_identical(res$meta[keep], ref$meta[keep], label = mode)
-    for (i in seq_along(ref$paths)) {
-      expect_lt(
-        polyline_hausdorff(res$paths[[i]], ref$paths[[i]]),
-        1e-9,
-        label = paste(mode, i)
+    over <- if (mode == "spline") -1 else 1
+    for (naming in list(c("a", "z"), c("z", "a"))) {
+      scene <- parallel_pair_scene(naming[[1]], naming[[2]])
+      res <- route_scene(scene, mode = mode)
+      expect_equal(
+        sign(mean(res$paths[[1]]$y) - 50),
+        over,
+        label = paste(mode, naming[[1]], naming[[2]])
       )
     }
   }
 
-  # the picture both namings draw: the copy out of the left node takes the
-  # first shift, which in spline mode bows it 14 mm under the chord while
-  # its partner bows 16 mm over it, and in orthogonal mode runs it 13.1 mm
-  # over the chord with its partner 13.1 mm under
-  spline <- route_scene(parallel_pair_scene("a", "z"), mode = "spline")
-  expect_equal(range(spline$paths[[1]]$y), c(36, 50), tolerance = 1e-6)
-  expect_equal(range(spline$paths[[2]]$y), c(50, 66), tolerance = 1e-6)
-  orthogonal <- route_scene(parallel_pair_scene("a", "z"), mode = "orthogonal")
-  expect_equal(range(orthogonal$paths[[1]]$y), c(50, 63.1), tolerance = 1e-6)
-  expect_equal(range(orthogonal$paths[[2]]$y), c(36.9, 50), tolerance = 1e-6)
+  # in orthogonal mode the two namings draw one picture, edge for edge: the
+  # copy out of the left node runs 13.1 mm over the chord and its partner
+  # 13.1 mm under it
+  ref <- route_scene(parallel_pair_scene("a", "z"), mode = "orthogonal")
+  res <- route_scene(parallel_pair_scene("z", "a"), mode = "orthogonal")
+  keep <- setdiff(names(ref$meta), "edge")
+  expect_identical(res$meta[keep], ref$meta[keep])
+  for (i in seq_along(ref$paths)) {
+    expect_lt(
+      polyline_hausdorff(res$paths[[i]], ref$paths[[i]]),
+      1e-9,
+      label = paste("orthogonal", i)
+    )
+  }
+  expect_equal(range(ref$paths[[1]]$y), c(50, 63.1), tolerance = 1e-6)
+  expect_equal(range(ref$paths[[2]]$y), c(36.9, 50), tolerance = 1e-6)
+
+  # in spline mode they do not, and the member order is not what is left to
+  # settle it: route_scene_mm() visits the edges in order of span, chord
+  # length and then node name, so the two namings route the copies in
+  # opposite orders and the second copy bows around the first. Under one
+  # naming the pair straddles the chord and under the other both copies bow
+  # under it. These are the two pictures; the second is the one to lose
+  # when the routing order reads the geometry too.
+  ref <- route_scene(parallel_pair_scene("a", "z"), mode = "spline")
+  res <- route_scene(parallel_pair_scene("z", "a"), mode = "spline")
+  expect_equal(range(ref$paths[[1]]$y), c(36, 50), tolerance = 1e-6)
+  expect_equal(range(ref$paths[[2]]$y), c(50, 66), tolerance = 1e-6)
+  expect_equal(range(res$paths[[1]]$y), c(35.4, 50), tolerance = 1e-6)
+  expect_equal(range(res$paths[[2]]$y), c(42, 50), tolerance = 1e-6)
 
   # the members of a group of duplicates share both endpoints, so their
   # positions tie and the input order decides, as the name order did
