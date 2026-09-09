@@ -808,8 +808,8 @@ corner_points <- function(path, bends, radius) {
 # (x_left, x_right), the layer lines included. The last rung of the ladder
 # spreads its slots to the source layer's own centre line, so a slot can sit
 # anywhere in the gap and no distance from a layer tells a slot from a port
-# stub. The callers are ladder scenes whose nodes take no S/N port, so every
-# vertical inside the gap is a slot.
+# stub: every vertical inside the gap is counted, a port stub among them.
+# Each caller asserts a count it has read off the paths of its own scene.
 slot_xs <- function(path, gap, tol = 1e-6) {
   runs <- straight_runs(path, tol)
   inside <- runs$axis == "v" &
@@ -5524,8 +5524,9 @@ nine_arrival_scene <- function(gap) {
   k_arrival_scene(gap, 9)
 }
 
-# The x of every vertical run of a routed scene that lies strictly inside
-# the single gap.
+# The x of every vertical run of a routed scene that lies in the single
+# gap, its two layer lines included: the last rung's spread can leave a
+# slot a hair inside the source layer's own centre line.
 gap_slots <- function(scene, res) {
   layers <- infer_layers(scene$nodes, r_default)
   sort(unlist(lapply(res$paths, function(path) slot_xs(path, layers$x))))
@@ -8014,12 +8015,125 @@ test_that("spline heads: very_big draws fewer foreign shafts on heads at 10 x 6"
   expect_equal(counts, c(33L, 13L, 11L))
 })
 
+# Two soft nudges too close together along the chord cannot both be
+# honoured, so merge_head_hits() keeps one of them: a head hit is merged
+# with a disc hit within that disc's clearance R = 9 mm of it along the
+# chord, and with another head hit within twice its own clearance,
+# 2 * 2.8 = 5.6 mm. Where the two nudge to a common side the deeper nudge
+# is kept; where they nudge to opposite sides the head hit gives way,
+# whichever of the two comes first along the chord: to a disc hit always,
+# and of two head hits the earlier to the later.
+
+merge_chord <- function() {
+  edge_frame(mm_nodes(c("a", "b"), c(20, 140), c(50, 50)), 1L, 2L, FALSE)
+}
+
+# The drawn head of an edge arriving vertically into (x, y): its zone runs
+# from 2 cap to cap before the target, and head_hits() reads its centre a
+# further head / 2 along, cap + head / 2 = 9 mm before the target.
+merge_head <- function(x, y, from = c("above", "below")) {
+  uy <- if (match.arg(from) == "above") -1 else 1
+  data.frame(
+    x = x,
+    y = y - 2 * cap_default * uy,
+    x2 = x,
+    y2 = y - cap_default * uy,
+    ux = 0,
+    uy = uy
+  )
+}
+
+# A grazed node at (x, y) as the router reads it into the hit frame.
+merge_disc <- function(fr, x, y) {
+  d <- c(x, y) - fr$S
+  data.frame(
+    node = 1L,
+    h = sum(d * fr$n),
+    t = sum(d * fr$u) / fr$Lc,
+    layer = NA_integer_,
+    r = r_default,
+    hard = FALSE,
+    mm = m_default,
+    side = NA_real_
+  )
+}
+
+# The hits of the chord a (20, 50) -> b (140, 50), ordered along it and
+# merged, with the chord position of each surviving hit as `x`.
+merge_hits <- function(heads, discs = list()) {
+  fr <- merge_chord()
+  eh <- head_hits(
+    fr,
+    do.call(rbind, heads),
+    cap_default,
+    route_constants(r_default)
+  )
+  for (d in discs) {
+    eh <- rbind(merge_disc(fr, d[[1]], d[[2]]), eh)
+  }
+  eh <- eh[order(eh$t), , drop = FALSE]
+  kept <- merge_head_hits(eh, fr$Lc)
+  kept$x <- fr$S[[1]] + kept$t * fr$Lc
+  kept
+}
+
+test_that("merge_head_hits: a head gives way to a disc, and the earlier head to the later", {
+  # A grazed node at (80, 58) nudges the chord down, and the head of an
+  # edge arriving from above into a node at y = 40.5 has its centre at
+  # y = 49.5 and nudges it up. The two nudge to opposite sides, so within
+  # the disc's 9 mm along the chord the head is dropped, whether it falls
+  # before or after the disc.
+  disc <- list(c(80, 58))
+  after <- merge_hits(list(merge_head(88, 40.5)), disc)
+  before <- merge_hits(list(merge_head(72, 40.5)), disc)
+
+  expect_equal(nrow(after), 1L)
+  expect_equal(after$x, 80)
+  expect_equal(nrow(before), 1L)
+  expect_equal(before$x, 80)
+
+  # 10 mm apart is beyond the disc's reach and both nudges are drawn, the
+  # head's up and away from its target, the disc's down
+  pair <- merge_hits(list(merge_head(90, 40.5)), disc)
+  sides <- ifelse(is.na(pair$side), -sign(pair$h), pair$side)
+  expect_equal(nrow(pair), 2L)
+  expect_equal(sides[is.na(pair$node)], 1)
+  expect_equal(sides[!is.na(pair$node)], -1)
+
+  # Two heads on opposite sides 4 mm apart: the later along the chord is
+  # kept, whichever side each nudges to and whichever order they are read
+  # in. At 6 mm, beyond twice the head clearance, both are kept.
+  up_then_down <- merge_hits(list(
+    merge_head(80, 40.5),
+    merge_head(84, 59.5, "below")
+  ))
+  read_in_reverse <- merge_hits(list(
+    merge_head(84, 59.5, "below"),
+    merge_head(80, 40.5)
+  ))
+  down_then_up <- merge_hits(list(
+    merge_head(80, 59.5, "below"),
+    merge_head(84, 40.5)
+  ))
+  apart <- merge_hits(list(merge_head(80, 40.5), merge_head(86, 59.5, "below")))
+
+  expect_equal(nrow(up_then_down), 1L)
+  expect_equal(up_then_down$x, 84)
+  expect_equal(nrow(read_in_reverse), 1L)
+  expect_equal(read_in_reverse$x, 84)
+  expect_equal(nrow(down_then_up), 1L)
+  expect_equal(down_then_up$x, 84)
+  expect_equal(nrow(apart), 2L)
+  expect_equal(apart$x, c(80, 86))
+})
+
 # A repair waypoint is inserted at the chord parameter of the violating
 # sample, which is not a layer position. Reporting it as layer 0 puts it on
-# a layer no scene has. A spanning route is laid out one waypoint per
-# crossed layer, so its repair takes the crossed layer nearest the violating
-# sample and is drawn on that layer's x; a free bow is not laid out on the
-# grid at all, so its repair belongs to no layer and reports none.
+# a layer no scene has. The one obstacle that belongs to no layer is
+# another edge's arrowhead capsule, so a repair past one reports no layer
+# for the waypoint it inserts, in the spanning tier as in the free tier,
+# while the waypoints a spanning route is laid out with keep the layer each
+# is drawn on.
 
 test_that("no routed edge reports a waypoint on a layer the scene does not have", {
   scenes <- c(forward_census_scenes(), lapply(gallery_panels, very_big_scene))
@@ -8039,15 +8153,20 @@ test_that("no routed edge reports a waypoint on a layer the scene does not have"
       reported <- reported + sum(!is.na(layer_ids))
     }
   }
-  # the census is worth having only if the routes report layers at all
+  # Every layer a routed edge reports is one the scene has: a waypoint laid
+  # out on a crossed layer reports that layer, a repair off the layers
+  # reports none, and no waypoint reports the layer 0 no scene has. The
+  # census is worth having only if the routes report layers at all: 194 of
+  # these waypoints name one.
   expect_gt(reported, 150L)
 })
 
-test_that("a spanning route's repair waypoint sits on the crossed layer it reports", {
+test_that("a spanning route's capsule repair reports no layer", {
   # very_big at 7 x 5: education -> healthcare_access is an interior route
-  # whose repair falls between the layers at 28.930 and 43.396. It takes
-  # the nearer of the two and is drawn on it, like every other waypoint of
-  # a spanning route.
+  # whose repair past an arrowhead capsule inserts a waypoint between the
+  # layers at 28.930 and 43.396. That waypoint reports no layer; the
+  # waypoint the route was laid out with keeps the crossed layer it is
+  # drawn on.
   scene <- very_big_scene(gallery_panels[[2]])
   res <- route_scene(scene, mode = "spline", opts = route_constants(r_default))
   i <- edge_index(scene, "education->healthcare_access")
@@ -8056,11 +8175,18 @@ test_that("a spanning route's repair waypoint sits on the crossed layer it repor
   ends <- c(layer_of[["education"]], layer_of[["healthcare_access"]])
   crossed <- seq(min(ends) + 1L, max(ends) - 1L)
   layer_ids <- res$meta$waypoint_layers[[i]]
+  wp <- res$waypoints[[i]]
+  repaired <- which(is.na(layer_ids))
+  laid <- which(!is.na(layer_ids))
 
   expect_equal(res$meta$mode[i], "interior")
-  expect_false(anyNA(layer_ids))
-  expect_true(all(layer_ids %in% crossed))
-  expect_equal(res$waypoints[[i]]$x, layers$x[layer_ids], tolerance = 1e-6)
+  expect_length(repaired, 1L)
+  expect_true(all(layer_ids[laid] %in% crossed))
+  expect_equal(wp$x[laid], layers$x[layer_ids[laid]], tolerance = 1e-6)
+  # the repair sits in the gap between two crossed layers, on neither
+  expect_gt(wp$x[[repaired]], layers$x[[2]])
+  expect_lt(wp$x[[repaired]], layers$x[[3]])
+  expect_gt(min(abs(wp$x[[repaired]] - layers$x)), 1)
 })
 
 test_that("a free bow's repair waypoint reports no layer", {
@@ -8264,8 +8390,9 @@ test_that("orthogonal channels: very_big keeps its pushed channels off the discs
   # The two channels of the gallery's largest scene that a skipped disc
   # check moves: both run past the layers they cross at least R = 9 from
   # every disc whose x their run spans. The census is deliberately narrow.
-  # Not every channel of the scene keeps R today, bmi -> bp's run at 90.443
-  # being the counter-example, so a blanket sweep would be false.
+  # Not every channel of the scene keeps R today: measured the same way,
+  # alcohol -> bp's run at 86.876 comes within 7.94 mm of diabetes, so a
+  # blanket sweep would be false.
   scene <- very_big_scene(gallery_panels[[3]])
   res <- ortho(scene)
   lines <- c("phys_act->cvd" = 114.814880, "education->smoking" = 23.251112)
@@ -8856,7 +8983,7 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
   b <- aggregate_of("spline")
   expect_equal(b$routed, 83L)
   expect_equal(b$waypoints, 160L)
-  expect_equal(b$drawn, 29166.767895, tolerance = 1e-9)
+  expect_equal(b$drawn, 29164.596238, tolerance = 1e-9)
   expect_equal(b$travel, 0)
 
   d <- aggregate_of("straight")

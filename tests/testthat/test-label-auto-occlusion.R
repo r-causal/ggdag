@@ -641,7 +641,7 @@ test_that("the saturated scene is unchanged at 10 x 6", {
   skip_on_os(c("windows", "linux", "solaris"))
 
   expected <- list(
-    spline = list(leaders = 3L, longest = 19.906232376133),
+    spline = list(leaders = 3L, longest = 20.699102873913),
     straight = list(leaders = 1L, longest = 6.0474966524655)
   )
 

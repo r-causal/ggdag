@@ -1451,7 +1451,9 @@ verify_clearance <- function(
 #' in the free tier along the axis itself, either bounded by the capsule
 #' length plus `R`. The perpendicular escape from a near-vertical head zone
 #' is sideways, which a spanning waypoint cannot make, and the loop would
-#' oscillate. Disc violations are repaired before capsule violations.
+#' oscillate. Disc violations are repaired before capsule violations. A
+#' capsule belongs to no layer, so a waypoint its repair inserts sits
+#' between the layers and reports none.
 #'
 #' @noRd
 repair_waypoints <- function(
@@ -1527,22 +1529,19 @@ repair_waypoints <- function(
     t_p <- sum((p - fr$S) * fr$u) / fr$Lc
     t_wp <- ((wp$x - fr$S[[1]]) * fr$u[[1]] + (wp$y - fr$S[[2]]) * fr$u[[2]]) /
       fr$Lc
-    # a capsule belongs to no layer: in the spanning tier its repair takes
-    # the crossed layer nearest the violating sample, so a waypoint it
-    # inserts sits on that layer's x like every other waypoint of the route
-    # and a waypoint already there is moved instead; in the free tier the
-    # waypoint reports no layer
+    # a repair waypoint sits at the violating sample's chord parameter,
+    # which is no layer's position. An arrowhead capsule is the obstacle
+    # that carries no layer, so its repair reports none for the waypoint it
+    # inserts, in either tier, and matches the waypoints earlier repairs
+    # left off the layers rather than any laid out on them
     layer_c <- o_layer[[ob]]
-    if (capsule[[ob]]) {
-      layer_c <- if (tier == "spanning" && lb - la >= 2) {
-        between <- (la + 1L):(lb - 1L)
-        between[[which.min(abs(layers$x[between] - p[[1]]))]]
-      } else {
-        NA_integer_
-      }
+    at_layer <- if (is.na(layer_c)) {
+      which(is.na(wp$layer))
+    } else {
+      which(!is.na(wp$layer) & wp$layer == layer_c)
     }
-    crossed <- !capsule[[ob]] &&
-      tier == "spanning" &&
+    crossed <- tier == "spanning" &&
+      !is.na(layer_c) &&
       layer_c > la &&
       layer_c < lb
     s_chord <- sign(sum(nv * fr$n))
@@ -1562,7 +1561,9 @@ repair_waypoints <- function(
 
     near <- which(abs(t_wp - t_p) < opts$repair_window)
     if (length(near) == 0 && nrow(wp) > 0 && tier == "spanning") {
-      near <- which(wp$layer == layer_c)
+      # with no waypoint near the sample, the repair moves the one the
+      # route carries for the obstacle's layer
+      near <- at_layer
     }
     if (length(near) > 0) {
       if (tier == "spanning") {
@@ -1571,10 +1572,9 @@ repair_waypoints <- function(
           level <- level | abs(wp$y - wp$y[[j]]) < 1e-9
         }
         near <- which(level)
-        # a disc pushes the plateau to the side its layer's waypoint is
-        # on; a capsule always pushes along its axis
-        at_layer <- which(wp$layer == layer_c)
-        s <- if (!capsule[[ob]] && length(at_layer) > 0) {
+        # the plateau moves to the side the waypoint of the obstacle's
+        # own layer is on, and away from the obstacle when it has none
+        s <- if (length(at_layer) > 0) {
           sign(wp$y[[at_layer[[1]]]] - C[[2]])
         } else {
           sign(nv[[2]])
@@ -1598,13 +1598,6 @@ repair_waypoints <- function(
         y = fr$S[[2]] + tc * fr$Lc * fr$u[[2]] + o * fr$n[[2]],
         layer = layer_c
       )
-      if (capsule[[ob]] && !is.na(layer_c) && abs(fr$u[[1]]) > 1e-9) {
-        # the same offset from the chord, on the crossed layer's x
-        x_l <- layers$x[[layer_c]]
-        t_l <- (x_l - fr$S[[1]] - o * fr$n[[1]]) / (fr$Lc * fr$u[[1]])
-        new$x <- x_l
-        new$y <- fr$S[[2]] + t_l * fr$Lc * fr$u[[2]] + o * fr$n[[2]]
-      }
       wp <- sort_waypoints(df_bind(wp, new), fr)
     }
   }
@@ -2875,8 +2868,9 @@ head_hits <- function(fr, heads, cap, opts) {
 #' of it along the chord, or within twice its own clearance of another
 #' head hit, is merged with that hit. The hit whose nudge takes the
 #' curve further from the chord on their common side is kept; when the two
-#' nudge to opposite sides the head hit gives way, to the disc hit or to
-#' the later of two head hits. Disc hits are never merged with one another.
+#' nudge to opposite sides the head hit gives way, whichever of the two
+#' comes first along the chord: to the disc hit, and of two head hits the
+#' earlier to the later. Disc hits are never merged with one another.
 #'
 #' @param eh The hits of one edge, ordered along the chord, with `mm` and
 #'   `side`.
