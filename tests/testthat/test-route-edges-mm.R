@@ -6815,15 +6815,15 @@ test_that("orthogonal ports: five floored arrivals are centred on their target",
 })
 
 test_that("orthogonal ports: a floored stack merges under the row floor", {
-  # multi_mediator at the small panel. y takes a level chord from x and a
-  # level run from m1, both on its centre row, and three arrivals from
-  # above: h / 3 = 1.783 is under the 1.8 mm floor, so the three merge onto
-  # the first free row at sep_e and their heads still coincide, the degrade
-  # R4 accepts rather than move the floor. m2 has an owner and one arrival
-  # on each side, which fit, and m3 has a pair with no owner.
+  # multi_mediator at the small panel. y takes a level chord from x on its
+  # centre row, m1 from below, and three arrivals from above: h / 3 = 1.783
+  # is under the 1.8 mm floor, so the three merge onto the first free row
+  # at sep_e and their heads still coincide, the degrade R4 accepts rather
+  # than move the floor. m2 has an owner and one arrival on each side,
+  # which fit, and m3 has a pair with no owner.
   offs <- canonical_arrival_offsets("multi_mediator", "y")
   expect_equal(unname(offs[["x->y"]]), 0, tolerance = 1e-6)
-  expect_equal(unname(offs[["m1->y"]]), 0, tolerance = 1e-6)
+  expect_equal(unname(offs[["m1->y"]]), -sep_e_default, tolerance = 1e-6)
   expect_equal(
     unname(offs[c("m2->y", "m3->y", "u->y")]),
     rep(sep_e_default, 3),
@@ -6839,6 +6839,135 @@ test_that("orthogonal ports: a floored stack merges under the row floor", {
   offs <- canonical_arrival_offsets("multi_mediator", "m3")
   expect_equal(unname(offs[["m2->m3"]]), -sep_e_default / 2, tolerance = 1e-6)
   expect_equal(unname(offs[["x->m3"]]), sep_e_default / 2, tolerance = 1e-6)
+})
+
+test_that("orthogonal ports: a level chord is the only owner of its target's row", {
+  # multi_mediator's y takes the level chord from x, drawn on y's own line,
+  # and m1's spanning channel, which took that same line: their last runs
+  # coincided over 87 mm at the 160 by 110 panel and one head was drawn on
+  # top of the other. A target's centre row has one owner, so no spanning
+  # candidate may run on the line of a node a level chord arrives at: m1->y
+  # keeps its own source's line and drops to the row below y's centre at
+  # the slot of the gap it arrives through.
+  for (panel in canonical_panels) {
+    scene <- canonical_scene("multi_mediator", panel)
+    res <- ortho(scene)
+    label <- paste("panel", panel[[1]])
+    ty <- node_xy(scene, "y")[[2]]
+    layers <- infer_layers(scene$nodes, r_default)
+    chord <- edge_index(scene, "x->y")
+    channel <- edge_index(scene, "m1->y")
+
+    expect_equal(res$meta$mode[[chord]], "straight", label = label)
+    expect_equal(
+      res$paths[[chord]]$y,
+      rep(ty, 2),
+      tolerance = 1e-9,
+      label = label
+    )
+    expect_equal(res$meta$resect_head[[chord]], cap_default, label = label)
+
+    expect_equal(res$meta$mode[[channel]], "orthogonal", label = label)
+    runs <- straight_runs(dedupe_path(res$paths[[channel]]))
+    expect_equal(runs$axis, c("h", "v", "h"), label = label)
+    expect_equal(
+      runs$coord[[1]],
+      node_xy(scene, "m1")[[2]],
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(
+      runs$coord[[3]],
+      ty - sep_e_default,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(
+      res$meta$resect_head[[channel]],
+      port_resect_at(sep_e_default),
+      tolerance = 1e-9,
+      label = label
+    )
+    expect_gt(runs$coord[[2]], layers$x[[layers$n - 1L]])
+    expect_lt(runs$coord[[2]], layers$x[[layers$n]])
+
+    # the chord and the channel share no ink at all
+    expect_equal(
+      shared_run_length(res$paths[[chord]], res$paths[[channel]]),
+      0,
+      label = label
+    )
+
+    # the rows at y: the chord on the centre, m1 below it, and the three
+    # arrivals from above merged onto the row above
+    offs <- arrival_offsets(scene, res, "y")
+    expect_equal(unname(offs[["x->y"]]), 0, tolerance = 1e-9, label = label)
+    expect_equal(
+      unname(offs[["m1->y"]]),
+      -sep_e_default,
+      tolerance = 1e-9,
+      label = label
+    )
+    expect_equal(
+      unname(offs[c("m2->y", "m3->y", "u->y")]),
+      rep(sep_e_default, 3),
+      tolerance = 1e-9,
+      label = label
+    )
+  }
+})
+
+# Two level chords into one node. Their sources share a layer, which is the
+# only way two of them reach one node: a chord from a farther layer passes
+# within R of the nearer source, which that source's own level chord holds
+# within rc of the target's line, and a blocked run bends.
+two_owner_scene <- function() {
+  list(
+    nodes = mm_nodes(c("x1", "x2", "y"), c(80, 80, 140), c(53.2, 56.8, 55)),
+    edges = mm_edges(c("x1", "x2"), c("y", "y")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal ports: two level chords into one node take one row each", {
+  # Both chords are level with y inside the corner radius, so both were
+  # drawn on its line, 60 mm of shared run and one head over the other. One
+  # keeps the row and the other is an ordinary arrival: it takes the row
+  # above, and since its source is within rc of that row it is the run on
+  # the row's line, its tail leaving x2 at the face resect of the 1.8 mm
+  # offset.
+  scene <- two_owner_scene()
+  res <- ortho(scene)
+  keeper <- edge_index(scene, "x1->y")
+  moved <- edge_index(scene, "x2->y")
+
+  expect_equal(res$paths[[keeper]]$y, rep(55, 2), tolerance = 1e-9)
+  expect_equal(res$meta$resect_head[[keeper]], cap_default)
+  expect_equal(
+    res$meta$resect_fins[[keeper]],
+    port_resect_at(1.8),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$paths[[moved]]$y,
+    rep(55 + sep_e_default, 2),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$meta$resect_head[[moved]],
+    port_resect_at(sep_e_default),
+    tolerance = 1e-9
+  )
+  expect_equal(
+    res$meta$resect_fins[[moved]],
+    port_resect_at(1.8),
+    tolerance = 1e-9
+  )
+
+  offs <- arrival_offsets(scene, res, "y")
+  expect_equal(unname(offs[["x1->y"]]), 0, tolerance = 1e-9)
+  expect_equal(unname(offs[["x2->y"]]), sep_e_default, tolerance = 1e-9)
+  expect_equal(shared_run_length(res$paths[[keeper]], res$paths[[moved]]), 0)
 })
 
 test_that("orthogonal ports: the other floored shared targets take their rows", {
@@ -8092,6 +8221,110 @@ test_that("orthogonal ports: gap 7 of very_big at 10 x 6 is floored", {
 })
 
 
+# The owners of a target's centre row: the arrivals drawn on the node's own
+# line whose last run reaches back across the gap they arrive through. A
+# merged stack and the pile a gap too narrow for a stub leaves both jog at a
+# slot in that gap, so neither is counted here; an owner runs into the node
+# from the neighbouring layer on the target's own line, and two of them draw
+# one head on top of the other.
+centre_row_owners <- function(scene, res) {
+  layers <- infer_layers(scene$nodes, r_default)
+  lid <- stats::setNames(layers$id, scene$nodes$name)
+  labels <- edge_labels(scene$edges)
+  out <- list()
+  for (target in unique(scene$edges$to)) {
+    ti <- match(target, scene$nodes$name)
+    ty <- scene$nodes$y[[ti]]
+    tx <- scene$nodes$x[[ti]]
+    owners <- character(0)
+    for (i in which(scene$edges$to == target)) {
+      if (res$meta$mode[[i]] == "fixed") {
+        next
+      }
+      runs <- straight_runs(dedupe_path(res$paths[[i]]))
+      if (nrow(runs) == 0) {
+        next
+      }
+      last <- runs[nrow(runs), ]
+      if (last$axis != "h" || abs(last$coord - ty) > 1e-6) {
+        next
+      }
+      sx <- scene$nodes$x[[match(scene$edges$from[[i]], scene$nodes$name)]]
+      left <- sx < tx
+      layer_x <- layers$x[lid[[target]] + if (left) -1L else 1L]
+      if (is.na(layer_x)) {
+        next
+      }
+      jog <- if (left) {
+        any(
+          runs$axis == "v" &
+            runs$coord > layer_x + 1e-6 &
+            runs$coord < tx - 1e-6
+        )
+      } else {
+        any(
+          runs$axis == "v" &
+            runs$coord < layer_x - 1e-6 &
+            runs$coord > tx + 1e-6
+        )
+      }
+      reaches <- if (left) {
+        last$lo < layer_x + 1e-6
+      } else {
+        last$hi > layer_x - 1e-6
+      }
+      if (!jog && reaches) {
+        owners <- c(owners, labels[[i]])
+      }
+    }
+    if (length(owners) > 0) {
+      out[[length(out) + 1L]] <- data.frame(
+        scene = scene$name %||% "fixture",
+        target = target,
+        n = length(owners),
+        edges = paste(owners, collapse = " + "),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  if (length(out) > 0) do.call(rbind, out) else NULL
+}
+
+test_that("orthogonal ports: no target is drawn two heads on its centre row", {
+  # Over every census scene at every size, each target's centre row carries
+  # one owner. The four that carried two are multi_mediator's y at each of
+  # its four sizes, where the level chord from x and the channel from m1
+  # both ran on y's line. The mirrored copies still carry five: rows are
+  # assigned at the right-hand node of every edge, so a leftward arrival
+  # gets no row of its own, which is the leftward rule's own defect and not
+  # this one.
+  rows <- list()
+  for (scene in oblique_census_scenes()) {
+    found <- centre_row_owners(scene, ortho(scene))
+    if (is.null(found)) {
+      next
+    }
+    found$mirrored <- grepl("mirrored", scene$name %||% "")
+    rows[[length(rows) + 1L]] <- found
+  }
+  rows <- do.call(rbind, rows)
+  forward <- rows[!rows$mirrored, ]
+  mirrored <- rows[rows$mirrored, ]
+
+  # the census is worth having only if the pictures put arrivals on their
+  # targets' own lines at all
+  expect_equal(nrow(forward), 179L)
+  expect_equal(sum(forward$n), 179L)
+  expect_equal(sum(forward$n >= 2L), 0L)
+
+  expect_equal(nrow(mirrored), 179L)
+  expect_equal(sum(mirrored$n), 184L)
+  expect_setequal(
+    paste(mirrored$scene[mirrored$n >= 2L], mirrored$target[mirrored$n >= 2L]),
+    c(rep("multi_mediator mirrored y", 4), "very_big mirrored cvd")
+  )
+})
+
 # Spline heads, repair waypoints, and the fallback depth --------------------------
 
 test_that("spline heads: very_big draws fewer foreign shafts on heads at 10 x 6", {
@@ -9075,8 +9308,8 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
   a <- aggregate_of("orthogonal")
   expect_equal(a$routed, 420L)
   expect_equal(a$waypoints, 921L)
-  expect_equal(a$drawn, 35386.220552, tolerance = 1e-9)
-  expect_equal(a$travel, 11608.754659, tolerance = 1e-9)
+  expect_equal(a$drawn, 35379.020552, tolerance = 1e-9)
+  expect_equal(a$travel, 11601.554659, tolerance = 1e-9)
 
   # the slide and the ladder are orthogonal rules, so neither curved mode
   # travels at all; the spline aggregate carries the five census chords
@@ -9132,7 +9365,7 @@ test_that("orthogonal packing: the scenes with no crowded endpoint line are unto
     c(
       "x->m2" = 37.26801,
       "x->m3" = 46.26801,
-      "m1->y" = 26.58446,
+      "m1->y" = 10,
       "m2->y" = 37.26801,
       "u->y" = 49.86801
     ),
@@ -9741,11 +9974,11 @@ test_that("the scenes drawn at the default node size are untouched", {
   # the same ones.
   orthogonal <- census_checksum("orthogonal")
   expect_equal(orthogonal$routed, 473L)
-  expect_equal(orthogonal$points, 80645L)
-  expect_equal(orthogonal$drawn, 39534.069597425, tolerance = 1e-9)
-  expect_equal(orthogonal$x, 6083911.017054041, tolerance = 1e-9)
-  expect_equal(orthogonal$y, 4258497.096467356, tolerance = 1e-9)
-  expect_equal(orthogonal$head, 3963.280730802, tolerance = 1e-9)
+  expect_equal(orthogonal$points, 80634L)
+  expect_equal(orthogonal$drawn, 39526.869597425, tolerance = 1e-9)
+  expect_equal(orthogonal$x, 6089493.467054041, tolerance = 1e-9)
+  expect_equal(orthogonal$y, 4253066.697316638, tolerance = 1e-9)
+  expect_equal(orthogonal$head, 3960.880730802, tolerance = 1e-9)
   expect_equal(orthogonal$fins, 4212.651832214, tolerance = 1e-9)
 
   spline <- census_checksum("spline")
