@@ -1306,8 +1306,9 @@ greedy_post_correction <- function(
       near <- which(
         abs(pts$x - positions$x[[w]]) < 2 * node_radius + 24
       )
-      # No sampled point sits near the node's x, so the arc's extent there is
-      # not defined and there is nothing to displace the node past.
+      # The window is twice the clearance, so any point close enough to have
+      # triggered this correction falls inside it. The guard keeps the extent
+      # below well defined should that relationship ever change.
       if (length(near) == 0) {
         next
       }
@@ -2128,7 +2129,8 @@ better_positions <- function(
 #'   distinct layer in ascending layer order; takes precedence over
 #'   `fixed_time`.
 #' @param fixed_time Named vector of user pins, or `NULL`.
-#' @return A numeric vector of axis positions, named by layer index.
+#' @return An integer or numeric vector of axis positions, named by layer
+#'   index.
 #' @noRd
 layer_axis_points <- function(
   layer_assign,

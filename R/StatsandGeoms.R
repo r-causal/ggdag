@@ -1169,7 +1169,8 @@ StatNodesRepel <- ggplot2::ggproto(
     "edge_geometry"
   ),
   compute_layer = function(data, params, layout) {
-    node_size <- params$node_size %||% ggdag_option("node_size")
+    # Falls back to the point geom's default size when no node layer is present
+    node_size <- params$node_size %||% 16
     n_edge_points <- params$n_edge_points %||% 50
     n_node_points <- params$n_node_points %||% 12
     has_edges <- all(c("xend", "yend") %in% names(data))
@@ -1280,7 +1281,8 @@ StatDebugRepelPoints <- ggplot2::ggproto(
     "edge_geometry"
   ),
   compute_layer = function(data, params, layout) {
-    node_size <- params$node_size %||% ggdag_option("node_size")
+    # Falls back to the point geom's default size when no node layer is present
+    node_size <- params$node_size %||% 16
     n_edge_points <- params$n_edge_points %||% 50
     n_node_points <- params$n_node_points %||% 12
     has_edges <- all(c("xend", "yend") %in% names(data))
