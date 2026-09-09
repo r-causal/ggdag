@@ -130,6 +130,24 @@ stacked_triangles_dag <- function() {
   )
 }
 
+# A DAG laid out down the panel rather than across it: three time points
+# along y, in two columns, with `m` sitting on the x -> y chord. Both axes
+# hold exact clusters, so the router's own inference reads the two columns as
+# the layers and sends the detour the wrong way; the layout knows better.
+y_direction_dag <- function() {
+  dagify(
+    y ~ x + m,
+    m ~ x,
+    b ~ a,
+    c ~ b,
+    coords = time_ordered_coords(
+      list(c("x", "a"), c("m", "b"), c("y", "c")),
+      direction = "y",
+      optimize = FALSE
+    )
+  )
+}
+
 # The positions of the layers `plot` draws routed edges with.
 routed_layer_index <- function(plot) {
   which(vapply(
@@ -1488,14 +1506,14 @@ routed_scene_mm <- function(plot, width = 10, height = 8) {
 }
 
 # The router's own paths for a drawn scene under one options object.
-route_drawn_scene <- function(scene, options, mode) {
+route_drawn_scene <- function(scene, options, mode, layer_axis = "auto") {
   route_edges_mm(
     scene$nodes,
     scene$edges,
     scene$bounds,
     cap = scene$cap,
     mode = mode,
-    opts = route_opts_from(options, scene$radius)
+    opts = route_opts_from(options, scene$radius, layer_axis = layer_axis)
   )
 }
 
@@ -1960,6 +1978,83 @@ test_that("edge_route_options(): tangent_clamp bounds the departure tangent", {
   )
 })
 
+# The layer axis ---------------------------------------------------------------
+
+test_that("a routed layer takes the layer axis from the layout", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  tidy_down <- tidy_dagitty(y_direction_dag())
+  axis_of <- function(plot) routed_layer_of(plot)$geom_params$layer_axis
+
+  direct <- ggplot(tidy_down, aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+  expect_identical(axis_of(direct), "y")
+
+  assembled <- ggplot(tidy_down, aes_dag()) + geom_dag()
+  expect_identical(axis_of(assembled), "y")
+
+  expect_identical(axis_of(ggdag(tidy_down)), "y")
+})
+
+test_that("an axis named at the call beats the layout's own", {
+  skip_if_not_installed("ggarrow")
+
+  named <- ggplot(tidy_dagitty(y_direction_dag()), aes_dag()) +
+    geom_dag_routed_arrows(layer_axis = "x") +
+    geom_dag_point()
+
+  expect_identical(routed_layer_of(named)$geom_params$layer_axis, "x")
+})
+
+test_that("a layout across the panel leaves the axis to the router", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  axis_of <- function(dag) {
+    plot <- ggplot(tidy_dagitty(dag), aes_dag()) + geom_dag()
+    routed_layer_of(plot)$geom_params$layer_axis
+  }
+
+  # the router already infers layers along x, so a layout across the panel
+  # names nothing and neither do coordinates the user wrote out
+  across <- dagify(y ~ x + m, m ~ x, coords = time_ordered_coords())
+  expect_identical(axis_of(across), "auto")
+  expect_identical(axis_of(mediator_dag()), "auto")
+})
+
+test_that("the layer axis reaches route_edges_mm()", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # the router is spied on rather than replaced: the picture is still drawn,
+  # so the constants captured are the ones a real drawing worked from
+  captured_axes <- function(plot) {
+    captured <- character()
+    original <- route_edges_mm
+    local_mocked_bindings(
+      route_edges_mm = function(...) {
+        args <- list(...)
+        captured[[length(captured) + 1L]] <<- args$opts$layer_axis
+        do.call(original, args)
+      }
+    )
+    draw_offscreen(plot)
+    captured
+  }
+
+  plot <- ggplot(tidy_dagitty(y_direction_dag()), aes_dag()) +
+    geom_dag_routed_arrows() +
+    geom_dag_point()
+
+  seen <- captured_axes(plot)
+  expect_gte(length(seen), 1)
+  expect_true(all(seen == "y"))
+})
+
 # The pictures -------------------------------------------------------------------
 
 test_that("edge_route_options visuals: a spline scene under a shallower bow", {
@@ -2165,4 +2260,48 @@ test_that("orthogonal visuals: rows in a narrow gap keep the heads apart", {
   )
 
   expect_doppelganger("orthogonal rows in a narrow gap keep the heads apart", p)
+})
+
+test_that("spline visuals: a layout down the panel routes along its own axis", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  p <- ggdag(
+    y_direction_dag(),
+    edge_engine = "ggarrow",
+    edge_route = "spline"
+  ) +
+    theme_dag()
+
+  # A baseline is worth keeping only when the picture is known to be the one
+  # the layout asked for, so the scene the layer routes is measured before it
+  # is drawn.
+  stopifnot(identical(routed_layer_of(p)$geom_params$layer_axis, "y"))
+
+  scene <- routed_scene_mm(p)
+  keys <- mm_scene_keys(scene, c("x", "m", "y", "a", "b", "c"))
+  skip <- mm_named_edge(scene, keys, "x", "y")
+  column <- scene$nodes$x[[match(keys[["m"]], scene$nodes$name)]]
+  m_y <- mm_node_y(scene, keys, "m")
+
+  routed <- route_drawn_scene(scene, edge_route_options(), "spline", "y")
+  inferred <- route_drawn_scene(scene, edge_route_options(), "spline")
+  waypoint <- routed$waypoints[[skip]]
+
+  stopifnot(
+    # the scene is the one the rule is about: left to itself the router reads
+    # the two columns as the layers and bows x -> y out towards the panel
+    # edge, away from the layer m sits in
+    inferred$meta$mode[[skip]] == "bow",
+    inferred$waypoints[[skip]]$x < column,
+    # told which axis its layers run along, it threads the same edge between
+    # the columns instead, past m at the height of m's own layer
+    routed$meta$mode[[skip]] == "interior",
+    identical(nrow(waypoint), 1L),
+    waypoint$x > column,
+    abs(waypoint$y - m_y) < 1e-6,
+    mm_min_clearance(scene, routed) >= scene$radius + 3 - verify_tol
+  )
+
+  expect_doppelganger("spline layout down the panel routes along y", p)
 })

@@ -828,6 +828,25 @@ test_that("compute_time_ordered_layout: direction y scales the time-free axis", 
   expect_lt(diff(range(result$x)), 2 * diff(range(result$y)))
 })
 
+test_that("compute_time_ordered_layout: the coordinates record the axis of time", {
+  # The engine is the one place that knows which axis the layers run along.
+  # Everything downstream that has to route around them, the edge router most
+  # of all, reads it back off the coordinates.
+  edges_df <- make_edges_df(c("A", "B"), c("B", "C"))
+
+  expect_identical(
+    attr(compute_time_ordered_layout(edges_df), "layout_direction"),
+    "x"
+  )
+  expect_identical(
+    attr(
+      compute_time_ordered_layout(edges_df, direction = "y"),
+      "layout_direction"
+    ),
+    "y"
+  )
+})
+
 # Test all 22 spec DAGs produce 0 overlaps
 # Using a helper to avoid repetition
 test_zero_overlaps <- function(label, edge_pairs) {
