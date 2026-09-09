@@ -6379,6 +6379,107 @@ test_that("orthogonal ports: a stack keeps its rows only while the floor holds",
   expect_lt(port_row_max / 3, row_floor_default)
 })
 
+# One target with a level source on its own line and one arrival from
+# above, at node radius `r`. The row rule reads the radius through the
+# half-height a head fits in, h = r - head_w / 2, and through the floor
+# max(sep_e / 2, sep_min); h shrinks with the radius faster than the floor
+# does, so these three nodes reach every regime of the rule.
+small_node_scene <- function(r) {
+  list(
+    nodes = mm_nodes(c("x", "a", "y"), c(20, 20, 60), c(55, 75, 55), r = r),
+    edges = mm_edges(c("x", "a"), c("y", "y")),
+    bounds = c(0, 0, 80, 110)
+  )
+}
+
+# The same target with no level owner: one arrival from above and one from
+# below, the pair that straddles the centre line.
+small_node_pair_scene <- function(r) {
+  list(
+    nodes = mm_nodes(c("a", "b", "y"), c(20, 20, 60), c(75, 35, 55), r = r),
+    edges = mm_edges(c("a", "b"), c("y", "y")),
+    bounds = c(0, 0, 80, 110)
+  )
+}
+
+# Route a scene of node radius `r` with the constants that radius gives.
+ortho_at <- function(scene, r) {
+  route_scene(scene, mode = "orthogonal", opts = route_constants(r))
+}
+
+test_that("orthogonal ports: a singleton row under the floor takes the centre", {
+  # Beside a level owner the one arrival takes the row min(sep_e, h). At the
+  # default radius that is sep_e, well above the floor, but h falls to the
+  # floor at r = 2.15 and below it after that, and under r = 0.65 it turns
+  # negative, which draws the arrival on the far side of the centre from
+  # its source. A row the floor cannot hold collapses onto the centre row
+  # instead, where the head is drawn on the owner's line at the whole cap.
+  # The resect of a row at offset o is cap - r + sqrt(r^2 - o^2).
+  cases <- list(
+    list(r = 6, row = 58.6, resect = 6.8),
+    list(r = 3, row = 56.8, resect = 7.4),
+    list(r = 2.15, row = 56.5, resect = 7.390292),
+    list(r = 1.5, row = 55, resect = 8),
+    list(r = 1, row = 55, resect = 8),
+    list(r = 0.5, row = 55, resect = 8)
+  )
+  for (case in cases) {
+    scene <- small_node_scene(case$r)
+    res <- ortho_at(scene, case$r)
+    label <- sprintf("r = %s", case$r)
+    i <- edge_index(scene, "a->y")
+    expect_equal(
+      res$meta$mode[edge_index(scene, "x->y")],
+      "straight",
+      label = label
+    )
+    expect_equal(
+      arrival_row(scene, res, "a->y"),
+      case$row,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(
+      res$meta$resect_head[[i]],
+      case$resect,
+      tolerance = 1e-6,
+      label = label
+    )
+    # the source is above the target, so its row never crosses the centre
+    expect_gte(arrival_row(scene, res, "a->y"), 55)
+  }
+})
+
+test_that("orthogonal ports: a centred pair under the floor takes the centre", {
+  # With no owner the pair straddles the centre at half of min(sep_e, 2 h).
+  # That spacing holds the floor down to r = 1.5, where the two rows are
+  # exactly sep_min apart. Below it the pair would be drawn a fraction of a
+  # millimetre from the centre, and under r = 0.65 the negative h would
+  # draw the arrival from above on the lower row. Both rows collapse onto
+  # the centre instead.
+  cases <- list(
+    list(r = 6, rows = c(56.8, 53.2), resect = 7.723635),
+    list(r = 1.5, rows = c(55.75, 54.25), resect = 7.799038),
+    list(r = 1, rows = c(55, 55), resect = 8),
+    list(r = 0.5, rows = c(55, 55), resect = 8)
+  )
+  for (case in cases) {
+    scene <- small_node_pair_scene(case$r)
+    res <- ortho_at(scene, case$r)
+    label <- sprintf("r = %s", case$r)
+    rows <- arrival_rows(scene, res, "y")
+    expect_equal(unname(rows), case$rows, tolerance = 1e-6, label = label)
+    expect_equal(
+      res$meta$resect_head,
+      rep(case$resect, 2),
+      tolerance = 1e-6,
+      label = label
+    )
+    # the arrival from above is never drawn under the one from below
+    expect_gte(unname(rows[["a->y"]]), unname(rows[["b->y"]]))
+  }
+})
+
 # Two arrivals at one target, the second of them from a source that sits
 # `off` millimetres from the row it is assigned. With a level chord owning
 # the centre, that row is sep_e above it, so a source at 55 + sep_e + off
@@ -9516,6 +9617,122 @@ test_that("routing does not depend on how the caller names the nodes", {
       }
     }
   }
+})
+
+# The same geometry under two namings: the left node at (20, 50), the right
+# at (100, 50) with a node between them, and one edge each way, so the two
+# edges are a parallel group of two. The edge from the left node is built
+# first, so edge 1 is that copy whatever the two nodes are called.
+parallel_pair_scene <- function(left, right) {
+  list(
+    nodes = mm_nodes(c(left, right, "m"), c(20, 100, 60), c(50, 50, 51)),
+    edges = mm_edges(c(left, right), c(right, left)),
+    bounds = c(0, 0, 120, 100)
+  )
+}
+
+test_that("parallel copies are spread in the order of their endpoints", {
+  # A group's members are translated sep_m apart in a fixed order, and that
+  # order decides which copy is drawn on which side. Read from the node
+  # names it makes the picture depend on what the caller calls the nodes:
+  # naming the left node "a" and the right one "z" draws the left-to-right
+  # copy on one side, and swapping the two names draws it on the other. In
+  # the order of the endpoints' positions the two namings draw one picture.
+  for (mode in c("spline", "orthogonal")) {
+    ref <- route_scene(parallel_pair_scene("a", "z"), mode = mode)
+    res <- route_scene(parallel_pair_scene("z", "a"), mode = mode)
+    keep <- setdiff(names(ref$meta), "edge")
+    expect_identical(res$meta[keep], ref$meta[keep], label = mode)
+    for (i in seq_along(ref$paths)) {
+      expect_lt(
+        polyline_hausdorff(res$paths[[i]], ref$paths[[i]]),
+        1e-9,
+        label = paste(mode, i)
+      )
+    }
+  }
+
+  # the picture both namings draw: the copy out of the left node takes the
+  # first shift, which in spline mode bows it 14 mm under the chord while
+  # its partner bows 16 mm over it, and in orthogonal mode runs it 13.1 mm
+  # over the chord with its partner 13.1 mm under
+  spline <- route_scene(parallel_pair_scene("a", "z"), mode = "spline")
+  expect_equal(range(spline$paths[[1]]$y), c(36, 50), tolerance = 1e-6)
+  expect_equal(range(spline$paths[[2]]$y), c(50, 66), tolerance = 1e-6)
+  orthogonal <- route_scene(parallel_pair_scene("a", "z"), mode = "orthogonal")
+  expect_equal(range(orthogonal$paths[[1]]$y), c(50, 63.1), tolerance = 1e-6)
+  expect_equal(range(orthogonal$paths[[2]]$y), c(36.9, 50), tolerance = 1e-6)
+
+  # the members of a group of duplicates share both endpoints, so their
+  # positions tie and the input order decides, as the name order did
+  duplicate <- fan_scene()
+  duplicate$edges <- rbind(duplicate$edges, mm_edges("a", "b"))
+  names_rev <- rev(letters)[seq_len(nrow(duplicate$nodes))]
+  for (mode in c("spline", "orthogonal")) {
+    ref <- route_scene(duplicate, mode = mode)
+    res <- route_scene(rename_scene(duplicate, names_rev), mode = mode)
+    for (i in seq_along(ref$paths)) {
+      expect_lt(
+        polyline_hausdorff(res$paths[[i]], ref$paths[[i]]),
+        1e-9,
+        label = paste("duplicate", mode, i)
+      )
+    }
+  }
+})
+
+# The drawn geometry of the census scenes and the gallery's largest scene at
+# every panel, as a checksum: the number of routed edges, the number of
+# sampled points, the total drawn length, the coordinate sums and the two
+# resect sums.
+census_checksum <- function(mode) {
+  scenes <- c(forward_census_scenes(), lapply(gallery_panels, very_big_scene))
+  out <- list(
+    routed = 0L,
+    points = 0L,
+    drawn = 0,
+    x = 0,
+    y = 0,
+    head = 0,
+    fins = 0
+  )
+  for (scene in scenes) {
+    res <- route_scene(scene, mode = mode, opts = route_constants(r_default))
+    out$routed <- out$routed + sum(res$meta$mode != "straight")
+    out$head <- out$head + sum(res$meta$resect_head)
+    out$fins <- out$fins + sum(res$meta$resect_fins)
+    for (path in res$paths) {
+      out$points <- out$points + nrow(path)
+      out$drawn <- out$drawn +
+        sum(sqrt(diff(path$x)^2 + diff(path$y)^2))
+      out$x <- out$x + sum(path$x)
+      out$y <- out$y + sum(path$y)
+    }
+  }
+  out
+}
+
+test_that("the scenes drawn at the default node size are untouched", {
+  # The row floor fires under r = 2.15 and the position order of a parallel
+  # group's members only where a group has two, and no tracked scene has
+  # either: every node is 6 mm and no scene draws two edges between one
+  # pair of nodes. The checksum is the pin that says the drawn pictures are
+  # the same ones.
+  orthogonal <- census_checksum("orthogonal")
+  expect_equal(orthogonal$routed, 473L)
+  expect_equal(orthogonal$points, 80645L)
+  expect_equal(orthogonal$drawn, 39534.069597425, tolerance = 1e-9)
+  expect_equal(orthogonal$x, 6083911.017054041, tolerance = 1e-9)
+  expect_equal(orthogonal$y, 4258497.096467356, tolerance = 1e-9)
+  expect_equal(orthogonal$head, 3963.280730802, tolerance = 1e-9)
+  expect_equal(orthogonal$fins, 4212.651832214, tolerance = 1e-9)
+
+  spline <- census_checksum("spline")
+  expect_equal(spline$routed, 113L)
+  expect_equal(spline$points, 16834L)
+  expect_equal(spline$drawn, 32390.876311216, tolerance = 1e-9)
+  expect_equal(spline$x, 1385005.051702970, tolerance = 1e-9)
+  expect_equal(spline$y, 937782.428045510, tolerance = 1e-9)
 })
 
 # Performance -----------------------------------------------------------------------
