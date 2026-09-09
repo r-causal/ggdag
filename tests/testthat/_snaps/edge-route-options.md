@@ -97,6 +97,24 @@
       ! `tangent_clamp` must be a single number of degrees greater than 0 and at most 90.
       x You provided a number.
 
+# edge_route_options() rejects an infinite value
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `edge_route_options()`:
+      ! `clearance` must be a single positive number of millimetres.
+      x You provided a number.
+
+---
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `edge_route_options()`:
+      ! `head_penalty` must be a single number of at least 0.
+      x You provided a number.
+
 # edge_route_options() rejects a value that is not one of its choices
 
     Code

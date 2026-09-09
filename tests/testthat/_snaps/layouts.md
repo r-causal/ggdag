@@ -26,3 +26,21 @@
       ! `time_points` cannot be used with a data frame.
       i The second column of `.vars` already gives the time point of each variable.
 
+# time_ordered_coords(): a longer time_points errors with optimize = FALSE
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `time_ordered_coords()`:
+      ! `time_points` must have one value per time period.
+      x `time_points` has 3 values, but `.vars` has 2 time periods.
+
+# time_ordered_coords(): a shorter time_points errors with optimize = FALSE
+
+    Code
+      expr
+    Condition <ggdag_type_error>
+      Error in `time_ordered_coords()`:
+      ! `time_points` must have one value per time period.
+      x `time_points` has 1 value, but `.vars` has 2 time periods.
+
