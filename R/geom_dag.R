@@ -2163,14 +2163,23 @@ geom_dag <- function(
 # `geom_dag()` takes no mapping of its own and every layer it builds inherits
 # from the plot, so the plot mapping is the only place the DAG aesthetics can
 # come from. Without them the edge stats reach a layer with no positions and
-# fail on the empty subscript, so say what is missing before any layer is added.
-check_dag_mapping <- function(plot_data, plot_mapping) {
-  needed <- c("x", "y", "xend", "yend")
-  missing_aes <- setdiff(needed, names(plot_mapping))
+# fail on the empty subscript, so say what is missing instead. A layer needs
+# only the aesthetics it reads, and the mapping it reads them from is settled
+# when the plot is built rather than when the layer is added, because
+# `aes_dag()` can follow `geom_dag()`.
+check_dag_mapping <- function(layer, plot, needed) {
+  plot_data <- plot$data
+  if (inherits(plot_data, "tidy_dagitty")) {
+    plot_data <- pull_dag_data(plot_data)
+  }
+  missing_aes <- setdiff(needed, resolved_layer_aes(layer, plot))
 
   # data without the DAG columns is not a tidy DAG at all, and `aes_dag()`
   # would not fix it, so leave that plot to ggplot2 to report
-  if (length(missing_aes) == 0 || !all(needed %in% names(plot_data))) {
+  dag_columns <- c("x", "y", "xend", "yend")
+  is_dag_data <- is.data.frame(plot_data) &&
+    all(dag_columns %in% names(plot_data))
+  if (length(missing_aes) == 0 || !is_dag_data) {
     return(invisible(NULL))
   }
 
@@ -2185,13 +2194,61 @@ check_dag_mapping <- function(plot_data, plot_mapping) {
   )
 }
 
+# The aesthetics a layer has once it inherits the plot's, which is where
+# `aes_dag()` puts the DAG aesthetics. Only the names are asked for, so a
+# mapping is never evaluated here.
+resolved_layer_aes <- function(layer, plot) {
+  mapped <- names(layer$mapping)
+  if (!identical(layer$inherit.aes, FALSE)) {
+    mapped <- union(mapped, names(plot$mapping))
+  }
+  mapped
+}
+
+# The DAG aesthetics a layer reads: an edge runs from one node to another, and
+# everything else `geom_dag()` draws sits on a single node.
+dag_layer_needs <- function(item) {
+  if (inherits(item, c("dag_edge_layer", "dag_arrow_layer"))) {
+    c("x", "y", "xend", "yend")
+  } else {
+    c("x", "y")
+  }
+}
+
+# A layer already holding the aesthetics it needs can only keep them, since a
+# plot mapping grows as more of it is added, so it is left as it is. A layer
+# still missing one waits for the finished plot to say whether the mapping
+# ever arrived, and the wrapper is what carries the question there.
+defer_dag_mapping_check <- function(item, plot) {
+  needed <- dag_layer_needs(item)
+  wrapped <- inherits(
+    item,
+    c("dag_layer", "dag_edge_layer", "dag_arrow_layer")
+  )
+  layer <- if (wrapped) .subset2(item, "layer") else item
+
+  if (all(needed %in% resolved_layer_aes(layer, plot))) {
+    return(item)
+  }
+
+  layer <- plot_aware_layer(layer, function(self, plot) {
+    check_dag_mapping(self, plot, needed)
+  })
+
+  if (!wrapped) {
+    return(layer)
+  }
+
+  item[["layer"]] <- layer
+  item
+}
+
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
     plot_data <- pull_dag_data(plot_data)
   }
-  check_dag_mapping(plot_data, plot$mapping)
   has_curvature <- "edge_curvature" %in% names(plot_data)
   wants_curve <- wants_edge_curvature(plot_data)
   curvature_ignored <- FALSE
@@ -2203,6 +2260,7 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
     if (wants_curve && inherits(item, "dag_edge_layer")) {
       curvature_ignored <- TRUE
     }
+    item <- defer_dag_mapping_check(item, plot)
     plot <- ggplot2::ggplot_add(item, plot, ...)
   }
 

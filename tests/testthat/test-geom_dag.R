@@ -1661,31 +1661,55 @@ test_that("geom_dag() errors when the plot maps no DAG aesthetics", {
   dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
 
   expect_error(
-    ggplot(dag) + geom_dag(),
+    ggplot2::ggplot_build(ggplot(dag) + geom_dag()),
     class = "ggdag_missing_error"
   )
 
   expect_error(
-    ggplot(pull_dag_data(dag)) + geom_dag(),
+    ggplot2::ggplot_build(ggplot(pull_dag_data(dag)) + geom_dag()),
     class = "ggdag_missing_error"
   )
 
-  expect_ggdag_error(ggplot(dag) + geom_dag())
+  expect_ggdag_error(ggplot2::ggplot_build(ggplot(dag) + geom_dag()))
 })
 
 test_that("geom_dag() errors when the plot maps only some DAG aesthetics", {
   dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
 
   expect_error(
-    ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag(),
+    ggplot2::ggplot_build(
+      ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag()
+    ),
     class = "ggdag_missing_error"
   )
 
-  expect_ggdag_error(ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag())
+  expect_ggdag_error(ggplot2::ggplot_build(
+    ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag()
+  ))
 })
 
 test_that("geom_dag() accepts a plot mapped with aes_dag()", {
   dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
 
   expect_no_error(ggplot(dag, aes_dag()) + geom_dag())
+})
+
+test_that("geom_dag(use_edges = FALSE) asks only for the node aesthetics", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_no_error(ggplot2::ggplot_build(
+    ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag(use_edges = FALSE)
+  ))
+
+  # the node, text, and label layers still need somewhere to sit
+  expect_error(
+    ggplot2::ggplot_build(ggplot(dag) + geom_dag(use_edges = FALSE)),
+    class = "ggdag_missing_error"
+  )
+})
+
+test_that("geom_dag() sees the DAG aesthetics mapped after it", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_no_error(ggplot2::ggplot_build(ggplot(dag) + geom_dag() + aes_dag()))
 })

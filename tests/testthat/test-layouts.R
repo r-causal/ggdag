@@ -212,7 +212,7 @@ test_that("time_ordered_coords(): a duplicated variable errors with optimize = F
   )
 })
 
-test_that("time_ordered_coords(): dagify() reaches the time_points check", {
+test_that("time_ordered_coords(): time_points is checked inside a dagify() call", {
   expect_error(
     dagify(
       b ~ a,
