@@ -3297,19 +3297,26 @@ parallel_groups <- function(from, to, nodes, routable, sep_m) {
 #' keeps the target's centre, the tail leaves its node through the port on
 #' the target's line, and the tail's resect is the face resect of the port's
 #' offset. Its mode stays `"straight"`, which means no bend rather than
-#' centre to centre. A reversed level chord takes the mirror shape, the
-#' tail port on the right node at its target's y, while still claiming the
-#' right node's W centre row as its own; an arrival row on that side can
-#' come within the row floor of the departure when the offset exceeds it.
+#' centre to centre. Such a chord owns its target's W centre row: while it
+#' does, no spanning candidate may run on that node's line, and where two
+#' of them reach one node the chord from the farthest layer keeps the row
+#' while the others bend at their slots like ordinary arrivals, so that no
+#' node is drawn two heads on one row. A reversed level chord takes the
+#' mirror shape, the tail port on the right node at its target's y; its own
+#' run lies on the left node's line and leaves the right node's line free,
+#' although the row pass still claims that node's W centre row for it and
+#' an arrival row on that side can come within the row floor of the
+#' departure when the offset exceeds it.
 #'
 #' A spanning edge chooses among the channels `ortho_channel()` prices: an
 #' S or N channel `R` beyond the crossed stacks when both endpoints are the
 #' extreme node of their layer on that side (two bends), an E/W run at an
 #' endpoint's y or `R` beyond the stacks (two or four bends), and, when no
 #' S/N channel fits, an E/W run through a free interval of every crossed
-#' layer. Every other edge leaves through the E port and enters through the
-#' W port with one vertical run per crossed gap at a slot assigned by
-#' `ortho_slot_ranks()`. Channels are placed shortest span first, and one
+#' layer. The run at the target's own line is no candidate when a level
+#' chord owns that node's row. Every other edge leaves through the E port
+#' and enters through the W port with one vertical run per crossed gap at a
+#' slot assigned by `ortho_slot_ranks()`. Channels are placed shortest span first, and one
 #' that would run within `sep_e` of a placed channel over an overlapping
 #' x-range is pushed outward past it, so longer edges nest outside shorter
 #' ones and no channel is shared. A run on an endpoint line that only the
@@ -3420,6 +3427,37 @@ route_orthogonal_scene <- function(
   kind[
     routable & kind == "straight" & (horizontal | vertical) & shift != 0
   ] <- "detour"
+
+  # one owner per centre row. A level chord is drawn on its target's line
+  # and its head sits on the target's centre, so nothing else may arrive
+  # there: where two of them reach one node the chord from the farthest
+  # layer keeps the row and the others bend at their slots like ordinary
+  # arrivals, ties by the source's position. The chords that remain own
+  # their targets' lines, and no spanning candidate may take one
+  chords <- which(
+    kind == "straight" &
+      routable &
+      horizontal &
+      !vertical &
+      span >= 1L &
+      !info$reversed
+  )
+  for (t in unique(b[chords])) {
+    idx <- chords[b[chords] == t]
+    if (length(idx) < 2L) {
+      next
+    }
+    order_e <- order(-span[idx], Sx[idx], Sy[idx], idx, method = "radix")
+    kind[idx[order_e][-1L]] <- "ew"
+  }
+  level_owned <- unique(b[
+    kind == "straight" &
+      routable &
+      horizontal &
+      !vertical &
+      span >= 1L &
+      !info$reversed
+  ])
 
   # the horizontal pieces committed in every gap so far: an edge with a
   # vertical run in a gap enters it at one y and leaves at another; pieces
@@ -3562,6 +3600,7 @@ route_orthogonal_scene <- function(
       intervals,
       pieces,
       keys,
+      b[[e]] %in% level_owned,
       opts
     )
     sl <- if (length(ch$slide) > 0) best_slide(ch, e, keys) else NULL
@@ -4015,10 +4054,12 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #'
 #' A candidate is infeasible when its run comes closer than the clearance
 #' margin `m` to the panel bounds, when its margin band would cut a disc of
-#' a layer it passes, or when its horizontal pieces in a gap would coincide
-#' with a committed piece from another source in either slot order. When
-#' nothing is feasible the least displaced candidate other than an endpoint
-#' run is clamped to the margin and reported without clearance.
+#' a layer it passes, when its horizontal pieces in a gap would coincide
+#' with a committed piece from another source in either slot order, or when
+#' it is an E/W run at the target's own line and `owned` says a level chord
+#' already arrives on it. When nothing is feasible the least displaced
+#' candidate other than an endpoint run is clamped to the margin and
+#' reported without clearance.
 #'
 #' An endpoint line that the placed channels crowd, but that the run could
 #' take with them out of the way, is returned as a slide option: the run
@@ -4042,6 +4083,8 @@ level_run_blocked <- function(nodes, a, b, y, R) {
 #' @param pieces Committed horizontal pieces per gap: `key`, `left`,
 #'   `right`.
 #' @param keys The edge's segment keys in its first and last gap.
+#' @param owned Whether a level chord arrives at the target on the target's
+#'   own line, which makes that line no candidate for this edge.
 #' @return A list with `kind` (`"sn"` or `"ew"`), `side`, `y`, `wp` (the
 #'   bends used for pricing), `cost`, `clamped`, `channel` (the row to
 #'   register), `slide` (the options above, each in the same shape plus
@@ -4070,6 +4113,7 @@ ortho_channel <- function(
   intervals,
   pieces,
   keys,
+  owned,
   opts
 ) {
   crossed <- (la + 1L):(lb - 1L)
@@ -4124,7 +4168,8 @@ ortho_channel <- function(
   price <- function(kind, side, y, drop = integer(0)) {
     wp <- bends_of(kind, y)
     displacement <- sum(abs(y - yc))
-    feasible <- y >= y_min &&
+    feasible <- !(owned && kind == "ew" && abs(y - Ty) < 1e-6) &&
+      y >= y_min &&
       y <= y_max &&
       clear_of(y, if (kind == "sn") sn_nodes else members) &&
       !coincides(kind, y)
