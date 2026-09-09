@@ -176,3 +176,50 @@ test_that("time_ordered_coords(): time_points with a data frame errors", {
   )
   expect_ggdag_error(time_ordered_coords(time_df, time_points = c(1, 2, 3)))
 })
+
+test_that("time_ordered_coords(): a longer time_points errors with optimize = FALSE", {
+  expect_error(
+    time_ordered_coords(list("a", "b"), time_points = 1:3, optimize = FALSE),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("time_ordered_coords(): a shorter time_points errors with optimize = FALSE", {
+  expect_error(
+    time_ordered_coords(
+      list("a", c("b", "c")),
+      time_points = 1,
+      optimize = FALSE
+    ),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("time_ordered_coords(): a duplicated variable errors with optimize = FALSE", {
+  expect_error(
+    time_ordered_coords(list("a", c("a", "b")), optimize = FALSE),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("time_ordered_coords(): dagify() reaches the time_points check", {
+  expect_error(
+    dagify(
+      b ~ a,
+      coords = time_ordered_coords(
+        list("a", "b"),
+        time_points = 1,
+        optimize = FALSE
+      )
+    ),
+    class = "ggdag_type_error"
+  )
+
+  expect_error(
+    dagify(
+      b ~ a,
+      coords = time_ordered_coords(list("a", "b"), time_points = 1:3)
+    ),
+    class = "ggdag_type_error"
+  )
+})

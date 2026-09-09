@@ -1656,3 +1656,32 @@ test_that("the edge geoms silently drop missing values by default", {
 
   expect_false(formals(geom_dag_collider_edges)$na.rm)
 })
+
+test_that("geom_dag() errors when the plot maps no DAG aesthetics", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_error(
+    ggplot(dag) + geom_dag(),
+    class = "ggdag_missing_error"
+  )
+
+  expect_error(
+    ggplot(pull_dag_data(dag)) + geom_dag(),
+    class = "ggdag_missing_error"
+  )
+})
+
+test_that("geom_dag() errors when the plot maps only some DAG aesthetics", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_error(
+    ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag(),
+    class = "ggdag_missing_error"
+  )
+})
+
+test_that("geom_dag() accepts a plot mapped with aes_dag()", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_no_error(ggplot(dag, aes_dag()) + geom_dag())
+})
