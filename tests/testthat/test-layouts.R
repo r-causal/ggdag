@@ -356,3 +356,100 @@ test_that("layout_layer_axis(): only a layout down the panel names an axis", {
     "y"
   )
 })
+
+# A DAG laid out down the panel: three time points along y, in two columns.
+# The router's own inference reads the two columns as the layers, so the axis
+# the layout ran along is the one that has to reach it.
+down_panel_dag <- function() {
+  dagify(
+    y ~ x + m,
+    m ~ x,
+    b ~ a,
+    c ~ b,
+    coords = time_ordered_coords(
+      list(c("x", "a"), c("m", "b"), c("y", "c")),
+      direction = "y",
+      optimize = FALSE
+    )
+  )
+}
+
+# The axis the one routed edge layer of `plot` was given.
+routed_axis_of <- function(plot) {
+  routed <- vapply(
+    plot$layers,
+    function(layer) inherits(layer$geom, "GeomDAGRoutedArrow"),
+    logical(1)
+  )
+  expect_length(which(routed), 1)
+  plot$layers[[which(routed)]]$geom_params$layer_axis
+}
+
+# Draw with the engine that routes, so the layer the axis reaches exists.
+local_routing_options <- function(.env = parent.frame()) {
+  local_ggdag_option_state(.env = .env)
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+}
+
+test_that("layout_coordinates(): a marked grid keeps its axis", {
+  grid <- time_ordered_coords(
+    list("x", "m", "y"),
+    direction = "y",
+    optimize = FALSE
+  )
+  edges <- data.frame(
+    name = c("x", "m"),
+    to = c("m", "y"),
+    stringsAsFactors = FALSE
+  )
+
+  expect_identical(layout_direction(layout_coordinates(edges, grid)), "y")
+})
+
+test_that("update_dag_data(): a rebuilt layout replaces the axis", {
+  skip_if_not_installed("ggarrow")
+  local_routing_options()
+
+  tidy_down <- tidy_dagitty(down_panel_dag())
+  # dropping a coordinate column rebuilds the layout from the layout option,
+  # which runs its layers across the panel rather than down it
+  dropped <- dplyr::select(
+    tidy_down,
+    -dplyr::any_of(c("x", "y", "xend", "yend"))
+  )
+
+  expect_false(identical(attr(pull_dag(dropped), "layout_direction"), "y"))
+  expect_identical(routed_axis_of(ggdag(dropped)), "auto")
+})
+
+test_that("update_dag_data(): coordinates from elsewhere drop the axis", {
+  tidy_down <- tidy_dagitty(down_panel_dag())
+
+  # the same DAG, turned onto its side by hand: the layout that ran down the
+  # panel no longer describes where the nodes sit
+  turned <- pull_dag_data(tidy_down)
+  turned[c("x", "y", "xend", "yend")] <- turned[c("y", "x", "yend", "xend")]
+  update_dag_data(tidy_down) <- turned
+
+  expect_null(attr(pull_dag(tidy_down), "layout_direction"))
+})
+
+test_that("the axis survives the verbs that rebuild the dagitty object", {
+  skip_if_not_installed("ggarrow")
+  local_routing_options()
+
+  tidy_down <- tidy_dagitty(down_panel_dag())
+
+  adjusted <- control_for(tidy_down, "m")
+  pruned <- dag_prune(tidy_down, c(a = "b"))
+  equivalent <- node_equivalent_dags(tidy_down)
+
+  expect_identical(attr(pull_dag(adjusted), "layout_direction"), "y")
+  expect_identical(attr(pull_dag(pruned), "layout_direction"), "y")
+  expect_identical(attr(pull_dag(equivalent), "layout_direction"), "y")
+
+  expect_identical(routed_axis_of(ggdag(adjusted)), "y")
+  expect_identical(routed_axis_of(ggdag(pruned)), "y")
+  expect_identical(routed_axis_of(ggdag_adjust(tidy_down, "m")), "y")
+  expect_identical(routed_axis_of(ggdag_equivalent_dags(tidy_down)), "y")
+})
