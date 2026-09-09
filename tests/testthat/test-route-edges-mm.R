@@ -7446,6 +7446,172 @@ test_that("orthogonal ports: a reflected hand fixture draws the mirror of its ro
   }
 })
 
+# Source keys and head-end ownership --------------------------------------------
+
+# Three layers. The 14 mm gap between the staircase `a1..a4 -> b1..b4` is
+# the rung-4 gap of `narrow_band_scene()`, too narrow for a stub and short
+# of the head-run floor, and the 60 mm gap beyond it is wide. `a1 -> t`
+# crosses both and `b1 -> t` only the second, so `t` takes two arrivals and
+# no owner; `u` keeps `t` off the bottom of its layer so that no S/N
+# channel is offered for the spanning edge.
+narrow_source_scene <- function() {
+  list(
+    name = "narrow_source",
+    nodes = mm_nodes(
+      c("a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4", "t", "u"),
+      c(rep(33, 4), rep(47, 4), 107, 107),
+      c(20, 35, 50, 65, 50, 65, 80, 95, 30, 10)
+    ),
+    edges = mm_edges(
+      c("a1", "a2", "a3", "a4", "a1", "b1"),
+      c("b1", "b2", "b3", "b4", "t", "t")
+    ),
+    bounds = c(0, 0, 140, 110)
+  )
+}
+
+test_that("orthogonal ports: a narrow gap beside the source leaves the arrival its row", {
+  # An arrival out of a gap too narrow for any stub keeps its target's
+  # centre row, since the gap leaves no run to hold a row as well as a
+  # head. The gap that decides is the one the head arrives through, which
+  # for a leftward edge is its first gap and not its last: reflected,
+  # `a1 -> t` arrives through the 60 mm gap and takes its row, while the
+  # narrow gap it crosses on the way out of `a1` is beside its source and
+  # says nothing about the row. Read at the far gap instead, both arrivals
+  # at `t` would be drawn on `t`'s own centre line.
+  forward <- narrow_source_scene()
+  for (scene in list(forward, mirror_scene_x(forward))) {
+    res <- ortho(scene)
+    label <- scene$name
+    gaps <- res$ortho$gaps
+    expect_equal(sort(gaps$width), c(14, 60), tolerance = 1e-9, label = label)
+    expect_equal(sort(gaps$rung), c(0, 4), label = label)
+
+    offs <- arrival_offsets(scene, res, "t")
+    expect_equal(
+      unname(offs[["a1->t"]]),
+      -sep_e_default / 2,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_equal(
+      unname(offs[["b1->t"]]),
+      sep_e_default / 2,
+      tolerance = 1e-6,
+      label = label
+    )
+    expect_gte(abs(diff(unname(offs))), row_floor_default - 1e-9)
+  }
+})
+
+test_that("orthogonal slots: every leftward arrival at a node takes its own slot", {
+  # A hyperedge segment is the pieces leaving one source port, so the
+  # arrivals at one node through one gap belong to as many segments, and
+  # take as many slots, as they have sources, whichever way they run.
+  # Reflected, `centred_port_scene()` draws the forward slots reflected in
+  # its panel. Keyed on the left-hand node instead, every leftward arrival
+  # at `t` is one segment on one slot and the verticals of two and three
+  # different sources are drawn on one x, a line the DAG does not have.
+  for (n in 2:3) {
+    forward <- centred_port_scene(n)
+    scene <- mirror_scene_x(forward)
+    res <- ortho(scene)
+    expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+    slots <- ladder_slots(res)
+    expect_length(unique(round(slots, 9)), n)
+    expect_equal(
+      slots,
+      scene$bounds[[3]] - ladder_slots(ortho(forward)),
+      tolerance = 1e-6
+    )
+    expect_gte(min(diff(sort(slots))), sep_min_default - 1e-9)
+  }
+})
+
+test_that("orthogonal ports: a leftward stack of two groups keeps the forward rows", {
+  # Two arrivals from above and two from below, reflected. The slots are
+  # read from the source's side of the gap, so their order is reversed in a
+  # scene drawn leftwards and the rows come out edge for edge as the
+  # forward scene draws them. Read in the raw order of the slot x, the two
+  # arrivals from below swap rows, which is the crossing the order exists
+  # to avoid.
+  forward <- centred_port_scene(2, 2)
+  scene <- mirror_scene_x(forward)
+  res <- ortho(scene)
+  expect_orthogonal_scene(scene, res, stub_always = TRUE)
+
+  rows <- arrival_rows(scene, res, "t")
+  expect_equal(
+    unname(rows),
+    unname(arrival_rows(forward, ortho(forward), "t")),
+    tolerance = 1e-6
+  )
+  expect_equal(
+    unname(rows),
+    55 + c(1.7833333, 5.35, -1.7833333, -5.35),
+    tolerance = 1e-6
+  )
+})
+
+# A level chord and a spanning edge into one node. `c -> y` is one layer
+# long and level, so it is drawn as the run on `y`'s own line and owns
+# `y`'s centre row. `s -> y` spans three gaps: its own line at 40 is
+# blocked by `p1`, the band below the crossed stacks is at 31, and the band
+# above them reaches exactly `y`'s line, so 70 is the line it would take
+# were the row free. `z` keeps `s` off the bottom of its layer so that no
+# S/N channel is offered.
+owned_line_scene <- function() {
+  list(
+    name = "owned_line",
+    nodes = mm_nodes(
+      c("z", "s", "c", "p1", "p2", "q1", "y"),
+      c(20, 20, 20, 60, 60, 100, 140),
+      c(15, 40, 70, 40, 55, 61, 70)
+    ),
+    edges = mm_edges(c("c", "s"), c("y", "y")),
+    bounds = c(0, 0, 160, 110)
+  )
+}
+
+test_that("orthogonal packing: a leftward level chord keeps its own target's line", {
+  # A level chord owns the centre row of the node its head arrives at,
+  # whichever way it is drawn, and no other run may take that line. Read at
+  # the canonical right node instead, a reflected scene protects the
+  # chord's source rather than its target, and a scene with no rightward
+  # chord at all protects nothing: `s -> y` is then drawn along `c -> y`'s
+  # own run, two edges on one line into one centre row.
+  forward <- owned_line_scene()
+  h_runs <- function(scene) {
+    res <- ortho(scene)
+    runs <- straight_runs(dedupe_path(res$paths[[edge_index(scene, "s->y")]]))
+    runs$coord[runs$axis == "h"]
+  }
+  # s's own line, the band R below the crossed stacks, and the row sep_e
+  # under the centre the chord owns
+  lines <- c(40, 40 - r_full, 70 - sep_e_default)
+  expect_equal(h_runs(forward), lines, tolerance = 1e-6)
+  expect_equal(h_runs(mirror_scene_x(forward)), lines, tolerance = 1e-6)
+
+  for (scene in list(forward, mirror_scene_x(forward))) {
+    res <- ortho(scene)
+    label <- scene$name
+    on_line <- vapply(
+      res$paths,
+      function(path) {
+        runs <- straight_runs(dedupe_path(path))
+        any(runs$axis == "h" & abs(runs$coord - 70) < 1e-6)
+      },
+      logical(1)
+    )
+    expect_equal(
+      edge_labels(scene$edges)[on_line],
+      "c->y",
+      label = label
+    )
+  }
+})
+
 # Per-edge resects ---------------------------------------------------------------
 
 test_that("orthogonal resects: the router puts every tip cap - r from the disc face", {
@@ -8590,12 +8756,13 @@ test_that("orthogonal ports: no target is drawn two heads on its centre row", {
   # Over every census scene at every size, each target's centre row carries
   # one owner. The four that carried two are multi_mediator's y at four of
   # its five sizes, where the level chord from x and the channel from m1
-  # both ran on y's line. The mirrored copies carry one: rows belong to the
-  # head end, so a leftward arrival takes a row of its own and leaves the
-  # centre to its owner. The one that remains is very_big's cvd, where two
-  # leftward channels are allowed to run on one line because they share a
-  # hyperedge segment, a segment being keyed on the left-hand node of an
-  # edge rather than on its source.
+  # both ran on y's line. A scene and its mirror have the same owners:
+  # a segment is keyed on its source, so a leftward arrival takes a slot
+  # and a row of its own and leaves the centre to whatever owns it, and the
+  # ownership a scene draws is the ownership its reflection draws. The one
+  # target that carries two is very_big's cvd at the small panel, where two
+  # leftward channels both run on cvd's own line out of the layer beyond
+  # the gap they arrive through; nothing in this round moves it.
   rows <- list()
   for (scene in oblique_census_scenes()) {
     found <- centre_row_owners(scene, ortho(scene))
@@ -8615,8 +8782,9 @@ test_that("orthogonal ports: no target is drawn two heads on its centre row", {
   expect_equal(sum(forward$n), 179L)
   expect_equal(sum(forward$n >= 2L), 0L)
 
-  expect_equal(nrow(mirrored), 110L)
-  expect_equal(sum(mirrored$n), 111L)
+  expect_equal(nrow(mirrored), nrow(forward))
+  expect_equal(nrow(mirrored), 179L)
+  expect_equal(sum(mirrored$n), 180L)
   expect_setequal(
     paste(mirrored$scene[mirrored$n >= 2L], mirrored$target[mirrored$n >= 2L]),
     "very_big mirrored cvd"
