@@ -5860,8 +5860,8 @@ mixed_direction_scene <- function(gap) {
   )
 }
 
-# One port crossed in both directions: `a1 -> b1` and `b2 -> a1` both use
-# a1's right side, so they share one segment that points both ways.
+# One node's side crossed in both directions: `a1 -> b1` leaves a1's right
+# side and `b2 -> a1` arrives at it, so the two take a segment each.
 mixed_port_scene <- function(gap) {
   list(
     nodes = mm_nodes(
@@ -5945,15 +5945,22 @@ test_that("orthogonal ladder: a rung-4 gap crossed both ways keeps its centred s
   )
 })
 
-test_that("orthogonal ladder: a mixed hyperedge keeps its slot on the midpoint", {
-  # `a1 -> b1` and `b2 -> a1` share one port on a1, so one segment carries
-  # both directions: it has no target side either, and its single slot
-  # stays on the gap's midpoint
+test_that("orthogonal ladder: an arrival at a side takes a slot of its own", {
+  # `a1 -> b1` leaves a1's right side and `b2 -> a1` arrives at it. A piece
+  # belongs to the segment leaving its source's port, and an arrival at a
+  # node's side leaves no port there, so the two are separate segments with
+  # a slot each rather than one shared slot on the gap's midpoint. The gap
+  # is crossed both ways and so still has no target side: the two slots
+  # straddle the midpoint a separation apart
   scene <- mixed_port_scene(20)
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
-  expect_equal(res$ortho$gaps$ranks, 1)
-  expect_equal(unique(ladder_slots(res)), 40, tolerance = 1e-6)
+  expect_equal(res$ortho$gaps$ranks, 2)
+  expect_equal(
+    sort(ladder_slots(res)),
+    40 + c(-1, 1) * sep_e_default / 2,
+    tolerance = 1e-6
+  )
 })
 
 test_that("orthogonal ladder: rung 4 keeps nine slots at sep_min across the soft bands", {
@@ -6745,16 +6752,19 @@ test_that("orthogonal ports: a rung-4 gap short of the floor keeps the centre ro
 
 test_that("orthogonal ports: a rung-4 gap with no target side keeps the centre row", {
   # `u -> s2` crosses the same gap leftwards, so neither layer is the gap's
-  # target side and the slots stay centred on the midpoint. Without the
-  # slide there is no floor to reach, so the two arrivals at `t` keep the
-  # centre row at a width that would otherwise give them rows.
+  # target side and the slots stay centred on the midpoint. It leaves `u`'s
+  # own port rather than either arrival's, so the gap carries three ranks,
+  # tightened to the 3.2 mm the band holds. Without the slide there is no
+  # floor to reach, so the two arrivals at `t` keep the centre row at a
+  # width that would otherwise give them rows.
   scene <- mixed_pair_scene(20.8)
   res <- ortho(scene)
   expect_equal(res$ortho$gaps$rung, 4)
-  expect_equal(res$ortho$gaps$ranks, 2)
+  expect_equal(res$ortho$gaps$ranks, 3)
+  expect_equal(res$ortho$gaps$spacing, 3.2, tolerance = 1e-9)
   expect_equal(
     sort(unique(round(crossing_slots(ortho(scene, corners = "sharp")), 6))),
-    30.4 + c(-1, 1) * sep_e_default / 2,
+    30.4 + c(-1, 0, 1) * 3.2,
     tolerance = 1e-6
   )
   expect_equal(unname(arrival_offsets(scene, res, "t")), c(0, 0))
@@ -8538,14 +8548,14 @@ test_that("orthogonal ladder: a gap that can hold the head margin holds it", {
 test_that("orthogonal heads: no foreign shaft is drawn on a head out of a gap that can spare it", {
   # The same scenes, read as ink rather than as slots: every shaft drawn
   # within half its own width of an arrowhead of another edge. None of them
-  # is a vertical in a gap wide enough to have avoided it. The sixty-three
+  # is a vertical in a gap wide enough to have avoided it. The fifty-five
   # that remain are all in the two sizes at which the gallery's largest
   # scene has 8.1 and 14.5 mm gaps to fit eleven layers into, where no
   # arrangement of six or eight ranks leaves a head its run: thirty of them
-  # (17 and 13) drawn left to right and thirty-three (26 and 7) in the
-  # mirror image, where the arrivals of a gap are counted from the other
-  # side and each gap takes a rank count of its own, so the narrow ones are
-  # packed differently. At the largest size both copies draw none.
+  # (17 and 13) drawn left to right and twenty-five (14 and 11) in the
+  # mirror image, each count now within three of the one beside it. What
+  # is left of the difference is the order the channels are placed in,
+  # whose ties are broken on x. At the largest size both copies draw none.
   hits <- list()
   for (scene in oblique_census_scenes()) {
     res <- ortho(scene)
@@ -8561,7 +8571,7 @@ test_that("orthogonal heads: no foreign shaft is drawn on a head out of a gap th
   }
   hits <- do.call(rbind, hits)
   expect_equal(sum(in_a_wide_gap(hits)), 0L)
-  expect_equal(nrow(hits), 63L)
+  expect_equal(nrow(hits), 55L)
   expect_setequal(unique(hits$scene), c("very_big", "very_big mirrored"))
 })
 
@@ -10129,6 +10139,7 @@ owned_record <- function(y, Ty, owned, keys = c("s2", "e2-7")) {
     Sy = 30,
     Ty = Ty,
     owned = owned,
+    owned_y = Ty,
     fr = list(
       S = c(20, 30),
       E = c(120, Ty),
@@ -10150,12 +10161,12 @@ owned_record <- function(y, Ty, owned, keys = c("s2", "e2-7")) {
 }
 
 test_that("slide_channels() never moves a channel onto its own owned line", {
-  # The lattice a slide moves on is y0 + k sep_e, and a record's own
-  # target's line can sit on it: the move that shed two bends in the test
-  # above puts the run exactly on the target's line. Where a level chord
-  # already arrives on that line the target's centre row has an owner, and
-  # no run may take it, so the direction is infeasible instead. The same
-  # holds for a channel moved by the cascade rather than by the conflict.
+  # The lattice a slide moves on is y0 + k sep_e, and the line of the node
+  # a record's head arrives at can sit on it: the move that shed two bends
+  # in the test above puts the run exactly on that line. Where a level
+  # chord already arrives on it that node's centre row has an owner, and no
+  # run may take it, so the direction is infeasible instead. The same holds
+  # for a channel moved by the cascade rather than by the conflict.
   opts <- route_constants(r_default)
   nodes <- mm_nodes(c("a", "b"), c(70, 70), c(5, 105))
   empty <- data.frame(
