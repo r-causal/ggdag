@@ -299,6 +299,15 @@ as_tidy_dagitty.data.frame <- function(
     set.seed(seed)
   }
 
+  # the axis the layers run along belongs to the coordinates the data is laid
+  # out with, so the layout is resolved here, whether it was handed in or is
+  # about to be computed, and the coordinates are passed on rather than
+  # computed a second time
+  if (is.null(coords)) {
+    coords <- rebuilt_coordinates(dplyr::ungroup(x), layout, dag = NULL)$coords
+  }
+  recorded_direction <- layout_direction(coords)
+
   tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
   .dagitty <- compile_dag_from_df(x)
 
@@ -339,10 +348,12 @@ as_tidy_dagitty.data.frame <- function(
   dagitty::coordinates(.dagitty) <- coords2list(all_node_coords)
 
   # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
-  # so labels have to be set afterwards
+  # so labels and the axis the layout ran along have to be set afterwards
   if (!is.null(labels)) {
     label(.dagitty) <- labels
   }
+
+  .dagitty <- set_layout_direction(.dagitty, recorded_direction)
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
 

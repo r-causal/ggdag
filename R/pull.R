@@ -103,7 +103,9 @@ pull_dag_data.dagitty <- function(x, ...) {
   dag <- pull_dag(x)
   previous <- pull_dag_data(x)
   layout <- ggdag_option("layout", "nicely")
-  rebuilt <- rebuilt_coordinates(value, layout, dag)
+  # the layout is computed from the whole edge list, so the grouping is set
+  # aside here as it is in `prep_dag_data()`
+  rebuilt <- rebuilt_coordinates(dplyr::ungroup(value), layout, dag)
 
   x$data <- prep_dag_data(
     value,
@@ -239,7 +241,7 @@ prep_dag_data <- function(
   value <- dplyr::ungroup(value)
 
   if (is.data.frame(coords)) {
-    coords <- coords2list(coords)
+    coords <- layout_coords_list(coords)
   }
 
   if ("direction" %nin% names(value)) {

@@ -111,6 +111,10 @@ dag_saturate <- function(
 #' if it were a real layout leaves the layout unresolved further down the
 #' pipeline, so treat it as no coordinates at all.
 #'
+#' `dagitty::coordinates()` builds a fresh list, so the axis the layout that
+#' computed these coordinates ran its layers along is copied onto it: the
+#' saturated DAG is laid out with the coordinates the axis describes.
+#'
 #' @param .dag A `dagitty` object.
 #' @param use_existing_coords Whether the caller asked for the stored
 #'   coordinates.
@@ -126,7 +130,7 @@ stored_coordinates <- function(.dag, use_existing_coords) {
     return(NULL)
   }
 
-  coords
+  keep_layout_direction(coords, .dag)
 }
 
 #' Add the input's bidirected edges to a saturated DAG

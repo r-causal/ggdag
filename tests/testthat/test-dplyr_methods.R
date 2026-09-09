@@ -123,7 +123,10 @@ test_that("a grouped verb can drop the coordinates and rebuild the layout", {
   expect_equal(group_vars(pull_dag_data(narrowed)), "name")
   expect_equal(
     pull_dag_data(ungroup(narrowed)),
-    pull_dag_data(select(dag, name, to))
+    pull_dag_data(select(dag, name, to)),
+    # ggraph leaves a `circular` attribute on the layout it hands back, which
+    # `dplyr::group_by()` drops when it rebuilds the tibble
+    ignore_attr = "circular"
   )
 
   # the layout that rebuilt the coordinates names the axis, grouped or not

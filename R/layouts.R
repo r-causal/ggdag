@@ -371,8 +371,10 @@ set_layout_direction <- function(x, direction) {
 #' Carry the layout direction across a `dagitty` setter
 #'
 #' `dagitty`'s replacement functions rebuild the object from its text, which
-#' drops the attributes ggdag keeps on it. The node attribute being set says
-#' nothing about where the nodes sit, so the axis the layout ran along still
+#' drops the attributes ggdag keeps on it. The rebuilt object holds the node
+#' positions the original did, either because the attribute being set says
+#' nothing about where the nodes sit or because the coordinates written into
+#' it are the ones the mark describes, so the axis the layout ran along still
 #' describes the rebuilt object and goes back onto it.
 #'
 #' @param x The rebuilt `dagitty` object.
