@@ -261,6 +261,39 @@ test_that("route_opts_from() leaves every field the object does not set to the r
   expect_identical(defaults$crossing_saturation, TRUE)
 })
 
+test_that("route_constants() derives the spanning tier's cap from max_bow alone", {
+  # The free-bow tier chooses a depth, so a cap there shrinks a bow and the
+  # router has always had a default for it. The spanning tier chooses a slot
+  # in each crossed layer, so a cap there changes which route is drawn, and
+  # it binds only on a value the user wrote down. A user who writes 0.22,
+  # the number the free-bow tier already uses, does bind the spanning tier:
+  # the option means "I chose this", not "this is the number".
+  unset <- route_constants(r_ref)
+  expect_equal(unset$sagitta_max, 0.22)
+  expect_identical(unset$sagitta_max_spanning, Inf)
+
+  written <- route_constants(r_ref, sagitta_max = 0.12)
+  expect_equal(written$sagitta_max, 0.12)
+  expect_equal(written$sagitta_max_spanning, 0.12)
+
+  chosen <- route_constants(r_ref, sagitta_max = 0.22)
+  expect_equal(chosen$sagitta_max_spanning, 0.22)
+
+  # and the derivation is reached through the option object, which is what
+  # makes `max_bow` travel as a constructor argument
+  expect_identical(
+    route_opts_from(edge_route_options(), r_ref)$sagitta_max_spanning,
+    Inf
+  )
+  expect_equal(
+    route_opts_from(
+      edge_route_options(max_bow = 0.12),
+      r_ref
+    )$sagitta_max_spanning,
+    0.12
+  )
+})
+
 test_that("route_opts_from() bounds the arrival window by an explicit tangent_clamp", {
   # tangent_clamp is documented as the bound on a departure or arrival
   # tangent, and a crowded arrival is otherwise allowed a wider window and a
@@ -316,7 +349,10 @@ test_that("the field table names the flag that says how a field travels", {
   expect_setequal(names(flags), tier_1_fields)
   expect_true(flags[["clearance"]])
   expect_true(flags[["edge_sep"]])
-  expect_false(flags[["max_bow"]])
+  # `max_bow` feeds a derivation of its own: the spanning tier's cap is the
+  # value the user wrote and nothing when they wrote none, which cannot be
+  # decided after the fact from a leaf substitution
+  expect_true(flags[["max_bow"]])
   expect_false(flags[["parallel_sep"]])
 })
 

@@ -11467,6 +11467,270 @@ test_that("the scenes drawn at the default node size are untouched", {
   expect_equal(spline$y, 938849.493451551, tolerance = 1e-9)
 })
 
+# The sagitta cap in the spanning tier -----------------------------------------
+
+test_that("an unset max_bow leaves the spanning tier's arch alone", {
+  # `max_bow` caps a free bow, whose depth the router chooses. The spanning
+  # tier snaps a waypoint into each crossed layer's nearest free slot, so
+  # capping it changes which route is drawn rather than how deep one is
+  # drawn, and an unset cap does not reach it: p->t keeps its periphery arch
+  # at a drawn sagitta of 0.428, nearly twice the free-bow default.
+  scene <- four_layer_scene()
+  res <- route_scene(scene, opts = route_constants(r_default))
+
+  expect_equal(res$meta$mode[10], "periphery")
+  expect_equal(res$meta$side[10], 1)
+  expect_equal(res$meta$n_waypoints[10], 2)
+  expect_equal(res$meta$sagitta_ratio[10], 0.42813, tolerance = 1e-4)
+  expect_false(res$meta$sagitta_capped[10])
+})
+
+test_that("a set max_bow moves the four-layer arch into an interior slot", {
+  # The arch is over any cap a user is likely to write and there is nothing
+  # shallower on its own side, so the cap acts as a filter with a fallback:
+  # the interior thread between q1 and s2 outranks it and is drawn instead,
+  # at 0.116. It meets the cap, so it is not reported capped.
+  scene <- four_layer_scene()
+  res <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.2)
+  )
+
+  expect_equal(res$meta$mode[10], "interior")
+  expect_equal(res$meta$side[10], 1)
+  expect_equal(res$meta$n_waypoints[10], 1)
+  expect_true(res$meta$clearance_ok[10])
+  expect_false(res$meta$sagitta_capped[10])
+  expect_equal(res$meta$sagitta_ratio[10], 0.11553, tolerance = 1e-4)
+
+  # the layer 3 slot at s2 plus r + m = 64, lifted by repair to clear
+  # s1 -> t's arrival
+  wp <- res$waypoints[[10]]
+  expect_identical(nrow(wp), 1L)
+  expect_equal(wp$layer, 3)
+  expect_equal(wp$x, 100)
+  expect_gte(wp$y, 64)
+  expect_lte(wp$y, 72)
+
+  # the trade the arch was preferred for: the thread crosses q1->s2 once,
+  # which the arch does not, and it still runs outside q1->s1
+  path <- res$paths[[10]]
+  expect_identical(
+    count_path_crossings(path, node_xy(scene, "q1"), node_xy(scene, "s2")),
+    1L
+  )
+  expect_identical(
+    count_path_crossings(path, node_xy(scene, "q1"), node_xy(scene, "s1")),
+    0L
+  )
+  # and it is a thread through a 20 mm gap, not a curve squeezing one: it
+  # keeps well past the 3 mm clearance from both centres
+  expect_gte(path_min_dist(path, node_xy(scene, "q1")), r_full)
+  expect_gte(path_min_dist(path, node_xy(scene, "s2")), r_full)
+
+  # the same route is drawn at every cap the arch misses and the thread
+  # meets, which is every value from 0.42 down to 0.12
+  for (k in c(0.42, 0.3, 0.25, 0.15, 0.12)) {
+    at_k <- route_scene(
+      scene,
+      opts = route_constants(r_default, sagitta_max = k)
+    )
+    expect_equal(at_k$meta$mode[10], "interior", info = format(k))
+    expect_equal(
+      at_k$meta$sagitta_ratio[10],
+      0.11553,
+      tolerance = 1e-4,
+      info = format(k)
+    )
+  }
+})
+
+test_that("the cap reads the drawn curve rather than the waypoints it passes through", {
+  # The arch's two waypoints sit 47.15 mm off a 120 mm chord, a ratio of
+  # 0.393, and the curve interpolated through them reaches 51.4 mm, a ratio
+  # of 0.428. Between those two numbers the waypoints meet a cap the drawn
+  # route misses by four millimetres, so a cap tested on the waypoints alone
+  # would draw an arch it had been asked not to.
+  scene <- four_layer_scene()
+
+  # above the drawn depth, nothing is capped and the arch stands
+  loose <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.45)
+  )
+  expect_equal(loose$meta$mode[10], "periphery")
+  expect_equal(loose$meta$sagitta_ratio[10], 0.42813, tolerance = 1e-4)
+
+  # between the waypoint depth and the drawn depth, the arch goes
+  tight <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.4)
+  )
+  expect_equal(tight$meta$mode[10], "interior")
+  expect_equal(tight$meta$sagitta_ratio[10], 0.11553, tolerance = 1e-4)
+})
+
+test_that("a max_bow no route can meet draws the shallowest verified route and flags it", {
+  # At 0.08 the interior thread is over the cap as well, and the tier has
+  # nothing shallower to offer. The cap is a preference rather than a bound:
+  # the shallowest attempt whose curve verified inside the panel is drawn,
+  # which here is the free bow, and `sagitta_capped` records that the cap
+  # acted on the route, not that it was met.
+  scene <- four_layer_scene()
+  res <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.08)
+  )
+
+  expect_equal(res$meta$mode[10], "bow")
+  expect_true(res$meta$clearance_ok[10])
+  expect_true(res$meta$sagitta_capped[10])
+  expect_equal(res$meta$sagitta_ratio[10], 0.08710, tolerance = 1e-4)
+  expect_gt(res$meta$sagitta_ratio[10], 0.08)
+
+  # a tighter cap the router still cannot meet draws a shallower route
+  # rather than the same one
+  tighter <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.05)
+  )
+  expect_equal(tighter$meta$mode[10], "bow")
+  expect_true(tighter$meta$clearance_ok[10])
+  expect_true(tighter$meta$sagitta_capped[10])
+  expect_equal(tighter$meta$sagitta_ratio[10], 0.07560, tolerance = 1e-4)
+  expect_lt(tighter$meta$sagitta_ratio[10], res$meta$sagitta_ratio[10])
+})
+
+test_that("the shallowest verified route can itself be a spanning slot", {
+  # c->h spans three layers over the nested rows. Uncapped it takes the
+  # slots above at y = 109 and draws at 0.068. Under a cap of 0.05 nothing
+  # meets the cap, and the shallowest route that verified is the slot chain
+  # below at y = 92 rather than a bow: the tier still chooses a slot, the
+  # cap changed which one, and the flag records that 0.054 still misses
+  # 0.05.
+  scene <- nested_row_scene()
+  e <- edge_index(scene, "c->h")
+
+  unset <- route_scene(scene, opts = route_constants(r_default))
+  expect_equal(unset$meta$mode[e], "interior")
+  expect_equal(unset$meta$side[e], 1)
+  expect_equal(unset$meta$n_waypoints[e], 2)
+  expect_equal(unset$meta$sagitta_ratio[e], 0.06770, tolerance = 1e-4)
+  expect_false(unset$meta$sagitta_capped[e])
+  expect_equal(unset$waypoints[[e]]$y, c(109, 109))
+
+  res <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.05)
+  )
+  expect_equal(res$meta$mode[e], "interior")
+  expect_equal(res$meta$side[e], -1)
+  expect_equal(res$meta$n_waypoints[e], 3)
+  expect_true(res$meta$clearance_ok[e])
+  expect_true(res$meta$sagitta_capped[e])
+  expect_equal(res$meta$sagitta_ratio[e], 0.05365, tolerance = 1e-4)
+
+  wp <- res$waypoints[[e]]
+  expect_identical(nrow(wp), 3L)
+  expect_equal(wp$x, c(60, 100, 140))
+  expect_equal(wp$y, c(92, 92, 92))
+  expect_equal(wp$layer, c(2, 3, 4))
+})
+
+test_that("two equally shallow attempts are decided by the pool rank, not by a floating remainder", {
+  # c->y draws at 0.1026 against a cap of 0.10, so nothing meets the cap and
+  # the shallowest verified attempt is drawn. Its mirror image on the other
+  # side is the same depth to within the verification tolerance, and two
+  # attempts that close cannot be told apart by a floating remainder, so the
+  # pool rank decides and the picture does not move. Only the flag changes.
+  scene <- dense_arrival_scene()
+  e <- edge_index(scene, "c->y")
+
+  ctl <- route_scene(scene, opts = route_constants(r_default))
+  res <- route_scene(
+    scene,
+    opts = route_constants(r_default, sagitta_max = 0.1)
+  )
+
+  expect_false(ctl$meta$sagitta_capped[e])
+  expect_true(res$meta$sagitta_capped[e])
+
+  expect_identical(res$paths[[e]], ctl$paths[[e]])
+  expect_identical(res$waypoints[[e]], ctl$waypoints[[e]])
+  expect_equal(res$meta$mode[e], ctl$meta$mode[e])
+  expect_equal(res$meta$side[e], ctl$meta$side[e])
+  expect_equal(res$meta$sagitta_ratio[e], ctl$meta$sagitta_ratio[e])
+  expect_true(res$meta$clearance_ok[e])
+  # and the cap really was missed, so this is the fallback and not an
+  # attempt that met it
+  expect_gt(res$meta$sagitta_ratio[e], 0.1)
+})
+
+test_that("a cap the spanning tier cannot meet pushes the edge into the free-bow tier", {
+  # A slot is as shallow as its layer allows. Where the free bow can be
+  # drawn shallower than the shallowest slot, the cap takes the edge out of
+  # the spanning tier: the bow is rebuilt at the soft margin and flagged,
+  # which is the free-bow tier's own rule for a capped bow rather than a new
+  # one, and it is the trade a tightened `max_bow` makes.
+  chain <- chain_scene()
+  ac <- edge_index(chain, "a->c")
+
+  unset <- route_scene(chain, opts = route_constants(r_default))
+  expect_equal(unset$meta$mode[ac], "interior")
+  expect_equal(unset$meta$sagitta_ratio[ac], 0.15, tolerance = 1e-4)
+  expect_false(unset$meta$sagitta_capped[ac])
+
+  capped <- route_scene(
+    chain,
+    opts = route_constants(r_default, sagitta_max = 0.12)
+  )
+  expect_equal(capped$meta$mode[ac], "bow")
+  expect_equal(capped$meta$side[ac], 1)
+  expect_true(capped$meta$clearance_ok[ac])
+  expect_true(capped$meta$sagitta_capped[ac])
+  expect_equal(capped$meta$sagitta_ratio[ac], 0.12, tolerance = 1e-4)
+  expect_equal(capped$waypoints[[ac]]$y, 62.2, tolerance = 1e-4)
+
+  # the same shape on a three-node mediator, where the slot is shallower to
+  # begin with
+  med <- mediator_scene()
+  xy <- edge_index(med, "x->y")
+  expect_equal(
+    route_scene(med, opts = route_constants(r_default))$meta$mode[xy],
+    "interior"
+  )
+  med_capped <- route_scene(
+    med,
+    opts = route_constants(r_default, sagitta_max = 0.05)
+  )
+  expect_equal(med_capped$meta$mode[xy], "bow")
+  expect_true(med_capped$meta$sagitta_capped[xy])
+  expect_equal(med_capped$meta$sagitta_ratio[xy], 0.05022, tolerance = 1e-4)
+})
+
+test_that("only spline mode reads max_bow", {
+  # The cap is a statement about how deep a curve bows. Neither of the other
+  # modes draws one, so a cap set on them is inert.
+  scene <- four_layer_scene()
+  unset <- route_constants(r_default)
+  capped <- route_constants(r_default, sagitta_max = 0.05)
+
+  for (mode in c("straight", "orthogonal")) {
+    expect_identical(
+      route_scene(scene, mode = mode, opts = capped),
+      route_scene(scene, mode = mode, opts = unset),
+      info = mode
+    )
+  }
+
+  # the same cap does move the spline route on the same scene, so the two
+  # assertions above are not vacuous
+  expect_false(identical(
+    route_scene(scene, opts = capped),
+    route_scene(scene, opts = unset)
+  ))
+})
+
 # Performance -----------------------------------------------------------------------
 
 test_that("route_edges_mm() routes large_epi at a small device size at interactive speed", {
@@ -11496,6 +11760,36 @@ test_that("route_edges_mm() routes large_epi at a small device size at interacti
   # once did, so a median in the low 24s is a slower machine or a noisy run
   # rather than a regression: measure a suspect change against 22.5 ms.
   expect_lt(as.numeric(timing$median), 0.025)
+})
+
+test_that("route_edges_mm() routes large_epi under a set max_bow at interactive speed", {
+  skip_on_cran()
+  skip_on_ci()
+  # Opt-in pin; see test-layout-perf.R for the GGDAG_RUN_PERF_TESTS contract.
+  skip_if(
+    Sys.getenv("GGDAG_RUN_PERF_TESTS") == "",
+    "GGDAG_RUN_PERF_TESTS is not set"
+  )
+  skip_if_not_installed("bench")
+
+  # The same scene as the pin above, under the tightest cap the gallery is
+  # measured at. A set cap costs more than an unset one by construction:
+  # where the rank-1 candidate does not meet it, the route is no longer
+  # accepted on the spot and every remaining candidate and the free bow are
+  # built and verified instead.
+  scene <- canonical_scene("large_epi", c(100, 70))
+  opts <- route_opts_from(edge_route_options(max_bow = 0.08), r_default)
+
+  timing <- bench::mark(
+    route_scene(scene, mode = "spline", opts = opts),
+    iterations = 30,
+    filter_gc = FALSE
+  )
+  # The scene measures 46 to 48 ms on the development machine against 22 to
+  # 24 ms with the cap unset, so the gate is 60 ms: it is loose enough that
+  # a slower machine does not trip it and tight enough to catch a route
+  # that stopped short-circuiting out of the pool.
+  expect_lt(as.numeric(timing$median), 0.06)
 })
 
 test_that("route_edges_mm() routes very_big under orthogonal at the large panel at interactive speed", {
