@@ -1220,7 +1220,7 @@ greedy_post_correction <- function(
       v <- overlaps$edge_to[oi]
       w <- overlaps$node[oi]
 
-      # Recompute — earlier fixes may have changed positions
+      # Recompute, because earlier fixes may have changed positions
       result <- y_dist_to_edge(
         positions$x[[w]],
         positions$y[[w]],
@@ -1249,7 +1249,8 @@ greedy_post_correction <- function(
       v <- arc_overlaps$edge_to[oi]
       w <- arc_overlaps$node[oi]
 
-      # Recompute against the current arc — earlier fixes may have moved nodes
+      # Recompute against the current arc, because earlier fixes may have
+      # moved nodes
       pts <- sample_curved_edge(
         positions$x[[u]],
         positions$y[[u]],
@@ -1281,7 +1282,8 @@ greedy_post_correction <- function(
       v <- spanning_overlaps$edge_to[oi]
       w <- spanning_overlaps$node[oi]
 
-      # Recompute against the current arc — earlier fixes may have moved nodes
+      # Recompute against the current arc, because earlier fixes may have
+      # moved nodes
       pts <- sample_curved_edge(
         positions$x[[u]],
         positions$y[[u]],
@@ -1539,6 +1541,64 @@ prefer_spread_grid <- function(
 
 # Orchestrator -----------------------------------------------------------------
 
+#' Curvature that traces a curved edge the way its engine draws it
+#'
+#' `sample_curved_edge()` models a curve as a quadratic Bezier whose
+#' midpoint sits `tan(curvature * pi / 2)` half chords off the chord, on the
+#' right of travel for a positive curvature. Neither drawing engine bows
+#' that deep at the same nominal curvature, and they bow to opposite sides,
+#' so what the tracing helpers receive is the curvature that reproduces the
+#' drawn bow, not the curvature the edge geoms are handed.
+#'
+#' Sides. ggraph puts both control points of its arc on the same side of the
+#' chord as a positive rotation, which is the left of travel. `curveGrob()`,
+#' which ggarrow wraps, bows to the right, the side `sample_curved_edge()`
+#' calls positive, so only the ggraph depth is negated.
+#'
+#' Depths, as a fraction of the half chord `L / 2`:
+#'
+#' * ggraph. `ggraph:::create_arc()` builds a cubic Bezier whose control
+#'   points sit one half chord from each end, turned `strength * pi / 2`
+#'   off the chord, so each is `(L / 2) * sin(strength * pi / 2)` clear of
+#'   it. A cubic Bezier at `t = 0.5` is `(P0 + 3 P1 + 3 P2 + P3) / 8`, and
+#'   the two ends contribute nothing off the chord, so the midpoint bows
+#'   `(3 / 4) * sin(strength * pi / 2)` half chords. That is 0.340 at the
+#'   default strength of 0.3, not the 0.510 the tracer's own `tan` would
+#'   give.
+#' * ggarrow. `curveGrob(angle = 90)` lays its control points on a circle,
+#'   solving for an origin offset of `(curvature^2 - 1) / (2 * curvature)`
+#'   and sweeping `pi - 2 * atan(|offset|)`, which reduces to
+#'   `4 * atan(curvature)`. An arc that subtends `theta` has a sagitta of
+#'   `tan(theta / 4)` half chords, so the bow is `curvature` half chords
+#'   exactly: 0.3 at the default. The X-spline drawn through those control
+#'   points falls about 2 percent inside the circle, so tracing the circle
+#'   leaves a slim margin rather than cutting into the ink.
+#'
+#' ggarrow builds its curve at draw time in device space, so the depth it
+#' reaches in data units also carries the panel aspect. The figure above is
+#' the one drawn where a data unit is as wide as it is tall, which is the
+#' only aspect a layout solved in data units can plan for.
+#'
+#' @param arc_curvature Unsigned curvature the edge geoms draw arcs with,
+#'   as the `curvature` option supplies it.
+#' @param edge_engine Either `"ggraph"` or `"ggarrow"`.
+#' @return Scalar signed curvature for `sample_curved_edge()`.
+#' @noRd
+engine_trace_curvature <- function(arc_curvature, edge_engine) {
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+
+  # Drawn bow in half chords, signed the way `sample_curved_edge()` signs
+  # one: positive to the right of travel.
+  sagitta <- switch(
+    edge_engine,
+    ggraph = -0.75 * sin(arc_curvature * pi / 2),
+    ggarrow = arc_curvature
+  )
+
+  # Undo the tracer's own depth, `tan(curvature * pi / 2)`.
+  atan(sagitta) * 2 / pi
+}
+
 #' Compute overlap-free time-ordered layout
 #'
 #' Runs the full 4-stage algorithm: longest-path layer assignment, exact
@@ -1583,8 +1643,9 @@ prefer_spread_grid <- function(
 #'   and the chord checks apply unchanged.
 #' @param edge_engine The engine the DAG will be drawn with, read from the
 #'   `edge_engine` option once when the layout is computed. The engines bow
-#'   an arc to opposite sides of the chord, so the engine decides the side
-#'   every stage below traces.
+#'   an arc to opposite sides of the chord and to different depths, so the
+#'   engine decides both the side and the depth every stage below traces;
+#'   see `engine_trace_curvature()`.
 #' @param layer_gap Horizontal distance between layers (internal).
 #' @param node_gap Initial vertical spacing between same-layer nodes.
 #' @param min_spacing Minimum Y gap enforced between same-layer nodes.
@@ -1609,7 +1670,7 @@ compute_time_ordered_layout <- function(
   node_radius = 26 * node_scale,
   arc_curvature = ggdag_option("curvature"),
   edge_type = ggdag_option("edge_type", "link_arc"),
-  edge_engine = ggdag_option("edge_engine"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
   layer_gap = 180,
   node_gap = max(85, min_spacing + 13),
   min_spacing = 2 * node_radius + 20,
@@ -1626,18 +1687,12 @@ compute_time_ordered_layout <- function(
   # must clear the arc as drawn rather than the chord.
   spanning_arcs <- any(edge_type %in% c("arc", "diagonal"))
 
-  # The engines bow a positive arc to opposite sides: ggraph draws to the
-  # left of travel, ggarrow to the right, which is the convention
-  # `sample_curved_edge()` traces with. Resolve the traced side once, here,
-  # so every stage below clears the arc the reader will see and no helper
-  # carries a sign of its own.
-  trace_curvature <- if (identical(edge_engine, "ggraph")) {
-    -arc_curvature
-  } else {
-    arc_curvature
-  }
+  # The two engines agree on neither the side nor the depth of a bow, so the
+  # curvature every stage below traces with is resolved once, here, from the
+  # engine that will draw. No helper carries a side or a depth of its own.
+  trace_curvature <- engine_trace_curvature(arc_curvature, edge_engine)
 
-  # Filter out bidirected edges — only directed edges drive stages 2-4
+  # Filter out bidirected edges, because only directed edges drive stages 2-4
   directed <- split_edge_types(edges_df)$directed
 
   if (!is.null(fixed_layers)) {
@@ -1749,7 +1804,8 @@ compute_time_ordered_layout <- function(
             next
           }
           if (layer_assign[[exp_node]] == layer_assign[[out_node]]) {
-            # Check if outcome is pinned — if so, skip with message
+            # Check whether the outcome is pinned, and if so skip with a
+            # message
             if (out_node %in% pinned) {
               cli::cli_inform(
                 c(
@@ -1929,7 +1985,7 @@ compute_time_ordered_layout <- function(
         }
       }
     } else {
-      # Skip force simulation — evenly space nodes within each layer
+      # Skip force simulation and space nodes evenly within each layer
       all_nodes <- unlist(layer_nodes)
       x_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
       y_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
@@ -1946,7 +2002,7 @@ compute_time_ordered_layout <- function(
       positions <- list(x = x_pos, y = y_pos)
     }
   } else {
-    # No edges — just assign positions by layer
+    # With no edges, just assign positions by layer
     all_nodes <- unlist(layer_nodes)
     x_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
     y_pos <- stats::setNames(numeric(length(all_nodes)), all_nodes)
@@ -2174,7 +2230,7 @@ layer_axis_points <- function(
 #'
 #' @param positions List with `$x` and `$y` (named numeric vectors).
 #' @param layer_assign Named integer vector (node -> 0-based layer).
-#' @param direction `"x"` or `"y"` — swap axes if `"y"`.
+#' @param direction `"x"` or `"y"`; `"y"` swaps the axes.
 #' @param fixed_time Named vector of user pins; its presence switches the
 #'   layer-to-x mapping to preserve the pinned 1-based time points.
 #' @param time_points Optional numeric vector of axis positions, one per
@@ -2206,7 +2262,7 @@ normalize_positions <- function(
     numeric(1)
   )
 
-  # y: center the whole graph at y = 0, then divide by the layer gap — the
+  # y: center the whole graph at y = 0, then divide by the layer gap, the
   # same uniform scale that maps one internal layer to one x unit. A single
   # isotropic scale keeps the solved geometry intact in data space, so a
   # clearance or an arc bow measured internally means the same thing after
