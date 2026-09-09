@@ -2770,12 +2770,17 @@ check_min_segment_length <- function(value, call = rlang::caller_env()) {
 #' `makeContent()`. The tally is an environment `draw_layer()` attaches to
 #' every panel's gTree of a layer: each panel records what it could not place
 #' under its own grob name, and the panel that completes the tally signals
-#' the warning for the union. Because the environment belongs to the grobs,
-#' drawing those grobs again (`grid::grid.force()` after a `print()`, or a
-#' redraw on resize) finds the warning already signalled and stays quiet,
-#' while a fresh draw builds fresh grobs and a fresh tally. Nothing here
-#' depends on the text of the warning, so identical pictures drawn one after
-#' another each still warn.
+#' the warning for the union. A panel that records twice has begun another
+#' draw of the same grobs, so the tally starts over and the panels of that
+#' draw are counted once between them.
+#'
+#' What is spent is the warning, not the tally: a draw that placed every
+#' label leaves the environment able to warn, so the same grobs drawn again
+#' on a smaller device warn about the picture that draw made. Once a draw has
+#' warned, drawing those grobs again (`grid::grid.force()` after a `print()`,
+#' or a redraw on resize) stays quiet, while a fresh draw builds fresh grobs
+#' and a fresh tally. Nothing here depends on the text of the warning, so
+#' identical pictures drawn one after another each still warn.
 #'
 #' @param n_panels Number of panels the layer drew label trees for.
 #' @return An environment.
@@ -2799,6 +2804,12 @@ report_unresolved_labels <- function(x) {
   if (is.null(draw)) {
     return(invisible(NULL))
   }
+  # A panel reporting for the second time is the first panel of another draw
+  # of the same grobs, on another device or at another size, so what the
+  # earlier draw left behind is cleared rather than counted with it.
+  if (!is.null(draw$panels[[x$name]])) {
+    draw$panels <- list()
+  }
   draw$panels[[x$name]] <- list(
     unresolved = x$unresolved,
     dropped = x$dropped
@@ -2806,14 +2817,19 @@ report_unresolved_labels <- function(x) {
   if (draw$warned || length(draw$panels) < draw$n_panels) {
     return(invisible(NULL))
   }
-  draw$warned <- TRUE
   collect <- function(field) {
     as.character(unique(unlist(
       lapply(draw$panels, `[[`, field),
       use.names = FALSE
     )))
   }
-  warn_unresolved_labels(collect("unresolved"), collect("dropped"))
+  # Completing the tally is not warning: a draw that placed everything says
+  # nothing and leaves the next draw free to speak for its own picture.
+  draw$warned <- warn_unresolved_labels(
+    collect("unresolved"),
+    collect("dropped")
+  )
+  invisible(NULL)
 }
 
 #' Warn about the labels a draw could not place
@@ -2821,30 +2837,46 @@ report_unresolved_labels <- function(x) {
 #' @param unresolved Character vector of labels the engine could not place
 #'   clear of the drawing.
 #' @param dropped Character vector of those that were left out of the picture
-#'   for exceeding `max.overlaps`.
-#' @return `NULL`, invisibly.
+#'   for exceeding `max.overlaps`, which is a subset of `unresolved`.
+#' @return `TRUE` if a warning was signalled, `FALSE` otherwise, invisibly.
 #' @noRd
 warn_unresolved_labels <- function(unresolved, dropped) {
   if (length(unresolved) == 0 && length(dropped) == 0) {
-    return(invisible(NULL))
+    return(invisible(FALSE))
+  }
+  # A label the allowance kept is still sitting on the drawing, so the first
+  # line names every label the engine could not place and the second says
+  # which of them the allowance took out of the picture.
+  kept_any <- length(dropped) < length(unresolved)
+  hint <- if (kept_any) {
+    "Draw the plot on a larger device, shorten the labels or wrap them with {.arg wrap}, or leave {cli::qty(length(unresolved))}{?it/them} out with {.code max.overlaps = 0}."
+  } else {
+    "Draw the plot on a larger device, or shorten the labels or wrap them with {.arg wrap}, to make room for {cli::qty(length(unresolved))}{?it/them}."
   }
   if (length(dropped) > 0) {
+    detail <- if (kept_any) {
+      "{length(dropped)} of them {?was/were} left out for hitting more than {.arg max.overlaps} allows: {.val {dropped}}."
+    } else {
+      "{cli::qty(length(dropped))}{?It/They} {?was/were} left out for hitting more than {.arg max.overlaps} allows."
+    }
     warn(
       c(
-        "{length(dropped)} label{?s} could not be placed clear of the drawing and {?was/were} dropped: {.val {dropped}}.",
-        "i" = "Draw the plot on a larger device, or shorten the labels or wrap them with {.arg wrap}, to make room for {cli::qty(length(dropped))}{?it/them}."
+        "{length(unresolved)} label{?s} could not be placed clear of the drawing: {.val {unresolved}}.",
+        "x" = detail,
+        "i" = hint
       ),
       warning_class = "ggdag_label_unresolved_warning"
     )
-    return(invisible(NULL))
+    return(invisible(TRUE))
   }
   warn(
     c(
       "{length(unresolved)} label{?s} could not be placed clear of the drawing: {.val {unresolved}}.",
-      "i" = "Draw the plot on a larger device, shorten the labels or wrap them with {.arg wrap}, or leave {cli::qty(length(unresolved))}{?it/them} out with {.code max.overlaps = 0}."
+      "i" = hint
     ),
     warning_class = "ggdag_label_unresolved_warning"
   )
+  invisible(TRUE)
 }
 
 #' Compute and draw automatically placed labels
