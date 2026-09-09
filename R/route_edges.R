@@ -3433,10 +3433,12 @@ route_orthogonal_scene <- function(
 
   # one owner per centre row. A level chord is drawn on its target's line
   # and its head sits on the target's centre, so nothing else may arrive
-  # there: where two of them reach one node the chord from the farthest
-  # layer keeps the row and the others bend at their slots like ordinary
-  # arrivals, ties by the source's position. The chords that remain own
-  # their targets' lines, and no spanning candidate may take one
+  # there: where two of them reach one node one keeps the row and the
+  # others bend at their slots like ordinary arrivals. Two level chords
+  # reach one node from one layer, since a chord from a farther layer
+  # passes within R of the nearer source and a blocked run bends, so what
+  # decides between them is the source's position. The chords that remain
+  # own their targets' lines, and no spanning candidate may take one
   chords <- which(
     kind == "straight" &
       routable &
@@ -3661,6 +3663,7 @@ route_orthogonal_scene <- function(
       keys = keys,
       Sy = Sy[[e]],
       Ty = Ty[[e]],
+      owned = b[[e]] %in% level_owned,
       fr = fr,
       state = ch$state
     )
@@ -3755,8 +3758,11 @@ route_orthogonal_scene <- function(
       if (pos$narrow) {
         narrow[m] <- TRUE
         if (!pos$floored) {
-          arrives <- m[(is_first & span[m] == 1L) | !is_first]
-          arrival_narrow[arrives] <- TRUE
+          # an edge arrives through the gap beside its head: its first gap
+          # when it runs leftwards or stays within one gap, its last one
+          # otherwise
+          head_first <- info$reversed[m] | span[m] == 1L
+          arrival_narrow[m[is_first == head_first]] <- TRUE
         }
       }
     }
@@ -3781,11 +3787,18 @@ route_orthogonal_scene <- function(
     )
   )
 
-  # W ports: the level chords into a node, straight or running at the
-  # node's own line, own its centre row. Beside an owner the other arrivals
-  # take rows above and below it in the order of their slots, the leftmost
-  # slot nearest the centre, which is the crossing-free order. Without an
-  # owner the rows are centred on the node's centre line, the arrivals from
+  # W and E ports: a row belongs to the head end of an edge, so the W side
+  # of a node holds the heads of the edges that reach it from the left and
+  # its E side those of the edges that reach it from the right, and each
+  # side runs the rule over its own arrivals. The level chords into a node,
+  # straight or running at the node's own line, own the centre row of the
+  # side their head is on, and so does a departure through a side, which
+  # leaves from the node's centre: an edge drawn rightwards departs its
+  # source's E side and one drawn leftwards its source's W side. Beside an
+  # owner the other arrivals take rows above and below it in the order of
+  # their slots, the slot farthest from the target nearest the centre,
+  # which is the crossing-free order. Without an owner the rows are centred
+  # on the node's centre line, the arrivals from
   # above on the upper rows and those from below on the lower ones, each
   # group in that same order, so a lone arrival takes the centre and a pair
   # straddles it. A stack keeps its rows while they are at least
@@ -3808,54 +3821,76 @@ route_orthogonal_scene <- function(
   port_y <- numeric(n_edges)
   row_floor <- max(opts$sep_e / 2, opts$sep_min)
   via_last <- span >= 2
-  arrival_slot <- ifelse(via_last, slot_last, slot_first)
-  arrival_entry <- ifelse(via_last, y_ch, Sy)
+  rev_e <- info$reversed
+  head_y <- ifelse(rev_e, Sy, Ty)
+  arrival_slot <- ifelse(via_last & !rev_e, slot_last, slot_first)
+  arrival_entry <- ifelse(via_last, y_ch, ifelse(rev_e, Ty, Sy))
+  # the slots are read from the source's side of the arrival's own gap and
+  # the ties from the source's position, so a scene drawn leftwards takes
+  # the mirror image of the rows the same scene drawn rightwards takes
+  slot_order <- ifelse(rev_e, -1, 1) * arrival_slot
+  src_y <- ifelse(rev_e, Ty, Sy)
+  src_node <- ifelse(rev_e, b, a)
   arrival <- kind == "ew" &
     !is.na(arrival_slot) &
     shift == 0 &
     !arrival_narrow
-  owner <- (kind == "straight" & routable & horizontal & !vertical) |
-    (kind == "ew" & via_last & is.na(slot_last))
-  for (t in unique(b[arrival])) {
-    idx <- which(arrival & b == t)
-    idx <- idx[order(arrival_slot[idx], Sy[idx], a[idx], method = "radix")]
-    above <- idx[arrival_entry[idx] > Ty[idx]]
-    below <- idx[arrival_entry[idx] <= Ty[idx]]
-    ka <- length(above)
-    kb <- length(below)
-    h <- max(nodes$r[[t]] - opts$head_w / 2, 0)
-    if (any(owner & b == t)) {
-      mult_a <- seq_len(ka)
-      mult_b <- seq_len(kb)
-      s <- min(opts$sep_e, h / max(ka, kb))
-      if (s < row_floor) {
-        mult_a <- rep(1, ka)
-        mult_b <- rep(1, kb)
-        s <- min(opts$sep_e, h)
+  level_chord <- kind == "straight" & routable & horizontal & !vertical
+  own_line <- kind == "ew" &
+    via_last &
+    is.na(ifelse(rev_e, slot_first, slot_last))
+  owner_w <- level_chord | (kind == "ew" & rev_e) | (own_line & !rev_e)
+  owner_e <- level_chord | (kind == "ew" & !rev_e) | (own_line & rev_e)
+  for (east in c(FALSE, TRUE)) {
+    side_arrival <- arrival & rev_e == east
+    head_node <- if (east) a else b
+    owner <- if (east) owner_e else owner_w
+    for (t in unique(head_node[side_arrival])) {
+      idx <- which(side_arrival & head_node == t)
+      idx <- idx[order(
+        slot_order[idx],
+        src_y[idx],
+        src_node[idx],
+        method = "radix"
+      )]
+      above <- idx[arrival_entry[idx] > head_y[idx]]
+      below <- idx[arrival_entry[idx] <= head_y[idx]]
+      ka <- length(above)
+      kb <- length(below)
+      h <- max(nodes$r[[t]] - opts$head_w / 2, 0)
+      if (any(owner & head_node == t)) {
+        mult_a <- seq_len(ka)
+        mult_b <- seq_len(kb)
+        s <- min(opts$sep_e, h / max(ka, kb))
+        if (s < row_floor) {
+          mult_a <- rep(1, ka)
+          mult_b <- rep(1, kb)
+          s <- min(opts$sep_e, h)
+        }
+        if (s < row_floor) {
+          s <- 0
+        }
+        port_y[above] <- mult_a * s
+        port_y[below] <- -mult_b * s
+        next
       }
-      if (s < row_floor) {
-        s <- 0
+      n <- ka + kb
+      s <- if (n >= 2) min(opts$sep_e, 2 * h / (n - 1)) else 0
+      rows_a <- rev(seq_len(ka))
+      rows_b <- ka + seq_len(kb)
+      if (n >= 2 && s < row_floor) {
+        n <- (ka > 0) + (kb > 0)
+        s <- if (n == 2) min(opts$sep_e, 2 * h) else 0
+        if (s < row_floor) {
+          s <- 0
+        }
+        rows_a <- rep(1, ka)
+        rows_b <- rep(n, kb)
       }
-      port_y[above] <- mult_a * s
-      port_y[below] <- -mult_b * s
-      next
+      row_at <- function(j) ((n + 1) / 2 - j) * s
+      port_y[above] <- row_at(rows_a)
+      port_y[below] <- row_at(rows_b)
     }
-    n <- ka + kb
-    s <- if (n >= 2) min(opts$sep_e, 2 * h / (n - 1)) else 0
-    rows_a <- rev(seq_len(ka))
-    rows_b <- ka + seq_len(kb)
-    if (n >= 2 && s < row_floor) {
-      n <- (ka > 0) + (kb > 0)
-      s <- if (n == 2) min(opts$sep_e, 2 * h) else 0
-      if (s < row_floor) {
-        s <- 0
-      }
-      rows_a <- rep(1, ka)
-      rows_b <- rep(n, kb)
-    }
-    row_at <- function(j) ((n + 1) / 2 - j) * s
-    port_y[above] <- row_at(rows_a)
-    port_y[below] <- row_at(rows_b)
   }
 
   # polylines: port, bends, port; then corners and sampling. A path starts
@@ -3907,7 +3942,8 @@ route_orthogonal_scene <- function(
       stub,
       port_s[[e]],
       port_t[[e]],
-      port_y[[e]],
+      if (info$reversed[[e]]) port_y[[e]] else 0,
+      if (info$reversed[[e]]) 0 else port_y[[e]],
       tol
     )
     if (is.null(geom$bends)) {
@@ -3922,23 +3958,19 @@ route_orthogonal_scene <- function(
     # two proper corners, so it is the run on the row's line from the tail's
     # port on that line to the row's axis point, as a level chord is the run
     # on its target's line, and the slot it was assigned goes unused. The
-    # head end keeps its line, the row for a forward edge and the target's
-    # centre for a reversed one, and the tail's resect is the face resect
-    # of its port's offset from that line
+    # row is at the head's end of the frame, which is its right end when the
+    # edge runs rightwards and its left end when it runs leftwards, and the
+    # tail's resect is the face resect of its port's offset from that line
+    row_end <- if (info$reversed[[e]]) geom$port_s else geom$port_t
+    y_src <- if (info$reversed[[e]]) fr$E[[2]] else fr$S[[2]]
     if (
       kind[[e]] == "ew" &&
         span[[e]] == 1L &&
-        abs(fr$S[[2]] - geom$port_t[[2]]) <= rc_used + 1e-9
+        abs(y_src - row_end[[2]]) <= rc_used + 1e-9
     ) {
-      if (info$reversed[[e]]) {
-        y_run <- fr$S[[2]]
-        tail <- b[[e]]
-        tail_off <- fr$S[[2]] - fr$E[[2]]
-      } else {
-        y_run <- geom$port_t[[2]]
-        tail <- a[[e]]
-        tail_off <- geom$port_t[[2]] - fr$S[[2]]
-      }
+      y_run <- row_end[[2]]
+      tail <- if (info$reversed[[e]]) b[[e]] else a[[e]]
+      tail_off <- y_run - y_src
       path <- df_cols(
         x = c(fr$S[[1]], geom$port_t[[1]]),
         y = c(y_run, y_run)
@@ -4609,8 +4641,9 @@ channel_fixed <- function(kind, y, Sy, Ty) {
 #'
 #' `records` are the spanning edges placed so far, in placement order, each
 #' with its `kind`, `side`, `y`, extent `xr`, gaps `la` and `lb`, segment
-#' `keys`, endpoint ordinates `Sy` and `Ty`, frame `fr`, and the `state`
-#' `ortho_channel()` priced it with. The channels in `conflicts` move to
+#' `keys`, endpoint ordinates `Sy` and `Ty`, whether a level chord `owned`
+#' its target's centre row, frame `fr`, and the `state` `ortho_channel()`
+#' priced it with. The channels in `conflicts` move to
 #' `sep_e` beyond `y0` on the side `dir`, and every placed channel then
 #' within `sep_e` of a moved one over an overlapping extent moves `sep_e`
 #' beyond it in turn, the queue in placement order, until nothing is within
@@ -4621,7 +4654,10 @@ channel_fixed <- function(kind, y, Sy, Ty) {
 #' its own source's or target's line, the shape this pass exists to create,
 #' which is never taken from another edge. A moved channel must stay inside
 #' the panel margin, clear its crossed discs at the margin it was placed
-#' with, and keep its pieces free of coincidence, tested against the pieces
+#' with, and keep off the line of an owned target, which the lattice the
+#' cascade moves on can otherwise land on: that centre row has an owner
+#' already, as it has for the candidate `ortho_channel()` prices. It must
+#' keep its pieces free of coincidence too, tested against the pieces
 #' rebuilt from `pieces_base` (those of the span-1 edges) with every
 #' channel at its new line and the candidate's own `cand_pieces` committed.
 #'
@@ -4706,6 +4742,7 @@ slide_channels <- function(
     y <- lines$y[[k]]
     clear <- y >= st$y_min &&
       y <= st$y_max &&
+      !(isTRUE(records[[k]]$owned) && abs(y - records[[k]]$Ty) < 1e-6) &&
       all(
         abs(y - nodes$y[st$members]) >= R_node[st$members] + st$extra - 1e-9
       )
@@ -5205,11 +5242,13 @@ longest_path_ranks <- function(n, from, to) {
 #' for an offset port its axis point, the node's own coordinate along the
 #' port's axis carried onto the port's line. An S/N port offset `dx_s` or
 #' `dx_t` moves the stub beside the centre line, and the path ends where
-#' the stub crosses the centre's own y; a W port offset `dy_t` moves the
-#' arrival's last run onto a row beside the centre line, and the path ends
-#' where the row crosses the centre's own x. The run from the disc face to
-#' the axis point is hidden under the disc, and because the path ends on
-#' the run itself the arrow layer draws the head along it.
+#' the stub crosses the centre's own y; a W or E port offset `dy_s` or
+#' `dy_t` moves the run at that end onto a row beside the centre line, and
+#' the path ends where the row crosses the centre's own x. The row is at
+#' the head's end of the frame, so `dy_t` carries it for an edge drawn
+#' rightwards and `dy_s` for one drawn leftwards. The run from the disc
+#' face to the axis point is hidden under the disc, and because the path
+#' ends on the run itself the arrow layer draws the head along it.
 #'
 #' @return A list with `bends` (a matrix, or `NULL` when the edge has no
 #'   bend and stays straight), `port_s`, `port_t`, `side`, and each port's
@@ -5229,6 +5268,7 @@ ortho_bends <- function(
   stub,
   dx_s,
   dx_t,
+  dy_s,
   dy_t,
   tol
 ) {
@@ -5289,21 +5329,25 @@ ortho_bends <- function(
       dy <- shift
     }
   }
-  # a spanning edge whose run lies on the target's own line has no last
-  # vertical to move onto a row
+  # a spanning edge whose run lies on an endpoint's own line has no
+  # vertical there to move onto a row
   if (span >= 2 && is.na(x_last)) {
     dy_t <- 0
   }
+  if (span >= 2 && is.na(x_first)) {
+    dy_s <- 0
+  }
+  ys <- S[[2]] + dy_s
   yt <- E[[2]] + dy_t
   bends <- NULL
   if (span == 1) {
     if (!is.na(x_first)) {
-      bends <- rbind(c(x_first, S[[2]]), c(x_first, yt))
+      bends <- rbind(c(x_first, ys), c(x_first, yt))
     }
   } else {
     y <- y_ch + dy
     if (!is.na(x_first)) {
-      bends <- rbind(bends, c(x_first, S[[2]]), c(x_first, y))
+      bends <- rbind(bends, c(x_first, ys), c(x_first, y))
     }
     if (!is.na(x_last)) {
       bends <- rbind(bends, c(x_last, y), c(x_last, yt))
@@ -5315,10 +5359,10 @@ ortho_bends <- function(
   bends[, 1] <- bends[, 1] + dx
   list(
     bends = bends,
-    port_s = S,
+    port_s = c(S[[1]], ys),
     port_t = c(E[[1]], yt),
     side = if (span >= 2) side else NA_real_,
-    off_s = 0,
+    off_s = dy_s,
     off_t = dy_t
   )
 }
