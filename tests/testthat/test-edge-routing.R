@@ -2262,7 +2262,7 @@ test_that("orthogonal visuals: a level chord runs on its target's line", {
   )
 
   expect_doppelganger(
-    "orthogonal level chord leaves its source at the target's height",
+    "orthogonal level chord runs on its target's line",
     p
   )
 })
