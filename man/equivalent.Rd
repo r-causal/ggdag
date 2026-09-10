@@ -129,7 +129,13 @@ used is controlled by \code{label_geom}.}
 \item{label_geom}{A geom function to use for drawing labels when
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
 include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
-and \code{geom_dag_text_repel2}.}
+and \code{geom_dag_text_repel2}. To change a parameter that \code{geom_dag()} sets
+on the label layer itself, such as \code{size} or \code{col}, wrap the label geom
+and write your value after the dots:
+\code{label_geom = function(...) geom_dag_label_auto(..., size = 4.6)}. The
+value written last is the one the layer uses, so yours takes effect. The
+mirror shape, \code{function(...) geom_dag_label_auto(size = 4.6, ...)}, writes
+your value first and therefore loses to the value \code{geom_dag()} writes.}
 
 \item{label_wrap}{Width in characters to wrap the label text to. Only the
 automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and

@@ -3652,6 +3652,7 @@ geom_dag_label_auto <- function(
 ) {
   check_label_wrap(wrap, arg = "wrap", allow_na = TRUE)
   check_min_segment_length(min.segment.length)
+  dots <- keep_last_named(rlang::list2(...))
 
   layer <- ggplot2::layer(
     data = data,
@@ -3676,7 +3677,7 @@ geom_dag_label_auto <- function(
       segment.size = segment.size,
       max.overlaps = max.overlaps,
       wrap = wrap,
-      ...
+      !!!dots
     )
   )
 
@@ -3713,6 +3714,7 @@ geom_dag_text_auto <- function(
 ) {
   check_label_wrap(wrap, arg = "wrap", allow_na = TRUE)
   check_min_segment_length(min.segment.length)
+  dots <- keep_last_named(rlang::list2(...))
 
   layer <- ggplot2::layer(
     data = data,
@@ -3735,7 +3737,7 @@ geom_dag_text_auto <- function(
       segment.size = segment.size,
       max.overlaps = max.overlaps,
       wrap = wrap,
-      ...
+      !!!dots
     )
   )
 

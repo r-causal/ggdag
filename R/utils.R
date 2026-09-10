@@ -581,3 +581,22 @@ check_acyclic <- function(.dag, call = rlang::caller_env()) {
   }
   invisible(NULL)
 }
+
+# Keeps the last of each named element and drops the earlier ones.
+#
+# A geom wrapper of the shape `function(...) geom_dag_label_auto(..., size = 4)`
+# writes a parameter name that the code calling the wrapper may have written
+# already, and both values arrive in the constructor's `...`. The value written
+# last is the wrapper's own, which is the one the caller asked for, so that is
+# the one kept. Unnamed elements are left alone.
+#' @noRd
+keep_last_named <- function(dots) {
+  nms <- names(dots)
+  named <- nzchar(nms %||% character())
+
+  if (!any(named) || anyDuplicated(nms[named]) == 0) {
+    return(dots)
+  }
+
+  dots[!named | !duplicated(nms, fromLast = TRUE)]
+}

@@ -485,7 +485,7 @@ geom_dag_text_repel <- function(
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
-  dots <- rlang::list2(...)
+  dots <- keep_last_named(rlang::list2(...))
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
   stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
@@ -609,7 +609,7 @@ geom_dag_label_repel <- function(
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
-  dots <- rlang::list2(...)
+  dots <- keep_last_named(rlang::list2(...))
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
   stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
@@ -1867,7 +1867,13 @@ geom_dag_ggarrow_edges <- function(
 #' @param label_geom A geom function to use for drawing labels when
 #'   `use_labels = TRUE`. Default is `geom_dag_label_repel`. Other options
 #'   include `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
-#'   and `geom_dag_text_repel2`.
+#'   and `geom_dag_text_repel2`. To change a parameter that `geom_dag()` sets
+#'   on the label layer itself, such as `size` or `col`, wrap the label geom
+#'   and write your value after the dots:
+#'   `label_geom = function(...) geom_dag_label_auto(..., size = 4.6)`. The
+#'   value written last is the one the layer uses, so yours takes effect. The
+#'   mirror shape, `function(...) geom_dag_label_auto(size = 4.6, ...)`, writes
+#'   your value first and therefore loses to the value `geom_dag()` writes.
 #' @param label_wrap Width in characters to wrap the label text to. Only the
 #'   automatic label geoms, [geom_dag_label_auto()] and
 #'   [geom_dag_text_auto()], wrap their text; the repel label geoms are not
