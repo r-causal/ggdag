@@ -5,6 +5,7 @@
 #' @inheritParams dag_params
 #' @param ... additional arguments to `adjustmentSets`
 #' @param shadow logical. Show paths blocked by adjustment?
+#' @inheritParams path_params
 #' @inheritParams geom_dag
 #' @inheritParams expand_plot
 #'
@@ -126,7 +127,8 @@ ggdag_adjustment_set <- function(
   node = deprecated(),
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
-  expand_y = expansion(c(0.2, 0.2))
+  expand_y = expansion(c(0.2, 0.2)),
+  collider_lines = TRUE
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
@@ -165,12 +167,8 @@ ggdag_adjustment_set <- function(
       p <- p +
         quick_plot_arrow_edges(
           mapping = edge_mapping,
-          data_directed = function(x) {
-            dplyr::filter(x, is.na(.data$blocked), .data$direction == "->")
-          },
-          data_bidirected = function(x) {
-            dplyr::filter(x, is.na(.data$blocked), .data$direction == "<->")
-          },
+          data_directed = filter_blocked_direction("->", blocked = FALSE),
+          data_bidirected = filter_blocked_direction("<->", blocked = FALSE),
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
@@ -181,12 +179,8 @@ ggdag_adjustment_set <- function(
         ) +
         quick_plot_arrow_edges(
           mapping = edge_mapping,
-          data_directed = function(x) {
-            dplyr::filter(x, !is.na(.data$blocked), .data$direction == "->")
-          },
-          data_bidirected = function(x) {
-            dplyr::filter(x, !is.na(.data$blocked), .data$direction == "<->")
-          },
+          data_directed = filter_blocked_direction("->", blocked = TRUE),
+          data_bidirected = filter_blocked_direction("<->", blocked = TRUE),
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
@@ -226,6 +220,10 @@ ggdag_adjustment_set <- function(
           na.value = "black"
         )
     }
+
+    if (collider_lines && has_activated_collider_paths(p$data)) {
+      p <- p + geom_dag_collider_edges()
+    }
   }
 
   p <- p +
@@ -256,6 +254,32 @@ ggdag_adjustment_set <- function(
     )
 
   p
+}
+
+# The rows one edge layer of the adjustment set plot draws: the edges of a
+# single direction, split by whether adjustment blocks them.
+# `filter_direction()` also sets aside the curves that adjusting for a collider
+# activates, which mark an association rather than an edge of the DAG and are
+# drawn by `geom_dag_collider_edges()` instead.
+filter_blocked_direction <- function(.direction, blocked) {
+  direction_filter <- filter_direction(.direction)
+
+  function(x) {
+    x <- if (blocked) {
+      dplyr::filter(x, !is.na(.data$blocked))
+    } else {
+      dplyr::filter(x, is.na(.data$blocked))
+    }
+
+    direction_filter(x)
+  }
+}
+
+# Do the edge rows include a path that adjusting for a collider has activated?
+# A DAG that has not been adjusted for anything carries no `collider_line`
+# column at all.
+has_activated_collider_paths <- function(.data) {
+  "collider_line" %in% names(.data) && any(.data$collider_line, na.rm = TRUE)
 }
 
 #' Assess if a variable confounds a relationship

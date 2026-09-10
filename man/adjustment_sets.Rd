@@ -38,7 +38,8 @@ ggdag_adjustment_set(
   node = deprecated(),
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
-  expand_y = expansion(c(0.2, 0.2))
+  expand_y = expansion(c(0.2, 0.2)),
+  collider_lines = TRUE
 )
 }
 \arguments{
@@ -134,6 +135,11 @@ replace this value on an axis whose nodes all share one coordinate: a
 multiplicative expansion of a zero-width range adds nothing, so such an
 axis takes an additive expansion of an eighth of the other axis's span on
 each side instead.}
+
+\item{collider_lines}{Logical. Should paths opened by conditioning on
+colliders be shown? These paths are drawn as dashed ggraph curves whatever
+\code{edge_engine} is in use: they mark an association rather than an edge of
+the DAG, so they stay visibly apart from the arrows the engine draws.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}
