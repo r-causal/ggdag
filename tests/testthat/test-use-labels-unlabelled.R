@@ -183,3 +183,10 @@ test_that("use_labels with an explicit label column still draws it", {
   labelled <- ggdag(labelled_dag(), use_labels = TRUE, label = name)
   expect_setequal(drawn_labels(labelled), c("x", "y", "z"))
 })
+
+# The picture the no-op makes: the same DAG the plot draws without
+# `use_labels`, nodes, edges, and node names, and no labels anywhere.
+test_that("visuals: use_labels on an unlabelled DAG draws no labels", {
+  p <- ggdag(unlabelled_dag(), use_labels = TRUE) + theme_dag()
+  expect_doppelganger("use-labels-unlabelled-no-op", p)
+})

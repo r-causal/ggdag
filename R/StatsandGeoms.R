@@ -1446,15 +1446,16 @@ plot_aware_layer <- function(layer, resolve) {
   )
 }
 
-# Whether an automatic label layer maps its labels to a `label` column the
-# data does not hold. `geom_dag(use_labels = TRUE)` maps `label` whether or
-# not the DAG carries labels, and a DAG without them has no `label` column at
-# all, so the automatic label layer treats that one mapping as "nothing to
-# place" rather than an error. Any other mapping is the user's own, and is
-# left to ggplot2 to evaluate, which is what names a column that does not
-# exist. The repel geoms are unaffected.
+# Whether a label layer maps its labels to a `label` column the data does not
+# hold. `geom_dag(use_labels = TRUE)` maps `label` whether or not the DAG
+# carries labels, and a DAG without them has no `label` column at all, so a
+# layer whose job is to place a DAG's labels treats that one mapping as
+# "nothing to place" rather than an error. Any other mapping is the user's
+# own, and is left to ggplot2 to evaluate, which is what names a column that
+# does not exist. The label fallback chain cannot stand in for this: it fires
+# only when nothing maps `label`, and `geom_dag()` writes the mapping itself.
 auto_label_column_missing <- function(layer, plot) {
-  if (!inherits(layer$stat, "StatNodesLabelAuto")) {
+  if (!inherits(layer$stat, c("StatNodesLabelAuto", "StatNodesRepel"))) {
     return(FALSE)
   }
 
