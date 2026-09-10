@@ -568,8 +568,10 @@ ggdag_paths_fan <- function(
         ) +
         ggplot2::scale_color_discrete(name = "open path", drop = FALSE)
     } else {
+      warn_if_ggarrow_only_ignored(pull_dag_data(path_dag))
+
       p <- p +
-        geom_dag_edges_fan(
+        without_edge_route_warning(geom_dag_edges_fan(
           with_edge_caps(
             ggplot2::aes(edge_colour = .data$set, edge_alpha = .data$path),
             edge_cap * size
@@ -580,7 +582,7 @@ ggdag_paths_fan <- function(
             length = grid::unit(arrow_length * size, "pt"),
             type = "closed"
           )
-        ) +
+        )) +
         ggplot2::scale_alpha_manual(
           drop = FALSE,
           values = c("open path" = 1),

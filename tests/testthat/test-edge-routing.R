@@ -2606,3 +2606,52 @@ test_that("the ggraph-named edge layers are otherwise unchanged under a routing"
   ggdag_options_set(edge_route = "spline")
   expect_identical(layer_shapes(), straight)
 })
+
+test_that("geom_dag_edges(): the ggarrow engine says the grid arrows are ignored", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow")
+
+  # the ggarrow layers take their ornaments from the `arrow_head` and
+  # `arrow_fins` options, so the formal defaults are nobody's request and a
+  # plain call has nothing to report
+  expect_no_warning(hand_built_edges())
+
+  expect_warning(
+    geom_dag_edges(arrow_bidirected = grid::arrow(ends = "both")),
+    class = "ggdag_edge_arrow_warning"
+  )
+
+  # the ggraph engine draws a grid arrow, so it takes the one it is given
+  ggdag_options_set(edge_engine = "ggraph")
+  expect_no_warning(
+    geom_dag_edges(arrow_directed = grid::arrow(length = grid::unit(2, "pt")))
+  )
+})
+
+test_that("geom_dag_edges() reports the ignored grid arrows once", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow")
+
+  # the layers themselves are asserted on above; the snapshot is of the report
+  expect_ggdag_warning({
+    layers <- geom_dag_edges(
+      arrow_directed = grid::arrow(length = grid::unit(2, "pt")),
+      arrow_bidirected = grid::arrow(
+        length = grid::unit(2, "pt"),
+        ends = "both"
+      )
+    )
+  })
+})
+
+test_that("geom_dag_edges() visuals: a hand-built plot routes around the node", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "orthogonal")
+
+  p <- hand_built_edges() + theme_dag()
+
+  expect_doppelganger("geom-dag-edges-hand-built-orthogonal", p)
+})

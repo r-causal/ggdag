@@ -359,12 +359,12 @@ ggdag_equivalent_class <- function(
           )
         ),
         list(
-          geom_dag_edges_link(
+          without_edge_route_warning(geom_dag_edges_link(
             with_edge_caps(NULL, edge_cap * size),
             data = reversable_lines,
             edge_width = edge_width * size,
             arrow = NULL
-          )
+          ))
         )
       )
 

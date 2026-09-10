@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='708.04' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
+<path d='M 659.16 297.44 L 651.99 294.83 L 653.64 296.79 L 382.68 296.80 L 382.68 298.08 L 653.64 298.08 L 651.99 300.05 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 337.32 297.44 L 330.15 294.83 L 331.80 296.79 L 60.84 296.80 L 60.84 298.08 L 331.80 298.08 L 330.15 300.05 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 38.80 257.77 L 38.85 256.79 L 38.98 255.93 L 39.20 255.18 L 39.51 254.53 L 39.88 253.98 L 40.34 253.52 L 40.89 253.15 L 41.54 252.84 L 42.29 252.62 L 43.15 252.49 L 44.13 252.44 L 675.87 252.44 L 676.85 252.49 L 677.71 252.62 L 678.46 252.84 L 679.11 253.15 L 679.66 253.52 L 680.12 253.98 L 680.49 254.53 L 680.80 255.18 L 681.02 255.93 L 681.15 256.79 L 681.20 257.77 L 681.20 269.09 L 681.19 269.24 L 679.23 267.59 L 681.84 274.76 L 684.45 267.59 L 682.48 269.24 L 682.48 269.09 L 682.48 257.74 L 682.43 256.66 L 682.27 255.64 L 682.00 254.72 L 681.61 253.89 L 681.10 253.16 L 680.48 252.54 L 679.75 252.03 L 678.92 251.64 L 677.99 251.37 L 676.98 251.21 L 675.90 251.16 L 44.10 251.16 L 43.02 251.21 L 42.01 251.37 L 41.08 251.64 L 40.25 252.03 L 39.52 252.54 L 38.90 253.16 L 38.39 253.89 L 38.00 254.72 L 37.73 255.64 L 37.57 256.66 L 37.52 257.74 L 37.52 274.76 L 38.80 274.76 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<circle cx='360.00' cy='297.44' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='38.16' cy='297.44' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='681.84' cy='297.44' r='17.43' style='stroke-width: 0.71; fill: #000000;' />
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='249.78px' lengthAdjust='spacingAndGlyphs'>geom-dag-edges-hand-built-orthogonal</text>
+</g>
+</svg>

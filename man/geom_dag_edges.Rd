@@ -9,6 +9,9 @@ geom_dag_edges(
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
   curvature = ggdag_option("curvature"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
   arrow_bidirected = grid::arrow(length = grid::unit(5, "pt"), ends = "both", type =
     "closed"),
@@ -39,6 +42,25 @@ while 0 will give a straight line. Negative number will change the
 direction of the curve. Only used if layout circular = FALSE. Defaults to
 the \code{curvature} option, which both edge engines read, though each engine
 draws that value with its own depth and to its own side.}
+
+\item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
+(default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
+\link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
+customization via the \code{arrow_head}, \code{arrow_fins}, and \code{arrow_mid} global
+options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}). The \code{curvature} option is read by
+both engines, but each engine draws that value with its own depth and to
+its own side.}
+
+\item{edge_route}{How the ggarrow engine draws directed edges, one of
+\code{"straight"} (the default), \code{"spline"}, or \code{"orthogonal"}. \code{"spline"}
+detours an edge whose path a node blocks around that node with a smooth
+curve; \code{"orthogonal"} draws every edge as axis-aligned runs with rounded
+corners. Both decide the geometry in the units of the device when the
+plot is drawn. The ggraph engine cannot route and warns when asked to.}
+
+\item{edge_route_options}{An object from \code{\link[=edge_route_options]{edge_route_options()}} carrying
+the constants the router draws with, or \code{NULL} (the default) for the
+router's own. It is read only when \code{edge_route} names a routing mode.}
 
 \item{arrow_directed, arrow_bidirected}{specification for arrow heads, as
 created by arrow()}
@@ -97,6 +119,18 @@ required.
 
 \code{geom_dag_edges} also uses \code{geom_dag_edges_arc}, which requires the
 \strong{circular} aesthetic, but this is automatically set.
+}
+
+\section{Edge engines}{
+
+\code{geom_dag_edges()} draws with the engine \code{edge_engine} names, so a plot you
+assemble yourself gets the same edges the packaged plots draw. Under the
+\code{"ggraph"} engine it builds \code{\link[=geom_dag_edges_link]{geom_dag_edges_link()}} and
+\code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}}. Under the \code{"ggarrow"} engine it builds the ggarrow
+edge layers instead, routed when \code{edge_route} names a routing mode, and
+takes its ornaments from the \code{arrow_head} and \code{arrow_fins} options rather
+than from \code{arrow_directed} and \code{arrow_bidirected}, which are
+\code{\link[grid:arrow]{grid::arrow()}} specifications no ggarrow layer can draw.
 }
 
 \examples{

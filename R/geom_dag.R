@@ -812,11 +812,14 @@ quick_plot_dag_edges <- function(
   mapping <- with_edge_caps(mapping, edge_cap * size)
   arrow_size <- grid::unit(arrow_length * size, "pt")
 
+  # every caller reports an ignored routing once for the whole plot, through
+  # `warn_if_ggarrow_only_ignored()`, so the layers do not report it again
   if (identical(edge_type, "link_arc")) {
-    return(geom_dag_edges(
+    return(without_edge_route_warning(geom_dag_edges(
       mapping,
       data_directed = data_directed,
       data_bidirected = data_bidirected,
+      edge_engine = "ggraph",
       edge_width = edge_width * size,
       arrow_directed = grid::arrow(length = arrow_size, type = "closed"),
       arrow_bidirected = grid::arrow(
@@ -826,10 +829,10 @@ quick_plot_dag_edges <- function(
       ),
       show.legend = show.legend,
       ...
-    ))
+    )))
   }
 
-  do.call(
+  without_edge_route_warning(do.call(
     edge_type_switch(edge_type),
     c(
       list(
@@ -842,7 +845,7 @@ quick_plot_dag_edges <- function(
       ),
       arc_curvature_args(edge_type)
     )
-  )
+  ))
 }
 
 # The ggraph arc layers a packaged plot builds bend by the amount `curvature`
@@ -977,6 +980,17 @@ expand_edge_aes <- function(mapping) {
 #' `geom_dag_edges` also uses `geom_dag_edges_arc`, which requires the
 #' **circular** aesthetic, but this is automatically set.
 #'
+#' @section Edge engines:
+#' `geom_dag_edges()` draws with the engine `edge_engine` names, so a plot you
+#' assemble yourself gets the same edges the packaged plots draw. Under the
+#' `"ggraph"` engine it builds [geom_dag_edges_link()] and
+#' [geom_dag_edges_arc()]. Under the `"ggarrow"` engine it builds the ggarrow
+#' edge layers instead, routed when `edge_route` names a routing mode, and
+#' takes its ornaments from the `arrow_head` and `arrow_fins` options rather
+#' than from `arrow_directed` and `arrow_bidirected`, which are
+#' [grid::arrow()] specifications no ggarrow layer can draw.
+#'
+#' @inheritParams geom_dag
 #' @export
 #'
 #' @examples
@@ -999,6 +1013,9 @@ geom_dag_edges <- function(
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
   curvature = ggdag_option("curvature"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
   arrow_bidirected = grid::arrow(
     length = grid::unit(5, "pt"),
@@ -1012,9 +1029,36 @@ geom_dag_edges <- function(
   fold = FALSE,
   ...
 ) {
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  check_edge_route_options(edge_route_options, call = rlang::current_env())
+
+  if (identical(edge_engine, "ggarrow")) {
+    # `arrow_directed` and `arrow_bidirected` are `grid::arrow()`
+    # specifications, and a ggarrow layer takes an ornament object instead, so
+    # there is nothing to translate a supplied one into. Say so rather than
+    # dropping it silently; the formal defaults are nobody's request.
+    if (!missing(arrow_directed) || !missing(arrow_bidirected)) {
+      warn_ignored_edge_arrows()
+    }
+
+    return(ggarrow_dag_edges(
+      mapping = mapping,
+      data_directed = data_directed,
+      data_bidirected = data_bidirected,
+      curvature = curvature,
+      edge_route = edge_route,
+      edge_route_options = edge_route_options,
+      show.legend = show.legend,
+      inherit.aes = inherit.aes,
+      ...
+    ))
+  }
+
   mapping <- expand_edge_aes(mapping)
 
-  list(
+  # Each of the two layers would report the ignored routing for itself, and a
+  # user who asked for one routing hears about it once.
+  layers <- without_edge_route_warning(list(
     geom_dag_edges_link(
       mapping,
       data = data_directed,
@@ -1037,6 +1081,52 @@ geom_dag_edges <- function(
       fold = fold,
       ...
     )
+  ))
+
+  if (!identical(edge_route, "straight")) {
+    warn_ignored_edge_route(edge_route)
+  }
+
+  layers
+}
+
+# The ggarrow edge layers `geom_dag_edges()` builds when `edge_engine` names
+# that engine: the same pair the packaged ggarrow plots draw, so a plot
+# assembled by hand out of `geom_dag_edges()` routes exactly as `geom_dag()`
+# does. The resection is left unset so that it is discovered from the node
+# layer, the way the ggraph caps are.
+ggarrow_dag_edges <- function(
+  mapping,
+  data_directed,
+  data_bidirected,
+  curvature,
+  edge_route,
+  edge_route_options,
+  show.legend,
+  inherit.aes,
+  ...
+) {
+  rlang::check_installed(
+    "ggarrow",
+    reason = "to use edge_engine = \"ggarrow\"."
+  )
+
+  quick_plot_arrow_edges(
+    mapping = mapping,
+    data_directed = data_directed,
+    data_bidirected = data_bidirected,
+    curvature = curvature,
+    edge_route = edge_route,
+    edge_route_options = edge_route_options,
+    arrow_head = ggdag_option("arrow_head", NULL) %||%
+      ggarrow::arrow_head_wings(),
+    arrow_fins = ggdag_option("arrow_fins", NULL),
+    resect = NULL,
+    linewidth = ggdag_option("edge_width", 0.6),
+    length = arrow_length_unit(ggdag_option("arrow_length", 5)),
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    ...
   )
 }
 
@@ -1142,6 +1232,7 @@ geom_dag_edges_link <- function(
   inherit.aes = TRUE,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   mapping <- expand_edge_aes(mapping)
 
   layer <- ggplot2::layer(
@@ -1185,6 +1276,7 @@ geom_dag_edges_arc <- function(
   label_push = NULL,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
@@ -1252,6 +1344,7 @@ geom_dag_edges_diagonal <- function(
   label_push = NULL,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
@@ -1318,6 +1411,7 @@ geom_dag_edges_fan <- function(
   label_push = NULL,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(from = .data$name, to = .data$to)
   } else if (is.null(mapping$from)) {
@@ -1533,13 +1627,13 @@ quick_plot_arrow_edges <- function(
   resect,
   linewidth,
   length,
+  curvature = ggdag_option("curvature"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   show.legend = NA,
   call = rlang::caller_env(),
   ...
 ) {
-  edge_route <- ggdag_option("edge_route", "straight")
-  edge_route_options <- ggdag_option("edge_route_options", NULL)
-
   directed <- if (identical(edge_route, "straight")) {
     geom_dag_arrow_arc(
       mapping = mapping,
@@ -1577,7 +1671,7 @@ quick_plot_arrow_edges <- function(
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_bidirected,
-      curvature = ggdag_option("curvature"),
+      curvature = curvature,
       unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
@@ -2004,14 +2098,18 @@ geom_dag <- function(
         edge_route_options = edge_route_options
       )
     } else {
+      # the layers report an ignored routing for themselves, for the sake of
+      # the plots a user assembles from them; here the whole plot reports it
+      # once, through the `ignored_edge_route` attribute below
       if (edge_type == "link_arc") {
-        edge_geom <- geom_dag_edges(
+        edge_geom <- without_edge_route_warning(geom_dag_edges(
           ggplot2::aes(
             start_cap = ggraph::circle(sizes[["cap"]], "mm"),
             end_cap = ggraph::circle(sizes[["cap"]], "mm")
           ),
           data_directed = compose_edge_data(data, filter_direction("->")),
           data_bidirected = compose_edge_data(data, filter_direction("<->")),
+          edge_engine = "ggraph",
           edge_width = sizes[["edge"]],
           arrow_directed = grid::arrow(
             length = grid::unit(sizes[["arrow"]], "pt"),
@@ -2023,10 +2121,10 @@ geom_dag <- function(
             type = "closed"
           ),
           show.legend = edge_show_legend
-        )
+        ))
       } else {
         edge_function <- edge_type_switch(edge_type)
-        edge_geom <- do.call(
+        edge_geom <- without_edge_route_warning(do.call(
           edge_function,
           c(
             list(
@@ -2044,7 +2142,7 @@ geom_dag <- function(
             ),
             arc_curvature_args(edge_type)
           )
-        )
+        ))
       }
     }
   } else {
@@ -2380,6 +2478,43 @@ warn_if_ggarrow_only_ignored <- function(dag_data) {
     warn_ignored_edge_route(edge_route)
   }
   invisible(NULL)
+}
+
+# The four layers named after a ggraph edge geom draw every edge along the path
+# of that geom, so none of them can route one. A plot built by hand out of them
+# has nowhere else to hear that, so each of them says it for itself. The
+# package's own ggraph plots report the routing once for the whole plot and
+# silence this with `without_edge_route_warning()`.
+warn_layer_ignored_edge_route <- function() {
+  edge_route <- ggdag_option("edge_route", "straight")
+  if (!identical(edge_route, "straight")) {
+    warn_ignored_edge_route(edge_route)
+  }
+  invisible(NULL)
+}
+
+# Build ggraph edge layers without letting each of them report the ignored
+# routing, for a caller that reports it once for the whole plot instead.
+without_edge_route_warning <- function(expr) {
+  withCallingHandlers(
+    expr,
+    ggdag_edge_route_warning = function(cnd) rlang::cnd_muffle(cnd)
+  )
+}
+
+# The ggarrow edge layers take an ornament object, from `arrow_head_wings()`
+# and its siblings, rather than a `grid::arrow()` specification, and no
+# faithful translation between the two exists. A specification the caller
+# wrote would otherwise be dropped without a word.
+warn_ignored_edge_arrows <- function() {
+  warn(
+    c(
+      "Arrow specifications from {.fun grid::arrow} are drawn by the ggraph edge engine only.",
+      "x" = "The {.val ggarrow} engine is drawing these edges, so {.arg arrow_directed} and {.arg arrow_bidirected} are ignored.",
+      "i" = "Set the ornaments with {.code ggdag_options_set(arrow_head = , arrow_fins = )}, or draw with {.code edge_engine = \"ggraph\"}."
+    ),
+    warning_class = "ggdag_edge_arrow_warning"
+  )
 }
 
 # The ggraph edge geoms draw each edge along the path of their own edge type

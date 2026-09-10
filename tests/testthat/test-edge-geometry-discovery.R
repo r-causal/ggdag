@@ -229,11 +229,16 @@ test_that("the routing spec carries the parameters the edges are routed with", {
   expect_equal(routed$route_layer_axis, rep("auto", nrow(routed)))
 
   # what the geom is given reaches the spec as it is, so the label engine
-  # routes with the numbers the edges were drawn with
-  p <- ggplot(base_dag(), aes_dag()) +
-    geom_dag_edges_arc(curvature = 0.4) +
-    geom_dag_routed_arrows(clearance = 4, edge_sep = 2, layer_axis = "y") +
-    geom_dag_point()
+  # routes with the numbers the edges were drawn with. The arc layer is a
+  # ggraph layer and says that it cannot route, which is what this plot asks
+  # the routed layer beside it for.
+  expect_warning(
+    p <- ggplot(base_dag(), aes_dag()) +
+      geom_dag_edges_arc(curvature = 0.4) +
+      geom_dag_routed_arrows(clearance = 4, edge_sep = 2, layer_axis = "y") +
+      geom_dag_point(),
+    class = "ggdag_edge_route_warning"
+  )
   geometry <- discover_edge_geometry(p)
   expect_contains(names(geometry), "route_layer_axis")
 

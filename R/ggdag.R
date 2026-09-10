@@ -157,6 +157,11 @@ ggdag_classic <- function(
     )
 
   if (use_edges) {
+    # a classic plot is drawn with ggraph whatever the engine option says, so
+    # it reports the ggarrow-only features it drops once for the whole plot
+    # and silences the report the layers make for themselves
+    warn_if_ggarrow_only_ignored(pull_dag_data(.tdy_dag))
+
     if (
       any(
         pull_dag_data(.tdy_dag)$direction == "<->" &
@@ -164,16 +169,19 @@ ggdag_classic <- function(
       )
     ) {
       p <- p +
-        geom_dag_edges(ggplot2::aes(
-          start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
-          end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
+        without_edge_route_warning(geom_dag_edges(
+          ggplot2::aes(
+            start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
+            end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
+          ),
+          edge_engine = "ggraph"
         ))
     } else {
       p <- p +
-        geom_dag_edges_link(ggplot2::aes(
+        without_edge_route_warning(geom_dag_edges_link(ggplot2::aes(
           start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
           end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
-        ))
+        )))
     }
   }
 
