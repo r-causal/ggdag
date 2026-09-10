@@ -1870,8 +1870,11 @@ test_that("the auto geoms name the argument they refuse", {
 # `geom_dag_text()` and `geom_dag_label()` draw node names when nothing else
 # maps `label`, an `add_default_label_mapping()` fallback injected when the
 # layer joins the plot. The automatic label geoms are the same kind of layer
-# and take the same fallback, so a plot that adds one without a mapping draws
-# the node names rather than nothing at all.
+# and take a fallback of their own, so a plot that adds one without a mapping
+# draws something rather than nothing at all. Theirs is a chain: a mapping the
+# user wrote, then the DAG's labels, then the node names. The node names are
+# reached only when the DAG carries no labels at all, since drawing a DAG's
+# labels is what these geoms are for.
 
 # The expression an automatic label layer maps `label` to, or NULL when it
 # maps none of its own.
@@ -1897,30 +1900,49 @@ sibling_label_expr <- function(layer) {
   rlang::quo_get_expr(plot$layers[[1]]$mapping$label)
 }
 
-test_that("geom_dag_label_auto() falls back to node names as geom_dag_label() does", {
-  plot <- ggplot(labelled_triangle(), aes_dag()) +
-    geom_dag_point() +
-    geom_dag_label_auto()
+test_that("the automatic label geoms fall back to a labelled DAG's labels", {
+  labels <- c("Exposure", "Mediator", "Outcome")
 
-  expect_identical(auto_label_mapping_expr(plot), quote(.data$name))
-  expect_identical(
-    auto_label_mapping_expr(plot),
-    sibling_label_expr(geom_dag_label())
-  )
-  expect_setequal(auto_drawn_labels(plot), c("x", "m", "y"))
+  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+    plot <- ggplot(labelled_triangle(), aes_dag()) +
+      geom_dag_point() +
+      label_geom()
+
+    expect_identical(auto_label_mapping_expr(plot), quote(.data$label))
+    expect_setequal(auto_drawn_labels(plot), labels)
+  }
 })
 
-test_that("geom_dag_text_auto() falls back to node names as geom_dag_text() does", {
-  plot <- ggplot(labelled_triangle(), aes_dag()) +
-    geom_dag_point() +
-    geom_dag_text_auto()
+test_that("the non-automatic label geoms still fall back to node names", {
+  expect_identical(sibling_label_expr(geom_dag_label()), quote(.data$name))
+  expect_identical(sibling_label_expr(geom_dag_text()), quote(.data$name))
+})
 
-  expect_identical(auto_label_mapping_expr(plot), quote(.data$name))
-  expect_identical(
-    auto_label_mapping_expr(plot),
-    sibling_label_expr(geom_dag_text())
-  )
-  expect_setequal(auto_drawn_labels(plot), c("x", "m", "y"))
+test_that("a label column of blanks falls back to node names", {
+  for (blank in list(NA_character_, "")) {
+    node_data <- pull_dag_data(tidy_dagitty(labelled_triangle()))
+    node_data$label <- blank
+
+    for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+      plot <- ggplot(node_data, aes_dag()) +
+        geom_dag_point() +
+        label_geom()
+
+      expect_identical(auto_label_mapping_expr(plot), quote(.data$name))
+      expect_setequal(auto_drawn_labels(plot), c("x", "m", "y"))
+    }
+  }
+})
+
+test_that("a partly labelled DAG falls back to the labels it carries", {
+  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+    plot <- ggplot(partially_labelled_dag(), aes_dag()) +
+      geom_dag_point() +
+      label_geom()
+
+    expect_identical(auto_label_mapping_expr(plot), quote(.data$label))
+    expect_setequal(auto_drawn_labels(plot), c("Exposure", "Outcome"))
+  }
 })
 
 test_that("a plot-level label mapping wins over the automatic default", {
@@ -1982,7 +2004,7 @@ test_that("geom_dag_text_auto() reports a missing x aesthetic", {
 
 # The reported shape of the defect: node data drawn as a plain data frame with
 # the DAG aesthetics mapped by hand, and an automatic label geom added with no
-# mapping of its own. The node names are the fallback there too.
+# mapping of its own. The fallback chain runs there too.
 test_that("the automatic label geoms draw on hand-mapped node data", {
   node_data <- pull_dag_data(tidy_dagitty(labelled_triangle()))
 
@@ -1994,8 +2016,11 @@ test_that("the automatic label geoms draw on hand-mapped node data", {
       geom_dag_point() +
       label_geom()
 
-    expect_identical(auto_label_mapping_expr(plot), quote(.data$name))
-    expect_setequal(auto_drawn_labels(plot), c("x", "m", "y"))
+    expect_identical(auto_label_mapping_expr(plot), quote(.data$label))
+    expect_setequal(
+      auto_drawn_labels(plot),
+      c("Exposure", "Mediator", "Outcome")
+    )
   }
 })
 
@@ -2017,4 +2042,31 @@ test_that("the automatic label geoms fall back to names on an unlabelled DAG", {
     expect_identical(auto_label_mapping_expr(plot), quote(.data$name))
     expect_setequal(auto_drawn_labels(plot), c("x", "m", "y"))
   }
+})
+
+# The pictures the fallback makes. A layer added with no mapping of its own
+# used to draw nothing at all, so both of these are new baselines rather than
+# changed ones.
+test_that("label-auto visuals: a labelled DAG's own labels by default", {
+  p <- ggplot(labelled_triangle(), aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges() +
+    geom_dag_label_auto() +
+    theme_dag()
+  expect_doppelganger("label-auto-default-labels", p)
+})
+
+test_that("label-auto visuals: node names when the DAG has no labels", {
+  unlabelled <- dagify(
+    y ~ m + x,
+    m ~ x,
+    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
+  )
+
+  p <- ggplot(unlabelled, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges() +
+    geom_dag_label_auto() +
+    theme_dag()
+  expect_doppelganger("label-auto-default-unlabelled-names", p)
 })

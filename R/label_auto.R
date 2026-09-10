@@ -2465,7 +2465,8 @@ StatNodesLabelAuto <- ggplot2::ggproto(
     "n_node_points",
     "edge_geometry"
   ),
-  compute_layer = function(data, params, layout) {
+  compute_layer = function(self, data, params, layout) {
+    check_label_stat_aes(data, self$required_aes, "The automatic label geoms")
     node_size <- params$node_size %||% ggdag_option("node_size", 16)
     n_edge_points <- params$n_edge_points %||% 20
     has_edges <- all(c("xend", "yend") %in% names(data))
@@ -3523,6 +3524,11 @@ densify_polyline <- function(px, py, spacing) {
 #' edge layers draw, including the arc of [geom_dag_edges_arc()] and the
 #' per-edge curvature drawn by the ggarrow engine (see [curve_edge()]).
 #'
+#' The text comes from the `label` aesthetic. When neither the layer nor the
+#' plot maps one, these geoms draw the labels the DAG carries, and fall back
+#' to the node names when it carries none. Mapping `label` yourself, on the
+#' layer or on the plot, overrides both.
+#'
 #' @section Placement rules:
 #' The placement works in the millimetres of the device, so the same plot
 #' places its labels the same way at every size that has the same room. A
@@ -3681,7 +3687,12 @@ geom_dag_label_auto <- function(
     )
   )
 
-  dag_layer(layer, discover = c("node_size", "edge_geometry"), debug = TRUE)
+  dag_layer(
+    layer,
+    discover = c("node_size", "edge_geometry"),
+    default_label = TRUE,
+    debug = TRUE
+  )
 }
 
 geom_dag_label_auto <- dag_node_aware(
@@ -3741,7 +3752,12 @@ geom_dag_text_auto <- function(
     )
   )
 
-  dag_layer(layer, discover = c("node_size", "edge_geometry"), debug = TRUE)
+  dag_layer(
+    layer,
+    discover = c("node_size", "edge_geometry"),
+    default_label = TRUE,
+    debug = TRUE
+  )
 }
 
 geom_dag_text_auto <- dag_node_aware(

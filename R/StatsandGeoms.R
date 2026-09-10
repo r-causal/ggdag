@@ -1157,9 +1157,33 @@ repel_node_points <- function(nodes, node_size, n_node_points) {
   )
 }
 
+# Both label stats override `compute_layer()` whole, and the check ggplot2
+# makes for a stat's required aesthetics lives in the method that is replaced.
+# A layer missing one of them would otherwise reach the placement code with no
+# column to read, and fail on a subscript or on a bare `label` that resolves
+# to the base function, so ask for the whole set here, before any of it is
+# used.
+check_label_stat_aes <- function(data, required, subject) {
+  missing_aes <- setdiff(required, names(data))
+  if (length(missing_aes) == 0) {
+    return(invisible(NULL))
+  }
+
+  abort(
+    c(
+      "{subject} need the DAG aesthetics on the plot.",
+      "x" = "The layer does not set {.field {missing_aes}}.",
+      "i" = "Build the plot with {.code ggplot(dag, aes_dag())}."
+    ),
+    error_class = "ggdag_missing_error",
+    call = NULL
+  )
+}
+
 StatNodesRepel <- ggplot2::ggproto(
   "StatNodesRepel",
   ggplot2::Stat,
+  required_aes = c("x", "y", "label"),
   optional_aes = c("xend", "yend"),
   extra_params = c(
     "na.rm",
@@ -1168,7 +1192,8 @@ StatNodesRepel <- ggplot2::ggproto(
     "n_node_points",
     "edge_geometry"
   ),
-  compute_layer = function(data, params, layout) {
+  compute_layer = function(self, data, params, layout) {
+    check_label_stat_aes(data, self$required_aes, "The repel label geoms")
     # Falls back to the point geom's default size when no node layer is present
     node_size <- params$node_size %||% 16
     n_edge_points <- params$n_edge_points %||% 50
@@ -1449,6 +1474,21 @@ auto_label_column_missing <- function(layer, plot) {
     return(FALSE)
   }
 
+  layer_data <- layer_source_data(layer, plot)
+  if (is.null(layer_data)) {
+    return(FALSE)
+  }
+
+  !"label" %in% names(layer_data)
+}
+
+# The data a layer's aesthetics are evaluated against: the layer's own where
+# it names data, and the plot's otherwise. A layer that names its own data is
+# asking for the columns of that data, so a question about a column is put to
+# it rather than to the plot. `NULL` where the answer cannot be settled before
+# the plot is built, which is the layer's data function failing on the plot's
+# data or either of them being something other than a data frame.
+layer_source_data <- function(layer, plot) {
   layer_data <- layer$data
   if (is.null(layer_data) || inherits(layer_data, "waiver")) {
     layer_data <- plot$data
@@ -1464,10 +1504,10 @@ auto_label_column_missing <- function(layer, plot) {
     layer_data <- pull_dag_data(layer_data)
   }
   if (!is.data.frame(layer_data)) {
-    return(FALSE)
+    return(NULL)
   }
 
-  !"label" %in% names(layer_data)
+  layer_data
 }
 
 #' @exportS3Method ggplot2::ggplot_add
@@ -1529,9 +1569,9 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
   plot
 }
 
-# Node names are drawn only when nothing else maps `label`. A plot-level
-# mapping is inherited like any other aesthetic, so the default cannot be
-# injected in the constructor, where the plot is not yet visible.
+# A default is drawn only when nothing else maps `label`. A plot-level mapping
+# is inherited like any other aesthetic, so the default cannot be injected in
+# the constructor, where the plot is not yet visible.
 add_default_label_mapping <- function(layer, plot) {
   if (!is.null(layer$mapping$label)) {
     return(layer)
@@ -1545,9 +1585,34 @@ add_default_label_mapping <- function(layer, plot) {
   if (is.null(layer$mapping)) {
     layer$mapping <- ggplot2::aes()
   }
-  layer$mapping$label <- ggplot2::aes(label = .data$name)$label
+  layer$mapping$label <- if (prefers_label_column(layer, plot)) {
+    ggplot2::aes(label = .data$label)$label
+  } else {
+    ggplot2::aes(label = .data$name)$label
+  }
 
   layer
+}
+
+# Whether a layer with no `label` mapping of its own falls back to the `label`
+# column rather than to the node names. The geoms whose job is to place a
+# DAG's labels, automatic and repelled, draw the labels the DAG carries;
+# `geom_dag_text()` and `geom_dag_label()` name their nodes and always draw
+# the name. A DAG with no labels leaves the label geoms the names to draw, and
+# so does a `label` column holding nothing but blanks and missing values,
+# which is a DAG whose labels say nothing.
+prefers_label_column <- function(layer, plot) {
+  if (!inherits(layer$stat, c("StatNodesLabelAuto", "StatNodesRepel"))) {
+    return(FALSE)
+  }
+
+  data <- layer_source_data(layer, plot)
+  if (is.null(data) || !"label" %in% names(data)) {
+    return(FALSE)
+  }
+
+  labels <- as.character(data[["label"]])
+  any(!is.na(labels) & nzchar(labels))
 }
 
 # The geometry the plot's DAG edge layers draw each edge with. Repulsion

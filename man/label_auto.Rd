@@ -153,6 +153,11 @@ added to: the node size comes from the plot's \code{\link[=geom_dag_point]{geom_
 \code{\link[=geom_dag_node]{geom_dag_node()}} layer, and edges are traced along the paths the plot's
 edge layers draw, including the arc of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} and the
 per-edge curvature drawn by the ggarrow engine (see \code{\link[=curve_edge]{curve_edge()}}).
+
+The text comes from the \code{label} aesthetic. When neither the layer nor the
+plot maps one, these geoms draw the labels the DAG carries, and fall back
+to the node names when it carries none. Mapping \code{label} yourself, on the
+layer or on the plot, overrides both.
 }
 \section{Placement rules}{
 
