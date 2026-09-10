@@ -431,3 +431,88 @@ test_that("the label_wrap option reaches a quick plot's auto label geom", {
 
   expect_equal(auto_label_params(plot)[["wrap"]], 8)
 })
+
+# Wrapping a label geom -------------------------------------------------------
+#
+# `geom_dag()` sets `size` and `col` on the label layer it assembles. A wrapper
+# of the shape `function(...) geom_geom(..., size = value)` writes those names a
+# second time, and the value the wrapper writes is the one the user asked for.
+
+# The single label layer of `plot`, whichever label geom drew it.
+dag_label_layer <- function(plot) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$stat, "StatNodesLabelAuto") ||
+      inherits(layer$stat, "StatNodesRepel")
+  }))
+  expect_length(index, 1)
+  plot$layers[[index]]
+}
+
+# A small labelled DAG for the wrapper tests.
+wrapper_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    labels = c(x = "Ex", y = "Why", z = "Zed")
+  )
+}
+
+test_that("a size in a geom_dag_label_auto() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_label_auto(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a size in a geom_dag_text_auto() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_text_auto(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a size in a geom_dag_label_repel() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_label_repel(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a size in a geom_dag_text_repel() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_text_repel(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a col in a label geom wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_label_auto(..., col = "navy")
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$colour, "navy")
+})
+
+test_that("a wrapper parameter geom_dag() does not set reaches the layer", {
+  wrapper <- function(...) geom_dag_label_auto(..., fill = "lightyellow")
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$fill, "lightyellow")
+})
