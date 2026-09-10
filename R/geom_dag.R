@@ -325,6 +325,11 @@ geom_dag_label <- function(
 #' for better handling of DAG data. All arguments available in ggrepel
 #' functions are supported.
 #'
+#' The text comes from the `label` aesthetic. When neither the layer nor the
+#' plot maps one, these geoms draw the labels the DAG carries, and fall back
+#' to the node names when it carries none. Mapping `label` yourself, on the
+#' layer or on the plot, overrides both.
+#'
 #' Labels are kept off nodes and edges by two mechanisms. The `point.size`
 #' aesthetic, computed from `node_size`, is converted by ggrepel at draw time
 #' and so describes the same circle at every device size. The invisible points
@@ -563,6 +568,7 @@ geom_dag_text_repel <- function(
     } else {
       character()
     },
+    default_label = TRUE,
     debug = uses_repel_stat
   )
 }
@@ -689,6 +695,7 @@ geom_dag_label_repel <- function(
     } else {
       character()
     },
+    default_label = TRUE,
     debug = uses_repel_stat
   )
 }
