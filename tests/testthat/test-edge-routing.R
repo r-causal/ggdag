@@ -2385,3 +2385,224 @@ test_that("spline visuals: a layout down the panel routes along its own axis", {
 
   expect_doppelganger("spline layout down the panel routes along y", p)
 })
+
+# geom_dag_edges() and the ggraph-named edge layers ------------------------------
+
+# The geom each layer of `plot` draws with, in drawing order. ggplot2 names a
+# layer after the function that built it, and the point of these tests is that
+# the function is allowed to change, so the names are dropped.
+layer_geom_classes <- function(plot) {
+  unname(vapply(
+    plot$layers,
+    function(layer) class(layer$geom)[[1]],
+    character(1)
+  ))
+}
+
+# A plot assembled by hand out of the plot data, the way the documented
+# example does: no `tidy_dagitty` method decides anything for it, so whatever
+# `geom_dag_edges()` reads for itself is all the edge rendering it gets.
+hand_built_edges <- function(dag = mediator_dag()) {
+  ggplot(
+    pull_dag_data(tidy_dagitty(dag)),
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+    geom_dag_edges() +
+    geom_dag_point()
+}
+
+# Every `ggdag_edge_route_warning` that `code` emits. The warnings are muffled
+# as they are collected, so a second one cannot escape as stray output and the
+# count is exact rather than first-match.
+routing_warnings <- function(code) {
+  collected <- list()
+  withCallingHandlers(
+    force(code),
+    warning = function(w) {
+      collected[[length(collected) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  purrr::keep(collected, \(w) inherits(w, "ggdag_edge_route_warning"))
+}
+
+# The four layers named after a ggraph edge geom, each of which draws every
+# edge along the path of that geom and so cannot route one.
+ggraph_named_edge_layers <- list(
+  geom_dag_edges_link = geom_dag_edges_link,
+  geom_dag_edges_arc = geom_dag_edges_arc,
+  geom_dag_edges_diagonal = geom_dag_edges_diagonal,
+  geom_dag_edges_fan = geom_dag_edges_fan
+)
+
+test_that("geom_dag_edges(): the ggraph engine builds the two ggraph edge layers", {
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggraph", edge_route = "straight")
+
+  p <- hand_built_edges()
+
+  expect_identical(
+    layer_geom_classes(p),
+    c("GeomDAGEdgePath", "GeomDAGEdgePath", "GeomDagPoint")
+  )
+  expect_identical(
+    unname(layer_stat_classes(p))[1:2],
+    c("StatEdgeLink", "StatEdgeArc")
+  )
+})
+
+test_that("geom_dag_edges(): the ggarrow engine builds the arrow edge layers", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "straight")
+
+  p <- hand_built_edges(latent_mediator_dag())
+
+  # the same two layers `quick_plot_arrow_edges()` builds: the directed edges
+  # go through the arc geom at zero curvature, which draws them straight but
+  # leaves room for a per-edge curvature to bend them, and the bidirected
+  # edges arc at the `curvature` option with a head at both ends
+  expect_identical(
+    layer_geom_classes(p),
+    c("GeomDAGArrowCurve", "GeomDAGArrowCurve", "GeomDagPoint")
+  )
+  expect_identical(
+    unname(layer_stat_classes(p))[1:2],
+    c("StatDAGArrowEdges", "StatDAGArrowEdges")
+  )
+
+  directed <- p$layers[[1]]
+  bidirected <- p$layers[[2]]
+  expect_identical(directed$geom_params$curvature, 0)
+  expect_identical(bidirected$geom_params$curvature, ggdag_option("curvature"))
+  expect_identical(bidirected$geom_params$unset, "curvature")
+  expect_null(directed$geom_params$arrow$fins)
+  expect_false(is.null(bidirected$geom_params$arrow$fins))
+})
+
+test_that("geom_dag_edges(): edge_route routes the directed layer and leaves the arc", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow")
+
+  for (route in c("spline", "orthogonal")) {
+    ggdag_options_set(edge_route = route)
+    p <- hand_built_edges(latent_mediator_dag())
+
+    expect_identical(
+      layer_geom_classes(p),
+      c("GeomDAGRoutedArrow", "GeomDAGArrowCurve", "GeomDagPoint")
+    )
+    expect_identical(p$layers[[1]]$geom_params$route, route)
+    expect_identical(
+      p$layers[[2]]$geom_params$curvature,
+      ggdag_option("curvature")
+    )
+  }
+})
+
+test_that("geom_dag_edges(): the routed layer of a hand-built plot draws the edges", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  p <- hand_built_edges()
+  routed <- routed_layer_index(p)
+  expect_length(routed, 1)
+
+  # the layer carries every plot row, so the router sees every node as an
+  # obstacle, and marks the three directed edges as the rows it draws
+  built <- ggplot2::layer_data(p, routed)
+  expect_identical(sum(built$draw & !is.na(built$xend)), 3L)
+})
+
+test_that("geom_dag_edges(): the ggraph engine warns once that routing is ignored", {
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggraph", edge_route = "spline")
+
+  # `geom_dag_edges()` builds two ggraph layers, and the user asked for one
+  # routing, so it is reported once
+  warned <- routing_warnings(hand_built_edges())
+  expect_length(warned, 1)
+  expect_match(conditionMessage(warned[[1]]), "ggarrow")
+})
+
+test_that("geom_dag_edges(): the ggarrow engine routes rather than warning", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+
+  expect_length(routing_warnings(hand_built_edges()), 0)
+})
+
+test_that("the ggraph-named edge layers warn that they cannot route", {
+  local_ggdag_option_state()
+
+  warning_counts <- function() {
+    vapply(
+      ggraph_named_edge_layers,
+      function(build_layer) length(routing_warnings(build_layer())),
+      integer(1)
+    )
+  }
+
+  all_once <- c(
+    geom_dag_edges_link = 1L,
+    geom_dag_edges_arc = 1L,
+    geom_dag_edges_diagonal = 1L,
+    geom_dag_edges_fan = 1L
+  )
+
+  for (route in c("spline", "orthogonal")) {
+    ggdag_options_set(edge_route = route)
+    expect_identical(warning_counts(), all_once)
+  }
+
+  # these four are ggraph geoms whatever the engine option says, so the
+  # engine does not excuse them from saying that the routing is dropped
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+  expect_identical(warning_counts(), all_once)
+
+  warned <- routing_warnings(geom_dag_edges_link())
+  expect_s3_class(warned[[1]], "ggdag_edge_route_warning")
+  expect_match(conditionMessage(warned[[1]]), "ggarrow")
+})
+
+test_that("the ggraph-named edge layers are silent when the route is straight", {
+  local_ggdag_option_state()
+  ggdag_options_set(edge_route = "straight")
+
+  for (build_layer in ggraph_named_edge_layers) {
+    expect_no_warning(build_layer())
+  }
+})
+
+test_that("the ggraph-named edge layers are otherwise unchanged under a routing", {
+  local_ggdag_option_state()
+
+  layer_shapes <- function() {
+    vapply(
+      ggraph_named_edge_layers,
+      function(build_layer) {
+        layer <- suppressWarnings(build_layer())
+        paste(class(layer$geom)[[1]], class(layer$stat)[[1]])
+      },
+      character(1)
+    )
+  }
+
+  ggdag_options_set(edge_route = "straight")
+  straight <- layer_shapes()
+  expect_identical(
+    unname(straight),
+    c(
+      "GeomDAGEdgePath StatEdgeLink",
+      "GeomDAGEdgePath StatEdgeArc",
+      "GeomDAGEdgePath StatEdgeDiagonal",
+      "GeomDAGEdgePath StatEdgeFan"
+    )
+  )
+
+  ggdag_options_set(edge_route = "spline")
+  expect_identical(layer_shapes(), straight)
+})
