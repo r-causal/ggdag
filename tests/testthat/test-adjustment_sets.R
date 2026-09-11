@@ -906,3 +906,10 @@ test_that("ggdag_adjustment_set() renders activated collider paths", {
     ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = TRUE)
   )
 })
+
+test_that("ggdag_adjustment_set() renders no collider paths where a set closes the backdoors", {
+  expect_doppelganger(
+    "ggdag_adjustment_set() without activated collider paths",
+    ggdag_adjustment_set(collider_adjusted_dag())
+  )
+})

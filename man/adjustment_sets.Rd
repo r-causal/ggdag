@@ -39,7 +39,7 @@ ggdag_adjustment_set(
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
   expand_y = expansion(c(0.2, 0.2)),
-  collider_lines = TRUE
+  collider_lines = NULL
 )
 }
 \arguments{
@@ -142,10 +142,14 @@ multiplicative expansion of a zero-width range adds nothing, so such an
 axis takes an additive expansion of an eighth of the other axis's span on
 each side instead.}
 
-\item{collider_lines}{Logical. Should paths opened by conditioning on
-colliders be shown? These paths are drawn as dashed ggraph curves whatever
-\code{edge_engine} is in use: they mark an association rather than an edge of
-the DAG, so they stay visibly apart from the arrows the engine draws.}
+\item{collider_lines}{Logical or \code{NULL}. Should the plot show the paths that
+adjusting for a collider activates? \code{NULL}, the default, shows them only
+when such paths exist and no adjustment set closes the backdoor paths,
+which is the case where they explain why. \code{TRUE} shows them whenever they
+exist, and \code{FALSE} never shows them. These paths are drawn as dashed
+ggraph curves whatever \code{edge_engine} is in use: they mark an association
+rather than an edge of the DAG, so they stay visibly apart from the arrows
+the engine draws.}
 }
 \value{
 a \code{tidy_dagitty} with an \code{adjusted} column and \code{set}

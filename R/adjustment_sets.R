@@ -5,6 +5,14 @@
 #' @inheritParams dag_params
 #' @param ... additional arguments to `adjustmentSets`
 #' @param shadow logical. Show paths blocked by adjustment?
+#' @param collider_lines Logical or `NULL`. Should the plot show the paths that
+#'   adjusting for a collider activates? `NULL`, the default, shows them only
+#'   when such paths exist and no adjustment set closes the backdoor paths,
+#'   which is the case where they explain why. `TRUE` shows them whenever they
+#'   exist, and `FALSE` never shows them. These paths are drawn as dashed
+#'   ggraph curves whatever `edge_engine` is in use: they mark an association
+#'   rather than an edge of the DAG, so they stay visibly apart from the arrows
+#'   the engine draws.
 #' @inheritParams path_params
 #' @inheritParams geom_dag
 #' @inheritParams expand_plot
@@ -65,7 +73,7 @@ dag_adjustment_sets <- function(
       ),
       warning_class = "ggdag_failed_to_close_backdoor_warning"
     )
-    sets <- "(No Way to Block Backdoor Paths)"
+    sets <- no_adjustment_set_label
   } else {
     sets <- extract_sets(sets)
   }
@@ -77,12 +85,21 @@ dag_adjustment_sets <- function(
         dplyr::mutate(
           pull_dag_data(.tdy_dag),
           adjusted = ifelse(.data$name %in% .x, "adjusted", "unadjusted"),
-          set = paste0("{", paste(.x, collapse = ", "), "}")
+          set = format_adjustment_set(.x)
         )
       }
     )
 
   .tdy_dag
+}
+
+# The `set` label `dag_adjustment_sets()` writes for a DAG whose backdoor paths
+# no adjustment set closes.
+no_adjustment_set_label <- "(No Way to Block Backdoor Paths)"
+
+# How the `set` column names one adjustment set: its variables inside braces.
+format_adjustment_set <- function(.x) {
+  paste0("{", paste(.x, collapse = ", "), "}")
 }
 
 extract_sets <- function(sets) {
@@ -128,9 +145,10 @@ ggdag_adjustment_set <- function(
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
   expand_y = expansion(c(0.2, 0.2)),
-  collider_lines = TRUE
+  collider_lines = NULL
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  check_collider_lines(collider_lines)
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
@@ -221,7 +239,7 @@ ggdag_adjustment_set <- function(
         )
     }
 
-    if (collider_lines && has_activated_collider_paths(p$data)) {
+    if (draws_collider_lines(collider_lines, p$data)) {
       p <- p + geom_dag_collider_edges()
     }
   }
@@ -280,6 +298,56 @@ filter_blocked_direction <- function(.direction, blocked) {
 # column at all.
 has_activated_collider_paths <- function(.data) {
   "collider_line" %in% names(.data) && any(.data$collider_line, na.rm = TRUE)
+}
+
+# Does no adjustment set close the backdoor paths? `dag_adjustment_sets()`
+# records that case as the single set `no_adjustment_set_label`, the same case
+# it warns about, so the `set` column names it and nothing else.
+has_no_adjustment_set <- function(.data) {
+  if (!"set" %in% names(.data)) {
+    return(FALSE)
+  }
+
+  identical(unique(.data$set), format_adjustment_set(no_adjustment_set_label))
+}
+
+# Should the plot draw the paths that adjusting for a collider activates?
+# `NULL` draws them only where they explain something the adjustment sets
+# cannot: a set that closes the backdoor paths leaves the activated paths
+# nothing to say, so drawing them is noise.
+draws_collider_lines <- function(collider_lines, .data) {
+  if (!has_activated_collider_paths(.data)) {
+    return(FALSE)
+  }
+
+  if (is.null(collider_lines)) {
+    return(has_no_adjustment_set(.data))
+  }
+
+  collider_lines
+}
+
+check_collider_lines <- function(collider_lines, call = rlang::caller_env()) {
+  if (is.null(collider_lines)) {
+    return(invisible(collider_lines))
+  }
+
+  if (
+    !is.logical(collider_lines) ||
+      length(collider_lines) != 1 ||
+      is.na(collider_lines)
+  ) {
+    abort(
+      c(
+        "{.arg collider_lines} must be {.code NULL}, {.val {TRUE}}, or {.val {FALSE}}.",
+        "x" = "You provided {.obj_type_friendly {collider_lines}}."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  invisible(collider_lines)
 }
 
 #' Assess if a variable confounds a relationship
