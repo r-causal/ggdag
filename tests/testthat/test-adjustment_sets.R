@@ -913,3 +913,85 @@ test_that("ggdag_adjustment_set() renders no collider paths where a set closes t
     ggdag_adjustment_set(collider_adjusted_dag())
   )
 })
+
+# The index of the single layer `plot` draws its activated collider paths with.
+collider_layer_index <- function(plot) {
+  which(purrr::map_lgl(plot$layers, \(layer) inherits(layer$geom, "GeomCurve")))
+}
+
+# The rows the activated collider path layer of `plot` is drawn from, after the
+# scales have resolved every aesthetic.
+built_collider_data <- function(plot) {
+  index <- collider_layer_index(plot)
+  expect_length(index, 1)
+  ggplot2::ggplot_build(plot)$data[[index]]
+}
+
+# The colours the `adjusted` scale of `plot` puts on its nodes.
+built_adjusted_colours <- function(plot) {
+  sort(unique(built_node_data(plot)$colour))
+}
+
+# The colour `geom_dag_collider_edges()` draws with where no `adjusted` colour
+# scale is in force, which is the neutral default the annotation keeps.
+neutral_collider_colour <- function(tidy_dag) {
+  plot <- ggplot2::ggplot(node_collider(tidy_dag), aes_dag()) +
+    geom_dag_collider_edges()
+
+  unique(built_collider_data(plot)$colour)
+}
+
+test_that("activated collider paths draw in their own neutral colour", {
+  td <- unclosable_collider_dag()
+  p <- adjustment_set_plot(td)
+
+  drawn <- built_collider_data(p)
+  expect_gt(nrow(drawn), 0)
+  expect_length(unique(drawn$colour), 1)
+  expect_false(unique(drawn$colour) %in% built_adjusted_colours(p))
+  expect_equal(unique(drawn$colour), neutral_collider_colour(td))
+})
+
+test_that("activated collider paths take no colour from the adjustment scale", {
+  td <- collider_adjusted_dag()
+  p <- ggdag_adjustment_set(td, collider_lines = TRUE)
+
+  drawn <- built_collider_data(p)
+  expect_gt(nrow(drawn), 0)
+  expect_length(unique(drawn$colour), 1)
+  expect_false(unique(drawn$colour) %in% built_adjusted_colours(p))
+  expect_equal(unique(drawn$colour), neutral_collider_colour(td))
+})
+
+test_that("activated collider paths look the same with and without an adjustment set", {
+  no_set <- built_collider_data(adjustment_set_plot(unclosable_collider_dag()))
+  with_set <- built_collider_data(
+    ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = TRUE)
+  )
+
+  expect_equal(unique(no_set$colour), unique(with_set$colour))
+})
+
+test_that("a caller colour overrides the activated collider path colour", {
+  p <- ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = FALSE) +
+    geom_dag_collider_edges(colour = "purple")
+
+  expect_equal(unique(built_collider_data(p)$colour), "purple")
+})
+
+test_that("activated collider paths stay dashed and draw no arrowheads", {
+  p <- adjustment_set_plot(unclosable_collider_dag())
+
+  expect_equal(unique(built_collider_data(p)$linetype), "dashed")
+
+  collider_layers <- layers_by_geom(p, "GeomCurve")
+  expect_length(collider_layers, 1)
+  expect_null(collider_layers[[1]]$geom_params$arrow)
+})
+
+test_that("ggdag_adjustment_set() renders collider paths with no way to block the backdoor paths", {
+  expect_doppelganger(
+    "collider paths with no way to block backdoor paths",
+    adjustment_set_plot(unclosable_collider_dag())
+  )
+})
