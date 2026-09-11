@@ -854,3 +854,226 @@ test_that("the row order of the DAG data does not move a box", {
   expect_identical(sort(hit_labels(forward)), sort(hit_labels(reordered)))
   expect_identical(sort(border_labels(forward)), sort(border_labels(reordered)))
 })
+
+# Arc obstacles against the arcs drawn ------------------------------------------
+
+# The automatic label engine avoids the edges by avoiding a model of them, so
+# the placement is only as good as the model. These blocks measure the two
+# against each other on the feedback loop from the book: two nodes on a circle
+# layout, an arc each way between them, and a label on each node. The arcs are
+# drawn by a ggarrow curve layer, which bends them on the page, so the model
+# has to agree with the ink in millimetres of the panel and at every device
+# size, not in the data units the edges are specified in.
+#
+# The obstacles are read from the engine's own arguments, captured by tracing
+# `place_dag_labels()` during the render as `perf_traced_render()` does. That
+# call is where the millimetre obstacles arrive however the layer works them
+# out, so what is measured is the model the engine placed against rather than
+# any one route to it. The ink is the realised path of the drawn arrow: the
+# shaft widened into a polygon, which reaches half a stroke width, about
+# 0.25 mm here, past the curve the shaft runs along.
+
+# The cycle is the figure's subject, so the warning the tidied DAG raises about
+# it is muffled by class rather than by silencing whatever else a scene says.
+without_cycle_warning <- function(expr) {
+  withCallingHandlers(
+    expr,
+    ggdag_cyclic_warning = function(cnd) rlang::cnd_muffle(cnd)
+  )
+}
+
+feedback_loop_plot <- function() {
+  dag <- without_cycle_warning(dagify(
+    ac_use ~ global_temp,
+    global_temp ~ ac_use,
+    labels = c(ac_use = "A/C use", global_temp = "Global\ntemperature")
+  ))
+  without_cycle_warning(ggdag(
+    dag,
+    layout = "circle",
+    edge_type = "arc",
+    use_text = FALSE,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  ))
+}
+
+# Draw the feedback loop at `size` inches and read back, in millimetres of the
+# panel, the obstacles the engine was given, the node centres it was given
+# them against, the ink the arrow grobs drew, and the boxes it placed.
+arc_scene <- function(size) {
+  withr::local_options(list(
+    ggdag.edge_engine = "ggarrow",
+    ggdag.edge_route = "orthogonal"
+  ))
+  plot <- feedback_loop_plot()
+
+  captured <- new.env(parent = emptyenv())
+  captured$store <- list()
+  # The tracer runs inside the engine's own frame, so it reaches the store
+  # through an option rather than an environment the caller could pass it.
+  withr::local_options(list(ggdag_curve_model_capture = captured))
+  suppressMessages(trace(
+    "place_dag_labels",
+    where = asNamespace("ggdag"),
+    tracer = quote({
+      store <- getOption("ggdag_curve_model_capture")
+      store$store[[length(store$store) + 1]] <- list(
+        nodes = nodes,
+        edges = edges
+      )
+    }),
+    print = FALSE
+  ))
+  withr::defer(
+    suppressMessages(untrace("place_dag_labels", where = asNamespace("ggdag")))
+  )
+
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(
+    file,
+    width = size[[1]],
+    height = size[[2]],
+    units = "in",
+    res = 150
+  )
+  withr::defer({
+    grDevices::dev.off()
+    unlink(file)
+  })
+
+  gtable <- ggplot2::ggplot_gtable(without_cycle_warning(
+    ggplot2::ggplot_build(plot)
+  ))
+  grid::grid.newpage()
+  grid::grid.draw(gtable)
+  grid::grid.force()
+
+  pattern <- "dag_labels_auto|curve_arrow"
+  paths <- grid::grid.grep(pattern, grep = TRUE, global = TRUE)
+  paths <- vapply(paths, as.character, character(1))
+  paths <- paths[grepl("^layout::panel", paths)]
+  viewport <- strsplit(paths[[1]], "::", fixed = TRUE)[[1]][[2]]
+  grid::seekViewport(viewport)
+  withr::defer(grid::upViewport(0))
+  panel_width <- grid::convertWidth(grid::unit(1, "npc"), "mm", TRUE)
+  panel_height <- grid::convertHeight(grid::unit(1, "npc"), "mm", TRUE)
+
+  ink <- lapply(paths[grepl("curve_arrow", paths)], grid::grid.get)
+  ink <- unlist(lapply(ink, drawn_arc_ink), recursive = FALSE)
+  tree <- grid::grid.get(paths[grepl("dag_labels_auto", paths)][[1]])
+
+  engine <- captured$store[[length(captured$store)]]
+  list(
+    nodes = engine$nodes,
+    obstacles = engine$edges,
+    ink = ink,
+    labels = forced_label_table(tree, panel_width, panel_height)
+  )
+}
+
+# The ink one forced arrow grob drew, one data frame of millimetres per
+# sub-path. The widened arrow is a path grob whose sub-paths are one arrow
+# each; a grob that carries no points, a legend key or an empty layer, draws
+# no ink.
+drawn_arc_ink <- function(grob) {
+  if (!grid::is.grob(grob) || is.null(grob$x) || length(grob$x) == 0) {
+    return(list())
+  }
+  ids <- if (!is.null(grob$pathId.lengths)) {
+    rep(seq_along(grob$pathId.lengths), grob$pathId.lengths)
+  } else {
+    rep(1L, length(grob$x))
+  }
+  points <- data.frame(
+    x = grid::convertX(grob$x, "mm", TRUE),
+    y = grid::convertY(grob$y, "mm", TRUE)
+  )
+  unname(split(points, factor(ids, levels = unique(ids))))
+}
+
+# How deep the points reach on either side of the line between the two nodes.
+# Both arcs run between the same pair, so that line is the chord of each of
+# them, and one arc bows to each side of it; a depth taken from the points'
+# own ends would be measured from a different chord for the trimmed obstacle
+# than for the resected ink.
+arc_depths <- function(points, nodes) {
+  x <- nodes$x[[1]]
+  y <- nodes$y[[1]]
+  xend <- nodes$x[[2]]
+  yend <- nodes$y[[2]]
+  offsets <- ((xend - x) * (points$y - y) - (points$x - x) * (yend - y)) /
+    sqrt((xend - x)^2 + (yend - y)^2)
+  c(above = max(offsets), below = min(offsets))
+}
+
+arc_scene_cache <- new.env(parent = emptyenv())
+
+cached_arc_scene <- function(size) {
+  key <- size_key(size)
+  if (is.null(arc_scene_cache[[key]])) {
+    arc_scene_cache[[key]] <- arc_scene(size)
+  }
+  arc_scene_cache[[key]]
+}
+
+arc_sizes <- list(c(4.5, 3.5), c(9, 3.5), c(6, 6))
+
+test_that("the arc obstacle the engine is given is as deep as the arc drawn", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  depths <- lapply(arc_sizes, function(size) {
+    scene <- cached_arc_scene(size)
+    ink <- do.call(rbind, scene$ink)
+    data.frame(
+      case = paste(size_key(size), c("above", "below")),
+      modelled = arc_depths(scene$obstacles, scene$nodes),
+      drawn = arc_depths(ink, scene$nodes)
+    )
+  })
+  depths <- do.call(rbind, depths)
+  modelled <- stats::setNames(depths$modelled, depths$case)
+  drawn <- stats::setNames(depths$drawn, depths$case)
+
+  # The drawn polygon reaches half a stroke width past the curve its shaft
+  # follows, which is 0.22 mm on these panels, so the two agree to a fraction
+  # of a millimetre rather than exactly. Five percent of the depth, and a
+  # millimetre outright, leave room for that and for the resampling either
+  # side is read at.
+  expect_equal(modelled, drawn, tolerance = 0.05)
+  expect_lt(max(abs(modelled - drawn)), 1)
+})
+
+test_that("no label box on the feedback loop holds drawn edge ink", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # At 4.5 x 3.5 in, the size the book draws this figure at, and at 6 x 6 in.
+  # The panel is wide enough at 9 x 3.5 in for a box to miss the arcs whatever
+  # the engine believes they look like, so that size says nothing here.
+  inside <- lapply(list(c(4.5, 3.5), c(6, 6)), function(size) {
+    scene <- cached_arc_scene(size)
+    ink <- do.call(
+      rbind,
+      lapply(scene$ink, densify_mm_polyline)
+    )
+    counts <- vapply(
+      seq_len(nrow(scene$labels)),
+      function(i) {
+        box <- scene$labels[i, ]
+        sum(
+          ink$x > box$xmin &
+            ink$x < box$xmax &
+            ink$y > box$ymin &
+            ink$y < box$ymax
+        )
+      },
+      numeric(1)
+    )
+    stats::setNames(counts, paste(size_key(size), scene$labels$label))
+  })
+  inside <- unlist(inside)
+
+  expect_equal(inside, stats::setNames(rep(0, length(inside)), names(inside)))
+})
