@@ -1545,7 +1545,7 @@ geom_dag_collider_edges <- function(
     ...
   )
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = stat,
@@ -1555,6 +1555,27 @@ geom_dag_collider_edges <- function(
     inherit.aes = inherit.aes,
     params = params
   )
+
+  drop_inherited_colour(layer)
+}
+
+# The colour of an activated collider path is an annotation about the path
+# itself, not a statement about the adjustment status of the nodes it joins. A
+# plot that maps `colour` to `adjusted`, as the quick plotters do, would
+# otherwise hand these curves whichever palette colour the row they were drawn
+# from carries, so an inherited colour is dropped and the geom's own neutral
+# default stands. A colour the caller maps or sets on the layer itself is
+# their own and is kept: the layer's mapping is consulted before the plot's,
+# and a colour passed as a parameter is applied after the mapped one either
+# way.
+drop_inherited_colour <- function(layer) {
+  own <- names(layer$mapping)
+
+  plot_aware_layer(layer, function(self, plot) {
+    inherited <- setdiff(c("colour", "color"), own)
+    mapping <- self$computed_mapping
+    self$computed_mapping <- mapping[setdiff(names(mapping), inherited)]
+  })
 }
 
 #' Define Aesthetics for Directed Acyclic Graphs (DAGs)
