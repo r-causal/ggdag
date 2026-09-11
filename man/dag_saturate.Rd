@@ -30,7 +30,13 @@ returned when called with arguments.}
 
 \item{seed}{a numeric seed for reproducible layout generation}
 
-\item{...}{optional arguments passed to \code{ggraph::create_layout()}}
+\item{...}{optional arguments for the layout. When \code{layout} names a layout
+ggdag computes itself, an argument named after one of that layout's own
+arguments is passed to it: \code{"time_ordered"} takes the arguments of
+\code{\link[=time_ordered_coords]{time_ordered_coords()}}, so, for instance,
+\verb{layout = "time_ordered", adjust_exposure_outcome = FALSE} leaves a
+contemporaneous exposure and outcome in the same time period. Every other
+argument is passed to \code{ggraph::create_layout()}.}
 
 \item{edges}{The edges to remove, in either of two forms. A named character
 vector where the name is the starting node and the value is the end node,

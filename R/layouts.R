@@ -316,6 +316,73 @@ layout_direction <- function(x) {
   }
 }
 
+# Layouts ggdag resolves itself ------------------------------------------------
+
+#' Is this layout one ggdag resolves itself?
+#'
+#' A built-in layout is named by a string, like a `ggraph` layout, but it is
+#' computed here rather than passed on, so its own arguments are ones ggdag
+#' has to route to it.
+#'
+#' @param layout A layout name, data frame, or function.
+#' @return `TRUE` for a built-in layout name.
+#' @noRd
+is_built_in_layout <- function(layout) {
+  is.character(layout) &&
+    length(layout) == 1 &&
+    layout %in% built_in_layout_names
+}
+
+built_in_layout_names <- "time_ordered"
+
+#' The function a built-in layout name stands for
+#'
+#' `layout = "time_ordered"` is shorthand for the layout function
+#' [time_ordered_coords()] returns, so the arguments the string takes are the
+#' ones that function takes.
+#'
+#' @param layout A built-in layout name.
+#' @return The function the name stands for.
+#' @noRd
+built_in_layout_fn <- function(layout) {
+  switch(layout, time_ordered = time_ordered_coords)
+}
+
+#' Build the layout a built-in name stands for
+#'
+#' @param layout A built-in layout name.
+#' @param layout_args A named list of arguments for it.
+#' @return A layout function, or a data frame of coordinates when the
+#'   arguments ask for one.
+#' @noRd
+resolve_built_in_layout <- function(layout, layout_args = list()) {
+  rlang::exec(built_in_layout_fn(layout), !!!layout_args)
+}
+
+#' Split `...` between a built-in layout and `ggraph::create_layout()`
+#'
+#' An argument named after one of the layout's own formals belongs to the
+#' layout; everything else keeps going to `ggraph::create_layout()`, as the
+#' documentation for `...` promises. Names match exactly, so an argument
+#' neither one takes reaches `ggraph::create_layout()` and errors there,
+#' rather than becoming a silent no-op.
+#'
+#' @param dots A list of the arguments in `...`.
+#' @param layout A layout name, data frame, or function.
+#' @return A list with the arguments for the `layout` and the `rest`.
+#' @noRd
+split_layout_args <- function(dots, layout) {
+  if (!is_built_in_layout(layout)) {
+    return(list(layout = list(), rest = dots))
+  }
+
+  layout_formals <- names(formals(built_in_layout_fn(layout)))
+  dot_names <- names(dots) %||% rep("", length(dots))
+  is_layout_arg <- nzchar(dot_names) & dot_names %in% layout_formals
+
+  list(layout = dots[is_layout_arg], rest = dots[!is_layout_arg])
+}
+
 #' The layer axis a routed layer takes from the layout
 #'
 #' The edge router infers the axis its layers run along from the node

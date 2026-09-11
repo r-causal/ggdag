@@ -350,9 +350,17 @@ layout_coordinates <- function(value, layout, dag = NULL) {
 #' @param nodes A character vector of every node in the DAG.
 #' @param dag The `dagitty` object the edges came from, for its exposure and
 #'   outcome, or `NULL` when there is none.
+#' @param layout_args A named list of arguments for a layout named by string,
+#'   which the caller split out of its own `...`.
 #' @return A list of `x` and `y` coordinates named by node.
 #' @noRd
-compute_layout_coords <- function(layout, edges_df, nodes, dag = NULL) {
+compute_layout_coords <- function(
+  layout,
+  edges_df,
+  nodes,
+  dag = NULL,
+  layout_args = list()
+) {
   exposure <- if (is.null(dag)) character(0) else dagitty::exposures(dag)
   outcome <- if (is.null(dag)) character(0) else dagitty::outcomes(dag)
 
@@ -364,22 +372,24 @@ compute_layout_coords <- function(layout, edges_df, nodes, dag = NULL) {
     edges2df() |>
     add_isolated_nodes(nodes)
 
-  if (is.function(layout)) {
-    coords <- if ("..." %in% names(formals(layout))) {
-      layout(input, exposure = exposure, outcome = outcome)
-    } else {
-      layout(input)
-    }
-    return(layout_coords_list(coords))
+  # a layout named by string is the function it stands for, built with the
+  # arguments the caller passed for it
+  if (is_built_in_layout(layout)) {
+    layout <- resolve_built_in_layout(layout, layout_args)
   }
 
-  input |>
-    compute_time_ordered_layout(
-      exposure = exposure,
-      outcome = outcome,
-      node_scale = ggdag_option("node_size") / 16
-    ) |>
-    layout_coords_list()
+  # manual time periods laid out without the engine are coordinates already
+  if (is.data.frame(layout)) {
+    return(layout_coords_list(layout))
+  }
+
+  coords <- if ("..." %in% names(formals(layout))) {
+    layout(input, exposure = exposure, outcome = outcome)
+  } else {
+    layout(input)
+  }
+
+  layout_coords_list(coords)
 }
 
 #' Check that edge directions are ones ggdag understands

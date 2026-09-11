@@ -8,7 +8,13 @@
 #'   also pass the result of `time_ordered_coords()` directly: either the
 #'   function returned when called with no arguments, or the coordinate tibble
 #'   returned when called with arguments.
-#' @param ... optional arguments passed to `ggraph::create_layout()`
+#' @param ... optional arguments for the layout. When `layout` names a layout
+#'   ggdag computes itself, an argument named after one of that layout's own
+#'   arguments is passed to it: `"time_ordered"` takes the arguments of
+#'   [time_ordered_coords()], so, for instance,
+#'   `layout = "time_ordered", adjust_exposure_outcome = FALSE` leaves a
+#'   contemporaneous exposure and outcome in the same time period. Every other
+#'   argument is passed to `ggraph::create_layout()`.
 #' @param use_existing_coords (Advanced). Logical. Use the coordinates produced
 #'   by `dagitty::coordinates(.dagitty)`? If the coordinates are empty,
 #'   `tidy_dagitty()` will generate a layout. Generally, setting this to `FALSE`
@@ -83,6 +89,10 @@ tidy_dagitty <- function(
   # they are and replaced whenever a layout computes new ones.
   recorded_direction <- layout_direction(.dagitty)
 
+  # A layout ggdag resolves itself takes its own arguments, so those are split
+  # out of `...` here; the rest go on to `ggraph::create_layout()`.
+  dots <- split_layout_args(rlang::list2(...), layout)
+
   # Track whether we just computed coords in this call — if so, always pass
 
   # them to generate_layout regardless of use_existing_coords.
@@ -116,7 +126,8 @@ tidy_dagitty <- function(
           "time_ordered",
           dag_edges,
           names(.dagitty),
-          dag = .dagitty
+          dag = .dagitty,
+          layout_args = dots$layout
         ),
         error = function(e) {
           # The package's own errors describe a DAG or an argument the user
@@ -157,14 +168,14 @@ tidy_dagitty <- function(
   }
 
   pass_coords <- computed_coords || isTRUE(use_existing_coords)
-  coords_df <- dag_edges |>
-    dplyr::select("name", "to") |>
-    generate_layout(
-      layout = layout,
-      vertices = names(.dagitty),
-      coords = if (pass_coords) dagitty::coordinates(.dagitty),
-      ...
-    )
+  coords_df <- rlang::exec(
+    generate_layout,
+    dplyr::select(dag_edges, "name", "to"),
+    layout = layout,
+    vertices = names(.dagitty),
+    coords = if (pass_coords) dagitty::coordinates(.dagitty),
+    !!!dots$rest
+  )
 
   tidy_dag <- dag_edges |>
     tidy_dag_edges_and_coords(coords_df)

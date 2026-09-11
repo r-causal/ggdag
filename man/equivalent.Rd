@@ -86,7 +86,13 @@ also pass the result of \code{time_ordered_coords()} directly: either the
 function returned when called with no arguments, or the coordinate tibble
 returned when called with arguments.}
 
-\item{...}{optional arguments passed to \code{ggraph::create_layout()}}
+\item{...}{optional arguments for the layout. When \code{layout} names a layout
+ggdag computes itself, an argument named after one of that layout's own
+arguments is passed to it: \code{"time_ordered"} takes the arguments of
+\code{\link[=time_ordered_coords]{time_ordered_coords()}}, so, for instance,
+\verb{layout = "time_ordered", adjust_exposure_outcome = FALSE} leaves a
+contemporaneous exposure and outcome in the same time period. Every other
+argument is passed to \code{ggraph::create_layout()}.}
 
 \item{.tdy_dag}{A \code{tidy_dagitty} or \code{dagitty} object}
 

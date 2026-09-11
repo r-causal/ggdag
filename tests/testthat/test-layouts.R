@@ -519,8 +519,12 @@ test_that("dag_saturate(): reused coordinates keep the axis they name", {
     "y"
   )
 
-  # a fresh layout replaces the coordinates, and the axis with them
-  expect_null(attr(pull_dag(dag_saturate(adjusted)), "layout_direction"))
+  # a fresh layout replaces the coordinates, and names the axis it ran its
+  # own layers along in place of the one they were laid out along before
+  expect_identical(
+    attr(pull_dag(dag_saturate(adjusted)), "layout_direction"),
+    "x"
+  )
 })
 
 test_that("the axis survives the verbs that rebuild the dagitty object", {

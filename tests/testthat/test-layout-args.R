@@ -14,13 +14,17 @@ collider_dag <- function() {
 
 # One coordinate row per node, in a stable order, from either a `tidy_dagitty`
 # or a plot built from one.
-node_coords <- function(x) {
-  .data <- if (inherits(x, "ggplot")) x$data else pull_dag_data(x)
+node_coords <- function(.x) {
+  dag_data <- if (inherits(.x, "ggplot")) .x$data else pull_dag_data(.x)
+  rows <- dplyr::arrange(dplyr::distinct(dag_data, name, x, y), name)
 
-  .data |>
-    dplyr::distinct(name, x, y) |>
-    dplyr::arrange(name) |>
-    dplyr::mutate(x = as.numeric(x), y = as.numeric(y))
+  # a fresh tibble, so that the layout attributes the data carries are not
+  # part of what these tests compare
+  tibble::tibble(
+    name = as.character(rows$name),
+    x = as.numeric(rows$x),
+    y = as.numeric(rows$y)
+  )
 }
 
 # The coordinate of one node along the time axis.
@@ -109,13 +113,13 @@ test_that("tidy_dagitty(): manual tiers reach the layout by name", {
   tiered <- tidy_dagitty(
     collider_dag(),
     layout = "time_ordered",
-    .vars = list("q", c("x", "y"))
+    .vars = list(c("x", "y"), "q")
   )
 
   coords <- node_coords(tiered)
-  expect_equal(time_of(coords, "q"), 1)
-  expect_equal(time_of(coords, "x"), 2)
-  expect_equal(time_of(coords, "y"), 2)
+  expect_equal(time_of(coords, "x"), 1)
+  expect_equal(time_of(coords, "y"), 1)
+  expect_equal(time_of(coords, "q"), 2)
 })
 
 # The quick plotters -------------------------------------------------------------
@@ -173,5 +177,18 @@ test_that("an argument no layout takes is still an error", {
       use_existing_coords = FALSE
     ),
     "unused argument"
+  )
+})
+
+# Visual ---------------------------------------------------------------------------
+
+test_that("a contemporaneous exposure and outcome share a layer", {
+  expect_doppelganger(
+    "time-ordered without the exposure-outcome shift",
+    ggdag(
+      collider_dag(),
+      layout = "time_ordered",
+      adjust_exposure_outcome = FALSE
+    )
   )
 })

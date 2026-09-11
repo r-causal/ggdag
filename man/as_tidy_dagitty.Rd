@@ -40,7 +40,13 @@ as_tidy_dagitty(x, ...)
 \item{x}{An object to convert into a \code{tidy_dagitty}. Currently supports
 \code{dagitty} and \code{data.frame} objects.}
 
-\item{...}{optional arguments passed to \code{ggraph::create_layout()}}
+\item{...}{optional arguments for the layout. When \code{layout} names a layout
+ggdag computes itself, an argument named after one of that layout's own
+arguments is passed to it: \code{"time_ordered"} takes the arguments of
+\code{\link[=time_ordered_coords]{time_ordered_coords()}}, so, for instance,
+\verb{layout = "time_ordered", adjust_exposure_outcome = FALSE} leaves a
+contemporaneous exposure and outcome in the same time period. Every other
+argument is passed to \code{ggraph::create_layout()}.}
 
 \item{seed}{a numeric seed for reproducible layout generation}
 
