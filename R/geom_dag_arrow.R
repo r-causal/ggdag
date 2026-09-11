@@ -8,8 +8,15 @@ the <- new.env(parent = emptyenv())
 StatDAGArrowEdges <- ggplot2::ggproto(
   "StatDAGArrowEdges",
   ggplot2::Stat,
-  compute_panel = function(data, scales) {
-    data[!is.na(data$xend), , drop = FALSE]
+  # `curvature` and `unset` say how the layer bends its edges, and the arc
+  # constructor passes them to the geom and to the stat alike. A layer that
+  # draws chords passes neither, and leaves the panel to the endpoints.
+  compute_panel = function(data, scales, curvature = NULL, unset = "chord") {
+    data <- data[!is.na(data$xend), , drop = FALSE]
+    if (is.null(curvature)) {
+      return(data)
+    }
+    reserve_curved_edge_room(data, scales, curvature, unset)
   },
   required_aes = c("x", "y", "xend", "yend"),
   optional_aes = "edge_curvature"
