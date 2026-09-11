@@ -768,6 +768,42 @@ filter_direction <- function(.direction) {
   }
 }
 
+# A plot that greys out the whole DAG and emphasises a subset of it draws both
+# from the same rows, and an edge geom draws the rows in the order it receives
+# them. Ink drawn later covers ink drawn earlier, so the greyed rows are sorted
+# to the front and the emphasis is the ink on top wherever the two share a
+# channel. `is_shadow()` says which rows are the greyed ones, and `panel` names
+# the column the plot facets by, so that the sort stays inside a panel and
+# leaves the panels in the order they arrived in. The sort is stable, so rows
+# that are alike keep the order the analysis left them in.
+shadow_rows_first <- function(.tdy_dag, is_shadow, panel = NULL) {
+  dag_data <- pull_dag_data(.tdy_dag)
+  shadow <- is_shadow(dag_data)
+  shadow[is.na(shadow)] <- FALSE
+
+  panels <- if (is.null(panel)) {
+    rep(1L, nrow(dag_data))
+  } else {
+    match(dag_data[[panel]], unique(dag_data[[panel]]))
+  }
+
+  update_dag_data(.tdy_dag) <- dag_data[order(panels, !shadow), , drop = FALSE]
+  .tdy_dag
+}
+
+# The fan draws its edges in the order of their groups, and every copy of an
+# edge is a group of its own, so the group is where a fan's drawing order is
+# set rather than the order of the rows. The greyed copies rank first and the
+# emphasised ones last; edges that are alike keep the order they arrived in,
+# which is the order the fan spreads them apart in, so ranking them changes
+# which of them is the ink on top and nothing else.
+shadow_first_rank <- function(shadow) {
+  shadow[is.na(shadow)] <- FALSE
+  rank <- integer(length(shadow))
+  rank[order(!shadow)] <- seq_along(shadow)
+  rank
+}
+
 # The cap an edge layer leaves at each of its ends, as an aesthetic on the
 # mapping the layer is built with, so that the automatic cap discovery in
 # `ggplot_add.dag_edge_layer()` leaves the size the caller asked for alone.

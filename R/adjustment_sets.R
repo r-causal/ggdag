@@ -158,7 +158,8 @@ ggdag_adjustment_set <- function(
         NA,
         "blocked by\nadjustment"
       )
-    )
+    ) |>
+    shadow_rows_first(\(x) !is.na(x$blocked), panel = "set")
 
   p <- ggplot2::ggplot(
     .tdy_dag,
@@ -182,19 +183,9 @@ ggdag_adjustment_set <- function(
       blocked_colour <- if (shadow) "grey80" else "#FFFFFF00"
       edge_mapping <- with_edge_curvature(NULL, p$data)
 
+      # the blocked edges are the context the open ones are read against, so
+      # they are added first and the open ones are drawn over them
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = edge_mapping,
-          data_directed = filter_blocked_direction("->", blocked = FALSE),
-          data_bidirected = filter_blocked_direction("<->", blocked = FALSE),
-          arrow_head = arrow_head,
-          arrow_fins = arrow_fins,
-          resect = resect,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          colour = "black",
-          show.legend = FALSE
-        ) +
         quick_plot_arrow_edges(
           mapping = edge_mapping,
           data_directed = filter_blocked_direction("->", blocked = TRUE),
@@ -205,6 +196,18 @@ ggdag_adjustment_set <- function(
           linewidth = edge_width * size,
           length = arrow_length_unit(arrow_length * size),
           colour = blocked_colour,
+          show.legend = FALSE
+        ) +
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
+          data_directed = filter_blocked_direction("->", blocked = FALSE),
+          data_bidirected = filter_blocked_direction("<->", blocked = FALSE),
+          arrow_head = arrow_head,
+          arrow_fins = arrow_fins,
+          resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
+          colour = "black",
           show.legend = FALSE
         )
     } else {

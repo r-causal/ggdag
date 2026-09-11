@@ -341,7 +341,8 @@ ggdag_paths <- function(
       adjust_for = adjust_for,
       limit = limit,
       directed = directed
-    )
+    ) |>
+    shadow_rows_first(\(x) is.na(x$path_type), panel = "set")
 
   p <- path_dag |>
     ggplot2::ggplot(aes_dag(color = .data$path_type)) +
@@ -573,7 +574,11 @@ ggdag_paths_fan <- function(
       p <- p +
         without_edge_route_warning(geom_dag_edges_fan(
           with_edge_caps(
-            ggplot2::aes(edge_colour = .data$set, edge_alpha = .data$path),
+            ggplot2::aes(
+              edge_colour = .data$set,
+              edge_alpha = .data$path,
+              group = shadow_first_rank(is.na(.data$path))
+            ),
             edge_cap * size
           ),
           spread = spread,
@@ -656,7 +661,12 @@ fan_edges <- function(spread, .direction) {
     x |>
       dplyr::group_by(.data$name, .data$to) |>
       dplyr::mutate(edge_curvature = fan_offsets(dplyr::n()) * spread) |>
-      dplyr::ungroup()
+      dplyr::ungroup() |>
+      # the arrow geom draws the rows in the order it receives them, so the
+      # faded copies come first and the paths are the ink on top. The offsets
+      # are worked out before the sort, so each copy keeps the place in the
+      # fan that the order of the paths gave it
+      dplyr::arrange(!is.na(.data$path))
   }
 }
 
