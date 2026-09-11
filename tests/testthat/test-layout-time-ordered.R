@@ -3439,9 +3439,10 @@ drawn_arc_offset <- function(engine, curvature = 0.3) {
 
 # The curvature `sample_curved_edge()` traces `engine`'s drawn arc with,
 # read off the drawing: the drawn bow, signed the way the tracer signs one,
-# put back through the tracer's own `tan(curvature * pi / 2)` depth.
+# put back through the tracer's own depth of
+# `2 * curve_spline_depth_ratio * curvature` half chords.
 drawn_trace_curvature <- function(engine, curvature = 0.3) {
-  atan(-drawn_arc_offset(engine, curvature)) * 2 / pi
+  -drawn_arc_offset(engine, curvature) / (2 * curve_spline_depth_ratio)
 }
 
 # What the drawn edge from `from` to `to` leaves every node of `dag`, in
@@ -3525,11 +3526,11 @@ test_that("the engines draw arcs on opposite sides of the chord", {
 })
 
 test_that("the engines draw arcs to the depths engine_trace_curvature() models", {
-  # Neither engine bows as deep as the tracer's own tan(curvature * pi / 2),
-  # and they do not bow to the same depth as each other: ggraph's cubic
-  # Bezier reaches (3 / 4) * sin(strength * pi / 2) half chords, while
+  # The two engines do not bow to the same depth as each other: ggraph's
+  # cubic Bezier reaches (3 / 4) * sin(strength * pi / 2) half chords, while
   # ggarrow's X-spline runs just inside the circle of sagitta `curvature`
-  # half chords that grid lays its control points on.
+  # half chords that grid lays its control points on, which is the depth the
+  # tracer models.
   expect_equal(
     drawn_arc_offset("ggraph"),
     0.75 * sin(0.3 * pi / 2),

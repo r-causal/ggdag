@@ -12,23 +12,6 @@ signed_offset <- function(px, py, x, y, xend, yend) {
   ((px - mx) * dy - (py - my) * dx) / len
 }
 
-# Place a control point at the given signed perpendicular offset from the edge
-# midpoint and recover the curvature that ctrl_point_to_curvature() assigns it.
-recovered_curvature <- function(offset, x, y, xend, yend) {
-  dx <- xend - x
-  dy <- yend - y
-  len <- sqrt(dx^2 + dy^2)
-  data <- data.frame(
-    x = x,
-    y = y,
-    xend = xend,
-    yend = yend,
-    edge_ctrl_x = (x + xend) / 2 + offset * dy / len,
-    edge_ctrl_y = (y + yend) / 2 - offset * dx / len
-  )
-  ctrl_point_to_curvature(data)
-}
-
 # dist_to_edge -----------------------------------------------------------------
 
 test_that("dist_to_edge: perpendicular distance beside the segment interior", {
@@ -129,52 +112,6 @@ test_that("sample_curved_edge: n controls the number of sampled points", {
   expect_equal(
     nrow(sample_curved_edge(0, 0, 1, 1, curvature = 0.3, n = 50)),
     50
-  )
-})
-
-# curvature_to_ctrl_offset -----------------------------------------------------
-
-test_that("curvature_to_ctrl_offset: zero curvature gives zero offset", {
-  expect_equal(curvature_to_ctrl_offset(0, 0, 0, 4, 0), 0)
-  expect_equal(curvature_to_ctrl_offset(0, 1, 2, 4, 6), 0)
-})
-
-test_that("curvature_to_ctrl_offset: exact round trip through ctrl_point_to_curvature", {
-  curvatures <- c(-0.9, -0.5, -0.1, 0.1, 0.3, 0.5, 0.9)
-  edges <- list(
-    c(0, 0, 1, 0), # short horizontal
-    c(0, 0, 5, 0), # long horizontal
-    c(0, 0, 0, 3), # vertical
-    c(1, 2, 4, 6) # diagonal, length 5
-  )
-
-  for (edge in edges) {
-    for (curvature in curvatures) {
-      offset <- curvature_to_ctrl_offset(
-        curvature,
-        edge[1],
-        edge[2],
-        edge[3],
-        edge[4]
-      )
-      expect_equal(
-        recovered_curvature(offset, edge[1], edge[2], edge[3], edge[4]),
-        curvature,
-        tolerance = 1e-8
-      )
-    }
-  }
-})
-
-test_that("curvature_to_ctrl_offset: matches the inverse of the atan formula", {
-  # ctrl_point_to_curvature() maps offset d to atan(2 * d / len) * 2 / pi, so
-  # the inverse is d = (len / 2) * tan(curvature * pi / 2)
-  len <- 5
-  curvature <- 0.6
-  expect_equal(
-    curvature_to_ctrl_offset(curvature, 0, 0, len, 0),
-    (len / 2) * tan(curvature * pi / 2),
-    tolerance = 1e-8
   )
 })
 

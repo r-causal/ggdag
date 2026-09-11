@@ -649,30 +649,24 @@ node_key <- function(x, y, panel) {
   paste(x, y, panel, sep = "\r")
 }
 
-# Positions along the curves a ggarrow curve layer draws, endpoints included.
-# Each row of `geometry` is one edge with its own curvature; a curvature of 0
-# is the straight chord.
-arrow_edge_points <- function(geometry, panel, n_edge_points) {
+# The two chord endpoints of each edge a scalar-curvature ggarrow curve layer
+# draws, tagged with the curvature it is drawn at. `grid::curveGrob()` bends
+# the arc in device units, so how far it bows from its chord is a property of
+# the drawn page rather than of the data; the label grob traces it in
+# millimetres at draw time from the curvature carried here. A curvature of 0,
+# and a layer that never set one, leaves the chord.
+arrow_chord_points <- function(geometry, panel) {
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
-  do.call(
-    rbind,
-    lapply(seq_len(nrow(geometry)), function(i) {
-      curve <- sample_curved_edge(
-        geometry$x[i],
-        geometry$y[i],
-        geometry$xend[i],
-        geometry$yend[i],
-        curvature = geometry$curvature[i],
-        n = n_edge_points + 2
-      )
-      data.frame(
-        edge_id = paste(key[[i]], "arrow", i, sep = "\r"),
-        x = curve$x,
-        y = curve$y,
-        PANEL = panel,
-        stringsAsFactors = FALSE
-      )
-    })
+  curvature <- geometry$curvature
+  curvature[is.na(curvature)] <- 0
+  rows <- seq_len(nrow(geometry))
+  data.frame(
+    edge_id = rep(paste(key, "arrow", rows, sep = "\r"), each = 2),
+    x = as.vector(rbind(geometry$x, geometry$xend)),
+    y = as.vector(rbind(geometry$y, geometry$yend)),
+    PANEL = panel,
+    curvature = rep(curvature, each = 2),
+    stringsAsFactors = FALSE
   )
 }
 
@@ -784,11 +778,13 @@ sample_polyline <- function(x, y, n, keep_vertices = TRUE) {
 # Invisible points tracing each edge, used as obstacles in ggrepel's repulsion
 # and by the automatic label stat. The rows of `edge_geometry` are the edges
 # the plot's bent edge layers draw, one row each; an edge no such layer
-# claims is traced as a straight chord. `trace_arrows` also traces the curves of scalar-curvature
-# ggarrow curve layers, each at the curvature it is drawn with; without it
-# those edges are traced as chords, which is what ggrepel's repulsion has
-# always been given. A "curve" spec, from a layer that maps `edge_curvature`,
-# is drawn geometry like the ggraph types, so it is traced for every consumer.
+# claims is traced as a straight chord. `trace_arrows` also follows the edges
+# a ggarrow curve layer draws, which reach the automatic label stat as the two
+# ends of their chord and the curvature they are drawn at, because that arc is
+# bent in millimetres when the plot is drawn. Without it a scalar-curvature
+# layer's edges are traced as chords and a "curve" spec, from a layer that
+# maps `edge_curvature`, as the arc its `strength` models in data space, which
+# is what ggrepel's repulsion has always been given.
 repel_edge_points <- function(
   edges,
   n_edge_points,
@@ -807,8 +803,25 @@ repel_edge_points <- function(
   } else {
     edge_geometry$type
   }
-  is_arrow <- geometry_type == "ggarrow_curve"
   is_routed <- geometry_type == "routed"
+
+  # Which edges are bent on the page. `grid::curveGrob()` settles the bow of a
+  # ggarrow arc in device units, so every edge such a layer draws carries the
+  # curvature it is drawn at, whether the layer bends the whole of itself by
+  # one curvature or maps `edge_curvature` for each edge; the ggraph arcs are
+  # real data rows and carry none. Under `trace_arrows` both kinds reach the
+  # automatic label stat as the two ends of their chord and that curvature,
+  # for the label grob to trace in the millimetres the arc is bent in. The
+  # engine is what decides this, not whether the aesthetic was mapped: the
+  # same grob draws both, in the same units.
+  spec_curvature <- if (is.null(edge_geometry)) {
+    numeric()
+  } else {
+    spec_column(edge_geometry, "curvature", NA_real_)
+  }
+  is_device_curve <- geometry_type == "curve" & !is.na(spec_curvature)
+  is_arrow <- geometry_type == "ggarrow_curve" |
+    (trace_arrows & is_device_curve)
   arrow_geometry <- if (trace_arrows && any(is_arrow)) {
     edge_geometry[is_arrow, , drop = FALSE]
   } else {
@@ -903,10 +916,9 @@ repel_edge_points <- function(
     }
 
     if (!is.null(arrow_geometry) && any(keys %in% arrow_keys)) {
-      points[[length(points) + 1]] <- arrow_edge_points(
+      points[[length(points) + 1]] <- arrow_chord_points(
         arrow_geometry[arrow_keys %in% keys, , drop = FALSE],
-        panel,
-        n_edge_points
+        panel
       )
     }
 
@@ -1780,11 +1792,14 @@ edge_layer_geometry <- function(layer, plot_data) {
 
 # Which edges a ggarrow curve layer draws, with the curvature each one is
 # drawn at. A layer that maps the `edge_curvature` aesthetic gives each edge
-# its own drawn curvature, so it is per-edge geometry like the ggraph types:
-# it classifies as type "curve" with the curvature as each row's `strength`.
-# A scalar-curvature layer without the mapping stays type "ggarrow_curve",
-# traced only when arrows are asked for. The straight ggarrow segment geom
-# needs no spec: an edge no layer claims is traced as a straight chord anyway.
+# its own drawn curvature, so it classifies as type "curve" with the curvature
+# as each row's `strength`, which is the arc the consumers that work in data
+# space are given. A scalar-curvature layer without the mapping stays type
+# "ggarrow_curve", traced only when arrows are asked for. Either way the row
+# also carries the curvature in `curvature`, because `grid::curveGrob()` bends
+# both on the device: that is the column the automatic label engine traces the
+# drawn arc from at draw time. The straight ggarrow segment geom needs no
+# spec: an edge no layer claims is traced as a straight chord anyway.
 arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
   if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
     return(NULL)
@@ -1835,7 +1850,7 @@ arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
     from = as.character(column("name", NA_character_)),
     to = as.character(column("to", NA_character_)),
     direction = as.character(column("direction", NA_character_)),
-    curvature = if (per_edge) NA_real_ else curvature,
+    curvature = curvature,
     stringsAsFactors = FALSE
   )
 }

@@ -6,7 +6,11 @@
 #   row carries its own strength, and `drawn_edge_points()` traces each edge
 #   as the quadratic Bezier arc `sample_curved_edge()` models for that row's
 #   curvature. Unlike "ggarrow_curve", these edges are traced for every
-#   consumer of `repel_edge_points()`, not only when arrows are asked for.
+#   consumer of `repel_edge_points()`, not only when arrows are asked for. The
+#   row also carries the curvature grid bends it at, because the ggarrow curve
+#   geom draws it on the device: with `trace_arrows` the edge goes to the
+#   automatic label stat as its two chord ends and that curvature instead, to
+#   be traced in millimetres at draw time.
 # * "routed": a layer drawing with `GeomDAGRoutedArrow`, whose path is
 #   decided in millimetres when the plot is drawn. The spec is one wide row
 #   per drawn edge carrying how the edge is routed, `route_style`,
@@ -47,7 +51,7 @@ polyline_dist <- function(px, py, poly_x, poly_y) {
   apply(matrix(seg_dists, nrow = length(px)), 1, min)
 }
 
-# Distance from each point to the modeled quadratic Bezier arc, by dense
+# Distance from each point to the modelled quadratic Bezier arc, by dense
 # sampling; the sampling spacing bounds the error well below the tolerances
 # used here.
 arc_dist <- function(px, py, x, y, xend, yend, curvature) {
@@ -278,8 +282,9 @@ test_that("drawn_edge_points traces a curve row as its quadratic Bezier arc", {
   expect_equal(traced$y, expected$y)
   expect_length(unique(traced$edge_id), 1)
   expect_equal(unique(traced$PANEL), 1L)
-  # positive curvature bows below a left-to-right edge
-  expect_lt(min(traced$y), -0.3)
+  # positive curvature bows below a left-to-right edge, to the depth the
+  # drawn spline reaches: a shade under a quarter of the chord at 0.3
+  expect_lt(min(traced$y), -0.25)
 })
 
 test_that("drawn_edge_points excludes curve endpoints unless asked", {
@@ -307,8 +312,8 @@ test_that("drawn_edge_points reads the strength of each curve row", {
   expect_length(groups, 2)
 
   bows <- sort(vapply(groups, function(g) g$y[which.max(abs(g$y))], numeric(1)))
-  expect_lt(bows[[1]], -0.3)
-  expect_gt(bows[[2]], 0.3)
+  expect_lt(bows[[1]], -0.25)
+  expect_gt(bows[[2]], 0.25)
 
   below <- groups[[which(vapply(groups, function(g) min(g$y), numeric(1)) < 0)]]
   above <- groups[[which(vapply(groups, function(g) max(g$y), numeric(1)) > 0)]]
@@ -353,8 +358,52 @@ test_that("repel_edge_points traces curve specs for every consumer", {
   d_arc <- arc_dist(points$x, points$y, 0, 0, 2, 0, 0.3)
   d_chord <- point_segment_dist(points$x, points$y, 0, 0, 1, 1)
   expect_true(all(pmin(d_arc, d_chord) < 0.01))
-  expect_lt(min(points$y), -0.3)
+  expect_lt(min(points$y), -0.25)
   expect_true(any(d_chord < 1e-8))
+})
+
+test_that("a curve row drawn by ggarrow reaches the label stat as its chord", {
+  # the ggarrow curve geom bends the edge in device units, so with
+  # `trace_arrows` the row travels as the two ends of its chord and the
+  # curvature it is drawn at, for the label grob to trace in millimetres
+  edges <- data.frame(x = 0, y = 0, xend = 2, yend = 0, PANEL = 1L)
+  geometry <- curve_geometry(0, 0, 2, 0, strength = 0.3)
+  geometry$curvature <- 0.3
+
+  points <- repel_edge_points(
+    edges,
+    10,
+    geometry,
+    NULL,
+    include_endpoints = TRUE,
+    trace_arrows = TRUE
+  )
+
+  expect_equal(nrow(points), 2)
+  expect_equal(points$x, c(0, 2))
+  expect_equal(points$y, c(0, 0))
+  expect_equal(points$curvature, c(0.3, 0.3))
+})
+
+test_that("a curve row naming no drawn curvature keeps its data-space arc", {
+  # the discrimination is the drawing engine, not the mapping: a spec that
+  # names no device curvature has nothing to trace in millimetres, so it is
+  # followed as the arc its strength models however it is asked for
+  edges <- data.frame(x = 0, y = 0, xend = 2, yend = 0, PANEL = 1L)
+  geometry <- curve_geometry(0, 0, 2, 0, strength = 0.3)
+
+  points <- repel_edge_points(
+    edges,
+    10,
+    geometry,
+    NULL,
+    include_endpoints = TRUE,
+    trace_arrows = TRUE
+  )
+
+  expected <- sample_curved_edge(0, 0, 2, 0, curvature = 0.3, n = 12)
+  expect_equal(points$x, expected$x)
+  expect_equal(points$y, expected$y)
 })
 
 test_that("repel_edge_points traces a routed spec along its chord", {
@@ -418,7 +467,7 @@ test_that("StatNodesRepel receives arc obstacles from per-edge curvature", {
 
   # the curved x -> y edge feeds arc points that bow below its chord rather
   # than straight-chord points
-  expect_lt(min(obstacles$y), -0.3)
+  expect_lt(min(obstacles$y), -0.25)
   below <- obstacles[obstacles$y < 0, , drop = FALSE]
   if (nrow(below) > 0) {
     expect_lt(max(arc_dist(below$x, below$y, 0, 0, 2, 0, 0.3)), 0.05)
@@ -479,7 +528,7 @@ test_that("a plot-level edge_curvature mapping is discovered as type curve", {
   expected <- sample_curved_edge(0, 0, 2, 0, curvature = 0.4, n = 12)
   expect_equal(traced$x, expected$x)
   expect_equal(traced$y, expected$y)
-  expect_lt(min(traced$y), -0.4)
+  expect_lt(min(traced$y), -0.35)
 })
 
 test_that("a layer that ignores the plot mapping keeps its scalar curvature", {

@@ -1543,12 +1543,13 @@ prefer_spread_grid <- function(
 
 #' Curvature that traces a curved edge the way its engine draws it
 #'
-#' `sample_curved_edge()` models a curve as a quadratic Bezier whose
-#' midpoint sits `tan(curvature * pi / 2)` half chords off the chord, on the
-#' right of travel for a positive curvature. Neither drawing engine bows
-#' that deep at the same nominal curvature, and they bow to opposite sides,
-#' so what the tracing helpers receive is the curvature that reproduces the
-#' drawn bow, not the curvature the edge geoms are handed.
+#' `sample_curved_edge()` models a curve as a quadratic Bezier whose midpoint
+#' sits `2 * curve_spline_depth_ratio * curvature` half chords off the chord,
+#' on the right of travel for a positive curvature, which is how
+#' `grid::curveGrob()` draws one. The ggraph arcs are drawn by neither that
+#' spline nor to that depth, and they bow to the opposite side, so what the
+#' tracing helpers receive is the curvature that reproduces the drawn bow,
+#' not the curvature the edge geoms are handed.
 #'
 #' Sides. ggraph puts both control points of its arc on the same side of the
 #' chord as a positive rotation, which is the left of travel. `curveGrob()`,
@@ -1563,16 +1564,16 @@ prefer_spread_grid <- function(
 #'   it. A cubic Bezier at `t = 0.5` is `(P0 + 3 P1 + 3 P2 + P3) / 8`, and
 #'   the two ends contribute nothing off the chord, so the midpoint bows
 #'   `(3 / 4) * sin(strength * pi / 2)` half chords. That is 0.340 at the
-#'   default strength of 0.3, not the 0.510 the tracer's own `tan` would
-#'   give.
+#'   default strength of 0.3.
 #' * ggarrow. `curveGrob(angle = 90)` lays its control points on a circle,
 #'   solving for an origin offset of `(curvature^2 - 1) / (2 * curvature)`
 #'   and sweeping `pi - 2 * atan(|offset|)`, which reduces to
 #'   `4 * atan(curvature)`. An arc that subtends `theta` has a sagitta of
-#'   `tan(theta / 4)` half chords, so the bow is `curvature` half chords
-#'   exactly: 0.3 at the default. The X-spline drawn through those control
-#'   points falls about 2 percent inside the circle, so tracing the circle
-#'   leaves a slim margin rather than cutting into the ink.
+#'   `tan(theta / 4)` half chords, so the circle bows `curvature` half chords
+#'   exactly. The X-spline drawn through those control points falls about
+#'   two percent inside that circle, which is the depth
+#'   `sample_curved_edge()` models, so the two agree at the same nominal
+#'   curvature and the ggarrow conversion is the identity.
 #'
 #' ggarrow builds its curve at draw time in device space, so the depth it
 #' reaches in data units also carries the panel aspect. The figure above is
@@ -1592,11 +1593,12 @@ engine_trace_curvature <- function(arc_curvature, edge_engine) {
   sagitta <- switch(
     edge_engine,
     ggraph = -0.75 * sin(arc_curvature * pi / 2),
-    ggarrow = arc_curvature
+    ggarrow = 2 * curve_spline_depth_ratio * arc_curvature
   )
 
-  # Undo the tracer's own depth, `tan(curvature * pi / 2)`.
-  atan(sagitta) * 2 / pi
+  # Undo the tracer's own depth, `2 * curve_spline_depth_ratio * curvature`
+  # half chords.
+  sagitta / (2 * curve_spline_depth_ratio)
 }
 
 #' Compute overlap-free time-ordered layout
@@ -1630,7 +1632,7 @@ engine_trace_curvature <- function(arc_curvature, edge_engine) {
 #'   proportion. Explicit values for those arguments override the scaled
 #'   defaults.
 #' @param node_radius Node circle radius for overlap detection.
-#' @param arc_curvature Curvature the drawn bidirected arcs are modeled at,
+#' @param arc_curvature Curvature the drawn bidirected arcs are modelled at,
 #'   read from the `curvature` option once when the layout is computed so the
 #'   correction pass and the never-worse guard clear the arcs as the edge
 #'   geoms will draw them. The value is unsigned, as the `curvature` option

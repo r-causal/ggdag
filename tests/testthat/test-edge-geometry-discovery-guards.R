@@ -41,8 +41,8 @@ test_that("mirrored curve rows keep distinct edge ids through repel_edge_points"
   # each id carries one arc only, bowing to its own side of the chord
   min_y <- vapply(groups, function(g) min(g$y), numeric(1))
   max_y <- vapply(groups, function(g) max(g$y), numeric(1))
-  below <- groups[[which(min_y < -0.3)]]
-  above <- groups[[which(max_y > 0.3)]]
+  below <- groups[[which(min_y < -0.25)]]
+  above <- groups[[which(max_y > 0.25)]]
   expect_lte(max(below$y), 0)
   expect_gte(min(above$y), 0)
 })

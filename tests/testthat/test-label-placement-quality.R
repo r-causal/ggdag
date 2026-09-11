@@ -898,15 +898,57 @@ feedback_loop_plot <- function() {
   ))
 }
 
-# Draw the feedback loop at `size` inches and read back, in millimetres of the
-# panel, the obstacles the engine was given, the node centres it was given
-# them against, the ink the arrow grobs drew, and the boxes it placed.
-arc_scene <- function(size) {
+# The same two-node loop with the arcs asked for one edge at a time, through
+# `curve_edge()`, which maps `edge_curvature` and so draws the pair from a
+# per-edge curvature rather than from one the whole layer carries. The same
+# grob draws both, in the same units, so the model owes the ink the same
+# agreement either way.
+per_edge_feedback_plot <- function() {
+  dag <- without_cycle_warning(dagify(
+    ac_use ~ global_temp,
+    global_temp ~ ac_use,
+    labels = c(ac_use = "A/C use", global_temp = "Global\ntemperature")
+  ))
+  tidy <- without_cycle_warning(tidy_dagitty(dag, layout = "circle"))
+  tidy <- curve_edge(tidy, "ac_use", "global_temp", 0.3)
+  tidy <- curve_edge(tidy, "global_temp", "ac_use", 0.3)
+  without_cycle_warning(ggdag(
+    tidy,
+    use_text = FALSE,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  ))
+}
+
+# Three edges in one panel, two of them curved to opposite sides by
+# `curve_edge()` and one left straight, so that a single scene holds a bow
+# each way and an edge the trace must leave on its chord.
+mixed_curvature_plot <- function() {
+  dag <- dagify(
+    y ~ x + m,
+    m ~ x,
+    labels = c(x = "Exposure", m = "Mediator", y = "Outcome"),
+    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
+  )
+  tidy <- curve_edge(tidy_dagitty(dag), "x", "y", 0.4)
+  tidy <- curve_edge(tidy, "x", "m", -0.3)
+  ggdag(
+    tidy,
+    use_text = FALSE,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+}
+
+# Draw `build()` at `size` inches and read back, in millimetres of the panel,
+# the obstacles the engine was given, the node centres it was given them
+# against, the ink the arrow grobs drew, and the boxes it placed.
+curve_scene <- function(build, size, route = "orthogonal") {
   withr::local_options(list(
     ggdag.edge_engine = "ggarrow",
-    ggdag.edge_route = "orthogonal"
+    ggdag.edge_route = route
   ))
-  plot <- feedback_loop_plot()
+  plot <- build()
 
   captured <- new.env(parent = emptyenv())
   captured$store <- list()
@@ -1009,15 +1051,27 @@ arc_depths <- function(points, nodes) {
 
 arc_scene_cache <- new.env(parent = emptyenv())
 
-cached_arc_scene <- function(size) {
-  key <- size_key(size)
+cached_arc_scene <- function(size, name = "scalar", route = "orthogonal") {
+  key <- paste(name, size_key(size), route)
   if (is.null(arc_scene_cache[[key]])) {
-    arc_scene_cache[[key]] <- arc_scene(size)
+    arc_scene_cache[[key]] <- curve_scene(curve_plots[[name]], size, route)
   }
   arc_scene_cache[[key]]
 }
 
+curve_plots <- list(
+  scalar = feedback_loop_plot,
+  per_edge = per_edge_feedback_plot,
+  mixed = mixed_curvature_plot
+)
+
 arc_sizes <- list(c(4.5, 3.5), c(9, 3.5), c(6, 6))
+
+# A landscape, a portrait, and a square panel, plus the shape the book draws
+# the loop at. The bow is settled on the device, so a model that carries the
+# panel's shape into the depth it reports agrees at one of these and not the
+# others.
+per_edge_sizes <- list(c(4.5, 3.5), c(3.5, 4.5), c(6, 6), c(9, 3.5))
 
 test_that("the arc obstacle the engine is given is as deep as the arc drawn", {
   skip_if_not_installed("ggarrow")
@@ -1058,6 +1112,200 @@ test_that("no label box on the feedback loop holds drawn edge ink", {
       rbind,
       lapply(scene$ink, densify_mm_polyline)
     )
+    counts <- vapply(
+      seq_len(nrow(scene$labels)),
+      function(i) {
+        box <- scene$labels[i, ]
+        sum(
+          ink$x > box$xmin &
+            ink$x < box$xmax &
+            ink$y > box$ymin &
+            ink$y < box$ymax
+        )
+      },
+      numeric(1)
+    )
+    stats::setNames(counts, paste(size_key(size), scene$labels$label))
+  })
+  inside <- unlist(inside)
+
+  expect_equal(inside, stats::setNames(rep(0, length(inside)), names(inside)))
+})
+
+# Per-edge arc obstacles against the arcs drawn ---------------------------------
+
+# `curve_edge()` bends one edge at a time by mapping `edge_curvature`, and the
+# ggarrow curve geom draws that edge with the same `grid::curveGrob()` call,
+# in the same device units, as an edge bent by a curvature the whole layer
+# carries. The blocks above measure the model against the ink for the second
+# of those; these measure it for the first, on the same feedback loop and on a
+# panel of mixed curvature, at a landscape, a portrait, and a square size.
+
+# The pair of nodes a traced obstacle or a drawn path runs between: the two it
+# comes closest to, left to right, so that the model and the ink it is
+# compared with measure their depth from the same chord in the same direction
+# and a bow each way reads as a sign each way. Which points are a path's ends
+# cannot be read off their order: a widened arrow runs out along one side of
+# its shaft and back along the other, and an obstacle is resected at both ends
+# by the edge cap.
+nearest_node_pair <- function(points, nodes) {
+  reach <- vapply(
+    seq_len(nrow(nodes)),
+    function(i) {
+      min(sqrt((points$x - nodes$x[[i]])^2 + (points$y - nodes$y[[i]])^2))
+    },
+    numeric(1)
+  )
+  pair <- order(reach)[1:2]
+  pair[order(nodes$x[pair], nodes$y[pair])]
+}
+
+# How deep `points` reach on either side of the chord between two node rows.
+chord_depths <- function(points, nodes, pair) {
+  arc_depths(points, nodes[pair, , drop = FALSE])
+}
+
+# One row per edge of a scene: how deep the obstacle the engine was given and
+# the ink the plot drew reach either side of the edge's own chord, named by
+# the pair of nodes the edge runs between.
+edge_depth_table <- function(scene, size) {
+  paths <- c(
+    lapply(
+      split(
+        scene$obstacles,
+        factor(
+          scene$obstacles$edge_id,
+          levels = unique(
+            scene$obstacles$edge_id
+          )
+        )
+      ),
+      function(points) list(source = "modelled", points = points)
+    ),
+    lapply(scene$ink, function(points) list(source = "drawn", points = points))
+  )
+
+  rows <- lapply(paths, function(path) {
+    pair <- nearest_node_pair(path$points, scene$nodes)
+    depths <- chord_depths(path$points, scene$nodes, pair)
+    data.frame(
+      case = paste(
+        size_key(size),
+        paste(pair, collapse = "-"),
+        c("above", "below")
+      ),
+      source = path$source,
+      depth = unname(depths),
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
+}
+
+# The modelled and drawn depths of a scene, as two vectors named alike, so a
+# failure names the edge and the side of the chord that disagree.
+paired_edge_depths <- function(scene, size) {
+  table <- edge_depth_table(scene, size)
+  modelled <- table[table$source == "modelled", , drop = FALSE]
+  drawn <- table[table$source == "drawn", , drop = FALSE]
+  # An arc bows to one side only, so the shallow side of each pair is the
+  # chord itself and says nothing about the model; the deep side is compared.
+  deep <- function(rows) {
+    by_case <- split(rows, sub(" (above|below)$", "", rows$case))
+    vapply(
+      by_case,
+      function(part) part$depth[which.max(abs(part$depth))],
+      numeric(1)
+    )
+  }
+  list(modelled = deep(modelled), drawn = deep(drawn))
+}
+
+test_that("a per-edge curvature is modelled as deep as the arc it draws", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  depths <- lapply(per_edge_sizes, function(size) {
+    scene <- cached_arc_scene(size, "per_edge", "straight")
+    ink <- do.call(rbind, scene$ink)
+    data.frame(
+      case = paste(size_key(size), c("above", "below")),
+      modelled = arc_depths(scene$obstacles, scene$nodes),
+      drawn = arc_depths(ink, scene$nodes)
+    )
+  })
+  depths <- do.call(rbind, depths)
+  modelled <- stats::setNames(depths$modelled, depths$case)
+  drawn <- stats::setNames(depths$drawn, depths$case)
+
+  # The same allowance the scalar block makes for the widened stroke and for
+  # the spacing either side is read at.
+  expect_equal(modelled, drawn, tolerance = 0.05)
+  expect_lt(max(abs(modelled - drawn)), 1)
+})
+
+test_that("no label box on a per-edge curved loop holds drawn edge ink", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  inside <- lapply(per_edge_sizes, function(size) {
+    scene <- cached_arc_scene(size, "per_edge", "straight")
+    ink <- do.call(rbind, lapply(scene$ink, densify_mm_polyline))
+    counts <- vapply(
+      seq_len(nrow(scene$labels)),
+      function(i) {
+        box <- scene$labels[i, ]
+        sum(
+          ink$x > box$xmin &
+            ink$x < box$xmax &
+            ink$y > box$ymin &
+            ink$y < box$ymax
+        )
+      },
+      numeric(1)
+    )
+    stats::setNames(counts, paste(size_key(size), scene$labels$label))
+  })
+  inside <- unlist(inside)
+
+  expect_equal(inside, stats::setNames(rep(0, length(inside)), names(inside)))
+})
+
+test_that("a panel of mixed curvature models every edge at its drawn depth", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  for (size in per_edge_sizes) {
+    scene <- cached_arc_scene(size, "mixed", "straight")
+    depths <- paired_edge_depths(scene, size)
+
+    # every edge is accounted for on both sides of the comparison
+    expect_named(depths$modelled, names(depths$drawn))
+
+    # the scene really does mix the three cases: two edges bow, to opposite
+    # sides of their own chords, and one keeps to within the half width of
+    # its arrowhead of its chord
+    bows <- depths$drawn[abs(depths$drawn) > 2]
+    expect_length(bows, 2)
+    expect_equal(sum(bows > 0), 1)
+    expect_equal(sum(bows < 0), 1)
+    expect_length(depths$drawn[abs(depths$drawn) <= 2], 1)
+
+    # the same allowance the scalar block makes for the widened stroke and
+    # for the spacing either side is read at; the straight edge is compared
+    # in millimetres alone, its modelled depth being zero.
+    expect_lt(max(abs(depths$modelled - depths$drawn)), 1)
+    expect_equal(depths$modelled[names(bows)], bows, tolerance = 0.05)
+  }
+})
+
+test_that("no label box on a panel of mixed curvature holds drawn edge ink", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  inside <- lapply(per_edge_sizes, function(size) {
+    scene <- cached_arc_scene(size, "mixed", "straight")
+    ink <- do.call(rbind, lapply(scene$ink, densify_mm_polyline))
     counts <- vapply(
       seq_len(nrow(scene$labels)),
       function(i) {

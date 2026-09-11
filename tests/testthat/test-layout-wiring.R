@@ -444,11 +444,11 @@ test_that("a free bidirected pair ends adjacent in its layer", {
 })
 
 test_that("greedy_post_correction clears bidirected arcs when asked", {
-  # x <-> y spans two layers, and traced at 0.3 its arc bows below the chord.
-  # z sits right on that arc: invisible to the straight-line check, but a
-  # real overlap once the arc is traced. The traced side is passed in, since
-  # which side the drawn arc falls on is the caller's to resolve from the
-  # edge engine.
+  # x <-> y spans two layers, and traced at 0.3 its arc bows 52 units below
+  # the chord, twice the node radius. z sits right on that arc: invisible to
+  # the straight-line check, but a real overlap once the arc is traced. The
+  # traced side is passed in, since which side the drawn arc falls on is the
+  # caller's to resolve from the edge engine.
   edges <- data.frame(
     name = c("x", "z", "x"),
     to = c("z", "y", "y"),
@@ -457,7 +457,7 @@ test_that("greedy_post_correction clears bidirected arcs when asked", {
   )
   positions <- list(
     x = c(x = 0, z = 180, y = 360),
-    y = c(x = 0, z = -90, y = 0)
+    y = c(x = 0, z = -52, y = 0)
   )
   layer_assign <- c(x = 0L, z = 1L, y = 2L)
   curvature <- c(0, 0, 0.3)
@@ -542,8 +542,8 @@ test_that("better_positions scores bidirected rows as drawn arcs", {
   # One bidirected edge u <-> v plus an isolated node w. The candidates tie
   # on every straight-line criterion: no crossings, w clears the chord in
   # both, and the stress term skips the disconnected w. Only the traced arc
-  # separates them: arc_hugging parks w on the 0.3 arc below the chord,
-  # arc_clear keeps w far from it, so arc-aware scoring must choose
+  # separates them: arc_hugging parks w on the 0.3 arc, 52 units below the
+  # chord, arc_clear keeps w far from it, so arc-aware scoring must choose
   # arc_clear.
   edges <- data.frame(
     name = c("u", "w"),
@@ -553,7 +553,7 @@ test_that("better_positions scores bidirected rows as drawn arcs", {
   )
   arc_hugging <- list(
     x = c(u = 0, v = 360, w = 180),
-    y = c(u = 0, v = 0, w = -90)
+    y = c(u = 0, v = 0, w = -52)
   )
   arc_clear <- list(
     x = c(u = 0, v = 360, w = 180),

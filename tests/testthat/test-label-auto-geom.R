@@ -145,7 +145,7 @@ test_that("the auto stat emits role-tagged label, node, and edge rows", {
   expect_true(all(points_per_edge >= 2))
 })
 
-test_that("auto stat edge rows follow a drawn curved edge", {
+test_that("auto stat edge rows carry the curvature a curved edge is drawn at", {
   dag <- dagify(
     b ~ a,
     labels = c(a = "Start", b = "End"),
@@ -164,24 +164,14 @@ test_that("auto stat edge rows follow a drawn curved edge", {
   stat_data <- auto_stat_data(p)
   edge_rows <- stat_data[stat_data$ggdag_role == "edge", , drop = FALSE]
 
-  expect_gte(nrow(edge_rows), 2)
   expect_length(unique(edge_rows$edge_id), 1)
 
-  # The traced points sit on the drawn curve, not on the straight chord:
-  # every point lies within 2.5% of the edge length of the modeled curve, and
-  # the trace bows below the chord as positive curvature demands.
-  curve <- sample_curved_edge(0, 0, 2, 0, curvature = 0.3, n = 400)
-  nearest <- vapply(
-    seq_len(nrow(edge_rows)),
-    function(i) {
-      min(sqrt(
-        (curve$x - edge_rows$x[i])^2 + (curve$y - edge_rows$y[i])^2
-      ))
-    },
-    numeric(1)
-  )
-  expect_lt(max(nearest), 0.05)
-  expect_lt(min(edge_rows$y), -0.3)
+  # The edge is drawn as an arc, which grid bends in millimetres when the
+  # plot is drawn, so it reaches the stat as the two ends of its chord and
+  # the curvature it is drawn at, and the geom traces the arc itself.
+  expect_equal(nrow(edge_rows), 2)
+  expect_equal(edge_rows$curvature, c(0.3, 0.3))
+  expect_setequal(paste(edge_rows$x, edge_rows$y), c("0 0", "2 0"))
 })
 
 test_that("auto stat edge rows carry the spec a routed edge is routed with", {
@@ -240,11 +230,15 @@ test_that("auto stat edge rows carry the spec a routed edge is routed with", {
   )))
   expect_equal(routed$route_layer_axis, rep("auto", nrow(routed)))
 
-  # the bidirected edge is drawn as an arc in data space, so it is traced
-  # rather than routed and carries no spec
+  # the bidirected edge is drawn as an arc, which grid bends in millimetres
+  # when the plot is drawn, so it reaches the stat as the two ends of its
+  # chord and the curvature it is drawn at, and the geom traces the arc
+  # itself; it carries no routing spec because it is never routed
   arc <- edge_rows[is.na(style), , drop = FALSE]
   expect_length(unique(arc$edge_id), 1)
-  expect_gt(nrow(arc), 2)
+  expect_equal(nrow(arc), 2)
+  expect_length(unique(arc$curvature), 1)
+  expect_false(is.na(arc$curvature[[1]]))
 
   # the node rows still carry the size of the discs the router routes around
   node_rows <- stat_data[stat_data$ggdag_role == "node", , drop = FALSE]

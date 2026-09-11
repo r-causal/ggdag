@@ -29,13 +29,36 @@ dist_to_edge <- function(px, py, x, y, xend, yend) {
   sqrt((px - (x + t * dx))^2 + (py - (y + t * dy))^2)
 }
 
+# How deep the curve a ggarrow edge is drawn as reaches away from its chord,
+# as a fraction of the chord's length per unit of curvature. The drawn curve
+# is the X-spline `grid::curveGrob()` lays through the control points it
+# solves for, and its deepest offset from the chord is similarity-invariant:
+# the same fraction of the chord at every length, direction, and position.
+# The fraction drifts slightly with the curvature itself, from 0.48813 at a
+# curvature of 0.05 to 0.48587 at 0.95, so one constant at the middle of that
+# range models the whole of it to within a quarter of a percent.
+#
+# `R/edge_extent.R` carries `curve_deflection_ratio` for the same spline, but
+# that one is deliberately a generous bound rather than a measurement, because
+# reserving too much panel room only costs white space. A model of where the
+# ink lands may not round the ink up, so it uses the measured figure.
+curve_spline_depth_ratio <- 0.487
+
 #' Sample points along a drawn curved edge
 #'
-#' Models the drawn curve as a quadratic Bezier that passes through the
-#' control point implied by inverting `ctrl_point_to_curvature()`: the point
-#' at signed perpendicular offset `curvature_to_ctrl_offset()` from the edge
-#' midpoint. Positive curvature bows below a left-to-right edge, matching the
+#' Models the drawn curve as a quadratic Bezier through the point at signed
+#' perpendicular offset `curve_spline_depth_ratio * curvature * length` from
+#' the edge midpoint, which is as deep as the X-spline `grid::curveGrob()`
+#' draws and, over the curvatures ggdag draws at by default, within about one
+#' percent of the chord's length of it along its whole run. Positive
+#' curvature bows below a left-to-right edge, matching the
 #' `grid::curveGrob()` convention used throughout ggdag.
+#'
+#' The drawn curve is bent on the page, so this traces the arc in whatever
+#' units its endpoints are given in: a caller that needs the arc as it is
+#' drawn passes millimetres measured at draw time, and a caller working in
+#' data units gets the arc the panel would draw if a data unit were as wide
+#' as it is tall.
 #'
 #' @param x,y,xend,yend Scalar edge endpoint coordinates.
 #' @param curvature Scalar curvature in `(-1, 1)`; 0 gives a straight edge.
@@ -54,10 +77,10 @@ sample_curved_edge <- function(x, y, xend, yend, curvature, n = 24) {
     return(data.frame(x = rep(x, n), y = rep(y, n)))
   }
 
-  # Point the curve passes through at its midpoint, at the signed
-  # perpendicular offset that ctrl_point_to_curvature() maps back to
-  # `curvature`.
-  offset <- curvature_to_ctrl_offset(curvature, x, y, xend, yend)
+  # Point the curve passes through at its midpoint: the deepest the drawn
+  # spline reaches away from the chord, on the side the curvature's sign
+  # names.
+  offset <- curve_spline_depth_ratio * curvature * len
   mx <- (x + xend) / 2
   my <- (y + yend) / 2
   through_x <- mx + offset * dy / len
@@ -72,22 +95,6 @@ sample_curved_edge <- function(x, y, xend, yend, curvature, n = 24) {
     x = (1 - t)^2 * x + 2 * t * (1 - t) * ctrl_x + t^2 * xend,
     y = (1 - t)^2 * y + 2 * t * (1 - t) * ctrl_y + t^2 * yend
   )
-}
-
-#' Convert curvature to a signed control-point offset
-#'
-#' Exact inverse of the mapping in `ctrl_point_to_curvature()`, which
-#' compresses the signed perpendicular offset `d` of a control point at the
-#' edge midpoint to `atan(2 * d / len) * 2 / pi`.
-#'
-#' @param curvature Scalar curvature in `(-1, 1)`.
-#' @param x,y,xend,yend Scalar edge endpoint coordinates.
-#' @return The signed perpendicular offset `d = (len / 2) * tan(curvature *
-#'   pi / 2)`.
-#' @noRd
-curvature_to_ctrl_offset <- function(curvature, x, y, xend, yend) {
-  len <- sqrt((xend - x)^2 + (yend - y)^2)
-  (len / 2) * tan(curvature * pi / 2)
 }
 
 #' Drawn node radius in data units

@@ -3016,9 +3016,13 @@ makeContent.dag_labels_auto <- function(x) {
     y = mm_y(x$edges$y),
     stringsAsFactors = FALSE
   )
+  # An arc is bent on the page, so it reaches the grob as the two ends of its
+  # chord and the curvature it is drawn at, and it is traced here, in the
+  # millimetres it is bent in.
+  curved <- trace_curved_obstacles(edges_mm, x$edges)
   edges_mm <- route_label_obstacles(
-    edges_mm,
-    x$edges,
+    curved$edges,
+    curved$spec,
     node_input,
     par,
     c(0, 0, panel_width, panel_height)
@@ -3128,6 +3132,67 @@ makeContent.dag_labels_auto <- function(x) {
   }
 
   grid::setChildren(x, do.call(grid::gList, c(leaders, boxes, texts)))
+}
+
+#' Trace every edge drawn as an arc along that arc, in millimetres
+#'
+#' A ggarrow curve layer bends its edges with `grid::curveGrob()`, which works
+#' in device units, so how far one bows away from its chord is a property of
+#' the drawn page rather than of the data. Such an edge reaches the label grob
+#' as the two ends of its chord and the curvature it is drawn at, and this
+#' traces it here, where the panel's millimetres are known. That holds however
+#' the layer came by the curvature, one it carries for the whole of itself or
+#' the `edge_curvature` aesthetic read edge by edge, because the same grob
+#' draws both. Edges that carry no curvature, including the routed ones whose
+#' whole path the router decides, are returned untouched.
+#'
+#' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
+#' @param spec The routing columns of the same rows, as the stat carried them,
+#'   one row per row of `edges`.
+#' @param n Number of points each arc is traced with.
+#' @return A list of `edges` and `spec`, each with every curved edge's rows
+#'   replaced by the points of its arc, and still aligned row for row.
+#' @noRd
+trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
+  curvature <- spec_column(spec, "curvature", NA_real_)
+  curved <- !is.na(curvature)
+  if (!any(curved)) {
+    return(list(edges = edges, spec = spec))
+  }
+
+  # The ends of the traced points are the ends of the chord, whether the edge
+  # arrived as its two endpoints or as a path between them.
+  ids <- unique(edges$edge_id[curved])
+  first <- match(ids, edges$edge_id)
+  last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
+
+  arcs <- lapply(seq_along(ids), function(i) {
+    path <- sample_curved_edge(
+      edges$x[[first[[i]]]],
+      edges$y[[first[[i]]]],
+      edges$x[[last[[i]]]],
+      edges$y[[last[[i]]]],
+      curvature = curvature[[first[[i]]]],
+      n = n
+    )
+    data.frame(
+      edge_id = ids[[i]],
+      x = path$x,
+      y = path$y,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  list(
+    edges = rbind(
+      edges[!curved, c("edge_id", "x", "y"), drop = FALSE],
+      do.call(rbind, arcs)
+    ),
+    spec = rbind(
+      spec[!curved, , drop = FALSE],
+      spec[rep(first, each = n), , drop = FALSE]
+    )
+  )
 }
 
 #' Rebuild the drawn path of every routed edge, in millimetres
