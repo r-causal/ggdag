@@ -687,7 +687,8 @@ test_that("ggdag_adjust() rejects an edge type it cannot draw on either engine",
 
 # A DAG whose only backdoor path is blocked at the collider `m`. Adjusting for
 # `m` activates the path between its parents, so the tidy data carries
-# `collider_line` rows and every adjustment set contains `m`.
+# `collider_line` rows, and every adjustment set contains `m`: the paths that
+# adjustment activates are ones an adjustment set still closes.
 collider_adjusted_dag <- function() {
   dagify(
     m ~ a + b,
@@ -699,6 +700,30 @@ collider_adjusted_dag <- function() {
     adjust_for("m")
 }
 
+# A DAG where `showed_up` is both a collider and a descendant of the exposure.
+# Adjusting for it activates paths that no set of the remaining variables
+# closes, so `dag_adjustment_sets()` reports no adjustment set at all.
+unclosable_collider_dag <- function() {
+  dagify(
+    podcast ~ mood + humor + prepared,
+    exam ~ mood + prepared + showed_up,
+    showed_up ~ podcast + mood + prepared,
+    exposure = "podcast",
+    outcome = "exam"
+  ) |>
+    adjust_for("showed_up")
+}
+
+# `dag_adjustment_sets()` warns whenever no adjustment set closes the backdoor
+# paths, which is the case `unclosable_collider_dag()` is built for. The
+# warning itself is pinned by its own test below.
+adjustment_set_plot <- function(...) {
+  suppressWarnings(
+    ggdag_adjustment_set(...),
+    classes = "ggdag_failed_to_close_backdoor_warning"
+  )
+}
+
 # The rows the edge layers drawn by `geom_class` are handed, one element per
 # layer.
 edge_layer_rows <- function(plot, geom_class) {
@@ -708,64 +733,127 @@ edge_layer_rows <- function(plot, geom_class) {
   )
 }
 
-test_that("ggdag_adjustment_set() draws the paths collider adjustment activates", {
-  p <- ggdag_adjustment_set(collider_adjusted_dag())
+# The geom the edge layers of `engine` are drawn with.
+engine_edge_geom <- function(engine) {
+  if (identical(engine, "ggarrow")) "GeomDAGArrowCurve" else "GeomDAGEdgePath"
+}
 
-  collider_layers <- layers_by_geom(p, "GeomCurve")
-  expect_length(collider_layers, 1)
-
-  drawn <- edge_layer_data(collider_layers[[1]], p$data)
-  expect_gt(nrow(drawn), 0)
-  expect_equal(
-    drawn,
-    dplyr::filter(p$data, .data$direction == "<->", .data$collider_line)
+test_that("ggdag_adjustment_set() warns when no adjustment set closes the backdoor paths", {
+  expect_warning(
+    ggdag_adjustment_set(unclosable_collider_dag()),
+    class = "ggdag_failed_to_close_backdoor_warning"
   )
 })
 
-test_that("ggdag_adjustment_set() draws activated collider paths on either engine", {
-  p <- ggdag_adjustment_set(collider_adjusted_dag(), edge_engine = "ggarrow")
+test_that("ggdag_adjustment_set() draws activated collider paths when nothing closes the backdoor paths", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    p <- adjustment_set_plot(unclosable_collider_dag(), edge_engine = engine)
 
-  collider_layers <- layers_by_geom(p, "GeomCurve")
-  expect_length(collider_layers, 1)
+    collider_layers <- layers_by_geom(p, "GeomCurve")
+    expect_length(collider_layers, 1)
 
-  drawn <- edge_layer_data(collider_layers[[1]], p$data)
-  expect_gt(nrow(drawn), 0)
-  expect_true(all(drawn$collider_line))
+    drawn <- edge_layer_data(collider_layers[[1]], p$data)
+    expect_gt(nrow(drawn), 0)
+    expect_equal(
+      drawn,
+      dplyr::filter(p$data, .data$direction == "<->", .data$collider_line)
+    )
+  })
 })
 
-test_that("ggdag_adjustment_set() keeps activated collider paths out of its edges", {
-  td <- collider_adjusted_dag()
+test_that("ggdag_adjustment_set() leaves out activated collider paths when an adjustment set closes the backdoor paths", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    p <- ggdag_adjustment_set(collider_adjusted_dag(), edge_engine = engine)
+    expect_length(layers_by_geom(p, "GeomCurve"), 0)
+  })
+})
 
-  ggraph_plot <- ggdag_adjustment_set(td)
-  arrow_plot <- ggdag_adjustment_set(td, edge_engine = "ggarrow")
+test_that("ggdag_adjustment_set() draws activated collider paths on request whatever the adjustment sets", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    plots <- list(
+      ggdag_adjustment_set(
+        collider_adjusted_dag(),
+        collider_lines = TRUE,
+        edge_engine = engine
+      ),
+      adjustment_set_plot(
+        unclosable_collider_dag(),
+        collider_lines = TRUE,
+        edge_engine = engine
+      )
+    )
 
-  ggraph_rows <- edge_layer_rows(ggraph_plot, "GeomDAGEdgePath")
-  arrow_rows <- edge_layer_rows(arrow_plot, "GeomDAGArrowCurve")
+    purrr::walk(plots, \(p) {
+      collider_layers <- layers_by_geom(p, "GeomCurve")
+      expect_length(collider_layers, 1)
 
-  expect_gt(length(ggraph_rows), 0)
-  expect_gt(length(arrow_rows), 0)
-  expect_false(any(purrr::map_lgl(ggraph_rows, \(rows) {
-    any(rows$collider_line)
-  })))
-  expect_false(any(purrr::map_lgl(arrow_rows, \(rows) any(rows$collider_line))))
+      drawn <- edge_layer_data(collider_layers[[1]], p$data)
+      expect_gt(nrow(drawn), 0)
+      expect_true(all(drawn$collider_line))
+    })
+  })
 })
 
 test_that("ggdag_adjustment_set() suppresses activated collider paths on request", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    plots <- list(
+      ggdag_adjustment_set(
+        collider_adjusted_dag(),
+        collider_lines = FALSE,
+        edge_engine = engine
+      ),
+      adjustment_set_plot(
+        unclosable_collider_dag(),
+        collider_lines = FALSE,
+        edge_engine = engine
+      )
+    )
+
+    purrr::walk(plots, \(p) expect_length(layers_by_geom(p, "GeomCurve"), 0))
+  })
+})
+
+test_that("ggdag_adjustment_set() keeps activated collider paths out of its edges", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    purrr::walk(list(NULL, TRUE, FALSE), \(collider_lines) {
+      plots <- list(
+        ggdag_adjustment_set(
+          collider_adjusted_dag(),
+          collider_lines = collider_lines,
+          edge_engine = engine
+        ),
+        adjustment_set_plot(
+          unclosable_collider_dag(),
+          collider_lines = collider_lines,
+          edge_engine = engine
+        )
+      )
+
+      purrr::walk(plots, \(p) {
+        edge_rows <- edge_layer_rows(p, engine_edge_geom(engine))
+        expect_gt(length(edge_rows), 0)
+        expect_false(any(purrr::map_lgl(edge_rows, \(rows) {
+          any(rows$collider_line)
+        })))
+      })
+    })
+  })
+})
+
+test_that("ggdag_adjustment_set() rejects a collider_lines it cannot read", {
   td <- collider_adjusted_dag()
 
-  expect_length(
-    layers_by_geom(
-      ggdag_adjustment_set(td, collider_lines = FALSE),
-      "GeomCurve"
-    ),
-    0
+  expect_error(
+    ggdag_adjustment_set(td, collider_lines = "yes"),
+    class = "ggdag_type_error"
   )
-  expect_length(
-    layers_by_geom(
-      ggdag_adjustment_set(td, collider_lines = FALSE, edge_engine = "ggarrow"),
-      "GeomCurve"
-    ),
-    0
+  expect_error(
+    ggdag_adjustment_set(td, collider_lines = NA),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_adjustment_set(td, collider_lines = c(TRUE, FALSE)),
+    class = "ggdag_type_error"
   )
 })
 
@@ -797,12 +885,7 @@ test_that("ggdag_adjust() draws activated collider paths on either engine", {
     expect_gt(nrow(drawn), 0)
     expect_true(all(drawn$collider_line))
 
-    edge_geom <- if (identical(engine, "ggarrow")) {
-      "GeomDAGArrowCurve"
-    } else {
-      "GeomDAGEdgePath"
-    }
-    edge_rows <- edge_layer_rows(p, edge_geom)
+    edge_rows <- edge_layer_rows(p, engine_edge_geom(engine))
     expect_gt(length(edge_rows), 0)
     expect_false(any(purrr::map_lgl(edge_rows, \(rows) {
       any(rows$collider_line)
@@ -810,9 +893,16 @@ test_that("ggdag_adjust() draws activated collider paths on either engine", {
   })
 })
 
+test_that("ggdag_adjust() draws activated collider paths where ggdag_adjustment_set() does not", {
+  td <- collider_adjusted_dag()
+
+  expect_length(layers_by_geom(ggdag_adjust(td), "GeomCurve"), 1)
+  expect_length(layers_by_geom(ggdag_adjustment_set(td), "GeomCurve"), 0)
+})
+
 test_that("ggdag_adjustment_set() renders activated collider paths", {
   expect_doppelganger(
     "ggdag_adjustment_set() with activated collider paths",
-    ggdag_adjustment_set(collider_adjusted_dag())
+    ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = TRUE)
   )
 })
