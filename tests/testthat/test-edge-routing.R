@@ -2655,3 +2655,111 @@ test_that("geom_dag_edges() visuals: a hand-built plot routes around the node", 
 
   expect_doppelganger("geom-dag-edges-hand-built-orthogonal", p)
 })
+
+# The layer's own data ---------------------------------------------------------
+#
+# `geom_dag_routed_arrows()` splits its work between a directed layer and a
+# bidirected one, so it takes `data_directed` and `data_bidirected`. A bare
+# `data`, which every other layer takes and which the documentation offers,
+# partially matched both of those and R refused the call, so the layer takes
+# it as a formal of its own and composes it onto each direction filter, as
+# `geom_dag()` does with its own `data`.
+
+routed_data_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    z ~ ~y,
+    coords = list(x = c(x = 0, z = 1, y = 2), y = c(x = 0, z = 1, y = 0))
+  )
+}
+
+# The rows each layer of `plot` draws, named by the geom that draws them.
+drawn_edge_counts <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  counts <- vapply(
+    seq_along(plot$layers),
+    function(i) {
+      data <- built$data[[i]]
+      if ("draw" %in% names(data)) {
+        sum(data$draw, na.rm = TRUE)
+      } else {
+        nrow(data)
+      }
+    },
+    numeric(1)
+  )
+  names(counts) <- vapply(
+    plot$layers,
+    function(layer) class(layer$geom)[[1]],
+    character(1)
+  )
+  counts
+}
+
+test_that("geom_dag_routed_arrows() takes a data argument", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(routed_data_dag())
+
+  # one directed edge and the bidirected one, out of three directed edges
+  keep <- function(x) dplyr::filter(x, .data$name != "z")
+  plot <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_routed_arrows(data = keep)
+
+  counts <- drawn_edge_counts(plot)
+  expect_equal(counts[["GeomDAGRoutedArrow"]], 1)
+  expect_equal(counts[["GeomDAGArrowCurve"]], 1)
+})
+
+test_that("geom_dag_routed_arrows(data = ) composes with the direction filters", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(routed_data_dag())
+
+  # the directed layer is left with nothing, and says so by drawing nothing
+  # rather than by drawing the bidirected edge
+  bidirected_only <- function(x) {
+    dplyr::filter(x, !is.na(.data$direction) & .data$direction == "<->")
+  }
+  plot <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_routed_arrows(data = bidirected_only)
+
+  counts <- drawn_edge_counts(plot)
+  expect_equal(counts[["GeomDAGRoutedArrow"]], 0)
+  expect_equal(counts[["GeomDAGArrowCurve"]], 1)
+})
+
+test_that("geom_dag_routed_arrows() takes a data frame as its data", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(routed_data_dag())
+  rows <- dplyr::filter(pull_dag_data(tidy_dag), .data$name == "x")
+
+  plot <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_routed_arrows(data = rows)
+
+  counts <- drawn_edge_counts(plot)
+  expect_equal(counts[["GeomDAGRoutedArrow"]], 1)
+  expect_equal(counts[["GeomDAGArrowCurve"]], 0)
+})
+
+test_that("geom_dag_routed_arrows() keeps its per-direction data arguments", {
+  skip_if_not_installed("ggarrow")
+
+  tidy_dag <- tidy_dagitty(routed_data_dag())
+  plot <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_routed_arrows(
+      data_directed = function(x) {
+        dplyr::filter(x, .data$name == "z", .data$direction == "->")
+      }
+    )
+
+  counts <- drawn_edge_counts(plot)
+  expect_equal(counts[["GeomDAGRoutedArrow"]], 2)
+  expect_equal(counts[["GeomDAGArrowCurve"]], 1)
+})
