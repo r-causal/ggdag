@@ -86,15 +86,22 @@ reciprocal_size_key <- function(size) {
 # Spline mode reaches the separation through the feedback loop in
 # `arrival_state()`, which is given four passes. Each pass closes part of
 # the angle still owed, and the part one pass closes falls as the chord
-# lengthens, so what four passes deliver drifts down with the chord: on
-# the isolated pair the closest approach is 3.592 mm at a 145 mm chord,
-# 3.498 at 250 mm, 3.395 at 377 mm and 3.011 at 843 mm, and the embedded
-# pair sits on the same line. The same loop run to convergence holds every
-# one of those chords between 3.44 and 3.55 mm, so what the drift measures
-# is the pass budget and not the geometry. This floor tracks the four
-# passes: `sep_e` less a tenth of a millimetre to a 150 mm chord, and
-# 0.0009 mm more per millimetre of chord beyond that, which the measured
+# lengthens, so what four passes deliver drifts down with the chord.
+# Measured with the arrival bearings as the only thing holding the ends
+# apart, the isolated pair's closest approach is 3.592 mm at a 145 mm
+# chord, 3.498 at 250 mm, 3.395 at 377 mm and 3.011 at 843 mm, and the
+# embedded pair sits on the same line; the same loop run to convergence
+# holds every one of those chords between 3.44 and 3.55 mm, so what the
+# drift measures is the pass budget and not the geometry. The floor is
+# that envelope: `sep_e` less a tenth of a millimetre to a 150 mm chord,
+# and 0.0009 mm more per millimetre of chord beyond that, which those
 # values clear by between 0.05 and 0.14 mm across the whole range.
+#
+# Drawing each member as a bow off the shared chord carries the ends
+# further apart than the bearings alone would, so the pictures drawn now
+# clear the floor by 1.4 to 2.0 mm while the bow depth grows with the
+# chord, and by 0.5 to 0.7 mm past the chord where that depth is capped
+# and the bearings set the gap again.
 reciprocal_floor <- function(route, chord) {
   slack <- if (route == "spline") {
     0.1 + 0.0009 * max(0, chord - 150)
