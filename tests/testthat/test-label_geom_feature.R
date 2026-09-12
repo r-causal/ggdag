@@ -516,3 +516,148 @@ test_that("a wrapper parameter geom_dag() does not set reaches the layer", {
 
   expect_equal(dag_label_layer(plot)$aes_params$fill, "lightyellow")
 })
+
+# `wrap` and `edge_cap` are the two parameters `geom_dag()` threads that a
+# wrapper cannot be handed through its own dots, because they are named on
+# the call `geom_dag()` makes rather than passed to the wrapper. A wrapper is
+# the documented way to restyle labels, so it gets what a direct call gets.
+
+# The first grob under `grob` whose name matches, gtable cells included: a
+# gtable keeps its cells in `grobs` rather than in `children`, so
+# `grid::getGrob()` does not reach them.
+find_named_grob <- function(grob, pattern) {
+  if (grepl(pattern, grob$name %||% "")) {
+    return(grob)
+  }
+  for (child in c(grob$children, grob$grobs)) {
+    found <- find_named_grob(child, pattern)
+    if (!is.null(found)) {
+      return(found)
+    }
+  }
+  NULL
+}
+
+# The parameters the automatic label engine is given when the plot is drawn.
+drawn_label_params <- function(plot) {
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  tree <- find_named_grob(gtable, "dag_labels_auto")
+  expect_false(is.null(tree))
+  tree$params
+}
+
+# A labelled DAG at a node size whose drawn edges stop well short of the
+# node, so the cap the engine traces with is visible in the picture.
+big_node_plot <- function(label_geom) {
+  ggdag(
+    dagify(
+      y ~ m + x,
+      m ~ x,
+      labels = c(
+        x = "Exposure node",
+        m = "Mediator node",
+        y = "Outcome node"
+      ),
+      coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
+    ),
+    use_labels = TRUE,
+    use_text = FALSE,
+    node_size = 30,
+    edge_cap = 15,
+    label_geom = label_geom
+  )
+}
+
+test_that("a geom_dag_label_auto() wrapper keeps the plot's label_wrap", {
+  wrapper <- function(...) geom_dag_label_auto(...)
+
+  direct <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    label_geom = geom_dag_label_auto
+  )
+  wrapped <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    label_geom = wrapper
+  )
+
+  expect_equal(auto_label_params(wrapped)[["wrap"]], 6)
+  expect_equal(
+    auto_label_params(wrapped)[["wrap"]],
+    auto_label_params(direct)[["wrap"]]
+  )
+  expect_equal(drawn_label_params(wrapped)$wrap, 6)
+})
+
+test_that("a geom_dag_text_auto() wrapper keeps the plot's label_wrap", {
+  wrapper <- function(...) geom_dag_text_auto(...)
+
+  plot <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    label_geom = wrapper
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 6)
+})
+
+test_that("a geom_dag_label_auto() wrapper keeps the plot's edge_cap", {
+  wrapper <- function(...) geom_dag_label_auto(...)
+
+  direct <- big_node_plot(geom_dag_label_auto)
+  wrapped <- big_node_plot(wrapper)
+
+  expect_equal(auto_label_params(wrapped)[["edge_cap"]], 15)
+  expect_equal(
+    auto_label_params(wrapped)[["edge_cap"]],
+    auto_label_params(direct)[["edge_cap"]]
+  )
+  # the cap decides where the traced edge ink ends, so it has to reach the
+  # engine and not only the layer
+  expect_equal(drawn_label_params(wrapped)$edge_cap, 15)
+  expect_equal(
+    drawn_label_params(wrapped)$edge_cap,
+    drawn_label_params(direct)$edge_cap
+  )
+})
+
+test_that("a wrapper's own wrap and edge_cap win over the plot's", {
+  wrapper <- function(...) geom_dag_label_auto(..., wrap = 4, edge_cap = 3)
+
+  plot <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    edge_cap = 15,
+    label_geom = wrapper
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 4)
+  expect_equal(auto_label_params(plot)[["edge_cap"]], 3)
+})
+
+test_that("a wrapper around a repel label geom is unchanged", {
+  # the repel geoms take neither parameter, and a wrapper of one must not be
+  # handed either
+  wrapper <- function(...) geom_dag_label_repel(...)
+
+  plot <- expect_no_warning(
+    ggdag(
+      wrapper_dag(),
+      use_labels = TRUE,
+      label_wrap = 6,
+      edge_cap = 15,
+      label_geom = wrapper
+    )
+  )
+
+  layer <- dag_label_layer(plot)
+  expect_null(layer$geom_params$wrap)
+  expect_null(layer$geom_params$edge_cap)
+  expect_null(layer$stat_params$wrap)
+  expect_null(layer$stat_params$edge_cap)
+})
