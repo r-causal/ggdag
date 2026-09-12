@@ -18,7 +18,10 @@
 # mid-span. The drawn arch is then registered at every layer it crosses,
 # and later edges through the same slot are spread from it by the edge
 # separation in the order of their chords, a repaired arch being spread
-# again if the repair moved it onto a neighbour. When a slot came out in
+# again if the repair moved it onto a neighbour. An arrival is turned away
+# from the other arrivals at its target and from the departure of its
+# reciprocal twin, so that no two drawn tips at one disc sit closer than
+# the edge separation. When a slot came out in
 # routing order rather than chord order, the scene is routed a second time
 # with positions reserved for the inner chords. Every drawn curve keeps m
 # from the panel bounds: a route whose curve comes closer yields to the free
@@ -77,7 +80,11 @@
 # is level with it, and
 # a group whose rows would sit closer than half the edge separation merging
 # onto one row; two channel stubs on one N or S side sit sep_e / 2 either
-# side of the centre line. So no stub carries two edges in opposite
+# side of the centre line. A parallel group that runs both ways puts an
+# arrival and a departure at each of its two nodes, so each of its members
+# takes a port of its own there, the group's ports sep_e apart, and the
+# slots its runs take are ordered on those ports rather than on the node
+# centres, which is the order that draws the pair without a crossing. So no stub carries two edges in opposite
 # directions and every arrowhead is drawn on a row of its own, along the
 # run it arrives on: a path into an offset port ends on the port's own
 # line, never at the centre, and its resect puts the tip the same distance
@@ -2351,15 +2358,18 @@ arc_point_before_end <- function(x, y, d) {
 
 # Arrowhead zones ------------------------------------------------------------------
 
-#' The arrowhead zone of every edge as currently drawn
+#' The arrowhead zone and the tail bearing of every edge as currently drawn
 #'
 #' The arrow layer resects the last `cap` of each path, so the drawn head of
 #' an edge occupies the arc from `2 cap` to `cap` before its true target.
 #' One entry per edge in parallel vectors: the far end of that arc (`x`,
 #' `y`), its near end (`x2`, `y2`), the unit direction of travel into the
 #' target over the last `cap` (`ux`, `uy`), and whether the edge has a head
-#' at all (`valid`, false for a chord of zero length). Paths are given in
-#' true orientation, source to target.
+#' at all (`valid`, false for a chord of zero length). The tail is recorded
+#' the same way: `vx`, `vy` is the unit direction out of the true source
+#' over the first `cap`, the bearing the edge's drawn ink leaves that node
+#' on, and `tail_valid` says the path has one. Paths are given in true
+#' orientation, source to target.
 #'
 #' @param paths The current paths, one `data.frame(x, y)` per edge.
 #' @noRd
@@ -2372,7 +2382,10 @@ head_registry <- function(paths, cap) {
     y2 = numeric(n),
     ux = numeric(n),
     uy = numeric(n),
-    valid = logical(n)
+    valid = logical(n),
+    vx = numeric(n),
+    vy = numeric(n),
+    tail_valid = logical(n)
   )
   for (e in seq_len(n)) {
     reg <- register_head(reg, e, paths[[e]]$x, paths[[e]]$y, cap)
@@ -2380,7 +2393,8 @@ head_registry <- function(paths, cap) {
   reg
 }
 
-#' Record the arrowhead zone of one edge from its path in true orientation
+#' Record the arrowhead zone and tail bearing of one edge from its path in
+#' true orientation
 #' @noRd
 register_head <- function(reg, e, x, y, cap) {
   n <- length(x)
@@ -2397,6 +2411,16 @@ register_head <- function(reg, e, x, y, cap) {
     reg$ux[[e]] <- u[[1]] / l
     reg$uy[[e]] <- u[[2]] / l
   }
+  # the tail: the same reading taken from the other end of the path, which
+  # is where the edge's ink starts once the arrow layer has resected it
+  leaving <- arc_point_before_end(rev(x), rev(y), cap)
+  v <- leaving - c(x[[1]], y[[1]])
+  lv <- sqrt(sum(v^2))
+  reg$tail_valid[[e]] <- n >= 2 && lv > 0
+  if (reg$tail_valid[[e]]) {
+    reg$vx[[e]] <- v[[1]] / lv
+    reg$vy[[e]] <- v[[2]] / lv
+  }
   reg
 }
 
@@ -2407,8 +2431,17 @@ register_head <- function(reg, e, x, y, cap) {
 #' except those of edges into the same target (their arrivals are
 #' separated instead), of edges into the edge's own source (they meet at
 #' the port it leaves through), and of edges between the same two nodes.
+#'
 #' The arrivals are the directions into the true target of the other edges
-#' that end there.
+#' that end there, plus the departure of the reciprocal twin, the edge that
+#' runs the other way between the same two nodes. Its tail leaves the
+#' target through the same disc the arrival reaches, so the two are drawn
+#' side by side however the pair is spread off its chord, and separating
+#' them is what keeps an anti-parallel pair reading as two edges at the
+#' discs rather than only at mid-chord. A departure is entered as the
+#' reverse of its bearing, since an arrival's own arm lies along the
+#' reverse of its direction, so the angle between two entries is the angle
+#' between the two arms the reader sees.
 #'
 #' @return A list with `heads`, a data frame of capsules with `x`, `y`,
 #'   `x2`, `y2` and the unit direction `ux`, `uy` into the target, and
@@ -2421,6 +2454,9 @@ head_constraints <- function(reg, e, from, to) {
   other <- reg$valid & !twin
   zone <- which(other & to != target & to != source)
   arriving <- which(other & to == target)
+  leaving <- which(
+    reg$tail_valid & from == target & to == source & seq_along(from) != e
+  )
   list(
     heads = df_cols(
       x = reg$x[zone],
@@ -2430,7 +2466,10 @@ head_constraints <- function(reg, e, from, to) {
       ux = reg$ux[zone],
       uy = reg$uy[zone]
     ),
-    arrivals = cbind(reg$ux[arriving], reg$uy[arriving])
+    arrivals = rbind(
+      cbind(reg$ux[arriving], reg$uy[arriving]),
+      cbind(-reg$vx[leaving], -reg$vy[leaving])
+    )
   )
 }
 
@@ -3508,12 +3547,19 @@ route_spanning_candidate <- function(
 #' duplicates. Ordering by node name instead would let two callers who name
 #' one picture differently draw the copies on opposite sides.
 #'
-#' @return A list with `extra` and `shift`, one value per edge.
+#' A group whose members do not all run the same way is `reciprocal`: each
+#' of its two nodes carries both an arrival and a departure, which the
+#' translation alone leaves meeting at the disc, so the members take ports
+#' of their own there.
+#'
+#' @return A list with `extra`, `shift`, and `reciprocal`, one value per
+#'   edge.
 #' @noRd
 parallel_groups <- function(from, to, nodes, routable, sep_m) {
   n_edges <- length(from)
   extra <- numeric(n_edges)
   shift <- numeric(n_edges)
+  reciprocal <- logical(n_edges)
   key <- paste(pmin(from, to), pmax(from, to))
   for (k in unique(key[routable])) {
     members <- which(routable & key == k)
@@ -3530,8 +3576,9 @@ parallel_groups <- function(from, to, nodes, routable, sep_m) {
     size <- length(members)
     extra[members] <- sep_m * (size - 1) / 2
     shift[members] <- sep_m * (seq_len(size) - (size + 1) / 2)
+    reciprocal[members] <- length(unique(from[members])) > 1
   }
-  list(extra = extra, shift = shift)
+  list(extra = extra, shift = shift, reciprocal = reciprocal)
 }
 
 # Orthogonal mode ------------------------------------------------------------------------------
@@ -3667,6 +3714,30 @@ route_orthogonal_scene <- function(
   grp <- parallel_groups(from, to, nodes, routable, opts$sep_m)
   shift <- grp$shift
   extra <- grp$extra
+  # Both nodes of a reciprocal group carry an arrival and a departure, and
+  # both would take the centre row, so the members would be drawn as one
+  # shape from the disc out to wherever the translation pulls them apart.
+  # Each member takes a port of its own at both of its ends instead, the
+  # group's ports `sep_e` apart in the order its shifts spread it, which is
+  # the separation the ladder and the arrival rows keep everywhere else.
+  # A port stays within the band a head is drawn on, at whichever of the
+  # two nodes has the smaller one, as an arrival row does
+  par_off <- shift / opts$sep_m * opts$sep_e
+  port_band <- pmin(
+    pmax(nodes$r[from] - opts$head_w / 2, 0),
+    pmax(nodes$r[to] - opts$head_w / 2, 0)
+  )
+  par_off <- ifelse(
+    grp$reciprocal,
+    sign(par_off) * pmin(abs(par_off), port_band),
+    0
+  )
+  # the y a member's horizontal pieces are drawn at, which is its port row
+  # rather than its node's centre line. The slot ranks, the coincidence
+  # tests, and the slide are all judged on the pieces the reader sees, so
+  # the crossing-free order of two runs is the one their ports put them in
+  Sy_port <- Sy + par_off
+  Ty_port <- Ty + par_off
 
   # a chord needs a bend when it is oblique and leaves its layer, or when it
   # is horizontal, spans a layer, and a disc in a crossed layer blocks it. A
@@ -3747,8 +3818,8 @@ route_orthogonal_scene <- function(
       pieces,
       info$la[[e]],
       seg_key(e, TRUE),
-      Sy[[e]],
-      Ty[[e]]
+      Sy_port[[e]],
+      Ty_port[[e]]
     )
   }
   # the pieces of the span-1 edges alone; a slide rebuilds the rest on them
@@ -3802,12 +3873,17 @@ route_orthogonal_scene <- function(
     best_total <- ch$cost
     for (p in ch$slide) {
       cand_pieces <- list(
-        list(g = info$la[[e]], key = keys[[1]], left = Sy[[e]], right = p$y),
+        list(
+          g = info$la[[e]],
+          key = keys[[1]],
+          left = Sy_port[[e]],
+          right = p$y
+        ),
         list(
           g = info$lb[[e]] - 1L,
           key = keys[[2]],
           left = p$y,
-          right = Ty[[e]]
+          right = Ty_port[[e]]
         )
       )
       sl <- NULL
@@ -3889,8 +3965,20 @@ route_orthogonal_scene <- function(
     sl <- if (length(ch$slide) > 0) best_slide(ch, e, keys, src_key) else NULL
     if (is.null(sl)) {
       if (ch$kind == "ew") {
-        pieces <- add_piece(pieces, info$la[[e]], keys[[1]], Sy[[e]], ch$y)
-        pieces <- add_piece(pieces, info$lb[[e]] - 1L, keys[[2]], ch$y, Ty[[e]])
+        pieces <- add_piece(
+          pieces,
+          info$la[[e]],
+          keys[[1]],
+          Sy_port[[e]],
+          ch$y
+        )
+        pieces <- add_piece(
+          pieces,
+          info$lb[[e]] - 1L,
+          keys[[2]],
+          ch$y,
+          Ty_port[[e]]
+        )
       }
     } else {
       # the moved channels take their new lines wherever they are
@@ -3936,8 +4024,8 @@ route_orthogonal_scene <- function(
       lb = info$lb[[e]],
       keys = keys,
       src_key = src_key,
-      Sy = Sy[[e]],
-      Ty = Ty[[e]],
+      Sy = Sy_port[[e]],
+      Ty = Ty_port[[e]],
       owned = head_node[[e]] %in% level_owned,
       owned_y = head_y[[e]],
       fr = fr,
@@ -4007,8 +4095,8 @@ route_orthogonal_scene <- function(
       last,
       a,
       b,
-      Sy,
-      Ty,
+      Sy_port,
+      Ty_port,
       y_ch,
       span,
       nodes,
@@ -4089,7 +4177,9 @@ route_orthogonal_scene <- function(
   # and a stack that cannot be spread is drawn on the node's own line rather
   # than a fraction of a millimetre from it or on the wrong side of it. The
   # copies of a parallel bundle are spread sep_m apart already, so they keep
-  # the centre row. So does an arrival out of a gap too narrow for any stub,
+  # the centre row here and take the group's own port instead, which is
+  # `par_off` and is zero unless the group runs both ways. So does an
+  # arrival out of a gap too narrow for any stub,
   # unless the gap is floored: the slot nearest the target leaves a whole
   # head run before the target's layer, and that run holds a row as well as
   # a head. Only the arrival gap counts, so an edge that crosses a narrow
@@ -4217,6 +4307,7 @@ route_orthogonal_scene <- function(
       port_t[[e]],
       if (info$reversed[[e]]) port_y[[e]] else 0,
       if (info$reversed[[e]]) 0 else port_y[[e]],
+      par_off[[e]],
       tol
     )
     if (is.null(geom$bends)) {
@@ -5544,6 +5635,16 @@ longest_path_ranks <- function(n, from, to) {
 #' face to the axis point is hidden under the disc, and because the path
 #' ends on the run itself the arrow layer draws the head along it.
 #'
+#' `par` is the port a member of a reciprocal parallel group takes at both
+#' of its ends, measured along the chord normal, so that its arrival and
+#' its twin's departure are drawn on lines of their own at every disc. It
+#' moves the run at each end, which is the row for an E/W edge and the
+#' stub for a detour, and it never moves an end that has no run to carry
+#' it: a spanning route drawn on one of its endpoints' own lines is
+#' axis-aligned only at that line. An S/N channel takes no `par`, since
+#' the two stubs of a reciprocal pair on one side of a node are already
+#' placed either side of its centre line.
+#'
 #' @return A list with `bends` (a matrix, or `NULL` when the edge has no
 #'   bend and stays straight), `port_s`, `port_t`, `side`, and each port's
 #'   offset from the centre line (`off_s`, `off_t`), which sets its resect.
@@ -5564,6 +5665,7 @@ ortho_bends <- function(
   dx_t,
   dy_s,
   dy_t,
+  par,
   tol
 ) {
   if (kind == "sn") {
@@ -5588,13 +5690,16 @@ ortho_bends <- function(
         xb <- xa
       }
       y <- S[[2]] + shift
+      # the stubs of a level detour run along y, so its ports move there
+      ys <- S[[2]] + par
+      yt <- E[[2]] + par
       return(list(
-        bends = rbind(c(xa, S[[2]]), c(xa, y), c(xb, y), c(xb, E[[2]])),
-        port_s = S,
-        port_t = E,
+        bends = rbind(c(xa, ys), c(xa, y), c(xb, y), c(xb, yt)),
+        port_s = c(S[[1]], ys),
+        port_t = c(E[[1]], yt),
         side = sign(shift),
-        off_s = 0,
-        off_t = 0
+        off_s = par,
+        off_t = par
       ))
     }
     ya <- S[[2]] + stub
@@ -5604,13 +5709,17 @@ ortho_bends <- function(
       yb <- ya
     }
     x <- S[[1]] - shift
+    # the stubs of a vertical detour run along x, and the chord normal
+    # points the other way there, as the run's own `-shift` does
+    xs <- S[[1]] - par
+    xt <- E[[1]] - par
     return(list(
-      bends = rbind(c(S[[1]], ya), c(x, ya), c(x, yb), c(E[[1]], yb)),
-      port_s = S,
-      port_t = E,
+      bends = rbind(c(xs, ya), c(x, ya), c(x, yb), c(xt, yb)),
+      port_s = c(xs, S[[2]]),
+      port_t = c(xt, E[[2]]),
       side = sign(shift),
-      off_s = 0,
-      off_t = 0
+      off_s = par,
+      off_t = par
     ))
   }
 
@@ -5624,13 +5733,19 @@ ortho_bends <- function(
     }
   }
   # a spanning edge whose run lies on an endpoint's own line has no
-  # vertical there to move onto a row
+  # vertical there to move onto a row, and no port either
+  par_s <- par
+  par_t <- par
   if (span >= 2 && is.na(x_last)) {
     dy_t <- 0
+    par_t <- 0
   }
   if (span >= 2 && is.na(x_first)) {
     dy_s <- 0
+    par_s <- 0
   }
+  dy_s <- dy_s + par_s
+  dy_t <- dy_t + par_t
   ys <- S[[2]] + dy_s
   yt <- E[[2]] + dy_t
   bends <- NULL
