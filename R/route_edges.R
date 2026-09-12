@@ -18,10 +18,20 @@
 # mid-span. The drawn arch is then registered at every layer it crosses,
 # and later edges through the same slot are spread from it by the edge
 # separation in the order of their chords, a repaired arch being spread
-# again if the repair moved it onto a neighbour. An arrival is turned away
+# again if the repair moved it onto a neighbour. Each member of a
+# reciprocal pair, a parallel group whose two members run opposite ways,
+# is drawn as a bow off their shared chord instead of as a straight run
+# translated away from it, to the side the group's translation chose and
+# as deep as `reciprocal_bow_depth()` asks, stepping down toward that
+# translation until the curve verifies; so the pair reads as a lens of two
+# arcs rather than as two slack lines. An arrival is turned away
 # from the other arrivals at its target and from the departure of its
-# reciprocal twin, so that no two drawn tips at one disc sit closer than
-# the edge separation. When a slot came out in
+# reciprocal twin, which keeps the two members of a reciprocal pair the
+# edge separation apart at each of their discs. That is a claim about the
+# pair alone: the arrival rows and the reciprocal ports are allocated by
+# rules that do not see each other, so a reciprocal member and an ordinary
+# arrival at the same disc can still be drawn on one point. When a slot
+# came out in
 # routing order rather than chord order, the scene is routed a second time
 # with positions reserved for the inner chords. Every drawn curve keeps m
 # from the panel bounds: a route whose curve comes closer yields to the free
@@ -3581,6 +3591,86 @@ parallel_groups <- function(from, to, nodes, routable, sep_m) {
   list(extra = extra, shift = shift, reciprocal = reciprocal)
 }
 
+#' How deep each member of a reciprocal pair bows off its chord
+#'
+#' A pair drawn as two straight runs translated `sep_m` apart is separated
+#' at both discs and across the middle and still reads as two slack lines,
+#' because what the reader sees as a pair of arcs is curvature and not
+#' separation. The depth that reads as a bow is a fraction of the chord,
+#' since a fixed number of millimetres reads as an arc on a short chord
+#' and as a straight line on a long one, and a plain fraction balloons on
+#' a very long one. So the fraction is floored and capped.
+#'
+#' The fraction is half of `sagitta_max`, the deepest the free-bow tier
+#' draws a bow of its own accord, which puts a reciprocal member in the
+#' region the arc convention occupies. The floor is `sep_m / 2`, the
+#' ordinary parallel translation, below which the pair would be drawn
+#' closer together than two straight members would be. The cap is `4 R`,
+#' four padded node radii, which is a backstop rather than a shape: it
+#' binds only past a chord of some 330 mm, where the fraction would carry
+#' a bow clear across the layers the chord spans.
+#'
+#' @param Lc The chord length in mm.
+#' @noRd
+reciprocal_bow_depth <- function(Lc, opts) {
+  max(opts$sep_m / 2, min(opts$sagitta_max / 2 * Lc, 4 * opts$R))
+}
+
+#' Route one member of a reciprocal pair as a bow off its own chord
+#'
+#' The member is drawn through three waypoints on the parabola of depth
+#' `reciprocal_bow_depth()` over its chord, on the side its parallel-group
+#' translation chose, so the two members are mirror images and the pair is
+#' a lens. The waypoints carry the whole offset, so the translation is not
+#' applied again.
+#'
+#' They sit at the quarter points rather than at mid-chord alone because
+#' the curve's end tangents are read off the first and last of them: a
+#' member aimed from its disc straight at one mid-chord waypoint leaves at
+#' half the bearing the bow itself has there, which draws a kink at each
+#' end and a straight run between them. Aimed instead at the quarter
+#' point, it leaves on the bow's own bearing, and the two members' tangents
+#' at a shared disc are far enough apart that the arrival separation has
+#' nothing left to turn.
+#'
+#' A bow reaches further into the panel than the chord it replaces, so the
+#' depth steps down toward the translation and the deepest rung whose
+#' curve verifies against the discs, the arrowheads, and the panel bounds
+#' is the one drawn. The last rung is the translation itself, the depth at
+#' which the pair is no more than spread apart, and it is returned whether
+#' or not it verifies, as the tier it stands in place of would be.
+#'
+#' @param shift The member's parallel-group translation: its sign is the
+#'   side the member bows to and its size is the shallowest rung.
+#' @noRd
+route_reciprocal_bow <- function(job, shift, placed) {
+  fr <- job$fr
+  side <- sign(shift)
+  depth <- reciprocal_bow_depth(fr$Lc, job$opts)
+  rungs <- c(depth, 0.75 * depth, 0.5 * depth, abs(shift))
+  rungs <- sort(unique(rungs[rungs >= abs(shift)]), decreasing = TRUE)
+  t <- c(0.25, 0.5, 0.75)
+  # the parabola of depth `d` over the chord, read at those parameters
+  height <- 4 * t * (1 - t)
+  # the offsets ride on the waypoints rather than on the group translation
+  bowed <- job
+  bowed$shift <- 0
+  res <- NULL
+  for (d in rungs) {
+    off <- side * d * height
+    wp <- df_cols(
+      x = fr$S[[1]] + t * fr$Lc * fr$u[[1]] + off * fr$n[[1]],
+      y = fr$S[[2]] + t * fr$Lc * fr$u[[2]] + off * fr$n[[2]],
+      layer = rep(NA_integer_, length(t))
+    )
+    res <- route_candidate(bowed, wp, side, "bow", "free", placed)
+    if (res$clearance_ok && res$inside) {
+      break
+    }
+  }
+  res
+}
+
 # Orthogonal mode ------------------------------------------------------------------------------
 
 #' Route a canonically oriented scene with axis-aligned runs
@@ -5641,9 +5731,13 @@ longest_path_ranks <- function(n, from, to) {
 #' moves the run at each end, which is the row for an E/W edge and the
 #' stub for a detour, and it never moves an end that has no run to carry
 #' it: a spanning route drawn on one of its endpoints' own lines is
-#' axis-aligned only at that line. An S/N channel takes no `par`, since
-#' the two stubs of a reciprocal pair on one side of a node are already
-#' placed either side of its centre line.
+#' axis-aligned only at that line. An S/N channel takes no `par`, because
+#' the stubs that share a side of a node are spread by the stub block
+#' instead: two of them sit either side of its centre line, and more than
+#' two are split by role, the arrivals on one stub and the departures on
+#' the other. Stubs of one role beyond that are left on the centre line
+#' together, so the spread is not a promise that a reciprocal pair leaving
+#' by S/N channels is drawn apart.
 #'
 #' @return A list with `bends` (a matrix, or `NULL` when the edge has no
 #'   bend and stays straight), `port_s`, `port_t`, `side`, and each port's
@@ -6059,6 +6153,7 @@ route_scene_mm <- function(
   grp <- parallel_groups(from, to, nodes, routable, opts$sep_m)
   extra <- grp$extra
   shift <- grp$shift
+  recip <- grp$reciprocal
 
   # every chord long enough to bow is visited, since a chord clear of the
   # discs may still run under another edge's drawn arrowhead; one that
@@ -6179,7 +6274,11 @@ route_scene_mm <- function(
 
     res <- NULL
     ints <- NULL
-    if (nrow(eh) == 0) {
+    if (recip[[e]] && nrow(eh) == 0) {
+      # a member of a reciprocal pair whose chord is clear: a bow off that
+      # chord, deep enough that the pair reads as a lens
+      res <- route_reciprocal_bow(job, shift[[e]], placed)
+    } else if (nrow(eh) == 0) {
       # a parallel-group member whose chord is clear: one midpoint waypoint
       wp <- df_cols(
         x = fr$S[[1]] + 0.5 * fr$Lc * fr$u[[1]],
