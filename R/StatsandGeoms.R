@@ -1560,6 +1560,7 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
       }
       if ("edge_geometry" %in% discover_at_build) {
         self$stat_params$edge_geometry <- discover_edge_geometry(plot)
+        warn_untraced_edges(self, plot)
       }
     })
   }
@@ -1657,6 +1658,81 @@ discover_edge_geometry <- function(plot) {
   # Every type is one wide row per edge; the routing columns the other
   # builders do not fill are NA.
   dedupe_edge_geometry(dplyr::bind_rows(specs))
+}
+
+# The geoms that draw a DAG's edges: the ggraph edge path, which every layer
+# named after a ggraph edge geom draws with, and the three ggarrow edge
+# geoms. A layer drawn with one of these draws edges, whatever data it draws
+# them from.
+dag_edge_geoms <- c(
+  "GeomEdgePath",
+  "GeomDAGArrow",
+  "GeomDAGArrowCurve",
+  "GeomDAGRoutedArrow"
+)
+
+# Whether the plot draws any edges at all. `discover_edge_geometry()` says
+# how the plot's edges are bent, and is `NULL` both for a plot that draws no
+# edges and for one whose edges are straight, so it cannot tell those apart;
+# this is the discovery result that can. An edge layer counts as drawing
+# edges when its data hold a row with an endpoint, and also when those data
+# cannot be settled before the plot is built, which is a layer whose edges
+# are drawn but cannot be read.
+plot_draws_edges <- function(plot) {
+  plot_data <- plot$data
+  if (inherits(plot_data, "tidy_dagitty")) {
+    plot_data <- pull_dag_data(plot_data)
+  }
+
+  for (existing in plot$layers) {
+    if (!inherits(existing$geom, dag_edge_geoms)) {
+      next
+    }
+    layer_data <- resolve_layer_data(existing, plot_data)
+    if (is.null(layer_data) || !all(is.na(layer_data$xend))) {
+      return(TRUE)
+    }
+  }
+
+  FALSE
+}
+
+# Whether the edges a label layer keeps its labels clear of reach it at all.
+# The label stats read the edges out of their own data, one row per edge with
+# both endpoints, so a layer whose data carry no endpoint traces nothing.
+label_layer_sees_edges <- function(layer, plot) {
+  layer_data <- layer_source_data(layer, plot)
+  if (!is.data.frame(layer_data)) {
+    return(FALSE)
+  }
+  if (!all(c("xend", "yend") %in% names(layer_data))) {
+    return(FALSE)
+  }
+
+  !all(is.na(layer_data$xend))
+}
+
+# A label layer with no edges of its own on a plot that draws edges places
+# every label with nothing to avoid, so a label is set down on top of a drawn
+# edge with nothing said. The two cases this has to tell apart are a plot
+# that draws no edges, where there is nothing to cover and nothing to report,
+# and a plot whose edges are drawn from somewhere the label layer cannot
+# read, which is this report. Made once for the layer rather than once for
+# each of its labels.
+warn_untraced_edges <- function(layer, plot) {
+  if (label_layer_sees_edges(layer, plot) || !plot_draws_edges(plot)) {
+    return(invisible(FALSE))
+  }
+
+  warn(
+    c(
+      "The labels have no drawn edges to keep clear of.",
+      "x" = "This plot's edges are drawn from data the label layer does not see, so a label may be placed on top of one.",
+      "i" = "Give the label layer the same data the edges are drawn from, or draw the edges from the plot's own rows."
+    ),
+    warning_class = "ggdag_untraced_edges_warning"
+  )
+  invisible(TRUE)
 }
 
 # One spec row per edge a layer draws. A spec is built from the layer's data
