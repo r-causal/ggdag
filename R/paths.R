@@ -100,6 +100,13 @@ strip_path_results <- function(.tdy_dag) {
 #' `ggdag_paths` and `ggdag_paths_fan` plot all open paths. See
 #' [dagitty::paths()] for details.
 #'
+#' `ggdag_paths_fan()` draws one copy of each edge per open path and spreads
+#' the copies apart by giving each one a curvature. Edge routing draws an edge
+#' along the path the router chooses instead, which leaves the copies on top
+#' of one another, so this plotter draws the fan and warns that an
+#' `edge_route` asked for is dropped. Use `ggdag_paths()` to draw the same
+#' paths with routed edges.
+#'
 #' @inheritParams dag_params
 #' @inheritParams path_params
 #' @inheritParams dagitty::paths
@@ -543,6 +550,13 @@ ggdag_paths_fan <- function(
         reason = "to use edge_engine = \"ggarrow\"."
       )
 
+      # The fan is the picture this plotter draws: one copy of every edge per
+      # open path, spread by a curvature each. The router draws one path per
+      # edge, so a routed fan is no fan at all, and the copies would coincide.
+      # The fan is kept and the routing is reported dropped, once for the
+      # plot, as the ggraph-only edge layers report one they cannot draw.
+      warn_dropped_fan_edge_route()
+
       p <- p +
         quick_plot_arrow_edges(
           mapping = ggplot2::aes(
@@ -552,6 +566,7 @@ ggdag_paths_fan <- function(
           ),
           data_directed = fan_edges(spread, "->"),
           data_bidirected = fan_edges(spread, "<->"),
+          edge_route = "straight",
           arrow_head = ggdag_option("arrow_head", NULL) %||%
             ggarrow::arrow_head_wings(),
           arrow_fins = ggdag_option("arrow_fins", NULL),

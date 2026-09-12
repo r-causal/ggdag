@@ -2635,6 +2635,28 @@ warn_ignored_edge_route <- function(edge_route) {
   )
 }
 
+# The fan spreads one copy of each edge per open path by giving each copy a
+# curvature, and a routed edge is drawn along the path the router chooses
+# rather than along a curvature, so the two cannot both be drawn. The fan is
+# the picture `ggdag_paths_fan()` exists to draw, so the routing gives way,
+# and it says so with the class every dropped routing is reported under.
+warn_dropped_fan_edge_route <- function() {
+  edge_route <- ggdag_option("edge_route", "straight")
+  if (identical(edge_route, "straight")) {
+    return(invisible(FALSE))
+  }
+
+  warn(
+    c(
+      "The fan is drawn rather than the edge routing.",
+      "x" = "{.fun ggdag_paths_fan} spreads one copy of each edge per open path by curvature, which a routed edge cannot carry, so the {.field edge_route} value {.val {edge_route}} is dropped.",
+      "i" = "Use {.fun ggdag_paths} to draw the same paths with routed edges."
+    ),
+    warning_class = "ggdag_edge_route_warning"
+  )
+  invisible(TRUE)
+}
+
 # The ggraph edge geoms draw each edge with the curvature of their own edge
 # type and have nowhere to put a per-edge value, so a curvature the plot asked
 # for would otherwise disappear without a word.

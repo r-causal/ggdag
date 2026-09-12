@@ -1086,9 +1086,13 @@ test_that("ggdag_paths_fan() reports the routing it drops on the ggarrow engine"
 
   for (route in c("spline", "orthogonal")) {
     ggdag_options_set(edge_engine = "ggarrow", edge_route = route)
-    plot <- ggdag_paths_fan(fan_dag())
 
-    warned <- fan_routing_warnings(invisible(ggplot2::ggplot_build(plot)))
+    # once for the whole plot, whether the report is made as the plot is
+    # assembled or as it is built
+    warned <- fan_routing_warnings({
+      plot <- ggdag_paths_fan(fan_dag())
+      invisible(ggplot2::ggplot_build(plot))
+    })
     expect_length(warned, 1)
     expect_s3_class(warned[[1]], "ggdag_edge_route_warning")
     expect_match(conditionMessage(warned[[1]]), route)
@@ -1122,9 +1126,12 @@ test_that("ggdag_paths_fan() says nothing about a straight routing", {
   local_ggdag_option_state()
 
   ggdag_options_set(edge_engine = "ggarrow", edge_route = "straight")
-  plot <- ggdag_paths_fan(fan_dag())
 
-  expect_length(fan_routing_warnings(invisible(ggplot2::ggplot_build(plot))), 0)
+  warned <- fan_routing_warnings({
+    plot <- ggdag_paths_fan(fan_dag())
+    invisible(ggplot2::ggplot_build(plot))
+  })
+  expect_length(warned, 0)
 })
 
 test_that("ggdag_paths_fan() draws the fan under a routing", {

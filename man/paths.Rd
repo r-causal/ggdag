@@ -212,6 +212,14 @@ a \code{ggplot}.
 \code{ggdag_paths} and \code{ggdag_paths_fan} plot all open paths. See
 \code{\link[dagitty:paths]{dagitty::paths()}} for details.
 }
+\details{
+\code{ggdag_paths_fan()} draws one copy of each edge per open path and spreads
+the copies apart by giving each one a curvature. Edge routing draws an edge
+along the path the router chooses instead, which leaves the copies on top
+of one another, so this plotter draws the fan and warns that an
+\code{edge_route} asked for is dropped. Use \code{ggdag_paths()} to draw the same
+paths with routed edges.
+}
 \section{Edge layers of the composite plotters}{
 
 The plotters that color or fade edges by an analysis column build their edge
