@@ -2346,6 +2346,11 @@ geom_dag <- function(
     # plot it is added to; `node_size` is already threaded here, so the wrapper
     # leaves it alone.
     label_geom_result <- do.call(label_geom, common_params)
+    label_geom_result <- fill_auto_label_params(
+      label_geom_result,
+      edge_cap = sizes[["cap"]],
+      wrap = label_wrap
+    )
     if (generated_label && !is.null(label_geom_result)) {
       attr(label_geom_result, "dag_generated_label") <- TRUE
     }

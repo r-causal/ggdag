@@ -3829,3 +3829,57 @@ geom_dag_text_auto <- dag_node_aware(
   geom_dag_text_auto,
   extra = c("edge_cap", "wrap")
 )
+
+# `geom_dag()` threads `edge_cap` and `wrap` by naming them on the call it
+# makes to the label geom, so a wrapper of the documented shape
+# `function(...) geom_dag_label_auto(...)` never sees them: they are not
+# among the arguments it is handed, and it cannot carry the
+# `dag_node_aware()` tag that says it takes them, because that tag is
+# internal. They are filled in on the layer the call returns instead, where
+# the geom that draws it is known: only the automatic label geoms take them,
+# and only a parameter the call left unset is filled in, so a value written
+# inside the wrapper wins. A tagged geom already carries both, so this is a
+# no-op for a direct call.
+fill_auto_label_params <- function(result, edge_cap, wrap) {
+  if (inherits(result, "dag_layer")) {
+    result$layer <- fill_auto_label_layer(
+      .subset2(result, "layer"),
+      edge_cap,
+      wrap
+    )
+    return(result)
+  }
+
+  if (inherits(result, "ggproto") || !is.list(result)) {
+    return(fill_auto_label_layer(result, edge_cap, wrap))
+  }
+
+  # a wrapper is free to return several layers, of which one places labels
+  lapply(result, fill_auto_label_params, edge_cap = edge_cap, wrap = wrap)
+}
+
+fill_auto_label_layer <- function(layer, edge_cap, wrap) {
+  if (!inherits(layer, "ggproto")) {
+    return(layer)
+  }
+  if (!inherits(layer$stat, "StatNodesLabelAuto")) {
+    return(layer)
+  }
+
+  needs_cap <- is.null(layer$geom_params$edge_cap)
+  needs_wrap <- !is.null(wrap) && is.null(layer$geom_params$wrap)
+  if (!needs_cap && !needs_wrap) {
+    return(layer)
+  }
+
+  # a layer is an environment, so a layer the wrapper holds on to would
+  # otherwise carry this plot's values to the next plot it is added to
+  layer <- clone_layer(layer)
+  if (needs_cap) {
+    layer$geom_params$edge_cap <- edge_cap
+  }
+  if (needs_wrap) {
+    layer$geom_params$wrap <- wrap
+  }
+  layer
+}
