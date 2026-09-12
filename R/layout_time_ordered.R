@@ -275,6 +275,107 @@ resolve_bidirected_groups <- function(edges_df) {
   groups
 }
 
+#' Choose the edges to reverse so a cyclic graph can be layered
+#'
+#' A directed cycle has no topological order: every node on it is waiting for
+#' a parent that is waiting, in turn, for it. A layering pass that places a
+#' node once its parents are placed therefore never reaches any of them, and
+#' the whole component collapses onto one layer. Layered drawing engines
+#' break the cycles before layering rather than refuse the graph, and so does
+#' this: a depth-first pass calls an edge that reaches a node still on the
+#' current search path a back edge, and reversing exactly those edges leaves
+#' an acyclic graph, since every other edge already runs forward in the
+#' reverse postorder the same pass computes. The reversal serves the layer
+#' assignment alone. The edge is drawn from its true source to its true
+#' target as always, arriving at a node an earlier layer holds, which is what
+#' a reader of a feedback loop expects to see.
+#'
+#' The smallest such set is NP-hard to find, so a depth-first set is the
+#' usual answer rather than the optimal one. What matters past its size is
+#' that it is the same set every time: the pass visits nodes in name order
+#' and each node's children in name order, both sorted in the C locale, so
+#' the set is a function of the edges and the node names and of nothing else,
+#' row order included.
+#'
+#' Self-loops take no part, since reversing one leaves it a self-loop;
+#' `longest_path_layers()` drops those from the layer pass instead.
+#'
+#' @param from,to Character vectors of equal length holding the endpoints of
+#'   the directed edges, already condensed to supernodes.
+#' @return A logical vector over the edges, `TRUE` for each edge in the
+#'   feedback set. An acyclic graph returns all `FALSE`.
+#' @noRd
+feedback_edges <- function(from, to) {
+  reversed <- logical(length(from))
+  real <- from != to
+  if (!any(real)) {
+    return(reversed)
+  }
+
+  nodes <- sort(unique(c(from[real], to[real])), method = "radix")
+  n_nodes <- as.double(length(nodes))
+  edge_from <- match(from[real], nodes)
+  edge_to <- match(to[real], nodes)
+
+  # Children in ascending name order, so the search is a function of the
+  # names rather than of the order the edges arrived in
+  by_name <- order(edge_from, edge_to, method = "radix")
+  children <- split(
+    edge_to[by_name],
+    factor(edge_from[by_name], levels = seq_along(nodes))
+  )
+  children <- lapply(children, unique)
+
+  white <- 0L
+  grey <- 1L
+  black <- 2L
+  colors <- rep(white, length(nodes))
+
+  # The search path is at most one entry per node, so the stack holding it
+  # is allocated once: `stack_node` is the path itself and `stack_child` the
+  # child each node on it has reached
+  stack_node <- integer(length(nodes))
+  stack_child <- integer(length(nodes))
+  back <- numeric(0)
+
+  for (root in seq_along(nodes)) {
+    if (colors[[root]] != white) {
+      next
+    }
+    depth <- 1L
+    stack_node[[1L]] <- root
+    stack_child[[1L]] <- 1L
+    colors[[root]] <- grey
+
+    while (depth > 0L) {
+      node <- stack_node[[depth]]
+      kids <- children[[node]]
+      i <- stack_child[[depth]]
+
+      if (i > length(kids)) {
+        colors[[node]] <- black
+        depth <- depth - 1L
+        next
+      }
+      stack_child[[depth]] <- i + 1L
+
+      child <- kids[[i]]
+      if (colors[[child]] == grey) {
+        # The child is still on the search path, so this edge closes a cycle
+        back <- c(back, node + (child - 1) * n_nodes)
+      } else if (colors[[child]] == white) {
+        colors[[child]] <- grey
+        depth <- depth + 1L
+        stack_node[[depth]] <- child
+        stack_child[[depth]] <- 1L
+      }
+    }
+  }
+
+  reversed[real] <- (edge_from + (edge_to - 1) * n_nodes) %in% back
+  reversed
+}
+
 #' Find a condensed node and everything upstream of it
 #'
 #' Used to report which pins pushed an unpinned node to the layer it holds.
@@ -376,13 +477,27 @@ longest_path_layers <- function(
   reps <- group_representatives(all_nodes, groups)
   supernodes <- unique(unname(reps))
 
-  # Build condensed adjacency list and in-degree, one entry per supernode
+  # Build condensed adjacency list and in-degree, one entry per supernode.
+  # A cycle among the supernodes has no topological order, so the passes
+  # below run on the graph a feedback set of edges is reversed in, and a
+  # self-loop, which reversing cannot help, takes no part in them at all.
+  # Both concern the layer assignment only: every edge is drawn from its
+  # true source to its true target, a reversed one arriving at a node an
+  # earlier layer holds. An acyclic graph has neither a feedback set nor a
+  # self-loop, so the graph laid out below is the one given.
+  condensed_from <- unname(reps[directed$name])
+  condensed_to <- unname(reps[directed$to])
+  reversed <- feedback_edges(condensed_from, condensed_to)
+  self_loop <- condensed_from == condensed_to
+  layer_from <- ifelse(reversed, condensed_to, condensed_from)
+  layer_to <- ifelse(reversed, condensed_from, condensed_to)
+
   adj <- stats::setNames(vector("list", length(supernodes)), supernodes)
   in_deg <- stats::setNames(integer(length(supernodes)), supernodes)
 
-  for (i in seq_len(nrow(directed))) {
-    src <- reps[[directed$name[i]]]
-    tgt <- reps[[directed$to[i]]]
+  for (i in which(!self_loop)) {
+    src <- layer_from[[i]]
+    tgt <- layer_to[[i]]
     adj[[src]] <- c(adj[[src]], tgt)
     in_deg[[tgt]] <- in_deg[[tgt]] + 1L
   }
@@ -466,8 +581,10 @@ but are pinned to different times: {.val {pin_values + 1L}}."
       }
     }
 
-    # Validate: no directed edge has parent pinned >= child pinned
-    for (i in seq_len(nrow(directed))) {
+    # Validate: no directed edge has parent pinned >= child pinned. An edge
+    # the cycle breaking set aside is drawn backwards in time by design, so
+    # it is no evidence that a pin is wrong.
+    for (i in which(!reversed & !self_loop)) {
       src <- directed$name[i]
       tgt <- directed$to[i]
       if (src %in% pin_names && tgt %in% pin_names) {
@@ -1853,9 +1970,13 @@ compute_time_ordered_layout <- function(
             touched <- directed$name %in%
               shift_nodes |
               directed$to %in% shift_nodes
+            # An edge the cycle breaking left pointing backwards in time was
+            # never going to advance, so it has no say in whether the shift
+            # does; every edge of an acyclic DAG advances already.
+            forward <- layer_assign[directed$name] < layer_assign[directed$to]
             advances <- all(
-              candidate[directed$name[touched]] <
-                candidate[directed$to[touched]]
+              candidate[directed$name[touched & forward]] <
+                candidate[directed$to[touched & forward]]
             )
             if (!advances) {
               # Only a pinned member of the shifted set can hold a node back,
