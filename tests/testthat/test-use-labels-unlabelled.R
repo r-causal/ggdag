@@ -190,3 +190,70 @@ test_that("visuals: use_labels on an unlabelled DAG draws no labels", {
   p <- ggdag(unlabelled_dag(), use_labels = TRUE) + theme_dag()
   expect_doppelganger("use-labels-unlabelled-no-op", p)
 })
+
+# Any geom can draw the labels, and `label_geom` is documented with the static
+# geoms alongside the repelled ones, so the no-op belongs to `use_labels`
+# rather than to the geoms whose stat places labels around the nodes.
+static_label_geoms <- list(
+  geom_dag_label = geom_dag_label,
+  geom_dag_text = geom_dag_text,
+  geom_label = ggplot2::geom_label,
+  geom_text = ggplot2::geom_text
+)
+
+# Every piece of text the plot draws, wherever it is drawn from.
+all_drawn_text <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)$data
+  drawn <- unlist(lapply(built, function(layer_data) {
+    if ("label" %in% names(layer_data)) as.character(layer_data$label)
+  }))
+  unique(drawn[!is.na(drawn) & nzchar(drawn)])
+}
+
+test_that("use_labels on an unlabelled DAG is a no-op for a static geom", {
+  plain <- ggdag(unlabelled_dag())
+  plain_status <- ggdag_status(unlabelled_dag())
+
+  for (label_geom in static_label_geoms) {
+    plot <- ggdag(unlabelled_dag(), use_labels = TRUE, label_geom = label_geom)
+    expect_no_condition(ggplot2::ggplot_build(plot))
+    expect_length(plot$layers, length(plain$layers))
+    expect_setequal(all_drawn_text(plot), c("x", "y", "z"))
+
+    status <- ggdag_status(
+      unlabelled_dag(),
+      use_labels = TRUE,
+      label_geom = label_geom
+    )
+    expect_no_condition(ggplot2::ggplot_build(status))
+    expect_length(status$layers, length(plain_status$layers))
+    expect_setequal(all_drawn_text(status), c("x", "y", "z"))
+  }
+})
+
+test_that("a static label geom still draws a labelled DAG's labels", {
+  labels <- c("Exposure", "Outcome", "Confounder")
+
+  for (label_geom in static_label_geoms) {
+    plot <- ggdag(labelled_dag(), use_labels = TRUE, label_geom = label_geom)
+    expect_true(all(labels %in% all_drawn_text(plot)))
+  }
+})
+
+test_that("a static label geom still draws an explicit label column", {
+  named <- unlabelled_dag() |>
+    tidy_dagitty() |>
+    dplyr::mutate(note = paste0("node ", name))
+
+  for (label_geom in static_label_geoms) {
+    plot <- ggdag(
+      named,
+      use_labels = TRUE,
+      label = note,
+      label_geom = label_geom
+    )
+    expect_true(all(
+      paste0("node ", c("x", "y", "z")) %in% all_drawn_text(plot)
+    ))
+  }
+})
