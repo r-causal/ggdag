@@ -88,7 +88,9 @@ and the node borders).}
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
 \item{use_labels}{A logical value. Include a label geom? The specific geom
-used is controlled by \code{label_geom}.}
+used is controlled by \code{label_geom}. A DAG that carries no labels has
+nothing for the geom to draw, and the layer is left out rather than
+drawn empty, so the plot is the one you would get without the argument.}
 
 \item{label_geom}{A geom function to use for drawing labels when
 \code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options

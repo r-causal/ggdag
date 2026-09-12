@@ -2021,7 +2021,9 @@ geom_dag_ggarrow_edges <- function(
 #' @param use_stylized A logical value. Include `geom_dag_node()`?
 #' @param use_text A logical value. Include `geom_dag_text()`?
 #' @param use_labels A logical value. Include a label geom? The specific geom
-#'   used is controlled by `label_geom`.
+#'   used is controlled by `label_geom`. A DAG that carries no labels has
+#'   nothing for the geom to draw, and the layer is left out rather than
+#'   drawn empty, so the plot is the one you would get without the argument.
 #' @param label_geom A geom function to use for drawing labels when
 #'   `use_labels = TRUE`. Default is `geom_dag_label_repel`. Other options
 #'   include `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
@@ -2299,7 +2301,12 @@ geom_dag <- function(
   if (isTRUE(use_labels)) {
     label <- rlang::enquo(label)
 
-    if (rlang::quo_is_null(label)) {
+    # A caller who names no column asks for the DAG's labels, and the mapping
+    # to the `label` column is written here rather than by the caller. A DAG
+    # that carries no labels has no such column, and the layer is dropped when
+    # the plot it joins turns out to be one of those.
+    generated_label <- rlang::quo_is_null(label)
+    if (generated_label) {
       label <- rlang::quo(label)
     }
 
@@ -2339,6 +2346,9 @@ geom_dag <- function(
     # plot it is added to; `node_size` is already threaded here, so the wrapper
     # leaves it alone.
     label_geom_result <- do.call(label_geom, common_params)
+    if (generated_label && !is.null(label_geom_result)) {
+      attr(label_geom_result, "dag_generated_label") <- TRUE
+    }
   } else {
     label_geom_result <- NULL
   }
@@ -2463,6 +2473,8 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   wants_curve <- wants_edge_curvature(plot_data)
   curvature_ignored <- FALSE
 
+  object <- drop_empty_label_layer(object, plot)
+
   for (item in flatten_dag_layers(object)) {
     if (has_curvature && inherits(item, "dag_arrow_layer")) {
       item <- inject_edge_curvature(item)
@@ -2484,6 +2496,29 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   }
 
   plot
+}
+
+# `geom_dag(use_labels = TRUE)` maps the `label` column whether or not the
+# DAG carries labels, and a DAG without them has no such column for the label
+# layer to draw. `use_labels` on that DAG asks for labels the DAG does not
+# have, so the layer is dropped and the plot draws as it would without the
+# argument, rather than failing on a column that is not in the data. The
+# layer is dropped whichever geom draws it, because the mapping that names
+# the column is written by `geom_dag()` rather than by the geom.
+drop_empty_label_layer <- function(object, plot) {
+  for (i in seq_along(object)) {
+    item <- object[[i]]
+    if (!isTRUE(attr(item, "dag_generated_label"))) {
+      next
+    }
+
+    data <- layer_source_data(item, plot)
+    if (!is.null(data) && !"label" %in% names(data)) {
+      object[i] <- list(NULL)
+    }
+  }
+
+  object
 }
 
 # `geom_dag()` hands back a list that can hold further lists, because an edge
