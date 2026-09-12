@@ -22,7 +22,8 @@ test_that("mirrored curve rows keep distinct edge ids through repel_edge_points"
     flipped = FALSE,
     from = NA_character_,
     to = NA_character_,
-    curvature = NA_real_,
+    direction = NA_character_,
+    curvature = c(0.3, -0.3),
     stringsAsFactors = FALSE
   )
   edges <- data.frame(x = 0, y = 0, xend = 2, yend = 0, PANEL = 1L)

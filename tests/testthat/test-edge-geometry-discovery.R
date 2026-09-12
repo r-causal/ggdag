@@ -83,9 +83,11 @@ curved_edge_dag <- function() {
 }
 
 # One row of discovered geometry for a curve-type edge, in the shape
-# discover_edge_geometry() emits: the per-edge curvature is the row's
-# `strength`, like the ggraph types, so the drawn path is fully described by
-# the shared columns.
+# `arrow_layer_geometry()` emits for a layer that maps `edge_curvature`. The
+# per-edge curvature is the row's `strength`, like the ggraph types, so the
+# arc the data-space consumers follow is described by the shared columns, and
+# it is the row's `curvature` as well, because `grid::curveGrob()` bends the
+# edge on the device and the automatic label engine traces it there.
 curve_geometry <- function(x, y, xend, yend, strength) {
   data.frame(
     x = x,
@@ -100,7 +102,8 @@ curve_geometry <- function(x, y, xend, yend, strength) {
     flipped = FALSE,
     from = NA_character_,
     to = NA_character_,
-    curvature = NA_real_,
+    direction = NA_character_,
+    curvature = strength,
     stringsAsFactors = FALSE
   )
 }
@@ -129,6 +132,11 @@ test_that("a per-edge-curvature ggarrow layer is discovered as type curve", {
   # per-row strength: the straight x -> m edge carries zero and the curved
   # x -> y edge carries its own curvature
   expect_equal(geometry$strength, c(0, 0.3))
+  # and the same value again as the curvature the row is drawn at, which is
+  # the column the automatic label engine traces the arc in millimetres from.
+  # `curve_geometry()` below stands for this row, so the two are pinned
+  # together here rather than by resemblance.
+  expect_equal(geometry$curvature, c(0, 0.3))
 })
 
 test_that("a scalar-curvature ggarrow layer keeps the ggarrow_curve type", {
@@ -368,7 +376,6 @@ test_that("a curve row drawn by ggarrow reaches the label stat as its chord", {
   # curvature it is drawn at, for the label grob to trace in millimetres
   edges <- data.frame(x = 0, y = 0, xend = 2, yend = 0, PANEL = 1L)
   geometry <- curve_geometry(0, 0, 2, 0, strength = 0.3)
-  geometry$curvature <- 0.3
 
   points <- repel_edge_points(
     edges,
@@ -388,9 +395,12 @@ test_that("a curve row drawn by ggarrow reaches the label stat as its chord", {
 test_that("a curve row naming no drawn curvature keeps its data-space arc", {
   # the discrimination is the drawing engine, not the mapping: a spec that
   # names no device curvature has nothing to trace in millimetres, so it is
-  # followed as the arc its strength models however it is asked for
+  # followed as the arc its strength models however it is asked for. Every
+  # layer ggdag discovers as type "curve" is drawn by the ggarrow curve geom
+  # and so names one, which is why the row is emptied of it by hand here
   edges <- data.frame(x = 0, y = 0, xend = 2, yend = 0, PANEL = 1L)
   geometry <- curve_geometry(0, 0, 2, 0, strength = 0.3)
+  geometry$curvature <- NA_real_
 
   points <- repel_edge_points(
     edges,

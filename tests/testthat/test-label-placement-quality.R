@@ -115,6 +115,10 @@ quality_labelled_plot <- function(dag) {
 
 quality_plots <- list(
   ten_node = function() quality_labelled_plot(ten_node_labelled_dag()),
+  # The panel of mixed curvature the arc blocks at the foot of this file
+  # measure, where the builder is written; it is the one scene here whose
+  # edges are drawn as arcs.
+  mixed = function() mixed_curvature_plot(),
   skip_chain = function() quality_labelled_plot(labelled_skip_chain_dag()),
   saturated = function() {
     quality_labelled_plot(dag_saturate(ten_node_labelled_dag()))
@@ -197,6 +201,15 @@ quality_scenes <- function(build, size, route = "spline") {
       grid::grid.get
     )
     drawn <- unlist(lapply(edge_grobs, drawn_paths_mm), recursive = FALSE)
+    # The polygons those same grobs widened those paths into, which is the ink
+    # itself rather than the line it is centred on. A forced edge grob keeps
+    # them as its children.
+    ink <- unlist(
+      lapply(edge_grobs, function(grob) {
+        unlist(lapply(grob$children, drawn_arc_ink), recursive = FALSE)
+      }),
+      recursive = FALSE
+    )
 
     list(
       tree = tree,
@@ -207,6 +220,7 @@ quality_scenes <- function(build, size, route = "spline") {
         radius = node_radius_mm(tree$nodes$node_size)
       ),
       drawn = drawn,
+      ink = ink,
       cap = tree$params$edge_cap,
       gap = tree$params$gap %||% 2,
       width = panel_width,
@@ -231,10 +245,33 @@ cached_scenes <- function(name, size, route = "spline") {
   quality_scene_cache[[key]]
 }
 
+# The ink one forced arrow grob drew, one data frame of millimetres per
+# sub-path. The widened arrow is a path grob whose sub-paths are one arrow
+# each; a grob that carries no points, a legend key or an empty layer, draws
+# no ink.
+drawn_arc_ink <- function(grob) {
+  if (!grid::is.grob(grob) || is.null(grob$x) || length(grob$x) == 0) {
+    return(list())
+  }
+  ids <- if (!is.null(grob$pathId.lengths)) {
+    rep(seq_along(grob$pathId.lengths), grob$pathId.lengths)
+  } else {
+    rep(1L, length(grob$x))
+  }
+  points <- data.frame(
+    x = grid::convertX(grob$x, "mm", TRUE),
+    y = grid::convertY(grob$y, "mm", TRUE)
+  )
+  unname(split(points, factor(ids, levels = unique(ids))))
+}
+
 # The drawn paths of one edge grob, in millimetres of the current viewport,
 # one data frame per edge. A routed layer draws an `arrow_path` whose points
-# are the router's polyline; the straight engine draws a `curve_arrow` whose
-# `curve` holds the chord ends and a curvature, zero for a directed edge.
+# are the router's polyline; the straight engine draws a `curve_arrow`, which
+# carries its chord ends and a curvature and resolves them into a path when it
+# is drawn. Both are read off the grob. A path rebuilt here from the same
+# model the engine placed against would agree with that model whatever the
+# picture did, so a box measured against it would say nothing about the ink.
 drawn_paths_mm <- function(grob) {
   if (inherits(grob, "arrow_path")) {
     ids <- grob$id_rle
@@ -255,15 +292,36 @@ drawn_paths_mm <- function(grob) {
   if (is.null(curve) || length(curve$x1) == 0) {
     return(list())
   }
-  x1 <- grid::convertX(curve$x1, "mm", TRUE)
-  y1 <- grid::convertY(curve$y1, "mm", TRUE)
-  x2 <- grid::convertX(curve$x2, "mm", TRUE)
-  y2 <- grid::convertY(curve$y2, "mm", TRUE)
-  lapply(seq_along(x1), function(i) {
-    if (curve$curvature == 0) {
-      return(data.frame(x = c(x1[i], x2[i]), y = c(y1[i], y2[i])))
+  realised_curve_mm(curve)
+}
+
+# The vertices grid lays a `curve_arrow`'s shaft along, one data frame of
+# millimetres per edge. `grid::curveGrob()` turns the chord ends and the
+# curvature into the X-spline it draws, or into the chord itself when the
+# curvature is zero, and `ggarrow:::makeContent.curve_arrow()` widens these
+# very points into the polygon the reader sees, so they are the drawn path.
+realised_curve_mm <- function(curve) {
+  resolved <- grid::makeContent(curve)$children[[1]]
+  if (inherits(resolved, "xspline")) {
+    points <- grid::xsplinePoints(resolved)
+    # one curve comes back as a single pair of vectors, several as a list
+    if (all(c("x", "y") %in% names(points))) {
+      points <- list(points)
     }
-    sample_curved_edge(x1[i], y1[i], x2[i], y2[i], curve$curvature, n = 50)
+    return(lapply(points, function(path) {
+      data.frame(
+        x = grid::convertX(path$x, "mm", TRUE),
+        y = grid::convertY(path$y, "mm", TRUE)
+      )
+    }))
+  }
+
+  x0 <- grid::convertX(resolved$x0, "mm", TRUE)
+  y0 <- grid::convertY(resolved$y0, "mm", TRUE)
+  x1 <- grid::convertX(resolved$x1, "mm", TRUE)
+  y1 <- grid::convertY(resolved$y1, "mm", TRUE)
+  lapply(seq_along(x0), function(i) {
+    data.frame(x = c(x0[i], x1[i]), y = c(y0[i], y1[i]))
   })
 }
 
@@ -923,15 +981,22 @@ per_edge_feedback_plot <- function() {
 # Three edges in one panel, two of them curved to opposite sides by
 # `curve_edge()` and one left straight, so that a single scene holds a bow
 # each way and an edge the trace must leave on its chord.
+#
+# The mediator stands well above the x -> y chord and the two bows are deep,
+# which is what makes the scene discriminate: a model that traces a per-edge
+# arc in data units and lets the panel's shape stretch it puts the Exposure
+# box on the ink it drew, on the landscape panels by a wide margin and on the
+# square one too. A shallower triangle leaves so much room beside the arcs
+# that the boxes clear them whatever the model says.
 mixed_curvature_plot <- function() {
   dag <- dagify(
     y ~ x + m,
     m ~ x,
     labels = c(x = "Exposure", m = "Mediator", y = "Outcome"),
-    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
+    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1.6, y = 0))
   )
-  tidy <- curve_edge(tidy_dagitty(dag), "x", "y", 0.4)
-  tidy <- curve_edge(tidy, "x", "m", -0.3)
+  tidy <- curve_edge(tidy_dagitty(dag), "x", "y", 0.6)
+  tidy <- curve_edge(tidy, "x", "m", -0.5)
   ggdag(
     tidy,
     use_text = FALSE,
@@ -1014,26 +1079,6 @@ curve_scene <- function(build, size, route = "orthogonal") {
   )
 }
 
-# The ink one forced arrow grob drew, one data frame of millimetres per
-# sub-path. The widened arrow is a path grob whose sub-paths are one arrow
-# each; a grob that carries no points, a legend key or an empty layer, draws
-# no ink.
-drawn_arc_ink <- function(grob) {
-  if (!grid::is.grob(grob) || is.null(grob$x) || length(grob$x) == 0) {
-    return(list())
-  }
-  ids <- if (!is.null(grob$pathId.lengths)) {
-    rep(seq_along(grob$pathId.lengths), grob$pathId.lengths)
-  } else {
-    rep(1L, length(grob$x))
-  }
-  points <- data.frame(
-    x = grid::convertX(grob$x, "mm", TRUE),
-    y = grid::convertY(grob$y, "mm", TRUE)
-  )
-  unname(split(points, factor(ids, levels = unique(ids))))
-}
-
 # How deep the points reach on either side of the line between the two nodes.
 # Both arcs run between the same pair, so that line is the chord of each of
 # them, and one arc bows to each side of it; a depth taken from the points'
@@ -1047,6 +1092,18 @@ arc_depths <- function(points, nodes) {
   offsets <- ((xend - x) * (points$y - y) - (points$x - x) * (yend - y)) /
     sqrt((xend - x)^2 + (yend - y)^2)
   c(above = max(offsets), below = min(offsets))
+}
+
+# How far the drawn arrowhead reaches either side of the shaft it ends, in
+# millimetres. The wings of `ggarrow::arrow_head_wings()` sit at 0.524 of the
+# head's length from its axis, and ggdag draws a head as long as the
+# `arrow_length` option, 5 points. An edge modelled as its chord lays ink this
+# far from that chord without bowing at all, so a depth read off such an edge
+# is compared against this rather than against a bound in millimetres, which
+# the default arrow width would otherwise set.
+arrowhead_half_width <- function() {
+  wings <- ggarrow::arrow_head_wings()
+  max(abs(wings[, 2])) * ggdag_option("arrow_length", 5) / ggplot2::.pt
 }
 
 arc_scene_cache <- new.env(parent = emptyenv())
@@ -1271,6 +1328,48 @@ test_that("no label box on a per-edge curved loop holds drawn edge ink", {
   expect_equal(inside, stats::setNames(rep(0, length(inside)), names(inside)))
 })
 
+# The measurement itself -----------------------------------------------------------
+
+test_that("the paths a scene reports are the paths the picture drew", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # Every expectation here about boxes keeping off the ink is worth exactly
+  # what `drawn_paths_mm()` is worth. A path rebuilt from the model the engine
+  # placed against would agree with that model whatever the picture did, which
+  # is how an arc modelled far deeper than it draws passed this whole file. So
+  # the reported path is checked against the polygon the same grob widened it
+  # into: every point of it lies within the half width that polygon is drawn
+  # at, which the arrowhead takes to just under a millimetre.
+  for (size in quality_sizes) {
+    scene <- cached_scenes("mixed", size, "straight")[[1]]
+    # the polygon of a straight arrow is a handful of corners, so it is
+    # resampled before distances to it are read off its points
+    ink <- do.call(rbind, lapply(scene$ink, densify_mm_polyline))
+    reach <- vapply(
+      drawn_ink(scene),
+      function(path) {
+        if (nrow(path) == 0) {
+          return(0)
+        }
+        max(vapply(
+          seq_len(nrow(path)),
+          function(i) {
+            min(sqrt((ink$x - path$x[[i]])^2 + (ink$y - path$y[[i]])^2))
+          },
+          numeric(1)
+        ))
+      },
+      numeric(1)
+    )
+    expect_lt(
+      max(reach),
+      2,
+      label = paste(size_key(size), "reported path off its own ink")
+    )
+  }
+})
+
 test_that("a panel of mixed curvature models every edge at its drawn depth", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
@@ -1291,10 +1390,25 @@ test_that("a panel of mixed curvature models every edge at its drawn depth", {
     expect_equal(sum(bows < 0), 1)
     expect_length(depths$drawn[abs(depths$drawn) <= 2], 1)
 
+    # The straight edge is modelled as its chord, and what it draws either
+    # side of that chord is its arrowhead rather than a bow, so it is
+    # compared against the head's own half width. Held to the millimetre
+    # bound below instead it would be what sets that bound, and the margin
+    # the block passed by would be the default arrow width.
+    straight <- setdiff(names(depths$drawn), names(bows))
+    expect_length(straight, 1)
+    expect_equal(unname(depths$modelled[straight]), 0)
+    # the millimetre the depth is read in is converted at draw time, so the
+    # two agree to a rounding of it rather than exactly
+    expect_equal(
+      unname(abs(depths$drawn[straight])),
+      arrowhead_half_width(),
+      tolerance = 1e-6
+    )
+
     # the same allowance the scalar block makes for the widened stroke and
-    # for the spacing either side is read at; the straight edge is compared
-    # in millimetres alone, its modelled depth being zero.
-    expect_lt(max(abs(depths$modelled - depths$drawn)), 1)
+    # for the spacing either side is read at
+    expect_lt(max(abs(depths$modelled[names(bows)] - bows)), 1)
     expect_equal(depths$modelled[names(bows)], bows, tolerance = 0.05)
   }
 })
