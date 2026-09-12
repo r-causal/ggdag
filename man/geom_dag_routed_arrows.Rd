@@ -6,6 +6,7 @@
 \usage{
 geom_dag_routed_arrows(
   mapping = NULL,
+  data = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
   route = c("spline", "orthogonal"),
@@ -43,9 +44,15 @@ geom_dag_routed_arrows(
 \item{mapping}{Set of aesthetic mappings created by \code{\link[ggplot2:aes]{ggplot2::aes()}},
 applied to both the routed layer and the bidirected arc layer.}
 
+\item{data}{The data to be displayed. \code{NULL}, the default, uses the plot
+data. Both layers filter what it holds by edge direction, so a subset of
+the plot's rows narrows the directed and the bidirected edges alike.}
+
 \item{data_directed, data_bidirected}{The data to be displayed for directed
 and bidirected edges respectively. By default, these filter the plot
-data by edge direction.}
+data by edge direction. Data named for one direction replaces the filter
+for that direction: a function there is applied to whatever \code{data}
+gives it, and a data frame there is that direction's data as it stands.}
 
 \item{route}{How to route the edges: \code{"spline"} (the default) draws a
 blocked edge as a smooth curve around the obstacle and leaves unblocked

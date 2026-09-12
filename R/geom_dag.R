@@ -1657,6 +1657,11 @@ compose_edge_data <- function(user_data, dir_filter) {
   if (is.null(user_data)) {
     return(dir_filter)
   }
+  # data named for one direction rather than a filter of it is that
+  # direction's data as it stands, and there is nothing to compose onto
+  if (!is.function(dir_filter)) {
+    return(dir_filter)
+  }
   if (is.function(user_data)) {
     return(function(x) dir_filter(user_data(x)))
   }

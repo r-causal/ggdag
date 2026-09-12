@@ -1312,9 +1312,14 @@ dag_routed_arrow_layer <- function(
 #' @inheritParams geom_dag_arrow_arc
 #' @param mapping Set of aesthetic mappings created by [ggplot2::aes()],
 #'   applied to both the routed layer and the bidirected arc layer.
+#' @param data The data to be displayed. `NULL`, the default, uses the plot
+#'   data. Both layers filter what it holds by edge direction, so a subset of
+#'   the plot's rows narrows the directed and the bidirected edges alike.
 #' @param data_directed,data_bidirected The data to be displayed for directed
 #'   and bidirected edges respectively. By default, these filter the plot
-#'   data by edge direction.
+#'   data by edge direction. Data named for one direction replaces the filter
+#'   for that direction: a function there is applied to whatever `data`
+#'   gives it, and a data frame there is that direction's data as it stands.
 #' @param route How to route the edges: `"spline"` (the default) draws a
 #'   blocked edge as a smooth curve around the obstacle and leaves unblocked
 #'   edges straight. `"orthogonal"` draws every edge as axis-aligned runs
@@ -1375,6 +1380,7 @@ dag_routed_arrow_layer <- function(
 #' @export
 geom_dag_routed_arrows <- function(
   mapping = NULL,
+  data = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
   route = c("spline", "orthogonal"),
@@ -1414,6 +1420,13 @@ geom_dag_routed_arrows <- function(
 
   route <- match.arg(route)
   layer_axis <- match.arg(layer_axis)
+
+  # The layer draws directed and bidirected edges with two layers of its own,
+  # so `data` narrows the rows each of them then filters by direction, the
+  # way `geom_dag()` composes its own `data`. Data named for one direction is
+  # that direction's own and stands as it is.
+  data_directed <- compose_edge_data(data, data_directed)
+  data_bidirected <- compose_edge_data(data, data_bidirected)
 
   resect_head <- resect_head %||% resect
   resect_fins <- resect_fins %||% resect
