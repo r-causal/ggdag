@@ -8,10 +8,10 @@
 #'   padding around the data, to ensure that they are placed some distance away
 #'   from the axes. Use the convenience function `ggplot2::expansion()` to
 #'   generate the values for the expand argument. The DAG plotting functions
-#'   replace this value on an axis whose nodes all share one coordinate: a
-#'   multiplicative expansion of a zero-width range adds nothing, so such an
-#'   axis takes an additive expansion of an eighth of the other axis's span on
-#'   each side instead.
+#'   replace this value on an axis whose nodes all share one coordinate,
+#'   exactly or to within floating-point noise: a multiplicative expansion of
+#'   a zero-width range adds nothing, so such an axis takes an additive
+#'   expansion of an eighth of the other axis's span on each side instead.
 #' @export
 expand_plot <- function(
   expand_x = expansion(c(0.10, 0.10)),
@@ -26,7 +26,8 @@ expand_plot <- function(
 # `expand_plot()` for a plot of `data`, the tidy DAG the plot is drawn from.
 #
 # A DAG whose nodes all share one coordinate, a chain along a single line for
-# instance, trains that axis to a zero-width range. A multiplicative expansion
+# instance, trains that axis to a zero-width range, as does one whose nodes
+# share it to within floating-point noise. A multiplicative expansion
 # of a zero-width range adds nothing, so ggplot2 falls back to a placeholder a
 # tenth of a unit on each side of the value under the expansion used here (a
 # twentieth under ggplot2's own default), and under `coord_fixed()` the panel
@@ -74,13 +75,27 @@ dag_axis_range <- function(data, axis) {
   range(values)
 }
 
-# Whether a range is zero-width, by the rule ggplot2 applies when it expands
-# one: endpoints that are equal, or equal to within a relative tolerance.
+# Whether a range is zero-width: endpoints that are equal, endpoints equal to
+# within a relative tolerance, or a span no wider than the noise of
+# representing the values themselves. The first two are the rule ggplot2
+# applies when it expands a range, and they are not enough here. A relative
+# test has nothing to divide by when the smaller endpoint is exactly zero, so
+# it gives up, and an axis whose values come out of trigonometry is often
+# anchored at zero: the circle layout puts a pair of nodes at `0` and
+# `sin(pi)`, which is 1.224647e-16 rather than 0. The absolute floor catches
+# those, at one unit in the last place of the larger endpoint, or of 1 where
+# the values are smaller than that. Across the layouts a DAG is drawn with,
+# the widest such span measures a little over half the floor, while the
+# narrowest span of real coordinates measures 1e15 times it.
 is_zero_range <- function(range) {
   if (is.null(range) || anyNA(range)) {
     return(FALSE)
   }
   if (range[[1]] == range[[2]]) {
+    return(TRUE)
+  }
+  noise <- .Machine$double.eps * max(1, max(abs(range)))
+  if (abs(diff(range)) <= noise) {
     return(TRUE)
   }
   smallest <- min(abs(range))

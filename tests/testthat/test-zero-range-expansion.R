@@ -137,3 +137,75 @@ test_that("a flat chain under coord_fixed() draws round nodes", {
 
   expect_doppelganger("flat chain under coord_fixed", p)
 })
+
+# An axis can be flat in the picture without being flat in the arithmetic. A
+# circle layout places a node at `sin(pi)`, which is 1.224647e-16 rather than
+# 0, so a pair of nodes the reader sees side by side trains an axis to a span
+# of a fraction of the last bit of a double. Such a span is not zero and, when
+# the smaller endpoint is exactly 0, no relative test can call it one either,
+# so the blocks below pin both the rule and the picture it produces.
+
+test_that("is_zero_range() reads equal and relatively equal endpoints", {
+  expect_true(is_zero_range(c(0, 0)))
+  expect_true(is_zero_range(c(2.5, 2.5)))
+  # The two endpoints are one and the same double.
+  expect_true(is_zero_range(c(1, 1 + 1e-16)))
+  expect_true(is_zero_range(c(1e6, 1e6 + 1e-9)))
+
+  expect_false(is_zero_range(c(1e6, 1e6 + 1)))
+  expect_false(is_zero_range(NULL))
+  expect_false(is_zero_range(c(NA_real_, 1)))
+  expect_false(is_zero_range(c(NA_real_, NA_real_)))
+})
+
+test_that("is_zero_range() reads a span of floating-point noise as flat", {
+  expect_true(is_zero_range(c(0, 1.224647e-16)))
+  expect_true(is_zero_range(range(sin(c(0, pi)))))
+  expect_true(is_zero_range(c(-1.2e-16, 0)))
+})
+
+test_that("is_zero_range() leaves a real span alone at any scale", {
+  expect_false(is_zero_range(c(0, 1e-6)))
+  expect_false(is_zero_range(c(0, 0.001)))
+  expect_false(is_zero_range(c(0, 1)))
+  expect_false(is_zero_range(c(0, 1e6)))
+  expect_false(is_zero_range(c(-1e6, 1e6)))
+})
+
+test_that("a pair level to within noise takes the additive expansion", {
+  ranges <- built_ranges(ggdag(circle_pair_dag(), layout = "circle"))
+
+  # The nodes sit at x -1 and 1, so the y axis borrows a quarter of that span.
+  expect_equal(ranges$x, c(-1.2, 1.2), tolerance = 1e-8)
+  expect_equal(ranges$y, c(-0.25, 0.25), tolerance = 1e-8)
+})
+
+test_that("a pair level to within noise is drawn level at every size", {
+  skip_if_not_installed("ragg")
+
+  p <- ggdag(circle_pair_dag(), layout = "circle")
+  sizes <- list(c(4.5, 3.5), c(6, 6), c(9, 3.5))
+  names(sizes) <- vapply(
+    sizes,
+    function(size) paste0(size[[1]], "x", size[[2]]),
+    character(1)
+  )
+
+  # Half a millimetre is a tenth of the drawn node radius, well inside what
+  # the reader could see, and the two centres differ by a thousandth of that
+  # once the axis is read as flat.
+  drop <- vapply(
+    sizes,
+    function(size) diff(range(node_centres_mm(p, size)$y)),
+    numeric(1)
+  )
+
+  expect_equal(names(drop)[drop > 0.5], character(0))
+})
+
+test_that("an axis with a small but real span keeps its expansion", {
+  ranges <- built_ranges(ggdag(shallow_pair_dag()))
+
+  expect_equal(ranges$x, c(-0.1, 1.1), tolerance = 1e-8)
+  expect_equal(ranges$y, c(-1e-4, 1.1e-3), tolerance = 1e-8)
+})
