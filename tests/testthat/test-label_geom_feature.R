@@ -671,3 +671,104 @@ test_that("a wrapper around a repel label geom is unchanged", {
   expect_null(layer$stat_params$wrap)
   expect_null(layer$stat_params$edge_cap)
 })
+
+# The box padding the label layer of `plot` was built with.
+label_box_padding <- function(plot) {
+  padding <- dag_label_layer(plot)$geom_params$box.padding
+  if (grid::is.unit(padding)) {
+    return(as.numeric(padding))
+  }
+
+  padding
+}
+
+# The label layer `geom_dag()` builds when `label_geom` draws the labels.
+threaded_label_layer <- function(label_geom, ...) {
+  plot <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = label_geom, ...)
+
+  dag_label_layer(plot)
+}
+
+labelled_test_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
+  )
+}
+
+# The parameter names two layers disagree on, across every kind of parameter a
+# layer carries.
+layer_differences <- function(one, other) {
+  kinds <- c("aes_params", "geom_params", "stat_params")
+  differences <- purrr::map(kinds, \(kind) {
+    names <- union(names(one[[kind]]), names(other[[kind]]))
+    names[
+      !purrr::map_lgl(names, \(name) {
+        identical(one[[kind]][[name]], other[[kind]][[name]])
+      })
+    ]
+  })
+
+  sort(purrr::list_c(differences, ptype = character()))
+}
+
+test_that("the more spaced repel geoms leave more box padding on their own", {
+  mapping <- ggplot2::aes(label = label)
+
+  expect_gt(
+    as.numeric(geom_dag_text_repel2(mapping)$layer$geom_params$box.padding),
+    as.numeric(geom_dag_text_repel(mapping)$layer$geom_params$box.padding)
+  )
+  expect_gt(
+    as.numeric(geom_dag_label_repel2(mapping)$layer$geom_params$box.padding),
+    as.numeric(geom_dag_label_repel(mapping)$layer$geom_params$box.padding)
+  )
+})
+
+test_that("geom_dag() keeps the extra padding of the more spaced repel geoms", {
+  plain <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel)
+  spaced <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel2)
+
+  expect_gt(label_box_padding(spaced), label_box_padding(plain))
+
+  plain_label <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label_repel)
+  spaced_label <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label_repel2)
+
+  expect_gt(label_box_padding(spaced_label), label_box_padding(plain_label))
+})
+
+test_that("geom_dag() scales the extra padding with the plot's size", {
+  one <- threaded_label_layer(geom_dag_text_repel2)
+  double <- threaded_label_layer(geom_dag_text_repel2, size = 2)
+
+  expect_equal(
+    as.numeric(double$geom_params$box.padding),
+    2 * as.numeric(one$geom_params$box.padding)
+  )
+})
+
+test_that("the more spaced repel geoms differ from the plain ones in that alone", {
+  # The padding is the whole of what the text variant restyles, and the label
+  # variant adds the border it draws the box with. A difference anywhere else,
+  # or none at all, means the pair has drifted apart from what it documents.
+  expect_equal(
+    layer_differences(
+      threaded_label_layer(geom_dag_text_repel),
+      threaded_label_layer(geom_dag_text_repel2)
+    ),
+    "box.padding"
+  )
+  expect_equal(
+    layer_differences(
+      threaded_label_layer(geom_dag_label_repel),
+      threaded_label_layer(geom_dag_label_repel2)
+    ),
+    c("box.padding", "label.size", "linewidth")
+  )
+})
