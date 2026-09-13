@@ -2546,7 +2546,7 @@ StatNodesLabelAuto <- ggplot2::ggproto(
 
     out <- dplyr::bind_rows(label_rows, node_rows, edge_rows)
     out$group <- -1L
-    out
+    reserve_label_room(out, node_size, n_nodes = nrow(all_nodes))
   }
 )
 

@@ -1,5 +1,7 @@
 # ggdag (development version)
 
+* A plot with labels reserves panel room for them. Nothing had ever asked the position scales for the room a label needs, so the panel was trained on the nodes alone and expanded by a tenth: a node near the edge of the panel had nowhere to put its label, and the label was pushed far out on a long leader or placed on the drawing. The label layers now train the scales on a strip beyond each node wide enough to hold a line of label text, the way the ggarrow arc layers already train them on the depth of a bow. A plot with labels turned off is drawn exactly as before.
+
 * `ggdag_adjustment_set()` keeps the adjustment it was given when no adjustment set closes the backdoor paths. Adjusting for a collider and then plotting the adjustment sets drew the dashed curves marking the paths that adjustment activates, but drew every node, the adjusted one included, in the unadjusted colour: the panel reported membership of the set it is named for, and that panel names no set. It now reports the adjustment the DAG carries, so the paths the plot draws are shown alongside the adjustment that activated them.
 
 * `ggdag_adjustment_set()` and `ggdag_paths()` list only the levels they have rows for in their legends. A legend key is built from the layer rows carrying its value, so `adjusted`, `blocked by adjustment`, and the path types the DAG has no paths of appeared as labels beside empty boxes. Each plot keeps the whole vocabulary as its scale limits, so no colour or shape moves when a level is left out of the legend.
