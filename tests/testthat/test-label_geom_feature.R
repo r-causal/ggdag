@@ -407,16 +407,6 @@ test_that("label_geom works with custom geom functions", {
 # `label_wrap` reaches a quick plot's label layer the way `use_labels` and
 # `label_geom` do, whether it is written in the call or set as an option.
 
-# The parameters of the automatic label layer of `plot`.
-auto_label_params <- function(plot) {
-  index <- which(purrr::map_lgl(plot$layers, \(layer) {
-    inherits(layer$stat, "StatNodesLabelAuto")
-  }))
-  expect_length(index, 1)
-  layer <- plot$layers[[index]]
-  c(layer$stat_params, layer$geom_params)
-}
-
 test_that("a quick plot hands label_wrap to the auto label geom", {
   dag <- dagify(
     y ~ x + z,

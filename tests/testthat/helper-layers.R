@@ -114,6 +114,16 @@ repel_node_sizes <- function(plot) {
   }))
 }
 
+# The parameters of the automatic label layer of `plot`.
+auto_label_params <- function(plot) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$stat, "StatNodesLabelAuto")
+  }))
+  expect_length(index, 1)
+  layer <- plot$layers[[index]]
+  c(layer$stat_params, layer$geom_params)
+}
+
 # Does `plot` draw its edges with the ggarrow engine?
 uses_ggarrow_edges <- function(plot) {
   any(purrr::map_lgl(plot$layers, \(layer) {

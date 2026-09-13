@@ -20,7 +20,9 @@ label_wrap_quick_plots <- function() {
 }
 
 # The arguments each quick plot needs beyond the DAG. A function that builds
-# its own DAG from node names takes none, and is called with no DAG at all.
+# its own DAG from node names is called with no DAG at all, and with the names
+# it labels that DAG with: without them it draws no labels, and so no label
+# layer for `label_wrap` to reach.
 label_wrap_extra_args <- list(
   ggdag_adjacent = list(.var = "x"),
   ggdag_adjust = list(var = "z"),
@@ -33,7 +35,17 @@ label_wrap_extra_args <- list(
   ggdag_markov_blanket = list(.var = "x"),
   ggdag_parents = list(.var = "y"),
   ggdag_paths = list(from = "x", to = "y"),
-  ggdag_paths_fan = list(from = "x", to = "y")
+  ggdag_paths_fan = list(from = "x", to = "y"),
+  ggdag_butterfly_bias = list(x = "X", y = "Y", m = "M"),
+  ggdag_collider_triangle = list(x = "X", y = "Y", m = "M"),
+  ggdag_confounder_triangle = list(x = "X", y = "Y", z = "Z"),
+  ggdag_m_bias = list(x = "X", y = "Y", m = "M"),
+  ggdag_mediation_triangle = list(x = "X", y = "Y", m = "M"),
+  ggdag_quartet_collider = list(x = "X", y = "Y", z = "Z"),
+  ggdag_quartet_confounder = list(x = "X", y = "Y", z = "Z"),
+  ggdag_quartet_m_bias = list(x = "X", y = "Y", z = "Z"),
+  ggdag_quartet_mediator = list(x = "X", y = "Y", z = "Z"),
+  ggdag_quartet_time_collider = list(x2 = "X2", y3 = "Y3")
 )
 
 label_wrap_dagless <- c(
@@ -99,6 +111,11 @@ test_that("every quick plot builds with label_wrap set", {
 
     plot <- do.call(quick_plot, args)
     expect_s3_class(plot, "gg")
+    expect_equal(
+      auto_label_params(plot)[["wrap"]],
+      10,
+      info = paste0(name, "() hands `label_wrap` to its label layer")
+    )
     expect_no_error(ggplot2::ggplot_build(plot))
   }
 })
