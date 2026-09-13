@@ -590,8 +590,12 @@ test_that("ggdag() respects global layout option (linear)", {
   expect_doppelganger("opts-ggdag-linear-layout", p)
 })
 
+# A hub with five children, rather than a three-node chain: the star layout
+# puts a collinear DAG on a single line, which is indistinguishable from the
+# other layouts by eye. Five spokes around a centred hub make the baseline
+# evidence that the option reached the layout, not just a record of drift.
 test_that("ggdag() respects global layout option (star)", {
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(a ~ b + c + d + e + f)
   withr::local_options(ggdag.layout = "star")
   p <- ggdag(dag, use_existing_coords = FALSE)
   expect_doppelganger("opts-ggdag-star-layout", p)
@@ -738,8 +742,12 @@ test_that("ggdag_canonical() respects global layout option", {
 })
 
 # Explicit layout arg overrides global layout option
+# A hub with five children, rather than a three-node chain: the star layout
+# puts a collinear DAG on a single line, which is indistinguishable from the
+# circle layout named by the option. Five spokes around a centred hub make the
+# baseline evidence that the explicit argument won, not just a record of drift.
 test_that("explicit layout arg overrides global layout option in ggdag()", {
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(a ~ b + c + d + e + f)
   withr::local_options(ggdag.layout = "circle")
   p <- ggdag(dag, layout = "star", use_existing_coords = FALSE)
   expect_doppelganger("opts-ggdag-layout-explicit-override", p)
