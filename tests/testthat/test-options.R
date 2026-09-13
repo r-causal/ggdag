@@ -538,8 +538,11 @@ test_that("tidy_dagitty() respects global layout option", {
   expect_equal(sqrt(coords$x^2 + coords$y^2), rep(1, nrow(coords)))
 })
 
+# A hub with five children, rather than a three-node chain: the star layout
+# puts a collinear DAG on a single line, and the shape that identifies it is a
+# hub at the centre with its spokes around it.
 test_that("explicit layout arg overrides global layout option", {
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(a ~ b + c + d + e + f)
   withr::local_options(ggdag.layout = "circle")
   td_circle <- tidy_dagitty(dag, use_existing_coords = FALSE)
   td_star <- tidy_dagitty(dag, layout = "star", use_existing_coords = FALSE)
@@ -549,8 +552,24 @@ test_that("explicit layout arg overrides global layout option", {
   coords_star <- pull_dag_data(td_star) |>
     dplyr::select(name, x, y) |>
     dplyr::distinct()
-  # Different layouts should produce different coordinates
-  expect_false(all(coords_circle$x == coords_star$x))
+  # The circle layout the option names puts every node, hub included, on the
+  # unit circle. The star layout the argument names centres the hub instead,
+  # so the hub at the origin with its five spokes at unit radius is what tells
+  # the explicit argument through from the option overriding it. Any weaker
+  # comparison of the two sets of coordinates would pass for a layout that is
+  # merely not the circle.
+  expect_equal(
+    sqrt(coords_circle$x^2 + coords_circle$y^2),
+    rep(1, nrow(coords_circle))
+  )
+
+  hub <- coords_star$name == "a"
+  expect_equal(coords_star$x[hub], 0)
+  expect_equal(coords_star$y[hub], 0)
+  expect_equal(
+    sqrt(coords_star$x[!hub]^2 + coords_star$y[!hub]^2),
+    rep(1, sum(!hub))
+  )
 })
 
 test_that("existing dagitty coords take precedence over global layout option", {
