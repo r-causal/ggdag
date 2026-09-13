@@ -560,12 +560,16 @@ test_that("repel2 functions with custom defaults work visually", {
 
 test_that("different edge types work", {
   withr::local_seed(1234)
+  # w1 -> y and w1 <-> y run between the same pair of nodes. Only the fan
+  # spreads a parallel pair apart; every other edge type draws one edge on top
+  # of the other.
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    L ~ w1 + w2
+    L ~ w1 + w2,
+    y ~ ~w1
   ) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_point() +
@@ -1017,7 +1021,8 @@ test_that("edge_cap auto-sync adjusts caps based on node_size", {
 
 test_that("edge_cap auto-sync works with all edge types", {
   withr::local_seed(1234)
-  dag <- dagify(y ~ x + z, x ~ z)
+  # z -> x and z <-> x are parallel, so the fan has a pair to spread
+  dag <- dagify(y ~ x + z, x ~ z, x ~ ~z)
 
   p_base <- dag |>
     tidy_dagitty() |>
@@ -1093,10 +1098,13 @@ test_that("geom_dag_node (stylized) also triggers auto-sync", {
   expect_doppelganger("auto-sync-with-stylized-node", p_stylized)
 })
 
-test_that("geom_dag_edges_fan() leaves unrelated edges straight", {
+test_that("geom_dag_edges_fan() spreads only the parallel edges", {
   withr::local_seed(1234)
+  # a -> z and a <-> z share a node pair and fan apart; b -> w shares its pair
+  # with nothing and stays on the straight chord
   dag <- dagify(
     z ~ a,
+    z ~ ~a,
     w ~ b,
     coords = list(
       x = c(a = 0, b = 0, z = 1, w = 1),
@@ -1109,7 +1117,7 @@ test_that("geom_dag_edges_fan() leaves unrelated edges straight", {
     geom_dag_edges_fan() +
     geom_dag_text()
 
-  expect_doppelganger("geom_dag_edges_fan() with no parallel edges", p)
+  expect_doppelganger("geom_dag_edges_fan() with one parallel pair", p)
 })
 
 test_that("repel geoms honour the British spelling of segment.colour", {
