@@ -381,6 +381,7 @@ test_that("repel node_size parameter sets point.size for node-aware repelling", 
     )
 
   expect_doppelganger("repel text with node_size 20", p_text)
+  expect_equal(repel_node_sizes(p_text), 20)
 
   # node_size flows through geom_dag_label_repel
   p_label <- g |>
@@ -394,6 +395,33 @@ test_that("repel node_size parameter sets point.size for node-aware repelling", 
     )
 
   expect_doppelganger("repel label with node_size 20", p_label)
+  expect_equal(repel_node_sizes(p_label), 20)
+
+  # the argument decides, not the node layer: a node_size auto-discovery would
+  # never supply reaches the layer unchanged
+  p_text_32 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point(size = 20) +
+    geom_dag_text_repel(
+      aes(label = name),
+      node_size = 32
+    )
+
+  expect_equal(repel_node_sizes(p_text_32), 32)
+
+  p_label_32 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point(size = 20) +
+    geom_dag_label_repel(
+      aes(label = name),
+      node_size = 32
+    )
+
+  expect_equal(repel_node_sizes(p_label_32), 32)
 })
 
 test_that("geom_dag() threads node_size to repel labels", {
@@ -418,6 +446,21 @@ test_that("geom_dag() threads node_size to repel labels", {
     )
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 20)
+
+  # with no node layer drawn there is nothing for the repel layer to discover,
+  # so a node size it carries can only have come from geom_dag()
+  p_no_nodes <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag(
+      use_labels = TRUE,
+      use_nodes = FALSE,
+      node_size = 30,
+      size = 1
+    )
+
+  expect_equal(repel_node_sizes(p_no_nodes), 30)
 
   # Build the plot to verify no errors during rendering
   built <- ggplot2::ggplot_build(p)
@@ -438,6 +481,7 @@ test_that("repel geoms auto-discover node_size via ggplot_add", {
     geom_dag_text_repel(aes(label = name))
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 25)
   built <- ggplot2::ggplot_build(p)
   expect_s3_class(built, "ggplot_built")
 })
@@ -455,6 +499,7 @@ test_that("repel geoms auto-discover node_size from geom_dag_point", {
     geom_dag_label_repel(aes(label = name))
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 20)
   built <- ggplot2::ggplot_build(p)
   expect_s3_class(built, "ggplot_built")
 })
@@ -473,6 +518,7 @@ test_that("explicit node_size overrides auto-discovery in repel geoms", {
     geom_dag_text_repel(aes(label = name), node_size = 30)
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 30)
   built <- ggplot2::ggplot_build(p)
   expect_s3_class(built, "ggplot_built")
 })

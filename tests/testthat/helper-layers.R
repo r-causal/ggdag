@@ -100,6 +100,20 @@ repel_label_expr <- function(plot) {
   ))
 }
 
+# The node size each repelling label layer of `plot` repels around, in drawing
+# order. A layer that carries no node size at all reports `NA`, so that a layer
+# the size never reached is visible in the result rather than being dropped.
+repel_node_sizes <- function(plot) {
+  repel_layers <- purrr::keep(plot$layers, \(layer) {
+    inherits(layer$stat, "StatNodesRepel")
+  })
+
+  unname(purrr::map_dbl(repel_layers, \(layer) {
+    node_size <- layer$stat_params$node_size
+    if (is.null(node_size)) NA_real_ else node_size
+  }))
+}
+
 # Does `plot` draw its edges with the ggarrow engine?
 uses_ggarrow_edges <- function(plot) {
   any(purrr::map_lgl(plot$layers, \(layer) {
