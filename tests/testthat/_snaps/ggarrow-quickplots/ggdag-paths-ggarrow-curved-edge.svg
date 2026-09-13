@@ -121,20 +121,18 @@
 <polyline points='35.43,81.57 38.17,81.57 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <text x='331.88' y='568.24' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text transform='translate(13.05,292.27) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>y</text>
-<rect x='636.55' y='257.82' width='77.97' height='68.90' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='636.55' y='266.54' style='font-size: 11.00px; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>path</text>
-<rect x='636.55' y='273.16' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.80' cy='282.23' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
-<path d='M 660.13 282.23 L 651.97 279.26 L 653.86 281.51 L 649.25 281.52 L 649.25 282.94 L 653.86 282.94 L 651.97 285.20 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 1.07; stroke: none;' />
-<circle cx='665.57' cy='282.23' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
-<rect x='636.55' y='291.30' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.80' cy='300.37' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
-<path d='M 660.13 300.37 L 651.97 297.40 L 653.86 299.66 L 649.25 299.66 L 649.25 301.08 L 653.86 301.09 L 651.97 303.34 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 1.07; stroke: none;' />
-<circle cx='665.57' cy='300.37' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
-<rect x='636.55' y='309.44' width='36.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='678.31' y='285.26' style='font-size: 8.80px; font-family: sans;' textLength='21.52px' lengthAdjust='spacingAndGlyphs'>direct</text>
-<text x='678.31' y='303.40' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>backdoor</text>
-<text x='678.31' y='321.11' style='font-size: 8.80px; font-family: sans;' textLength='20.06px' lengthAdjust='spacingAndGlyphs'>other</text>
+<rect x='636.55' y='266.46' width='77.97' height='51.62' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='636.55' y='275.18' style='font-size: 11.00px; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>path</text>
+<rect x='636.55' y='281.80' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.80' cy='290.87' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<path d='M 660.13 290.87 L 651.97 287.90 L 653.86 290.15 L 649.25 290.16 L 649.25 291.58 L 653.86 291.58 L 651.97 293.84 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 1.07; stroke: none;' />
+<circle cx='665.57' cy='290.87' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<rect x='636.55' y='299.94' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.80' cy='309.01' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
+<path d='M 660.13 309.01 L 651.97 306.04 L 653.86 308.30 L 649.25 308.30 L 649.25 309.72 L 653.86 309.73 L 651.97 311.98 Z' style='fill-rule: evenodd; fill: #00BA38; stroke-width: 1.07; stroke: none;' />
+<circle cx='665.57' cy='309.01' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
+<text x='678.31' y='293.90' style='font-size: 8.80px; font-family: sans;' textLength='21.52px' lengthAdjust='spacingAndGlyphs'>direct</text>
+<text x='678.31' y='312.04' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>backdoor</text>
 <text x='38.17' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='204.04px' lengthAdjust='spacingAndGlyphs'>ggdag_paths ggarrow curved edge</text>
 </g>
 </svg>

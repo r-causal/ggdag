@@ -38,9 +38,10 @@
 <text x='76.58' y='481.46' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='643.42' y='481.46' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
 <text x='360.00' y='121.01' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
-<text x='38.84' y='481.80' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
-<text x='682.18' y='493.86' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
-<text x='402.89' y='96.37' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='47.25px' lengthAdjust='spacingAndGlyphs'>Mediator</text>
+<line x1='374.57' y1='79.48' x2='368.72' y2='94.63' style='stroke-width: 1.07; stroke: #666666;' />
+<text x='42.44' y='496.48' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='51.32px' lengthAdjust='spacingAndGlyphs'>Exposure</text>
+<text x='678.58' y='497.87' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='49.28px' lengthAdjust='spacingAndGlyphs'>Outcome</text>
+<text x='400.00' y='82.81' text-anchor='middle' style='font-size: 12.14px; font-weight: bold; font-family: sans;' textLength='47.25px' lengthAdjust='spacingAndGlyphs'>Mediator</text>
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
 <text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='140.90px' lengthAdjust='spacingAndGlyphs'>geom_dag-text-repel2</text>

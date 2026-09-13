@@ -189,22 +189,20 @@
 <polyline points='40.32,158.17 43.06,158.17 ' style='stroke-width: 1.07; stroke: #333333; stroke-linecap: butt;' />
 <text x='334.33' y='568.24' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text transform='translate(13.05,292.27) rotate(-90)' text-anchor='middle' style='font-size: 11.00px; font-family: sans;' textLength='5.50px' lengthAdjust='spacingAndGlyphs'>y</text>
-<rect x='636.55' y='257.82' width='77.97' height='68.90' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='636.55' y='266.54' style='font-size: 11.00px; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>path</text>
-<rect x='636.55' y='273.16' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.80' cy='282.23' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
-<line x1='649.25' y1='282.23' x2='660.13' y2='282.23' style='stroke-width: 1.07; stroke: #F8766D;' />
-<polygon points='655.22,285.06 660.13,282.23 655.22,279.39 ' style='stroke-width: 1.07; stroke: #F8766D; fill: #F8766D;' />
-<circle cx='665.57' cy='282.23' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
-<rect x='636.55' y='291.30' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<circle cx='643.80' cy='300.37' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
-<line x1='649.25' y1='300.37' x2='660.13' y2='300.37' style='stroke-width: 1.07; stroke: #00BA38;' />
-<polygon points='655.22,303.21 660.13,300.37 655.22,297.54 ' style='stroke-width: 1.07; stroke: #00BA38; fill: #00BA38;' />
-<circle cx='665.57' cy='300.37' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
-<rect x='636.55' y='309.44' width='36.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<text x='678.31' y='285.26' style='font-size: 8.80px; font-family: sans;' textLength='21.52px' lengthAdjust='spacingAndGlyphs'>direct</text>
-<text x='678.31' y='303.40' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>backdoor</text>
-<text x='678.31' y='321.11' style='font-size: 8.80px; font-family: sans;' textLength='20.06px' lengthAdjust='spacingAndGlyphs'>other</text>
+<rect x='636.55' y='266.46' width='77.97' height='51.62' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<text x='636.55' y='275.18' style='font-size: 11.00px; font-family: sans;' textLength='21.41px' lengthAdjust='spacingAndGlyphs'>path</text>
+<rect x='636.55' y='281.80' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.80' cy='290.87' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<line x1='649.25' y1='290.87' x2='660.13' y2='290.87' style='stroke-width: 1.07; stroke: #F8766D;' />
+<polygon points='655.22,293.70 660.13,290.87 655.22,288.03 ' style='stroke-width: 1.07; stroke: #F8766D; fill: #F8766D;' />
+<circle cx='665.57' cy='290.87' r='3.20' style='stroke-width: 0.75; stroke: #F8766D; fill: #F8766D;' />
+<rect x='636.55' y='299.94' width='36.28' height='18.14' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
+<circle cx='643.80' cy='309.01' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
+<line x1='649.25' y1='309.01' x2='660.13' y2='309.01' style='stroke-width: 1.07; stroke: #00BA38;' />
+<polygon points='655.22,311.85 660.13,309.01 655.22,306.18 ' style='stroke-width: 1.07; stroke: #00BA38; fill: #00BA38;' />
+<circle cx='665.57' cy='309.01' r='3.20' style='stroke-width: 0.75; stroke: #00BA38; fill: #00BA38;' />
+<text x='678.31' y='293.90' style='font-size: 8.80px; font-family: sans;' textLength='21.52px' lengthAdjust='spacingAndGlyphs'>direct</text>
+<text x='678.31' y='312.04' style='font-size: 8.80px; font-family: sans;' textLength='36.21px' lengthAdjust='spacingAndGlyphs'>backdoor</text>
 <text x='43.06' y='14.56' style='font-size: 13.20px; font-family: sans;' textLength='113.75px' lengthAdjust='spacingAndGlyphs'>paths default labels</text>
 </g>
 </svg>
