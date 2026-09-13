@@ -29,8 +29,8 @@
 <circle cx='307.16' cy='70.29' r='17.43' style='stroke-width: 0.71; stroke: #F8766D; fill: #F8766D;' />
 <circle cx='558.15' cy='524.59' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
 <circle cx='56.18' cy='524.59' r='17.43' style='stroke-width: 0.71; stroke: #7F7F7F; fill: #7F7F7F;' />
-<path d='M 546.00 497.20 L 545.08 499.60 L 318.69 89.83 L 318.13 90.13 L 317.57 90.44 L 543.95 500.22 L 541.43 499.73 L 547.19 504.74 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 294.09 95.28 L 295.01 97.67 L 296.20 90.13 L 290.44 95.15 L 292.96 94.66 L 66.58 504.43 L 67.14 504.74 L 67.70 505.05 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 546.00 497.20 L 545.08 499.60 L 318.69 89.83 L 317.57 90.44 L 543.95 500.22 L 541.43 499.73 L 547.19 504.74 Z' style='fill-rule: evenodd; fill: #F8766D; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 294.09 95.28 L 295.01 97.67 L 296.20 90.13 L 290.44 95.15 L 292.96 94.66 L 66.58 504.43 L 67.70 505.05 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <path d='M 535.47 524.59 L 528.30 521.98 L 529.95 523.95 L 78.85 523.95 L 78.85 525.23 L 529.95 525.24 L 528.30 527.20 Z' style='fill-rule: evenodd; fill: #7F7F7F; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <text x='307.16' y='74.08' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='558.15' y='528.39' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>

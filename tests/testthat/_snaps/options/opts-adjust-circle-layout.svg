@@ -65,10 +65,8 @@
 <rect x='646.42' y='233.96' width='65.82' height='49.89' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
 <text x='646.42' y='242.67' style='font-size: 11.00px; font-family: sans;' textLength='41.59px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
 <rect x='646.42' y='249.30' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<line x1='648.15' y1='257.94' x2='661.97' y2='257.94' style='stroke-width: 1.28; stroke: #F8766D; stroke-linecap: butt;' />
 <polygon points='650.79,262.20 659.33,262.20 659.33,253.67 650.79,253.67 ' style='stroke-width: 0.47; stroke: none; fill: #F8766D;' />
 <rect x='646.42' y='266.58' width='17.28' height='17.28' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<line x1='648.15' y1='275.22' x2='661.97' y2='275.22' style='stroke-width: 1.28; stroke: #00BFC4; stroke-linecap: butt;' />
 <circle cx='655.06' cy='275.22' r='4.27' style='stroke-width: 0.47; stroke: #00BFC4; fill: #00BFC4;' />
 <text x='669.18' y='260.96' style='font-size: 8.80px; font-family: sans;' textLength='33.27px' lengthAdjust='spacingAndGlyphs'>adjusted</text>
 <text x='669.18' y='278.24' style='font-size: 8.80px; font-family: sans;' textLength='43.06px' lengthAdjust='spacingAndGlyphs'>unadjusted</text>

@@ -27,15 +27,15 @@
 </defs>
 <g clip-path='url(#cpMzguMTd8NjM3Ljc0fDM5LjQzfDU0NS4xMQ==)'>
 <rect x='38.17' y='39.43' width='599.57' height='505.68' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<path d='M 522.90 440.53 L 521.98 442.92 L 352.24 136.17 L 351.68 136.48 L 351.12 136.79 L 520.85 443.55 L 518.33 443.06 L 524.09 448.07 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 322.12 141.62 L 323.04 144.02 L 324.23 136.48 L 318.47 141.49 L 320.99 141.00 L 151.26 447.76 L 151.82 448.07 L 152.38 448.38 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 322.12 141.62 L 323.04 144.02 L 324.23 136.48 L 318.47 141.49 L 320.99 141.00 L 151.26 447.76 L 152.38 448.38 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
 <path d='M 509.46 472.87 L 502.29 470.26 L 503.94 472.23 L 166.44 472.23 L 166.44 473.51 L 503.94 473.52 L 502.29 475.48 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 522.90 440.53 L 521.98 442.92 L 352.24 136.17 L 351.12 136.79 L 520.85 443.55 L 518.33 443.06 L 524.09 448.07 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<polygon points='120.67,490.30 155.52,490.30 155.52,455.45 120.67,455.45 ' style='stroke-width: 0.71; stroke: none; fill: #F8766D;' />
 <circle cx='337.95' cy='111.67' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
 <circle cx='537.81' cy='472.87' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
-<polygon points='120.67,490.30 155.52,490.30 155.52,455.45 120.67,455.45 ' style='stroke-width: 0.71; stroke: none; fill: #F8766D;' />
+<text x='138.10' y='476.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <text x='337.95' y='115.47' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='537.81' y='476.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='138.10' y='476.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <rect x='38.17' y='39.43' width='599.57' height='505.68' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
