@@ -2235,118 +2235,124 @@ test_that("exposure/outcome shift: integration with tidy_dagitty()", {
 
 # auto_sort_direction tests ----------------------------------------------------
 
-test_that("auto_sort_direction='right' uses longest path (default)", {
-  # a→c (direct), a→b→c (via b)
-  # right: c at layer 2 (longest path through b)
-  td <- dagify(c ~ a + b, b ~ a) |>
-    tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "right"))
-  coords <- get_node_coords(td)
+# A chain a→b→c→d→e with a second root, f→e. Every chain node has exactly one
+# valid layer, but f can sit either at the first layer (its earliest) or at the
+# last layer before e (its latest), so the two sort directions place it
+# differently. A DAG in which every node's earliest layer is also its latest
+# cannot tell the two directions apart.
+sort_direction_dag <- function(...) {
+  dagify(e ~ d + f, d ~ c, c ~ b, b ~ a, ...)
+}
 
-  x_a <- unname(coords$x[coords$name == "a"])
-  x_b <- unname(coords$x[coords$name == "b"])
-  x_c <- unname(coords$x[coords$name == "c"])
-  expect_lt(x_a, x_b)
-  expect_lt(x_b, x_c)
-  # c should be at layer 3 (a=1, b=2, c=3)
-  expect_equal(x_c, 3)
+# Helper: x positions keyed by node name
+node_x_positions <- function(td) {
+  coords <- get_node_coords(td)
+  stats::setNames(coords$x, coords$name)
+}
+
+test_that("auto_sort_direction='right' uses longest path (default)", {
+  td <- sort_direction_dag() |>
+    tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "right"))
+  x <- node_x_positions(td)
+
+  expect_equal(unname(x[c("a", "b", "c", "d", "e")]), c(1, 2, 3, 4, 5))
+  # f has no parents, so only the rightward sort puts it at layer 4, the last
+  # layer before its child
+  expect_equal(x[["f"]], 4)
 })
 
 test_that("auto_sort_direction='left' places nodes at earliest valid layer", {
-  # a→b→c, a→c (direct shortcut)
-  # left: a=0, b=1, c=2 (c must be after b, respecting topo ordering)
-  td <- dagify(c ~ a + b, b ~ a) |>
+  td <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  coords <- get_node_coords(td)
+  x <- node_x_positions(td)
 
-  x_a <- unname(coords$x[coords$name == "a"])
-  x_b <- unname(coords$x[coords$name == "b"])
-  x_c <- unname(coords$x[coords$name == "c"])
-  # c must come after b (topo ordering)
-  expect_lt(x_a, x_b)
-  expect_lt(x_b, x_c)
+  expect_equal(unname(x[c("a", "b", "c", "d", "e")]), c(1, 2, 3, 4, 5))
+  # f is a root, so its earliest valid layer is the first one, alongside a
+  expect_equal(x[["f"]], min(x))
+  expect_equal(x[["f"]], x[["a"]])
 })
 
 test_that("auto_sort_direction='right' pulls nodes toward children", {
   # a→b→c→d→e, f→e
   # left: f is a root at layer 0
   # right: f is pulled to layer 3 (one before e at layer 4)
-  td_left <- dagify(e ~ d + f, d ~ c, c ~ b, b ~ a) |>
+  td_left <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  td_right <- dagify(e ~ d + f, d ~ c, c ~ b, b ~ a) |>
+  td_right <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "right"))
 
-  coords_left <- get_node_coords(td_left)
-  coords_right <- get_node_coords(td_right)
-
-  f_left <- unname(coords_left$x[coords_left$name == "f"])
-  f_right <- unname(coords_right$x[coords_right$name == "f"])
   # In left mode, f is at layer 0 (root); in right mode, f is pulled rightward
-  expect_lt(f_left, f_right)
+  expect_lt(node_x_positions(td_left)[["f"]], node_x_positions(td_right)[["f"]])
 })
 
 test_that("auto_sort_direction='right' is the default", {
-  dag <- dagify(c ~ a + b, b ~ a)
+  dag <- sort_direction_dag()
   td_default <- tidy_dagitty(dag, layout = time_ordered_coords())
   td_right <- tidy_dagitty(
     dag,
     layout = time_ordered_coords(auto_sort_direction = "right")
   )
+  td_left <- tidy_dagitty(
+    dag,
+    layout = time_ordered_coords(auto_sort_direction = "left")
+  )
   expect_equal(pull_dag_data(td_default), pull_dag_data(td_right))
+  expect_gt(
+    node_x_positions(td_default)[["f"]],
+    node_x_positions(td_left)[["f"]]
+  )
 })
 
 test_that("auto_sort_direction works with string layout", {
   # string "time_ordered" should use the default (right)
-  dag <- dagify(c ~ a + b, b ~ a)
+  dag <- sort_direction_dag()
   td_str <- tidy_dagitty(dag, layout = "time_ordered")
   td_right <- tidy_dagitty(
     dag,
     layout = time_ordered_coords(auto_sort_direction = "right")
   )
+  td_left <- tidy_dagitty(
+    dag,
+    layout = time_ordered_coords(auto_sort_direction = "left")
+  )
   expect_equal(pull_dag_data(td_str), pull_dag_data(td_right))
+  expect_gt(node_x_positions(td_str)[["f"]], node_x_positions(td_left)[["f"]])
 })
 
 test_that("auto_sort_direction='left' still respects edge direction", {
   # Even in left mode, parents must come before children
-  td <- dagify(y ~ x + z, x ~ z) |>
+  td <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  coords <- get_node_coords(td)
+  x <- node_x_positions(td)
 
-  x_z <- unname(coords$x[coords$name == "z"])
-  x_x <- unname(coords$x[coords$name == "x"])
-  x_y <- unname(coords$x[coords$name == "y"])
-  expect_lt(x_z, x_x)
-  expect_lt(x_z, x_y)
+  # left mode is in effect: the root f sits at the earliest layer
+  expect_equal(x[["f"]], min(x))
+  edges <- dplyr::filter(pull_dag_data(td), !is.na(to))
+  expect_true(all(x[edges$name] < x[edges$to]))
 })
 
 test_that("auto_sort_direction='left' produces valid layout (no NA)", {
-  td <- dagify(
-    y ~ x + m,
-    m ~ x,
-    exposure = "x",
-    outcome = "y"
-  ) |>
+  td <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_valid_time_ordered(td, c("x", "y", "m"))
+  expect_valid_time_ordered(td, c("a", "b", "c", "d", "e", "f"))
+  x <- node_x_positions(td)
+  # the root f is pulled to the earliest layer, not toward its child
+  expect_equal(x[["f"]], min(x))
 })
 
 test_that("auto_sort_direction works with coords= in dagify", {
-  dag <- dagify(
-    c ~ a + b,
-    b ~ a,
+  dag <- sort_direction_dag(
     coords = time_ordered_coords(auto_sort_direction = "left")
   )
-  td <- tidy_dagitty(dag)
-  coords <- get_node_coords(td)
-  # topo ordering: a < b < c
-  x_a <- unname(coords$x[coords$name == "a"])
-  x_b <- unname(coords$x[coords$name == "b"])
-  x_c <- unname(coords$x[coords$name == "c"])
-  expect_lt(x_a, x_b)
-  expect_lt(x_b, x_c)
+  x <- node_x_positions(tidy_dagitty(dag))
+
+  expect_equal(unname(x[c("a", "b", "c", "d", "e")]), c(1, 2, 3, 4, 5))
+  expect_equal(x[["f"]], min(x))
 })
 
 # auto_sort_direction snapshot tests -------------------------------------------
-# Paired left/right snapshots for each DAG pattern
+# One snapshot per DAG pattern, plus left/right pairs for the DAGs in which the
+# two sort directions actually produce different pictures
 
 test_that("visual: right mediation DAG", {
   withr::local_seed(1234)
@@ -2355,25 +2361,11 @@ test_that("visual: right mediation DAG", {
   expect_doppelganger("time-ordered-right-mediation", p)
 })
 
-test_that("visual: left mediation DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ x + m, m ~ x) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-mediation", p)
-})
-
 test_that("visual: right confounding DAG", {
   withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-confounding", p)
-})
-
-test_that("visual: left confounding DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ x + z, x ~ z) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-confounding", p)
 })
 
 test_that("visual: right smoking DAG", {
@@ -2387,29 +2379,11 @@ test_that("visual: right smoking DAG", {
   expect_doppelganger("time-ordered-right-smoking", p)
 })
 
-test_that("visual: left smoking DAG", {
-  withr::local_seed(1234)
-  p <- dagify(
-    tar ~ smoking,
-    cancer ~ smoking + tar + genetics,
-    smoking ~ genetics
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-smoking", p)
-})
-
 test_that("visual: right diamond DAG", {
   withr::local_seed(1234)
   p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-diamond", p)
-})
-
-test_that("visual: left diamond DAG", {
-  withr::local_seed(1234)
-  p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-diamond", p)
 })
 
 test_that("visual: right deep shortcuts DAG", {
@@ -2424,18 +2398,6 @@ test_that("visual: right deep shortcuts DAG", {
   expect_doppelganger("time-ordered-right-deep-shortcuts", p)
 })
 
-test_that("visual: left deep shortcuts DAG", {
-  withr::local_seed(1234)
-  p <- dagify(
-    b ~ a,
-    c ~ b + a,
-    d ~ c + b,
-    e ~ d + a
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-deep-shortcuts", p)
-})
-
 test_that("visual: right multi-mediator chain", {
   withr::local_seed(1234)
   p <- dagify(
@@ -2446,18 +2408,6 @@ test_that("visual: right multi-mediator chain", {
   ) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-multi-mediator", p)
-})
-
-test_that("visual: left multi-mediator chain", {
-  withr::local_seed(1234)
-  p <- dagify(
-    m1 ~ x,
-    m2 ~ x + m1,
-    m3 ~ x + m2,
-    y ~ x + m1 + m2 + m3
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-multi-mediator", p)
 })
 
 test_that("visual: right napkin DAG", {
@@ -2491,13 +2441,6 @@ test_that("visual: right front-door DAG", {
   expect_doppelganger("time-ordered-right-front-door", p)
 })
 
-test_that("visual: left front-door DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ u + m, x ~ u, m ~ x) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-front-door", p)
-})
-
 test_that("visual: right IV DAG", {
   withr::local_seed(1234)
   p <- dagify(y ~ x + u, x ~ z + u) |>
@@ -2505,25 +2448,11 @@ test_that("visual: right IV DAG", {
   expect_doppelganger("time-ordered-right-iv", p)
 })
 
-test_that("visual: left IV DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ x + u, x ~ z + u) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-iv", p)
-})
-
 test_that("visual: right M-bias DAG", {
   withr::local_seed(1234)
   p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-m-bias", p)
-})
-
-test_that("visual: left M-bias DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-m-bias", p)
 })
 
 test_that("visual: right epi DAG", {
@@ -2535,17 +2464,6 @@ test_that("visual: right epi DAG", {
   ) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-epi", p)
-})
-
-test_that("visual: left epi DAG", {
-  withr::local_seed(1234)
-  p <- dagify(
-    health ~ ses + edu + income,
-    income ~ edu,
-    edu ~ ses
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-epi", p)
 })
 
 test_that("visual: right README bidirected DAG", {
@@ -2585,13 +2503,6 @@ test_that("visual: right fan-in 5 DAG", {
   expect_doppelganger("time-ordered-right-fan-in-5", p)
 })
 
-test_that("visual: left fan-in 5 DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ a + b + c + d + e) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-fan-in-5", p)
-})
-
 test_that("visual: right deep chain DAG", {
   withr::local_seed(1234)
   p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
@@ -2599,11 +2510,18 @@ test_that("visual: right deep chain DAG", {
   expect_doppelganger("time-ordered-right-deep-chain", p)
 })
 
-test_that("visual: left deep chain DAG", {
+test_that("visual: right lone root DAG", {
   withr::local_seed(1234)
-  p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
+  p <- sort_direction_dag() |>
+    ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
+  expect_doppelganger("time-ordered-right-lone-root", p)
+})
+
+test_that("visual: left lone root DAG", {
+  withr::local_seed(1234)
+  p <- sort_direction_dag() |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-deep-chain", p)
+  expect_doppelganger("time-ordered-left-lone-root", p)
 })
 
 # fixed_time snapshot tests ----------------------------------------------------
