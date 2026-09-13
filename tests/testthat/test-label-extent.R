@@ -171,6 +171,7 @@ test_that("a labelled DAG drawn small leaves room beyond its outermost nodes", {
 
 test_that("a labelled DAG keeps its labels near the nodes they name", {
   skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
 
   capture <- perf_dag_capture(label_room_dag(), "spline", size = c(7, 5))
   boxes <- capture$placement$boxes

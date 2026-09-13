@@ -1376,6 +1376,7 @@ test_that("orthogonal channels: no box on a channel of the dense DAG", {
 test_that("orthogonal channels: the saturated DAG keeps off them where it can", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
 
   # The saturated ten-node DAG draws 41 channels. At both 10 x 6 and 7 x 5
   # inches every box finds an admissible spot, so no box sits on a channel and

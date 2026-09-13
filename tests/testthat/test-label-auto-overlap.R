@@ -242,6 +242,7 @@ clear_labelled_dag <- function() {
 
 test_that("the saturated scene at 4 x 3 leaves three labels unresolved", {
   skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
 
   # The pin the warning below names. A label reported here is drawn at the
   # engine's least-bad candidate; every other box is clear.
@@ -276,6 +277,7 @@ test_that("a draw with unresolved labels warns once, naming them", {
 
 test_that("the unresolved warning reads in the package's cli style", {
   skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
 
   # `expect_snapshot()` records whatever the draw emits, and a draw that does
   # not warn would pin a baseline with no warning in it, so the condition is
@@ -320,6 +322,7 @@ test_that("dropping every unresolved label still warns, naming them", {
 
 test_that("dropping some of them names the ones that stayed as well", {
   skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
 
   # An allowance between the counts of two unresolved labels keeps one and
   # drops the others. The one that stayed is still sitting on the ink, so
