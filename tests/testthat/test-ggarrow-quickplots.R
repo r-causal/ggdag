@@ -55,6 +55,7 @@ test_that("ggdag_paths() with ggarrow supports edge_engine parameter", {
     edge_engine = "ggarrow"
   )
   expect_s3_class(p, "ggplot")
+  expect_true(uses_ggarrow_edges(p))
 })
 
 # ggdag_adjustment_set() with ggarrow engine --------------------------------
@@ -82,6 +83,7 @@ test_that("ggdag_adjustment_set() with ggarrow supports edge_engine parameter", 
 
   p <- ggdag_adjustment_set(confounder_dag, edge_engine = "ggarrow")
   expect_s3_class(p, "ggplot")
+  expect_true(uses_ggarrow_edges(p))
 })
 
 # ggdag_equivalent_class() with ggarrow engine ------------------------------
@@ -102,6 +104,7 @@ test_that("ggdag_equivalent_class() with ggarrow supports edge_engine parameter"
   dag <- dagify(y ~ x + z, x ~ z)
   p <- ggdag_equivalent_class(dag, edge_engine = "ggarrow")
   expect_s3_class(p, "ggplot")
+  expect_true(uses_ggarrow_edges(p))
 })
 
 # Legend key glyphs with ggarrow engine ------------------------------------
