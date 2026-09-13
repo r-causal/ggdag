@@ -1,3 +1,32 @@
+# Identifying the label layer ---------------------------------------------------
+#
+# `geom_dag()` maps the DAG's `label` column onto the layer it builds for the
+# labels. The node text layer maps `.data$name` instead, so the mapping names
+# the label layer whichever geom drew it.
+
+# The single label layer of `plot`.
+dag_label_layer <- function(plot) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    label <- layer$mapping$label
+    !is.null(label) && identical(rlang::quo_get_expr(label), quote(label))
+  }))
+  expect_length(index, 1)
+  plot$layers[[index]]
+}
+
+# The label layer of `plot` was drawn by `geom_class`. Both label repel geoms
+# draw with GeomLabelRepel, so `label_size` tells them apart:
+# geom_dag_label_repel2() draws the label without a box border.
+expect_label_geom <- function(plot, geom_class, label_size = NULL) {
+  expect_s3_class(plot, "gg")
+  layer <- dag_label_layer(plot)
+  expect_equal(class(layer$geom)[[1]], geom_class)
+  if (!is.null(label_size)) {
+    expect_equal(layer$geom_params$label.size, label_size)
+  }
+  invisible(layer)
+}
+
 test_that("ggdag() supports label_geom parameter", {
   dag <- dagify(
     y ~ x + z,
@@ -7,11 +36,11 @@ test_that("ggdag() supports label_geom parameter", {
 
   # Test with default (geom_dag_label_repel)
   p_default <- ggdag(dag, use_labels = TRUE)
-  expect_s3_class(p_default, "gg")
+  expect_label_geom(p_default, "GeomLabelRepel", label_size = 0.25)
 
   # Test with static labels
   p_static <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(p_static, "gg")
+  expect_label_geom(p_static, "GeomLabel")
 
   # Test with text repel
   p_text_repel <- ggdag(
@@ -19,7 +48,7 @@ test_that("ggdag() supports label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_text_repel, "gg")
+  expect_label_geom(p_text_repel, "GeomTextRepel")
 })
 
 test_that("adjustment set functions support label_geom parameter", {
@@ -37,7 +66,7 @@ test_that("adjustment set functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_adj, "gg")
+  expect_label_geom(p_adj, "GeomLabel")
 
   # ggdag_adjust
   p_adjusted <- ggdag_adjust(
@@ -46,7 +75,7 @@ test_that("adjustment set functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_adjusted, "gg")
+  expect_label_geom(p_adjusted, "GeomTextRepel")
 })
 
 test_that("path functions support label_geom parameter", {
@@ -60,7 +89,7 @@ test_that("path functions support label_geom parameter", {
 
   # ggdag_paths
   p_paths <- ggdag_paths(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(p_paths, "gg")
+  expect_label_geom(p_paths, "GeomLabel")
 
   # ggdag_paths_fan
   p_fan <- ggdag_paths_fan(
@@ -68,7 +97,7 @@ test_that("path functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_fan, "gg")
+  expect_label_geom(p_fan, "GeomTextRepel")
 })
 
 test_that("status function supports label_geom parameter", {
@@ -81,7 +110,7 @@ test_that("status function supports label_geom parameter", {
   )
 
   p <- ggdag_status(dag, use_labels = TRUE, label_geom = geom_dag_label_repel2)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomLabelRepel", label_size = NA)
 })
 
 test_that("relation functions support label_geom parameter", {
@@ -109,7 +138,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_children, "gg")
+  expect_label_geom(p_children, "GeomLabel")
 
   p_parents <- ggdag_parents(
     dag,
@@ -117,7 +146,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_parents, "gg")
+  expect_label_geom(p_parents, "GeomTextRepel")
 
   p_ancestors <- ggdag_ancestors(
     dag,
@@ -125,7 +154,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_ancestors, "gg")
+  expect_label_geom(p_ancestors, "GeomLabelRepel", label_size = NA)
 
   p_descendants <- ggdag_descendants(
     dag,
@@ -133,7 +162,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(p_descendants, "gg")
+  expect_label_geom(p_descendants, "GeomTextRepel")
 
   p_markov <- ggdag_markov_blanket(
     dag,
@@ -141,7 +170,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_markov, "gg")
+  expect_label_geom(p_markov, "GeomLabel")
 
   p_adjacent <- ggdag_adjacent(
     dag,
@@ -149,7 +178,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_adjacent, "gg")
+  expect_label_geom(p_adjacent, "GeomTextRepel")
 })
 
 test_that("d-relationship functions support label_geom parameter", {
@@ -165,7 +194,7 @@ test_that("d-relationship functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_drel, "gg")
+  expect_label_geom(p_drel, "GeomLabel")
 
   p_dsep <- ggdag_dseparated(
     dag,
@@ -174,7 +203,7 @@ test_that("d-relationship functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_dsep, "gg")
+  expect_label_geom(p_dsep, "GeomTextRepel")
 
   p_dconn <- ggdag_dconnected(
     dag,
@@ -183,7 +212,7 @@ test_that("d-relationship functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_dconn, "gg")
+  expect_label_geom(p_dconn, "GeomLabelRepel", label_size = NA)
 })
 
 test_that("collider function supports label_geom parameter", {
@@ -194,7 +223,7 @@ test_that("collider function supports label_geom parameter", {
   )
 
   p <- ggdag_collider(dag, use_labels = TRUE, label_geom = geom_dag_text_repel2)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomTextRepel")
 })
 
 test_that("instrumental function supports label_geom parameter", {
@@ -213,7 +242,7 @@ test_that("instrumental function supports label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomLabel")
 })
 
 test_that("exogenous function supports label_geom parameter", {
@@ -224,7 +253,7 @@ test_that("exogenous function supports label_geom parameter", {
   )
 
   p <- ggdag_exogenous(dag, use_labels = TRUE, label_geom = geom_dag_text_repel)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomTextRepel")
 })
 
 test_that("equivalence functions support label_geom parameter", {
@@ -239,14 +268,14 @@ test_that("equivalence functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_dags, "gg")
+  expect_label_geom(p_dags, "GeomLabel")
 
   p_class <- ggdag_equivalent_class(
     dag,
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_class, "gg")
+  expect_label_geom(p_class, "GeomTextRepel")
 })
 
 test_that("quick plot functions support label_geom parameter", {
@@ -258,7 +287,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_mbias, "gg")
+  expect_label_geom(p_mbias, "GeomLabel")
 
   # Test butterfly_bias
   p_butterfly <- ggdag_butterfly_bias(
@@ -268,7 +297,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_butterfly, "gg")
+  expect_label_geom(p_butterfly, "GeomTextRepel")
 
   # Test confounder_triangle
   p_conf <- ggdag_confounder_triangle(
@@ -278,7 +307,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_conf, "gg")
+  expect_label_geom(p_conf, "GeomLabelRepel", label_size = NA)
 
   # Test collider_triangle
   p_coll <- ggdag_collider_triangle(
@@ -288,7 +317,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(p_coll, "gg")
+  expect_label_geom(p_coll, "GeomTextRepel")
 
   # Test mediation_triangle
   p_med <- ggdag_mediation_triangle(
@@ -298,7 +327,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_med, "gg")
+  expect_label_geom(p_med, "GeomLabel")
 
   # Test quartet functions
   p_q_coll <- ggdag_quartet_collider(
@@ -308,7 +337,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_q_coll, "gg")
+  expect_label_geom(p_q_coll, "GeomTextRepel")
 
   p_q_conf <- ggdag_quartet_confounder(
     x = "X",
@@ -317,7 +346,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_q_conf, "gg")
+  expect_label_geom(p_q_conf, "GeomLabel")
 
   p_q_med <- ggdag_quartet_mediator(
     x = "X",
@@ -326,7 +355,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_q_med, "gg")
+  expect_label_geom(p_q_med, "GeomTextRepel")
 
   p_q_mbias <- ggdag_quartet_m_bias(
     x = "X",
@@ -335,7 +364,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_q_mbias, "gg")
+  expect_label_geom(p_q_mbias, "GeomLabelRepel", label_size = NA)
 
   p_q_time <- ggdag_quartet_time_collider(
     x2 = "X2",
@@ -343,16 +372,17 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(p_q_time, "gg")
+  expect_label_geom(p_q_time, "GeomTextRepel")
 })
 
 test_that("canonical function supports label_geom parameter", {
-  dag <- dagify(y ~ x + z, x ~ ~z)
+  dag <- dagify(y ~ x + z, x ~ ~z, labels = c(x = "X", y = "Y", z = "Z"))
 
-  # Note: canonical creates new nodes without labels, so labels won't show
-  # but the parameter should still be accepted
+  # canonical turns the bidirected edge into a new latent node, which carries
+  # no label of its own; the labelled nodes still reach the label geom
   p <- ggdag_canonical(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(p, "gg")
+  layer <- expect_label_geom(p, "GeomLabel")
+  expect_setequal(stats::na.omit(layer$data$label), c("X", "Y", "Z"))
 })
 
 test_that("label_geom works with custom geom functions", {
@@ -368,7 +398,8 @@ test_that("label_geom works with custom geom functions", {
   }
 
   p <- ggdag(dag, use_labels = TRUE, label_geom = custom_label_geom)
-  expect_s3_class(p, "gg")
+  layer <- expect_label_geom(p, "GeomLabel")
+  expect_equal(layer$aes_params$fill, "yellow")
 })
 
 # label_wrap on the quick plots -----------------------------------------------
@@ -437,16 +468,6 @@ test_that("the label_wrap option reaches a quick plot's auto label geom", {
 # `geom_dag()` sets `size` and `col` on the label layer it assembles. A wrapper
 # of the shape `function(...) geom_geom(..., size = value)` writes those names a
 # second time, and the value the wrapper writes is the one the user asked for.
-
-# The single label layer of `plot`, whichever label geom drew it.
-dag_label_layer <- function(plot) {
-  index <- which(purrr::map_lgl(plot$layers, \(layer) {
-    inherits(layer$stat, "StatNodesLabelAuto") ||
-      inherits(layer$stat, "StatNodesRepel")
-  }))
-  expect_length(index, 1)
-  plot$layers[[index]]
-}
 
 # A small labelled DAG for the wrapper tests.
 wrapper_dag <- function() {
