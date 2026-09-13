@@ -1143,3 +1143,33 @@ test_that("ggdag_paths_fan() draws the fan under a routing", {
 
   expect_doppelganger("ggdag-paths-fan-routing-dropped", plot)
 })
+
+# The colours a path plot maps each path type to, whether or not it has paths
+# of that type. Dropping an absent type from the scale's limits would shift the
+# hues of the types that remain, so the plot keeps the full vocabulary as its
+# limits and trims only the legend.
+path_palette <- function(plot) {
+  scale <- ggplot2::ggplot_build(plot)$plot$scales$get_scales("colour")
+
+  stats::setNames(
+    scale$map(c("direct", "backdoor", "other")),
+    c("direct", "backdoor", "other")
+  )
+}
+
+test_that("ggdag_paths() draws no legend key it has no rows for", {
+  p <- ggdag_paths(dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y"))
+
+  expect_equal(empty_legend_keys(p), character())
+})
+
+test_that("ggdag_paths() keeps the path colours when a path type is absent", {
+  absent <- path_palette(
+    ggdag_paths(dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y"))
+  )
+
+  expect_equal(
+    absent,
+    c("direct" = "#F8766D", "backdoor" = "#00BA38", "other" = "#619CFF")
+  )
+})

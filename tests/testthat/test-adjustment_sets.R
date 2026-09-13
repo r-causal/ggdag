@@ -995,3 +995,73 @@ test_that("ggdag_adjustment_set() renders collider paths with no way to block th
     adjustment_set_plot(unclosable_collider_dag())
   )
 })
+
+# A DAG with no backdoor path at all, so every adjustment set is empty and no
+# node is ever adjusted or has an edge blocked.
+nothing_to_adjust_dag <- function() {
+  dagify(y ~ x, exposure = "x", outcome = "y")
+}
+
+# The colours a plot's `adjusted` scale puts on each adjustment status, whether
+# or not the plot has nodes of that status.
+adjusted_palette <- function(plot) {
+  scale <- ggplot2::ggplot_build(plot)$plot$scales$get_scales("colour")
+
+  scale$map(c("adjusted", "unadjusted"))
+}
+
+test_that("dag_adjustment_sets() keeps the adjustment that activated the collider paths", {
+  sets <- suppressWarnings(
+    dag_adjustment_sets(unclosable_collider_dag()),
+    classes = "ggdag_failed_to_close_backdoor_warning"
+  )
+
+  dag_data <- pull_dag_data(sets)
+  adjusted <- unique(dag_data$name[dag_data$adjusted == "adjusted"])
+
+  expect_equal(adjusted, "showed_up")
+})
+
+test_that("ggdag_adjustment_set() draws the adjustment the collider paths come from", {
+  p <- adjustment_set_plot(unclosable_collider_dag())
+
+  expect_gt(nrow(built_collider_data(p)), 0)
+
+  nodes <- built_node_data(p)
+  expect_length(unique(nodes$shape), 2)
+  expect_length(unique(nodes$colour), 2)
+})
+
+test_that("ggdag_adjustment_set() draws no legend key it has no rows for", {
+  expect_equal(
+    empty_legend_keys(ggdag_adjustment_set(nothing_to_adjust_dag())),
+    character()
+  )
+  expect_equal(
+    empty_legend_keys(adjustment_set_plot(unclosable_collider_dag())),
+    character()
+  )
+})
+
+test_that("ggdag_adjustment_set() keeps its colours when no node is adjusted", {
+  nothing_adjusted <- adjusted_palette(
+    ggdag_adjustment_set(nothing_to_adjust_dag())
+  )
+  something_adjusted <- adjusted_palette(
+    ggdag_adjustment_set(dagify(
+      y ~ x + z,
+      x ~ z,
+      exposure = "x",
+      outcome = "y"
+    ))
+  )
+
+  expect_equal(nothing_adjusted, something_adjusted)
+})
+
+test_that("ggdag_adjustment_set() renders a DAG with nothing to adjust for", {
+  expect_doppelganger(
+    "ggdag_adjustment_set() with nothing to adjust for",
+    ggdag_adjustment_set(nothing_to_adjust_dag())
+  )
+})

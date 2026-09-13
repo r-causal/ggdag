@@ -600,3 +600,17 @@ keep_last_named <- function(dots) {
 
   dots[!named | !duplicated(nms, fromLast = TRUE)]
 }
+
+# The levels a scale should list in its legend, given the whole vocabulary the
+# scale maps and the values the plot actually has.
+#
+# ggplot2 builds each legend key from the layer rows carrying that key's value,
+# so a level with no rows renders as a label beside an empty box. Dropping the
+# level from the scale's `limits` would fix the key but move the palette, since
+# a discrete palette assigns colours by position within the limits. Using this
+# as the scale's `breaks` leaves `limits` alone, so every level keeps the
+# colour and shape it would have had.
+#' @noRd
+present_levels <- function(values, levels) {
+  intersect(levels, unique(as.character(values)))
+}

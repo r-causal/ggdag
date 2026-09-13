@@ -250,16 +250,12 @@ dag_theme <- function(presets, ...) {
 #'   Default is TRUE.
 #' @param include_alpha Logical. Include alpha scales for de-emphasizing edges
 #'   from adjusted variables? Default is FALSE.
-#' @param breaks One of:
-#'
-#'   - NULL for no breaks
-#'
-#'   - waiver() for the default breaks computed by the transformation object
-#'
-#'   - A numeric vector of positions
-#'
-#'   - A function that takes the limits as input and returns breaks as output
-#'
+#' @param breaks The adjustment statuses to list in the legend. The default,
+#'   `waiver()`, lists both. A plot whose layers have no rows of one status
+#'   should leave it out: ggplot2 builds each legend key from the rows carrying
+#'   its value, so a status with no rows draws a label beside an empty box.
+#'   The scale keeps both statuses as its limits either way, so the colours and
+#'   shapes do not move when one is left out.
 #'
 #' @export
 #' @rdname scale_adjusted
@@ -267,7 +263,8 @@ scale_adjusted <- function(
   include_linetype = TRUE,
   include_shape = TRUE,
   include_color = TRUE,
-  include_alpha = FALSE
+  include_alpha = FALSE,
+  breaks = ggplot2::waiver()
 ) {
   # Guides that share an `order` still merge into a single legend, so the shape
   # and colour scales stay together, as do the two alpha scales. Without an
@@ -283,21 +280,25 @@ scale_adjusted <- function(
     ggplot2::scale_shape_manual(
       values = c("adjusted" = 15, "unadjusted" = 19),
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 1)
     ),
     ggplot2::scale_color_discrete(
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 1)
     ),
     ggplot2::scale_alpha_manual(
       values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 2)
     ),
     ggraph::scale_edge_alpha_manual(
       name = NULL,
       values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 2)
     )
   )

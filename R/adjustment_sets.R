@@ -78,14 +78,30 @@ dag_adjustment_sets <- function(
     sets <- extract_sets(sets)
   }
 
+  # Each panel normally reports the membership of the set it is named for. The
+  # panel for a DAG with no adjustment set names no set, so it reports the
+  # adjustment the DAG already carries instead: that adjustment is what
+  # activates the collider paths the plot draws as dashed curves, and blanking
+  # it would leave the plot showing their consequence with no sign of the cause.
+  adjusted_nodes <- if (is_empty_set) {
+    list(as.character(dagitty::adjustedNodes(pull_dag(.tdy_dag))))
+  } else {
+    sets
+  }
+
   update_dag_data(.tdy_dag) <-
-    purrr::map_df(
+    purrr::map2_df(
       sets,
-      \(.x) {
+      adjusted_nodes,
+      \(.set, .adjusted) {
         dplyr::mutate(
           pull_dag_data(.tdy_dag),
-          adjusted = ifelse(.data$name %in% .x, "adjusted", "unadjusted"),
-          set = format_adjustment_set(.x)
+          adjusted = ifelse(
+            .data$name %in% .adjusted,
+            "adjusted",
+            "unadjusted"
+          ),
+          set = format_adjustment_set(.set)
         )
       }
     )
@@ -161,12 +177,17 @@ ggdag_adjustment_set <- function(
     ) |>
     shadow_rows_first(\(x) !is.na(x$blocked), panel = "set")
 
+  adjusted_breaks <- present_levels(
+    pull_dag_data(.tdy_dag)$adjusted,
+    c("adjusted", "unadjusted")
+  )
+
   p <- ggplot2::ggplot(
     .tdy_dag,
     aes_dag(shape = .data$adjusted, color = .data$adjusted)
   ) +
     ggplot2::facet_wrap(~set) +
-    scale_adjusted() +
+    scale_adjusted(breaks = adjusted_breaks) +
     expand_dag_plot(.tdy_dag, expand_x = expand_x, expand_y = expand_y)
 
   if (use_edges) {
@@ -238,6 +259,7 @@ ggdag_adjustment_set <- function(
           drop = TRUE,
           values = vals,
           limits = names(vals),
+          breaks = present_levels(pull_dag_data(.tdy_dag)$blocked, names(vals)),
           na.value = "black"
         )
     }
@@ -544,7 +566,13 @@ ggdag_adjust <- function(
 
   p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag(col = .data$adjusted, shape = .data$adjusted)) +
-    scale_adjusted(include_alpha = TRUE) +
+    scale_adjusted(
+      include_alpha = TRUE,
+      breaks = present_levels(
+        pull_dag_data(.tdy_dag)$adjusted,
+        c("adjusted", "unadjusted")
+      )
+    ) +
     expand_dag_plot(.tdy_dag, expand_y = expansion(c(0.2, 0.2)))
 
   if (use_edges) {

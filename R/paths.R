@@ -351,10 +351,19 @@ ggdag_paths <- function(
     ) |>
     shadow_rows_first(\(x) is.na(x$path_type), panel = "set")
 
+  # The plot keeps the whole path vocabulary as its colour limits so a path type
+  # is drawn in the same colour whatever else the DAG contains, and lists only
+  # the types it has rows for: a legend key is built from those rows, so a type
+  # with none draws a label beside an empty box.
+  path_type_breaks <- present_levels(
+    pull_dag_data(path_dag)$path_type,
+    c("direct", "backdoor", "other")
+  )
+
   p <- path_dag |>
     ggplot2::ggplot(aes_dag(color = .data$path_type)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
-    breaks(c("direct", "backdoor", "other"), name = "path") +
+    breaks(path_type_breaks, name = "path") +
     expand_dag_plot(
       path_dag,
       expand_x = expansion(c(0.25, 0.25)),
@@ -418,7 +427,8 @@ ggdag_paths <- function(
           drop = FALSE,
           na.value = if (shadow) "grey80" else "#FFFFFF00",
           na.translate = TRUE,
-          limits = c("direct", "backdoor", "other")
+          limits = c("direct", "backdoor", "other"),
+          breaks = path_type_breaks
         )
     } else {
       warn_if_ggarrow_only_ignored(p$data)
@@ -455,7 +465,8 @@ ggdag_paths <- function(
           drop = FALSE,
           na.value = if (shadow) "grey80" else "#FFFFFF00",
           na.translate = TRUE,
-          limits = c("direct", "backdoor", "other")
+          limits = c("direct", "backdoor", "other"),
+          breaks = path_type_breaks
         )
     }
   }
