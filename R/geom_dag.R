@@ -702,6 +702,11 @@ geom_dag_label_repel <- function(
 
 geom_dag_label_repel <- dag_node_aware(geom_dag_label_repel)
 
+# How much more box padding the more spaced repel geoms leave than the plain
+# ones: `geom_dag_label_repel2()` and `geom_dag_text_repel2()` default to 0.75
+# where `geom_dag_label_repel()` and `geom_dag_text_repel()` default to 0.5.
+repel2_box_padding_ratio <- 1.5
+
 #' @rdname repel
 #' @export
 geom_dag_label_repel2 <- function(
@@ -724,7 +729,10 @@ geom_dag_label_repel2 <- function(
   )
 }
 
-geom_dag_label_repel2 <- dag_node_aware(geom_dag_label_repel2)
+geom_dag_label_repel2 <- dag_node_aware(
+  geom_dag_label_repel2,
+  box_padding = repel2_box_padding_ratio
+)
 
 #' @rdname repel
 #' @export
@@ -744,7 +752,11 @@ geom_dag_text_repel2 <- function(
   )
 }
 
-geom_dag_text_repel2 <- dag_node_aware(geom_dag_text_repel2)
+geom_dag_text_repel2 <- dag_node_aware(
+  geom_dag_text_repel2,
+  box_padding = repel2_box_padding_ratio
+)
+
 
 # ggrepel accepts either spelling of the segment colour, and so do these
 # wrappers. `segment.color` has a documented default here, so it can only give
@@ -2336,7 +2348,8 @@ geom_dag <- function(
       common_params$node_size <- sizes[["node"]]
       common_params$n_edge_points <- n_edge_points
       common_params$n_node_points <- n_node_points
-      common_params$box.padding <- sizes[["box_padding"]]
+      common_params$box.padding <- sizes[["box_padding"]] *
+        (attr(label_geom, "dag_node_aware_box_padding") %||% 1)
       common_params$max.overlaps <- Inf
       extra <- attr(label_geom, "dag_node_aware_extra")
       if ("edge_cap" %in% extra) {

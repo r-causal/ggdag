@@ -1396,9 +1396,17 @@ make_debug_repel_layer <- function(
 # parameters (`node_size`, `n_edge_points`, `n_node_points`, `box.padding`,
 # and `max.overlaps`) to it. `extra` names further parameters the constructor
 # takes beyond those: "edge_cap" for the automatic label geoms.
-dag_node_aware <- function(f, extra = character()) {
+#
+# `box_padding` is what the geom multiplies the threaded box padding by. The
+# padding `geom_dag()` threads is scaled by the size the plot is drawn at, so
+# it is written over whatever default the constructor has: a geom whose whole
+# restyling is a wider padding would be threaded back into the plain one. Such
+# a geom declares its padding here, as a multiple of the plain padding rather
+# than a value of its own, and keeps both its spacing and the scaling.
+dag_node_aware <- function(f, extra = character(), box_padding = 1) {
   attr(f, "dag_node_aware") <- TRUE
   attr(f, "dag_node_aware_extra") <- extra
+  attr(f, "dag_node_aware_box_padding") <- box_padding
   f
 }
 
