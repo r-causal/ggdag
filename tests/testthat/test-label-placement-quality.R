@@ -326,9 +326,9 @@ realised_curve_mm <- function(curve) {
 }
 
 # One row per label of a forced `dag_labels_auto` gTree: the text, the box in
-# millimetres, the node centre the label belongs to, and the number of
-# leaders drawn in the panel. Forcing turns each
-# box into a polygon whose geometry moves to the viewport
+# millimetres, the radius its corners are rounded by, the node centre the
+# label belongs to, and the number of leaders drawn in the panel. Forcing
+# turns each box into a polygon whose geometry moves to the viewport
 # `makeContext.roundrect()` attaches, in the absolute millimetres the engine
 # placed it at. Boxes and texts are emitted in label order, so the i-th box
 # belongs to the i-th text.
@@ -348,12 +348,16 @@ forced_label_table <- function(tree, panel_width, panel_height) {
     center_y <- grid::convertY(box$vp$y, "mm", TRUE)
     width <- grid::convertWidth(box$vp$width, "mm", TRUE)
     height <- grid::convertHeight(box$vp$height, "mm", TRUE)
+    # The corner radius survives forcing on the original grob, in the `lines`
+    # the geom asks for it in, and grid caps it at half the shorter side.
+    radius <- grid::convertWidth(box$.ORIGINAL$r, "mm", TRUE)
     data.frame(
       label = as.character(texts[[i]]$label),
       xmin = center_x - width / 2,
       xmax = center_x + width / 2,
       ymin = center_y - height / 2,
       ymax = center_y + height / 2,
+      r = min(radius, width / 2, height / 2),
       stringsAsFactors = FALSE
     )
   })
@@ -366,6 +370,26 @@ forced_label_table <- function(tree, panel_width, panel_height) {
   # whatever grob the engine draws one with.
   out$n_leaders <- length(children) - length(boxes) - length(texts)
   out
+}
+
+# How many of `ink`'s points the label `box` is drawn over. The box the reader
+# sees is a `grid::roundrectGrob()`, so each of its corners is a quarter disc
+# of radius `box$r` and the four squares outside those quarters are inside the
+# bounding rectangle but are never painted. A point counts only when it is
+# inside the rectangle and inside the rounding as well: along the straight
+# edges the two agree to the point, so a box drawn a hundredth of a millimetre
+# over an edge still counts every point of the ink beneath it, and only ink
+# passing a cut corner is let through.
+ink_in_label_box <- function(ink, box) {
+  inside <- ink$x > box$xmin &
+    ink$x < box$xmax &
+    ink$y > box$ymin &
+    ink$y < box$ymax
+  # how far outside the rectangle the corner discs are centred on each point
+  # lies, which is zero except within a corner
+  corner_x <- pmax(box$xmin + box$r - ink$x, ink$x - (box$xmax - box$r), 0)
+  corner_y <- pmax(box$ymin + box$r - ink$y, ink$y - (box$ymax - box$r), 0)
+  sum(inside & corner_x^2 + corner_y^2 < box$r^2)
 }
 
 # The polyline resampled every `spacing` millimetres, so that a segment
@@ -1171,15 +1195,7 @@ test_that("no label box on the feedback loop holds drawn edge ink", {
     )
     counts <- vapply(
       seq_len(nrow(scene$labels)),
-      function(i) {
-        box <- scene$labels[i, ]
-        sum(
-          ink$x > box$xmin &
-            ink$x < box$xmax &
-            ink$y > box$ymin &
-            ink$y < box$ymax
-        )
-      },
+      function(i) ink_in_label_box(ink, scene$labels[i, ]),
       numeric(1)
     )
     stats::setNames(counts, paste(size_key(size), scene$labels$label))
@@ -1310,15 +1326,7 @@ test_that("no label box on a per-edge curved loop holds drawn edge ink", {
     ink <- do.call(rbind, lapply(scene$ink, densify_mm_polyline))
     counts <- vapply(
       seq_len(nrow(scene$labels)),
-      function(i) {
-        box <- scene$labels[i, ]
-        sum(
-          ink$x > box$xmin &
-            ink$x < box$xmax &
-            ink$y > box$ymin &
-            ink$y < box$ymax
-        )
-      },
+      function(i) ink_in_label_box(ink, scene$labels[i, ]),
       numeric(1)
     )
     stats::setNames(counts, paste(size_key(size), scene$labels$label))
@@ -1422,15 +1430,7 @@ test_that("no label box on a panel of mixed curvature holds drawn edge ink", {
     ink <- do.call(rbind, lapply(scene$ink, densify_mm_polyline))
     counts <- vapply(
       seq_len(nrow(scene$labels)),
-      function(i) {
-        box <- scene$labels[i, ]
-        sum(
-          ink$x > box$xmin &
-            ink$x < box$xmax &
-            ink$y > box$ymin &
-            ink$y < box$ymax
-        )
-      },
+      function(i) ink_in_label_box(ink, scene$labels[i, ]),
       numeric(1)
     )
     stats::setNames(counts, paste(size_key(size), scene$labels$label))
