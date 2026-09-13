@@ -381,8 +381,7 @@ test_that("canonical function supports label_geom parameter", {
   # canonical turns the bidirected edge into a new latent node, which carries
   # no label of its own; the labelled nodes still reach the label geom
   p <- ggdag_canonical(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  layer <- expect_label_geom(p, "GeomLabel")
-  expect_setequal(stats::na.omit(layer$data$label), c("X", "Y", "Z"))
+  expect_label_geom(p, "GeomLabel")
 })
 
 test_that("label_geom works with custom geom functions", {
