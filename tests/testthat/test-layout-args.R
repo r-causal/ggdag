@@ -154,14 +154,18 @@ test_that("a ggraph layout still takes its own arguments", {
   centered <- node_coords(tidy_dagitty(
     dag,
     layout = "star",
-    center = "q",
+    center = "x",
     use_existing_coords = FALSE
   ))
 
   # `center` is `ggraph::create_layout()`'s argument, and the node it names
-  # sits at the middle of the star
-  expect_equal(time_of(centered, "q"), 0)
-  expect_equal(centered$y[centered$name == "q"], 0)
+  # sits at the middle of the star. The centre has to be a node the layout
+  # would not pick on its own: left to itself the star centres `q`, the
+  # alphabetically first node here, so naming `q` would hold even if `center`
+  # never reached `create_layout()`.
+  expect_equal(time_of(centered, "x"), 0)
+  expect_equal(centered$y[centered$name == "x"], 0)
+  expect_equal(time_of(centered, "q"), 1)
 })
 
 test_that("an argument no layout takes is still an error", {
