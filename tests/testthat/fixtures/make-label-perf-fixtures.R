@@ -2,7 +2,8 @@
 # placement each scene in helper-label-perf.R draws at 7 x 5 inches under the
 # ggarrow engine, for both the straight and the spline edge routes. The
 # placement test in test-label-auto-perf.R recomputes these and compares, so
-# any optimisation of the placement engine has to reproduce them exactly.
+# any optimisation of the placement engine has to reproduce the unresolved
+# labels exactly and the geometry to within floating-point noise (1e-9).
 #
 # Regenerate only when the placement is meant to change, which is a decision
 # about how the pictures look, not about how fast they are drawn.

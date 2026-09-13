@@ -3,8 +3,9 @@
 # orthogonal mode, captured from the current implementation. None of those
 # graphs holds an anti-parallel pair, so the reciprocal-end work must leave
 # every one of them untouched; test-route-reciprocal-ends.R compares against
-# this file with expect_identical(). Regenerate it only when the router's
-# output for a graph without a reciprocal pair is meant to change.
+# this file, requiring the doubles to match to within floating-point noise
+# (1e-10) and every other field to match exactly. Regenerate it only when the
+# router's output for a graph without a reciprocal pair is meant to change.
 #
 # Run non-interactively from the package root:
 #   Rscript tests/testthat/fixtures/make-route-fixtures.R

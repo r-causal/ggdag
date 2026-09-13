@@ -1,9 +1,10 @@
 # Regenerates tests/testthat/fixtures/layout-invariance.rds: the pinned
 # order_layers() results and compute_time_ordered_layout() coordinates for
 # the 22 canonical DAGs, captured from the current implementation. The
-# invariance tests in test-layout-perf.R compare against this file with
-# expect_identical(), so regenerate it only when the layout engine's output
-# is intended to change.
+# invariance tests in test-layout-perf.R compare against this file: the layer
+# orderings must match exactly and the coordinates to within floating-point
+# noise (1e-10). Regenerate it only when the layout engine's output is
+# intended to change.
 #
 # Run non-interactively from the package root:
 #   Rscript tests/testthat/fixtures/make-layout-fixtures.R

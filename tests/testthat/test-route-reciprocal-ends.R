@@ -402,9 +402,12 @@ test_that("separating the ends leaves the middle of a reciprocal pair alone", {
 test_that("the canonical DAGs route exactly as they did before", {
   # None of the 22 canonical graphs holds an anti-parallel pair, so every
   # path and every meta field the router draws for them must survive the
-  # reciprocal-end work byte for byte. The baseline is pinned in
+  # reciprocal-end work. The baseline is pinned in
   # fixtures/route-invariance.rds, regenerated only on purpose with
-  # tests/testthat/fixtures/make-route-fixtures.R.
+  # tests/testthat/fixtures/make-route-fixtures.R. Character, logical, and
+  # integer fields must match it exactly and doubles to within floating-point
+  # noise (1e-10), since processors can disagree in the last binary digit of
+  # the same arithmetic.
   fixture <- readRDS(test_path("fixtures", "route-invariance.rds"))
   expect_named(fixture, names(canonical_dag_specs))
 
@@ -429,14 +432,16 @@ test_that("the canonical DAGs route exactly as they did before", {
         mode = mode,
         opts = route_constants(6)
       )
-      expect_identical(
+      expect_equal(
         routed$paths,
         fixture[[name]][[k]]$paths,
+        tolerance = 1e-10,
         label = paste(name, mode, "paths")
       )
-      expect_identical(
+      expect_equal(
         routed$meta,
         fixture[[name]][[k]]$meta,
+        tolerance = 1e-10,
         label = paste(name, mode, "meta")
       )
     }

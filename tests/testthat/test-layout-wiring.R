@@ -754,8 +754,8 @@ test_that("the symmetry override leaves the unaffected corpus untouched", {
   # misses at least one condition: an asymmetric even candidate (smoking,
   # epidemiology, napkin, large_epi, multi_mediator), a crossing gap larger
   # than two (deep_confound), or a median win on the stress tiebreak alone
-  # with no crossing advantage (cascade). Their layouts stay exactly as the
-  # invariance fixture pins them.
+  # with no crossing advantage (cascade). Their layouts stay as the invariance
+  # fixture pins them, to within floating-point noise (1e-10).
   fixture <- readRDS(test_path("fixtures", "layout-invariance.rds"))
   unaffected <- c(
     "smoking",
@@ -769,9 +769,10 @@ test_that("the symmetry override leaves the unaffected corpus untouched", {
 
   for (nm in unaffected) {
     edges <- canonical_dag_edges(canonical_dag_specs[[nm]])
-    expect_identical(
+    expect_equal(
       compute_time_ordered_layout(edges),
       fixture[[nm]]$coords,
+      tolerance = 1e-10,
       label = paste0(nm, ": layout"),
       expected.label = paste0(nm, ": pinned coordinate fixture")
     )
