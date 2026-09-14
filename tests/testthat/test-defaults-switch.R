@@ -232,7 +232,8 @@ test_that("the defaults table switches the layout and label geom and nothing els
     text_col = "white",
     label_col = "black",
     edge_width = 0.6,
-    edge_cap = 8,
+    # unset, so that each edge is capped by the node at each of its ends
+    edge_cap = NULL,
     arrow_length = 5,
     use_edges = TRUE,
     use_nodes = TRUE,
