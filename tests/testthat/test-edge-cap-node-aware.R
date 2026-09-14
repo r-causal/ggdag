@@ -816,6 +816,610 @@ test_that("the ggarrow engine resects exactly as it did before node-aware caps",
   )))
 })
 
+# Every other plotter ----------------------------------------------------------
+
+# The plotters that draw every node as a circle, each called on a DAG it can
+# draw at `node_size` with `...` passed on.
+circle_plotter_calls <- function(node_size, ...) {
+  list(
+    ggdag_status = ggdag_status(cap_dag(), node_size = node_size, ...),
+    ggdag_collider = ggdag_collider(cap_dag(), node_size = node_size, ...),
+    ggdag_canonical = ggdag_canonical(cap_dag(), node_size = node_size, ...),
+    ggdag_exogenous = ggdag_exogenous(cap_dag(), node_size = node_size, ...),
+    ggdag_children = ggdag_children(
+      cap_dag(),
+      "z",
+      node_size = node_size,
+      ...
+    ),
+    ggdag_parents = ggdag_parents(cap_dag(), "y", node_size = node_size, ...),
+    ggdag_ancestors = ggdag_ancestors(
+      cap_dag(),
+      "y",
+      node_size = node_size,
+      ...
+    ),
+    ggdag_descendants = ggdag_descendants(
+      cap_dag(),
+      "z",
+      node_size = node_size,
+      ...
+    ),
+    ggdag_markov_blanket = ggdag_markov_blanket(
+      cap_dag(),
+      "x",
+      node_size = node_size,
+      ...
+    ),
+    ggdag_adjacent = ggdag_adjacent(
+      cap_dag(),
+      "x",
+      node_size = node_size,
+      ...
+    ),
+    ggdag_paths = ggdag_paths(cap_dag(), node_size = node_size, ...),
+    ggdag_paths_fan = ggdag_paths_fan(cap_dag(), node_size = node_size, ...),
+    ggdag_equivalent_dags = ggdag_equivalent_dags(
+      dagify(y ~ x, x ~ z),
+      node_size = node_size,
+      ...
+    ),
+    ggdag_equivalent_class = ggdag_equivalent_class(
+      dagify(y ~ x, x ~ z, y ~ z),
+      node_size = node_size,
+      ...
+    ),
+    ggdag_m_bias = ggdag_m_bias(node_size = node_size, ...),
+    ggdag_butterfly_bias = ggdag_butterfly_bias(node_size = node_size, ...),
+    ggdag_confounder_triangle = ggdag_confounder_triangle(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_collider_triangle = ggdag_collider_triangle(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_mediation_triangle = ggdag_mediation_triangle(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_collider = ggdag_quartet_collider(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_confounder = ggdag_quartet_confounder(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_mediator = ggdag_quartet_mediator(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_m_bias = ggdag_quartet_m_bias(node_size = node_size, ...),
+    ggdag_quartet_time_collider = ggdag_quartet_time_collider(
+      node_size = node_size,
+      ...
+    )
+  )
+}
+
+test_that("every circle-node plotter stops each edge beyond its nodes", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  for (node_size in c(8, 30)) {
+    plots <- circle_plotter_calls(node_size)
+    expect_length(plots, 24)
+    for (plotter in names(plots)) {
+      expect_equal(
+        node_aware_cap_mismatches(plots[[plotter]], node_size),
+        character(),
+        label = paste0(
+          "node-aware caps of ",
+          plotter,
+          "(node_size = ",
+          node_size,
+          ")"
+        )
+      )
+    }
+  }
+})
+
+test_that("the circle-node plotters keep an explicit edge_cap fixed", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  plots <- circle_plotter_calls(30, edge_cap = 5)
+  for (plotter in names(plots)) {
+    expect_equal(
+      fixed_cap_mismatches(plots[[plotter]], 5),
+      character(),
+      label = paste0(plotter, "(edge_cap = 5, node_size = 30)")
+    )
+  }
+})
+
+test_that("the fan and the equivalence class cap their own layers by the nodes", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # both plotters build their ggraph edge layers themselves, and an unset cap
+  # handed to them explicitly is the same request as the default
+  plots <- list(
+    fan = ggdag_paths_fan(cap_dag(), node_size = 30, edge_cap = NULL),
+    class = ggdag_equivalent_class(
+      dagify(y ~ x, x ~ z, y ~ z),
+      node_size = 30,
+      edge_cap = NULL
+    ),
+    scaled_fan = ggdag_paths_fan(cap_dag(), node_size = 20, size = 1.5)
+  )
+
+  expect_equal(node_aware_cap_mismatches(plots$fan, 30), character())
+  expect_equal(node_aware_cap_mismatches(plots$class, 30), character())
+  expect_equal(
+    node_aware_cap_mismatches(plots$scaled_fan, 20, size = 1.5),
+    character()
+  )
+  expect_false(anyNA(edge_end_caps(plots$class)$cap_mm))
+
+  # A circle node drawn at the size the plotter is asked for has the extent
+  # of the cap the plotter maps, so these scenes draw a wider node layer over
+  # the plotter's own: an edge that follows the nodes stops 2 mm beyond the
+  # widest node at its end, and one that keeps the mapped cap does not.
+  wider <- list(
+    fan = ggdag_paths_fan(cap_dag(), node_size = 30) +
+      geom_dag_point(size = 40),
+    class = ggdag_equivalent_class(
+      dagify(y ~ x, x ~ z, y ~ z),
+      node_size = 30
+    ) +
+      geom_dag_point(size = 40)
+  )
+  for (plotter in names(wider)) {
+    ends <- edge_end_caps(wider[[plotter]])
+    expect_gt(nrow(ends), 0)
+    expect_equal(
+      unique(ends$cap_mm),
+      0.375 * 40 + 2,
+      label = paste(plotter, "caps under a wider node layer")
+    )
+  }
+})
+
+# Draw `plot` off screen and report whether it drew.
+draws_on_device <- function(plot) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = 7, height = 5, units = "in", res = 72)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+  print(plot)
+  invisible(TRUE)
+}
+
+test_that("the path and equivalence plotters resect ggarrow edges with the cap unset", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  calls <- list(
+    ggdag_paths = \(...) ggdag_paths(cap_dag(), ...),
+    ggdag_paths_fan = \(...) ggdag_paths_fan(cap_dag(), ...),
+    ggdag_equivalent_dags = \(...) {
+      ggdag_equivalent_dags(dagify(y ~ x, x ~ z), ...)
+    },
+    ggdag_equivalent_class = \(...) {
+      ggdag_equivalent_class(dagify(y ~ x, x ~ z, y ~ z), ...)
+    }
+  )
+
+  for (plotter in names(calls)) {
+    call <- calls[[plotter]]
+    default <- call(node_size = 30, edge_engine = "ggarrow")
+    unset <- call(node_size = 30, edge_engine = "ggarrow", edge_cap = NULL)
+    explicit <- call(node_size = 30, edge_engine = "ggarrow", edge_cap = 8)
+
+    expect_no_error(draws_on_device(default), message = plotter)
+    expect_no_error(draws_on_device(unset), message = plotter)
+    # the ggarrow engine keeps the 8 mm resection it has always drawn with
+    expect_identical(
+      arrow_layer_state(default),
+      arrow_layer_state(explicit),
+      label = paste0(plotter, "() ggarrow layers")
+    )
+    expect_identical(
+      arrow_layer_state(unset),
+      arrow_layer_state(explicit),
+      label = paste0(plotter, "(edge_cap = NULL) ggarrow layers")
+    )
+  }
+})
+
+# Plots assembled by hand ------------------------------------------------------
+
+# The edge ends of `plot` whose cap is not 2 mm beyond the node drawn there, at
+# whatever size and shape that node is drawn with.
+drawn_node_cap_mismatches <- function(plot) {
+  ends <- edge_end_caps(plot)
+  if (nrow(ends) == 0) {
+    return("the plot builds no ggraph edge ends")
+  }
+
+  expected <- node_extent_mm(ends$shape, ends$node_size) + 2
+  bad <- is.na(expected) | abs(ends$cap_mm - expected) > 1e-6
+
+  sprintf(
+    "panel %s, edge %s: the %s cap at %s (a %s drawn at size %s) is %.4f mm; expected %.4f mm",
+    ends$panel[bad],
+    ends$edge[bad],
+    ends$end[bad],
+    ends$node[bad],
+    node_shape_name(ends$shape[bad]),
+    ends$node_size[bad],
+    ends$cap_mm[bad],
+    expected[bad]
+  )
+}
+
+hand_built_edge_layers <- list(
+  geom_dag_edges = geom_dag_edges,
+  geom_dag_edges_link = geom_dag_edges_link,
+  geom_dag_edges_arc = geom_dag_edges_arc,
+  geom_dag_edges_diagonal = geom_dag_edges_diagonal,
+  geom_dag_edges_fan = geom_dag_edges_fan
+)
+
+test_that("hand-built edge layers stop beyond the nodes in either layer order", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(cap_dag())
+
+  scenes <- list(
+    list(node_layer = geom_dag_point, name = "geom_dag_point", node_size = 8),
+    list(node_layer = geom_dag_point, name = "geom_dag_point", node_size = 30),
+    list(node_layer = geom_dag_node, name = "geom_dag_node", node_size = 30)
+  )
+
+  for (edges in names(hand_built_edge_layers)) {
+    edge_layer <- hand_built_edge_layers[[edges]]
+    for (scene in scenes) {
+      nodes <- scene$node_layer(size = scene$node_size)
+      nodes_first <- ggplot(tidy_dag, aes_dag()) + nodes + edge_layer()
+      edges_first <- ggplot(tidy_dag, aes_dag()) + edge_layer() + nodes
+
+      for (order in c("nodes first", "edges first")) {
+        p <- if (order == "nodes first") nodes_first else edges_first
+        expect_equal(
+          node_aware_cap_mismatches(p, scene$node_size),
+          character(),
+          label = sprintf(
+            "%s() with %s(size = %s), %s",
+            edges,
+            scene$name,
+            scene$node_size,
+            order
+          )
+        )
+      }
+    }
+  }
+})
+
+test_that("hand-built edge layers stop beyond square nodes by their corners", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(shape = 15, size = 30) +
+    geom_dag_edges()
+
+  expect_true(all(edge_end_caps(p)$shape == 15))
+  expect_equal(node_aware_cap_mismatches(p, 30), character())
+  expect_equal(unique(round(edge_end_caps(p)$cap_mm, 2)), 17.91)
+})
+
+test_that("hand-built edge layers follow a node size mapped to the data", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(aes(size = x)) +
+    geom_dag_edges() +
+    scale_size(range = c(8, 30))
+
+  ends <- edge_end_caps(p)
+  expect_gt(length(unique(ends$node_size)), 1)
+  expect_equal(drawn_node_cap_mismatches(p), character())
+})
+
+test_that("a cap the user maps on a hand-built edge layer wins at its end", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link(aes(start_cap = ggraph::circle(5, "mm")))
+
+  ends <- edge_end_caps(p)
+  expect_equal(unique(ends$cap_mm[ends$end == "start"]), 5)
+  expect_equal(unique(ends$cap_mm[ends$end == "end"]), 0.375 * 30 + 2)
+
+  both <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link(
+      aes(
+        start_cap = ggraph::circle(5, "mm"),
+        end_cap = ggraph::circle(5, "mm")
+      )
+    )
+  expect_equal(fixed_cap_mismatches(both, 5), character())
+})
+
+test_that("a hand-built edge layer with no node layer keeps the 8 mm cap", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) + geom_dag_edges_link()
+
+  expect_equal(edge_cap_radii(p), 8)
+})
+
+# Shape scales, shared layers, and panels ---------------------------------------
+
+test_that("a shape scale that names its shapes gives square nodes their corners", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(control_for(controlled_dag(), "z"), aes_dag()) +
+    geom_dag_point(aes(shape = adjusted), size = 30) +
+    geom_dag_edges() +
+    scale_shape_manual(
+      values = c(adjusted = "square filled", unadjusted = "circle")
+    )
+
+  ends <- edge_end_caps(p)
+  square <- ends$shape %in% "square filled"
+  expect_true(any(square & ends$end == "start"))
+  expect_true(any(square & ends$end == "end"))
+
+  # R draws the filled square with the area of the circle
+  expect_equal(
+    unique(round(ends$cap_mm[square], 4)),
+    round(0.375 * 30 * sqrt(pi / 4) * sqrt(2) + 2, 4)
+  )
+  expect_equal(unique(round(ends$cap_mm[square], 1)), 16.1)
+  expect_equal(unique(ends$cap_mm[!square]), 0.375 * 30 + 2)
+})
+
+test_that("edge layers shared between plots take the caps of the plot built", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  large <- ggdag(cap_dag(), node_size = 30)
+  edge_layers <- large$layers[dag_edge_layer_indices(large)]
+  small <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(size = 8)
+  small$layers <- c(small$layers, edge_layers)
+
+  expect_equal(node_aware_cap_mismatches(large, 30), character())
+  expect_equal(node_aware_cap_mismatches(small, 8), character())
+  expect_equal(node_aware_cap_mismatches(large, 30), character())
+
+  # A build that fails after the stats are computed never reaches the step
+  # that lets the nodes go, so the shared layers still hold the large nodes
+  # when the small plot is built next.
+  failing <- large +
+    ggplot2::geom_text(ggplot2::aes(label = ggplot2::after_stat(nonexistent)))
+  expect_error(ggplot2::ggplot_build(failing))
+  expect_equal(node_aware_cap_mismatches(small, 8), character())
+  expect_equal(node_aware_cap_mismatches(large, 30), character())
+})
+
+test_that("an edge in a panel only the edge layer adds finds that panel's nodes", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  dag_data <- pull_dag_data(tidy_dagitty(dagify(y ~ x)))
+  in_panel <- function(panel, shape) {
+    dplyr::mutate(dag_data, panel = panel, shape = shape)
+  }
+  node_data <- rbind(in_panel("b", 15), in_panel("c", 19))
+  # the edge layer draws a panel `a` that sorts before the panels the nodes
+  # are drawn in, so the whole plot numbers the panels differently from a
+  # build of its node layers alone
+  edge_data <- rbind(in_panel("a", 19), node_data)
+
+  p <- ggplot(node_data, aes_dag()) +
+    geom_dag_point(aes(shape = shape), size = 30) +
+    geom_dag_edges_link(data = edge_data) +
+    scale_shape_identity() +
+    facet_wrap(~panel)
+
+  built <- ggplot2::ggplot_build(p)
+  edges <- built$data[[dag_edge_layer_indices(p)]]
+  panel_names <- as.character(built$layout$layout$panel)
+  caps <- tapply(
+    unclass(edges$start_cap)$width / 2,
+    panel_names[as.integer(edges$PANEL)],
+    unique
+  )
+
+  expect_equal(
+    unlist(as.list(caps)),
+    c(a = 0.375 * 16 + 2, b = 0.375 * 30 * sqrt(2) + 2, c = 0.375 * 30 + 2)
+  )
+})
+
+# The automatic labels ---------------------------------------------------------
+
+# One row per edge the automatic label layer of `plot` traces in its first
+# panel: where the edge starts and ends, in data units, and the cap the label
+# engine cuts the traced edge back by at each end. The grob carries the traced
+# edges in the order the built layer holds them, so the positions are read
+# from the built layer and the caps from the grob. An edge the grob carries no
+# cap of its own for is cut by the layer's single cap.
+label_edge_caps <- function(plot) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$stat, "StatNodesLabelAuto")
+  }))
+  grob <- ggplot2::layer_grob(plot, index[[1]])[[1]]
+  rows <- ggplot2::layer_data(plot, index[[1]])
+  rows <- rows[rows$ggdag_role %in% "edge" & rows$PANEL == 1, , drop = FALSE]
+  stopifnot(nrow(rows) == nrow(grob$edges))
+
+  ids <- unique(rows$edge_id)
+  first <- match(ids, rows$edge_id)
+  last <- nrow(rows) - match(ids, rev(rows$edge_id)) + 1L
+
+  cap_at <- function(column, at) {
+    caps <- grob$edges[[column]]
+    if (is.null(caps)) {
+      return(rep(grob$params$edge_cap, length(at)))
+    }
+    caps[at]
+  }
+
+  data.frame(
+    x = rows$x[first],
+    y = rows$y[first],
+    xend = rows$x[last],
+    yend = rows$y[last],
+    cap_start = cap_at("cap_fins", first),
+    cap_end = cap_at("cap_head", last)
+  )
+}
+
+test_that("the automatic labels cut each edge where the drawn edge stops", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  labelled <- dagify(
+    y ~ x + z,
+    x ~ z,
+    z ~ a,
+    exposure = "x",
+    outcome = "y",
+    labels = c(x = "Exposure", y = "Outcome", z = "Confounder", a = "Cause")
+  )
+  p <- ggdag_adjust(labelled, var = "z", node_size = 30, use_labels = TRUE)
+  stopifnot(draws_square_ends(p))
+
+  caps <- label_edge_caps(p)
+  expect_gt(nrow(caps), 0)
+
+  node_index <- which(purrr::map_lgl(p$layers, \(layer) {
+    inherits(layer$geom, "GeomDagPoint")
+  }))[[1]]
+  drawn <- ggplot2::layer_data(p, node_index)
+  drawn <- drawn[drawn$PANEL == 1, , drop = FALSE]
+  shape_at <- function(x, y) {
+    rows <- purrr::map_int(seq_along(x), \(i) {
+      node_row_at(drawn, x[[i]], y[[i]])
+    })
+    drawn$shape[rows]
+  }
+  start_shape <- shape_at(caps$x, caps$y)
+  end_shape <- shape_at(caps$xend, caps$yend)
+  expect_false(anyNA(c(start_shape, end_shape)))
+  expect_true(any(c(start_shape, end_shape) == 15))
+
+  expect_equal(caps$cap_start, node_extent_mm(start_shape, 30) + 2)
+  expect_equal(caps$cap_end, node_extent_mm(end_shape, 30) + 2)
+})
+
+test_that("hand-built automatic labels cut edges beyond the nodes", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges() +
+    geom_dag_label_auto(aes(label = name))
+  labels_first <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_label_auto(aes(label = name)) +
+    geom_dag_edges() +
+    geom_dag_point(size = 30)
+
+  expect_equal(unique(label_edge_caps(p)$cap_start), 0.375 * 30 + 2)
+  expect_equal(unique(label_edge_caps(p)$cap_end), 0.375 * 30 + 2)
+  expect_equal(unique(label_edge_caps(labels_first)$cap_start), 0.375 * 30 + 2)
+  expect_equal(unique(label_edge_caps(labels_first)$cap_end), 0.375 * 30 + 2)
+})
+
+test_that("the automatic labels' single cap scales its gap with the plot", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  labelled <- dagify(y ~ x, labels = c(x = "Exposure", y = "Outcome"))
+
+  p <- ggdag(labelled, node_size = 30, size = 1.5, use_labels = TRUE)
+  index <- which(purrr::map_lgl(p$layers, \(layer) {
+    inherits(layer$stat, "StatNodesLabelAuto")
+  }))
+  grob <- ggplot2::layer_grob(p, index[[1]])[[1]]
+
+  # the node is drawn at size 45, 16.875 mm in radius, and the 2 mm gap is
+  # scaled to 3 mm with it, at each end and in the cap an end without one
+  # of its own is cut by
+  circle_cap <- 0.375 * 45 + 3
+  expect_equal(unique(label_edge_caps(p)$cap_start), circle_cap)
+  expect_equal(unique(label_edge_caps(p)$cap_end), circle_cap)
+  expect_equal(grob$params$edge_cap, circle_cap)
+})
+
+test_that("the automatic labels cut an edge at a cap the user sets at its end", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(cap_dag())
+  circle_cap <- 0.375 * 30 + 2
+
+  mapped <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link(aes(start_cap = ggraph::circle(3, "mm"))) +
+    geom_dag_label_auto(aes(label = name))
+  labels_first <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_label_auto(aes(label = name)) +
+    geom_dag_edges_link(aes(start_cap = ggraph::circle(3, "mm"))) +
+    geom_dag_point(size = 30)
+  fixed <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link(end_cap = ggraph::circle(0.5, "cm")) +
+    geom_dag_label_auto(aes(label = name))
+
+  for (p in list(mapped, labels_first)) {
+    drawn <- edge_end_caps(p)
+    stopifnot(
+      all(drawn$cap_mm[drawn$end == "start"] == 3),
+      all(drawn$cap_mm[drawn$end == "end"] == circle_cap)
+    )
+    expect_equal(unique(label_edge_caps(p)$cap_start), 3)
+    expect_equal(unique(label_edge_caps(p)$cap_end), circle_cap)
+  }
+  expect_equal(unique(label_edge_caps(fixed)$cap_start), circle_cap)
+  expect_equal(unique(label_edge_caps(fixed)$cap_end), 5)
+
+  # a cap mapped from the data is read for each edge
+  per_edge <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link(
+      aes(start_cap = ggraph::circle(ifelse(name == "z", 3, 5), "mm"))
+    ) +
+    geom_dag_label_auto(aes(label = name))
+  caps <- label_edge_caps(per_edge)
+  nodes <- node_coords(per_edge)
+  z <- nodes[nodes$name == "z", ]
+  from_z <- abs(caps$x - z$x) < 1e-9 & abs(caps$y - z$y) < 1e-9
+  expect_true(any(from_z) && !all(from_z))
+  expect_equal(unique(caps$cap_start[from_z]), 3)
+  expect_equal(unique(caps$cap_start[!from_z]), 5)
+  expect_equal(unique(caps$cap_end), circle_cap)
+})
+
+test_that("a fixed cap reaches the automatic labels as it reaches the edges", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  labelled <- dagify(y ~ x, labels = c(x = "Exposure", y = "Outcome"))
+
+  fixed <- ggdag(labelled, node_size = 30, edge_cap = 5, use_labels = TRUE)
+  expect_equal(unique(label_edge_caps(fixed)$cap_start), 5)
+  expect_equal(unique(label_edge_caps(fixed)$cap_end), 5)
+
+  own_cap <- ggplot(tidy_dagitty(labelled), aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges() +
+    geom_dag_label_auto(edge_cap = 4)
+  expect_equal(unique(label_edge_caps(own_cap)$cap_start), 4)
+  expect_equal(unique(label_edge_caps(own_cap)$cap_end), 4)
+})
+
 # Visual baselines -------------------------------------------------------------
 
 test_that("the README adjustment set draws its edges up to the nodes", {
@@ -837,4 +1441,29 @@ test_that("large nodes keep their arrowheads clear of the nodes", {
   stopifnot(length(node_aware_cap_mismatches(p, 30)) == 0)
 
   expect_doppelganger("ggdag with node-aware edge caps at node_size 30", p)
+})
+
+test_that("ggdag_status() keeps large arrowheads clear of the nodes", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggdag_status(cap_dag(), node_size = 30)
+  stopifnot(length(node_aware_cap_mismatches(p, 30)) == 0)
+
+  expect_doppelganger("ggdag_status with node-aware edge caps", p)
+})
+
+test_that("a hand-built plot keeps its arrowheads clear of square nodes", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(shape = 15, size = 30) +
+    geom_dag_edges() +
+    geom_dag_text() +
+    theme_dag()
+  stopifnot(
+    all(edge_end_caps(p)$shape == 15),
+    length(node_aware_cap_mismatches(p, 30)) == 0
+  )
+
+  expect_doppelganger("hand-built square nodes with node-aware caps", p)
 })

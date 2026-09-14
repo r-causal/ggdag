@@ -11,6 +11,7 @@
 #' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams path_params
+#' @inheritParams edge_cap_params
 #' @inheritParams geom_dag
 #' @inheritParams path_params
 #' @inheritParams dag_params
@@ -251,7 +252,7 @@ ggdag_drelationship <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -268,6 +269,10 @@ ggdag_drelationship <- function(
   stylized = deprecated(),
   collider_lines = TRUE
 ) {
+  edge_cap <- resolve_square_plot_edge_cap(
+    edge_cap,
+    ggdag_option("edge_engine", "ggraph")
+  )
   df <- node_drelationship(
     .tdy_dag,
     from = from,
@@ -338,7 +343,7 @@ ggdag_dseparated <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -404,7 +409,7 @@ ggdag_dconnected <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),

@@ -3410,8 +3410,7 @@ drawn_ink_clearances <- function(dag, from, to, engine, edge_type) {
 }
 
 # Millimetres of daylight demanded between a node and the drawn edge, on top
-# of the drawn node radius. The edge caps stop the ink `node_size / 2`
-# millimetres short of a node the edge runs to, which is more than the
+# of the drawn node radius. The edge caps stop the ink 2 mm beyond the
 # `0.375 * node_size` the node itself is drawn at, so the two endpoints of
 # the traced edge clear this margin along with everyone else.
 drawn_clearance_margin <- 1

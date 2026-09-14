@@ -19,7 +19,12 @@ ggdag_options_reset()
 
 ggdag_option(name, default = ggdag_defaults[[name]])
 
-ggdag_option_proportional(name, base_default, override_default)
+ggdag_option_proportional(
+  name,
+  base_default,
+  override_default,
+  unset = override_default
+)
 }
 \arguments{
 \item{...}{Named option values to set. See \code{ggdag_defaults} for valid names
@@ -35,6 +40,10 @@ to the entry for \code{name} in \code{ggdag_defaults}.}
 
 \item{override_default}{The override default used by certain functions
 (e.g., 10 for edge_cap in adjustment set functions).}
+
+\item{unset}{The value returned when the option is not set. Defaults to
+\code{override_default}. The plotters that draw adjusted nodes as squares pass
+\code{NULL}, so that an unset \code{edge_cap} is left to follow the nodes.}
 }
 \value{
 \itemize{
@@ -46,7 +55,7 @@ options if \code{name} is \code{NULL}.
 invisibly.
 \item \code{ggdag_option()}: The option value if set, otherwise \code{default}.
 \item \code{ggdag_option_proportional()}: The scaled option value if set, otherwise
-\code{override_default}.
+\code{unset}.
 }
 }
 \description{
@@ -63,9 +72,19 @@ other option alone. That also makes the previous values
 \code{ggdag_options_set()} returns safe to restore with
 \code{do.call(ggdag_options_set, old)}.
 
-Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}},
-\code{\link[=ggdag_drelationship]{ggdag_drelationship()}}) maintain a proportional offset. If you set
-\code{ggdag.edge_cap} to a custom value, these functions scale it by \code{10/8}.
+\code{edge_cap} is unset by default. Under the ggraph edge engine, every
+\verb{ggdag_*()} plotter, \code{\link[=geom_dag]{geom_dag()}}, and the \verb{geom_dag_edges*()} layers then
+stop each edge 2 mm beyond the node at each of its ends, following that
+node's size and shape, so the arrowheads keep the same distance from nodes
+of any size and from square nodes as from circles. Setting the option to a
+number fixes the cap, in millimetres, at every end. The ggarrow engine takes
+a single resection, 8 mm unless the option is set.
+
+The plotters that draw adjusted nodes as squares (\code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}},
+\code{\link[=ggdag_adjust]{ggdag_adjust()}}, \code{\link[=ggdag_instrumental]{ggdag_instrumental()}}, and the d-relationship plotters)
+maintain a proportional offset: if you set \code{ggdag.edge_cap} to a custom
+value, these functions scale it by \code{10/8}, and their ggarrow edges take a
+10 mm resection while the option is unset.
 
 \code{edge_route} chooses how the ggarrow engine draws directed edges.
 \code{"straight"}, the default, draws chords. \code{"spline"} routes each directed

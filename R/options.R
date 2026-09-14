@@ -13,9 +13,19 @@
 #' `ggdag_options_set()` returns safe to restore with
 #' `do.call(ggdag_options_set, old)`.
 #'
-#' Functions that normally use `edge_cap = 10` (e.g., [ggdag_adjustment_set()],
-#' [ggdag_drelationship()]) maintain a proportional offset. If you set
-#' `ggdag.edge_cap` to a custom value, these functions scale it by `10/8`.
+#' `edge_cap` is unset by default. Under the ggraph edge engine, every
+#' `ggdag_*()` plotter, [geom_dag()], and the `geom_dag_edges*()` layers then
+#' stop each edge 2 mm beyond the node at each of its ends, following that
+#' node's size and shape, so the arrowheads keep the same distance from nodes
+#' of any size and from square nodes as from circles. Setting the option to a
+#' number fixes the cap, in millimetres, at every end. The ggarrow engine takes
+#' a single resection, 8 mm unless the option is set.
+#'
+#' The plotters that draw adjusted nodes as squares ([ggdag_adjustment_set()],
+#' [ggdag_adjust()], [ggdag_instrumental()], and the d-relationship plotters)
+#' maintain a proportional offset: if you set `ggdag.edge_cap` to a custom
+#' value, these functions scale it by `10/8`, and their ggarrow edges take a
+#' 10 mm resection while the option is unset.
 #'
 #' `edge_route` chooses how the ggarrow engine draws directed edges.
 #' `"straight"`, the default, draws chords. `"spline"` routes each directed
@@ -82,6 +92,9 @@
 #' @param base_default The base default for this option (e.g., 8 for edge_cap).
 #' @param override_default The override default used by certain functions
 #'   (e.g., 10 for edge_cap in adjustment set functions).
+#' @param unset The value returned when the option is not set. Defaults to
+#'   `override_default`. The plotters that draw adjusted nodes as squares pass
+#'   `NULL`, so that an unset `edge_cap` is left to follow the nodes.
 #'
 #' @returns
 #' - `ggdag_options_set()`: Invisibly returns a named list of the previous
@@ -92,7 +105,7 @@
 #'   invisibly.
 #' - `ggdag_option()`: The option value if set, otherwise `default`.
 #' - `ggdag_option_proportional()`: The scaled option value if set, otherwise
-#'   `override_default`.
+#'   `unset`.
 #'
 #' @examples
 #' # Set global options
@@ -113,7 +126,7 @@ ggdag_defaults <- list(
   text_col = "white",
   label_col = "black",
   edge_width = 0.6,
-  edge_cap = 8,
+  edge_cap = NULL,
   arrow_length = 5,
   use_edges = TRUE,
   use_nodes = TRUE,
@@ -221,10 +234,15 @@ ggdag_option <- function(name, default = ggdag_defaults[[name]]) {
 
 #' @export
 #' @rdname ggdag_options
-ggdag_option_proportional <- function(name, base_default, override_default) {
+ggdag_option_proportional <- function(
+  name,
+  base_default,
+  override_default,
+  unset = override_default
+) {
   user_val <- getOption(paste0("ggdag.", name))
   if (is.null(user_val)) {
-    return(override_default)
+    return(unset)
   }
   user_val * (override_default / base_default)
 }

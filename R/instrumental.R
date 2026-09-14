@@ -6,6 +6,7 @@
 #'
 #' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
+#' @inheritParams edge_cap_params
 #' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` with an `instrumental` column for
@@ -96,7 +97,7 @@ ggdag_instrumental <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -114,6 +115,10 @@ ggdag_instrumental <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
+  edge_cap <- resolve_square_plot_edge_cap(
+    edge_cap,
+    ggdag_option("edge_engine", "ggraph")
+  )
   # `node_instrumental()` does the tidying so that `...` reaches
   # `tidy_dagitty()`; tidying here first would leave the dots with nothing to
   # act on

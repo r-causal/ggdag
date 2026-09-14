@@ -2463,7 +2463,8 @@ StatNodesLabelAuto <- ggplot2::ggproto(
     "node_size",
     "n_edge_points",
     "n_node_points",
-    "edge_geometry"
+    "edge_geometry",
+    "edge_end_caps"
   ),
   compute_layer = function(self, data, params, layout) {
     check_label_stat_aes(data, self$required_aes, "The automatic label geoms")
@@ -2521,6 +2522,13 @@ StatNodesLabelAuto <- ggplot2::ggproto(
             route_spec_blanks[[name]]
           )
         }
+        # where the plot's edges stop beyond the node at each end, each traced
+        # edge is cut back there; an edge left `NA` takes the geom's cap, which
+        # is the cap those edges stop at where no node is drawn
+        caps <- traced_edge_caps(edges, edge_points, params$edge_end_caps)
+        edge_rows$cap_fins <- caps$start
+        edge_rows$cap_head <- caps$end
+        edge_rows$cap_fallback <- caps$fallback
       }
     }
 
@@ -2635,6 +2643,25 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     if (!"edge_id" %in% names(edges)) {
       edges$edge_id <- character(nrow(edges))
     }
+    # Each traced edge is cut back at its start (`cap_fins`) and its end
+    # (`cap_head`) by the cap the stat found for that end, and by the single
+    # cap where it found none. A cap given to the geom is the user's, and
+    # cuts every edge. Without it, the single cap is the one the plot's edges
+    # stop at where no node is drawn, which the stat found with the caps at
+    # each end (`cap_fallback`), and otherwise the option, or the cap of a
+    # circle node of the size the nodes are drawn at.
+    followed <- edges[["cap_fallback"]]
+    followed <- followed[!is.na(followed)]
+    cap <- edge_cap %||%
+      (if (length(followed) > 0) followed[[1]]) %||%
+      ggdag_option("edge_cap", NULL) %||%
+      single_edge_cap(NULL, node_size)
+    for (end in c("cap_fins", "cap_head")) {
+      found <- if (is.null(edge_cap)) edges[[end]]
+      found <- found %||% rep(NA_real_, nrow(edges))
+      found[is.na(found)] <- cap
+      edges[[end]] <- found
+    }
     # A routed edge arrives as its chord and the spec it is routed with, so
     # the spec travels to draw time with it.
     for (name in route_spec_columns) {
@@ -2650,13 +2677,13 @@ GeomDagLabelAuto <- ggplot2::ggproto(
       labels = labels,
       nodes = nodes[, c("x", "y", "node_size"), drop = FALSE],
       edges = edges[,
-        c("edge_id", "x", "y", route_spec_columns),
+        c("edge_id", "x", "y", "cap_fins", "cap_head", route_spec_columns),
         drop = FALSE
       ],
       params = list(
         boxed = isTRUE(self$boxed),
         gap = gap,
-        edge_cap = edge_cap %||% ggdag_option("edge_cap", 8),
+        edge_cap = cap,
         node_size = node_size,
         n_edge_points = n_edge_points %||% 20,
         label.padding = label.padding,
@@ -3014,6 +3041,8 @@ makeContent.dag_labels_auto <- function(x) {
     edge_id = x$edges$edge_id,
     x = mm_x(x$edges$x),
     y = mm_y(x$edges$y),
+    cap_fins = x$edges$cap_fins %||% rep(par$edge_cap, nrow(x$edges)),
+    cap_head = x$edges$cap_head %||% rep(par$edge_cap, nrow(x$edges)),
     stringsAsFactors = FALSE
   )
   # An arc is bent on the page, so it reaches the grob as the two ends of its
@@ -3146,7 +3175,8 @@ makeContent.dag_labels_auto <- function(x) {
 #' draws both. Edges that carry no curvature, including the routed ones whose
 #' whole path the router decides, are returned untouched.
 #'
-#' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
+#' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`,
+#'   and optionally the caps `cap_fins` and `cap_head`, which an arc keeps.
 #' @param spec The routing columns of the same rows, as the stat carried them,
 #'   one row per row of `edges`.
 #' @param n Number of points each arc is traced with.
@@ -3162,6 +3192,7 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
 
   # The ends of the traced points are the ends of the chord, whether the edge
   # arrived as its two endpoints or as a path between them.
+  caps <- intersect(c("cap_fins", "cap_head"), names(edges))
   ids <- unique(edges$edge_id[curved])
   first <- match(ids, edges$edge_id)
   last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
@@ -3175,17 +3206,21 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
       curvature = curvature[[first[[i]]]],
       n = n
     )
-    data.frame(
+    arc <- data.frame(
       edge_id = ids[[i]],
       x = path$x,
       y = path$y,
       stringsAsFactors = FALSE
     )
+    for (column in caps) {
+      arc[[column]] <- edges[[column]][[first[[i]]]]
+    }
+    arc
   })
 
   list(
     edges = rbind(
-      edges[!curved, c("edge_id", "x", "y"), drop = FALSE],
+      edges[!curved, c("edge_id", "x", "y", caps), drop = FALSE],
       do.call(rbind, arcs)
     ),
     spec = rbind(
@@ -3205,10 +3240,12 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
 #' stays an obstacle along its whole length. Edges no routed layer draws are
 #' returned untouched. Every row carries the arc length the arrow layer cuts
 #' from its edge's start (`cap_fins`) and end (`cap_head`): the resect the
-#' router reports for the edge's ports when it reports one, the cap
-#' otherwise, so that `label_ink()` hides exactly the head each edge draws.
+#' router reports for the edge's ports when it reports one, and otherwise the
+#' cap the edge already carries or, without one, the single cap, so that
+#' `label_ink()` hides exactly the head each edge draws.
 #'
-#' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`.
+#' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`,
+#'   and optionally the caps `cap_fins` and `cap_head`.
 #' @param spec The routing columns of the same rows, as the stat carried them.
 #' @param nodes Node centres in millimetres with their `radius`, and the
 #'   `name` each node is routed under by the routed layer (the position key
@@ -3392,8 +3429,10 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   )
 
   untouched <- edges[!tagged, c("edge_id", "x", "y"), drop = FALSE]
-  untouched$cap_head <- rep(par$edge_cap, nrow(untouched))
-  untouched$cap_fins <- rep(par$edge_cap, nrow(untouched))
+  untouched$cap_head <- edges$cap_head[!tagged] %||%
+    rep(par$edge_cap, nrow(untouched))
+  untouched$cap_fins <- edges$cap_fins[!tagged] %||%
+    rep(par$edge_cap, nrow(untouched))
   rbind(untouched, routed_rows)
 }
 
@@ -3645,10 +3684,14 @@ densify_polyline <- function(px, py, spacing) {
 #'   geoms; the automatic placement describes each node by its drawn disc, so
 #'   this is ignored.
 #' @param edge_cap The distance in millimetres that drawn edges stop short of
-#'   the node, as in [geom_dag()]; the traced edges are cut by the same
-#'   amount at both ends so the ink each label avoids is the ink on the page
-#'   and its arrowhead zone ends where the drawn arrowhead does. `NULL`, the
-#'   default, uses the `ggdag.edge_cap` option (8 mm).
+#'   the center of the node, as in [geom_dag()]; the traced edges are cut
+#'   back by it so the ink each label avoids is the ink on the page and its
+#'   arrowhead zone ends where the drawn arrowhead does. A number cuts both
+#'   ends of every edge by that amount. `NULL`, the default, cuts each end
+#'   where the plot's ggraph edges stop when those edges follow the size and
+#'   shape of the node at each end, 2 mm beyond it, and otherwise uses the
+#'   `ggdag.edge_cap` option or, when that is unset, the cap of a circle node
+#'   of the node size the labels are placed around, 8 mm at the default size.
 #' @param gap Clearance in millimetres between a node disc and its label box.
 #' @param label.padding Padding around the label text, as a [grid::unit()].
 #' @param label.r Radius of the label box corners, as a [grid::unit()].
@@ -3892,7 +3935,7 @@ fill_auto_label_layer <- function(layer, edge_cap, wrap) {
     return(layer)
   }
 
-  needs_cap <- is.null(layer$geom_params$edge_cap)
+  needs_cap <- !is.null(edge_cap) && is.null(layer$geom_params$edge_cap)
   needs_wrap <- !is.null(wrap) && is.null(layer$geom_params$wrap)
   if (!needs_cap && !needs_wrap) {
     return(layer)

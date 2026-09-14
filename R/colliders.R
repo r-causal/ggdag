@@ -6,6 +6,7 @@
 #'
 #' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
+#' @inheritParams edge_cap_params
 #' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` with a `colliders` column for
@@ -59,7 +60,7 @@ ggdag_collider <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),

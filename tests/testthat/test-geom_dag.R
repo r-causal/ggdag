@@ -828,31 +828,15 @@ test_that("node_size_to_cap converts node size in pt to edge cap radius in mm", 
 test_that("edge layers auto-discover node_size and sync edge caps", {
   g <- dagify(y ~ x, z ~ x)
 
-  # When node layer has size=24, edge caps should auto-sync to 12mm
+  # When the node layer has size = 24, each edge stops 2 mm beyond the 9 mm
+  # radius of the node drawn at its end
   p <- g |>
     tidy_dagitty() |>
     ggplot(aes_dag()) +
     geom_dag_point(size = 24) +
     geom_dag_edges_link()
 
-  # Find the edge layer and check its start_cap
-  edge_layer <- NULL
-  for (layer in p$layers) {
-    if (
-      inherits(layer$geom, "GeomDAGEdgePath") ||
-        inherits(layer$geom, "GeomEdgePath")
-    ) {
-      edge_layer <- layer
-      break
-    }
-  }
-
-  expect_false(is.null(edge_layer))
-  cap_quo <- edge_layer$mapping$start_cap
-  expect_false(is.null(cap_quo))
-  cap <- rlang::eval_tidy(cap_quo)
-  # circle(12, "mm") stores width = 24 (diameter)
-  expect_equal(unclass(cap)$width / 2, 12)
+  expect_equal(edge_cap_radii(p), 11)
 })
 
 test_that("edge layer auto-sync uses default when no node layer present", {
@@ -936,14 +920,8 @@ test_that("geom_dag_edges auto-syncs caps for both link and arc layers", {
     p$layers
   )
 
-  expect_true(length(edge_layers) >= 1)
-  for (layer in edge_layers) {
-    cap_quo <- layer$mapping$start_cap
-    if (!is.null(cap_quo)) {
-      cap <- rlang::eval_tidy(cap_quo)
-      expect_equal(unclass(cap)$width / 2, 12)
-    }
-  }
+  expect_length(edge_layers, 2)
+  expect_equal(edge_cap_radii(p), 11)
 })
 
 test_that("geom_dag() label_geom parameter produces correct visuals", {
@@ -1000,7 +978,7 @@ test_that("edge_cap auto-sync adjusts caps based on node_size", {
 
   expect_doppelganger("auto-sync-default-node-size", p_default)
 
-  # Large node_size (32) → auto cap = 16mm (edges stop further from center)
+  # Large node_size (32) → auto cap = 14mm (edges stop further from center)
   p_large <- dag |>
     tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -1010,7 +988,7 @@ test_that("edge_cap auto-sync adjusts caps based on node_size", {
 
   expect_doppelganger("auto-sync-large-node-size", p_large)
 
-  # Small node_size (8) → auto cap = 4mm (edges closer to center)
+  # Small node_size (8) → auto cap = 5mm (edges closer to center)
   p_small <- dag |>
     tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -1600,9 +1578,9 @@ test_that("edge caps sync to the node layer whichever order the layers arrive", 
     geom_dag_edges_link() +
     geom_dag_point(size = 24)
 
-  expect_equal(built_edge_cap(nodes_first), 12)
+  expect_equal(built_edge_cap(nodes_first), 11)
   # the order every layer-by-layer example uses; the caps must still sync
-  expect_equal(built_edge_cap(edges_first), 12)
+  expect_equal(built_edge_cap(edges_first), 11)
 })
 
 test_that("an edge layer inside a geom_dag() layer list still syncs its caps", {
@@ -1614,10 +1592,7 @@ test_that("an edge layer inside a geom_dag() layer list still syncs its caps", {
     geom_dag_point(size = 32) +
     structure(list(geom_dag_edges_link()), class = "geom_dag_layers")
 
-  edge_layer <- p$layers[[2]]
-  expect_false(is.null(edge_layer$mapping$start_cap))
-  cap <- rlang::eval_tidy(edge_layer$mapping$start_cap)
-  expect_equal(unclass(cap)$width / 2, 16)
+  expect_equal(built_edge_cap(p), 14)
 })
 
 test_that("one stored edge layer reads each plot it joins", {
@@ -1629,10 +1604,10 @@ test_that("one stored edge layer reads each plot it joins", {
     edge_layer
   without_nodes <- ggplot(tidy_dag, aes_dag()) + edge_layer
 
-  cap <- rlang::eval_tidy(with_nodes$layers[[2]]$mapping$start_cap)
-  expect_equal(unclass(cap)$width / 2, 16)
+  expect_equal(built_edge_cap(with_nodes), 14)
 
   # the second plot has no node layer, so its caps stay at the geom default
+  expect_equal(built_edge_cap(without_nodes), 8)
   expect_null(without_nodes$layers[[1]]$mapping$start_cap)
   # and the stored layer is still the blank one that was created
   expect_null(edge_layer$layer$mapping$start_cap)

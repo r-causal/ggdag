@@ -320,7 +320,7 @@ ggdag_paths <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -400,7 +400,7 @@ ggdag_paths <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- edge_cap * size
+      resect <- single_edge_cap(edge_cap, node_size, "ggarrow") * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
@@ -442,6 +442,7 @@ ggdag_paths <- function(
             edge_width = edge_width,
             arrow_length = arrow_length,
             size = size,
+            node_size = node_size,
             data = if (!shadow) {
               function(x) dplyr::filter(x, .data$path == "open path")
             },
@@ -523,7 +524,7 @@ ggdag_paths_fan <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -581,7 +582,7 @@ ggdag_paths_fan <- function(
           arrow_head = ggdag_option("arrow_head", NULL) %||%
             ggarrow::arrow_head_wings(),
           arrow_fins = ggdag_option("arrow_fins", NULL),
-          resect = edge_cap * size,
+          resect = single_edge_cap(edge_cap, node_size, "ggarrow") * size,
           linewidth = edge_width * size,
           length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
@@ -597,23 +598,25 @@ ggdag_paths_fan <- function(
     } else {
       warn_if_ggarrow_only_ignored(pull_dag_data(path_dag))
 
-      p <- p +
-        without_edge_route_warning(geom_dag_edges_fan(
-          with_edge_caps(
-            ggplot2::aes(
-              edge_colour = .data$set,
-              edge_alpha = .data$path,
-              group = shadow_first_rank(is.na(.data$path))
-            ),
-            edge_cap * size
+      fan_layer <- without_edge_route_warning(geom_dag_edges_fan(
+        with_edge_caps(
+          ggplot2::aes(
+            edge_colour = .data$set,
+            edge_alpha = .data$path,
+            group = shadow_first_rank(is.na(.data$path))
           ),
-          spread = spread,
-          edge_width = edge_width * size,
-          arrow = grid::arrow(
-            length = grid::unit(arrow_length * size, "pt"),
-            type = "closed"
-          )
-        )) +
+          single_edge_cap(edge_cap, node_size) * size
+        ),
+        spread = spread,
+        edge_width = edge_width * size,
+        arrow = grid::arrow(
+          length = grid::unit(arrow_length * size, "pt"),
+          type = "closed"
+        )
+      ))
+
+      p <- p +
+        follow_nodes_when_unset(fan_layer, edge_cap, node_size, size) +
         ggplot2::scale_alpha_manual(
           drop = FALSE,
           values = c("open path" = 1),

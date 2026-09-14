@@ -1561,6 +1561,10 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
     layer <- add_default_label_mapping(layer, plot)
   }
 
+  if (inherits(layer$stat, "StatNodesLabelAuto")) {
+    layer <- node_aware_label_layer(layer)
+  }
+
   if (length(discover_at_build) > 0) {
     layer <- plot_aware_layer(layer, function(self, plot) {
       if ("node_size" %in% discover_at_build) {
@@ -2065,42 +2069,23 @@ unset_edge_caps <- function(layer) {
   )]
 }
 
+# An edge layer a user adds by hand stops each end whose cap the user left
+# unset 2 mm beyond the node drawn there, as the plotters do. The nodes are
+# read when the plot is built, so the node layers can come before or after the
+# edges. An end with no node drawn at it keeps the edge geom's default cap of
+# 8 mm, the cap of a circle node of the default size.
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_edge_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
   needs_cap <- unset_edge_caps(layer)
 
   if (length(needs_cap) > 0) {
-    discovered <- discover_node_size(plot)
-    if (!is.null(discovered)) {
-      cap_mm <- node_size_to_cap(discovered)
-      cap_expr <- rlang::expr(ggraph::circle(!!cap_mm, "mm"))
-      cap_quo <- rlang::new_quosure(cap_expr, env = rlang::base_env())
-      if (is.null(layer$mapping)) {
-        layer$mapping <- ggplot2::aes()
-      }
-      for (end in needs_cap) {
-        layer$mapping[[end]] <- cap_quo
-      }
-      needs_cap <- character()
-    }
-  }
-
-  if (length(needs_cap) > 0) {
-    # No node layer is on the plot yet, which is the order every layer-by-layer
-    # example uses. The node layer that follows is in view once the plot is
-    # built, so the caps are settled there instead.
-    layer <- plot_aware_layer(layer, function(self, plot) {
-      discovered <- discover_node_size(plot)
-      cap <- if (is.null(discovered)) {
-        NULL
-      } else {
-        ggraph::circle(node_size_to_cap(discovered), "mm")
-      }
-      for (end in needs_cap) {
-        self$aes_params[[end]] <- cap
-      }
-    })
+    layer <- node_aware_cap_layer(
+      layer,
+      gap = node_edge_gap_mm,
+      fallback_extent = node_radius_mm(GeomDagPoint$default_aes$size),
+      ends = needs_cap
+    )
   }
 
   ggplot2::ggplot_add(layer, plot, ...)

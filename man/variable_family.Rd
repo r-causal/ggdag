@@ -40,7 +40,7 @@ ggdag_children(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -68,7 +68,7 @@ ggdag_parents(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -96,7 +96,7 @@ ggdag_ancestors(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -124,7 +124,7 @@ ggdag_descendants(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -152,7 +152,7 @@ ggdag_markov_blanket(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -180,7 +180,7 @@ ggdag_adjacent(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -232,8 +232,13 @@ allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_width}{The width of the edges.}
 
-\item{edge_cap}{The size of edge caps (the distance between the arrowheads
-and the node borders).}
+\item{edge_cap}{The distance, in millimetres, that each edge stops short of
+the center of the node at either end, scaled by \code{size}. When neither this
+argument nor the \code{ggdag.edge_cap} option is set, each end of an edge stops
+2 mm beyond the node drawn there, a gap also scaled by \code{size}, following
+that node's size and shape, so an arrowhead keeps the same distance from a
+large node as from a small one, and from the corners of a square node as
+from a circle. A number fixes the cap at every end.}
 
 \item{arrow_length}{The length of arrows on edges.}
 

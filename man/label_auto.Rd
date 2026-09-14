@@ -84,10 +84,14 @@ geoms; the automatic placement describes each node by its drawn disc, so
 this is ignored.}
 
 \item{edge_cap}{The distance in millimetres that drawn edges stop short of
-the node, as in \code{\link[=geom_dag]{geom_dag()}}; the traced edges are cut by the same
-amount at both ends so the ink each label avoids is the ink on the page
-and its arrowhead zone ends where the drawn arrowhead does. \code{NULL}, the
-default, uses the \code{ggdag.edge_cap} option (8 mm).}
+the center of the node, as in \code{\link[=geom_dag]{geom_dag()}}; the traced edges are cut
+back by it so the ink each label avoids is the ink on the page and its
+arrowhead zone ends where the drawn arrowhead does. A number cuts both
+ends of every edge by that amount. \code{NULL}, the default, cuts each end
+where the plot's ggraph edges stop when those edges follow the size and
+shape of the node at each end, 2 mm beyond it, and otherwise uses the
+\code{ggdag.edge_cap} option or, when that is unset, the cap of a circle node
+of the node size the labels are placed around, 8 mm at the default size.}
 
 \item{gap}{Clearance in millimetres between a node disc and its label box.}
 

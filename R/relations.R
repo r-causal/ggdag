@@ -21,6 +21,7 @@
 #'   `node_markov_blanket()` instead drop every queried variable from the
 #'   relation set, so a queried variable always carries the queried-set label
 #'   and only variables outside the queried set carry the relation label.
+#' @inheritParams edge_cap_params
 #' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` with an column related to the given
@@ -236,7 +237,7 @@ ggdag_children <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -305,7 +306,7 @@ ggdag_parents <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -373,7 +374,7 @@ ggdag_ancestors <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -442,7 +443,7 @@ ggdag_descendants <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -511,7 +512,7 @@ ggdag_markov_blanket <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -580,7 +581,7 @@ ggdag_adjacent <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),

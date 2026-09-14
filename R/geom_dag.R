@@ -854,6 +854,7 @@ quick_plot_dag_edges <- function(
   edge_width,
   arrow_length,
   size,
+  node_size = ggdag_option("node_size", 16),
   data = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
@@ -864,13 +865,19 @@ quick_plot_dag_edges <- function(
     edge_type,
     c("link_arc", "link", "arc", "diagonal")
   )
-  mapping <- with_edge_caps(mapping, edge_cap * size)
   arrow_size <- grid::unit(arrow_length * size, "pt")
+
+  # an unset cap stops each edge end beyond the node drawn there, and maps the
+  # cap of a circle node of `node_size` where no node is drawn
+  mapping <- with_edge_caps(
+    mapping,
+    single_edge_cap(edge_cap, node_size) * size
+  )
 
   # every caller reports an ignored routing once for the whole plot, through
   # `warn_if_ggarrow_only_ignored()`, so the layers do not report it again
-  if (identical(edge_type, "link_arc")) {
-    return(without_edge_route_warning(geom_dag_edges(
+  layers <- if (identical(edge_type, "link_arc")) {
+    without_edge_route_warning(geom_dag_edges(
       mapping,
       data_directed = data_directed,
       data_bidirected = data_bidirected,
@@ -884,23 +891,25 @@ quick_plot_dag_edges <- function(
       ),
       show.legend = show.legend,
       ...
-    )))
+    ))
+  } else {
+    without_edge_route_warning(do.call(
+      edge_type_switch(edge_type),
+      c(
+        list(
+          mapping,
+          data = data,
+          edge_width = edge_width * size,
+          arrow = grid::arrow(length = arrow_size, type = "closed"),
+          show.legend = show.legend,
+          ...
+        ),
+        arc_curvature_args(edge_type)
+      )
+    ))
   }
 
-  without_edge_route_warning(do.call(
-    edge_type_switch(edge_type),
-    c(
-      list(
-        mapping,
-        data = data,
-        edge_width = edge_width * size,
-        arrow = grid::arrow(length = arrow_size, type = "closed"),
-        show.legend = show.legend,
-        ...
-      ),
-      arc_curvature_args(edge_type)
-    )
-  ))
+  follow_nodes_when_unset(layers, edge_cap, node_size, size)
 }
 
 # The ggraph arc layers a packaged plot builds bend by the amount `curvature`
@@ -2029,8 +2038,15 @@ geom_dag_ggarrow_edges <- function(
 #' @param text_col The color of the text.
 #' @param label_col The color of the labels.
 #' @param edge_width The width of the edges.
-#' @param edge_cap The size of edge caps (the distance between the arrowheads
-#'   and the node borders).
+#' @param edge_cap The distance, in millimetres, that each edge stops short of
+#'   the center of the node at either end, scaled by `size`. When neither this
+#'   argument nor the `ggdag.edge_cap` option is set, the `"ggraph"` edge
+#'   engine stops each end of an edge 2 mm beyond the node drawn there, a gap
+#'   also scaled by `size`, following that node's size and shape, so an
+#'   arrowhead keeps the same distance from a large node as from a small one,
+#'   and from the corners of a square node as from a circle. The `"ggarrow"`
+#'   engine takes a single resection instead: 8 mm, or 10 mm in the plotters
+#'   that draw adjusted nodes as squares. A number fixes the cap at every end.
 #' @param arrow_length The length of arrows on edges.
 #' @param use_edges A logical value. Include a `geom_dag_edges*()` function? If
 #'   `TRUE`, which is determined by `edge_type`.
@@ -2129,7 +2145,7 @@ geom_dag <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -2151,6 +2167,14 @@ geom_dag <- function(
   use_stylized <- check_arg_stylized(stylized, use_stylized)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   check_edge_route_options(edge_route_options, call = rlang::current_env())
+
+  # An unset cap stops each ggraph edge end beyond the node drawn there, and
+  # the automatic label geoms cut the edges they trace at the same ends. The
+  # ggraph edges map the cap of a circle node of this size for an end with no
+  # node drawn at it; the ggarrow engine keeps the 8 mm resection it has
+  # always drawn with.
+  node_aware_caps <- is.null(edge_cap) && identical(edge_engine, "ggraph")
+  edge_cap <- single_edge_cap(edge_cap, node_size, edge_engine)
 
   sizes <- c(
     cap = edge_cap,
@@ -2227,6 +2251,14 @@ geom_dag <- function(
             arc_curvature_args(edge_type)
           )
         ))
+      }
+
+      if (node_aware_caps) {
+        edge_geom <- with_node_aware_caps(
+          edge_geom,
+          gap = node_edge_gap_mm * size,
+          fallback_extent = node_radius_mm(sizes[["node"]])
+        )
       }
     }
   } else {
@@ -2353,7 +2385,9 @@ geom_dag <- function(
         (attr(label_geom, "dag_node_aware_box_padding") %||% 1)
       common_params$max.overlaps <- Inf
       extra <- attr(label_geom, "dag_node_aware_extra")
-      if ("edge_cap" %in% extra) {
+      # the edges that follow the nodes hand the label stat their caps at
+      # each end instead of a single cap
+      if ("edge_cap" %in% extra && !node_aware_caps) {
         common_params$edge_cap <- sizes[["cap"]]
       }
       if ("wrap" %in% extra && !is.null(label_wrap)) {
@@ -2367,7 +2401,7 @@ geom_dag <- function(
     label_geom_result <- do.call(label_geom, common_params)
     label_geom_result <- fill_auto_label_params(
       label_geom_result,
-      edge_cap = sizes[["cap"]],
+      edge_cap = if (!node_aware_caps) sizes[["cap"]],
       wrap = label_wrap
     )
     if (generated_label && !is.null(label_geom_result)) {

@@ -143,7 +143,7 @@ ggdag_adjustment_set <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -165,6 +165,7 @@ ggdag_adjustment_set <- function(
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   check_collider_lines(collider_lines)
+  edge_cap <- resolve_square_plot_edge_cap(edge_cap, edge_engine)
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
@@ -248,6 +249,7 @@ ggdag_adjustment_set <- function(
             edge_width = edge_width,
             arrow_length = arrow_length,
             size = size,
+            node_size = node_size,
             show.legend = if (shadow) NA else FALSE
           ),
           pull_dag_data(.tdy_dag)
@@ -520,7 +522,7 @@ ggdag_adjust <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -543,6 +545,7 @@ ggdag_adjust <- function(
   }
   edge_type <- check_edge_type(edge_type)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  edge_cap <- resolve_square_plot_edge_cap(edge_cap, edge_engine)
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is_empty_or_null(var)) {
     .tdy_dag <- .tdy_dag |> control_for(var)
@@ -609,7 +612,8 @@ ggdag_adjust <- function(
             edge_cap = edge_cap,
             edge_width = edge_width,
             arrow_length = arrow_length,
-            size = size
+            size = size,
+            node_size = node_size
           ),
           pull_dag_data(.tdy_dag)
         )

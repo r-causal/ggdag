@@ -123,7 +123,7 @@ ggdag_equivalent_dags <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -252,7 +252,7 @@ ggdag_equivalent_class <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
@@ -296,7 +296,7 @@ ggdag_equivalent_class <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- edge_cap * size
+      resect <- single_edge_cap(edge_cap, node_size, "ggarrow") * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
@@ -349,6 +349,7 @@ ggdag_equivalent_class <- function(
           edge_width = edge_width,
           arrow_length = arrow_length,
           size = size,
+          node_size = node_size,
           data_directed = dplyr::filter(
             non_reversable_lines,
             .data$direction != "<->"
@@ -359,12 +360,17 @@ ggdag_equivalent_class <- function(
           )
         ),
         list(
-          without_edge_route_warning(geom_dag_edges_link(
-            with_edge_caps(NULL, edge_cap * size),
-            data = reversable_lines,
-            edge_width = edge_width * size,
-            arrow = NULL
-          ))
+          follow_nodes_when_unset(
+            without_edge_route_warning(geom_dag_edges_link(
+              with_edge_caps(NULL, single_edge_cap(edge_cap, node_size) * size),
+              data = reversable_lines,
+              edge_width = edge_width * size,
+              arrow = NULL
+            )),
+            edge_cap,
+            node_size,
+            size
+          )
         )
       )
 
