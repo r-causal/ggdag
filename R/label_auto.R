@@ -2596,7 +2596,7 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     n_edge_points = NULL,
     label.padding = grid::unit(0.25, "lines"),
     label.r = grid::unit(0.15, "lines"),
-    label.size = NA,
+    label.size = 0.25,
     min.segment.length = 5,
     segment.colour = "grey50",
     segment.size = 0.5,
@@ -3580,8 +3580,12 @@ densify_polyline <- function(px, py, spacing) {
 #' as belonging to its node. Unlike
 #' [geom_dag_label_repel()], no simulation and no random numbers are
 #' involved, so the same plot always places its labels the same way.
-#' `geom_dag_label_auto()` draws each label in a borderless rounded box;
-#' `geom_dag_text_auto()` draws the text alone.
+#' `geom_dag_label_auto()` draws each label in a white rounded box with a
+#' thin border in the text colour, as [geom_dag_label_repel()] does.
+#' `geom_dag_label_auto2()` draws the same box without a border, as
+#' [geom_dag_label_repel2()] does, and places its labels exactly where
+#' `geom_dag_label_auto()` places them. `geom_dag_text_auto()` draws the text
+#' alone.
 #'
 #' Like the repel geoms, these layers read the rest of the plot they are
 #' added to: the node size comes from the plot's [geom_dag_point()] or
@@ -3648,8 +3652,9 @@ densify_polyline <- function(px, py, spacing) {
 #' @param gap Clearance in millimetres between a node disc and its label box.
 #' @param label.padding Padding around the label text, as a [grid::unit()].
 #' @param label.r Radius of the label box corners, as a [grid::unit()].
-#' @param label.size Width of the label box border in millimetres. The
-#'   default, `NA`, draws no border.
+#' @param label.size Width of the label box border in millimetres. The border
+#'   is drawn in the text colour. Defaults to 0.25, and to `NA`, which draws no
+#'   border, in `geom_dag_label_auto2()`.
 #' @param min.segment.length Distance from the node disc past which a label
 #'   gets a leader line back to its node, as a single positive number of
 #'   millimetres or a [grid::unit()], which is resolved to millimetres on the
@@ -3710,7 +3715,7 @@ geom_dag_label_auto <- function(
   gap = 2,
   label.padding = grid::unit(0.25, "lines"),
   label.r = grid::unit(0.15, "lines"),
-  label.size = NA,
+  label.size = 0.25,
   min.segment.length = 5,
   segment.colour = "grey50",
   segment.size = 0.5,
@@ -3762,6 +3767,27 @@ geom_dag_label_auto <- function(
 
 geom_dag_label_auto <- dag_node_aware(
   geom_dag_label_auto,
+  extra = c("edge_cap", "wrap")
+)
+
+#' @export
+#' @rdname label_auto
+geom_dag_label_auto2 <- function(
+  mapping = NULL,
+  data = NULL,
+  label.size = NA,
+  ...
+) {
+  geom_dag_label_auto(
+    mapping = mapping,
+    data = data,
+    label.size = label.size,
+    ...
+  )
+}
+
+geom_dag_label_auto2 <- dag_node_aware(
+  geom_dag_label_auto2,
   extra = c("edge_cap", "wrap")
 )
 

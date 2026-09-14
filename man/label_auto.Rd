@@ -2,6 +2,7 @@
 % Please edit documentation in R/label_auto.R
 \name{geom_dag_label_auto}
 \alias{geom_dag_label_auto}
+\alias{geom_dag_label_auto2}
 \alias{geom_dag_text_auto}
 \title{Automatically placed node labels}
 \usage{
@@ -17,7 +18,7 @@ geom_dag_label_auto(
   gap = 2,
   label.padding = grid::unit(0.25, "lines"),
   label.r = grid::unit(0.15, "lines"),
-  label.size = NA,
+  label.size = 0.25,
   min.segment.length = 5,
   segment.colour = "grey50",
   segment.size = 0.5,
@@ -28,6 +29,8 @@ geom_dag_label_auto(
   show.legend = NA,
   inherit.aes = TRUE
 )
+
+geom_dag_label_auto2(mapping = NULL, data = NULL, label.size = NA, ...)
 
 geom_dag_text_auto(
   mapping = NULL,
@@ -92,8 +95,9 @@ default, uses the \code{ggdag.edge_cap} option (8 mm).}
 
 \item{label.r}{Radius of the label box corners, as a \code{\link[grid:unit]{grid::unit()}}.}
 
-\item{label.size}{Width of the label box border in millimetres. The
-default, \code{NA}, draws no border.}
+\item{label.size}{Width of the label box border in millimetres. The border
+is drawn in the text colour. Defaults to 0.25, and to \code{NA}, which draws no
+border, in \code{geom_dag_label_auto2()}.}
 
 \item{min.segment.length}{Distance from the node disc past which a label
 gets a leader line back to its node, as a single positive number of
@@ -144,8 +148,12 @@ the label's own node and clear of other nodes' discs, so each label reads
 as belonging to its node. Unlike
 \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}, no simulation and no random numbers are
 involved, so the same plot always places its labels the same way.
-\code{geom_dag_label_auto()} draws each label in a borderless rounded box;
-\code{geom_dag_text_auto()} draws the text alone.
+\code{geom_dag_label_auto()} draws each label in a white rounded box with a
+thin border in the text colour, as \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}} does.
+\code{geom_dag_label_auto2()} draws the same box without a border, as
+\code{\link[=geom_dag_label_repel2]{geom_dag_label_repel2()}} does, and places its labels exactly where
+\code{geom_dag_label_auto()} places them. \code{geom_dag_text_auto()} draws the text
+alone.
 }
 \details{
 Like the repel geoms, these layers read the rest of the plot they are

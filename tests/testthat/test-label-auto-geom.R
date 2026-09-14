@@ -7,8 +7,9 @@
 #   (ordered polyline points tracing each drawn edge, keyed by edge_id).
 #   Positions stay in data units; conversion to mm happens at draw time.
 # * GeomDagLabelAuto partitions by role at draw time, measures label grobs,
-#   calls place_dag_labels(), and draws borderless rounded-rect labels, text,
-#   and leader segments inside a gTree with a makeContent method.
+#   calls place_dag_labels(), and draws rounded-rect labels with a border in
+#   the text colour (none for geom_dag_label_auto2()), text, and leader
+#   segments inside a gTree with a makeContent method.
 # * geom_dag_label_auto() / geom_dag_text_auto() are dag_layer()-wrapped
 #   constructors that discover node size and edge geometry from the plot and
 #   participate in the debug_repel_points overlay.
