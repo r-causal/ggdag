@@ -269,10 +269,6 @@ ggdag_drelationship <- function(
   stylized = deprecated(),
   collider_lines = TRUE
 ) {
-  edge_cap <- resolve_square_plot_edge_cap(
-    edge_cap,
-    ggdag_option("edge_engine", "ggraph")
-  )
   df <- node_drelationship(
     .tdy_dag,
     from = from,

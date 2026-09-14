@@ -248,12 +248,19 @@ route_constants <- function(
 #' arrowhead, which nudges it as a grazed disc does, is routed; the rest
 #' stay straight.
 #'
-#' @param nodes Data frame with columns `name`, `x`, `y`, and `r` (mm).
+#' @param nodes Data frame with columns `name`, `x`, `y`, and `r` (mm), and
+#'   optionally `cap`, the millimetres from each node's centre the arrow
+#'   layer stops an edge at that node (`cap` for every node without one),
+#'   and `square`, whether the node is drawn as a square, whose face is flat
+#'   so an offset port meets it at the same `cap` as a centre port.
 #' @param edges Data frame with columns `from`, `to`, and optionally
 #'   `curvature` (`NA` to route) and a `fixed_path` list column of
 #'   pre-sampled `data.frame(x, y)` paths for user-curved edges.
 #' @param bounds Panel bounds `c(xmin, ymin, xmax, ymax)` in mm.
-#' @param cap Edge cap in mm, the length the arrow layer resects at each end.
+#' @param cap Edge cap in mm, the length the arrow layer resects at an end
+#'   whose node carries no `cap` of its own, and the reference the router's
+#'   constants are set from: the least angle between two arrivals at one
+#'   node and the stubs and slots of the orthogonal ladder.
 #' @param mode `"spline"` routes blocked edges as curves and `"straight"`
 #'   draws every edge as its chord. `"orthogonal"` draws every edge as
 #'   axis-aligned runs whether or not its chord is blocked: E and W ports
@@ -293,8 +300,10 @@ route_constants <- function(
 #'   In orthogonal mode `meta` also carries `resect_head` and `resect_fins`,
 #'   the arc length in mm the arrow layer cuts from each end of the path:
 #'   `cap - r + sqrt(r^2 - o^2)` for a port offset `o` from the centre line
-#'   of a node of radius `r`, exactly `cap` at a centre port, so that every
-#'   head tip sits `cap - r` past the disc face on its own run. The tail of a
+#'   of a node of radius `r` and cap `cap`, exactly `cap` at a centre port,
+#'   so that every head tip sits `cap - r` past the disc face on its own run,
+#'   and exactly `cap` at any port of a square node, whose face is flat. The
+#'   tail of a
 #'   level chord leaves through the port on its target's line, so its
 #'   `resect_fins` is that value at the offset between the two centres, and
 #'   so is the tail of an arrival drawn as the run on its row; and the result
@@ -369,11 +378,14 @@ check_route_mode <- function(mode) {
 #'   the axis was named).
 #' @noRd
 canonicalize_scene <- function(nodes, edges, bounds, tol, layer_axis = "auto") {
+  n_nodes <- length(nodes$name)
   nodes <- df_cols(
     name = as.character(nodes$name),
     x = as.numeric(nodes$x),
     y = as.numeric(nodes$y),
-    r = as.numeric(nodes$r)
+    r = as.numeric(nodes$r),
+    cap = as.numeric(nodes$cap %||% rep(NA_real_, n_nodes)),
+    square = as.logical(nodes$square %||% rep(FALSE, n_nodes)) %in% TRUE
   )
   if (!is.data.frame(edges)) {
     edges <- as.data.frame(edges, stringsAsFactors = FALSE)
@@ -1752,13 +1764,16 @@ nearest_on_segment <- function(p, a, b) {
 #' @param bounds Panel bounds; a repair that pushes a waypoint outside them
 #'   ends the loop, since the route can no longer be drawn inside the panel.
 #' @param repair Whether to run the repair loop.
-#' @param cap The edge cap; samples within it of either end are hidden.
+#' @param cap The edge cap at the true target; samples within it of either
+#'   end are hidden, and the arrival is read that far before the target.
 #' @param arrivals Two-column matrix of unit directions into the true
 #'   target of the other edges arriving there, or `NULL`.
 #' @param head_end `"E"` when the true target is the frame's `E`, `"S"`
 #'   when the edge runs right to left.
 #' @param theta_min Least angle between arrival directions, in degrees.
 #' @param side The detour's side, or `NA` when either side is allowed.
+#' @param cap_ref The scene's single cap, which the least angle between two
+#'   drawn tips is measured on.
 #' @return A list with `path`, `wp`, `clearance_ok`, and `depth` (the total
 #'   violation depth of the returned curve, 0 when it verifies).
 #' @noRd
@@ -1779,7 +1794,8 @@ route_spline_edge <- function(
   arrivals = NULL,
   head_end = "E",
   theta_min = 0,
-  side = NA_real_
+  side = NA_real_,
+  cap_ref = cap
 ) {
   res <- route_spline_curve(
     fr,
@@ -1798,7 +1814,8 @@ route_spline_edge <- function(
     arrivals,
     head_end,
     theta_min,
-    side
+    side,
+    cap_ref
   )
   if (!res$clearance_ok && isTRUE(res$separated) && repair) {
     alt <- route_spline_curve(
@@ -1818,7 +1835,8 @@ route_spline_edge <- function(
       NULL,
       head_end,
       theta_min,
-      side
+      side,
+      cap_ref
     )
     if (alt$clearance_ok || alt$depth < res$depth) {
       return(alt)
@@ -1846,7 +1864,8 @@ route_spline_curve <- function(
   arrivals,
   head_end,
   theta_min,
-  side
+  side,
+  cap_ref = cap
 ) {
   capsule <- obstacles$capsule %||% logical(nrow(obstacles))
   separate <- !is.null(arrivals) && nrow(arrivals) > 0
@@ -1854,7 +1873,7 @@ route_spline_curve <- function(
   # the wide window opens only where the narrow one leaves the nearest
   # rival closer than `squeeze_floor` mm of drawn tip, which on the cap
   # circle the tips sit on is this angle
-  gap_floor <- 2 * asin(min(1, opts$squeeze_floor / (2 * cap))) * 180 / pi
+  gap_floor <- 2 * asin(min(1, opts$squeeze_floor / (2 * cap_ref))) * 180 / pi
   arrival_window <- c(opts$tangent_clamp, opts$arrival_clamp, gap_floor)
   phi_star <- 0
   # the arrowhead zones of the other edges, as the capsule ends and the
@@ -2382,8 +2401,10 @@ arc_point_before_end <- function(x, y, d) {
 #' orientation, source to target.
 #'
 #' @param paths The current paths, one `data.frame(x, y)` per edge.
+#' @param cap_head,cap_tail The cap at each edge's target and source, one
+#'   per edge; the registry keeps each edge's `cap` at the target.
 #' @noRd
-head_registry <- function(paths, cap) {
+head_registry <- function(paths, cap_head, cap_tail) {
   n <- length(paths)
   reg <- list(
     x = numeric(n),
@@ -2392,21 +2413,30 @@ head_registry <- function(paths, cap) {
     y2 = numeric(n),
     ux = numeric(n),
     uy = numeric(n),
+    cap = numeric(n),
     valid = logical(n),
     vx = numeric(n),
     vy = numeric(n),
     tail_valid = logical(n)
   )
   for (e in seq_len(n)) {
-    reg <- register_head(reg, e, paths[[e]]$x, paths[[e]]$y, cap)
+    reg <- register_head(
+      reg,
+      e,
+      paths[[e]]$x,
+      paths[[e]]$y,
+      cap_head[[e]],
+      cap_tail[[e]]
+    )
   }
   reg
 }
 
 #' Record the arrowhead zone and tail bearing of one edge from its path in
-#' true orientation
+#' true orientation, resected by `cap` at the target and `cap_tail` at the
+#' source
 #' @noRd
-register_head <- function(reg, e, x, y, cap) {
+register_head <- function(reg, e, x, y, cap, cap_tail = cap) {
   n <- length(x)
   far <- arc_point_before_end(x, y, 2 * cap)
   near <- arc_point_before_end(x, y, cap)
@@ -2416,6 +2446,7 @@ register_head <- function(reg, e, x, y, cap) {
   reg$y[[e]] <- far[[2]]
   reg$x2[[e]] <- near[[1]]
   reg$y2[[e]] <- near[[2]]
+  reg$cap[[e]] <- cap
   reg$valid[[e]] <- n >= 2 && l > 0
   if (reg$valid[[e]]) {
     reg$ux[[e]] <- u[[1]] / l
@@ -2423,7 +2454,7 @@ register_head <- function(reg, e, x, y, cap) {
   }
   # the tail: the same reading taken from the other end of the path, which
   # is where the edge's ink starts once the arrow layer has resected it
-  leaving <- arc_point_before_end(rev(x), rev(y), cap)
+  leaving <- arc_point_before_end(rev(x), rev(y), cap_tail)
   v <- leaving - c(x[[1]], y[[1]])
   lv <- sqrt(sum(v^2))
   reg$tail_valid[[e]] <- n >= 2 && lv > 0
@@ -2474,7 +2505,8 @@ head_constraints <- function(reg, e, from, to) {
       x2 = reg$x2[zone],
       y2 = reg$y2[zone],
       ux = reg$ux[zone],
-      uy = reg$uy[zone]
+      uy = reg$uy[zone],
+      cap = reg$cap[zone]
     ),
     arrivals = rbind(
       cbind(reg$ux[arriving], reg$uy[arriving]),
@@ -2692,8 +2724,9 @@ side_cost <- function(
 
 #' Count the arrowhead zones a candidate chain passes through
 #'
-#' The first and last legs of the chain are trimmed by `cap`, the length
-#' the arrow layer resects, since ink inside a cap is never drawn. Every
+#' The first and last legs of the chain are trimmed by `caps`, the lengths
+#' the arrow layer resects at the source and the target, since ink inside a
+#' cap is never drawn. Every
 #' remaining leg is then tested against every head zone at once: the
 #' distance between a leg and a zone is the least of the four point to
 #' segment distances between their endpoints, and zero when the two
@@ -2703,15 +2736,16 @@ side_cost <- function(
 #' @param heads Head zones with `x`, `y` (the far end) and `x2`, `y2` (the
 #'   near end, `cap` before the target).
 #' @noRd
-chain_head_intrusions <- function(poly, heads, cap, sep_e) {
+chain_head_intrusions <- function(poly, heads, caps, sep_e) {
   n <- nrow(poly)
-  trim <- function(a, b) {
+  caps <- rep_len(caps, 2)
+  trim <- function(a, b, cap) {
     d <- b - a
     l <- sqrt(sum(d^2))
     if (l <= cap) b else a + d / l * cap
   }
-  poly[1, ] <- trim(poly[1, ], poly[2, ])
-  poly[n, ] <- trim(poly[n, ], poly[n - 1, ])
+  poly[1, ] <- trim(poly[1, ], poly[2, ], caps[[1]])
+  poly[n, ] <- trim(poly[n, ], poly[n - 1, ], caps[[2]])
   legs <- n - 1L
   m <- nrow(heads)
   i <- rep(seq_len(legs), each = m)
@@ -3102,9 +3136,10 @@ soft_nudge_waypoints <- function(hits, fr, extra, opts) {
 #' The drawn arrowheads a chord passes too close to
 #'
 #' The drawn head of another edge is a pseudo-disc of radius `head / 2`
-#' centred `cap + head / 2` before that edge's target along its current
-#' path. The chord is trimmed by `cap` at both ends, since the ink inside a
-#' cap is never drawn, and a head whose centre lies within `head / 2 +
+#' centred its own `cap + head / 2` before that edge's target along its
+#' current path. The chord is trimmed by the cap of the node at each of its
+#' ends (`caps`, `S` first), since the ink inside a cap is never drawn, and a
+#' head whose centre lies within `head / 2 +
 #' head_margin` of the trimmed chord is a soft hit at the centre's chord
 #' parameter, to be nudged away from the head's target: the side is
 #' `-sign(h_target)`, `+1` when the target sits on the chord. A head is
@@ -3117,7 +3152,11 @@ soft_nudge_waypoints <- function(hits, fr, extra, opts) {
 #'   `NA`, `layer` is `NA`, `r` is `head / 2`, `hard` is `FALSE`) plus the
 #'   clearance margin `mm` and the nudge `side`.
 #' @noRd
-head_hits <- function(fr, heads, cap, opts) {
+head_hits <- function(fr, heads, caps, opts) {
+  caps <- rep_len(caps, 2)
+  # a registry built without caps of its own reads every head at the cap
+  # of the chord's target
+  head_cap <- heads$cap %||% rep(caps[[2]], nrow(heads))
   r_h <- opts$head / 2
   clear <- r_h + opts$head_margin
   empty <- df_cols(
@@ -3130,13 +3169,13 @@ head_hits <- function(fr, heads, cap, opts) {
     mm = numeric(),
     side = numeric()
   )
-  if (nrow(heads) == 0 || fr$Lc <= 2 * cap) {
+  if (nrow(heads) == 0 || fr$Lc <= sum(caps)) {
     return(empty)
   }
   cx <- heads$x2 - r_h * heads$ux
   cy <- heads$y2 - r_h * heads$uy
-  S2 <- fr$S + cap * fr$u
-  E2 <- fr$E - cap * fr$u
+  S2 <- fr$S + caps[[1]] * fr$u
+  E2 <- fr$E - caps[[2]] * fr$u
   d <- dist_to_edge(cx, cy, S2[[1]], S2[[2]], E2[[1]], E2[[2]])
   keep <- which(d < clear)
   if (length(keep) == 0) {
@@ -3144,8 +3183,8 @@ head_hits <- function(fr, heads, cap, opts) {
   }
   dx <- cx[keep] - fr$S[[1]]
   dy <- cy[keep] - fr$S[[2]]
-  tx <- heads$x2[keep] + cap * heads$ux[keep] - fr$S[[1]]
-  ty <- heads$y2[keep] + cap * heads$uy[keep] - fr$S[[2]]
+  tx <- heads$x2[keep] + head_cap[keep] * heads$ux[keep] - fr$S[[1]]
+  ty <- heads$y2[keep] + head_cap[keep] * heads$uy[keep] - fr$S[[2]]
   side <- -sign(tx * fr$n[[1]] + ty * fr$n[[2]])
   side[side == 0] <- 1
   n <- length(keep)
@@ -3407,7 +3446,8 @@ route_candidate <- function(
     arrivals = arrivals,
     head_end = job$head_end,
     theta_min = job$theta_min,
-    side = side
+    side = side,
+    cap_ref = job$cap_ref
   )
   res$side <- side
   res$mode <- mode
@@ -4124,7 +4164,13 @@ route_orthogonal_scene <- function(
     if (ch$kind == "sn") {
       zones <- df_bind(
         zones,
-        head_zone(nodes$x[[to[[e]]]], nodes$y[[to[[e]]]], ch$side, cap, opts)
+        head_zone(
+          nodes$x[[to[[e]]]],
+          nodes$y[[to[[e]]]],
+          ch$side,
+          nodes$cap[[to[[e]]]],
+          opts
+        )
       )
     }
   }
@@ -4351,10 +4397,19 @@ route_orthogonal_scene <- function(
   # on the port's own line, hidden under the disc past the face, and the
   # head the arrow layer aims at the path's end is drawn along that run.
   # The resect of a ported end puts its tip cap - r past the disc face on
-  # that run: exactly cap at a centre port, less as the offset grows
-  resect_head <- rep(cap, n_edges)
-  resect_fins <- rep(cap, n_edges)
-  face_resect <- function(r, off) cap - r + sqrt(max(r^2 - off^2, 0))
+  # that run: exactly the node's cap at a centre port, less as the offset
+  # grows, and exactly the cap at any port of a square node, whose face is
+  # flat
+  resect_head <- nodes$cap[to]
+  resect_fins <- nodes$cap[from]
+  face_resect <- function(node, off) {
+    cap_n <- nodes$cap[[node]]
+    if (nodes$square[[node]]) {
+      return(cap_n)
+    }
+    r <- nodes$r[[node]]
+    cap_n - r + sqrt(max(r^2 - off^2, 0))
+  }
 
   # a level chord is drawn as the run on its target's line: the head end
   # keeps the target's centre and the tail leaves its node through the port
@@ -4376,7 +4431,7 @@ route_orthogonal_scene <- function(
     }
     paths[[e]] <- path
     tail <- src_node[[e]]
-    resect_fins[[e]] <- face_resect(nodes$r[[tail]], off)
+    resect_fins[[e]] <- face_resect(tail, off)
   }
 
   for (e in which(kind != "straight" & !is_fixed)) {
@@ -4403,8 +4458,8 @@ route_orthogonal_scene <- function(
     if (is.null(geom$bends)) {
       next
     }
-    at_s <- face_resect(nodes$r[[a[[e]]]], geom$off_s)
-    at_e <- face_resect(nodes$r[[b[[e]]]], geom$off_t)
+    at_s <- face_resect(a[[e]], geom$off_s)
+    at_e <- face_resect(b[[e]], geom$off_t)
     resect_head[[e]] <- if (info$reversed[[e]]) at_s else at_e
     resect_fins[[e]] <- if (info$reversed[[e]]) at_e else at_s
 
@@ -4433,7 +4488,7 @@ route_orthogonal_scene <- function(
         path <- df_cols(x = rev(path$x), y = rev(path$y))
       }
       paths[[e]] <- path
-      resect_fins[[e]] <- face_resect(nodes$r[[tail]], tail_off)
+      resect_fins[[e]] <- face_resect(tail, tail_off)
       next
     }
 
@@ -6035,6 +6090,11 @@ route_scene_mm <- function(
     )
   }
 
+  # a node without a cap of its own is capped at the single cap
+  nodes$cap[is.na(nodes$cap)] <- cap
+  cap_from <- nodes$cap[from]
+  cap_to <- nodes$cap[to]
+
   curvature <- if ("curvature" %in% names(edges)) {
     as.numeric(edges$curvature)
   } else {
@@ -6205,7 +6265,9 @@ route_scene_mm <- function(
     ectx <- edge_cost_context(fr, e, ctx)
     constraints <- head_constraints(heads, e, from, to)
     ectx$heads <- constraints$heads
-    ectx$cap <- cap
+    # the caps at the frame's ends, `S` first, and at the edge's target
+    caps <- c(nodes$cap[[fr$a]], nodes$cap[[fr$b]])
+    ectx$cap <- caps
 
     he <- df_rows(hits, which(hits$edge == e))
     idx <- match(he$node, nodes$name)
@@ -6231,7 +6293,7 @@ route_scene_mm <- function(
     # other edges as it is past a grazed disc; an edge with a hard hit
     # detours, and the head zones govern its detour instead
     if (!any(eh$hard)) {
-      hh <- head_hits(fr, constraints$heads, cap, opts)
+      hh <- head_hits(fr, constraints$heads, caps, opts)
       if (nrow(hh) > 0) {
         eh <- df_bind(eh, hh)
         eh <- df_rows(eh, order(eh$t, method = "radix"))
@@ -6251,7 +6313,7 @@ route_scene_mm <- function(
       shift = shift[[e]],
       extra = extra[[e]],
       bounds = bounds,
-      arm_min = c(nodes$r[[fr$a]], nodes$r[[fr$b]]) + cap,
+      arm_min = c(nodes$r[[fr$a]], nodes$r[[fr$b]]) + caps,
       obstacles = df_cols(
         name = nodes$name[others],
         x = nodes$x[others],
@@ -6265,7 +6327,8 @@ route_scene_mm <- function(
       R_soft = R_soft[others],
       hits = eh,
       ectx = ectx,
-      cap = cap,
+      cap = cap_to[[e]],
+      cap_ref = cap,
       arrivals = constraints$arrivals,
       head_end = if (info$reversed[[e]]) "S" else "E",
       theta_min = theta_min,
@@ -6500,7 +6563,7 @@ route_scene_mm <- function(
   # shared slot came out in routing order rather than chord order
   route_all <- function(reserved) {
     placed <- placed_set(paths)
-    heads <- head_registry(paths, cap)
+    heads <- head_registry(paths, cap_to, cap_from)
     occ <- empty_occupancy()
     out <- vector("list", n_edges)
     for (e in order_e) {
@@ -6516,9 +6579,23 @@ route_scene_mm <- function(
       placed <- place_edge(placed, e, res$path$x, res$path$y)
       # the registry keeps every path source to target
       heads <- if (info$reversed[[e]]) {
-        register_head(heads, e, rev(res$path$x), rev(res$path$y), cap)
+        register_head(
+          heads,
+          e,
+          rev(res$path$x),
+          rev(res$path$y),
+          cap_to[[e]],
+          cap_from[[e]]
+        )
       } else {
-        register_head(heads, e, res$path$x, res$path$y, cap)
+        register_head(
+          heads,
+          e,
+          res$path$x,
+          res$path$y,
+          cap_to[[e]],
+          cap_from[[e]]
+        )
       }
       if (!is.null(res$occ)) {
         occ <- df_bind(occ, res$occ)

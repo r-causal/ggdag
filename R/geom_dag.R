@@ -2040,13 +2040,12 @@ geom_dag_ggarrow_edges <- function(
 #' @param edge_width The width of the edges.
 #' @param edge_cap The distance, in millimetres, that each edge stops short of
 #'   the center of the node at either end, scaled by `size`. When neither this
-#'   argument nor the `ggdag.edge_cap` option is set, the `"ggraph"` edge
-#'   engine stops each end of an edge 2 mm beyond the node drawn there, a gap
-#'   also scaled by `size`, following that node's size and shape, so an
-#'   arrowhead keeps the same distance from a large node as from a small one,
-#'   and from the corners of a square node as from a circle. The `"ggarrow"`
-#'   engine takes a single resection instead: 8 mm, or 10 mm in the plotters
-#'   that draw adjusted nodes as squares. A number fixes the cap at every end.
+#'   argument nor the `ggdag.edge_cap` option is set, either edge engine
+#'   stops each end of an edge 2 mm outside the outline of the node drawn
+#'   there, a gap also scaled by `size`, following that node's size and
+#'   shape, so an arrowhead keeps the same distance from a large node as from
+#'   a small one, and from the side of a square node as from a circle. A
+#'   number fixes the cap at every end.
 #' @param arrow_length The length of arrows on edges.
 #' @param use_edges A logical value. Include a `geom_dag_edges*()` function? If
 #'   `TRUE`, which is determined by `edge_type`.
@@ -2168,13 +2167,12 @@ geom_dag <- function(
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   check_edge_route_options(edge_route_options, call = rlang::current_env())
 
-  # An unset cap stops each ggraph edge end beyond the node drawn there, and
-  # the automatic label geoms cut the edges they trace at the same ends. The
-  # ggraph edges map the cap of a circle node of this size for an end with no
-  # node drawn at it; the ggarrow engine keeps the 8 mm resection it has
-  # always drawn with.
-  node_aware_caps <- is.null(edge_cap) && identical(edge_engine, "ggraph")
-  edge_cap <- single_edge_cap(edge_cap, node_size, edge_engine)
+  # An unset cap stops each edge end beyond the node drawn there, under
+  # either engine, and the automatic label geoms cut the edges they trace at
+  # the same ends. The edges take the cap of a circle node of this size for
+  # an end with no node drawn at it.
+  node_aware_caps <- is.null(edge_cap)
+  edge_cap <- single_edge_cap(edge_cap, node_size)
 
   sizes <- c(
     cap = edge_cap,
@@ -2252,14 +2250,14 @@ geom_dag <- function(
           )
         ))
       }
+    }
 
-      if (node_aware_caps) {
-        edge_geom <- with_node_aware_caps(
-          edge_geom,
-          gap = node_edge_gap_mm * size,
-          fallback_extent = node_radius_mm(sizes[["node"]])
-        )
-      }
+    if (node_aware_caps) {
+      edge_geom <- with_node_aware_caps(
+        edge_geom,
+        gap = node_edge_gap_mm * size,
+        fallback_extent = node_radius_mm(sizes[["node"]])
+      )
     }
   } else {
     edge_geom <- NULL

@@ -744,8 +744,9 @@ arrow_layer_state <- function(plot) {
   })
 }
 
-test_that("the ggarrow engine resects exactly as it did before node-aware caps", {
+test_that("the ggarrow engine resects each end beyond the node drawn there", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  circle_cap <- 0.375 * 30 + 2
 
   default_arrows <- arrow_layer_state(
     ggdag(cap_dag(), node_size = 30, edge_engine = "ggarrow")
@@ -754,10 +755,22 @@ test_that("the ggarrow engine resects exactly as it did before node-aware caps",
     ggdag(cap_dag(), node_size = 30, edge_engine = "ggarrow", edge_cap = 8)
   )
 
+  # the layers carry the cap of a circle node of the plot's size for an end
+  # with no node drawn at it, and resect every drawn end by the node there
   expect_length(default_arrows, 2)
-  expect_identical(default_arrows, explicit_arrows)
   for (arrows in default_arrows) {
+    expect_identical(
+      arrows$geom_params$resect,
+      list(head = circle_cap, fins = circle_cap)
+    )
+    expect_equal(unique(arrows$data$resect_head), circle_cap)
+    expect_equal(unique(arrows$data$resect_fins), circle_cap)
+  }
+  # an explicit cap fixes the resection and the layers follow no node
+  expect_length(explicit_arrows, 2)
+  for (arrows in explicit_arrows) {
     expect_identical(arrows$geom_params$resect, list(head = 8, fins = 8))
+    expect_false("resect_head" %in% names(arrows$data))
   }
   expect_false(any(purrr::map_lgl(
     ggdag(cap_dag(), node_size = 30, edge_engine = "ggarrow")$layers,
@@ -972,17 +985,33 @@ test_that("the path and equivalence plotters resect ggarrow edges with the cap u
 
     expect_no_error(draws_on_device(default), message = plotter)
     expect_no_error(draws_on_device(unset), message = plotter)
-    # the ggarrow engine keeps the 8 mm resection it has always drawn with
+    # an unset cap handed to the plotter is the same request as the default:
+    # every end follows the node drawn there, a circle of size 30 here
+    default_state <- arrow_layer_state(default)
     expect_identical(
-      arrow_layer_state(default),
-      arrow_layer_state(explicit),
-      label = paste0(plotter, "() ggarrow layers")
-    )
-    expect_identical(
+      default_state,
       arrow_layer_state(unset),
-      arrow_layer_state(explicit),
       label = paste0(plotter, "(edge_cap = NULL) ggarrow layers")
     )
+    expect_gt(length(default_state), 0)
+    for (arrows in default_state) {
+      if (nrow(arrows$data) == 0) {
+        next
+      }
+      expect_equal(
+        unique(c(arrows$data$resect_head, arrows$data$resect_fins)),
+        0.375 * 30 + 2,
+        label = paste0(plotter, "() ggarrow resections")
+      )
+    }
+    # an explicit cap fixes the resection at every end
+    for (arrows in arrow_layer_state(explicit)) {
+      expect_identical(
+        arrows$geom_params$resect,
+        list(head = 8, fins = 8),
+        label = paste0(plotter, "(edge_cap = 8) ggarrow layers")
+      )
+    }
   }
 })
 

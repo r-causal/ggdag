@@ -1215,7 +1215,8 @@ test_that("the cap is the finished plot's however the layers were ordered", {
   # label layer is added neither the routed layer nor the node size that
   # settles its resection is on the plot. The cap belongs to the finished
   # plot, not to the part of it a layer happened to be added to, so both
-  # grobs read the same 12 mm from a node size of 24 and draw one line.
+  # grobs read the same 11 mm from a node size of 24, 2 mm beyond its 9 mm
+  # radius, and draw one line.
   p <- ggplot(tidy_dagitty(collinear_mediator_dag()), aes_dag()) +
     geom_dag_label_auto(aes(label = label)) +
     geom_dag_routed_arrows() +
@@ -1225,12 +1226,12 @@ test_that("the cap is the finished plot's however the layers were ordered", {
   routed_tree <- scene_gtree(scene, "dag_routed_edges")
   label_tree <- scene_gtree(scene, "dag_labels_auto")
 
-  expect_equal(as.numeric(routed_tree$params$resect$head), 12)
+  expect_equal(as.numeric(routed_tree$params$resect$head), 11)
 
   routed <- routed_label_edges(label_tree, scene)
   expect_length(routed, 3)
   for (edge in routed) {
-    expect_equal(as.numeric(label_route_spec(label_tree, edge)$cap), 12)
+    expect_equal(as.numeric(label_route_spec(label_tree, edge)$cap), 11)
   }
 
   blocked <- longest_edge(routed)
@@ -1240,7 +1241,7 @@ test_that("the cap is the finished plot's however the layers were ordered", {
   parity <- if (is.null(label_path) || is.null(drawn_path)) {
     Inf
   } else {
-    hausdorff_mm(trim_by_cap(label_path, 12), trim_by_cap(drawn_path, 12))
+    hausdorff_mm(trim_by_cap(label_path, 11), trim_by_cap(drawn_path, 11))
   }
 
   # a cap read from the option instead of the plot leaves the arms of the

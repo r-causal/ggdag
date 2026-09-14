@@ -2528,6 +2528,8 @@ StatNodesLabelAuto <- ggplot2::ggproto(
         caps <- traced_edge_caps(edges, edge_points, params$edge_end_caps)
         edge_rows$cap_fins <- caps$start
         edge_rows$cap_head <- caps$end
+        edge_rows$square_fins <- caps$start_square
+        edge_rows$square_head <- caps$end_square
         edge_rows$cap_fallback <- caps$fallback
       }
     }
@@ -2542,12 +2544,24 @@ StatNodesLabelAuto <- ggplot2::ggproto(
       label_rows$ggdag_role <- "label"
     }
 
+    # the shape each node is drawn with, where the plot's edges follow the
+    # nodes, so that a routed edge is rebuilt around the same discs and cut
+    # at the same caps the routed layer draws it with
+    shapes <- edge_end_nodes(
+      all_nodes$PANEL,
+      all_nodes$x,
+      all_nodes$y,
+      params$edge_end_caps$nodes
+    )
     node_rows <- data.frame(
       ggdag_role = "node",
       label = "",
       x = all_nodes$x,
       y = all_nodes$y,
       node_size = node_size,
+      node_outline = shapes$outline,
+      node_square = shapes$square,
+      node_gap = params$edge_end_caps$gap %||% NA_real_,
       PANEL = all_nodes$PANEL,
       stringsAsFactors = FALSE
     )
@@ -2659,8 +2673,20 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     for (end in c("cap_fins", "cap_head")) {
       found <- if (is.null(edge_cap)) edges[[end]]
       found <- found %||% rep(NA_real_, nrow(edges))
+      # a cap at a square node is the half side of the square the tip lies
+      # on, turned into the straight-line cut once the edge is traced in
+      # millimetres; a cap taken from elsewhere is that cut already
+      square <- sub("^cap_", "square_", end)
+      is_square <- if (is.null(edge_cap)) edges[[square]]
+      is_square <- (is_square %||% rep(FALSE, nrow(edges))) & !is.na(found)
       found[is.na(found)] <- cap
       edges[[end]] <- found
+      edges[[square]] <- is_square %in% TRUE
+    }
+    for (name in c("node_outline", "node_square", "node_gap")) {
+      if (!name %in% names(nodes)) {
+        nodes[[name]] <- rep(NA, nrow(nodes))
+      }
     }
     # A routed edge arrives as its chord and the spec it is routed with, so
     # the spec travels to draw time with it.
@@ -2675,9 +2701,21 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     # are the millimetres of the device the plot is drawn on.
     grid::gTree(
       labels = labels,
-      nodes = nodes[, c("x", "y", "node_size"), drop = FALSE],
+      nodes = nodes[,
+        c("x", "y", "node_size", "node_outline", "node_square", "node_gap"),
+        drop = FALSE
+      ],
       edges = edges[,
-        c("edge_id", "x", "y", "cap_fins", "cap_head", route_spec_columns),
+        c(
+          "edge_id",
+          "x",
+          "y",
+          "cap_fins",
+          "cap_head",
+          "square_fins",
+          "square_head",
+          route_spec_columns
+        ),
         drop = FALSE
       ],
       params = list(
@@ -3030,19 +3068,26 @@ makeContent.dag_labels_auto <- function(x) {
   # The router names its nodes by position and breaks ties between equally
   # priced routes by name, so the names must be the ones the routed layer
   # used: keys of the npc positions, taken before the millimetre conversion.
+  n_nodes <- nrow(x$nodes)
   node_input <- data.frame(
     name = routed_position_keys(x$nodes$x, x$nodes$y),
     x = mm_x(x$nodes$x),
     y = mm_y(x$nodes$y),
     radius = node_radius_mm(x$nodes$node_size),
+    outline = as.numeric(x$nodes$node_outline %||% rep(NA_real_, n_nodes)),
+    square = as.logical(x$nodes$node_square %||% rep(FALSE, n_nodes)),
+    gap = as.numeric(x$nodes$node_gap %||% rep(NA_real_, n_nodes)),
     stringsAsFactors = FALSE
   )
+  n_edges <- nrow(x$edges)
   edges_mm <- data.frame(
     edge_id = x$edges$edge_id,
     x = mm_x(x$edges$x),
     y = mm_y(x$edges$y),
-    cap_fins = x$edges$cap_fins %||% rep(par$edge_cap, nrow(x$edges)),
-    cap_head = x$edges$cap_head %||% rep(par$edge_cap, nrow(x$edges)),
+    cap_fins = x$edges$cap_fins %||% rep(par$edge_cap, n_edges),
+    cap_head = x$edges$cap_head %||% rep(par$edge_cap, n_edges),
+    square_fins = x$edges$square_fins %||% rep(FALSE, n_edges),
+    square_head = x$edges$square_head %||% rep(FALSE, n_edges),
     stringsAsFactors = FALSE
   )
   # An arc is bent on the page, so it reaches the grob as the two ends of its
@@ -3056,6 +3101,9 @@ makeContent.dag_labels_auto <- function(x) {
     par,
     c(0, 0, panel_width, panel_height)
   )
+  # an edge that meets a square node is cut where its traced path, now in
+  # millimetres, crosses the square its drawn tip lies on
+  edges_mm <- label_square_caps(edges_mm, node_input)
   edge_input <- label_ink(edges_mm, par$edge_cap)
 
   # The engine works inside the panel inset by half a node radius, so a box
@@ -3176,7 +3224,8 @@ makeContent.dag_labels_auto <- function(x) {
 #' whole path the router decides, are returned untouched.
 #'
 #' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`,
-#'   and optionally the caps `cap_fins` and `cap_head`, which an arc keeps.
+#'   and optionally the caps `cap_fins` and `cap_head` and the square flags
+#'   `square_fins` and `square_head`, which an arc keeps.
 #' @param spec The routing columns of the same rows, as the stat carried them,
 #'   one row per row of `edges`.
 #' @param n Number of points each arc is traced with.
@@ -3192,7 +3241,7 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
 
   # The ends of the traced points are the ends of the chord, whether the edge
   # arrived as its two endpoints or as a path between them.
-  caps <- intersect(c("cap_fins", "cap_head"), names(edges))
+  caps <- intersect(label_cap_columns, names(edges))
   ids <- unique(edges$edge_id[curved])
   first <- match(ids, edges$edge_id)
   last <- length(edges$edge_id) - match(ids, rev(edges$edge_id)) + 1L
@@ -3239,21 +3288,26 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
 #' keeps each path at the router's own sampling, so a long axis-aligned run
 #' stays an obstacle along its whole length. Edges no routed layer draws are
 #' returned untouched. Every row carries the arc length the arrow layer cuts
-#' from its edge's start (`cap_fins`) and end (`cap_head`): the resect the
-#' router reports for the edge's ports when it reports one, and otherwise the
-#' cap the edge already carries or, without one, the single cap, so that
-#' `label_ink()` hides exactly the head each edge draws.
+#' from its edge's start (`cap_fins`) and end (`cap_head`): the cap the edge
+#' already carries or, without one, the single cap, moved by the amount the
+#' router moved the cap of the node at that end when it reports a resect for
+#' the edge's ports, so that `label_ink()` hides exactly the head each edge
+#' draws. A cap at a square node stays the half side of the square, flagged
+#' in `square_fins` and `square_head`, for `label_square_caps()` to cut.
 #'
 #' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`,
-#'   and optionally the caps `cap_fins` and `cap_head`.
+#'   and optionally the caps `cap_fins` and `cap_head` and the flags
+#'   `square_fins` and `square_head`.
 #' @param spec The routing columns of the same rows, as the stat carried them.
-#' @param nodes Node centres in millimetres with their `radius`, and the
-#'   `name` each node is routed under by the routed layer (the position key
-#'   of its npc coordinates).
+#' @param nodes Node centres in millimetres with their `radius`, the `name`
+#'   each node is routed under by the routed layer (the position key of its
+#'   npc coordinates), and the `outline`, `square`, and `gap` the routed
+#'   layer knows each drawn node by, `NA` where it knows none.
 #' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
 #' @return `edges`, with each routed edge's two rows replaced by its path and
-#'   the columns `cap_head` and `cap_fins` added.
+#'   the columns `cap_head`, `cap_fins`, `square_head`, and `square_fins`
+#'   added.
 #' @noRd
 route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   tagged <- !is.na(spec$route_style)
@@ -3283,6 +3337,10 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       layer_axis = spec$route_layer_axis[first],
       cap = spec$route_cap[first],
       curvature = spec$curvature[first],
+      cap_head = (edges$cap_head %||% rep(par$edge_cap, nrow(edges)))[first],
+      cap_fins = (edges$cap_fins %||% rep(par$edge_cap, nrow(edges)))[first],
+      square_head = (edges$square_head %||% logical(nrow(edges)))[first],
+      square_fins = (edges$square_fins %||% logical(nrow(edges)))[first],
       stringsAsFactors = FALSE
     )
     # the routing options travel as one object, so the label engine and the
@@ -3308,11 +3366,27 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       error_class = "ggdag_type_error"
     )
   }
+  # the discs and caps are the ones the routed layer routes with, so the
+  # router draws the same paths here; the single cap of the first routed
+  # group stands for a node whose shape is not known, as it does there
+  radius <- node_radius_mm(par$node_size)
+  single_cap <- function(settings) {
+    if (is.na(settings$cap)) par$edge_cap else settings$cap
+  }
+  geometry <- router_node_geometry(
+    nodes$outline %||% rep(NA_real_, nrow(nodes)),
+    nodes$square %||% rep(FALSE, nrow(nodes)),
+    (nodes$gap %||% rep(NA_real_, nrow(nodes)))[1] %||% node_edge_gap_mm,
+    nodes$radius,
+    single_cap(chords[1, , drop = FALSE])
+  )
   router_nodes <- data.frame(
     name = nodes$name,
     x = nodes$x,
     y = nodes$y,
-    r = nodes$radius,
+    r = geometry$r,
+    cap = geometry$cap,
+    square = geometry$square,
     stringsAsFactors = FALSE
   )
   nearest <- function(px, py) {
@@ -3363,11 +3437,9 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     })
   }
 
-  radius <- node_radius_mm(par$node_size)
-
   paths <- vector("list", nrow(chords))
-  cap_head <- rep(par$edge_cap, nrow(chords))
-  cap_fins <- rep(par$edge_cap, nrow(chords))
+  cap_head <- chords$cap_head
+  cap_fins <- chords$cap_fins
   groups <- paste(
     chords$style,
     chords$layer_axis,
@@ -3391,7 +3463,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       nodes = router_nodes,
       edges = edge_input,
       bounds = bounds,
-      cap = if (is.na(settings$cap)) par$edge_cap else settings$cap,
+      cap = single_cap(settings),
       mode = settings$style,
       opts = route_opts_from(
         settings$route_options[[1]],
@@ -3404,11 +3476,22 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       )
     )
     paths[rows] <- routed$paths[seq_along(rows)]
-    # the arrow layer cuts each routed end by the resect the router reports
-    # for its port, where the router reports one
+    # the arrow layer moves each routed end's cut by the amount the router
+    # moved the cap of the node there for its port, where the router reports
+    # a resect
     if (!is.null(routed$meta$resect_head)) {
-      cap_head[rows] <- routed$meta$resect_head[seq_along(rows)]
-      cap_fins[rows] <- routed$meta$resect_fins[seq_along(rows)]
+      at <- seq_along(rows)
+      node_head <- router_nodes$cap[match(chords$to[rows], router_nodes$name)]
+      node_fins <- router_nodes$cap[match(
+        chords$from[rows],
+        router_nodes$name
+      )]
+      cap_head[rows] <- cap_head[rows] +
+        routed$meta$resect_head[at] -
+        node_head
+      cap_fins[rows] <- cap_fins[rows] +
+        routed$meta$resect_fins[at] -
+        node_fins
     }
   }
 
@@ -3423,6 +3506,8 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
         y = paths[[i]]$y,
         cap_head = cap_head[[i]],
         cap_fins = cap_fins[[i]],
+        square_head = chords$square_head[[i]],
+        square_fins = chords$square_fins[[i]],
         stringsAsFactors = FALSE
       )
     })
@@ -3433,7 +3518,75 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     rep(par$edge_cap, nrow(untouched))
   untouched$cap_fins <- edges$cap_fins[!tagged] %||%
     rep(par$edge_cap, nrow(untouched))
+  untouched$square_head <- edges$square_head[!tagged] %||%
+    logical(nrow(untouched))
+  untouched$square_fins <- edges$square_fins[!tagged] %||%
+    logical(nrow(untouched))
   rbind(untouched, routed_rows)
+}
+
+# The cap columns a traced edge carries with it: the millimetres cut from its
+# start and its end, and whether each is the half side of a square.
+label_cap_columns <- c("cap_fins", "cap_head", "square_fins", "square_head")
+
+#' Cut the traced edges that meet square nodes where they cross the square
+#'
+#' A cap at a square node reaches the grob as the half side of the square the
+#' drawn tip lies on, because where the path crosses that square depends on
+#' the angle it arrives at, which is known only here, in millimetres. Each
+#' flagged end is turned into the straight-line cut `label_ink()` makes,
+#' measured from the end of the traced path, about the centre of the node at
+#' that end: the node nearest the path's end among `nodes`, which is the end
+#' itself for a path drawn to the centre.
+#'
+#' @param edges Traced obstacle points in millimetres with the columns of
+#'   `label_cap_columns`.
+#' @param nodes Node centres in millimetres.
+#' @return `edges`, with every flagged cap cut and its flag cleared.
+#' @noRd
+label_square_caps <- function(edges, nodes) {
+  square <- edges$square_fins %in% TRUE | edges$square_head %in% TRUE
+  if (!any(square)) {
+    return(edges)
+  }
+  centre_at <- function(px, py) {
+    if (nrow(nodes) == 0) {
+      return(c(px, py))
+    }
+    nearest <- which.min((nodes$x - px)^2 + (nodes$y - py)^2)
+    c(nodes$x[[nearest]], nodes$y[[nearest]])
+  }
+
+  ids <- unique(edges$edge_id[square])
+  for (id in ids) {
+    rows <- which(edges$edge_id == id)
+    x <- edges$x[rows]
+    y <- edges$y[rows]
+    n <- length(rows)
+    if (edges$square_head[[rows[[1]]]] %in% TRUE) {
+      centre <- centre_at(x[[n]], y[[n]])
+      edges$cap_head[rows] <- square_end_resect(
+        x,
+        y,
+        centre[[1]],
+        centre[[2]],
+        edges$cap_head[[rows[[1]]]]
+      )
+    }
+    if (edges$square_fins[[rows[[1]]]] %in% TRUE) {
+      centre <- centre_at(x[[1]], y[[1]])
+      edges$cap_fins[rows] <- square_end_resect(
+        rev(x),
+        rev(y),
+        centre[[1]],
+        centre[[2]],
+        edges$cap_fins[[rows[[1]]]]
+      )
+    }
+  }
+  edges$square_head <- rep(FALSE, nrow(edges))
+  edges$square_fins <- rep(FALSE, nrow(edges))
+  edges
 }
 
 #' Leader line from a node disc to its label box

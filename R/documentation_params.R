@@ -40,10 +40,11 @@ NULL
 #' @param edge_cap The distance, in millimetres, that each edge stops short of
 #'   the center of the node at either end, scaled by `size`. When neither this
 #'   argument nor the `ggdag.edge_cap` option is set, each end of an edge stops
-#'   2 mm beyond the node drawn there, a gap also scaled by `size`, following
-#'   that node's size and shape, so an arrowhead keeps the same distance from a
-#'   large node as from a small one, and from the corners of a square node as
-#'   from a circle. A number fixes the cap at every end.
+#'   2 mm outside the outline of the node drawn there, a gap also scaled by
+#'   `size`, following that node's size and shape under either edge engine, so
+#'   an arrowhead keeps the same distance from a large node as from a small
+#'   one, and from the side of a square node as from a circle. A number fixes
+#'   the cap at every end.
 #'
 #' @name edge_cap_params
 #' @keywords internal

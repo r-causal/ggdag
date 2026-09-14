@@ -115,10 +115,6 @@ ggdag_instrumental <- function(
   if (missing(edge_type)) {
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
-  edge_cap <- resolve_square_plot_edge_cap(
-    edge_cap,
-    ggdag_option("edge_engine", "ggraph")
-  )
   # `node_instrumental()` does the tidying so that `...` reaches
   # `tidy_dagitty()`; tidying here first would leave the dots with nothing to
   # act on

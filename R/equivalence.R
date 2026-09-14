@@ -296,7 +296,7 @@ ggdag_equivalent_class <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- single_edge_cap(edge_cap, node_size, "ggarrow") * size
+      resect <- single_edge_cap(edge_cap, node_size) * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
@@ -306,7 +306,7 @@ ggdag_equivalent_class <- function(
         p$data
       )
 
-      p <- p +
+      edge_layers <- c(
         quick_plot_arrow_edges(
           mapping = edge_mapping,
           data_directed = function(x) {
@@ -321,8 +321,8 @@ ggdag_equivalent_class <- function(
           linewidth = edge_width * size,
           length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
-        ) +
-        geom_dag_arrow_arc(
+        ),
+        list(geom_dag_arrow_arc(
           mapping = edge_mapping,
           data = reversable_lines,
           curvature = 0,
@@ -332,7 +332,11 @@ ggdag_equivalent_class <- function(
           linewidth = edge_width * size,
           length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
-        ) +
+        ))
+      )
+
+      p <- p +
+        follow_nodes_when_unset(edge_layers, edge_cap, node_size, size) +
         breaks() +
         ggplot2::scale_alpha_manual(
           name = "Reversable",

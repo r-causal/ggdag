@@ -147,13 +147,14 @@ test_that("arrows resect to the node layer whichever order they arrive in", {
     geom_dag_point(size = 32) +
     geom_dag_arrow()
   # the order the layer-by-layer examples use; the resection must still follow
-  # the node size rather than the 8mm option
+  # the node size rather than the 8mm option: a node of size 32 is 12 mm in
+  # radius, and the edge stops 2 mm beyond it
   arrows_first <- ggplot(tidy_dag, aes_dag()) +
     geom_dag_arrow() +
     geom_dag_point(size = 32)
 
-  expect_equal(built_resect(nodes_first)$head, 16)
-  expect_equal(built_resect(arrows_first)$head, 16)
+  expect_equal(built_resect(nodes_first)$head, 14)
+  expect_equal(built_resect(arrows_first)$head, 14)
 
   # a plot with no node layer at all still falls back to the option
   no_nodes <- ggplot(tidy_dag, aes_dag()) + geom_dag_arrow()
@@ -2215,7 +2216,8 @@ test_that("one stored arrow layer reads each plot it joins", {
     arrow_layer
   without_nodes <- ggplot(tidy_dag, aes_dag()) + arrow_layer
 
-  expect_equal(with_nodes$layers[[2]]$geom_params$resect$head, 16)
+  # a node of size 32 is 12 mm in radius, and the edge stops 2 mm beyond it
+  expect_equal(with_nodes$layers[[2]]$geom_params$resect$head, 14)
   # the second plot has no node layer, so nothing is discovered there
   expect_null(without_nodes$layers[[1]]$geom_params$resect$head)
   # and the stored layer is still the blank one that was created

@@ -1,24 +1,35 @@
-# Edge caps that follow the nodes ----------------------------------------------
+# Edge ends that follow the nodes ----------------------------------------------
 #
-# Under the ggraph edge engine, an edge whose cap is not set stops a fixed gap
-# beyond the drawn extent of the node at each of its ends, so an arrowhead
-# keeps the same distance from a node of any size and shape. The extent is
-# measured from the node centre to the farthest ink of the glyph R draws for
-# the node's shape: an edge arriving at the corner of a square node is as clear
-# of it as an edge arriving anywhere on a circle. Like every other measure a
-# plot draws, the gap scales with the plot's `size`. The plotters, `geom_dag()`,
-# and the `geom_dag_edges*()` layers a user adds by hand all follow the nodes
-# this way, and the automatic label geoms cut the edges they keep clear of at
-# the same ends.
+# An edge whose cap is not set stops a fixed gap outside the outline of the
+# node at each of its ends, under either edge engine, so an arrowhead keeps
+# the same distance from a node of any size and shape. The outline of a circle
+# node is its radius, and the outline of a square node is its half side: an
+# edge meeting a square at an angle stops where it crosses the square drawn
+# the gap out from the node's own, and an edge meeting a circle stops on the
+# circle the gap wider than the node. Like every other measure a plot draws,
+# the gap scales with the plot's `size`. The plotters, `geom_dag()`, and the
+# edge layers a user adds by hand all follow the nodes this way, and the
+# automatic label geoms cut the edges they keep clear of at the same ends.
 #
-# ggraph reads both caps of an edge from the first row of its group, so a cap
-# is settled for each edge before the edge stat expands the edge into the
-# points of its path. The node at each end is found by its position in the
-# panel the edge is drawn in, since a faceted plot can draw the same node with
-# a different shape in each panel. The shape and size come from building the
-# plot's node layers on their own, which draws each node with exactly the
-# scales, mappings, and parameters the whole plot draws it with, a shape scale
-# of the user's own included.
+# The node at each end is found by its position in the panel the edge is
+# drawn in, since a faceted plot can draw the same node with a different shape
+# in each panel. The shape and size come from building the plot's node layers
+# on their own, which draws each node with exactly the scales, mappings, and
+# parameters the whole plot draws it with, a shape scale of the user's own
+# included.
+#
+# Under the ggraph engine the cap is a geometry ggraph cuts the drawn path at:
+# a circle at a circle node and a square at a square node, both settled for
+# each edge before the edge stat expands the edge into the points of its path,
+# since ggraph reads both caps of an edge from the first row of its group.
+#
+# Under the ggarrow engine an end is resected by a straight-line distance from
+# the end of the path. At a circle node that distance is the outline plus the
+# gap whatever angle the edge arrives at. At a square node it depends on the
+# angle, which is known only once the panel is drawn in millimetres, so the
+# layers settle the circle resections and the square half sides when the plot
+# is built and turn the half sides into resections when the plot is drawn,
+# where the path is known in millimetres (`square_end_resect()`).
 #
 # Building the node layers on their own trains the scales on those layers
 # alone. A scale that another layer trains as well, such as a size scale that
@@ -26,28 +37,34 @@
 # the whole plot, and the caps follow the size here.
 
 # The gap, in millimetres at `size = 1`, between the end of an edge and the
-# farthest ink of the node there.
+# outline of the node there.
 node_edge_gap_mm <- 2
 
 # The geoms that draw a DAG's nodes.
 node_glyph_geoms <- c("GeomDagPoint", "GeomDagNode")
 
+# The point shapes R draws as squares: the solid square and the filled square.
+square_pch <- c(15, 22)
+
 # The distance, in millimetres, from the centre of a node drawn at ggplot2 size
-# `size` with point shape `shape` to the farthest ink of its glyph. R draws the
-# circles (16, 19, 21) with radius `node_radius_mm(size)`. It draws the solid
-# square (15) with that radius as its half side, so its corners lie `sqrt(2)`
-# radii out, and the filled square (22) with the area of the circle, a half
-# side of `sqrt(pi / 4)` radii. The stylized node draws its outermost ring with
-# the plain node's glyph, so it shares these extents. Any other shape is taken
-# to be as wide as the circle.
-node_extent_mm <- function(shape, size) {
+# `size` with point shape `shape` to its outline. R draws the circles (16, 19,
+# 21) with radius `node_radius_mm(size)`. It draws the solid square (15) with
+# that radius as its half side, and the filled square (22) with the area of
+# the circle, a half side of `sqrt(pi / 4)` radii. The stylized node draws its
+# outermost ring with the plain node's glyph, so it shares these outlines. Any
+# other shape is taken to be as wide as the circle.
+node_outline_mm <- function(shape, size) {
   radius <- node_radius_mm(size)
   pch <- shape_pch(rep_len(shape, length(radius)))
 
   reach <- rep_len(1, length(radius))
-  reach[pch %in% 15] <- sqrt(2)
-  reach[pch %in% 22] <- sqrt(pi / 4) * sqrt(2)
+  reach[pch %in% 22] <- sqrt(pi / 4)
   radius * reach
+}
+
+# Whether each node shape is drawn as a square, whose outline is flat.
+node_is_square <- function(shape) {
+  shape_pch(shape) %in% square_pch
 }
 
 # The point shape a ggplot2 shape value is drawn with. ggplot2 translates a
@@ -67,36 +84,15 @@ shape_pch <- function(shape) {
 
 # The single cap, in millimetres before the plot's `size`, that a layer taking
 # one cap is given for `edge_cap`. A set cap is itself. An unset cap is the cap
-# of a circle node of `node_size` under the ggraph engine, where the edge
-# layers then follow the node at each end and map this cap only for an end
-# with no node drawn at it, and the 8 mm resection the ggarrow engine has
-# always drawn with.
-single_edge_cap <- function(edge_cap, node_size, edge_engine = "ggraph") {
-  if (!is.null(edge_cap)) {
-    return(edge_cap)
-  }
-  if (identical(edge_engine, "ggarrow")) {
-    return(8)
-  }
-
-  node_radius_mm(node_size) + node_edge_gap_mm
+# of a circle node of `node_size`, which the edge layers then map, or resect
+# by, only at an end with no node drawn at it, since they follow the node at
+# each end otherwise.
+single_edge_cap <- function(edge_cap, node_size) {
+  edge_cap %||% (node_radius_mm(node_size) + node_edge_gap_mm)
 }
 
-# The cap a plotter that draws controlled nodes as squares passes on. Such a
-# plotter scales a set `ggdag.edge_cap` option by 10 / 8 in its formals and
-# leaves an unset cap unset, so the ggraph engine stops each edge beyond the
-# node there; the ggarrow engine takes a single resection, and keeps the 10 mm
-# these plotters have always drawn with.
-resolve_square_plot_edge_cap <- function(edge_cap, edge_engine) {
-  if (is.null(edge_cap) && identical(edge_engine, "ggarrow")) {
-    return(10)
-  }
-
-  edge_cap
-}
-
-# The ggraph edge layers a plotter builds itself, made to follow the nodes when
-# the plotter was handed no cap. The layers map the cap of a circle node of
+# The edge layers a plotter builds itself, made to follow the nodes when the
+# plotter was handed no cap. The layers take the cap of a circle node of
 # `node_size`, and the plot is drawn at `size`.
 follow_nodes_when_unset <- function(layers, edge_cap, node_size, size) {
   if (!is.null(edge_cap)) {
@@ -110,15 +106,24 @@ follow_nodes_when_unset <- function(layers, edge_cap, node_size, size) {
   )
 }
 
-# Wrap the ggraph edge layers in `layers`, a `dag_edge_layer` or a list of
-# them, so that each edge end stops `gap` mm beyond the node drawn there. The
-# layers map the cap of a circle node of the size the plot asks for, `gap` mm
-# beyond `fallback_extent` mm, which stands at an end with no node drawn at it,
-# as in a plot without a node layer, and which keeps the automatic cap
-# discovery in `ggplot_add.dag_edge_layer()` away from them.
+# Wrap the edge layers in `layers`, a `dag_edge_layer`, a `dag_arrow_layer`,
+# or a list of them, so that each edge end stops `gap` mm beyond the node
+# drawn there. The layers take the cap of a circle node of the size the plot
+# asks for, `gap` mm beyond `fallback_extent` mm, which stands at an end with
+# no node drawn at it, as in a plot without a node layer, and which keeps the
+# automatic cap discovery in `ggplot_add.dag_edge_layer()` and
+# `ggplot_add.dag_arrow_layer()` away from them.
 with_node_aware_caps <- function(layers, gap, fallback_extent) {
   if (inherits(layers, "dag_edge_layer")) {
     layers[["layer"]] <- node_aware_cap_layer(
+      .subset2(layers, "layer"),
+      gap = gap,
+      fallback_extent = fallback_extent
+    )
+    return(layers)
+  }
+  if (inherits(layers, "dag_arrow_layer")) {
+    layers[["layer"]] <- node_aware_resect_layer(
       .subset2(layers, "layer"),
       gap = gap,
       fallback_extent = fallback_extent
@@ -133,6 +138,8 @@ with_node_aware_caps <- function(layers, gap, fallback_extent) {
     fallback_extent = fallback_extent
   )
 }
+
+# The ggraph engine --------------------------------------------------------------
 
 # The plot is handed to a layer while its aesthetics are computed, and the
 # panels only once its stat is, so the plot is held on the layer in between and
@@ -165,17 +172,21 @@ node_aware_cap_layer <- function(
       self$node_cap_plot <- NULL
 
       has_ends <- all(c("PANEL", "x", "y", "xend", "yend") %in% names(data))
-      if (!is.null(plot) && nrow(data) > 0 && has_ends) {
+      if (!is.null(plot) && nrow(data) > 0 && has_ends && length(ends) > 0) {
         nodes <- build_node_extents(self, plot, layout)
         if ("start_cap" %in% ends) {
-          start <- edge_end_extents(data$PANEL, data$x, data$y, nodes)
-          start[is.na(start)] <- fallback_extent
-          data$start_cap <- ggraph::circle(start + gap, "mm")
+          data$start_cap <- node_cap_geometry(
+            edge_end_nodes(data$PANEL, data$x, data$y, nodes),
+            gap,
+            fallback_extent
+          )
         }
         if ("end_cap" %in% ends) {
-          end <- edge_end_extents(data$PANEL, data$xend, data$yend, nodes)
-          end[is.na(end)] <- fallback_extent
-          data$end_cap <- ggraph::circle(end + gap, "mm")
+          data$end_cap <- node_cap_geometry(
+            edge_end_nodes(data$PANEL, data$xend, data$yend, nodes),
+            gap,
+            fallback_extent
+          )
         }
       }
 
@@ -188,12 +199,188 @@ node_aware_cap_layer <- function(
   )
 }
 
+# The ggraph cap geometry of the edge ends that meet the nodes in `at`, from
+# `edge_end_nodes()`: a circle `gap` mm wider than a circle node, a square
+# `gap` mm wider on every side than a square node, and the circle of a node of
+# `fallback` mm where no node is drawn.
+node_cap_geometry <- function(at, gap, fallback) {
+  outline <- at$outline
+  outline[is.na(outline)] <- fallback
+  ggraph::geometry(
+    type = ifelse(at$square, "rect", "circle"),
+    width = 2 * (outline + gap),
+    width_unit = "mm"
+  )
+}
+
+# The ggarrow engine -------------------------------------------------------------
+
+# The ggarrow ends, named as ggarrow names them, and the ggraph caps they
+# stand where.
+arrow_end_caps <- c(fins = "start_cap", head = "end_cap")
+
+# The ggarrow counterpart of `node_aware_cap_layer()`. ggarrow resects an end
+# by the `resect_fins` and `resect_head` aesthetics when the data carry them,
+# so the layer writes those columns for the ends named in `ends`, in
+# millimetres: the outline of the node at the end plus `gap`, or the fallback
+# resection where no node is drawn there, which is the layer's own resection
+# once it has one and the `ggdag.edge_cap` option otherwise. A square end's
+# resection depends on the angle the edge meets the square at, which is known
+# only when the plot is drawn, so the column holds the half side of the square
+# the tip lies on and `.ggdag_square_fins` or `.ggdag_square_head` marks the
+# end for `square_end_resect()` to settle at draw time. Every row also carries
+# the outline and shape of the node at each end (`.ggdag_node_*`), whether or
+# not that end follows the node, so that the routed edge geom can hand the
+# router the shape of every node it clears, and the gap the ends stop at
+# (`.ggdag_node_gap`). The node-aware fields are the ones the ggraph wrapper
+# sets, with the ends named as the label engine names them.
+node_aware_resect_layer <- function(
+  layer,
+  gap,
+  fallback_extent,
+  ends = c("fins", "head")
+) {
+  ggplot2::ggproto(
+    NULL,
+    layer,
+    node_aware_caps = TRUE,
+    node_cap_gap = gap,
+    node_cap_fallback = fallback_extent,
+    node_cap_ends = unname(arrow_end_caps[ends]),
+    compute_aesthetics = function(self, data, plot) {
+      self$node_cap_plot <- plot
+      ggplot2::ggproto_parent(layer, self)$compute_aesthetics(data, plot)
+    },
+    compute_statistic = function(self, data, layout) {
+      plot <- self$node_cap_plot
+      self$node_cap_plot <- NULL
+
+      has_ends <- all(c("PANEL", "x", "y", "xend", "yend") %in% names(data))
+      if (!is.null(plot) && nrow(data) > 0 && has_ends) {
+        nodes <- build_node_extents(self, plot, layout)
+        # an end with no node drawn at it is resected by the layer's own
+        # resection where the layer has settled one, which is the cap of a
+        # circle node of the size it discovered
+        resect <- self$geom_params$resect
+        fallback <- lapply(stats::setNames(nm = ends), \(end) {
+          own <- resect[[end]]
+          if (is.numeric(own) && length(own) == 1 && is.finite(own)) {
+            own - gap
+          } else {
+            fallback_extent
+          }
+        })
+        if (length(fallback) > 0) {
+          self$node_cap_fallback <- fallback[[1]]
+        }
+        data <- node_resect_columns(data, nodes, gap, fallback, ends)
+      }
+
+      ggplot2::ggproto_parent(layer, self)$compute_statistic(data, layout)
+    },
+    finish_statistics = function(self, data) {
+      self$node_cap_nodes <- NULL
+      ggplot2::ggproto_parent(layer, self)$finish_statistics(data)
+    }
+  )
+}
+
+# The per-row columns `node_aware_resect_layer()` writes on `data`, whose rows
+# run from (`x`, `y`) to (`xend`, `yend`) and meet `nodes`. `fallback` holds
+# the outline, in millimetres, an end in `ends` with no node drawn at it is
+# resected beyond, named by end.
+node_resect_columns <- function(data, nodes, gap, fallback, ends) {
+  fins <- edge_end_nodes(data$PANEL, data$x, data$y, nodes)
+  head <- edge_end_nodes(data$PANEL, data$xend, data$yend, nodes)
+  at <- list(fins = fins, head = head)
+
+  data$.ggdag_node_gap <- rep(gap, nrow(data))
+  for (end in c("fins", "head")) {
+    data[[paste0(".ggdag_node_", end)]] <- at[[end]]$outline
+    data[[paste0(".ggdag_node_square_", end)]] <- at[[end]]$square
+    data[[paste0(".ggdag_follow_", end)]] <- rep(end %in% ends, nrow(data))
+    data[[paste0(".ggdag_square_", end)]] <- rep(FALSE, nrow(data))
+  }
+
+  for (end in ends) {
+    outline <- at[[end]]$outline
+    found <- !is.na(outline)
+    outline[!found] <- fallback[[end]]
+    data[[paste0("resect_", end)]] <- outline + gap
+    data[[paste0(".ggdag_square_", end)]] <- found & at[[end]]$square
+  }
+
+  data
+}
+
+# The straight-line resection, in millimetres from the end of the path
+# (`x`, `y`) in millimetres, that puts the point ggarrow cuts the path back
+# to on the square of half side `half` centred at (`cx`, `cy`). ggarrow cuts a
+# path where its straight-line distance from the end falls below the
+# resection, between the last point at least that far and the next point,
+# placed by that distance along the segment, so the crossing is found on the
+# segment between the last point outside the square and the point after it
+# and translated into the distance ggarrow reads it back from. A path that
+# already ends outside the square is not cut; one that lies inside it
+# throughout is cut back to its start.
+square_end_resect <- function(x, y, cx, cy, half) {
+  n <- length(x)
+  if (n < 2) {
+    return(0)
+  }
+  dx <- x - cx
+  dy <- y - cy
+  outside <- pmax(abs(dx), abs(dy)) >= half
+  if (outside[[n]]) {
+    return(0)
+  }
+  to_end <- sqrt((x - x[[n]])^2 + (y - y[[n]])^2)
+  if (!any(outside)) {
+    return(to_end[[1]])
+  }
+
+  k <- max(which(outside))
+  t <- square_entry(dx[[k]], dy[[k]], dx[[k + 1]], dy[[k + 1]], half)
+  to_end[[k]] + t * (to_end[[k + 1]] - to_end[[k]])
+}
+
+# Where the segment from (`x0`, `y0`), outside the square of half side `half`
+# about the origin, to (`x1`, `y1`), inside it, enters the square, as the
+# fraction of the segment. A coordinate enters its band when the segment
+# crosses the nearer of the band's two sides, and the point is inside the
+# square once both coordinates are.
+square_entry <- function(x0, y0, x1, y1, half) {
+  entry <- function(c0, c1) {
+    if (abs(c1 - c0) < 1e-12) {
+      return(-Inf)
+    }
+    min((half - c0) / (c1 - c0), (-half - c0) / (c1 - c0))
+  }
+  min(1, max(entry(x0, x1), entry(y0, y1), 0))
+}
+
+# The discs and caps the router is handed for nodes drawn with `outline` and
+# `square`, `NA` and `FALSE` where the node's shape is not known, stopping the
+# edges `gap` mm beyond each. A square is cleared around its half diagonal, so
+# a detour passes its corners as clear as it passes a circle, while its cap
+# is measured to its faces. An unknown node is the circle of `radius` mm the
+# layer was told its nodes are, with the layer's single `cap`.
+router_node_geometry <- function(outline, square, gap, radius, cap) {
+  known <- !is.na(outline)
+  square <- known & square %in% TRUE
+  r <- ifelse(known, ifelse(square, outline * sqrt(2), outline), radius)
+  node_cap <- ifelse(known, outline + gap, cap)
+  list(r = r, cap = node_cap, square = square)
+}
+
+# The automatic labels ----------------------------------------------------------
+
 # The automatic label layer traces the plot's edges and cuts each one back
-# where the drawn edge stops. Where the plot's ggraph edges follow the nodes,
-# the layer's stat is handed the nodes and the gap those edges stop at, and
-# works out the cap at each end of each edge it traces. The plot is held and
-# released as the edge layers hold it, and the nodes are let go with the
-# stat's parameters once the build finishes.
+# where the drawn edge stops. Where the plot's edges follow the nodes, the
+# layer's stat is handed the nodes and the gap those edges stop at, and works
+# out the cap at each end of each edge it traces. The plot is held and released
+# as the edge layers hold it, and the nodes are let go with the stat's
+# parameters once the build finishes.
 node_aware_label_layer <- function(layer) {
   ggplot2::ggproto(
     NULL,
@@ -217,23 +404,23 @@ node_aware_label_layer <- function(layer) {
 }
 
 # What the label stat of `layer` needs to cut the edges of `plot` where they
-# stop: the nodes drawn on `layout`, the gap and fallback extent of the first
-# edge layer that follows them, and the caps the user set at the ends those
-# layers leave alone. `NULL` for a plot whose edges take a single cap, which
-# the label geom is given as `edge_cap`.
+# stop: the nodes drawn on `layout`, when some edge layer follows them, the
+# gap and fallback extent of the first edge layer that does, and the caps the
+# user set at the ends the edge layers leave alone. `NULL` for a plot whose
+# edges take a single cap, which the label geom is given as `edge_cap`.
 label_edge_end_caps <- function(layer, plot, layout) {
   if (is.null(plot)) {
     return(NULL)
   }
-  edge_layer <- purrr::detect(plot$layers, \(other) {
-    isTRUE(other$node_aware_caps)
-  })
-  if (is.null(edge_layer)) {
+  aware <- purrr::keep(plot$layers, \(other) isTRUE(other$node_aware_caps))
+  if (length(aware) == 0) {
     return(NULL)
   }
+  following <- purrr::keep(aware, \(other) length(other$node_cap_ends) > 0)
+  edge_layer <- c(following, aware)[[1]]
 
   list(
-    nodes = build_node_extents(layer, plot, layout),
+    nodes = if (length(following) > 0) build_node_extents(layer, plot, layout),
     gap = edge_layer$node_cap_gap,
     fallback = edge_layer$node_cap_fallback,
     set = set_edge_caps(plot, layout)
@@ -293,12 +480,23 @@ set_edge_caps <- function(plot, layout) {
 }
 
 # The cap `layer` draws at `end` of each edge in `data`, the rows it draws, in
-# millimetres. A fixed cap is read as it is, and a mapped one is evaluated
-# against the rows the way the layer evaluates it. A cap drawn in a shape
-# other than a circle is taken as the circle that fits inside it. `NA` for a
-# cap that is not a ggraph geometry or is measured in units that depend on
-# the device, such as `"npc"` or `"lines"`, which then follows the nodes.
+# millimetres. A ggraph layer's fixed cap is read as it is, and a mapped one
+# is evaluated against the rows the way the layer evaluates it. A cap drawn in
+# a shape other than a circle is taken as the circle that fits inside it. A
+# ggarrow layer's resection is read the same way from its `resect_fins` or
+# `resect_head`, as an aesthetic or as the layer's parameter. `NA` for a cap
+# that is not a ggraph geometry or a number of millimetres, or is measured in
+# units that depend on the device, such as `"npc"` or `"lines"`, which then
+# follows the nodes.
 set_cap_mm <- function(layer, end, data) {
+  if (inherits(layer$geom, dag_arrow_geoms)) {
+    return(set_resect_mm(
+      layer,
+      names(arrow_end_caps)[arrow_end_caps == end],
+      data
+    ))
+  }
+
   cap <- layer$aes_params[[end]]
   if (is.null(cap) && !is.null(layer$mapping[[end]])) {
     cap <- tryCatch(
@@ -321,6 +519,38 @@ set_cap_mm <- function(layer, end, data) {
   NA_real_
 }
 
+# The geoms that draw a DAG's edges with ggarrow.
+dag_arrow_geoms <- c("GeomDAGArrow", "GeomDAGArrowCurve", "GeomDAGRoutedArrow")
+
+# The resection, in millimetres, a ggarrow `layer` cuts from the `end` (`"fins"`
+# or `"head"`) of each edge in `data`: the aesthetic where the layer maps it,
+# and the layer's own parameter otherwise.
+set_resect_mm <- function(layer, end, data) {
+  aesthetic <- paste0("resect_", end)
+  resect <- layer$aes_params[[aesthetic]]
+  if (is.null(resect) && !is.null(layer$mapping[[aesthetic]])) {
+    resect <- tryCatch(
+      rlang::eval_tidy(layer$mapping[[aesthetic]], data = data),
+      error = function(cnd) NULL
+    )
+  }
+  resect <- resect %||% layer$geom_params$resect[[end]]
+  if (grid::is.unit(resect)) {
+    if (!all(grid::unitType(resect) %in% names(absolute_unit_mm))) {
+      return(NA_real_)
+    }
+    resect <- grid::convertWidth(resect, "mm", valueOnly = TRUE)
+  }
+  if (!is.numeric(resect)) {
+    return(NA_real_)
+  }
+  if (length(resect) == 1 || length(resect) == nrow(data)) {
+    return(rep_len(as.numeric(resect), nrow(data)))
+  }
+
+  NA_real_
+}
+
 # The millimetres in one of each grid unit that measures the same on every
 # device.
 absolute_unit_mm <- c(
@@ -335,6 +565,8 @@ absolute_unit_mm <- c(
   pc = 12 * 25.4 / 72.27,
   picas = 12 * 25.4 / 72.27
 )
+
+# The nodes ---------------------------------------------------------------------
 
 # The nodes of `plot` drawn on `layout`. A plot draws its directed and
 # bidirected edges with a layer each, and its labels with another, and all of
@@ -364,9 +596,9 @@ found_node_extents <- function(plot, layout) {
 }
 
 # One row per node glyph the node layers of `plot` draw: the panel it is drawn
-# in, numbered as in `layout`, its position, and its extent in millimetres.
-# `NULL` for a plot that draws no nodes, or whose node layers cannot be built,
-# which the build of the whole plot then reports.
+# in, numbered as in `layout`, its position, its outline in millimetres, and
+# whether it is a square. `NULL` for a plot that draws no nodes, or whose node
+# layers cannot be built, which the build of the whole plot then reports.
 panel_node_extents <- function(plot, layout) {
   is_node <- purrr::map_lgl(plot$layers, \(layer) {
     inherits(layer$geom, node_glyph_geoms)
@@ -389,11 +621,14 @@ panel_node_extents <- function(plot, layout) {
     if (nrow(data) == 0 || !all(c("PANEL", "x", "y") %in% names(data))) {
       return(NULL)
     }
+    shape <- data$shape %||% 19
+    size <- data$size %||% 16
     data.frame(
       panel = panels[match(as.character(data$PANEL), names(panels))],
       x = data$x,
       y = data$y,
-      extent = node_extent_mm(data$shape %||% 19, data$size %||% 16)
+      outline = node_outline_mm(shape, size),
+      square = rep_len(node_is_square(shape), nrow(data))
     )
   })
 
@@ -436,12 +671,15 @@ panel_translation <- function(from, to) {
   stats::setNames(translated, from_panels)
 }
 
-# The extent of the node drawn at each (`x`, `y`) in panel `panel`, the widest
-# where node layers overlap there, or `NA` where no node is drawn.
-edge_end_extents <- function(panel, x, y, nodes) {
-  extents <- rep(NA_real_, length(x))
+# The node drawn at each (`x`, `y`) in panel `panel`: its `outline` in
+# millimetres and whether it is a `square`, the widest where node layers
+# overlap there, a square before a circle of the same outline, and `NA` with
+# `FALSE` where no node is drawn.
+edge_end_nodes <- function(panel, x, y, nodes) {
+  outline <- rep(NA_real_, length(x))
+  square <- rep(FALSE, length(x))
   if (is.null(nodes) || nrow(nodes) == 0) {
-    return(extents)
+    return(data.frame(outline = outline, square = square))
   }
 
   panel <- as.character(panel)
@@ -452,37 +690,51 @@ edge_end_extents <- function(panel, x, y, nodes) {
     here <- nodes$panel == panel[[i]] &
       abs(nodes$x - x[[i]]) <= tolerance &
       abs(nodes$y - y[[i]]) <= tolerance
-    here <- here %in% TRUE
-    if (any(here)) {
-      extents[[i]] <- max(nodes$extent[here])
+    here <- which(here %in% TRUE)
+    if (length(here) > 0) {
+      widest <- here[order(-nodes$outline[here], !nodes$square[here])][[1]]
+      outline[[i]] <- nodes$outline[[widest]]
+      square[[i]] <- nodes$square[[widest]]
     }
   }
 
-  extents
+  data.frame(outline = outline, square = square)
 }
 
 # The cap, in millimetres, at the start (`start`) and the end (`end`) of the
-# edge each row of `points` traces, for the automatic label stat, and the cap
-# (`fallback`) of an end with no node drawn at it, which the label geom cuts
-# an edge without a cap of its own by. `edges` are the edges the stat traced,
-# one row each, and `caps` what `label_edge_end_caps()` found, or `NULL`. An
-# end the user set a cap at is cut by that cap. Every tracer names the points
-# of an edge by an id that starts with the edge's key, so a point finds its
-# edge by that key and its panel. A routed edge is cut where the router says,
-# and an edge with no caps found here takes the label geom's single cap, so
-# both are `NA`.
+# edge each row of `points` traces, for the automatic label stat, whether each
+# is the half side of a square (`start_square`, `end_square`) rather than a
+# straight-line distance, and the cap (`fallback`) of an end with no node
+# drawn at it, which the label geom cuts an edge without a cap of its own by.
+# `edges` are the edges the stat traced, one row each, and `caps` what
+# `label_edge_end_caps()` found, or `NULL`. An end the user set a cap at is
+# cut by that cap. Every tracer names the points of an edge by an id that
+# starts with the edge's key, so a point finds its edge by that key and its
+# panel. An edge with no caps found here takes the label geom's single cap,
+# so its caps are `NA`.
 traced_edge_caps <- function(edges, points, caps) {
   none <- rep(NA_real_, nrow(points))
+  no_square <- rep(FALSE, nrow(points))
   if (is.null(caps) || nrow(edges) == 0) {
-    return(list(start = none, end = none, fallback = none))
+    return(list(
+      start = none,
+      end = none,
+      start_square = no_square,
+      end_square = no_square,
+      fallback = none
+    ))
   }
 
-  start <- edge_end_extents(edges$PANEL, edges$x, edges$y, caps$nodes)
-  end <- edge_end_extents(edges$PANEL, edges$xend, edges$yend, caps$nodes)
-  start[is.na(start)] <- caps$fallback
-  end[is.na(end)] <- caps$fallback
-  start <- start + caps$gap
-  end <- end + caps$gap
+  start <- edge_end_nodes(edges$PANEL, edges$x, edges$y, caps$nodes)
+  end <- edge_end_nodes(edges$PANEL, edges$xend, edges$yend, caps$nodes)
+  start_cap <- start$outline
+  end_cap <- end$outline
+  start_cap[is.na(start_cap)] <- caps$fallback
+  end_cap[is.na(end_cap)] <- caps$fallback
+  start_cap <- start_cap + caps$gap
+  end_cap <- end_cap + caps$gap
+  start_square <- start$square
+  end_square <- end$square
 
   if (!is.null(caps$set)) {
     set_at <- match(
@@ -491,8 +743,10 @@ traced_edge_caps <- function(edges, points, caps) {
     )
     set_start <- caps$set$start[set_at]
     set_end <- caps$set$end[set_at]
-    start[!is.na(set_start)] <- set_start[!is.na(set_start)]
-    end[!is.na(set_end)] <- set_end[!is.na(set_end)]
+    start_cap[!is.na(set_start)] <- set_start[!is.na(set_start)]
+    end_cap[!is.na(set_end)] <- set_end[!is.na(set_end)]
+    start_square[!is.na(set_start)] <- FALSE
+    end_square[!is.na(set_end)] <- FALSE
   }
 
   edge_ids <- paste(
@@ -506,12 +760,12 @@ traced_edge_caps <- function(edges, points, caps) {
     points$edge_id
   )
   at <- match(paste(point_keys, points$PANEL, sep = "\r"), edge_ids)
-  routed <- !is.na(spec_column(points, "route_style", NA_character_))
-  at[routed] <- NA_integer_
 
   list(
-    start = start[at],
-    end = end[at],
+    start = start_cap[at],
+    end = end_cap[at],
+    start_square = start_square[at] %in% TRUE,
+    end_square = end_square[at] %in% TRUE,
     fallback = rep(caps$fallback + caps$gap, nrow(points))
   )
 }

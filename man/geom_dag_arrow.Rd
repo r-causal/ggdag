@@ -201,10 +201,14 @@ it, and every end you leave unset is shortened automatically. Setting only
 \code{resect_head}, for instance, leaves the fins end to the automatic value.
 Pass \code{0} to an end to draw the edge all the way to the node.
 
-The automatic value comes from the node size when the plot has a node layer
-(\code{geom_dag_point()} or \code{geom_dag_node()}), whichever order the two layers
-were added in, and from the \code{ggdag.edge_cap} option (default: 8mm) when the
-plot has none.
+An end left to the automatic value stops 2 mm outside the outline of the
+node drawn there, following the size and shape of that node whichever
+order the layers were added in: on the circle 2 mm wider than a circle
+node, and on the square 2 mm wider on every side than a square node,
+wherever the edge meets it. An end with no node drawn at it stops 2 mm
+beyond a circle of the plot's node size, or 8 mm from the end when the
+plot has no node layer (\code{geom_dag_point()} or \code{geom_dag_node()}) at all,
+which the \code{ggdag.edge_cap} option sets.
 }
 }
 \examples{

@@ -165,7 +165,6 @@ ggdag_adjustment_set <- function(
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
   check_collider_lines(collider_lines)
-  edge_cap <- resolve_square_plot_edge_cap(edge_cap, edge_engine)
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
@@ -197,7 +196,7 @@ ggdag_adjustment_set <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- edge_cap * size
+      resect <- single_edge_cap(edge_cap, node_size) * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
@@ -207,7 +206,7 @@ ggdag_adjustment_set <- function(
 
       # the blocked edges are the context the open ones are read against, so
       # they are added first and the open ones are drawn over them
-      p <- p +
+      edge_layers <- c(
         quick_plot_arrow_edges(
           mapping = edge_mapping,
           data_directed = filter_blocked_direction("->", blocked = TRUE),
@@ -219,7 +218,7 @@ ggdag_adjustment_set <- function(
           length = arrow_length_unit(arrow_length * size),
           colour = blocked_colour,
           show.legend = FALSE
-        ) +
+        ),
         quick_plot_arrow_edges(
           mapping = edge_mapping,
           data_directed = filter_blocked_direction("->", blocked = FALSE),
@@ -232,6 +231,8 @@ ggdag_adjustment_set <- function(
           colour = "black",
           show.legend = FALSE
         )
+      )
+      p <- p + follow_nodes_when_unset(edge_layers, edge_cap, node_size, size)
     } else {
       warn_if_ggarrow_only_ignored(p$data)
 
@@ -545,7 +546,6 @@ ggdag_adjust <- function(
   }
   edge_type <- check_edge_type(edge_type)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
-  edge_cap <- resolve_square_plot_edge_cap(edge_cap, edge_engine)
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag, ...)
   if (!is_empty_or_null(var)) {
     .tdy_dag <- .tdy_dag |> control_for(var)
@@ -586,20 +586,25 @@ ggdag_adjust <- function(
       )
 
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = with_edge_curvature(
-            ggplot2::aes(alpha = .data$adjusted),
-            p$data
+        follow_nodes_when_unset(
+          quick_plot_arrow_edges(
+            mapping = with_edge_curvature(
+              ggplot2::aes(alpha = .data$adjusted),
+              p$data
+            ),
+            data_directed = filter_direction("->"),
+            data_bidirected = filter_direction("<->"),
+            arrow_head = ggdag_option("arrow_head", NULL) %||%
+              ggarrow::arrow_head_wings(),
+            arrow_fins = ggdag_option("arrow_fins", NULL),
+            resect = single_edge_cap(edge_cap, node_size) * size,
+            linewidth = edge_width * size,
+            length = arrow_length_unit(arrow_length * size),
+            show.legend = FALSE
           ),
-          data_directed = filter_direction("->"),
-          data_bidirected = filter_direction("<->"),
-          arrow_head = ggdag_option("arrow_head", NULL) %||%
-            ggarrow::arrow_head_wings(),
-          arrow_fins = ggdag_option("arrow_fins", NULL),
-          resect = edge_cap * size,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          show.legend = FALSE
+          edge_cap,
+          node_size,
+          size
         )
     } else {
       warn_if_ggarrow_only_ignored(p$data)

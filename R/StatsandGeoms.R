@@ -2036,8 +2036,10 @@ resolve_layer_data <- function(
   layer_data
 }
 
+# The cap, in millimetres, of a circle node drawn at `node_size`: the edge
+# stops the node gap beyond the node's radius.
 node_size_to_cap <- function(node_size) {
-  node_size / 2
+  node_radius_mm(node_size) + node_edge_gap_mm
 }
 
 dag_edge_layer <- function(layer) {
@@ -2073,18 +2075,19 @@ unset_edge_caps <- function(layer) {
 # unset 2 mm beyond the node drawn there, as the plotters do. The nodes are
 # read when the plot is built, so the node layers can come before or after the
 # edges. An end with no node drawn at it keeps the edge geom's default cap of
-# 8 mm, the cap of a circle node of the default size.
+# 8 mm, the cap of a circle node of the default size. A layer whose caps the
+# user set at both ends is wrapped all the same, so that the automatic label
+# geoms read the caps it draws with.
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_edge_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
-  needs_cap <- unset_edge_caps(layer)
 
-  if (length(needs_cap) > 0) {
+  if (!isTRUE(layer$node_aware_caps)) {
     layer <- node_aware_cap_layer(
       layer,
       gap = node_edge_gap_mm,
       fallback_extent = node_radius_mm(GeomDagPoint$default_aes$size),
-      ends = needs_cap
+      ends = unset_edge_caps(layer)
     )
   }
 

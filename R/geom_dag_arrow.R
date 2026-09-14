@@ -66,7 +66,10 @@ geom_dag_arrow_geom <- function() {
         sep = 0
       ) {
         resect <- inject_dag_resect(resect, data)
-        ggplot2::ggproto_parent(ggarrow::GeomArrowSegment, self)$draw_panel(
+        grob <- ggplot2::ggproto_parent(
+          ggarrow::GeomArrowSegment,
+          self
+        )$draw_panel(
           data = data,
           panel_params = panel_params,
           coord = coord,
@@ -81,6 +84,12 @@ geom_dag_arrow_geom <- function() {
           mid_place = mid_place,
           resect = resect,
           sep = sep
+        )
+        square_end_grob(
+          grob,
+          data,
+          coord$transform(data[c("x", "y", "xend", "yend")], panel_params),
+          units = "npc"
         )
       },
       draw_key = ggarrow::draw_key_arrow
@@ -137,7 +146,10 @@ geom_dag_arrow_curve_geom <- function() {
         resect <- inject_dag_resect(resect, data)
 
         draw_parent <- function(data, curvature) {
-          ggplot2::ggproto_parent(ggarrow::GeomArrowCurve, self)$draw_panel(
+          grob <- ggplot2::ggproto_parent(
+            ggarrow::GeomArrowCurve,
+            self
+          )$draw_panel(
             data = data,
             panel_params = panel_params,
             coord = coord,
@@ -155,6 +167,12 @@ geom_dag_arrow_curve_geom <- function() {
             angle = angle,
             ncp = ncp,
             sep = sep
+          )
+          square_end_grob(
+            grob,
+            data,
+            coord$transform(data[c("x", "y", "xend", "yend")], panel_params),
+            units = "npc"
           )
         }
 
@@ -298,6 +316,7 @@ geom_dag_routed_arrow_geom <- function() {
         nodes <- panel_node_centers(panel)
         nodes$name <- routed_position_keys(nodes$x, nodes$y)
         nodes <- nodes[c("name", "x", "y")]
+        nodes <- routed_node_shapes(nodes, data, start_keys, end_keys, has_end)
 
         drawn <- if ("draw" %in% names(data)) {
           !is.na(data$draw) & data$draw
@@ -326,6 +345,7 @@ geom_dag_routed_arrow_geom <- function() {
             edge_route_options = edge_route_options,
             layer_axis = layer_axis,
             node_size = node_size %||% ggdag_option("node_size"),
+            node_gap = data$.ggdag_node_gap[1] %||% node_edge_gap_mm,
             arrow = arrow,
             length = length,
             justify = justify,
@@ -397,12 +417,26 @@ makeContent.dag_routed_edges <- function(x) {
     valueOnly = TRUE
   )
 
+  # the router clears the disc of every node and stops each edge at the node's
+  # own cap, a circle of the layer's node size where a node's shape is not
+  # known; the layer's single cap is the reference the router's constants
+  # are set from
   radius <- node_radius_mm(par$node_size)
+  cap <- routed_cap_mm(edges, par$resect)
+  geometry <- router_node_geometry(
+    nodes$outline %||% rep(NA_real_, nrow(nodes)),
+    nodes$square %||% rep(FALSE, nrow(nodes)),
+    par$node_gap %||% node_edge_gap_mm,
+    radius,
+    cap
+  )
   nodes_mm <- data.frame(
     name = nodes$name,
     x = mm_x(nodes$x),
     y = mm_y(nodes$y),
-    r = radius,
+    r = geometry$r,
+    cap = geometry$cap,
+    square = geometry$square,
     stringsAsFactors = FALSE
   )
 
@@ -442,7 +476,7 @@ makeContent.dag_routed_edges <- function(x) {
     nodes = nodes_mm,
     edges = edge_input,
     bounds = c(0, 0, panel_width, panel_height),
-    cap = routed_cap_mm(edges, par$resect),
+    cap = cap,
     mode = par$route,
     opts = route_opts_from(
       par$edge_route_options,
@@ -460,21 +494,33 @@ makeContent.dag_routed_edges <- function(x) {
         edges[paths, , drop = FALSE],
         routed$paths[paths],
         par,
-        routed$meta[paths, , drop = FALSE]
+        routed$meta[paths, , drop = FALSE],
+        nodes_mm
       ))
     )
   }
   for (group in split(which(is_arc), curvature[is_arc])) {
+    arc_edges <- edges[group, , drop = FALSE]
     children <- c(
       children,
-      list(routed_curve_grob(
-        edges[group, , drop = FALSE],
-        start_x[group],
-        start_y[group],
-        end_x[group],
-        end_y[group],
-        curvature[[group[[1]]]],
-        par
+      list(square_end_grob(
+        routed_curve_grob(
+          arc_edges,
+          start_x[group],
+          start_y[group],
+          end_x[group],
+          end_y[group],
+          curvature[[group[[1]]]],
+          par
+        ),
+        arc_edges,
+        ends = data.frame(
+          x = start_x[group],
+          y = start_y[group],
+          xend = end_x[group],
+          yend = end_y[group]
+        ),
+        units = "mm"
       ))
     )
   }
@@ -499,18 +545,52 @@ routed_edge_curvature <- function(edges) {
   as.numeric(curvature)
 }
 
-# The millimetres the arrow grob resects at the head end, which the router
-# keeps as a straight arm into each node so the arrowhead arrives radially. A
-# `resect_head` mapped per edge overrides the layer parameter, so the longest
-# of the drawn values is the arm every edge needs.
+# The single cap, in millimetres, the router sets its constants from and
+# stops an edge at where the node there is not known: the layer's own head
+# resection, which follows the plot's node size, or the `ggdag.edge_cap`
+# option where the layer has none. A `resect_head` the user mapped per edge
+# overrides the layer parameter, so the longest of the mapped values stands
+# instead; a `resect_head` the layer wrote itself to follow the nodes is the
+# per-node cap the router reads from the nodes, and is passed over here.
 routed_cap_mm <- function(edges, resect) {
-  cap <- edges$resect_head %||% resect$head %||% ggdag_option("edge_cap", 8)
+  mapped <- if (isTRUE(edges$.ggdag_follow_head[1])) NULL else edges$resect_head
+  cap <- mapped %||% resect$head %||% ggdag_option("edge_cap", 8)
   cap <- suppressWarnings(as.numeric(cap))
   cap <- cap[is.finite(cap)]
   if (length(cap) == 0) {
     return(0)
   }
   max(cap)
+}
+
+# The routed layer's nodes with the outline and shape each is drawn with, as
+# the layer's rows carry them for the node at each of their ends, keyed by
+# position: `outline` in millimetres, `NA` for a node whose shape the rows do
+# not carry, and whether the node is a `square`. `start_keys` name the node
+# at the start of every row and `end_keys` the node at the end of the rows
+# in `has_end`.
+routed_node_shapes <- function(nodes, data, start_keys, end_keys, has_end) {
+  nodes$outline <- rep(NA_real_, nrow(nodes))
+  nodes$square <- rep(FALSE, nrow(nodes))
+  if (!all(c(".ggdag_node_fins", ".ggdag_node_head") %in% names(data))) {
+    return(nodes)
+  }
+
+  found <- data.frame(
+    key = c(start_keys, end_keys),
+    outline = c(data$.ggdag_node_fins, data$.ggdag_node_head[has_end]),
+    square = c(
+      data$.ggdag_node_square_fins,
+      data$.ggdag_node_square_head[has_end]
+    )
+  )
+  found <- found[!is.na(found$outline), , drop = FALSE]
+  found <- found[order(-found$outline, !found$square), , drop = FALSE]
+  at <- match(nodes$name, found$key)
+  known <- !is.na(at)
+  nodes$outline[known] <- found$outline[at[known]]
+  nodes$square[known] <- found$square[at[known]]
+  nodes
 }
 
 # The same millimetres, computed from a routed layer before it is drawn, so
@@ -572,8 +652,10 @@ routed_resect_mm <- function(value, extra) {
 # node's coordinate, so the resect is shortened by the run hidden under the
 # disc and the tip sits the same distance past the disc face as a centre
 # port's, with the head drawn along the run; a resect the user mapped or set
-# is moved by the same amount the router moved the cap.
-routed_arrow_grob <- function(edges, paths, par, meta = NULL) {
+# is moved by the same amount the router moved the node's cap, which `nodes`
+# carry. An end that follows a square node is resected where its path, known
+# here in millimetres, crosses the square its tip lies on.
+routed_arrow_grob <- function(edges, paths, par, meta = NULL, nodes = NULL) {
   n_points <- vapply(paths, nrow, integer(1))
   drawable <- n_points >= 2
   edges <- edges[drawable, , drop = FALSE]
@@ -587,8 +669,32 @@ routed_arrow_grob <- function(edges, paths, par, meta = NULL) {
   if (!is.null(meta) && !is.null(meta$resect_head)) {
     meta <- meta[drawable, , drop = FALSE]
     cap <- routed_cap_mm(edges, par$resect)
-    resect_head <- routed_resect_mm(resect_head, meta$resect_head - cap)
-    resect_fins <- routed_resect_mm(resect_fins, meta$resect_fins - cap)
+    cap_head <- nodes$cap[match(edges$.ggdag_to, nodes$name)] %||% cap
+    cap_fins <- nodes$cap[match(edges$.ggdag_from, nodes$name)] %||% cap
+    cap_head[is.na(cap_head)] <- cap
+    cap_fins[is.na(cap_fins)] <- cap
+    resect_head <- routed_resect_mm(resect_head, meta$resect_head - cap_head)
+    resect_fins <- routed_resect_mm(resect_fins, meta$resect_fins - cap_fins)
+  }
+  if (!is.null(nodes)) {
+    head_at <- match(edges$.ggdag_to, nodes$name)
+    fins_at <- match(edges$.ggdag_from, nodes$name)
+    resect_head <- square_path_resects(
+      paths,
+      rep_len(resect_head, nrow(edges)),
+      edges$.ggdag_square_head %in% TRUE,
+      nodes$x[head_at],
+      nodes$y[head_at],
+      reverse = FALSE
+    )
+    resect_fins <- square_path_resects(
+      paths,
+      rep_len(resect_fins, nrow(edges)),
+      edges$.ggdag_square_fins %in% TRUE,
+      nodes$x[fins_at],
+      nodes$y[fins_at],
+      reverse = TRUE
+    )
   }
 
   id <- rep(seq_along(paths), n_points)
@@ -691,21 +797,204 @@ routed_curve_grob <- function(edges, x, y, xend, yend, curvature, par) {
   )
 }
 
+# Square ends settled at draw time --------------------------------------------
+
+# The resection of each path in `paths` (data frames of `x` and `y` in
+# millimetres) at one end: `resect` as it stands, the half side of a square
+# for the ends in `square`, which is turned into the straight-line resection
+# that puts the tip on the square about the node centre (`cx`, `cy`). The end
+# is the finish of the path, or its start when `reverse` is set.
+square_path_resects <- function(paths, resect, square, cx, cy, reverse) {
+  for (i in which(square & !is.na(cx))) {
+    x <- paths[[i]]$x
+    y <- paths[[i]]$y
+    if (reverse) {
+      x <- rev(x)
+      y <- rev(y)
+    }
+    resect[[i]] <- square_end_resect(x, y, cx[[i]], cy[[i]], resect[[i]])
+  }
+  resect
+}
+
+# The ggarrow grob `grob` drawn for the rows `data`, wrapped so that an end
+# following a square node is resected where its drawn path crosses the square
+# its tip lies on, whose half side the grob holds as that end's resection
+# until then. `ends` holds the start and end of each row's chord in `units`,
+# which are the centres of the nodes there. A grob whose ends all follow
+# circles, or none, is returned as it is: a circle's resection is the same
+# straight-line distance whatever angle the edge arrives at.
+square_end_grob <- function(grob, data, ends, units) {
+  head <- data$.ggdag_square_head %in% TRUE
+  fins <- data$.ggdag_square_fins %in% TRUE
+  if (!any(head | fins)) {
+    return(grob)
+  }
+
+  grid::gTree(
+    arrow = grob,
+    ends = data.frame(
+      x = ends$x,
+      y = ends$y,
+      xend = ends$xend,
+      yend = ends$yend,
+      head = head,
+      fins = fins
+    ),
+    units = units,
+    cl = "dag_square_ends"
+  )
+}
+
+#' Resect the ends of a drawn ggarrow grob at the squares they meet
+#'
+#' Runs at draw time, inside the panel viewport, where the paths ggarrow is
+#' about to draw are known in millimetres. Each path is matched to the row it
+#' draws by its ends, and an end marked as meeting a square is resected where
+#' the path crosses the square of the half side the row carries, centred on
+#' the node there.
+#'
+#' @param x A `dag_square_ends` gTree built by `square_end_grob()`.
+#' @return `x`, with the resected arrow grob as its child.
+#' @exportS3Method grid::makeContent
+#' @noRd
+makeContent.dag_square_ends <- function(x) {
+  arrow <- x$arrow
+  ends <- x$ends
+  drawn <- arrow_grob_paths_mm(arrow)
+  paths <- drawn$paths
+  n <- length(paths)
+  if (n == 0) {
+    return(grid::setChildren(x, grid::gList(arrow)))
+  }
+
+  from_x <- grid::convertX(grid::unit(ends$x, x$units), "mm", valueOnly = TRUE)
+  from_y <- grid::convertY(grid::unit(ends$y, x$units), "mm", valueOnly = TRUE)
+  to_x <- grid::convertX(grid::unit(ends$xend, x$units), "mm", valueOnly = TRUE)
+  to_y <- grid::convertY(grid::unit(ends$yend, x$units), "mm", valueOnly = TRUE)
+
+  # the row each path draws, by the ends both share
+  row <- vapply(
+    paths,
+    function(path) {
+      last <- length(path$x)
+      off <- (from_x - path$x[[1]])^2 +
+        (from_y - path$y[[1]])^2 +
+        (to_x - path$x[[last]])^2 +
+        (to_y - path$y[[last]])^2
+      which.min(off)
+    },
+    integer(1)
+  )
+  head <- rep_len(drawn$head, n)
+  fins <- rep_len(drawn$fins, n)
+  head <- square_path_resects(
+    paths,
+    head,
+    ends$head[row],
+    to_x[row],
+    to_y[row],
+    reverse = FALSE
+  )
+  fins <- square_path_resects(
+    paths,
+    fins,
+    ends$fins[row],
+    from_x[row],
+    from_y[row],
+    reverse = TRUE
+  )
+  arrow <- set_arrow_grob_resects(arrow, head, fins)
+  grid::setChildren(x, grid::gList(arrow))
+}
+
+# The paths a ggarrow grob is about to draw, in millimetres, one list of `x`
+# and `y` per path in the order the grob draws them, with the resection ggarrow
+# cuts from the fins end (`fins`) and the head end (`head`) of each. An
+# `arrow_path` grob, which the segment geom and the routed layer draw, holds
+# its points and resections as fields. A `curve_arrow` grob, which the arc
+# geom draws, builds its paths from the curve it holds when it is drawn, so
+# they are built here the same way. Call it with the grob's viewport pushed.
+arrow_grob_paths_mm <- function(grob) {
+  mm_length <- function(value) {
+    if (is.null(value)) {
+      return(0)
+    }
+    if (grid::is.unit(value)) {
+      return(grid::convertWidth(value, "mm", valueOnly = TRUE))
+    }
+    as.numeric(value)
+  }
+
+  if (inherits(grob, "arrow_path")) {
+    fields <- unclass(grob$id_rle)
+    id <- rep(seq_along(fields$length), fields$length)
+    x <- grid::convertX(grob$x, "mm", valueOnly = TRUE)
+    y <- grid::convertY(grob$y, "mm", valueOnly = TRUE)
+    paths <- unname(lapply(split(seq_along(id), id), function(i) {
+      list(x = x[i], y = y[i])
+    }))
+    return(list(
+      paths = paths,
+      fins = mm_length(grob$resect$fins),
+      head = mm_length(grob$resect$head)
+    ))
+  }
+
+  curve <- grid::makeContent(grob$curve)$children[[1]]
+  if (inherits(curve, "xspline")) {
+    points <- grid::xsplinePoints(curve)
+    if (all(c("x", "y") %in% names(points))) {
+      points <- list(points)
+    }
+    paths <- lapply(points, function(p) {
+      list(
+        x = grid::convertX(p$x, "mm", valueOnly = TRUE),
+        y = grid::convertY(p$y, "mm", valueOnly = TRUE)
+      )
+    })
+  } else {
+    x0 <- grid::convertX(curve$x0, "mm", valueOnly = TRUE)
+    y0 <- grid::convertY(curve$y0, "mm", valueOnly = TRUE)
+    x1 <- grid::convertX(curve$x1, "mm", valueOnly = TRUE)
+    y1 <- grid::convertY(curve$y1, "mm", valueOnly = TRUE)
+    paths <- lapply(seq_along(x0), function(i) {
+      list(x = c(x0[[i]], x1[[i]]), y = c(y0[[i]], y1[[i]]))
+    })
+  }
+  list(
+    paths = paths,
+    fins = mm_length(grob$params$resect_fins),
+    head = mm_length(grob$params$resect_head)
+  )
+}
+
+# `grob`, an `arrow_path` or `curve_arrow` grob, resected by `head` and
+# `fins` millimetres at the head and fins end of each of its paths.
+set_arrow_grob_resects <- function(grob, head, fins) {
+  if (inherits(grob, "arrow_path")) {
+    grob$resect <- list(
+      head = grid::unit(head, "mm"),
+      fins = grid::unit(fins, "mm")
+    )
+  } else {
+    grob$params$resect_head <- grid::unit(head, "mm")
+    grob$params$resect_fins <- grid::unit(fins, "mm")
+  }
+  grob
+}
+
 # Helper: inject DAG resection defaults ---------------------------------------
 
+# An end the layer has no resection for takes the `ggdag.edge_cap` option,
+# 8 mm unless it is set. ggarrow reads a `resect_head` or `resect_fins`
+# column of the data before the layer's value, so where the data carry one,
+# whether the user mapped it or the layer wrote it to follow the nodes, the
+# layer's value only stands in for the rows without a node and names the
+# single cap the routed layer sets its router's constants from.
 inject_dag_resect <- function(resect, data) {
   edge_cap <- ggdag_option("edge_cap", 8)
-  if (is.null(resect$head) && is.null(data$resect_head)) {
-    resect$head <- edge_cap
-  }
-  if (is.null(resect$fins) && is.null(data$resect_fins)) {
-    resect$fins <- edge_cap
-  }
-
-  # ggarrow measures whatever it is handed, so an end still unset here (its
-  # value comes from the `resect_head`/`resect_fins` aesthetic instead) has to
-  # arrive as a number rather than as `NULL`.
-  list(head = resect$head %||% 0, fins = resect$fins %||% 0)
+  list(head = resect$head %||% edge_cap, fins = resect$fins %||% edge_cap)
 }
 
 # Layer wrapper: discover node size at add time --------------------------------
@@ -726,6 +1015,12 @@ dag_arrow_layer <- function(layer) {
   }
 }
 
+# A ggarrow edge layer a user adds by hand stops each end whose resection the
+# user left unset, as a parameter or as an aesthetic, 2 mm beyond the node
+# drawn there, as the plotters do. The nodes are read when the plot is built,
+# so the node layers can come before or after the edges. An end with no node
+# drawn at it keeps the resection of a circle node of the size the node layer
+# is drawn at, or the `ggdag.edge_cap` option when the plot has no node layer.
 #' @exportS3Method ggplot2::ggplot_add
 ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
@@ -734,6 +1029,21 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
   needs_resect <- c("head", "fins")[
     c(is.null(resect$head), is.null(resect$fins))
   ]
+  if (!isTRUE(layer$node_aware_caps)) {
+    follows <- needs_resect[vapply(
+      needs_resect,
+      function(end) is.null(layer$mapping[[paste0("resect_", end)]]),
+      logical(1)
+    )]
+    layer <- node_aware_resect_layer(
+      layer,
+      gap = node_edge_gap_mm,
+      fallback_extent = node_radius_mm(
+        discover_node_size(plot) %||% GeomDagPoint$default_aes$size
+      ),
+      ends = follows
+    )
+  }
 
   # A routed layer clears the drawn node discs, so it needs the node size
   # itself and not only the cap derived from it.
@@ -829,10 +1139,14 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
 #' `resect_head`, for instance, leaves the fins end to the automatic value.
 #' Pass `0` to an end to draw the edge all the way to the node.
 #'
-#' The automatic value comes from the node size when the plot has a node layer
-#' (`geom_dag_point()` or `geom_dag_node()`), whichever order the two layers
-#' were added in, and from the `ggdag.edge_cap` option (default: 8mm) when the
-#' plot has none.
+#' An end left to the automatic value stops 2 mm outside the outline of the
+#' node drawn there, following the size and shape of that node whichever
+#' order the layers were added in: on the circle 2 mm wider than a circle
+#' node, and on the square 2 mm wider on every side than a square node,
+#' wherever the edge meets it. An end with no node drawn at it stops 2 mm
+#' beyond a circle of the plot's node size, or 8 mm from the end when the
+#' plot has no node layer (`geom_dag_point()` or `geom_dag_node()`) at all,
+#' which the `ggdag.edge_cap` option sets.
 #'
 #' @param mapping Set of aesthetic mappings created by [ggplot2::aes()]. If
 #'   specified and `inherit.aes = TRUE` (the default), it is combined with the

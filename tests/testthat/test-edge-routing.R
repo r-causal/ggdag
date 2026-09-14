@@ -522,7 +522,7 @@ test_that("geom_dag_routed_arrows(): resects to the node size and routes around 
   # the same discovery gives the router the radius of the discs it must clear
   expect_equal(layer$geom_params$node_size, 16)
 
-  # a bigger node moves both
+  # a bigger node moves both: 2 mm beyond its 9 mm radius
   bigger <- ggplot(tidy_dagitty(mediator_dag()), aes_dag()) +
     geom_dag_point(size = 24) +
     geom_dag_routed_arrows()
@@ -530,6 +530,7 @@ test_that("geom_dag_routed_arrows(): resects to the node size and routes around 
   bigger_layer <- routed_layer_of(bigger)
   expect_equal(bigger_layer$geom_params$resect$head, node_size_to_cap(24))
   expect_equal(bigger_layer$geom_params$resect$fins, node_size_to_cap(24))
+  expect_equal(node_size_to_cap(24), 11)
   expect_equal(bigger_layer$geom_params$node_size, 24)
 })
 

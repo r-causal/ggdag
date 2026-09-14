@@ -13,19 +13,18 @@
 #' `ggdag_options_set()` returns safe to restore with
 #' `do.call(ggdag_options_set, old)`.
 #'
-#' `edge_cap` is unset by default. Under the ggraph edge engine, every
-#' `ggdag_*()` plotter, [geom_dag()], and the `geom_dag_edges*()` layers then
-#' stop each edge 2 mm beyond the node at each of its ends, following that
-#' node's size and shape, so the arrowheads keep the same distance from nodes
-#' of any size and from square nodes as from circles. Setting the option to a
-#' number fixes the cap, in millimetres, at every end. The ggarrow engine takes
-#' a single resection, 8 mm unless the option is set.
+#' `edge_cap` is unset by default. Under either edge engine, every `ggdag_*()`
+#' plotter, [geom_dag()], and the edge layers a plot is assembled from by
+#' hand then stop each edge 2 mm outside the outline of the node at each of
+#' its ends, following that node's size and shape, so the arrowheads keep the
+#' same distance from nodes of any size and from the sides of square nodes as
+#' from circles. Setting the option to a number fixes the cap, in millimetres,
+#' at every end.
 #'
 #' The plotters that draw adjusted nodes as squares ([ggdag_adjustment_set()],
 #' [ggdag_adjust()], [ggdag_instrumental()], and the d-relationship plotters)
 #' maintain a proportional offset: if you set `ggdag.edge_cap` to a custom
-#' value, these functions scale it by `10/8`, and their ggarrow edges take a
-#' 10 mm resection while the option is unset.
+#' value, these functions scale it by `10/8`.
 #'
 #' `edge_route` chooses how the ggarrow engine draws directed edges.
 #' `"straight"`, the default, draws chords. `"spline"` routes each directed

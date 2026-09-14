@@ -75,13 +75,12 @@ allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_cap}{The distance, in millimetres, that each edge stops short of
 the center of the node at either end, scaled by \code{size}. When neither this
-argument nor the \code{ggdag.edge_cap} option is set, the \code{"ggraph"} edge
-engine stops each end of an edge 2 mm beyond the node drawn there, a gap
-also scaled by \code{size}, following that node's size and shape, so an
-arrowhead keeps the same distance from a large node as from a small one,
-and from the corners of a square node as from a circle. The \code{"ggarrow"}
-engine takes a single resection instead: 8 mm, or 10 mm in the plotters
-that draw adjusted nodes as squares. A number fixes the cap at every end.}
+argument nor the \code{ggdag.edge_cap} option is set, either edge engine
+stops each end of an edge 2 mm outside the outline of the node drawn
+there, a gap also scaled by \code{size}, following that node's size and
+shape, so an arrowhead keeps the same distance from a large node as from
+a small one, and from the side of a square node as from a circle. A
+number fixes the cap at every end.}
 
 \item{arrow_length}{The length of arrows on edges.}
 

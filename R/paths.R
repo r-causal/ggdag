@@ -400,25 +400,30 @@ ggdag_paths <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- single_edge_cap(edge_cap, node_size, "ggarrow") * size
+      resect <- single_edge_cap(edge_cap, node_size) * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
 
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = with_edge_curvature(
-            ggplot2::aes(colour = .data$path_type),
-            p$data
+        follow_nodes_when_unset(
+          quick_plot_arrow_edges(
+            mapping = with_edge_curvature(
+              ggplot2::aes(colour = .data$path_type),
+              p$data
+            ),
+            data_directed = f_directed,
+            data_bidirected = f_bidirected,
+            arrow_head = arrow_head,
+            arrow_fins = arrow_fins,
+            resect = resect,
+            linewidth = edge_width * size,
+            length = arrow_length_unit(arrow_length * size),
+            show.legend = FALSE
           ),
-          data_directed = f_directed,
-          data_bidirected = f_bidirected,
-          arrow_head = arrow_head,
-          arrow_fins = arrow_fins,
-          resect = resect,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          show.legend = FALSE
+          edge_cap,
+          node_size,
+          size
         )
 
       p <- p +
@@ -570,22 +575,27 @@ ggdag_paths_fan <- function(
       warn_dropped_fan_edge_route()
 
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = ggplot2::aes(
-            colour = .data$set,
-            alpha = .data$path,
-            edge_curvature = .data$edge_curvature
+        follow_nodes_when_unset(
+          quick_plot_arrow_edges(
+            mapping = ggplot2::aes(
+              colour = .data$set,
+              alpha = .data$path,
+              edge_curvature = .data$edge_curvature
+            ),
+            data_directed = fan_edges(spread, "->"),
+            data_bidirected = fan_edges(spread, "<->"),
+            edge_route = "straight",
+            arrow_head = ggdag_option("arrow_head", NULL) %||%
+              ggarrow::arrow_head_wings(),
+            arrow_fins = ggdag_option("arrow_fins", NULL),
+            resect = single_edge_cap(edge_cap, node_size) * size,
+            linewidth = edge_width * size,
+            length = arrow_length_unit(arrow_length * size),
+            show.legend = TRUE
           ),
-          data_directed = fan_edges(spread, "->"),
-          data_bidirected = fan_edges(spread, "<->"),
-          edge_route = "straight",
-          arrow_head = ggdag_option("arrow_head", NULL) %||%
-            ggarrow::arrow_head_wings(),
-          arrow_fins = ggdag_option("arrow_fins", NULL),
-          resect = single_edge_cap(edge_cap, node_size, "ggarrow") * size,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          show.legend = TRUE
+          edge_cap,
+          node_size,
+          size
         ) +
         ggplot2::scale_alpha_manual(
           drop = FALSE,

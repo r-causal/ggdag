@@ -817,12 +817,13 @@ test_that("nudge parameters work with vectors", {
 })
 
 test_that("node_size_to_cap converts node size in pt to edge cap radius in mm", {
-  # Default node_size of 16 should give 8mm cap (the current default)
+  # the cap stops the edge 2 mm beyond the node's radius of 0.375 mm per unit
+  # of size, so the default node_size of 16 gives the 8 mm cap it always had
   expect_equal(node_size_to_cap(16), 8)
   # Larger nodes need larger caps
-  expect_equal(node_size_to_cap(32), 16)
-  # Zero should give zero
-  expect_equal(node_size_to_cap(0), 0)
+  expect_equal(node_size_to_cap(32), 14)
+  # a node of no size leaves the gap alone
+  expect_equal(node_size_to_cap(0), 2)
 })
 
 test_that("edge layers auto-discover node_size and sync edge caps", {
