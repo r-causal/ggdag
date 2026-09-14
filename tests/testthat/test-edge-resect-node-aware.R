@@ -224,6 +224,55 @@ orthogonal_square_scene <- function() {
   ))
 }
 
+# Three edges arrive at the square `m` from the left, one level with it and
+# two from above, so the orthogonal router stacks two arrivals on rows above
+# the centre line of m's west side: offset ports at a square.
+offset_port_square_scene <- function() {
+  square_m_dag(dagify(
+    m ~ x + a + b,
+    y ~ m,
+    c ~ m,
+    coords = list(
+      x = c(x = 0, a = 0, b = 0, m = 1, y = 2, c = 2),
+      y = c(x = 0, a = 1, b = 2, m = 0, y = 0.5, c = -0.5)
+    )
+  ))
+}
+
+# The square `m` sits beside the chord of `x -> y` so that the chord passes
+# through its corner. A router that cleared the square around its half side
+# plus the clearance the layer is given would take the detour round that
+# corner inside the square, since the corner reaches `sqrt(2)` half sides
+# from the centre.
+square_corner_scene <- function() {
+  square_m_dag(dagify(
+    y ~ x + m,
+    m ~ a,
+    coords = list(
+      x = c(x = 0, a = 0, m = 1.14, y = 2),
+      y = c(x = 0, a = 2, m = 0.86, y = 2)
+    )
+  ))
+}
+
+# The dense DAG with its outcome drawn at size 30 and every other node at the
+# default size, so the router is handed two node sizes.
+two_size_dag <- function() {
+  tidy_dagitty(dagify(
+    y ~ a + b + c + x,
+    x ~ a + b,
+    a ~ c,
+    b ~ c,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(c = 0, a = 1, b = 1, x = 2, y = 3),
+      y = c(c = 0, a = 0.5, b = -0.5, x = 0, y = 0)
+    )
+  )) |>
+    dplyr::mutate(node_size = ifelse(name == "y", 30, 16))
+}
+
 labelled_controlled_dag <- function() {
   dagify(
     y ~ x + z,
@@ -233,6 +282,34 @@ labelled_controlled_dag <- function() {
     outcome = "y",
     labels = c(x = "Exposure", y = "Outcome", z = "Confounder", a = "Cause")
   )
+}
+
+# The node frames `plot` hands the router when it is drawn, one per call of
+# `route_edges_mm()`: the routed edge layer's, then the automatic label
+# layer's when the plot has one.
+router_node_frames <- function(plot) {
+  route_edges_mm <- get("route_edges_mm", envir = asNamespace("ggdag"))
+  frames <- list()
+  record <- function(nodes, ...) {
+    frames[[length(frames) + 1L]] <<- nodes
+    route_edges_mm(nodes, ...)
+  }
+  testthat::with_mocked_bindings(
+    with_forced_plot(plot, \(built) NULL),
+    route_edges_mm = record,
+    .package = "ggdag"
+  )
+  frames
+}
+
+# The row of `nodes`, a router node frame in millimetres, drawn at the
+# position of `name` in `tidy_dag`, by its rank among the nodes' positions.
+router_node_row <- function(nodes, tidy_dag, name) {
+  data <- pull_dag_data(tidy_dag)
+  data <- data[!duplicated(data$name), ]
+  order <- order(data$x, data$y)
+  ranks <- order(nodes$x, nodes$y)
+  ranks[[which(data$name[order] == name)]]
 }
 
 # The plotters ------------------------------------------------------------------
@@ -447,6 +524,179 @@ test_that("an orthogonal-routed ggarrow edge is drawn 2 mm outside a square node
   expect_equal(tip_gap_mismatches(ends), character())
 })
 
+test_that("an orthogonal-routed ggarrow edge into an offset port stops 2 mm outside a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # the router stacks arrivals on rows beside a node's centre line, and a row
+  # at a square must lie within its half side so that the run meets the face
+  p <- square_m_plot(
+    offset_port_square_scene(),
+    geom_dag_routed_arrows(route = "orthogonal")
+  )
+  ends <- drawn_arrow_ends(p)
+  expect_equal(node_size_mismatches(ends, 30), character())
+  square_heads <- ends[is_square_shape(ends$shape) & ends$end == "head", ]
+  offset <- abs(square_heads$to_y - square_heads$centre_y)
+  expect_gt(sum(offset > 1), 1)
+  expect_lt(max(offset), 0.375 * 30)
+  expect_equal(port_gap_mismatches(ends), character())
+  expect_equal(tip_gap_mismatches(ends), character())
+
+  # every port of the README adjustment set at the default size lies within
+  # the face of its square, as far in from the side as a head is wide. Its
+  # gaps are too narrow at this size for every arrival to run straight for a
+  # whole cap before its node, and a head drawn across such a corner is not
+  # on the square, so the tips are not checked here
+  adjustment <- withr::with_options(
+    list(ggdag.edge_route = "orthogonal"),
+    ggdag_adjustment_set(readme_dag(), edge_engine = "ggarrow")
+  )
+  ends <- drawn_arrow_ends(adjustment)
+  expect_equal(node_size_mismatches(ends, 16), character())
+  square <- ends[is_square_shape(ends$shape), ]
+  expect_gt(nrow(square), 0)
+  end_x <- ifelse(square$end == "fins", square$from_x, square$to_x)
+  end_y <- ifelse(square$end == "fins", square$from_y, square$to_y)
+  offset <- pmax(abs(end_x - square$centre_x), abs(end_y - square$centre_y))
+  expect_lte(max(offset), 0.375 * 16 - 1.3 / 2 + 1e-6)
+})
+
+test_that("a spline detour clears the corner of a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  half <- 0.375 * 30
+
+  p <- square_m_plot(
+    square_corner_scene(),
+    geom_dag_routed_arrows(route = "spline", clearance = 3)
+  )
+  drawings <- arrow_grob_drawings(p)
+  nodes <- drawings[[1]]$nodes
+  m <- nodes[is_square_shape(nodes$shape), ]
+  paths <- purrr::list_flatten(purrr::map(drawings, "paths"))
+  # the chord of x -> y is the one path between the two circles at the far
+  # left and the far right
+  x <- nodes[nodes$x == min(nodes$x) & nodes$y == min(nodes$y), ]
+  y <- nodes[nodes$x == max(nodes$x), ]
+  chord <- purrr::keep(paths, \(path) {
+    n <- length(path$x)
+    abs(path$x[[1]] - x$x) < 1e-6 &&
+      abs(path$y[[1]] - x$y) < 1e-6 &&
+      abs(path$x[[n]] - y$x) < 1e-6 &&
+      abs(path$y[[n]] - y$y) < 1e-6
+  })
+  stopifnot(nrow(m) == 1, length(chord) == 1)
+  chord <- chord[[1]]
+  # the straight chord would pass through the square's corner
+  straight <- list(
+    x = seq(chord$x[[1]], chord$x[[length(chord$x)]], length.out = 500),
+    y = seq(chord$y[[1]], chord$y[[length(chord$y)]], length.out = 500)
+  )
+  stopifnot(min(pmax(abs(straight$x - m$x), abs(straight$y - m$y))) < half)
+
+  expect_gt(length(chord$x), 2)
+  expect_gte(min(pmax(abs(chord$x - m$x), abs(chord$y - m$y))), half + 1)
+})
+
+test_that("routed arrows hand the router the outline and cap of each node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- two_size_dag()
+  circle_cap <- function(size) 0.375 * size + 2
+
+  # a scene with two node sizes: the outcome's cap follows its own size, and
+  # the label layer routes with the same nodes as the edge layer
+  follows <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(aes(size = node_size)) +
+    scale_size_identity() +
+    geom_dag_routed_arrows(route = "spline") +
+    geom_dag_label_auto(aes(label = name)) +
+    theme_dag()
+  # each layer routes once when the plot is drawn and once more when the
+  # grob tree is forced, the edge layer before the label layer
+  frames <- router_node_frames(follows)
+  expect_length(frames, 4)
+  nodes <- frames[[1]]
+  at_y <- router_node_row(nodes, tidy_dag, "y")
+  expect_equal(nodes$r[[at_y]], 0.375 * 30)
+  expect_equal(nodes$cap[[at_y]], circle_cap(30))
+  expect_equal(unique(nodes$r[-at_y]), 0.375 * 16)
+  expect_equal(unique(nodes$cap[-at_y]), circle_cap(16))
+  expect_false(any(nodes$square))
+  for (frame in frames[-1]) {
+    expect_equal(
+      frame[c("r", "cap", "square")],
+      nodes[c("r", "cap", "square")]
+    )
+  }
+
+  # a square node is cleared around its half diagonal and capped at its side
+  squares <- ggplot(
+    dplyr::mutate(tidy_dag, shape = ifelse(name == "y", 15, 19)),
+    aes_dag()
+  ) +
+    geom_dag_point(aes(size = node_size, shape = shape)) +
+    scale_size_identity() +
+    scale_shape_identity() +
+    geom_dag_routed_arrows(route = "spline") +
+    theme_dag()
+  nodes <- router_node_frames(squares)[[1]]
+  at_y <- router_node_row(nodes, tidy_dag, "y")
+  expect_equal(nodes$r[[at_y]], 0.375 * 30 * sqrt(2))
+  expect_equal(nodes$cap[[at_y]], 0.375 * 30 + 2)
+  expect_true(nodes$square[[at_y]])
+  expect_equal(unique(nodes$cap[-at_y]), circle_cap(16))
+
+  # an explicit resection is the cap of every node, whatever its size, and
+  # the nodes keep their own outlines
+  fixed <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(aes(size = node_size)) +
+    scale_size_identity() +
+    geom_dag_routed_arrows(route = "spline", resect = 5) +
+    theme_dag()
+  nodes <- router_node_frames(fixed)[[1]]
+  at_y <- router_node_row(nodes, tidy_dag, "y")
+  expect_equal(nodes$r[[at_y]], 0.375 * 30)
+  expect_equal(unique(nodes$cap), 5)
+})
+
+test_that("an explicit edge_cap routes exactly as before the caps followed the nodes", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # An explicit cap fixes every end, so the router is handed that cap for
+  # every node and its head zones, arrival arms, and bows agree with the ink
+  # whatever size and shape the nodes are drawn at. The routes are pinned in
+  # fixtures/ggarrow-explicit-cap-routes.rds, regenerated only on purpose
+  # with tests/testthat/fixtures/make-resect-fixtures.R. The epidemiology
+  # scenes, whose nodes are all circles, draw exactly as they did before the
+  # caps followed the nodes; the adjustment set differs from then only in
+  # that its square nodes are cleared around their half diagonals.
+  fixture <- readRDS(test_path("fixtures", "ggarrow-explicit-cap-routes.rds"))
+  expect_named(fixture, names(explicit_cap_scenes))
+
+  current <- explicit_cap_drawings()
+  for (scene in names(explicit_cap_scenes)) {
+    expect_equal(
+      current[[scene]]$edges,
+      fixture[[scene]]$edges,
+      tolerance = 1e-10,
+      label = paste(scene, "edges and resections")
+    )
+    expect_equal(
+      current[[scene]]$paths,
+      fixture[[scene]]$paths,
+      tolerance = 1e-10,
+      label = paste(scene, "paths")
+    )
+  }
+})
+
 # The default size ----------------------------------------------------------------
 
 test_that("at the default node size the ggarrow edges draw exactly as before", {
@@ -530,6 +780,51 @@ test_that("hand-built ggarrow layers resect beyond the nodes in either layer ord
         expect_equal(tip_gap_mismatches(ends), character(), label = label)
       }
     }
+  }
+})
+
+test_that("a hand-built ggarrow layer with no node layer resects by the edge_cap option", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(cap_dag())
+
+  layers <- list(
+    geom_dag_arrow = \() geom_dag_arrow(),
+    geom_dag_routed_arrows = \() geom_dag_routed_arrows(),
+    geom_dag_edges = \() geom_dag_edges(edge_engine = "ggarrow")
+  )
+  # the drawn tip's distance from the end of the path, which is the node
+  # centre, is what the reader sees
+  tip_from_end <- function(ends) {
+    end_x <- ifelse(ends$end == "fins", ends$from_x, ends$to_x)
+    end_y <- ifelse(ends$end == "fins", ends$from_y, ends$to_y)
+    sqrt((ends$tip_x - end_x)^2 + (ends$tip_y - end_y)^2)
+  }
+
+  for (edges in names(layers)) {
+    p <- ggplot(tidy_dag, aes_dag()) + layers[[edges]]()
+
+    withr::with_options(list(ggdag.edge_cap = 6), {
+      ends <- drawn_arrow_ends(p)
+      expect_gt(nrow(ends), 0, label = edges)
+      expect_true(all(is.na(ends$size)), label = edges)
+      expect_equal(fixed_resect_mismatches(ends, 6), character(), label = edges)
+      expect_equal(
+        unique(round(tip_from_end(ends), 4)),
+        6,
+        label = paste(edges, "under the option")
+      )
+    })
+
+    withr::with_options(list(ggdag.edge_cap = NULL), {
+      ends <- drawn_arrow_ends(p)
+      expect_equal(fixed_resect_mismatches(ends, 8), character(), label = edges)
+      expect_equal(
+        unique(round(tip_from_end(ends), 4)),
+        8,
+        label = paste(edges, "with the option unset")
+      )
+    })
   }
 })
 
@@ -692,4 +987,24 @@ test_that("orthogonal routes keep their arrowheads clear of a square node", {
   )
 
   expect_doppelganger("orthogonal routes to a square node", p)
+})
+
+test_that("orthogonal routes into offset ports keep their arrowheads clear of a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- square_m_plot(
+    offset_port_square_scene(),
+    geom_dag_routed_arrows(route = "orthogonal")
+  ) +
+    geom_dag_text()
+  ends <- drawn_arrow_ends(p)
+  square_heads <- ends[is_square_shape(ends$shape) & ends$end == "head", ]
+  stopifnot(
+    nrow(square_heads) == 3,
+    sum(abs(square_heads$to_y - square_heads$centre_y) > 1) == 2,
+    length(port_gap_mismatches(ends)) == 0
+  )
+
+  expect_doppelganger("orthogonal offset ports at a square node", p)
 })

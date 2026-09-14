@@ -269,9 +269,8 @@ node_at_end <- function(nodes, x, y) {
 
 # The point ggarrow cuts a path back to when it resects `resect` mm from the
 # path's last point: where the path leaves the disc of that radius around its
-# last point, interpolated the way ggarrow interpolates it. With the arrow
-# justified at its tip, as every DAG edge layer draws it, the tip of the
-# arrowhead is drawn there. `NA` for a path shorter than its resection.
+# last point, interpolated the way ggarrow interpolates it. `NA` for a path
+# shorter than its resection.
 resect_cut_point <- function(x, y, resect) {
   n <- length(x)
   if (n < 2 || is.na(resect)) {
@@ -294,17 +293,57 @@ resect_cut_point <- function(x, y, resect) {
   )
 }
 
+# Where ggarrow draws the tip of the ornament at the end of a path it resects
+# by `resect` mm, with the arrow justified at its tip as every DAG edge layer
+# draws it. ggarrow cuts the path back by the resection plus the ornament's
+# own reach (`ornament`, in mm) and draws the ornament straight from the cut
+# towards the path's last point, so the tip lies on the chord from the cut to
+# the end, `resect` mm from the end, rather than on the path itself: on a
+# curve it leaves the path by the sagitta of that chord. A path with no
+# ornament at the end stops at the cut. `NA` for a path that lies wholly
+# within the cut, which ggarrow does not draw at all.
+drawn_tip_point <- function(x, y, resect, ornament) {
+  cut <- resect_cut_point(x, y, resect + ornament)
+  if (anyNA(cut) || ornament <= 0) {
+    return(cut)
+  }
+  n <- length(x)
+  to_end <- c(x[[n]], y[[n]]) - cut
+  cut + ornament * to_end / sqrt(sum(to_end^2))
+}
+
+# The reach, in millimetres, of the ornament ggarrow draws at the end of a path
+# whose shaft is `width` mm wide there, given `length` mm: how far the drawn
+# ornament extends from the point it is anchored at, which is how much further
+# ggarrow cuts the path back. An ornament is a matrix of a unit shape, drawn
+# at the larger of `length` and the width scaled by the shape's height, and
+# its reach is that scale unless the shape declares its own. The DAG layers
+# draw matrix ornaments only, so an ornament function is not modelled here.
+ornament_reach_mm <- function(ornament, length, width) {
+  if (is.null(ornament)) {
+    return(0)
+  }
+  if (!is.matrix(ornament)) {
+    stop("only matrix arrow ornaments are modelled here")
+  }
+  scale <- max(length, width / diff(range(ornament[, "y"])))
+  scale <- (attr(ornament, "length") %||% max(ornament[, "x"])) * scale
+  (attr(ornament, "resect") %||% 1) * scale
+}
+
 # The ggarrow edges -------------------------------------------------------------
 
 # The paths a forced ggarrow grob hands to ggarrow, in millimetres, one list of
-# `x` and `y` per edge in the order the grob draws them, and the resection
-# ggarrow cuts from the fins end (`fins`) and the head end (`head`) of each.
-# The routed layer and `geom_dag_arrow()` draw an `arrow_path` grob, whose
-# points and resections are its own fields. The arc layer draws a
-# `curve_arrow` grob, which builds its paths from the curve it holds when it
-# is drawn, so they are built here the same way. Call it with the grob's
-# viewport pushed.
+# `x` and `y` per edge in the order the grob draws them, the resection
+# ggarrow cuts from the fins end (`fins`) and the head end (`head`) of each,
+# the reach of the ornament drawn at each end (`fins_reach`, `head_reach`),
+# and whether the paths are arcs. The routed layer and `geom_dag_arrow()`
+# draw an `arrow_path` grob, whose points and resections are its own fields.
+# The arc layer draws a `curve_arrow` grob, which builds its paths from the
+# curve it holds when it is drawn, so they are built here the same way. Call
+# it with the grob's viewport pushed.
 arrow_grob_paths <- function(grob) {
+  arc <- FALSE
   if (inherits(grob, "arrow_path")) {
     fields <- unclass(grob$id_rle)
     id <- rep(seq_along(fields$length), fields$length)
@@ -315,9 +354,17 @@ arrow_grob_paths <- function(grob) {
     }))
     fins <- grob$resect$fins
     head <- grob$resect$head
+    width <- convert_mm_length(grob$shaft_width)
+    width_fins <- rep_len(width, length(id))[!duplicated(id)]
+    width_head <- rep_len(width, length(id))[!duplicated(id, fromLast = TRUE)]
+    length_fins <- grob$length_fins
+    length_head <- grob$length_head
+    arrow_fins <- grob$arrow_fins
+    arrow_head <- grob$arrow_head
   } else {
     curve <- grid::makeContent(grob$curve)$children[[1]]
     if (inherits(curve, "xspline")) {
+      arc <- TRUE
       points <- grid::xsplinePoints(curve)
       if (all(c("x", "y") %in% names(points))) {
         points <- list(points)
@@ -336,13 +383,34 @@ arrow_grob_paths <- function(grob) {
     }
     fins <- grob$params$resect_fins
     head <- grob$params$resect_head
+    width_fins <- convert_mm_length(grob$params$width_fins %||% 1)
+    width_head <- convert_mm_length(grob$params$width_head %||% 1)
+    length_fins <- grob$params$length_fins
+    length_head <- grob$params$length_head
+    arrow_fins <- grob$params$arrow_fins
+    arrow_head <- grob$params$arrow_head
   }
 
   n <- length(paths)
+  reach <- function(ornament, length, width) {
+    if (is.list(ornament) && !is.matrix(ornament)) {
+      stop("per-edge arrow ornaments are not modelled here")
+    }
+    length <- rep_len(convert_mm_length(length %||% 0), n)
+    width <- rep_len(width, n)
+    vapply(
+      seq_len(n),
+      \(i) ornament_reach_mm(ornament, length[[i]], width[[i]]),
+      numeric(1)
+    )
+  }
   list(
     paths = paths,
+    arc = arc,
     fins = rep_len(convert_mm_length(fins %||% 0), n),
-    head = rep_len(convert_mm_length(head %||% 0), n)
+    head = rep_len(convert_mm_length(head %||% 0), n),
+    fins_reach = reach(arrow_fins, length_fins, width_fins),
+    head_reach = reach(arrow_head, length_head, width_head)
   )
 }
 
@@ -381,10 +449,12 @@ arrow_grob_drawings <- function(plot, width = 7, height = 5) {
 }
 
 # One row per end of every ggarrow edge `plot` draws: the panel, which end,
-# the ends of the edge's path, the node the end meets, with the shape and size
-# it is drawn with and its centre, the resection at the end, and where the tip
-# is drawn, also relative to that node's centre, all in millimetres. The fins
-# end is the start of the path and the head end its finish.
+# whether the edge is an arc, the ends of the edge's path, the node the end
+# meets, with the shape and size it is drawn with and its centre, the
+# resection at the end, and where the tip is drawn, also relative to that
+# node's centre, all in millimetres. The fins end is the start of the path and
+# the head end its finish. An edge shorter than the resection and ornament at
+# an end is not drawn by ggarrow, and has no tip there (`drawn` is `FALSE`).
 drawn_arrow_ends <- function(plot, width = 7, height = 5) {
   drawings <- arrow_grob_drawings(plot, width = width, height = height)
 
@@ -398,13 +468,30 @@ drawn_arrow_ends <- function(plot, width = 7, height = 5) {
         node <- node_at_end(nodes, path$x[[at]], path$y[[at]])
         resect <- if (end == "fins") drawn$fins[[k]] else drawn$head[[k]]
         tip <- if (end == "fins") {
-          resect_cut_point(rev(path$x), rev(path$y), resect)
+          drawn_tip_point(
+            rev(path$x),
+            rev(path$y),
+            resect,
+            drawn$fins_reach[[k]]
+          )
         } else {
-          resect_cut_point(path$x, path$y, resect)
+          drawn_tip_point(path$x, path$y, resect, drawn$head_reach[[k]])
         }
+        # the direction the path leaves its end in, which is the run the
+        # tip lies on
+        run <- if (end == "fins") {
+          c(path$x[[2]] - path$x[[1]], path$y[[2]] - path$y[[1]])
+        } else {
+          c(path$x[[n - 1]] - path$x[[n]], path$y[[n - 1]] - path$y[[n]])
+        }
+        run <- run / sqrt(sum(run^2))
         data.frame(
           panel = drawn$panel,
           end = end,
+          arc = drawn$arc,
+          drawn = !anyNA(tip),
+          run_dx = run[[1]],
+          run_dy = run[[2]],
           from_x = path$x[[1]],
           from_y = path$y[[1]],
           to_x = path$x[[n]],
@@ -475,6 +562,8 @@ drawn_edge_ends <- function(plot, width = 7, height = 5) {
             data.frame(
               panel = found$panel,
               end = end,
+              arc = FALSE,
+              drawn = TRUE,
               from_x = centre_x[[from]],
               from_y = centre_y[[from]],
               to_x = centre_x[[to]],
@@ -627,14 +716,32 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
 
 # The edge ends among `ends` whose drawn tip is not `gap` mm outside the
 # outline of the node there, within `tolerance` mm, described by panel, end,
-# path, and node.
-tip_gap_mismatches <- function(ends, gap = 2, tolerance = 0.05) {
+# path, and node. The end of a ggarrow arc at a square node is allowed
+# `arc_tolerance` instead: the layer resects the arc where the curve crosses
+# the square, but ggarrow draws the head straight from its cut towards the
+# end of the path, so the tip leaves the curve by the sagitta of that chord,
+# a third of a millimetre at most on a small device (see `drawn_tip_point()`).
+# A circle is met at the same distance from any direction, so its arc ends
+# are held to `tolerance`. An end ggarrow does not draw, because the edge is
+# shorter than its resection, has no tip to check and is passed over.
+tip_gap_mismatches <- function(
+  ends,
+  gap = 2,
+  tolerance = 0.05,
+  arc_tolerance = 0.35
+) {
   if (nrow(ends) == 0) {
     return("the plot draws no edge ends")
   }
+  ends <- ends[ends$drawn %||% TRUE, , drop = FALSE]
   expected <- expected_outline_mm(ends$shape, ends$size) + gap
   actual <- outline_distance_mm(ends$shape, ends$tip_dx, ends$tip_dy)
-  bad <- is.na(expected) | is.na(actual) | abs(actual - expected) > tolerance
+  allowed <- ifelse(
+    (ends$arc %||% FALSE) & is_square_shape(ends$shape),
+    arc_tolerance,
+    tolerance
+  )
+  bad <- is.na(expected) | is.na(actual) | abs(actual - expected) > allowed
 
   sprintf(
     "panel %s, the %s end of the edge from (%.2f, %.2f) to (%.2f, %.2f) mm at a %s drawn at size %s: the tip is drawn %.3f mm out; expected %.3f mm",
@@ -646,6 +753,55 @@ tip_gap_mismatches <- function(ends, gap = 2, tolerance = 0.05) {
     ends$to_y[bad],
     node_shape_name(ends$shape[bad]),
     ends$size[bad],
+    actual[bad],
+    expected[bad]
+  )
+}
+
+# The edge ends among `ends` whose drawn tip does not sit `gap` mm past the
+# face of the node on the run the path leaves its end along, within
+# `tolerance` mm, for the ends of orthogonal routes. An orthogonal path ends
+# on its port's own line at the node's coordinate, which is the node's centre
+# for a centre port and a point offset from it across the run otherwise, and
+# the run into the port is axis-aligned, so the tip lies on that run. The
+# face of a circle is `sqrt(r^2 - o^2)` along the run from the path's end,
+# for a port offset `o` from the centre line, and the face of a square is its
+# half side at any port within it.
+port_gap_mismatches <- function(ends, gap = 2, tolerance = 0.05) {
+  if (nrow(ends) == 0) {
+    return("the plot draws no edge ends")
+  }
+  end_x <- ifelse(ends$end == "fins", ends$from_x, ends$to_x)
+  end_y <- ifelse(ends$end == "fins", ends$from_y, ends$to_y)
+  # the offset of the path's end from the node's centre, across the run
+  offset <- abs(
+    (end_x - ends$centre_x) *
+      ends$run_dy -
+      (end_y - ends$centre_y) * ends$run_dx
+  )
+  outline <- expected_outline_mm(ends$shape, ends$size)
+  face <- ifelse(
+    is_square_shape(ends$shape),
+    outline,
+    sqrt(pmax(outline^2 - offset^2, 0))
+  )
+  expected <- face + gap
+  actual <- (ends$tip_x - end_x) *
+    ends$run_dx +
+    (ends$tip_y - end_y) * ends$run_dy
+  bad <- is.na(expected) | is.na(actual) | abs(actual - expected) > tolerance
+
+  sprintf(
+    "panel %s, the %s end of the edge from (%.2f, %.2f) to (%.2f, %.2f) mm at a %s drawn at size %s, on a port offset %.2f mm: the tip is drawn %.3f mm along the run; expected %.3f mm",
+    ends$panel[bad],
+    ends$end[bad],
+    ends$from_x[bad],
+    ends$from_y[bad],
+    ends$to_x[bad],
+    ends$to_y[bad],
+    node_shape_name(ends$shape[bad]),
+    ends$size[bad],
+    offset[bad],
     actual[bad],
     expected[bad]
   )
@@ -732,50 +888,104 @@ canonical_tidy_dag <- function(name) {
   withr::with_seed(1234, tidy_dagitty(dag))
 }
 
-# The ggarrow edges `ggdag()` draws for each default scene and route, at the
-# default node size, on a 7 by 5 inch device: for each, one row per edge with
-# its panel, the ends of its path, and the resection of each end, and the
-# path itself, in millimetres, sorted by where the edge runs so that the
+# The ggarrow edges `plot` draws on a 7 by 5 inch device: one row per edge
+# with its panel, the ends of its path, and the resection of each end, and
+# the path itself, in millimetres, sorted by where the edge runs so that the
 # order the layers draw their edges in does not matter.
+arrow_drawing_record <- function(plot) {
+  drawings <- arrow_grob_drawings(plot)
+  edges <- purrr::map(drawings, \(drawn) {
+    purrr::map(seq_along(drawn$paths), \(k) {
+      path <- drawn$paths[[k]]
+      n <- length(path$x)
+      list(
+        row = data.frame(
+          panel = drawn$panel,
+          from_x = path$x[[1]],
+          from_y = path$y[[1]],
+          to_x = path$x[[n]],
+          to_y = path$y[[n]],
+          fins = drawn$fins[[k]],
+          head = drawn$head[[k]]
+        ),
+        path = data.frame(x = path$x, y = path$y)
+      )
+    })
+  }) |>
+    purrr::list_flatten()
+  rows <- purrr::list_rbind(purrr::map(edges, "row"))
+  order <- order(
+    rows$panel,
+    round(rows$from_x, 6),
+    round(rows$from_y, 6),
+    round(rows$to_x, 6),
+    round(rows$to_y, 6)
+  )
+  rows <- rows[order, , drop = FALSE]
+  rownames(rows) <- NULL
+  list(edges = rows, paths = purrr::map(edges, "path")[order])
+}
+
+# The record of the ggarrow edges `ggdag()` draws for each default scene and
+# route, at the default node size.
 default_resect_drawings <- function() {
   scenes <- lapply(default_resect_scenes, \(name) {
     tidy_dag <- canonical_tidy_dag(name)
     routes <- lapply(default_resect_routes, \(route) {
-      plot <- ggdag(tidy_dag, edge_engine = "ggarrow", edge_route = route) +
-        theme_dag()
-      drawings <- arrow_grob_drawings(plot)
-      edges <- purrr::map(drawings, \(drawn) {
-        purrr::map(seq_along(drawn$paths), \(k) {
-          path <- drawn$paths[[k]]
-          n <- length(path$x)
-          list(
-            row = data.frame(
-              panel = drawn$panel,
-              from_x = path$x[[1]],
-              from_y = path$y[[1]],
-              to_x = path$x[[n]],
-              to_y = path$y[[n]],
-              fins = drawn$fins[[k]],
-              head = drawn$head[[k]]
-            ),
-            path = data.frame(x = path$x, y = path$y)
-          )
-        })
-      }) |>
-        purrr::list_flatten()
-      rows <- purrr::list_rbind(purrr::map(edges, "row"))
-      order <- order(
-        rows$panel,
-        round(rows$from_x, 6),
-        round(rows$from_y, 6),
-        round(rows$to_x, 6),
-        round(rows$to_y, 6)
+      arrow_drawing_record(
+        ggdag(tidy_dag, edge_engine = "ggarrow", edge_route = route) +
+          theme_dag()
       )
-      rows <- rows[order, , drop = FALSE]
-      rownames(rows) <- NULL
-      list(edges = rows, paths = purrr::map(edges, "path")[order])
     })
     stats::setNames(routes, default_resect_routes)
   })
   stats::setNames(scenes, default_resect_scenes)
+}
+
+# The scenes whose routed ggarrow edges under an explicit cap are pinned in
+# fixtures/ggarrow-explicit-cap-routes.rds: `ggdag()` of the epidemiology
+# DAG at node size 30 and `ggdag_adjustment_set()` of the README DAG at the
+# default size, each with a fixed `edge_cap`, routed in spline and orthogonal
+# mode. An explicit cap fixes every end, so the router is handed that cap
+# for every node, whatever size and shape the node is drawn at, and routes
+# exactly as it did before the caps followed the nodes. Each scene is drawn
+# with `theme_dag()`, so that the panel, and with it the millimetres the
+# router works in, does not depend on the default theme of the session.
+explicit_cap_scenes <- list(
+  ten_spline_6 = \() {
+    ggdag(
+      epidemiology_dag(),
+      node_size = 30,
+      edge_engine = "ggarrow",
+      edge_route = "spline",
+      edge_cap = 6
+    ) +
+      theme_dag()
+  },
+  ten_orthogonal_18 = \() {
+    ggdag(
+      epidemiology_dag(),
+      node_size = 30,
+      edge_engine = "ggarrow",
+      edge_route = "orthogonal",
+      edge_cap = 18
+    ) +
+      theme_dag()
+  },
+  readme_spline_5 = \() {
+    withr::with_options(
+      list(ggdag.edge_route = "spline"),
+      ggdag_adjustment_set(
+        readme_dag(),
+        edge_engine = "ggarrow",
+        edge_cap = 5
+      ) +
+        theme_dag()
+    )
+  }
+)
+
+# The record of the ggarrow edges each explicit-cap scene draws.
+explicit_cap_drawings <- function() {
+  lapply(explicit_cap_scenes, \(scene) arrow_drawing_record(scene()))
 }
