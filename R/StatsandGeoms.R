@@ -949,12 +949,15 @@ repel_edge_points <- function(
 
 # The routing spec a routed edge carries to the automatic label engine, which
 # rebuilds the drawn path from it at draw time, with the value each column
-# holds for an edge no routed layer draws.
+# holds for an edge no routed layer draws. `route_follow_head` says whether
+# the heads of the routed layer drawing the edge follow the nodes, which is
+# when that layer hands the router each node's own cap.
 route_spec_blanks <- list(
   route_style = NA_character_,
   route_options = list(NULL),
   route_layer_axis = NA_character_,
   route_cap = NA_real_,
+  route_follow_head = NA,
   route_fixed = NA,
   curvature = NA_real_
 )
@@ -995,6 +998,7 @@ dedupe_routed_geometry <- function(geometry) {
     "route_style",
     "route_layer_axis",
     "route_cap",
+    "route_follow_head",
     "curvature"
   )
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
@@ -1027,6 +1031,10 @@ routed_chord_points <- function(geometry, panel) {
       each = 2
     ),
     route_cap = rep(spec_column(geometry, "route_cap", NA_real_), each = 2),
+    route_follow_head = rep(
+      spec_column(geometry, "route_follow_head", NA),
+      each = 2
+    ),
     route_fixed = FALSE,
     curvature = NA_real_,
     stringsAsFactors = FALSE
@@ -2001,6 +2009,9 @@ routed_layer_geometry <- function(
     route_style = layer$geom_params$route %||% "spline",
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
     route_cap = routed_layer_cap_mm(layer, layer_data, plot),
+    # the routed grob reads the same flag from the rows the layer wrote
+    route_follow_head = isTRUE(layer$node_aware_caps) &&
+      "end_cap" %in% layer$node_cap_ends,
     stringsAsFactors = FALSE
   )
   geometry$route_options <- rep(

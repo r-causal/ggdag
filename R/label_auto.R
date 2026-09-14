@@ -2544,9 +2544,10 @@ StatNodesLabelAuto <- ggplot2::ggproto(
       label_rows$ggdag_role <- "label"
     }
 
-    # the shape each node is drawn with, where the plot's edges follow the
-    # nodes, so that a routed edge is rebuilt around the same discs and cut
-    # at the same caps the routed layer draws it with
+    # the shape each node is drawn with, where the plot's edge layers know
+    # the nodes, whether their ends follow the nodes or are capped by the
+    # user, so that a routed edge is rebuilt around the same discs and cut at
+    # the same caps the routed layer draws it with
     shapes <- edge_end_nodes(
       all_nodes$PANEL,
       all_nodes$x,
@@ -2562,7 +2563,6 @@ StatNodesLabelAuto <- ggplot2::ggproto(
       node_outline = shapes$outline,
       node_square = shapes$square,
       node_gap = params$edge_end_caps$gap %||% NA_real_,
-      node_follow_head = params$edge_end_caps$follow_head %||% FALSE,
       PANEL = all_nodes$PANEL,
       stringsAsFactors = FALSE
     )
@@ -2687,8 +2687,7 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     node_shape_columns <- c(
       "node_outline",
       "node_square",
-      "node_gap",
-      "node_follow_head"
+      "node_gap"
     )
     for (name in node_shape_columns) {
       if (!name %in% names(nodes)) {
@@ -3084,7 +3083,6 @@ makeContent.dag_labels_auto <- function(x) {
     outline = as.numeric(x$nodes$node_outline %||% rep(NA_real_, n_nodes)),
     square = as.logical(x$nodes$node_square %||% rep(FALSE, n_nodes)),
     gap = as.numeric(x$nodes$node_gap %||% rep(NA_real_, n_nodes)),
-    follow_head = as.logical(x$nodes$node_follow_head %||% rep(FALSE, n_nodes)),
     stringsAsFactors = FALSE
   )
   n_edges <- nrow(x$edges)
@@ -3306,12 +3304,13 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
 #' @param edges Traced obstacle points in millimetres: `edge_id`, `x`, `y`,
 #'   and optionally the caps `cap_fins` and `cap_head` and the flags
 #'   `square_fins` and `square_head`.
-#' @param spec The routing columns of the same rows, as the stat carried them.
+#' @param spec The routing columns of the same rows, as the stat carried them,
+#'   including `route_follow_head`, whether the heads of the routed layer that
+#'   draws the edge follow the nodes.
 #' @param nodes Node centres in millimetres with their `radius`, the `name`
 #'   each node is routed under by the routed layer (the position key of its
-#'   npc coordinates), the `outline`, `square`, and `gap` the routed layer
-#'   knows each drawn node by, `NA` where it knows none, and `follow_head`,
-#'   whether the heads of the plot's edges follow the nodes.
+#'   npc coordinates), and the `outline`, `square`, and `gap` the routed layer
+#'   knows each drawn node by, `NA` where it knows none.
 #' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
 #' @return `edges`, with each routed edge's two rows replaced by its path and
@@ -3345,6 +3344,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       style = spec$route_style[first],
       layer_axis = spec$route_layer_axis[first],
       cap = spec$route_cap[first],
+      follow_head = spec_column(spec, "route_follow_head", NA)[first] %in% TRUE,
       curvature = spec$curvature[first],
       cap_head = (edges$cap_head %||% rep(par$edge_cap, nrow(edges)))[first],
       cap_fins = (edges$cap_fins %||% rep(par$edge_cap, nrow(edges)))[first],
@@ -3376,37 +3376,43 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     )
   }
   # the discs and caps are the ones the routed layer routes with, so the
-  # router draws the same paths here; the single cap of the first routed
-  # group stands for a node whose shape is not known, as it does there, and
-  # for every node where the heads do not follow the nodes
+  # router draws the same paths here. Each group of edges is routed as the
+  # routed layer that draws it routes them: the group's single cap stands for
+  # a node whose shape is not known, and for every node where that layer's
+  # heads do not follow the nodes
   radius <- node_radius_mm(par$node_size)
   single_cap <- function(settings) {
     if (is.na(settings$cap)) par$edge_cap else settings$cap
   }
-  geometry <- router_node_geometry(
-    nodes$outline %||% rep(NA_real_, nrow(nodes)),
-    nodes$square %||% rep(FALSE, nrow(nodes)),
-    (nodes$gap %||% rep(NA_real_, nrow(nodes)))[1] %||% node_edge_gap_mm,
-    nodes$radius,
-    single_cap(chords[1, , drop = FALSE]),
-    follow = isTRUE((nodes$follow_head %||% FALSE)[1])
-  )
-  router_nodes <- data.frame(
-    name = nodes$name,
-    x = nodes$x,
-    y = nodes$y,
-    r = geometry$r,
-    face = geometry$face,
-    cap = geometry$cap,
-    square = geometry$square,
-    stringsAsFactors = FALSE
-  )
+  outline <- nodes$outline %||% rep(NA_real_, nrow(nodes))
+  square <- nodes$square %||% rep(FALSE, nrow(nodes))
+  gap <- (nodes$gap %||% rep(NA_real_, nrow(nodes)))[1] %||% node_edge_gap_mm
+  router_nodes_for <- function(settings) {
+    geometry <- router_node_geometry(
+      outline,
+      square,
+      gap,
+      nodes$radius,
+      single_cap(settings),
+      follow = settings$follow_head
+    )
+    data.frame(
+      name = nodes$name,
+      x = nodes$x,
+      y = nodes$y,
+      r = geometry$r,
+      face = geometry$face,
+      cap = geometry$cap,
+      square = geometry$square,
+      stringsAsFactors = FALSE
+    )
+  }
   nearest <- function(px, py) {
     vapply(
       seq_along(px),
       function(i) {
-        distance <- (router_nodes$x - px[[i]])^2 + (router_nodes$y - py[[i]])^2
-        router_nodes$name[[which.min(distance)]]
+        distance <- (nodes$x - px[[i]])^2 + (nodes$y - py[[i]])^2
+        nodes$name[[which.min(distance)]]
       },
       character(1)
     )
@@ -3456,11 +3462,13 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     chords$style,
     chords$layer_axis,
     chords$cap,
+    chords$follow_head,
     route_options_keys(chords),
     sep = "\r"
   )
   for (rows in split(seq_len(nrow(chords)), groups)) {
     settings <- chords[rows[[1]], , drop = FALSE]
+    router_nodes <- router_nodes_for(settings)
     edge_input <- data.frame(
       from = chords$from[rows],
       to = chords$to[rows],

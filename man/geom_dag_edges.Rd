@@ -130,7 +130,12 @@ assemble yourself gets the same edges the packaged plots draw. Under the
 edge layers instead, routed when \code{edge_route} names a routing mode, and
 takes its ornaments from the \code{arrow_head} and \code{arrow_fins} options rather
 than from \code{arrow_directed} and \code{arrow_bidirected}, which are
-\code{\link[grid:arrow]{grid::arrow()}} specifications no ggarrow layer can draw.
+\code{\link[grid:arrow]{grid::arrow()}} specifications no ggarrow layer can draw. The ggarrow
+layers take \code{resect}, \code{resect_head}, and \code{resect_fins} in millimetres, as
+\code{\link[=geom_dag_arrow]{geom_dag_arrow()}} does, and read a \code{start_cap} or \code{end_cap} given as a
+\code{\link[ggraph:circle]{ggraph::circle()}} in absolute units, such as \code{ggraph::circle(5, "mm")},
+as the resection of that end. ggarrow stops an edge a distance from its
+end, so any other cap is an error under that engine.
 }
 
 \examples{

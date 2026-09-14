@@ -1052,7 +1052,12 @@ expand_edge_aes <- function(mapping) {
 #' edge layers instead, routed when `edge_route` names a routing mode, and
 #' takes its ornaments from the `arrow_head` and `arrow_fins` options rather
 #' than from `arrow_directed` and `arrow_bidirected`, which are
-#' [grid::arrow()] specifications no ggarrow layer can draw.
+#' [grid::arrow()] specifications no ggarrow layer can draw. The ggarrow
+#' layers take `resect`, `resect_head`, and `resect_fins` in millimetres, as
+#' [geom_dag_arrow()] does, and read a `start_cap` or `end_cap` given as a
+#' [ggraph::circle()] in absolute units, such as `ggraph::circle(5, "mm")`,
+#' as the resection of that end. ggarrow stops an edge a distance from its
+#' end, so any other cap is an error under that engine.
 #'
 #' @inheritParams geom_dag
 #' @export
@@ -1114,6 +1119,7 @@ geom_dag_edges <- function(
       edge_route_options = edge_route_options,
       show.legend = show.legend,
       inherit.aes = inherit.aes,
+      call = rlang::current_env(),
       ...
     ))
   }
@@ -1157,8 +1163,10 @@ geom_dag_edges <- function(
 # The ggarrow edge layers `geom_dag_edges()` builds when `edge_engine` names
 # that engine: the same pair the packaged ggarrow plots draw, so a plot
 # assembled by hand out of `geom_dag_edges()` routes exactly as `geom_dag()`
-# does. The resection is left unset so that it is discovered from the node
-# layer, the way the ggraph caps are.
+# does. An end the user leaves unset is resected by the value discovered from
+# the node layer, the way the ggraph caps are. An end the user sets takes its
+# `resect_head` or `resect_fins`, then the ggraph cap written for that end,
+# `end_cap` at the head and `start_cap` at the fins, then `resect`.
 ggarrow_dag_edges <- function(
   mapping,
   data_directed,
@@ -1168,12 +1176,25 @@ ggarrow_dag_edges <- function(
   edge_route_options,
   show.legend,
   inherit.aes,
+  resect = NULL,
+  resect_head = NULL,
+  resect_fins = NULL,
+  start_cap = NULL,
+  end_cap = NULL,
+  call = rlang::caller_env(),
   ...
 ) {
   rlang::check_installed(
     "ggarrow",
     reason = "to use edge_engine = \"ggarrow\"."
   )
+
+  resect_head <- resect_head %||%
+    cap_as_resect(end_cap, "end_cap", "resect_head", call) %||%
+    resect
+  resect_fins <- resect_fins %||%
+    cap_as_resect(start_cap, "start_cap", "resect_fins", call) %||%
+    resect
 
   quick_plot_arrow_edges(
     mapping = mapping,
@@ -1186,12 +1207,42 @@ ggarrow_dag_edges <- function(
       ggarrow::arrow_head_wings(),
     arrow_fins = ggdag_option("arrow_fins", NULL),
     resect = NULL,
+    resect_head = resect_head,
+    resect_fins = resect_fins,
     linewidth = ggdag_option("edge_width", 0.6),
     length = arrow_length_unit(ggdag_option("arrow_length", 5)),
     show.legend = show.legend,
     inherit.aes = inherit.aes,
+    call = call,
     ...
   )
+}
+
+# The resection, in millimetres, a ggarrow layer draws for the ggraph cap
+# `cap` given as the argument `arg`. ggarrow stops an end a straight-line
+# distance from the end of the path, which is the radius of a circle cap, so
+# a single `ggraph::circle()` measured in units that are the same on every
+# device is read as its radius. Any other cap is refused, pointing at the
+# resection argument `instead`, rather than drawn at a distance it does not
+# describe.
+cap_as_resect <- function(cap, arg, instead, call) {
+  if (is.null(cap)) {
+    return(NULL)
+  }
+  circle <- inherits(cap, "ggraph_geometry") &&
+    all(unclass(cap)$geometry == "circle")
+  radius <- if (circle) ggraph_cap_radius_mm(cap)
+  if (length(radius) != 1 || is.na(radius)) {
+    abort(
+      c(
+        "{.arg {arg}} must be a single {.fn ggraph::circle} in absolute units, such as {.code ggraph::circle(5, \"mm\")}, under the ggarrow edge engine.",
+        "i" = "ggarrow stops an edge a distance from its end. Set {.arg {instead}} in millimetres for any other cap."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+  radius
 }
 
 #' Directed DAG edges
@@ -1721,6 +1772,8 @@ quick_plot_arrow_edges <- function(
   edge_route = ggdag_option("edge_route", "straight"),
   edge_route_options = ggdag_option("edge_route_options", NULL),
   show.legend = NA,
+  resect_head = resect,
+  resect_fins = resect,
   call = rlang::caller_env(),
   ...
 ) {
@@ -1731,7 +1784,8 @@ quick_plot_arrow_edges <- function(
       curvature = 0,
       arrow_head = arrow_head,
       arrow_fins = arrow_fins,
-      resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
       linewidth = linewidth,
       length = length,
       show.legend = show.legend,
@@ -1748,6 +1802,8 @@ quick_plot_arrow_edges <- function(
       arrow_mid = NULL,
       arrow_length = length,
       resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
       linewidth = linewidth,
       node_size = NULL,
       show.legend = show.legend,
@@ -1765,7 +1821,8 @@ quick_plot_arrow_edges <- function(
       unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
-      resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
       linewidth = linewidth,
       length = length,
       show.legend = show.legend,
@@ -1797,6 +1854,8 @@ routed_directed_layer <- function(
   linewidth,
   node_size,
   show.legend,
+  resect_head = resect,
+  resect_fins = resect,
   call = rlang::caller_env(),
   ...
 ) {
@@ -1818,8 +1877,8 @@ routed_directed_layer <- function(
     justify = 0,
     force_arrow = FALSE,
     mid_place = 0.5,
-    resect_head = resect,
-    resect_fins = resect,
+    resect_head = resect_head,
+    resect_fins = resect_fins,
     lineend = "butt",
     linejoin = "round",
     linemitre = 10,

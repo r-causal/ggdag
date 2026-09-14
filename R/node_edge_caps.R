@@ -427,12 +427,14 @@ node_aware_label_layer <- function(layer) {
 }
 
 # What the label stat of `layer` needs to cut the edges of `plot` where they
-# stop: the nodes drawn on `layout`, when some edge layer follows them, the
-# gap and fallback extent of the first edge layer that does, whether the
-# heads of some edge layer follow the nodes, which is when the router is
-# handed each node's own cap, and the caps the user set at the ends the edge
-# layers leave alone. `NULL` for a plot whose edges take a single cap, which
-# the label geom is given as `edge_cap`.
+# stop: the nodes drawn on `layout`, the gap and fallback extent of the first
+# edge layer that follows them, or of the first node-aware edge layer where
+# none does, and the caps the user set at the ends the edge layers leave
+# alone. The nodes are found whether or not any end follows them, since a
+# routed layer clears every node by its own shape and outline however its
+# ends are capped, and a cap the user set wins over the node's at its end.
+# `NULL` for a plot whose edges take a single cap, which the label geom is
+# given as `edge_cap`.
 label_edge_end_caps <- function(layer, plot, layout) {
   if (is.null(plot)) {
     return(NULL)
@@ -445,12 +447,9 @@ label_edge_end_caps <- function(layer, plot, layout) {
   edge_layer <- c(following, aware)[[1]]
 
   list(
-    nodes = if (length(following) > 0) build_node_extents(layer, plot, layout),
+    nodes = build_node_extents(layer, plot, layout),
     gap = edge_layer$node_cap_gap,
     fallback = edge_layer$node_cap_fallback,
-    follow_head = any(purrr::map_lgl(following, \(other) {
-      "end_cap" %in% other$node_cap_ends
-    })),
     set = set_edge_caps(plot, layout)
   )
 }
@@ -536,15 +535,22 @@ set_cap_mm <- function(layer, end, data) {
     return(NA_real_)
   }
 
-  fields <- unclass(cap)
-  width <- fields$width * absolute_unit_mm[fields$width_unit]
-  height <- fields$height * absolute_unit_mm[fields$height_unit]
-  radius <- unname(pmin(width, height)) / 2
+  radius <- ggraph_cap_radius_mm(cap)
   if (length(radius) == 1 || length(radius) == nrow(data)) {
     return(rep_len(radius, nrow(data)))
   }
 
   NA_real_
+}
+
+# The radius, in millimetres, of the circle that fits inside each ggraph cap
+# geometry in `cap`, `NA` for a cap measured in units that depend on the
+# device.
+ggraph_cap_radius_mm <- function(cap) {
+  fields <- unclass(cap)
+  width <- fields$width * absolute_unit_mm[fields$width_unit]
+  height <- fields$height * absolute_unit_mm[fields$height_unit]
+  unname(pmin(width, height)) / 2
 }
 
 # The geoms that draw a DAG's edges with ggarrow.
