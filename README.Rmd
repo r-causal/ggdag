@@ -12,15 +12,14 @@ knitr::opts_chunk$set(
   out.width = "100%"
 )
 library(ggplot2)
-set.seed(1542)
 ```
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/r-causal/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/r-causal/ggdag/actions)
 [![CRAN status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 [![Codecov test coverage](https://codecov.io/gh/r-causal/ggdag/branch/main/graph/badge.svg)](https://app.codecov.io/gh/r-causal/ggdag?branch=main)
 [![Total CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 [![R-CMD-check](https://github.com/r-causal/ggdag/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-causal/ggdag/actions/workflows/R-CMD-check.yaml)
+[![R-universe version](https://r-causal.r-universe.dev/ggdag/badges/version)](https://r-causal.r-universe.dev/ggdag)
 <!-- badges: end -->
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs <a href="https://r-causal.github.io/ggdag/"><img src="man/figures/logo.png" align="right" height="138" /></a>
@@ -29,22 +28,31 @@ Tidy, analyze, and plot causal directed acyclic graphs (DAGs). `ggdag` uses the 
 
 ## Installation
 
-You can install `ggdag` with:
+You can install ggdag from CRAN with:
 
 ```{r cran-installation, eval = FALSE}
 install.packages("ggdag")
 ```
 
-Or you can install the development version from GitHub with:
+You can install the development version of ggdag from [r-causal.r-universe.dev](https://r-causal.r-universe.dev/) with:
+
+```{r r-universe-installation, eval = FALSE}
+install.packages(
+  "ggdag",
+  repos = c("https://r-causal.r-universe.dev", getOption("repos"))
+)
+```
+
+You can also install the development version of ggdag from source from [GitHub](https://github.com/r-causal/ggdag) with:
 
 ```{r gh-installation, eval = FALSE}
-# install.packages("devtools")
-devtools::install_github("r-causal/ggdag")
+# install.packages("pak")
+pak::pak("r-causal/ggdag")
 ```
 
 ## Example
 
-`ggdag` makes it easy to use `dagitty` in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax:
+`ggdag` makes it easy to use `dagitty` in the context of the tidyverse. You can directly tidy `dagitty` objects or use convenience functions to create DAGs using a more R-like syntax. A DAG without coordinates of its own is laid out in time order, with causes placed before their effects:
 
 ```{r tidydag, dpi=300, message=FALSE}
 library(ggdag)

@@ -25,7 +25,6 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-set.seed(2939)
 ```
 
 # Overview
@@ -61,7 +60,7 @@ tidy_dagitty(dagified)
 
 Currently, `ggdag` supports directed (`x ~ y`) and bi-directed (`a ~~ b`) relationships
 
-`tidy_dagitty()` uses layout functions from `ggraph` and `igraph` for coordinates if none are provided, which can be specified with the `layout` argument. Objects of class `tidy_dagitty` or `dagitty` can be plotted quickly with `ggdag()`. If the DAG is not yet tidied, `ggdag()` and most other quick plotting functions in `ggdag` do so internally.
+If no coordinates are provided, `tidy_dagitty()` lays the DAG out in time order, placing causes before their effects. Layouts from `ggraph` and `igraph`, such as `"circle"` or `"nicely"`, can be chosen instead with the `layout` argument, or set for a whole session with `ggdag_options_set()`. Objects of class `tidy_dagitty` or `dagitty` can be plotted quickly with `ggdag()`. If the DAG is not yet tidied, `ggdag()` and most other quick plotting functions in `ggdag` do so internally.
 
 ```{r ggdag_layout}
 ggdag(dag, layout = "circle")
@@ -115,7 +114,7 @@ bigger_dag |>
 
 Most `dag_*()` and `node_*()` functions have corresponding `ggdag_*()` for quickly plotting the results. They call the corresponding `dag_*()` or `node_*()` function internally and plot the results in `ggplot2`.
 
-```{r ggdag_path, fig.width=6.5}
+```{r ggdag_path, fig.width = 9, fig.height = 4.5}
 ggdag_paths(bigger_dag)
 ```
 
@@ -181,7 +180,7 @@ dagify(
   theme_dag()
 ```
 
-There are also geoms based on those in `ggrepel` for inserting text and labels, and a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.
+There are also geoms for inserting text and labels: `geom_dag_label_auto()` and `geom_dag_text_auto()` place each label clear of the nodes and edges, the same way every time, and are what `ggdag()` and the other quick plotting functions use when `use_labels = TRUE`, while `geom_dag_label_repel()` and `geom_dag_text_repel()` are based on those in `ggrepel`. There is also a special geom called `geom_dag_collider_edges()` that highlights any biasing pathways opened by adjusting for collider nodes. See the [vignette introducing DAGs](intro-to-dags.html) for more info.
 
 The `ggarrow` edge engine can also route an edge around a node that sits on its path, either as a smooth curve (`edge_route = "spline"`) or as axis-aligned runs (`edge_route = "orthogonal"`). Routing happens when the plot is drawn, in the millimetres of the device, and `edge_route_options()` carries the constants the router draws with. A field you leave unset is derived from the drawn node size, so one object holds at every plot size.
 
