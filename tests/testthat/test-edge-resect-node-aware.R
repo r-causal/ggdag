@@ -161,11 +161,11 @@ square_m_dag <- function(dag) {
     dplyr::mutate(shape = ifelse(name == "m", 15, 19))
 }
 
-# `tidy_dag` from `square_m_dag()` drawn with its nodes at size 30 and the
-# ggarrow edge layers `edges`.
-square_m_plot <- function(tidy_dag, edges) {
+# `tidy_dag` from `square_m_dag()` drawn with its nodes at `size`, 30 unless
+# given, and the ggarrow edge layers `edges`.
+square_m_plot <- function(tidy_dag, edges, size = 30) {
   ggplot(tidy_dag, aes_dag()) +
-    geom_dag_point(aes(shape = shape), size = 30) +
+    geom_dag_point(aes(shape = shape), size = size) +
     scale_shape_identity() +
     edges +
     theme_dag()
@@ -300,6 +300,31 @@ router_node_frames <- function(plot) {
     .package = "ggdag"
   )
   frames
+}
+
+# Every call `plot` makes to the router when it is drawn: which grob made it
+# (`"edges"` for the routed edge layer, `"labels"` for the automatic label
+# layer), the node frame it was handed, and the path it returned for each
+# edge, named by the edge's two ends.
+router_routes <- function(plot) {
+  route_edges_mm <- get("route_edges_mm", envir = asNamespace("ggdag"))
+  routes <- list()
+  record <- function(nodes, edges, ...) {
+    caller <- paste(deparse(sys.call(-1)[[1]]), collapse = "")
+    routed <- route_edges_mm(nodes, edges, ...)
+    routes[[length(routes) + 1L]] <<- list(
+      grob = if (grepl("route_label_obstacles", caller)) "labels" else "edges",
+      nodes = nodes,
+      paths = stats::setNames(routed$paths, paste(edges$from, edges$to))
+    )
+    routed
+  }
+  testthat::with_mocked_bindings(
+    with_forced_plot(plot, \(built) NULL),
+    route_edges_mm = record,
+    .package = "ggdag"
+  )
+  routes
 }
 
 # The row of `nodes`, a router node frame in millimetres, drawn at the
@@ -547,7 +572,10 @@ test_that("an orthogonal-routed ggarrow edge into an offset port stops 2 mm outs
   # the face of its square, as far in from the side as a head is wide. Its
   # gaps are too narrow at this size for every arrival to run straight for a
   # whole cap before its node, and a head drawn across such a corner is not
-  # on the square, so the tips are not checked here
+  # on the square, so the tips are not checked here. Every square port the
+  # router gives this scene is a centre port, so this bound guards the
+  # README figure rather than the port placement: the offset-port scene
+  # above is the one whose ports at a square lie off its centre line
   adjustment <- withr::with_options(
     list(ggdag.edge_route = "orthogonal"),
     ggdag_adjustment_set(readme_dag(), edge_engine = "ggarrow")
@@ -648,17 +676,84 @@ test_that("routed arrows hand the router the outline and cap of each node", {
   expect_true(nodes$square[[at_y]])
   expect_equal(unique(nodes$cap[-at_y]), circle_cap(16))
 
-  # an explicit resection is the cap of every node, whatever its size, and
-  # the nodes keep their own outlines
-  fixed <- ggplot(tidy_dag, aes_dag()) +
-    geom_dag_point(aes(size = node_size)) +
+  # an explicit resection is the cap of every node, whatever its size and
+  # shape, and the nodes keep their own outlines and shapes, in the router
+  # the label layer calls as much as in the edge layer's
+  fixed <- ggplot(
+    dplyr::mutate(tidy_dag, shape = ifelse(name == "y", 15, 19)),
+    aes_dag()
+  ) +
+    geom_dag_point(aes(size = node_size, shape = shape)) +
     scale_size_identity() +
+    scale_shape_identity() +
     geom_dag_routed_arrows(route = "spline", resect = 5) +
+    geom_dag_label_auto(aes(label = name)) +
     theme_dag()
-  nodes <- router_node_frames(fixed)[[1]]
+  frames <- router_node_frames(fixed)
+  expect_length(frames, 4)
+  nodes <- frames[[1]]
   at_y <- router_node_row(nodes, tidy_dag, "y")
-  expect_equal(nodes$r[[at_y]], 0.375 * 30)
+  expect_equal(nodes$r[[at_y]], 0.375 * 30 * sqrt(2))
+  expect_equal(nodes$face[[at_y]], 0.375 * 30)
+  expect_true(nodes$square[[at_y]])
+  expect_equal(unique(nodes$r[-at_y]), 0.375 * 16)
   expect_equal(unique(nodes$cap), 5)
+  for (frame in frames[-1]) {
+    expect_equal(
+      frame[c("r", "face", "cap", "square")],
+      nodes[c("r", "face", "cap", "square")]
+    )
+  }
+})
+
+test_that("the label layer routes each routed layer with the caps that layer draws", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(dagify(
+    y ~ x + m,
+    m ~ x,
+    x ~ ~y,
+    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 0.1, y = 0))
+  ))
+  routed <- \(...) geom_dag_routed_arrows(route = "spline", ...)[[1]]
+  arcs <- \(...) geom_dag_arrow_arc(data = filter_direction("<->"), ...)
+  scene <- function(routed_layer, arc_layer) {
+    ggplot(tidy_dag, aes_dag()) +
+      geom_dag_point(size = 30) +
+      routed_layer +
+      arc_layer +
+      geom_dag_label_auto(aes(label = name)) +
+      theme_dag()
+  }
+
+  # the routed layer fixes its resection and the arc layer beside it follows
+  # the nodes, so the router is handed the fixed cap for every node, and the
+  # other way round the cap of each node
+  scenes <- list(
+    fixed = list(plot = scene(routed(resect = 5), arcs()), cap = 5),
+    follows = list(
+      plot = scene(routed(), arcs(resect = 5)),
+      cap = 0.375 * 30 + 2
+    )
+  )
+  for (name in names(scenes)) {
+    routes <- router_routes(scenes[[name]]$plot)
+    grobs <- purrr::map_chr(routes, "grob")
+    stopifnot(
+      sum(grobs == "edges") > 0,
+      sum(grobs == "labels") > 0
+    )
+    frame <- c("r", "face", "cap", "square")
+    for (route in routes) {
+      label <- paste("the nodes the", route$grob, "grob routes", name, "with")
+      expect_equal(unique(route$nodes$cap), scenes[[name]]$cap, label = label)
+      expect_equal(
+        route$nodes[frame],
+        routes[[1]]$nodes[frame],
+        label = label
+      )
+    }
+  }
 })
 
 test_that("an explicit edge_cap routes exactly as before the caps followed the nodes", {
@@ -876,6 +971,66 @@ test_that("a resection the user gives a hand-built ggarrow layer wins at its end
   expect_length(unique(round(heads$from_x[head_3], 6)), 1)
 })
 
+test_that("geom_dag_edges() under the ggarrow engine takes the resection the user sets", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(cap_dag())
+  circle_resect <- 0.375 * 30 + 2
+  resects <- function(edges) {
+    ends <- drawn_arrow_ends(
+      ggplot(tidy_dag, aes_dag()) + geom_dag_point(size = 30) + edges
+    )
+    stopifnot(nrow(ends) > 0)
+    list(
+      fins = unique(round(ends$resect[ends$end == "fins"], 6)),
+      head = unique(round(ends$resect[ends$end == "head"], 6))
+    )
+  }
+
+  for (route in c("straight", "spline")) {
+    edges <- \(...) {
+      geom_dag_edges(edge_engine = "ggarrow", edge_route = route, ...)
+    }
+
+    expect_no_condition(both <- edges(resect = 4))
+    expect_equal(resects(both), list(fins = 4, head = 4), label = route)
+
+    expect_no_condition(head <- edges(resect_head = 5))
+    expect_equal(
+      resects(head),
+      list(fins = circle_resect, head = 5),
+      label = route
+    )
+
+    # a ggraph circle cap in absolute units is the resection of its end
+    expect_no_condition(
+      caps <- edges(
+        start_cap = ggraph::circle(3, "mm"),
+        end_cap = ggraph::circle(0.5, "cm")
+      )
+    )
+    expect_equal(resects(caps), list(fins = 3, head = 5), label = route)
+  }
+
+  # ggarrow stops an end a distance from the end of the path, so a cap it
+  # cannot draw is refused rather than dropped
+  expect_error(
+    geom_dag_edges(edge_engine = "ggarrow", end_cap = ggraph::square(5, "mm")),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    geom_dag_edges(
+      edge_engine = "ggarrow",
+      start_cap = ggraph::circle(0.1, "npc")
+    ),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    geom_dag_edges(edge_engine = "ggarrow", end_cap = 5),
+    class = "ggdag_type_error"
+  )
+})
+
 # The automatic labels ------------------------------------------------------------
 
 test_that("the automatic labels cut ggarrow edges where the drawn edges stop", {
@@ -907,6 +1062,58 @@ test_that("the automatic labels cut ggarrow edges where the drawn edges stop", {
   traced <- traced_label_ends(squares)
   expect_equal(tip_gap_mismatches(drawn), character())
   expect_equal(label_tip_mismatches(traced, drawn), character())
+})
+
+test_that("the automatic labels trace routed edges past square nodes under an explicit resection", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  labelled <- \(p) p + geom_dag_label_auto(aes(label = name))
+
+  # the spline detour round the corner of the square is routed in the label
+  # layer exactly as it is drawn
+  corner <- labelled(square_m_plot(
+    square_corner_scene(),
+    geom_dag_routed_arrows(route = "spline", clearance = 3, resect = 5)
+  ))
+  routes <- router_routes(corner)
+  drawn_paths <- purrr::keep(routes, \(route) route$grob == "edges")
+  traced_paths <- purrr::keep(routes, \(route) route$grob == "labels")
+  stopifnot(length(drawn_paths) > 0, length(traced_paths) > 0)
+  for (traced in traced_paths) {
+    for (edge in names(drawn_paths[[1]]$paths)) {
+      expect_equal(
+        traced$paths[[edge]],
+        drawn_paths[[1]]$paths[[edge]],
+        label = paste("the traced route of", edge)
+      )
+    }
+  }
+  # ggarrow draws a head straight from its cut, so on a route that still
+  # bends into its node the tip leaves the traced path by the sagitta of that
+  # chord (see `drawn_tip_point()`)
+  drawn <- drawn_arrow_ends(corner)
+  expect_equal(
+    label_tip_mismatches(traced_label_ends(corner), drawn, tolerance = 0.35),
+    character()
+  )
+
+  # the orthogonal arrivals on the offset ports of the square are cut where
+  # their heads are drawn
+  for (size in c(16, 30)) {
+    offset <- labelled(square_m_plot(
+      offset_port_square_scene(),
+      geom_dag_routed_arrows(route = "orthogonal", resect = 5),
+      size = size
+    ))
+    drawn <- drawn_arrow_ends(offset)
+    square_heads <- drawn[is_square_shape(drawn$shape) & drawn$end == "head", ]
+    stopifnot(sum(abs(square_heads$to_y - square_heads$centre_y) > 1) > 0)
+    expect_equal(
+      label_tip_mismatches(traced_label_ends(offset), drawn),
+      character(),
+      label = paste("the offset ports at size", size)
+    )
+  }
 })
 
 test_that("the automatic labels cut an edge at both ggraph caps the user sets", {
