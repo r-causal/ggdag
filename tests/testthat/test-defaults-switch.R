@@ -173,6 +173,28 @@ option_body_sites <- function(option) {
   sites
 }
 
+# Every function in the ggdag namespace, exported or not, whose formal `option`
+# has a default, with that default.
+defaulted_formals <- function(option) {
+  ns <- asNamespace("ggdag")
+  defaults <- list()
+  for (fn_name in sort(ls(ns, all.names = TRUE))) {
+    fn <- get(fn_name, envir = ns)
+    if (!is.function(fn) || is.primitive(fn)) {
+      next
+    }
+    fn_formals <- formals(fn)
+    if (!option %in% names(fn_formals)) {
+      next
+    }
+    if (identical(fn_formals[[option]], quote(expr = ))) {
+      next
+    }
+    defaults[fn_name] <- list(fn_formals[[option]])
+  }
+  defaults
+}
+
 # A realistic epidemiology DAG: the effect of smoking on lung cancer.
 epidemiology_dag <- function() {
   dagify(
@@ -267,6 +289,42 @@ test_that("every `label_geom` formal falls back to the automatic label geom", {
       geom_name(eval(site$call, envir = site$env)),
       "geom_dag_label_auto",
       label = paste0("the default of `label_geom` in ", fn_name, "()")
+    )
+  }
+})
+
+test_that("every defaulted `layout` or `label_geom` formal reads its option unless it is listed here", {
+  # formals whose default is deliberately not the option, each with the reason
+  not_the_option <- list(
+    layout = c(
+      repel_edge_points = "the ggplot2 panel layout whose scales move the edges, not a DAG layout"
+    ),
+    label_geom = character()
+  )
+
+  for (option in names(not_the_option)) {
+    defaults <- defaulted_formals(option)
+    allowed <- as.character(names(not_the_option[[option]]))
+    reads_option <- purrr::map_lgl(defaults, \(default) {
+      rlang::is_call(default, "ggdag_option") &&
+        identical(default[[2]], option)
+    })
+
+    expect_identical(
+      setdiff(names(defaults)[!reads_option], allowed),
+      character(),
+      label = paste0(
+        "the functions whose `",
+        option,
+        "` default neither reads the option nor is listed"
+      )
+    )
+    # a listed function that now reads the option, or no longer exists, has
+    # outgrown its entry
+    expect_identical(
+      setdiff(allowed, names(defaults)[!reads_option]),
+      character(),
+      label = paste0("the stale entries listed for `", option, "`")
     )
   }
 })
@@ -432,6 +490,48 @@ test_that("the classic options bring back the layout and labels the defaults rep
   )
 })
 
+test_that("the layout option reaches dag_saturate() and as_tidy_dagitty.list()", {
+  withr::local_preserve_seed()
+  local_unset_ggdag_options()
+  dag <- epidemiology_dag()
+  time_points <- list(c("age", "ses"), c("smoking", "diet"), "tar", "cancer")
+
+  time_ordered_saturated <- node_coordinates(
+    pull_dag_data(dag_saturate(dag, layout = "time_ordered"))
+  )
+  time_ordered_list <- node_coordinates(
+    pull_dag_data(as_tidy_dagitty(time_points, layout = "time_ordered"))
+  )
+
+  old <- ggdag_options_set(layout = "nicely")
+  withr::defer(do.call(ggdag_options_set, old))
+
+  saturated <- node_coordinates(pull_dag_data(dag_saturate(dag, seed = 1234)))
+  expect_equal(
+    saturated,
+    node_coordinates(
+      pull_dag_data(dag_saturate(dag, seed = 1234, layout = "nicely"))
+    )
+  )
+  # the option has to move the nodes, or the comparison above proves nothing
+  expect_false(isTRUE(all.equal(saturated, time_ordered_saturated)))
+
+  from_list <- node_coordinates(
+    pull_dag_data(as_tidy_dagitty(time_points, seed = 1234))
+  )
+  expect_equal(
+    from_list,
+    node_coordinates(
+      pull_dag_data(as_tidy_dagitty(
+        time_points,
+        seed = 1234,
+        layout = "nicely"
+      ))
+    )
+  )
+  expect_false(isTRUE(all.equal(from_list, time_ordered_list)))
+})
+
 # Awkward graphs under the defaults ---------------------------------------------
 
 # Draw `plot` on an off-screen device `size` inches wide and high, and return the
@@ -492,6 +592,42 @@ with_node_labels <- function(dag) {
   nodes <- names(dag)
   label(dag) <- stats::setNames(paste("Variable", toupper(nodes)), nodes)
   dag
+}
+
+# A large DAG written out in full, so that every run draws the same graph:
+# thirty nodes and 51 directed edges in six time periods, from four sources
+# (x1 to x4) to four sinks (x27 to x30), with some edges skipping a period.
+thirty_node_dag <- function() {
+  dagitty::dagitty(
+    "dag {
+      x1 -> { x5 x6 x12 }
+      x2 -> { x6 x7 x16 }
+      x3 -> { x7 x8 x13 }
+      x4 -> { x8 x9 }
+      x5 -> { x10 x11 }
+      x6 -> { x11 x12 x19 }
+      x7 -> { x13 x14 }
+      x8 -> { x14 x15 }
+      x9 -> { x15 x21 }
+      x10 -> { x16 x17 }
+      x11 -> { x17 x18 }
+      x12 -> { x18 x19 }
+      x13 -> { x19 x20 }
+      x14 -> { x20 x21 }
+      x15 -> { x21 x25 }
+      x16 -> x22
+      x17 -> { x22 x23 }
+      x18 -> { x23 x24 }
+      x19 -> x24
+      x20 -> { x25 x26 }
+      x21 -> x26
+      x22 -> x27
+      x23 -> { x27 x28 }
+      x24 -> { x28 x29 }
+      x25 -> { x29 x30 }
+      x26 -> x30
+    }"
+  )
 }
 
 test_that("a two-node cycle draws under the defaults", {
@@ -584,9 +720,9 @@ test_that("a DAG with its own coordinates keeps them under the defaults", {
   expect_draws_with_only(p_labelled)
 })
 
-test_that("a thirty-node random DAG draws under the defaults", {
+test_that("a thirty-node DAG draws under the defaults", {
   local_unset_ggdag_options()
-  dag <- withr::with_seed(1234, dagitty::randomDAG(30, 0.1))
+  dag <- thirty_node_dag()
 
   # thirty labels need a large device to all find room clear of the drawing
   expect_draws_with_only(ggdag(dag), size = c(16, 12))

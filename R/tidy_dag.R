@@ -392,7 +392,7 @@ as_tidy_dagitty.list <- function(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "time_ordered",
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   if (!is.null(seed)) {

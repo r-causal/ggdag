@@ -37,7 +37,7 @@ as_tidy_dagitty(x, ...)
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "time_ordered",
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 )
 }

@@ -52,7 +52,7 @@
 dag_saturate <- function(
   .tdy_dag,
   use_existing_coords = FALSE,
-  layout = "time_ordered",
+  layout = ggdag_option("layout", "time_ordered"),
   seed = NULL,
   ...
 ) {
