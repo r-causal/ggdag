@@ -1,105 +1,13 @@
-# Under the ggraph edge engine an edge stops a fixed gap of 2 mm beyond the
-# drawn extent of the node at each of its ends, unless the caller fixes the cap
-# with `edge_cap` or the `ggdag.edge_cap` option. The extent is measured from
-# the node centre to the farthest ink of the glyph R draws for the node's shape,
-# so an edge arriving at the corner of a square node is as clear of it as an
-# edge arriving anywhere on a circle. Like every other measure a plot draws,
-# the cap scales with the plot's `size` multiplier, gap included.
-
-# Fixtures ---------------------------------------------------------------------
-
-# A DAG with a confounder, a node that only has a bidirected edge, and so both
-# the link and the arc edge layers.
-cap_dag <- function() {
-  dagify(
-    y ~ x + z,
-    x ~ z,
-    z ~ ~w,
-    exposure = "x",
-    outcome = "y"
-  )
-}
-
-# A DAG whose controlled node `z` has an edge running into it and two running
-# out of it, and is not a collider, so no collider lines are drawn.
-controlled_dag <- function() {
-  dagify(
-    y ~ x + z,
-    x ~ z,
-    z ~ a,
-    exposure = "x",
-    outcome = "y"
-  )
-}
-
-# The DAG of the README figure, whose three adjustment sets put square nodes at
-# the start and the end of directed edges and at both ends of a bidirected arc.
-readme_dag <- function() {
-  dagitty::dagitty(
-    "dag {
-      y <- x <- z1 <- v -> z2 -> y
-      z1 <- w1 <-> w2 -> z2
-      x <- w1 -> y
-      x <- w2 -> y
-      x [exposure]
-      y [outcome]
-    }"
-  ) |>
-    tidy_dagitty()
-}
-
-# A DAG with one unconditional instrument and one instrument conditional on
-# `w`, so the instrumental plot draws `w` as a square in one of its panels.
-conditional_iv_dag <- function() {
-  dagify(
-    y ~ x + u + w,
-    x ~ z + iu + u + w,
-    z ~ w,
-    exposure = "x",
-    outcome = "y",
-    latent = "u"
-  )
-}
-
-# Expected geometry ------------------------------------------------------------
-
-# The drawn extent, in millimetres, of a node drawn at ggplot2 size `size` with
-# point shape `shape`: the distance from its centre to its farthest ink. R draws
-# the circles (16, 19, 21) with radius `0.375 * size` mm. It draws the solid
-# square (15) with that radius as its half side, so its corners lie `sqrt(2)`
-# radii out, and the filled square (22) with the area of the circle, a half side
-# of `sqrt(pi / 4)` radii. Any other shape has no extent here, so a scene that
-# draws one fails rather than being checked against a guess.
-node_extent_mm <- function(shape, size) {
-  radius <- 0.375 * size
-  dplyr::case_when(
-    shape %in% c(16, 19, 21) ~ radius,
-    shape == 15 ~ radius * sqrt(2),
-    shape == 22 ~ radius * sqrt(pi / 4) * sqrt(2),
-    .default = NA_real_
-  )
-}
-
-node_shape_name <- function(shape) {
-  dplyr::case_when(
-    shape %in% c(16, 19, 21) ~ "circle",
-    shape %in% c(15, 22) ~ "square",
-    .default = paste("shape", shape)
-  )
-}
+# Under the ggraph edge engine an edge stops a fixed gap of 2 mm outside the
+# outline of the node at each of its ends, unless the caller fixes the cap with
+# `edge_cap` or the `ggdag.edge_cap` option. At a circle node the cap is a
+# circle 2 mm wider than the node, and at a square node a square 2 mm wider
+# than the node on every side, so an edge meeting a square at an angle stops
+# where it crosses that square. Like every other measure a plot draws, the cap
+# scales with the plot's `size` multiplier, gap included. The fixtures and the
+# expected geometry live in helper-node-edge-ends.R.
 
 # Per-end caps on the built layers ---------------------------------------------
-
-# The node whose centre sits at (`x`, `y`) among `nodes`, a data frame with
-# `x` and `y` columns, as a row index.
-node_row_at <- function(nodes, x, y) {
-  distance <- sqrt((nodes$x - x)^2 + (nodes$y - y)^2)
-  match_row <- which(distance < 1e-9)
-  if (length(match_row) != 1) {
-    return(NA_integer_)
-  }
-  match_row
-}
 
 # One row per edge end of every ggraph edge layer `plot` builds: the panel, the
 # node the end sits at, the shape and size that node is drawn with in that
@@ -171,26 +79,28 @@ edge_end_caps <- function(plot) {
   purrr::list_rbind(ends)
 }
 
-# The edge ends of `plot` whose cap is not 2 mm beyond the drawn extent of the
-# node there, each described by panel, edge, end, and node. `node_size` is the
-# size the caller asked for and `size` the plot multiplier, so a node layer
-# drawn at any other size is reported too.
+# The edge ends of `plot` whose cap is not 2 mm outside the outline of the node
+# there, each described by panel, edge, end, and node. A cap is read as half
+# its width, the radius of a circle and the half side of a square. `node_size`
+# is the size the caller asked for and `size` the plot multiplier, so a node
+# layer drawn at any other size is reported too.
 node_aware_cap_mismatches <- function(plot, node_size, size = 1) {
   ends <- edge_end_caps(plot)
   if (nrow(ends) == 0) {
     return("the plot builds no ggraph edge ends")
   }
 
-  expected <- (node_extent_mm(ends$shape, node_size) + 2) * size
+  expected <- (expected_outline_mm(ends$shape, node_size) + 2) * size
+  geometry <- expected_cap_geometry(ends$shape)
   wrong_size <- is.na(ends$node_size) | ends$node_size != node_size * size
   wrong_cap <- is.na(expected) |
-    ends$cap_geometry != "circle" |
+    ends$cap_geometry != geometry |
     ends$cap_unit != "mm" |
     abs(ends$cap_mm - expected) > 1e-6
   bad <- wrong_size | wrong_cap
 
   sprintf(
-    "panel %s, edge %s: the %s cap at %s (a %s drawn at size %s) is a %s of %.4f %s; expected a circle of %.4f mm",
+    "panel %s, edge %s: the %s cap at %s (a %s drawn at size %s) is a %s of %.4f %s; expected a %s of %.4f mm",
     ends$panel[bad],
     ends$edge[bad],
     ends$end[bad],
@@ -200,6 +110,7 @@ node_aware_cap_mismatches <- function(plot, node_size, size = 1) {
     ends$cap_geometry[bad],
     ends$cap_mm[bad],
     ends$cap_unit[bad],
+    geometry[bad],
     expected[bad]
   )
 }
@@ -414,19 +325,20 @@ test_that("ggdag_adjustment_set() stops edges beyond square and circle nodes", {
   }
 })
 
-test_that("ggdag_adjustment_set() caps a square end by its half diagonal", {
+test_that("ggdag_adjustment_set() caps a square end by its outline", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 
   ends <- edge_end_caps(ggdag_adjustment_set(readme_dag(), node_size = 16))
 
   # `v` is adjusted in the `{v, w1, w2}` panel only, so the edges leaving it
-  # start at a square there and at a circle in the other two panels
+  # start at a square there and at a circle in the other two panels. The solid
+  # square's half side is the circle's radius, so both caps reach 8 mm out
+  # from the centre, one as a square and one as a circle.
   v_starts <- ends[ends$node == "v" & ends$end == "start", ]
   expect_setequal(unique(v_starts$shape), c(15, 19))
-  expect_equal(
-    unique(v_starts$cap_mm[v_starts$shape == 15]),
-    0.375 * 16 * sqrt(2) + 2
-  )
+  expect_equal(unique(v_starts$cap_geometry[v_starts$shape == 15]), "rect")
+  expect_equal(unique(v_starts$cap_mm[v_starts$shape == 15]), 0.375 * 16 + 2)
+  expect_equal(unique(v_starts$cap_geometry[v_starts$shape == 19]), "circle")
   expect_equal(unique(v_starts$cap_mm[v_starts$shape == 19]), 0.375 * 16 + 2)
 })
 
@@ -586,7 +498,7 @@ test_that("an edge into a circle node is drawn 2 mm beyond the circle", {
   }
 })
 
-test_that("an edge into a square node is drawn 2 mm beyond its corners", {
+test_that("an edge into a square node is drawn 2 mm outside its outline", {
   skip_if_not_installed("ragg")
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 
@@ -600,15 +512,52 @@ test_that("an edge into a square node is drawn 2 mm beyond its corners", {
       0.375 * node_size + 2,
       paste0("the start of x -> y at the circle x, node_size = ", node_size)
     )
+
+    # the tip lies on the square 2 mm outside the node, so the farther of its
+    # offsets from the centre is the half side and the gap
+    ends <- drawn_edge_ends(p)
+    square_end <- ends[ends$end == "end", , drop = FALSE]
+    stopifnot(nrow(square_end) == 1, is_square_shape(square_end$shape))
     expect_gap_mm(
-      gaps$end_gap,
-      0.375 * node_size * sqrt(2) + 2,
+      outline_distance_mm(
+        square_end$shape,
+        square_end$tip_dx,
+        square_end$tip_dy
+      ),
+      0.375 * node_size + 2,
       paste0(
-        "the arrowhead tip of x -> y at the square y, node_size = ",
+        "the arrowhead tip of x -> y outside the square y, node_size = ",
         node_size
-      )
+      ),
+      tolerance = 0.05
     )
   }
+
+  # an edge that meets the square at an angle stops where it crosses the
+  # square, farther from the centre than a circle through its faces would
+  # stop it
+  angled <- tidy_dagitty(dagify(
+    m ~ x + a,
+    y ~ m,
+    coords = list(
+      x = c(x = 0, a = 0, m = 1, y = 2),
+      y = c(x = 0, a = 1, m = 0.5, y = 0.5)
+    )
+  )) |>
+    dplyr::mutate(shape = ifelse(name == "m", 15, 19))
+  p <- ggplot(angled, aes_dag()) +
+    geom_dag_point(aes(shape = shape), size = 30) +
+    scale_shape_identity() +
+    geom_dag_edges() +
+    theme_dag()
+  ends <- drawn_edge_ends(p)
+  stopifnot(
+    nrow(ends) == 6,
+    any(
+      is_square_shape(ends$shape) & abs(ends$tip_dx) > 2 & abs(ends$tip_dy) > 2
+    )
+  )
+  expect_equal(tip_gap_mismatches(ends), character())
 })
 
 # Explicit caps ----------------------------------------------------------------
@@ -1039,26 +988,31 @@ test_that("the path and equivalence plotters resect ggarrow edges with the cap u
 
 # Plots assembled by hand ------------------------------------------------------
 
-# The edge ends of `plot` whose cap is not 2 mm beyond the node drawn there, at
-# whatever size and shape that node is drawn with.
+# The edge ends of `plot` whose cap is not 2 mm outside the node drawn there,
+# at whatever size and shape that node is drawn with.
 drawn_node_cap_mismatches <- function(plot) {
   ends <- edge_end_caps(plot)
   if (nrow(ends) == 0) {
     return("the plot builds no ggraph edge ends")
   }
 
-  expected <- node_extent_mm(ends$shape, ends$node_size) + 2
-  bad <- is.na(expected) | abs(ends$cap_mm - expected) > 1e-6
+  expected <- expected_outline_mm(ends$shape, ends$node_size) + 2
+  geometry <- expected_cap_geometry(ends$shape)
+  bad <- is.na(expected) |
+    ends$cap_geometry != geometry |
+    abs(ends$cap_mm - expected) > 1e-6
 
   sprintf(
-    "panel %s, edge %s: the %s cap at %s (a %s drawn at size %s) is %.4f mm; expected %.4f mm",
+    "panel %s, edge %s: the %s cap at %s (a %s drawn at size %s) is a %s of %.4f mm; expected a %s of %.4f mm",
     ends$panel[bad],
     ends$edge[bad],
     ends$end[bad],
     ends$node[bad],
     node_shape_name(ends$shape[bad]),
     ends$node_size[bad],
+    ends$cap_geometry[bad],
     ends$cap_mm[bad],
+    geometry[bad],
     expected[bad]
   )
 }
@@ -1106,7 +1060,7 @@ test_that("hand-built edge layers stop beyond the nodes in either layer order", 
   }
 })
 
-test_that("hand-built edge layers stop beyond square nodes by their corners", {
+test_that("hand-built edge layers stop outside square nodes by their outline", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 
   p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
@@ -1115,7 +1069,8 @@ test_that("hand-built edge layers stop beyond square nodes by their corners", {
 
   expect_true(all(edge_end_caps(p)$shape == 15))
   expect_equal(node_aware_cap_mismatches(p, 30), character())
-  expect_equal(unique(round(edge_end_caps(p)$cap_mm, 2)), 17.91)
+  expect_equal(unique(edge_end_caps(p)$cap_geometry), "rect")
+  expect_equal(unique(round(edge_end_caps(p)$cap_mm, 2)), 13.25)
 })
 
 test_that("hand-built edge layers follow a node size mapped to the data", {
@@ -1163,7 +1118,7 @@ test_that("a hand-built edge layer with no node layer keeps the 8 mm cap", {
 
 # Shape scales, shared layers, and panels ---------------------------------------
 
-test_that("a shape scale that names its shapes gives square nodes their corners", {
+test_that("a shape scale that names its shapes gives square nodes their outline", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 
   p <- ggplot(control_for(controlled_dag(), "z"), aes_dag()) +
@@ -1179,11 +1134,13 @@ test_that("a shape scale that names its shapes gives square nodes their corners"
   expect_true(any(square & ends$end == "end"))
 
   # R draws the filled square with the area of the circle
+  expect_equal(unique(ends$cap_geometry[square]), "rect")
   expect_equal(
     unique(round(ends$cap_mm[square], 4)),
-    round(0.375 * 30 * sqrt(pi / 4) * sqrt(2) + 2, 4)
+    round(0.375 * 30 * sqrt(pi / 4) + 2, 4)
   )
-  expect_equal(unique(round(ends$cap_mm[square], 1)), 16.1)
+  expect_equal(unique(round(ends$cap_mm[square], 1)), 12)
+  expect_equal(unique(ends$cap_geometry[!square]), "circle")
   expect_equal(unique(ends$cap_mm[!square]), 0.375 * 30 + 2)
 })
 
@@ -1238,9 +1195,19 @@ test_that("an edge in a panel only the edge layer adds finds that panel's nodes"
     unique
   )
 
+  geometries <- tapply(
+    unclass(edges$start_cap)$geometry,
+    panel_names[as.integer(edges$PANEL)],
+    unique
+  )
+
   expect_equal(
     unlist(as.list(caps)),
-    c(a = 0.375 * 16 + 2, b = 0.375 * 30 * sqrt(2) + 2, c = 0.375 * 30 + 2)
+    c(a = 0.375 * 16 + 2, b = 0.375 * 30 + 2, c = 0.375 * 30 + 2)
+  )
+  expect_equal(
+    unlist(as.list(geometries)),
+    c(a = "circle", b = "rect", c = "circle")
   )
 })
 
@@ -1316,8 +1283,30 @@ test_that("the automatic labels cut each edge where the drawn edge stops", {
   expect_false(anyNA(c(start_shape, end_shape)))
   expect_true(any(c(start_shape, end_shape) == 15))
 
-  expect_equal(caps$cap_start, node_extent_mm(start_shape, 30) + 2)
-  expect_equal(caps$cap_end, node_extent_mm(end_shape, 30) + 2)
+  circle_start <- !is_square_shape(start_shape)
+  circle_end <- !is_square_shape(end_shape)
+  expect_equal(
+    caps$cap_start[circle_start],
+    expected_outline_mm(start_shape[circle_start], 30) + 2
+  )
+  expect_equal(
+    caps$cap_end[circle_end],
+    expected_outline_mm(end_shape[circle_end], 30) + 2
+  )
+
+  # How far a square end is cut back from the node centre depends on the
+  # angle the edge meets the square at, in millimetres, so the traced edges
+  # are read where the plot is drawn and their cut ends compared with the tips
+  # of the drawn edges.
+  skip_if_not_installed("ragg")
+  drawn <- drawn_edge_ends(p)
+  stopifnot(any(
+    is_square_shape(drawn$shape) &
+      abs(drawn$tip_dx) > 2 &
+      abs(drawn$tip_dy) > 2
+  ))
+  expect_equal(tip_gap_mismatches(drawn), character())
+  expect_equal(label_tip_mismatches(traced_label_ends(p), drawn), character())
 })
 
 test_that("hand-built automatic labels cut edges beyond the nodes", {

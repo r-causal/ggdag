@@ -1,0 +1,781 @@
+# Helpers for the tests of edges that stop a fixed gap outside the node at each
+# of their ends, under both edge engines, and of the automatic labels that cut
+# the edges they trace at the same ends.
+#
+# An edge stops 2 mm, times the plot's `size`, outside the outline of the node
+# it meets. A circle node (point shapes 16, 19, and 21) has its outline at its
+# radius, so the tip lies `radius + 2` mm from the centre in a straight line. A
+# square node (15 and 22) has its outline at its half side, so the tip lies on
+# the square `half side + 2` mm out from the centre along both axes: the larger
+# of its horizontal and vertical offsets from the centre is `half side + 2`.
+
+# Fixtures ---------------------------------------------------------------------
+
+# A DAG with a confounder, a node that only has a bidirected edge, and so both
+# the link and the arc edge layers.
+cap_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    z ~ ~w,
+    exposure = "x",
+    outcome = "y"
+  )
+}
+
+# A DAG whose controlled node `z` has an edge running into it and two running
+# out of it, and is not a collider, so no collider lines are drawn.
+controlled_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    z ~ a,
+    exposure = "x",
+    outcome = "y"
+  )
+}
+
+# The DAG of the README figure, whose three adjustment sets put square nodes at
+# the start and the end of directed edges and at both ends of a bidirected arc.
+readme_dag <- function() {
+  dagitty::dagitty(
+    "dag {
+      y <- x <- z1 <- v -> z2 -> y
+      z1 <- w1 <-> w2 -> z2
+      x <- w1 -> y
+      x <- w2 -> y
+      x [exposure]
+      y [outcome]
+    }"
+  ) |>
+    tidy_dagitty()
+}
+
+# A DAG with one unconditional instrument and one instrument conditional on
+# `w`, so the instrumental plot draws `w` as a square in one of its panels.
+conditional_iv_dag <- function() {
+  dagify(
+    y ~ x + u + w,
+    x ~ z + iu + u + w,
+    z ~ w,
+    exposure = "x",
+    outcome = "y",
+    latent = "u"
+  )
+}
+
+# Expected geometry ------------------------------------------------------------
+
+# The point shape number a ggplot2 shape value is drawn with. A shape scale can
+# name its shapes, and the built data then carries the name.
+shape_number <- function(shape) {
+  if (!is.character(shape)) {
+    return(shape)
+  }
+  named <- c(circle = 19, square = 15, `square filled` = 22)
+  number <- unname(named[shape])
+  digits <- is.na(number) & grepl("^[0-9]+$", shape)
+  number[digits] <- as.numeric(shape[digits])
+  number
+}
+
+is_square_shape <- function(shape) {
+  shape_number(shape) %in% c(15, 22)
+}
+
+# The distance, in millimetres, from the centre of a node drawn at ggplot2 size
+# `size` with point shape `shape` to its outline: the radius of a circle, and
+# the half side of a square. R draws the circles (16, 19, 21) with radius
+# `0.375 * size` mm, the solid square (15) with that radius as its half side,
+# and the filled square (22) with the area of the circle, a half side of
+# `sqrt(pi / 4)` radii. Any other shape has no outline here, so a scene that
+# draws one fails rather than being checked against a guess.
+expected_outline_mm <- function(shape, size) {
+  number <- shape_number(shape)
+  radius <- 0.375 * size
+  dplyr::case_when(
+    number %in% c(16, 19, 21) ~ radius,
+    number == 15 ~ radius,
+    number == 22 ~ radius * sqrt(pi / 4),
+    .default = NA_real_
+  )
+}
+
+# The ggraph cap geometry an edge end at a node of shape `shape` stops at.
+expected_cap_geometry <- function(shape) {
+  ifelse(is_square_shape(shape), "rect", "circle")
+}
+
+# How far a point `dx`, `dy` mm from the centre of a node of shape `shape` lies
+# out from that centre, measured the way the node's outline is: in a straight
+# line for a circle, and along the farther axis for a square.
+outline_distance_mm <- function(shape, dx, dy) {
+  ifelse(
+    is_square_shape(shape),
+    pmax(abs(dx), abs(dy)),
+    sqrt(dx^2 + dy^2)
+  )
+}
+
+node_shape_name <- function(shape) {
+  number <- shape_number(shape)
+  dplyr::case_when(
+    number %in% c(16, 19, 21) ~ "circle",
+    number %in% c(15, 22) ~ "square",
+    .default = paste("shape", shape)
+  )
+}
+
+# The node whose centre sits at (`x`, `y`) among `nodes`, a data frame with
+# `x` and `y` columns, as a row index.
+node_row_at <- function(nodes, x, y) {
+  distance <- sqrt((nodes$x - x)^2 + (nodes$y - y)^2)
+  match_row <- which(distance < 1e-9)
+  if (length(match_row) != 1) {
+    return(NA_integer_)
+  }
+  match_row
+}
+
+# Reading a drawn plot ---------------------------------------------------------
+
+# Draw `plot` off screen on a device of a fixed size, force the grob tree so
+# that every `makeContent()` method has run, and evaluate `code` with the
+# drawn tree on the display list. `code` is a function of the built plot.
+with_forced_plot <- function(plot, code, width = 7, height = 5) {
+  file <- tempfile(fileext = ".png")
+  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+
+  built <- ggplot2::ggplot_build(plot)
+  gtable <- ggplot2::ggplot_gtable(built)
+  grid::grid.newpage()
+  grid::grid.draw(gtable)
+  grid::grid.force()
+
+  code(built)
+}
+
+# The forced grobs whose own name matches `pattern`, each with the viewport
+# path it was drawn in. The gtable names the grob tree of each panel
+# `panel-<i>`, where `i` is the panel's index, and the grobs are returned with
+# that index.
+forced_grobs <- function(pattern) {
+  found <- grid::grid.grep(
+    pattern,
+    grep = TRUE,
+    global = TRUE,
+    viewports = TRUE
+  )
+  if (length(found) == 0) {
+    return(list())
+  }
+  own_name <- vapply(found, \(path) sub(".*::", "", as.character(path)), "")
+  found <- found[grepl(pattern, own_name)]
+
+  lapply(found, \(path) {
+    name <- as.character(path)
+    panel <- regmatches(name, regexpr("panel-[0-9]+\\.", name))
+    list(
+      grob = grid::grid.get(path),
+      vp_path = attr(path, "vpPath"),
+      panel = if (length(panel) == 0) {
+        NA_integer_
+      } else {
+        as.integer(sub("panel-([0-9]+)\\.", "\\1", panel))
+      }
+    )
+  })
+}
+
+convert_mm_x <- function(value) {
+  if (!grid::is.unit(value)) {
+    return(as.numeric(value))
+  }
+  grid::convertX(value, "mm", valueOnly = TRUE)
+}
+
+convert_mm_y <- function(value) {
+  if (!grid::is.unit(value)) {
+    return(as.numeric(value))
+  }
+  grid::convertY(value, "mm", valueOnly = TRUE)
+}
+
+convert_mm_length <- function(value) {
+  if (!grid::is.unit(value)) {
+    return(as.numeric(value))
+  }
+  grid::convertWidth(value, "mm", valueOnly = TRUE)
+}
+
+# The node glyphs the node layers of `plot` draw in panel `panel` of `built`,
+# with their centres in millimetres. Call it with the panel's viewport pushed.
+panel_nodes_mm <- function(plot, built, panel) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$geom, c("GeomDagPoint", "GeomDagNode"))
+  }))
+  nodes <- purrr::map(index, \(i) {
+    data <- as.data.frame(built$data[[i]])
+    data <- data[as.integer(data$PANEL) == panel, , drop = FALSE]
+    if (nrow(data) == 0) {
+      return(NULL)
+    }
+    data.frame(
+      x = data$x,
+      y = data$y,
+      shape = data[["shape"]] %||% 19,
+      size = data[["size"]] %||% 16
+    )
+  }) |>
+    purrr::list_rbind()
+  if (nrow(nodes) == 0) {
+    return(data.frame(
+      x = numeric(),
+      y = numeric(),
+      shape = numeric(),
+      size = numeric()
+    ))
+  }
+
+  panel_params <- built$layout$panel_params[[panel]]
+  npc <- built$layout$coord$transform(nodes, panel_params)
+  nodes$x <- convert_mm_x(grid::unit(npc$x, "npc"))
+  nodes$y <- convert_mm_y(grid::unit(npc$y, "npc"))
+  nodes
+}
+
+# The node among `nodes` an edge end at (`x`, `y`) mm meets: the nearest node
+# whose disc holds the end, the widest where glyphs overlap there. A routed
+# edge may end on a port off its node's centre line, still inside the node.
+node_at_end <- function(nodes, x, y) {
+  distance <- sqrt((nodes$x - x)^2 + (nodes$y - y)^2)
+  if (!any(is.finite(distance))) {
+    return(NA_integer_)
+  }
+  nearest <- which(distance <= min(distance, na.rm = TRUE) + 1e-6)
+  nearest <- nearest[which.max(nodes$size[nearest])]
+  if (distance[[nearest]] > 0.375 * nodes$size[[nearest]]) {
+    return(NA_integer_)
+  }
+  nearest
+}
+
+# The point ggarrow cuts a path back to when it resects `resect` mm from the
+# path's last point: where the path leaves the disc of that radius around its
+# last point, interpolated the way ggarrow interpolates it. With the arrow
+# justified at its tip, as every DAG edge layer draws it, the tip of the
+# arrowhead is drawn there. `NA` for a path shorter than its resection.
+resect_cut_point <- function(x, y, resect) {
+  n <- length(x)
+  if (n < 2 || is.na(resect)) {
+    return(c(NA_real_, NA_real_))
+  }
+  if (resect <= 0) {
+    return(c(x[[n]], y[[n]]))
+  }
+  distance <- sqrt((x - x[[n]])^2 + (y - y[[n]])^2)
+  outside <- which(distance >= resect)
+  if (length(outside) == 0) {
+    return(c(NA_real_, NA_real_))
+  }
+  before <- max(outside)
+  after <- before + 1L
+  d <- (resect - distance[[before]]) / (distance[[after]] - distance[[before]])
+  c(
+    x[[before]] * (1 - d) + x[[after]] * d,
+    y[[before]] * (1 - d) + y[[after]] * d
+  )
+}
+
+# The ggarrow edges -------------------------------------------------------------
+
+# The paths a forced ggarrow grob hands to ggarrow, in millimetres, one list of
+# `x` and `y` per edge in the order the grob draws them, and the resection
+# ggarrow cuts from the fins end (`fins`) and the head end (`head`) of each.
+# The routed layer and `geom_dag_arrow()` draw an `arrow_path` grob, whose
+# points and resections are its own fields. The arc layer draws a
+# `curve_arrow` grob, which builds its paths from the curve it holds when it
+# is drawn, so they are built here the same way. Call it with the grob's
+# viewport pushed.
+arrow_grob_paths <- function(grob) {
+  if (inherits(grob, "arrow_path")) {
+    fields <- unclass(grob$id_rle)
+    id <- rep(seq_along(fields$length), fields$length)
+    x <- convert_mm_x(grob$x)
+    y <- convert_mm_y(grob$y)
+    paths <- unname(lapply(split(seq_along(id), id), \(i) {
+      list(x = x[i], y = y[i])
+    }))
+    fins <- grob$resect$fins
+    head <- grob$resect$head
+  } else {
+    curve <- grid::makeContent(grob$curve)$children[[1]]
+    if (inherits(curve, "xspline")) {
+      points <- grid::xsplinePoints(curve)
+      if (all(c("x", "y") %in% names(points))) {
+        points <- list(points)
+      }
+      paths <- lapply(points, \(p) {
+        list(x = convert_mm_x(p$x), y = convert_mm_y(p$y))
+      })
+    } else {
+      x0 <- convert_mm_x(curve$x0)
+      y0 <- convert_mm_y(curve$y0)
+      x1 <- convert_mm_x(curve$x1)
+      y1 <- convert_mm_y(curve$y1)
+      paths <- lapply(seq_along(x0), \(i) {
+        list(x = c(x0[[i]], x1[[i]]), y = c(y0[[i]], y1[[i]]))
+      })
+    }
+    fins <- grob$params$resect_fins
+    head <- grob$params$resect_head
+  }
+
+  n <- length(paths)
+  list(
+    paths = paths,
+    fins = rep_len(convert_mm_length(fins %||% 0), n),
+    head = rep_len(convert_mm_length(head %||% 0), n)
+  )
+}
+
+# Every ggarrow edge `plot` draws, as drawn on a device of a fixed size: one
+# element per arrow grob, holding its panel, its paths in millimetres, and the
+# resection of each end of each path, which is what ggarrow draws the edge
+# with, whether the layer settled it when the plot was built or when it was
+# drawn.
+arrow_grob_drawings <- function(plot, width = 7, height = 5) {
+  with_forced_plot(
+    plot,
+    function(built) {
+      grobs <- forced_grobs("curve_arrow|arrow_path")
+      drawings <- purrr::map(grobs, \(found) {
+        # a legend key draws its arrow outside every panel
+        if (
+          !inherits(found$grob, c("curve_arrow", "arrow_path")) ||
+            is.na(found$panel)
+        ) {
+          return(NULL)
+        }
+        grid::upViewport(0)
+        grid::downViewport(found$vp_path)
+        on.exit(grid::upViewport(0), add = TRUE)
+
+        drawn <- arrow_grob_paths(found$grob)
+        drawn$panel <- found$panel
+        drawn$nodes <- panel_nodes_mm(plot, built, found$panel)
+        drawn
+      })
+      purrr::compact(drawings)
+    },
+    width = width,
+    height = height
+  )
+}
+
+# One row per end of every ggarrow edge `plot` draws: the panel, which end,
+# the ends of the edge's path, the node the end meets, with the shape and size
+# it is drawn with and its centre, the resection at the end, and where the tip
+# is drawn, also relative to that node's centre, all in millimetres. The fins
+# end is the start of the path and the head end its finish.
+drawn_arrow_ends <- function(plot, width = 7, height = 5) {
+  drawings <- arrow_grob_drawings(plot, width = width, height = height)
+
+  purrr::map(drawings, \(drawn) {
+    nodes <- drawn$nodes
+    purrr::map(seq_along(drawn$paths), \(k) {
+      path <- drawn$paths[[k]]
+      n <- length(path$x)
+      end_row <- function(end) {
+        at <- if (end == "fins") 1L else n
+        node <- node_at_end(nodes, path$x[[at]], path$y[[at]])
+        resect <- if (end == "fins") drawn$fins[[k]] else drawn$head[[k]]
+        tip <- if (end == "fins") {
+          resect_cut_point(rev(path$x), rev(path$y), resect)
+        } else {
+          resect_cut_point(path$x, path$y, resect)
+        }
+        data.frame(
+          panel = drawn$panel,
+          end = end,
+          from_x = path$x[[1]],
+          from_y = path$y[[1]],
+          to_x = path$x[[n]],
+          to_y = path$y[[n]],
+          shape = nodes$shape[node],
+          size = nodes$size[node],
+          centre_x = nodes$x[node],
+          centre_y = nodes$y[node],
+          resect = resect,
+          tip_x = tip[[1]],
+          tip_y = tip[[2]],
+          tip_dx = tip[[1]] - nodes$x[node],
+          tip_dy = tip[[2]] - nodes$y[node]
+        )
+      }
+      rbind(end_row("fins"), end_row("head"))
+    }) |>
+      purrr::list_rbind()
+  }) |>
+    purrr::list_rbind()
+}
+
+# The ggraph edges --------------------------------------------------------------
+
+# One row per end of every ggraph edge `plot` draws, in the shape
+# `drawn_arrow_ends()` returns, with `start` and `end` for the ends and no
+# resection. A capped path grob keeps the uncut path in native units, whose
+# ends are the node centres, and draws the cut path as a child in
+# millimetres. The arrowhead of a closed grid arrow has its tip at the end of
+# the path.
+drawn_edge_ends <- function(plot, width = 7, height = 5) {
+  with_forced_plot(
+    plot,
+    function(built) {
+      grobs <- forced_grobs("cappedpathgrob")
+      purrr::map(grobs, \(found) {
+        grob <- found$grob
+        if (
+          !inherits(grob, "cappedpathgrob") ||
+            length(grob$x) == 0 ||
+            is.na(found$panel)
+        ) {
+          return(NULL)
+        }
+        grid::upViewport(0)
+        grid::downViewport(found$vp_path)
+        on.exit(grid::upViewport(0), add = TRUE)
+
+        nodes <- panel_nodes_mm(plot, built, found$panel)
+        centre_x <- convert_mm_x(grob$x)
+        centre_y <- convert_mm_y(grob$y)
+        edge_ids <- unique(grob$id)
+        drawn <- grob$children[[1]]
+        drawn_ids <- if (inherits(drawn, "polyline")) unique(drawn$id)
+        if (length(drawn_ids) != length(edge_ids)) {
+          return(NULL)
+        }
+        drawn_x <- convert_mm_x(drawn$x)
+        drawn_y <- convert_mm_y(drawn$y)
+
+        purrr::map(seq_along(edge_ids), \(k) {
+          uncut <- which(grob$id == edge_ids[[k]])
+          cut <- which(drawn$id == drawn_ids[[k]])
+          from <- uncut[[1]]
+          to <- uncut[[length(uncut)]]
+          end_row <- function(end, centre, tip) {
+            node <- node_at_end(nodes, centre_x[[centre]], centre_y[[centre]])
+            data.frame(
+              panel = found$panel,
+              end = end,
+              from_x = centre_x[[from]],
+              from_y = centre_y[[from]],
+              to_x = centre_x[[to]],
+              to_y = centre_y[[to]],
+              shape = nodes$shape[node],
+              size = nodes$size[node],
+              centre_x = nodes$x[node],
+              centre_y = nodes$y[node],
+              resect = NA_real_,
+              tip_x = drawn_x[[tip]],
+              tip_y = drawn_y[[tip]],
+              tip_dx = drawn_x[[tip]] - nodes$x[node],
+              tip_dy = drawn_y[[tip]] - nodes$y[node]
+            )
+          }
+          rbind(
+            end_row("start", from, cut[[1]]),
+            end_row("end", to, cut[[length(cut)]])
+          )
+        }) |>
+          purrr::list_rbind()
+      }) |>
+        purrr::list_rbind()
+    },
+    width = width,
+    height = height
+  )
+}
+
+# The automatic labels ---------------------------------------------------------
+
+# One row per edge the automatic label layer of the one-panel plot `plot`
+# traces, read where the label engine turns the traced edges into the ink it
+# keeps its labels off, when the plot is drawn on a device of a fixed size:
+# the ends of the traced path, the millimetres cut from its start
+# (`cap_fins`) and its end (`cap_head`), and the points it is cut back to.
+# The engine drops the part of a traced edge within that many millimetres of
+# either end, in a straight line from the end, which is where ggarrow cuts a
+# path it resects.
+traced_label_ends <- function(plot, width = 7, height = 5) {
+  label_ink <- get("label_ink", envir = asNamespace("ggdag"))
+  traced <- list()
+  record <- function(edges, cap, ...) {
+    traced[[length(traced) + 1L]] <<- edges
+    label_ink(edges, cap, ...)
+  }
+
+  # drawing the plot and then forcing its grob tree runs the label grob's
+  # `makeContent()` once for each, on the same panel and the same device
+  panels <- testthat::with_mocked_bindings(
+    with_forced_plot(
+      plot,
+      \(built) nrow(built$layout$layout),
+      width = width,
+      height = height
+    ),
+    label_ink = record,
+    .package = "ggdag"
+  )
+  if (panels != 1 || length(traced) == 0) {
+    stop("expected one panel of traced labels")
+  }
+
+  edges <- traced[[length(traced)]]
+  rows <- split(
+    seq_len(nrow(edges)),
+    factor(edges$edge_id, levels = unique(edges$edge_id))
+  )
+  purrr::map(rows, \(i) {
+    x <- edges$x[i]
+    y <- edges$y[i]
+    n <- length(i)
+    cap_fins <- edges$cap_fins[i][[1]]
+    cap_head <- edges$cap_head[i][[1]]
+    start <- resect_cut_point(rev(x), rev(y), cap_fins)
+    end <- resect_cut_point(x, y, cap_head)
+    data.frame(
+      from_x = x[[1]],
+      from_y = y[[1]],
+      to_x = x[[n]],
+      to_y = y[[n]],
+      cap_fins = cap_fins,
+      cap_head = cap_head,
+      start_x = start[[1]],
+      start_y = start[[2]],
+      end_x = end[[1]],
+      end_y = end[[2]]
+    )
+  }) |>
+    purrr::list_rbind()
+}
+
+# The traced edges among `traced`, from `traced_label_ends()`, whose cut ends
+# are not where the edges among `drawn`, from `drawn_arrow_ends()` or
+# `drawn_edge_ends()`, draw their tips, within `tolerance` mm. A traced edge
+# is matched to the drawn edge that runs between the same node centres.
+label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
+  if (nrow(traced) == 0) {
+    return("the labels trace no edges")
+  }
+  start_end <- drawn$end %in% c("fins", "start")
+
+  purrr::map_chr(seq_len(nrow(traced)), \(i) {
+    edge <- traced[i, ]
+    same <- abs(drawn$from_x - edge$from_x) < 1e-3 &
+      abs(drawn$from_y - edge$from_y) < 1e-3 &
+      abs(drawn$to_x - edge$to_x) < 1e-3 &
+      abs(drawn$to_y - edge$to_y) < 1e-3
+    where <- sprintf(
+      "the traced edge from (%.2f, %.2f) to (%.2f, %.2f) mm",
+      edge$from_x,
+      edge$from_y,
+      edge$to_x,
+      edge$to_y
+    )
+    if (sum(same & start_end) != 1 || sum(same & !start_end) != 1) {
+      return(paste(where, "matches no single drawn edge"))
+    }
+    start <- drawn[same & start_end, ]
+    end <- drawn[same & !start_end, ]
+    start_off <- sqrt(
+      (edge$start_x - start$tip_x)^2 + (edge$start_y - start$tip_y)^2
+    )
+    end_off <- sqrt((edge$end_x - end$tip_x)^2 + (edge$end_y - end$tip_y)^2)
+    problems <- c(
+      if (is.na(start_off) || start_off > tolerance) {
+        sprintf(
+          "is cut at its start %.3f mm from the drawn tip (cap %.3f mm)",
+          start_off,
+          edge$cap_fins
+        )
+      },
+      if (is.na(end_off) || end_off > tolerance) {
+        sprintf(
+          "is cut at its end %.3f mm from the drawn tip (cap %.3f mm)",
+          end_off,
+          edge$cap_head
+        )
+      }
+    )
+    if (length(problems) == 0) {
+      return(NA_character_)
+    }
+    paste(where, paste(problems, collapse = " and "))
+  }) |>
+    purrr::discard(is.na)
+}
+
+# Mismatches -------------------------------------------------------------------
+
+# The edge ends among `ends` whose drawn tip is not `gap` mm outside the
+# outline of the node there, within `tolerance` mm, described by panel, end,
+# path, and node.
+tip_gap_mismatches <- function(ends, gap = 2, tolerance = 0.05) {
+  if (nrow(ends) == 0) {
+    return("the plot draws no edge ends")
+  }
+  expected <- expected_outline_mm(ends$shape, ends$size) + gap
+  actual <- outline_distance_mm(ends$shape, ends$tip_dx, ends$tip_dy)
+  bad <- is.na(expected) | is.na(actual) | abs(actual - expected) > tolerance
+
+  sprintf(
+    "panel %s, the %s end of the edge from (%.2f, %.2f) to (%.2f, %.2f) mm at a %s drawn at size %s: the tip is drawn %.3f mm out; expected %.3f mm",
+    ends$panel[bad],
+    ends$end[bad],
+    ends$from_x[bad],
+    ends$from_y[bad],
+    ends$to_x[bad],
+    ends$to_y[bad],
+    node_shape_name(ends$shape[bad]),
+    ends$size[bad],
+    actual[bad],
+    expected[bad]
+  )
+}
+
+# The circle edge ends among `ends` that ggarrow does not resect by `gap` mm
+# beyond the circle's radius. A resection is the straight-line distance from
+# the end of the path, so at a circle it is the whole cap; at a square it
+# depends on the angle the edge meets the square at, and only the drawn tip
+# says whether it is right.
+circle_resect_mismatches <- function(ends, gap = 2) {
+  circle <- !is.na(ends$shape) & !is_square_shape(ends$shape)
+  expected <- expected_outline_mm(ends$shape, ends$size) + gap
+  bad <- circle & (is.na(ends$resect) | abs(ends$resect - expected) > 1e-6)
+
+  sprintf(
+    "panel %s, the %s end of the edge from (%.2f, %.2f) to (%.2f, %.2f) mm at a circle drawn at size %s is resected by %.4f mm; expected %.4f mm",
+    ends$panel[bad],
+    ends$end[bad],
+    ends$from_x[bad],
+    ends$from_y[bad],
+    ends$to_x[bad],
+    ends$to_y[bad],
+    ends$size[bad],
+    ends$resect[bad],
+    expected[bad]
+  )
+}
+
+# The edge ends among `ends` that ggarrow does not resect by `resect` mm.
+fixed_resect_mismatches <- function(ends, resect) {
+  if (nrow(ends) == 0) {
+    return("the plot draws no edge ends")
+  }
+  bad <- is.na(ends$resect) | abs(ends$resect - resect) > 1e-6
+
+  sprintf(
+    "panel %s, the %s end of the edge from (%.2f, %.2f) to (%.2f, %.2f) mm is resected by %.4f mm; expected %.4f mm",
+    ends$panel[bad],
+    ends$end[bad],
+    ends$from_x[bad],
+    ends$from_y[bad],
+    ends$to_x[bad],
+    ends$to_y[bad],
+    ends$resect[bad],
+    resect
+  )
+}
+
+# The edge ends among `ends` that meet no node, or a node not drawn at size
+# `node_size`.
+node_size_mismatches <- function(ends, node_size) {
+  bad <- is.na(ends$size) | abs(ends$size - node_size) > 1e-9
+
+  sprintf(
+    "panel %s, the %s end of the edge from (%.2f, %.2f) to (%.2f, %.2f) mm meets %s",
+    ends$panel[bad],
+    ends$end[bad],
+    ends$from_x[bad],
+    ends$from_y[bad],
+    ends$to_x[bad],
+    ends$to_y[bad],
+    ifelse(
+      is.na(ends$size[bad]),
+      "no node",
+      paste("a node drawn at size", ends$size[bad])
+    )
+  )
+}
+
+# The default size -------------------------------------------------------------
+
+# The canonical DAGs whose ggarrow edges at the default node size are pinned
+# in fixtures/ggarrow-default-resects.rds, and the edge routes each is drawn
+# with.
+default_resect_scenes <- c("mediation", "smoking", "complex_chain")
+default_resect_routes <- c("straight", "spline", "orthogonal")
+
+# The canonical DAG `name` from `canonical_dag_specs`, laid out as every plot
+# lays it out.
+canonical_tidy_dag <- function(name) {
+  spec <- canonical_dag_specs[[name]]
+  dag <- dagitty::dagitty(paste0("dag { ", paste(spec, collapse = "; "), " }"))
+  withr::with_seed(1234, tidy_dagitty(dag))
+}
+
+# The ggarrow edges `ggdag()` draws for each default scene and route, at the
+# default node size, on a 7 by 5 inch device: for each, one row per edge with
+# its panel, the ends of its path, and the resection of each end, and the
+# path itself, in millimetres, sorted by where the edge runs so that the
+# order the layers draw their edges in does not matter.
+default_resect_drawings <- function() {
+  scenes <- lapply(default_resect_scenes, \(name) {
+    tidy_dag <- canonical_tidy_dag(name)
+    routes <- lapply(default_resect_routes, \(route) {
+      plot <- ggdag(tidy_dag, edge_engine = "ggarrow", edge_route = route) +
+        theme_dag()
+      drawings <- arrow_grob_drawings(plot)
+      edges <- purrr::map(drawings, \(drawn) {
+        purrr::map(seq_along(drawn$paths), \(k) {
+          path <- drawn$paths[[k]]
+          n <- length(path$x)
+          list(
+            row = data.frame(
+              panel = drawn$panel,
+              from_x = path$x[[1]],
+              from_y = path$y[[1]],
+              to_x = path$x[[n]],
+              to_y = path$y[[n]],
+              fins = drawn$fins[[k]],
+              head = drawn$head[[k]]
+            ),
+            path = data.frame(x = path$x, y = path$y)
+          )
+        })
+      }) |>
+        purrr::list_flatten()
+      rows <- purrr::list_rbind(purrr::map(edges, "row"))
+      order <- order(
+        rows$panel,
+        round(rows$from_x, 6),
+        round(rows$from_y, 6),
+        round(rows$to_x, 6),
+        round(rows$to_y, 6)
+      )
+      rows <- rows[order, , drop = FALSE]
+      rownames(rows) <- NULL
+      list(edges = rows, paths = purrr::map(edges, "path")[order])
+    })
+    stats::setNames(routes, default_resect_routes)
+  })
+  stats::setNames(scenes, default_resect_scenes)
+}

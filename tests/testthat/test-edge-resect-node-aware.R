@@ -1,0 +1,695 @@
+# Under the ggarrow edge engine an edge is resected so that it stops 2 mm,
+# times the plot's `size`, outside the outline of the node at each of its
+# ends, as the ggraph engine caps it, unless the caller fixes the resection
+# with `edge_cap`, the `ggdag.edge_cap` option, or a resection of the layer's
+# own. The outline of a circle node is its radius, and the tip lies that far
+# plus the gap from the centre; the outline of a square node is its half side,
+# and the tip lies on the square that far plus the gap out from the centre.
+#
+# ggarrow resects an end by a straight-line distance from the end of the path.
+# At a circle node that distance is the whole cap, but at a square node it
+# depends on the angle the edge meets the square at, which is known only once
+# the plot is drawn in millimetres. So every check here reads the arrow grobs
+# of a plot drawn on a device of a fixed size, after their content is forced:
+# the resection each grob hands ggarrow, whether the layer settled it when the
+# plot was built or when it was drawn, and the tip ggarrow draws at that
+# resection. Circle ends are checked by both, square ends by the tip alone.
+# The helpers live in helper-node-edge-ends.R.
+
+# Scenes ------------------------------------------------------------------------
+
+# The plotters that take an `edge_engine` argument, each called on a DAG it can
+# draw at `node_size` with `...` passed on. `geom_dag()` is called on a plot of
+# its own.
+engine_plotter_calls <- function(node_size, ...) {
+  list(
+    ggdag = ggdag(cap_dag(), node_size = node_size, ...),
+    geom_dag = ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+      geom_dag(node_size = node_size, ...),
+    ggdag_adjust = ggdag_adjust(
+      controlled_dag(),
+      var = "z",
+      node_size = node_size,
+      ...
+    ),
+    ggdag_adjustment_set = ggdag_adjustment_set(
+      controlled_dag(),
+      node_size = node_size,
+      ...
+    ),
+    ggdag_paths = ggdag_paths(cap_dag(), node_size = node_size, ...),
+    ggdag_paths_fan = ggdag_paths_fan(cap_dag(), node_size = node_size, ...),
+    ggdag_equivalent_dags = ggdag_equivalent_dags(
+      dagify(y ~ x, x ~ z),
+      node_size = node_size,
+      ...
+    ),
+    ggdag_equivalent_class = ggdag_equivalent_class(
+      dagify(y ~ x, x ~ z, y ~ z),
+      node_size = node_size,
+      ...
+    ),
+    ggdag_m_bias = ggdag_m_bias(node_size = node_size, ...),
+    ggdag_butterfly_bias = ggdag_butterfly_bias(node_size = node_size, ...),
+    ggdag_confounder_triangle = ggdag_confounder_triangle(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_collider_triangle = ggdag_collider_triangle(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_mediation_triangle = ggdag_mediation_triangle(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_collider = ggdag_quartet_collider(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_confounder = ggdag_quartet_confounder(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_mediator = ggdag_quartet_mediator(
+      node_size = node_size,
+      ...
+    ),
+    ggdag_quartet_m_bias = ggdag_quartet_m_bias(node_size = node_size, ...),
+    ggdag_quartet_time_collider = ggdag_quartet_time_collider(
+      node_size = node_size,
+      ...
+    )
+  )
+}
+
+# The plotters that draw their edges with whatever engine the `edge_engine`
+# option names, each called on a DAG it can draw at `node_size`.
+option_plotter_calls <- function(node_size) {
+  list(
+    ggdag_status = ggdag_status(cap_dag(), node_size = node_size),
+    ggdag_collider = ggdag_collider(cap_dag(), node_size = node_size),
+    ggdag_canonical = ggdag_canonical(cap_dag(), node_size = node_size),
+    ggdag_exogenous = ggdag_exogenous(cap_dag(), node_size = node_size),
+    ggdag_children = ggdag_children(cap_dag(), "z", node_size = node_size),
+    ggdag_parents = ggdag_parents(cap_dag(), "y", node_size = node_size),
+    ggdag_ancestors = ggdag_ancestors(cap_dag(), "y", node_size = node_size),
+    ggdag_descendants = ggdag_descendants(
+      cap_dag(),
+      "z",
+      node_size = node_size
+    ),
+    ggdag_markov_blanket = ggdag_markov_blanket(
+      cap_dag(),
+      "x",
+      node_size = node_size
+    ),
+    ggdag_adjacent = ggdag_adjacent(cap_dag(), "x", node_size = node_size),
+    ggdag_instrumental = ggdag_instrumental(
+      conditional_iv_dag(),
+      node_size = node_size
+    ),
+    ggdag_drelationship = ggdag_drelationship(
+      controlled_dag(),
+      from = "x",
+      to = "y",
+      controlling_for = "z",
+      node_size = node_size
+    ),
+    ggdag_dseparated = ggdag_dseparated(
+      controlled_dag(),
+      from = "x",
+      to = "y",
+      controlling_for = "z",
+      node_size = node_size
+    ),
+    ggdag_dconnected = ggdag_dconnected(
+      controlled_dag(),
+      from = "x",
+      to = "y",
+      controlling_for = "z",
+      node_size = node_size
+    )
+  )
+}
+
+# The plotters among these that draw controlled nodes as squares.
+square_plotters <- c(
+  "ggdag_adjust",
+  "ggdag_adjustment_set",
+  "ggdag_instrumental",
+  "ggdag_drelationship",
+  "ggdag_dseparated",
+  "ggdag_dconnected"
+)
+
+# Does some edge in `ends` meet a square node at an angle, off both of its
+# axes, where the square outline and a circle through its face part ways?
+meets_square_at_angle <- function(ends) {
+  any(
+    is_square_shape(ends$shape) &
+      abs(ends$tip_dx) > 2 &
+      abs(ends$tip_dy) > 2,
+    na.rm = TRUE
+  )
+}
+
+# A DAG laid out on a grid, with the node `m` drawn as a square and the rest as
+# circles.
+square_m_dag <- function(dag) {
+  tidy_dagitty(dag) |>
+    dplyr::mutate(shape = ifelse(name == "m", 15, 19))
+}
+
+# `tidy_dag` from `square_m_dag()` drawn with its nodes at size 30 and the
+# ggarrow edge layers `edges`.
+square_m_plot <- function(tidy_dag, edges) {
+  ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(aes(shape = shape), size = 30) +
+    scale_shape_identity() +
+    edges +
+    theme_dag()
+}
+
+# Two edges meet the square `m` at an angle and one leaves it along its axis.
+straight_square_scene <- function() {
+  square_m_dag(dagify(
+    m ~ x + a,
+    y ~ m,
+    coords = list(
+      x = c(x = 0, a = 0, m = 1, y = 2),
+      y = c(x = 0, a = 1, m = 0.5, y = 0.5)
+    )
+  ))
+}
+
+# A directed edge into the square `m` and a bidirected arc from it, both at an
+# angle.
+arc_square_scene <- function() {
+  square_m_dag(dagify(
+    m ~ x,
+    m ~ ~w,
+    coords = list(
+      x = c(x = 0, m = 1, w = 2),
+      y = c(x = 0, m = 0.5, w = 1.2)
+    )
+  ))
+}
+
+# The square `m` sits on the chord of `x -> y`, which the router detours
+# around, and `a -> m` meets it at an angle.
+spline_square_scene <- function() {
+  square_m_dag(dagify(
+    m ~ x + a,
+    y ~ x + m,
+    coords = list(
+      x = c(x = 0, a = 0, m = 1, y = 2),
+      y = c(x = 0, a = 1, m = 0, y = 0)
+    )
+  ))
+}
+
+# A collinear chain with a skip edge: the orthogonal router runs `x -> m` and
+# `m -> y` along the row and takes `x -> y` round the square `m` through a
+# channel, and every node side carries one edge, so every path ends on its
+# node's centre.
+orthogonal_square_scene <- function() {
+  square_m_dag(dagify(
+    m ~ x,
+    y ~ x + m,
+    coords = list(
+      x = c(x = 0, m = 1, y = 2),
+      y = c(x = 0, m = 0, y = 0)
+    )
+  ))
+}
+
+labelled_controlled_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    z ~ a,
+    exposure = "x",
+    outcome = "y",
+    labels = c(x = "Exposure", y = "Outcome", z = "Confounder", a = "Cause")
+  )
+}
+
+# The plotters ------------------------------------------------------------------
+
+test_that("every plotter with an edge_engine argument resects ggarrow edges beyond its nodes", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  for (node_size in c(8, 30)) {
+    plots <- engine_plotter_calls(node_size, edge_engine = "ggarrow")
+    expect_length(plots, 18)
+    for (plotter in names(plots)) {
+      label <- paste0(plotter, "(node_size = ", node_size, ")")
+      ends <- drawn_arrow_ends(plots[[plotter]])
+      expect_gt(nrow(ends), 0, label = label)
+      if (plotter %in% square_plotters) {
+        expect_true(any(is_square_shape(ends$shape)), label = label)
+      }
+
+      expect_equal(
+        node_size_mismatches(ends, node_size),
+        character(),
+        label = paste("the nodes the ggarrow edges of", label, "meet")
+      )
+      expect_equal(
+        circle_resect_mismatches(ends),
+        character(),
+        label = paste("the circle resections of", label)
+      )
+      expect_equal(
+        tip_gap_mismatches(ends),
+        character(),
+        label = paste("the drawn ggarrow tips of", label)
+      )
+    }
+  }
+})
+
+test_that("the plotters that follow the engine option resect ggarrow edges beyond their nodes", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_engine = "ggarrow"
+  )
+
+  plots <- option_plotter_calls(30)
+  for (plotter in names(plots)) {
+    label <- paste0(plotter, "(node_size = 30) under the engine option")
+    ends <- drawn_arrow_ends(plots[[plotter]])
+    expect_gt(nrow(ends), 0, label = label)
+    if (plotter %in% square_plotters) {
+      expect_true(any(is_square_shape(ends$shape)), label = label)
+    }
+
+    expect_equal(node_size_mismatches(ends, 30), character(), label = label)
+    expect_equal(circle_resect_mismatches(ends), character(), label = label)
+    expect_equal(tip_gap_mismatches(ends), character(), label = label)
+  }
+})
+
+test_that("the adjustment set plotters draw ggarrow tips outside square nodes at an angle", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # an edge along a square's axis stops where a circle through its face would
+  # stop it, so the scene has to meet a square off its axes to tell them apart
+  for (node_size in c(8, 30)) {
+    plots <- list(
+      ggdag_adjust = ggdag_adjust(
+        controlled_dag(),
+        var = "z",
+        node_size = node_size,
+        edge_engine = "ggarrow"
+      ),
+      ggdag_adjustment_set = ggdag_adjustment_set(
+        readme_dag(),
+        node_size = node_size,
+        edge_engine = "ggarrow"
+      )
+    )
+    for (plotter in names(plots)) {
+      label <- paste0(plotter, "(node_size = ", node_size, ")")
+      ends <- drawn_arrow_ends(plots[[plotter]])
+      stopifnot(meets_square_at_angle(ends))
+
+      square <- ends[is_square_shape(ends$shape), , drop = FALSE]
+      expect_equal(
+        tip_gap_mismatches(square),
+        character(),
+        label = paste("the square ends of", label)
+      )
+    }
+  }
+})
+
+test_that("the ggarrow resection scales its gap with the plot's size", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # the node is drawn at size 30, 11.25 mm in radius, and the 2 mm gap is
+  # scaled to 3 mm with it
+  ends <- drawn_arrow_ends(
+    ggdag(cap_dag(), node_size = 20, size = 1.5, edge_engine = "ggarrow")
+  )
+
+  expect_equal(node_size_mismatches(ends, 30), character())
+  expect_equal(circle_resect_mismatches(ends, gap = 3), character())
+  expect_equal(tip_gap_mismatches(ends, gap = 3), character())
+  expect_equal(unique(round(ends$resect, 6)), 14.25)
+})
+
+test_that("an explicit edge_cap fixes every ggarrow resection", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  plots <- engine_plotter_calls(30, edge_engine = "ggarrow", edge_cap = 5)
+  for (plotter in names(plots)) {
+    ends <- drawn_arrow_ends(plots[[plotter]])
+    expect_equal(
+      fixed_resect_mismatches(ends, 5),
+      character(),
+      label = paste0(plotter, "(edge_cap = 5, node_size = 30)")
+    )
+  }
+})
+
+# The drawn tips ------------------------------------------------------------------
+
+test_that("a straight ggarrow edge is drawn 2 mm outside a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- square_m_plot(straight_square_scene(), geom_dag_arrow())
+  ends <- drawn_arrow_ends(p)
+  stopifnot(
+    nrow(ends) == 6,
+    meets_square_at_angle(ends),
+    any(is_square_shape(ends$shape) & ends$end == "fins")
+  )
+
+  expect_equal(circle_resect_mismatches(ends), character())
+  expect_equal(tip_gap_mismatches(ends), character())
+})
+
+test_that("a ggarrow arc is drawn 2 mm outside a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- square_m_plot(arc_square_scene(), geom_dag_arrows())
+  drawings <- arrow_grob_drawings(p)
+  ends <- drawn_arrow_ends(p)
+  # the directed edge is a straight arrow path and the bidirected edge an arc,
+  # whose path bends away from its chord
+  arc_paths <- purrr::keep(drawings, \(drawn) {
+    any(purrr::map_int(drawn$paths, \(path) length(path$x)) > 2)
+  })
+  stopifnot(
+    length(arc_paths) == 1,
+    nrow(ends) == 4,
+    meets_square_at_angle(ends)
+  )
+
+  expect_equal(circle_resect_mismatches(ends), character())
+  expect_equal(tip_gap_mismatches(ends), character())
+})
+
+test_that("a spline-routed ggarrow edge is drawn 2 mm outside a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- square_m_plot(
+    spline_square_scene(),
+    geom_dag_routed_arrows(route = "spline")
+  )
+  drawings <- arrow_grob_drawings(p)
+  ends <- drawn_arrow_ends(p)
+  routed <- purrr::map_int(
+    purrr::list_flatten(purrr::map(drawings, "paths")),
+    \(path) length(path$x)
+  )
+  stopifnot(
+    any(routed > 2),
+    nrow(ends) == 8,
+    meets_square_at_angle(ends)
+  )
+
+  expect_equal(tip_gap_mismatches(ends), character())
+})
+
+test_that("an orthogonal-routed ggarrow edge is drawn 2 mm outside a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- square_m_plot(
+    orthogonal_square_scene(),
+    geom_dag_routed_arrows(route = "orthogonal")
+  )
+  ends <- drawn_arrow_ends(p)
+  path_x <- ifelse(ends$end == "fins", ends$from_x, ends$to_x)
+  path_y <- ifelse(ends$end == "fins", ends$from_y, ends$to_y)
+  # a path that ends on a port off its node's centre line puts its tip past
+  # the outline on the port's own run, which this scene keeps out of the check
+  stopifnot(
+    nrow(ends) == 6,
+    any(is_square_shape(ends$shape) & ends$end == "fins"),
+    any(is_square_shape(ends$shape) & ends$end == "head"),
+    all(abs(path_x - ends$centre_x) < 1e-6),
+    all(abs(path_y - ends$centre_y) < 1e-6)
+  )
+
+  expect_equal(tip_gap_mismatches(ends), character())
+})
+
+# The default size ----------------------------------------------------------------
+
+test_that("at the default node size the ggarrow edges draw exactly as before", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # A circle node of the default size 16 is 6 mm in radius, and an edge that
+  # stops 2 mm outside it is resected by the 8 mm the ggarrow engine has
+  # always drawn with, so these scenes, whose nodes are all circles, draw
+  # every path and every resection as they did before the resection followed
+  # the nodes. The baseline is pinned in fixtures/ggarrow-default-resects.rds,
+  # regenerated only on purpose with
+  # tests/testthat/fixtures/make-resect-fixtures.R. Doubles must match to
+  # within floating-point noise (1e-10).
+  fixture <- readRDS(test_path("fixtures", "ggarrow-default-resects.rds"))
+  expect_named(fixture, default_resect_scenes)
+
+  current <- default_resect_drawings()
+  for (scene in default_resect_scenes) {
+    for (route in default_resect_routes) {
+      label <- paste(scene, route)
+      expect_equal(
+        current[[scene]][[route]]$edges,
+        fixture[[scene]][[route]]$edges,
+        tolerance = 1e-10,
+        label = paste(label, "edges and resections")
+      )
+      expect_equal(
+        current[[scene]][[route]]$paths,
+        fixture[[scene]][[route]]$paths,
+        tolerance = 1e-10,
+        label = paste(label, "paths")
+      )
+    }
+  }
+})
+
+# Plots assembled by hand ----------------------------------------------------------
+
+hand_built_arrow_layers <- list(
+  geom_dag_arrow = \() geom_dag_arrow(),
+  geom_dag_arrow_arc = \() geom_dag_arrow_arc(),
+  geom_dag_arrows = \() geom_dag_arrows(),
+  geom_dag_routed_arrows = \() geom_dag_routed_arrows(),
+  geom_dag_edges = \() geom_dag_edges(edge_engine = "ggarrow")
+)
+
+test_that("hand-built ggarrow layers resect beyond the nodes in either layer order", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(cap_dag())
+
+  scenes <- list(
+    circle = \() geom_dag_point(size = 30),
+    square = \() geom_dag_point(size = 30, shape = 15),
+    stylized = \() geom_dag_node(size = 30)
+  )
+
+  for (edges in names(hand_built_arrow_layers)) {
+    edge_layer <- hand_built_arrow_layers[[edges]]
+    for (scene in names(scenes)) {
+      nodes_first <- ggplot(tidy_dag, aes_dag()) +
+        scenes[[scene]]() +
+        edge_layer()
+      edges_first <- ggplot(tidy_dag, aes_dag()) +
+        edge_layer() +
+        scenes[[scene]]()
+
+      for (order in c("nodes first", "edges first")) {
+        p <- if (order == "nodes first") nodes_first else edges_first
+        label <- sprintf("%s() with %s nodes, %s", edges, scene, order)
+        ends <- drawn_arrow_ends(p)
+        expect_gt(nrow(ends), 0, label = label)
+
+        expect_equal(node_size_mismatches(ends, 30), character(), label = label)
+        expect_equal(circle_resect_mismatches(ends), character(), label = label)
+        expect_equal(tip_gap_mismatches(ends), character(), label = label)
+      }
+    }
+  }
+})
+
+test_that("hand-built ggarrow layers follow a node size mapped to the data", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggplot(tidy_dagitty(cap_dag()), aes_dag()) +
+    geom_dag_point(aes(size = x)) +
+    geom_dag_arrows() +
+    scale_size(range = c(8, 30))
+
+  ends <- drawn_arrow_ends(p)
+  expect_gt(length(unique(ends$size)), 1)
+  expect_false(anyNA(ends$size))
+  expect_equal(circle_resect_mismatches(ends), character())
+  expect_equal(tip_gap_mismatches(ends), character())
+})
+
+test_that("a resection the user gives a hand-built ggarrow layer wins at its end", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(cap_dag())
+  circle_resect <- 0.375 * 30 + 2
+
+  set <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_arrows(resect_head = 5)
+  ends <- drawn_arrow_ends(set)
+  expect_equal(unique(round(ends$resect[ends$end == "head"], 6)), 5)
+  expect_equal(unique(round(ends$resect[ends$end == "fins"], 6)), circle_resect)
+
+  # a resection mapped from the data is read for each edge
+  mapped <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_arrow(aes(resect_head = ifelse(name == "z", 3, 5)))
+  ends <- drawn_arrow_ends(mapped)
+  fins <- ends[ends$end == "fins", ]
+  heads <- ends[ends$end == "head", ]
+  edge_rows <- pull_dag_data(tidy_dag)
+  edges_from_z <- sum(edge_rows$name == "z" & !is.na(edge_rows$to))
+  stopifnot(edges_from_z > 0, edges_from_z < nrow(heads))
+
+  head_3 <- abs(heads$resect - 3) < 1e-6
+  expect_equal(unique(round(fins$resect, 6)), circle_resect)
+  expect_setequal(unique(round(heads$resect, 6)), c(3, 5))
+  expect_equal(sum(head_3), edges_from_z)
+  # and the edges resected by 3 mm at their heads all start at one node
+  expect_length(unique(round(heads$from_x[head_3], 6)), 1)
+})
+
+# The automatic labels ------------------------------------------------------------
+
+test_that("the automatic labels cut ggarrow edges where the drawn edges stop", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  circle_cap <- 0.375 * 30 + 2
+
+  circles <- ggdag(
+    labelled_controlled_dag(),
+    node_size = 30,
+    use_labels = TRUE,
+    edge_engine = "ggarrow"
+  )
+  drawn <- drawn_arrow_ends(circles)
+  traced <- traced_label_ends(circles)
+  expect_equal(tip_gap_mismatches(drawn), character())
+  expect_equal(unique(c(traced$cap_fins, traced$cap_head)), circle_cap)
+  expect_equal(label_tip_mismatches(traced, drawn), character())
+
+  squares <- ggdag_adjust(
+    labelled_controlled_dag(),
+    var = "z",
+    node_size = 30,
+    use_labels = TRUE,
+    edge_engine = "ggarrow"
+  )
+  drawn <- drawn_arrow_ends(squares)
+  stopifnot(meets_square_at_angle(drawn))
+  traced <- traced_label_ends(squares)
+  expect_equal(tip_gap_mismatches(drawn), character())
+  expect_equal(label_tip_mismatches(traced, drawn), character())
+})
+
+test_that("the automatic labels cut an edge at both ggraph caps the user sets", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(controlled_dag())
+
+  plots <- list(
+    parameters = ggplot(tidy_dag, aes_dag()) +
+      geom_dag_point(size = 30) +
+      geom_dag_edges_link(
+        start_cap = ggraph::circle(3, "mm"),
+        end_cap = ggraph::circle(5, "mm")
+      ) +
+      geom_dag_label_auto(aes(label = name)),
+    mapping = ggplot(tidy_dag, aes_dag()) +
+      geom_dag_point(size = 30) +
+      geom_dag_edges_link(
+        aes(
+          start_cap = ggraph::circle(3, "mm"),
+          end_cap = ggraph::circle(5, "mm")
+        )
+      ) +
+      geom_dag_label_auto(aes(label = name))
+  )
+
+  for (set_as in names(plots)) {
+    p <- plots[[set_as]]
+    drawn <- drawn_edge_ends(p)
+    gaps <- sqrt(drawn$tip_dx^2 + drawn$tip_dy^2)
+    stopifnot(
+      nrow(drawn) > 0,
+      all(abs(gaps[drawn$end == "start"] - 3) < 0.05),
+      all(abs(gaps[drawn$end == "end"] - 5) < 0.05)
+    )
+
+    traced <- traced_label_ends(p)
+    label <- paste("caps set as", set_as)
+    expect_equal(unique(traced$cap_fins), 3, label = label)
+    expect_equal(unique(traced$cap_head), 5, label = label)
+    expect_equal(
+      label_tip_mismatches(traced, drawn),
+      character(),
+      label = label
+    )
+  }
+})
+
+# Visual baselines ----------------------------------------------------------------
+
+test_that("large nodes keep their ggarrow arrowheads clear of the nodes", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- ggdag(cap_dag(), node_size = 30, edge_engine = "ggarrow")
+  ends <- drawn_arrow_ends(p)
+  stopifnot(
+    length(circle_resect_mismatches(ends)) == 0,
+    length(tip_gap_mismatches(ends)) == 0
+  )
+
+  expect_doppelganger("ggdag ggarrow resects at node_size 30", p)
+})
+
+test_that("orthogonal routes keep their arrowheads clear of a square node", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  p <- square_m_plot(
+    orthogonal_square_scene(),
+    geom_dag_routed_arrows(route = "orthogonal")
+  ) +
+    geom_dag_text()
+  ends <- drawn_arrow_ends(p)
+  stopifnot(
+    any(is_square_shape(ends$shape)),
+    length(tip_gap_mismatches(ends)) == 0
+  )
+
+  expect_doppelganger("orthogonal routes to a square node", p)
+})
