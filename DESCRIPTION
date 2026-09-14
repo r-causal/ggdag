@@ -20,7 +20,7 @@ Imports:
     dagitty,
     dplyr (>= 1.1.1),
     forcats,
-    ggarrow (>= 0.1.1.9000),
+    ggarrow (>= 0.2.0),
     ggplot2 (>= 3.5.0),
     ggraph (>= 2.0.0),
     ggrepel (>= 0.9.7),
@@ -45,8 +45,6 @@ Suggests:
     withr
 VignetteBuilder:
     knitr
-Remotes: 
-    teunbrand/ggarrow
 Config/roxygen2/version: 8.1.0
 Config/testthat/edition: 3
 Config/testthat/parallel: true
