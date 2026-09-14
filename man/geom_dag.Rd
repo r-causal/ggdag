@@ -24,7 +24,7 @@ geom_dag(
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
   label_wrap = ggdag_option("label_wrap", NULL),
   n_edge_points = NULL,
   n_node_points = NULL,
@@ -110,8 +110,9 @@ nothing for the geom to draw, and the layer is left out rather than
 drawn empty, so the plot is the one you would get without the argument.}
 
 \item{label_geom}{A geom function to use for drawing labels when
-\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
-include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_auto}. Other options
+include \code{geom_dag_label_auto2}, \code{geom_dag_text_auto}, \code{geom_dag_label},
+\code{geom_dag_label_repel}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}. To change a parameter that \code{geom_dag()} sets
 on the label layer itself, such as \code{size} or \code{col}, wrap the label geom
 and write your value after the dots:
@@ -191,7 +192,7 @@ dag_labeled <- dagify(
   labels = c(x = "Exposure", y = "Outcome", z = "Mediator")
 )
 
-# Default: repelling labels
+# Default: automatically placed labels
 ggplot(dag_labeled, aes_dag()) +
   geom_dag(use_labels = TRUE)
 

@@ -50,6 +50,16 @@
 #' [geom_dag_edges_arc()] called directly keeps its own default of 0.5 rather
 #' than the option's 0.3.
 #'
+#' `layout` is the layout [tidy_dagitty()], [ggdag()], and the quick plotting
+#' functions use when a DAG carries no coordinates of its own. The default,
+#' `"time_ordered"`, places the nodes in time order with
+#' [time_ordered_coords()]. `label_geom` is the geom those functions and
+#' [geom_dag()] draw labels with when `use_labels = TRUE`. The default is
+#' [geom_dag_label_auto()], which places each label deterministically when
+#' the plot is drawn. For the look of earlier versions of ggdag, the
+#' `"nicely"` layout with repelled labels, set
+#' `ggdag_options_set(layout = "nicely", label_geom = geom_dag_label_repel)`.
+#'
 #' `label_wrap` is a width in characters that [geom_dag()], [ggdag()], and the
 #' quick plotting functions that take `use_labels` hand to the automatic label
 #' geoms, [geom_dag_label_auto()] and [geom_dag_text_auto()], which wrap their
@@ -110,9 +120,9 @@ ggdag_defaults <- list(
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
-  label_geom = geom_dag_label_repel,
+  label_geom = geom_dag_label_auto,
   edge_type = "link_arc",
-  layout = "nicely",
+  layout = "time_ordered",
   edge_engine = "ggraph",
   arrow_head = NULL,
   arrow_fins = NULL,

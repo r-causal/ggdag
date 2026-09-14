@@ -9,8 +9,8 @@ test_that("ggdag() visual output with different label geoms", {
     labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
   )
 
-  # Test default behavior (geom_dag_label_repel)
-  p_default <- ggdag(dag, use_labels = TRUE)
+  # Test the repel label geom
+  p_default <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_repel)
   expect_doppelganger("ggdag default label_repel", p_default)
 
   # Test with static labels
@@ -37,7 +37,7 @@ test_that("ggdag_adjustment_set() visual output with different label geoms", {
     )
   )
 
-  # Test with default repelled labels
+  # Test with the default label geom
   p_default <- ggdag_adjustment_set(dag, use_labels = TRUE)
   expect_doppelganger("adjustment_set default labels", p_default)
 
@@ -61,7 +61,7 @@ test_that("ggdag_paths() visual output with different label geoms", {
     labels = c(x = "X", y = "Y", z = "Z", m = "Mediator")
   )
 
-  # Test with default repelled labels
+  # Test with the default label geom
   p_default <- ggdag_paths(dag, use_labels = TRUE)
   expect_doppelganger("paths default labels", p_default)
 
@@ -82,7 +82,7 @@ test_that("ggdag_collider() visual output with different label geoms", {
     labels = c(x = "Exposure", y = "Outcome", m = "Collider")
   )
 
-  # Test with default repelled labels
+  # Test with the default label geom
   p_default <- ggdag_collider(dag, use_labels = TRUE)
   expect_doppelganger("collider default labels", p_default)
 

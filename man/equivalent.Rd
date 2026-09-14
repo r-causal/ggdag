@@ -11,7 +11,7 @@
 node_equivalent_dags(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 )
 
@@ -33,7 +33,7 @@ ggdag_equivalent_dags(
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
   label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -44,7 +44,11 @@ ggdag_equivalent_dags(
   stylized = deprecated()
 )
 
-node_equivalent_class(.dag, layout = ggdag_option("layout", "nicely"), ...)
+node_equivalent_class(
+  .dag,
+  layout = ggdag_option("layout", "time_ordered"),
+  ...
+)
 
 ggdag_equivalent_class(
   .tdy_dag,
@@ -63,7 +67,7 @@ ggdag_equivalent_class(
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
   label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -79,12 +83,14 @@ ggdag_equivalent_class(
 
 \item{n}{maximal number of returned graphs.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
-for details. Alternatively, \code{"time_ordered"} will use
-\code{time_ordered_coords()} to algorithmically sort the graph by time. You can
-also pass the result of \code{time_ordered_coords()} directly: either the
-function returned when called with no arguments, or the coordinate tibble
-returned when called with arguments.}
+\item{layout}{the layout to use. The default, \code{"time_ordered"}, uses
+\code{time_ordered_coords()} to algorithmically sort the graph by time. The
+\code{layout} option of \code{\link[=ggdag_options_set]{ggdag_options_set()}} changes that default.
+Alternatively, name a layout available in \code{ggraph}, such as \code{"nicely"};
+see \code{\link[ggraph:create_layout]{ggraph::create_layout()}} for details. You can also pass the result of
+\code{time_ordered_coords()} directly: either the function returned when called
+with no arguments, or the coordinate tibble returned when called with
+arguments.}
 
 \item{...}{optional arguments for the layout. When \code{layout} names a layout
 ggdag computes itself, an argument named after one of that layout's own
@@ -135,8 +141,9 @@ nothing for the geom to draw, and the layer is left out rather than
 drawn empty, so the plot is the one you would get without the argument.}
 
 \item{label_geom}{A geom function to use for drawing labels when
-\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
-include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_auto}. Other options
+include \code{geom_dag_label_auto2}, \code{geom_dag_text_auto}, \code{geom_dag_label},
+\code{geom_dag_label_repel}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
 and \code{geom_dag_text_repel2}. To change a parameter that \code{geom_dag()} sets
 on the label layer itself, such as \code{size} or \code{col}, wrap the label geom
 and write your value after the dots:

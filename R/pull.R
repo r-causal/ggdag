@@ -102,7 +102,7 @@ pull_dag_data.dagitty <- function(x, ...) {
 `update_dag_data<-.tidy_dagitty` <- function(x, value) {
   dag <- pull_dag(x)
   previous <- pull_dag_data(x)
-  layout <- ggdag_option("layout", "nicely")
+  layout <- ggdag_option("layout", "time_ordered")
   # the layout is computed from the whole edge list, so the grouping is set
   # aside here as it is in `prep_dag_data()`
   rebuilt <- rebuilt_coordinates(dplyr::ungroup(value), layout, dag)
@@ -235,7 +235,7 @@ incomplete_coordinates <- function(value) {
 
 prep_dag_data <- function(
   value,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   coords = NULL,
   dag = NULL,
   ...,

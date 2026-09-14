@@ -21,12 +21,14 @@ dag_prune(.tdy_dag, edges)
 \item{use_existing_coords}{Logical, indicating whether to use existing node
 coordinates.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
-for details. Alternatively, \code{"time_ordered"} will use
-\code{time_ordered_coords()} to algorithmically sort the graph by time. You can
-also pass the result of \code{time_ordered_coords()} directly: either the
-function returned when called with no arguments, or the coordinate tibble
-returned when called with arguments.}
+\item{layout}{the layout to use. The default, \code{"time_ordered"}, uses
+\code{time_ordered_coords()} to algorithmically sort the graph by time. The
+\code{layout} option of \code{\link[=ggdag_options_set]{ggdag_options_set()}} changes that default.
+Alternatively, name a layout available in \code{ggraph}, such as \code{"nicely"};
+see \code{\link[ggraph:create_layout]{ggraph::create_layout()}} for details. You can also pass the result of
+\code{time_ordered_coords()} directly: either the function returned when called
+with no arguments, or the coordinate tibble returned when called with
+arguments.}
 
 \item{seed}{a numeric seed for reproducible layout generation}
 

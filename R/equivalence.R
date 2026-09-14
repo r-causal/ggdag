@@ -43,7 +43,7 @@
 node_equivalent_dags <- function(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
@@ -130,7 +130,7 @@ ggdag_equivalent_dags <- function(
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
   label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -197,7 +197,7 @@ ggdag_equivalent_dags <- function(
 #' @export
 node_equivalent_class <- function(
   .dag,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
@@ -259,7 +259,7 @@ ggdag_equivalent_class <- function(
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
   label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,

@@ -100,6 +100,16 @@ build yourself takes the \code{curvature} argument you give it, so
 \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} called directly keeps its own default of 0.5 rather
 than the option's 0.3.
 
+\code{layout} is the layout \code{\link[=tidy_dagitty]{tidy_dagitty()}}, \code{\link[=ggdag]{ggdag()}}, and the quick plotting
+functions use when a DAG carries no coordinates of its own. The default,
+\code{"time_ordered"}, places the nodes in time order with
+\code{\link[=time_ordered_coords]{time_ordered_coords()}}. \code{label_geom} is the geom those functions and
+\code{\link[=geom_dag]{geom_dag()}} draw labels with when \code{use_labels = TRUE}. The default is
+\code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}}, which places each label deterministically when
+the plot is drawn. For the look of earlier versions of ggdag, the
+\code{"nicely"} layout with repelled labels, set
+\code{ggdag_options_set(layout = "nicely", label_geom = geom_dag_label_repel)}.
+
 \code{label_wrap} is a width in characters that \code{\link[=geom_dag]{geom_dag()}}, \code{\link[=ggdag]{ggdag()}}, and the
 quick plotting functions that take \code{use_labels} hand to the automatic label
 geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and \code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, which wrap their

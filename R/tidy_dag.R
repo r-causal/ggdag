@@ -2,12 +2,14 @@
 #'
 #' @param .dagitty a `dagitty`
 #' @param seed a numeric seed for reproducible layout generation
-#' @param layout a layout available in `ggraph`. See [ggraph::create_layout()]
-#'   for details. Alternatively, `"time_ordered"` will use
-#'   `time_ordered_coords()` to algorithmically sort the graph by time. You can
-#'   also pass the result of `time_ordered_coords()` directly: either the
-#'   function returned when called with no arguments, or the coordinate tibble
-#'   returned when called with arguments.
+#' @param layout the layout to use. The default, `"time_ordered"`, uses
+#'   `time_ordered_coords()` to algorithmically sort the graph by time. The
+#'   `layout` option of [ggdag_options_set()] changes that default.
+#'   Alternatively, name a layout available in `ggraph`, such as `"nicely"`;
+#'   see [ggraph::create_layout()] for details. You can also pass the result of
+#'   `time_ordered_coords()` directly: either the function returned when called
+#'   with no arguments, or the coordinate tibble returned when called with
+#'   arguments.
 #' @param ... optional arguments for the layout. When `layout` names a layout
 #'   ggdag computes itself, an argument named after one of that layout's own
 #'   arguments is passed to it: `"time_ordered"` takes the arguments of
@@ -48,7 +50,7 @@
 tidy_dagitty <- function(
   .dagitty,
   seed = NULL,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...,
   use_existing_coords = TRUE
 ) {
@@ -286,7 +288,7 @@ as_tidy_dagitty <- function(x, ...) {
 as_tidy_dagitty.dagitty <- function(
   x,
   seed = NULL,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   tidy_dagitty(x, seed = seed, layout = layout, ...)
@@ -302,7 +304,7 @@ as_tidy_dagitty.data.frame <- function(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   saturate = FALSE,
   ...
 ) {
