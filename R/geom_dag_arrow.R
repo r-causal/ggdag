@@ -418,9 +418,10 @@ makeContent.dag_routed_edges <- function(x) {
   )
 
   # the router clears the disc of every node and stops each edge at the node's
-  # own cap, a circle of the layer's node size where a node's shape is not
-  # known; the layer's single cap is the reference the router's constants
-  # are set from
+  # own cap where the heads follow the nodes, a circle of the layer's node
+  # size where a node's shape is not known; the layer's single cap is the
+  # reference the router's constants are set from, and the cap of every node
+  # where the heads were fixed by the user or the plotter
   radius <- node_radius_mm(par$node_size)
   cap <- routed_cap_mm(edges, par$resect)
   geometry <- router_node_geometry(
@@ -428,13 +429,15 @@ makeContent.dag_routed_edges <- function(x) {
     nodes$square %||% rep(FALSE, nrow(nodes)),
     par$node_gap %||% node_edge_gap_mm,
     radius,
-    cap
+    cap,
+    follow = isTRUE(edges$.ggdag_follow_head[1])
   )
   nodes_mm <- data.frame(
     name = nodes$name,
     x = mm_x(nodes$x),
     y = mm_y(nodes$y),
     r = geometry$r,
+    face = geometry$face,
     cap = geometry$cap,
     square = geometry$square,
     stringsAsFactors = FALSE

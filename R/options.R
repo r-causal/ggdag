@@ -19,7 +19,15 @@
 #' its ends, following that node's size and shape, so the arrowheads keep the
 #' same distance from nodes of any size and from the sides of square nodes as
 #' from circles. Setting the option to a number fixes the cap, in millimetres,
-#' at every end.
+#' at every end of the edges the plotters and [geom_dag()] draw. An edge
+#' layer added by hand reads the option only where it has no node to follow:
+#' a ggarrow layer ([geom_dag_arrow()], [geom_dag_arrows()],
+#' [geom_dag_routed_arrows()], or [geom_dag_edges()] under that engine) on a
+#' plot with no node layer stops every end at the option, 8 mm when it is
+#' unset, while a ggraph layer ([geom_dag_edges()] under the ggraph engine and
+#' the `geom_dag_edges_*()` layers) keeps its own 8 mm cap there whatever
+#' the option says. With a node layer on the plot, both follow the nodes,
+#' and a cap set on the layer itself wins at its end either way.
 #'
 #' The plotters that draw adjusted nodes as squares ([ggdag_adjustment_set()],
 #' [ggdag_adjust()], [ggdag_instrumental()], and the d-relationship plotters)

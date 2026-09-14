@@ -251,8 +251,12 @@ route_constants <- function(
 #' @param nodes Data frame with columns `name`, `x`, `y`, and `r` (mm), and
 #'   optionally `cap`, the millimetres from each node's centre the arrow
 #'   layer stops an edge at that node (`cap` for every node without one),
-#'   and `square`, whether the node is drawn as a square, whose face is flat
-#'   so an offset port meets it at the same `cap` as a centre port.
+#'   `square`, whether the node is drawn as a square, whose face is flat
+#'   so an offset port meets it at the same `cap` as a centre port, and
+#'   `face`, the millimetres from the centre to the outline a port's run
+#'   meets, within which the orthogonal ports on a node's sides are placed:
+#'   the half side of a square, whose `r` is its half diagonal, and `r`
+#'   otherwise.
 #' @param edges Data frame with columns `from`, `to`, and optionally
 #'   `curvature` (`NA` to route) and a `fixed_path` list column of
 #'   pre-sampled `data.frame(x, y)` paths for user-curved edges.
@@ -379,11 +383,13 @@ check_route_mode <- function(mode) {
 #' @noRd
 canonicalize_scene <- function(nodes, edges, bounds, tol, layer_axis = "auto") {
   n_nodes <- length(nodes$name)
+  r <- as.numeric(nodes$r)
   nodes <- df_cols(
     name = as.character(nodes$name),
     x = as.numeric(nodes$x),
     y = as.numeric(nodes$y),
-    r = as.numeric(nodes$r),
+    r = r,
+    face = as.numeric(nodes$face %||% r),
     cap = as.numeric(nodes$cap %||% rep(NA_real_, n_nodes)),
     square = as.logical(nodes$square %||% rep(FALSE, n_nodes)) %in% TRUE
   )
@@ -3851,11 +3857,13 @@ route_orthogonal_scene <- function(
   # group's ports `sep_e` apart in the order its shifts spread it, which is
   # the separation the ladder and the arrival rows keep everywhere else.
   # A port stays within the band a head is drawn on, at whichever of the
-  # two nodes has the smaller one, as an arrival row does
+  # two nodes has the smaller one, as an arrival row does. The band is
+  # measured to the node's face, the outline a run meets: the half side of
+  # a square, which is cleared around its wider half diagonal
   par_off <- shift / opts$sep_m * opts$sep_e
   port_band <- pmin(
-    pmax(nodes$r[from] - opts$head_w / 2, 0),
-    pmax(nodes$r[to] - opts$head_w / 2, 0)
+    pmax(nodes$face[from] - opts$head_w / 2, 0),
+    pmax(nodes$face[to] - opts$head_w / 2, 0)
   )
   par_off <- ifelse(
     grp$reciprocal,
@@ -4314,7 +4322,9 @@ route_orthogonal_scene <- function(
   # than a fraction of a millimetre from it or on the wrong side of it. The
   # copies of a parallel bundle are spread sep_m apart already, so they keep
   # the centre row here and take the group's own port instead, which is
-  # `par_off` and is zero unless the group runs both ways. So does an
+  # `par_off` and is zero unless the group runs both ways. The height is
+  # measured to the node's face, the half side of a square, so that every
+  # row's run meets the flat side rather than passing beside it. So does an
   # arrival out of a gap too narrow for any stub,
   # unless the gap is floored: the slot nearest the target leaves a whole
   # head run before the target's layer, and that run holds a row as well as
@@ -4356,7 +4366,7 @@ route_orthogonal_scene <- function(
       below <- idx[arrival_entry[idx] <= head_y[idx]]
       ka <- length(above)
       kb <- length(below)
-      h <- max(nodes$r[[t]] - opts$head_w / 2, 0)
+      h <- max(nodes$face[[t]] - opts$head_w / 2, 0)
       if (any(owner & side_node == t)) {
         mult_a <- seq_len(ka)
         mult_b <- seq_len(kb)

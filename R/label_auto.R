@@ -2562,6 +2562,7 @@ StatNodesLabelAuto <- ggplot2::ggproto(
       node_outline = shapes$outline,
       node_square = shapes$square,
       node_gap = params$edge_end_caps$gap %||% NA_real_,
+      node_follow_head = params$edge_end_caps$follow_head %||% FALSE,
       PANEL = all_nodes$PANEL,
       stringsAsFactors = FALSE
     )
@@ -2683,7 +2684,13 @@ GeomDagLabelAuto <- ggplot2::ggproto(
       edges[[end]] <- found
       edges[[square]] <- is_square %in% TRUE
     }
-    for (name in c("node_outline", "node_square", "node_gap")) {
+    node_shape_columns <- c(
+      "node_outline",
+      "node_square",
+      "node_gap",
+      "node_follow_head"
+    )
+    for (name in node_shape_columns) {
       if (!name %in% names(nodes)) {
         nodes[[name]] <- rep(NA, nrow(nodes))
       }
@@ -2702,7 +2709,7 @@ GeomDagLabelAuto <- ggplot2::ggproto(
     grid::gTree(
       labels = labels,
       nodes = nodes[,
-        c("x", "y", "node_size", "node_outline", "node_square", "node_gap"),
+        c("x", "y", "node_size", node_shape_columns),
         drop = FALSE
       ],
       edges = edges[,
@@ -3077,6 +3084,7 @@ makeContent.dag_labels_auto <- function(x) {
     outline = as.numeric(x$nodes$node_outline %||% rep(NA_real_, n_nodes)),
     square = as.logical(x$nodes$node_square %||% rep(FALSE, n_nodes)),
     gap = as.numeric(x$nodes$node_gap %||% rep(NA_real_, n_nodes)),
+    follow_head = as.logical(x$nodes$node_follow_head %||% rep(FALSE, n_nodes)),
     stringsAsFactors = FALSE
   )
   n_edges <- nrow(x$edges)
@@ -3301,8 +3309,9 @@ trace_curved_obstacles <- function(edges, spec, n = routed_fixed_path_n) {
 #' @param spec The routing columns of the same rows, as the stat carried them.
 #' @param nodes Node centres in millimetres with their `radius`, the `name`
 #'   each node is routed under by the routed layer (the position key of its
-#'   npc coordinates), and the `outline`, `square`, and `gap` the routed
-#'   layer knows each drawn node by, `NA` where it knows none.
+#'   npc coordinates), the `outline`, `square`, and `gap` the routed layer
+#'   knows each drawn node by, `NA` where it knows none, and `follow_head`,
+#'   whether the heads of the plot's edges follow the nodes.
 #' @param par The gTree parameters, carrying `node_size` and `edge_cap`.
 #' @param bounds The panel in millimetres, `c(xmin, ymin, xmax, ymax)`.
 #' @return `edges`, with each routed edge's two rows replaced by its path and
@@ -3368,7 +3377,8 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   }
   # the discs and caps are the ones the routed layer routes with, so the
   # router draws the same paths here; the single cap of the first routed
-  # group stands for a node whose shape is not known, as it does there
+  # group stands for a node whose shape is not known, as it does there, and
+  # for every node where the heads do not follow the nodes
   radius <- node_radius_mm(par$node_size)
   single_cap <- function(settings) {
     if (is.na(settings$cap)) par$edge_cap else settings$cap
@@ -3378,13 +3388,15 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     nodes$square %||% rep(FALSE, nrow(nodes)),
     (nodes$gap %||% rep(NA_real_, nrow(nodes)))[1] %||% node_edge_gap_mm,
     nodes$radius,
-    single_cap(chords[1, , drop = FALSE])
+    single_cap(chords[1, , drop = FALSE]),
+    follow = isTRUE((nodes$follow_head %||% FALSE)[1])
   )
   router_nodes <- data.frame(
     name = nodes$name,
     x = nodes$x,
     y = nodes$y,
     r = geometry$r,
+    face = geometry$face,
     cap = geometry$cap,
     square = geometry$square,
     stringsAsFactors = FALSE
