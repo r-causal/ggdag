@@ -1,3 +1,7 @@
+# The layout option as this file finds it, which the last test in the file
+# checks is still in place once every test above has run.
+layout_option_at_start <- getOption("ggdag.layout")
+
 test_that("ggdag_defaults contains all expected options", {
   expected_names <- c(
     "node_size",
@@ -517,7 +521,7 @@ test_that("layout option validation rejects invalid types", {
 
 test_that("ggdag_option returns layout default when unset", {
   withr::local_options(ggdag.layout = NULL)
-  expect_equal(ggdag_option("layout", "nicely"), "nicely")
+  expect_equal(ggdag_option("layout"), "time_ordered")
 })
 
 test_that("ggdag_option returns layout value when set", {
@@ -1044,6 +1048,7 @@ test_that("ggdag_options_set() rejects NA for numeric options", {
 
 test_that("ggdag_options_set() rejects NA for logical, character, and layout options", {
   local_ggdag_option_state()
+  layout_before <- ggdag_options_get("layout")
 
   expect_error(ggdag_options_set(use_edges = NA), class = "ggdag_type_error")
   expect_error(
@@ -1062,9 +1067,9 @@ test_that("ggdag_options_set() rejects NA for logical, character, and layout opt
   expect_null(ggdag_options_get("use_edges"))
   expect_null(ggdag_options_get("text_col"))
   expect_null(ggdag_options_get("curvature"))
-  # helper-load_dag.R sets a layout for the whole suite, so what the rejected
-  # value must not have done is replace it
-  expect_equal(ggdag_options_get("layout"), "time_ordered")
+  # a layout may already be set, so what the rejected value must not have done
+  # is replace whatever was there
+  expect_identical(ggdag_options_get("layout"), layout_before)
 })
 
 test_that("ggdag_options_set() reports NA values through cli", {
@@ -1104,10 +1109,10 @@ test_that("ggdag_options_set() reports an unnamed value through cli", {
   expect_ggdag_error(ggdag_options_set(20))
 })
 
-# Keep this test last: it guards the suite-wide layout option that
-# helper-load_dag.R sets, which the tests above are free to change but must
-# restore. A failure here means a test in this file leaked an option change into
-# every file that runs after it in the same worker.
+# Keep this test last: it guards the layout option this file found when it
+# started, which the tests above are free to change but must restore. A failure
+# here means a test in this file leaked an option change into every file that
+# runs after it in the same worker.
 test_that("this file leaves the suite-wide layout option intact", {
-  expect_equal(getOption("ggdag.layout"), "time_ordered")
+  expect_identical(getOption("ggdag.layout"), layout_option_at_start)
 })

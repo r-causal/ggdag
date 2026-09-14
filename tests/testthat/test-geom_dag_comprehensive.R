@@ -309,10 +309,11 @@ test_that("text and label enquo handling works", {
 })
 
 test_that("label_geom parameter works correctly", {
-  # Default behavior - should use geom_dag_label_repel
+  # Default behavior - should use geom_dag_label_auto
+  withr::local_options(ggdag.label_geom = NULL)
   geoms_default <- geom_dag(use_labels = TRUE)
   expect_s3_class(geoms_default[[4]]$layer, "LayerInstance")
-  expect_s3_class(geoms_default[[4]]$geom, "GeomLabelRepel")
+  expect_s3_class(geoms_default[[4]]$geom, "GeomDagLabelAuto")
 
   # Using geom_dag_label (static labels)
   geoms_static <- geom_dag(use_labels = TRUE, label_geom = geom_dag_label)

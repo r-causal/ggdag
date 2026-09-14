@@ -147,7 +147,7 @@ rendered_repel_geometry <- function(plot, device = "svglite") {
 # A repel plot built entirely from defaults through geom_dag().
 default_repel_plot <- function() {
   ggplot(confounder_dag(), aes_dag()) +
-    geom_dag(use_labels = TRUE) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label_repel) +
     theme_dag()
 }
 

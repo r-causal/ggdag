@@ -36,9 +36,10 @@ test_that("ggdag() supports label_geom parameter", {
     labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
   )
 
-  # Test with default (geom_dag_label_repel)
+  # Test with default (geom_dag_label_auto)
+  withr::local_options(ggdag.label_geom = NULL)
   p_default <- ggdag(dag, use_labels = TRUE)
-  expect_label_geom(p_default, "GeomLabelRepel", label_size = 0.25)
+  expect_label_geom(p_default, "GeomDagLabelAuto", label_size = 0.25)
 
   # Test with static labels
   p_static <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label)

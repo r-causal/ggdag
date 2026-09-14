@@ -163,6 +163,8 @@ test_that("quartet wrappers forward text to the text layer", {
 })
 
 test_that("quick plot wrappers forward label to the repelling label layer", {
+  withr::local_options(ggdag.label_geom = geom_dag_label_repel)
+
   expect_equal(
     repel_label_expr(ggdag_m_bias(use_labels = TRUE, label = name)),
     repel_label_expr(ggdag(m_bias(), use_labels = TRUE, label = name))

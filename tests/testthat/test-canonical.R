@@ -69,7 +69,7 @@ test_that("node_canonical() keeps the labels of the original DAG", {
   p <- ggdag_canonical(dag, use_labels = TRUE)
   expect_s3_class(p, "ggplot")
   expect_equal(
-    rlang::as_label(find_layer(p, "GeomLabelRepel")$mapping$label),
+    rlang::as_label(find_layer(p, "GeomDagLabelAuto")$mapping$label),
     "label"
   )
   expect_doppelganger("ggdag_canonical() keeps labels", p)
@@ -89,7 +89,7 @@ test_that("ggdag_canonical() defaults label_col to black", {
   )
 
   p <- ggdag_canonical(dag, use_labels = TRUE, label = name)
-  label_layer <- find_layer(p, "GeomLabelRepel")
+  label_layer <- find_layer(p, "GeomDagLabelAuto")
   expect_equal(label_layer$aes_params$colour, "black")
 
   expect_doppelganger("ggdag_canonical() draws black labels", p)
@@ -125,7 +125,7 @@ test_that("ggdag_canonical() forwards text, label, node, and stylized", {
 
   p_label <- ggdag_canonical(dag, use_labels = TRUE, label = to)
   expect_equal(
-    rlang::as_label(find_layer(p_label, "GeomLabelRepel")$mapping$label),
+    rlang::as_label(find_layer(p_label, "GeomDagLabelAuto")$mapping$label),
     "to"
   )
 

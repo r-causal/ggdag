@@ -441,6 +441,7 @@ test_that("geom_dag() threads node_size to repel labels", {
     ggplot(aes_dag()) +
     geom_dag(
       use_labels = TRUE,
+      label_geom = geom_dag_label_repel,
       node_size = 20,
       size = 1
     )
@@ -455,6 +456,7 @@ test_that("geom_dag() threads node_size to repel labels", {
     ggplot(aes_dag()) +
     geom_dag(
       use_labels = TRUE,
+      label_geom = geom_dag_label_repel,
       use_nodes = FALSE,
       node_size = 30,
       size = 1
