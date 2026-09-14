@@ -343,6 +343,14 @@ test_that("label_geom parameter works correctly", {
   expect_s3_class(geoms_text_repel2[[4]]$layer, "LayerInstance")
   expect_s3_class(geoms_text_repel2[[4]]$geom, "GeomTextRepel")
 
+  # Using geom_dag_label_auto2
+  geoms_label_auto2 <- geom_dag(
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_s3_class(geoms_label_auto2[[4]]$layer, "LayerInstance")
+  expect_s3_class(geoms_label_auto2[[4]]$geom, "GeomDagLabelAuto")
+
   # Parameters are passed correctly
   geoms_params <- geom_dag(
     use_labels = TRUE,

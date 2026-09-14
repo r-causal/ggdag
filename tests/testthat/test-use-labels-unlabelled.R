@@ -69,10 +69,15 @@ repel_label_geoms <- list(
   geom_dag_text_repel2 = geom_dag_text_repel2
 )
 
-auto_label_geoms <- list(
-  geom_dag_label_auto = geom_dag_label_auto,
-  geom_dag_text_auto = geom_dag_text_auto
-)
+# Built when a block runs, so a geom missing from the namespace fails the blocks
+# that enumerate it rather than every block in the file.
+auto_label_geoms <- function() {
+  list(
+    geom_dag_label_auto = geom_dag_label_auto,
+    geom_dag_label_auto2 = geom_dag_label_auto2,
+    geom_dag_text_auto = geom_dag_text_auto
+  )
+}
 
 test_that("ggdag(use_labels = TRUE) is a no-op on the default label geom", {
   plot <- ggdag(unlabelled_dag(), use_labels = TRUE)
@@ -105,7 +110,7 @@ test_that("use_labels on an unlabelled DAG is a no-op for every repel geom", {
 })
 
 test_that("use_labels on an unlabelled DAG is a no-op for the auto geoms", {
-  for (label_geom in auto_label_geoms) {
+  for (label_geom in auto_label_geoms()) {
     plot <- ggdag(unlabelled_dag(), use_labels = TRUE, label_geom = label_geom)
     expect_no_condition(ggplot2::ggplot_build(plot))
     expect_length(label_layer_indices(plot), 0)
@@ -123,7 +128,7 @@ test_that("use_labels on an unlabelled DAG is a no-op for the auto geoms", {
 test_that("use_labels still draws a labelled DAG's labels", {
   labels <- c("Exposure", "Outcome", "Confounder")
 
-  for (label_geom in c(repel_label_geoms, auto_label_geoms)) {
+  for (label_geom in c(repel_label_geoms, auto_label_geoms())) {
     plot <- ggdag(labelled_dag(), use_labels = TRUE, label_geom = label_geom)
     expect_setequal(drawn_labels(plot), labels)
 
@@ -140,7 +145,7 @@ test_that("use_labels still draws a labelled DAG's labels", {
 })
 
 test_that("use_labels draws the labels a partly labelled DAG carries", {
-  for (label_geom in c(repel_label_geoms, auto_label_geoms)) {
+  for (label_geom in c(repel_label_geoms, auto_label_geoms())) {
     plot <- ggdag(
       partly_labelled_dag(),
       use_labels = TRUE,

@@ -247,7 +247,11 @@ test_that("auto stat edge rows carry the spec a routed edge is routed with", {
 })
 
 test_that("the auto constructors return debug-enabled discovering dag layers", {
-  constructors <- list(geom_dag_label_auto, geom_dag_text_auto)
+  constructors <- list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )
   for (constructor in constructors) {
     wrapped <- constructor(aes(label = name))
     expect_s3_class(wrapped, "dag_layer")
@@ -809,6 +813,7 @@ test_that("every packaged label geom that repels or places is node-aware", {
     geom_dag_text_repel = geom_dag_text_repel,
     geom_dag_text_repel2 = geom_dag_text_repel2,
     geom_dag_label_auto = geom_dag_label_auto,
+    geom_dag_label_auto2 = geom_dag_label_auto2,
     geom_dag_text_auto = geom_dag_text_auto
   )
   for (name in names(geoms)) {
@@ -1898,7 +1903,11 @@ sibling_label_expr <- function(layer) {
 test_that("the automatic label geoms fall back to a labelled DAG's labels", {
   labels <- c("Exposure", "Mediator", "Outcome")
 
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(labelled_triangle(), aes_dag()) +
       geom_dag_point() +
       label_geom()
@@ -1918,7 +1927,11 @@ test_that("a label column of blanks falls back to node names", {
     node_data <- pull_dag_data(tidy_dagitty(labelled_triangle()))
     node_data$label <- blank
 
-    for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+    for (label_geom in list(
+      geom_dag_label_auto,
+      geom_dag_label_auto2,
+      geom_dag_text_auto
+    )) {
       plot <- ggplot(node_data, aes_dag()) +
         geom_dag_point() +
         label_geom()
@@ -1930,7 +1943,11 @@ test_that("a label column of blanks falls back to node names", {
 })
 
 test_that("a partly labelled DAG falls back to the labels it carries", {
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(partially_labelled_dag(), aes_dag()) +
       geom_dag_point() +
       label_geom()
@@ -1943,7 +1960,11 @@ test_that("a partly labelled DAG falls back to the labels it carries", {
 test_that("a plot-level label mapping wins over the automatic default", {
   labels <- c("Exposure", "Mediator", "Outcome")
 
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(labelled_triangle(), aes_dag(label = label)) +
       geom_dag_point() +
       label_geom()
@@ -1957,7 +1978,11 @@ test_that("a plot-level label mapping wins over the automatic default", {
 test_that("a layer-level label mapping wins over the automatic default", {
   labels <- c("Exposure", "Mediator", "Outcome")
 
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(labelled_triangle(), aes_dag()) +
       geom_dag_point() +
       label_geom(ggplot2::aes(label = label))
@@ -1967,7 +1992,11 @@ test_that("a layer-level label mapping wins over the automatic default", {
   }
 
   # a layer mapping also beats a plot mapping of its own
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(labelled_triangle(), aes_dag(label = label)) +
       geom_dag_point() +
       label_geom(ggplot2::aes(label = name))
@@ -1990,6 +2019,12 @@ test_that("geom_dag_label_auto() reports a missing x aesthetic", {
   expect_ggdag_error(ggplot2::ggplot_build(plot))
 })
 
+test_that("geom_dag_label_auto2() reports a missing x aesthetic", {
+  plot <- plot_without_x(geom_dag_label_auto2)
+
+  expect_error(ggplot2::ggplot_build(plot), class = "ggdag_missing_error")
+})
+
 test_that("geom_dag_text_auto() reports a missing x aesthetic", {
   plot <- plot_without_x(geom_dag_text_auto)
 
@@ -2003,7 +2038,11 @@ test_that("geom_dag_text_auto() reports a missing x aesthetic", {
 test_that("the automatic label geoms draw on hand-mapped node data", {
   node_data <- pull_dag_data(tidy_dagitty(labelled_triangle()))
 
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(
       node_data,
       ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
@@ -2029,7 +2068,11 @@ test_that("the automatic label geoms fall back to names on an unlabelled DAG", {
     coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
   )
 
-  for (label_geom in list(geom_dag_label_auto, geom_dag_text_auto)) {
+  for (label_geom in list(
+    geom_dag_label_auto,
+    geom_dag_label_auto2,
+    geom_dag_text_auto
+  )) {
     plot <- ggplot(unlabelled, aes_dag()) +
       geom_dag_point() +
       label_geom()

@@ -15,8 +15,10 @@ dag_label_layer <- function(plot) {
 }
 
 # The label layer of `plot` was drawn by `geom_class`. Both label repel geoms
-# draw with GeomLabelRepel, so `label_size` tells them apart:
-# geom_dag_label_repel2() draws the label without a box border.
+# draw with GeomLabelRepel and both automatic label geoms with
+# GeomDagLabelAuto, so `label_size` tells each pair apart:
+# geom_dag_label_repel2() and geom_dag_label_auto2() draw the label without a
+# box border.
 expect_label_geom <- function(plot, geom_class, label_size = NULL) {
   expect_s3_class(plot, "gg")
   layer <- dag_label_layer(plot)
@@ -49,6 +51,13 @@ test_that("ggdag() supports label_geom parameter", {
     label_geom = geom_dag_text_repel
   )
   expect_label_geom(p_text_repel, "GeomTextRepel")
+
+  # Test with the automatic labels, bordered and borderless
+  p_auto <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto)
+  expect_label_geom(p_auto, "GeomDagLabelAuto", label_size = 0.25)
+
+  p_auto2 <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto2)
+  expect_label_geom(p_auto2, "GeomDagLabelAuto", label_size = NA)
 })
 
 test_that("adjustment set functions support label_geom parameter", {
@@ -111,6 +120,13 @@ test_that("status function supports label_geom parameter", {
 
   p <- ggdag_status(dag, use_labels = TRUE, label_geom = geom_dag_label_repel2)
   expect_label_geom(p, "GeomLabelRepel", label_size = NA)
+
+  p_auto2 <- ggdag_status(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_auto2, "GeomDagLabelAuto", label_size = NA)
 })
 
 test_that("relation functions support label_geom parameter", {
@@ -155,6 +171,14 @@ test_that("relation functions support label_geom parameter", {
     label_geom = geom_dag_label_repel2
   )
   expect_label_geom(p_ancestors, "GeomLabelRepel", label_size = NA)
+
+  p_ancestors_auto2 <- ggdag_ancestors(
+    dag,
+    "x",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_ancestors_auto2, "GeomDagLabelAuto", label_size = NA)
 
   p_descendants <- ggdag_descendants(
     dag,
@@ -213,6 +237,15 @@ test_that("d-relationship functions support label_geom parameter", {
     label_geom = geom_dag_label_repel2
   )
   expect_label_geom(p_dconn, "GeomLabelRepel", label_size = NA)
+
+  p_dconn_auto2 <- ggdag_dconnected(
+    dag,
+    "x",
+    "y",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_dconn_auto2, "GeomDagLabelAuto", label_size = NA)
 })
 
 test_that("collider function supports label_geom parameter", {
@@ -309,6 +342,15 @@ test_that("quick plot functions support label_geom parameter", {
   )
   expect_label_geom(p_conf, "GeomLabelRepel", label_size = NA)
 
+  p_conf_auto2 <- ggdag_confounder_triangle(
+    x = "X",
+    y = "Y",
+    z = "Z",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_conf_auto2, "GeomDagLabelAuto", label_size = NA)
+
   # Test collider_triangle
   p_coll <- ggdag_collider_triangle(
     x = "X",
@@ -365,6 +407,15 @@ test_that("quick plot functions support label_geom parameter", {
     label_geom = geom_dag_label_repel2
   )
   expect_label_geom(p_q_mbias, "GeomLabelRepel", label_size = NA)
+
+  p_q_mbias_auto2 <- ggdag_quartet_m_bias(
+    x = "X",
+    y = "Y",
+    z = "Z",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_q_mbias_auto2, "GeomDagLabelAuto", label_size = NA)
 
   p_q_time <- ggdag_quartet_time_collider(
     x2 = "X2",
@@ -770,5 +821,17 @@ test_that("the more spaced repel geoms differ from the plain ones in that alone"
       threaded_label_layer(geom_dag_label_repel2)
     ),
     c("box.padding", "label.size", "linewidth")
+  )
+})
+
+test_that("the borderless automatic label geom differs from the plain one in that alone", {
+  # The automatic geoms ignore box padding, so the border is the whole of what
+  # geom_dag_label_auto2() restyles, through geom_dag() as much as on its own.
+  expect_equal(
+    layer_differences(
+      threaded_label_layer(geom_dag_label_auto),
+      threaded_label_layer(geom_dag_label_auto2)
+    ),
+    "label.size"
   )
 })
