@@ -1,12 +1,16 @@
-# A guard for tests that pin exact label placements.
+# A guard for tests that pin geometry measured with Helvetica's text metrics.
 #
-# Those pins were measured with Helvetica's text metrics, which Arial shares
-# for the labels the scenes carry. The label geoms draw in the device's default
-# font, and a default font with other metrics, such as DejaVu Sans, sizes every
-# box differently and changes which labels fit, so a pinned outcome only holds
-# where the default font measures like Helvetica. Width alone is not enough:
-# Liberation Sans matches Helvetica's widths but not its heights, and that is
-# enough to move a placement.
+# Two kinds of pin depend on the default font. Exact label placements do: the
+# label geoms draw in the device's default font, and a default font with
+# other metrics, such as DejaVu Sans, sizes every box differently and changes
+# which labels fit. So does any pin in millimetres of a plot whose panel is
+# sized by text drawn outside it, such as a legend, axis text, strip labels,
+# or a title: that text takes its room from the device before the panel is
+# laid out, so a wider font narrows or shortens the panel and moves every
+# millimetre drawn in it. Such pins only hold where the default font measures
+# like Helvetica, as Arial does for the text the scenes carry. Width alone is
+# not enough: Liberation Sans matches Helvetica's widths but not its heights,
+# and that is enough to move a placement.
 #
 # The reference string is a label from the saturated ten-node scene, measured
 # at the label geoms' default 11 pt on the kind of off-screen ragg device the
@@ -48,25 +52,38 @@ measure_label_font <- function(family = "") {
   )
 }
 
-# Skip the calling test unless `family` measures like Helvetica. The tests call
-# this with the default family the label geoms draw in; the argument exists so
-# the check itself can be exercised against other fonts. Each family is
-# measured once per session.
-skip_unless_reference_label_font <- function(family = "") {
-  skip_if_not_installed("ragg")
-
+# `measure_label_font()` of `family`, measured once per session.
+measured_label_font <- function(family = "") {
   key <- paste0("family:", family)
   if (is.null(reference_label_font_cache[[key]])) {
     reference_label_font_cache[[key]] <- measure_label_font(family)
   }
-  size <- reference_label_font_cache[[key]]
+  reference_label_font_cache[[key]]
+}
 
-  off <- abs(size - reference_label_font_size) > reference_label_font_tolerance
-  if (any(off)) {
+# Whether `family` measures like Helvetica, to within the tolerance of each
+# dimension. Without ragg there is no device to measure on, and no pin that
+# depends on the font can be trusted.
+is_reference_label_font <- function(family = "") {
+  if (!rlang::is_installed("ragg")) {
+    return(FALSE)
+  }
+  size <- measured_label_font(family)
+  all(abs(size - reference_label_font_size) <= reference_label_font_tolerance)
+}
+
+# Skip the calling test unless `family` measures like Helvetica. The tests call
+# this with the default family the plots draw in; the argument exists so the
+# check itself can be exercised against other fonts.
+skip_unless_reference_label_font <- function(family = "") {
+  skip_if_not_installed("ragg")
+
+  if (!is_reference_label_font(family)) {
+    size <- measured_label_font(family)
     skip(sprintf(
       paste(
         "%s sets \"%s\" at %.2f x %.2f mm, not Helvetica's %.2f x %.2f mm;",
-        "placements pinned with Helvetica's metrics do not hold"
+        "geometry pinned with Helvetica's metrics does not hold"
       ),
       if (identical(family, "")) "The default font" else family,
       reference_label_font_text,

@@ -1299,6 +1299,20 @@ explicit_cap_scenes <- list(
   }
 )
 
+# Whether the panel of each explicit-cap scene, and with it every millimetre
+# the router works in, is sized by text drawn outside it. Under `theme_dag()`
+# the epidemiology scenes draw no axis text, strips, legend, or title, so
+# their panel is the device less the plot margin whatever the default font.
+# The adjustment set facets by set, with a strip label above each panel and a
+# legend of the adjusted and unadjusted nodes beside the panels, so the
+# strips take their height from the panels' height and the legend's labels
+# their width from the panels' width.
+explicit_cap_scene_font_sized <- c(
+  ten_spline_6 = FALSE,
+  ten_orthogonal_18 = FALSE,
+  readme_spline_5 = TRUE
+)
+
 # The record of the ggarrow edges each explicit-cap scene draws.
 explicit_cap_drawings <- function() {
   lapply(explicit_cap_scenes, \(scene) arrow_drawing_record(scene()))

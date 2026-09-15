@@ -791,6 +791,36 @@ test_that("the label layer routes each routed layer with the caps that layer dra
   }
 })
 
+# An explicit cap fixes every end, so the router is handed that cap for every
+# node and its head zones, arrival arms, and bows agree with the ink whatever
+# size and shape the nodes are drawn at. The routes are pinned in
+# fixtures/ggarrow-explicit-cap-routes.rds, regenerated only on purpose with
+# tests/testthat/fixtures/make-resect-fixtures.R. The epidemiology scenes,
+# whose nodes are all circles, draw exactly as they did before the caps
+# followed the nodes; the adjustment set differs from then only in that its
+# square nodes are cleared around their half diagonals. A scene whose panel
+# is sized by text drawn outside it, as `explicit_cap_scene_font_sized`
+# records, is compared only where the default font measures like the
+# Helvetica the fixture was drawn with.
+expect_explicit_cap_routes <- function(scenes) {
+  fixture <- readRDS(test_path("fixtures", "ggarrow-explicit-cap-routes.rds"))
+  for (scene in scenes) {
+    current <- arrow_drawing_record(explicit_cap_scenes[[scene]]())
+    expect_equal(
+      current$edges,
+      fixture[[scene]]$edges,
+      tolerance = 1e-10,
+      label = paste(scene, "edges and resections")
+    )
+    expect_equal(
+      current$paths,
+      fixture[[scene]]$paths,
+      tolerance = 1e-10,
+      label = paste(scene, "paths")
+    )
+  }
+}
+
 test_that("an explicit edge_cap routes exactly as before the caps followed the nodes", {
   skip_if_not_installed("ragg")
   withr::local_options(
@@ -799,32 +829,27 @@ test_that("an explicit edge_cap routes exactly as before the caps followed the n
     ggdag.edge_route = NULL
   )
 
-  # An explicit cap fixes every end, so the router is handed that cap for
-  # every node and its head zones, arrival arms, and bows agree with the ink
-  # whatever size and shape the nodes are drawn at. The routes are pinned in
-  # fixtures/ggarrow-explicit-cap-routes.rds, regenerated only on purpose
-  # with tests/testthat/fixtures/make-resect-fixtures.R. The epidemiology
-  # scenes, whose nodes are all circles, draw exactly as they did before the
-  # caps followed the nodes; the adjustment set differs from then only in
-  # that its square nodes are cleared around their half diagonals.
   fixture <- readRDS(test_path("fixtures", "ggarrow-explicit-cap-routes.rds"))
   expect_named(fixture, names(explicit_cap_scenes))
+  expect_named(explicit_cap_scene_font_sized, names(explicit_cap_scenes))
 
-  current <- explicit_cap_drawings()
-  for (scene in names(explicit_cap_scenes)) {
-    expect_equal(
-      current[[scene]]$edges,
-      fixture[[scene]]$edges,
-      tolerance = 1e-10,
-      label = paste(scene, "edges and resections")
-    )
-    expect_equal(
-      current[[scene]]$paths,
-      fixture[[scene]]$paths,
-      tolerance = 1e-10,
-      label = paste(scene, "paths")
-    )
-  }
+  scenes <- names(which(!explicit_cap_scene_font_sized))
+  stopifnot(length(scenes) > 0)
+  expect_explicit_cap_routes(scenes)
+})
+
+test_that("an explicit edge_cap routes the scenes sized by their legends and strips as before under the reference font", {
+  skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  scenes <- names(which(explicit_cap_scene_font_sized))
+  stopifnot(length(scenes) > 0)
+  expect_explicit_cap_routes(scenes)
 })
 
 # The default size ----------------------------------------------------------------

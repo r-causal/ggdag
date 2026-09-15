@@ -982,6 +982,27 @@ test_that("orthogonal routed layers that set different resections route one scen
 
 # No regression -------------------------------------------------------------------
 
+# The routes `plot` draws on a device `width` by `height` inches match those
+# pinned for `scene` in fixtures/orthogonal-final-runs.rds, regenerated only
+# on purpose with tests/testthat/fixtures/make-orthogonal-run-fixtures.R.
+# Doubles must match to within floating-point noise (1e-10).
+expect_orthogonal_run_fixture <- function(plot, scene, width, height) {
+  fixture <- readRDS(test_path("fixtures", "orthogonal-final-runs.rds"))
+  current <- routed_path_record(plot, width, height)
+  expect_equal(
+    current$edges,
+    fixture[[scene]]$edges,
+    tolerance = 1e-10,
+    label = paste(scene, "edges and resections")
+  )
+  expect_equal(
+    current$paths,
+    fixture[[scene]]$paths,
+    tolerance = 1e-10,
+    label = paste(scene, "paths")
+  )
+}
+
 test_that("the scenes that keep the invariants keep their routes", {
   skip_if_not_installed("ragg")
   withr::local_options(
@@ -990,14 +1011,12 @@ test_that("the scenes that keep the invariants keep their routes", {
     ggdag.edge_route = NULL
   )
 
-  # The routes of these scenes are pinned in
-  # fixtures/orthogonal-final-runs.rds, regenerated only on purpose with
-  # tests/testthat/fixtures/make-orthogonal-run-fixtures.R. Doubles must match
-  # to within floating-point noise (1e-10). Every scene keeps its paths
-  # apart, and each keeps the first two invariants but where its gaps are too
-  # narrow for them, which the known failures above record: the README
-  # scenes pass within nodes, and in deep_confound the run into the head of
-  # u -> b is short of its cut.
+  # Every scene keeps its paths apart, and each keeps the first two
+  # invariants but where its gaps are too narrow for them, which the known
+  # failures above record: the README scenes pass within nodes, and in
+  # deep_confound the run into the head of u -> b is short of its cut. The
+  # routes of the scenes whose panels are not sized by text outside them are
+  # compared with the fixture here, and the rest in the next block.
   known <- list(
     readme_16_10x6 = "inside",
     readme_14_7x5 = "inside",
@@ -1005,6 +1024,11 @@ test_that("the scenes that keep the invariants keep their routes", {
   )
   fixture <- readRDS(test_path("fixtures", "orthogonal-final-runs.rds"))
   expect_named(fixture, names(orthogonal_run_fixture_scenes))
+  expect_named(
+    orthogonal_run_fixture_font_sized,
+    names(orthogonal_run_fixture_scenes)
+  )
+  stopifnot(!all(orthogonal_run_fixture_font_sized))
 
   for (scene in names(orthogonal_run_fixture_scenes)) {
     spec <- orthogonal_run_fixture_scenes[[scene]]
@@ -1021,19 +1045,29 @@ test_that("the scenes that keep the invariants keep their routes", {
       )
     }
 
-    current <- routed_path_record(p, spec$width, spec$height)
-    expect_equal(
-      current$edges,
-      fixture[[scene]]$edges,
-      tolerance = 1e-10,
-      label = paste(scene, "edges and resections")
-    )
-    expect_equal(
-      current$paths,
-      fixture[[scene]]$paths,
-      tolerance = 1e-10,
-      label = paste(scene, "paths")
-    )
+    if (!orthogonal_run_fixture_font_sized[[scene]]) {
+      expect_orthogonal_run_fixture(p, scene, spec$width, spec$height)
+    }
+  }
+})
+
+test_that("the scenes sized by their legends and strips keep their routes under the reference font", {
+  skip_if_not_installed("ragg")
+  skip_unless_reference_label_font()
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # A legend or strip labels take their room from the device before the
+  # panels are laid out, so these routes hold only where the default font
+  # measures like the Helvetica the fixture was drawn with.
+  scenes <- names(which(orthogonal_run_fixture_font_sized))
+  stopifnot(length(scenes) > 0)
+  for (scene in scenes) {
+    spec <- orthogonal_run_fixture_scenes[[scene]]
+    expect_orthogonal_run_fixture(spec$plot(), scene, spec$width, spec$height)
   }
 })
 

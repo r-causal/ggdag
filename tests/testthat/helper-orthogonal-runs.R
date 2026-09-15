@@ -288,6 +288,25 @@ orthogonal_run_fixture_scenes <- list(
   )
 )
 
+# Whether the panels of each fixture scene, and with them every millimetre
+# the router works in, are sized by text drawn outside them. The scenes drawn
+# with `ggdag()` or by hand under `theme_dag()` draw no axis text, strips,
+# legend, or title, so their panel is the device less the plot margin
+# whatever the default font. The adjustment sets facet by set, with a strip
+# label above each panel and a legend of the adjusted and unadjusted nodes.
+# The strips take their height from the panels' height, and the legend takes
+# the width of its labels from the panels' width where it sits beside them,
+# as in deep_confound_adjustment, and its height where it sits below them, as
+# in the README scenes.
+orthogonal_run_fixture_font_sized <- c(
+  readme_16_10x6 = TRUE,
+  readme_14_7x5 = TRUE,
+  large_epi_16 = FALSE,
+  epidemiology_30 = FALSE,
+  deep_confound_adjustment = TRUE,
+  fins_7x5 = FALSE
+)
+
 # Reading the routed edges --------------------------------------------------------
 
 # The node glyphs of panel `panel`, as `panel_nodes_mm()` reads them, with the
