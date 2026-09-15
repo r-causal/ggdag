@@ -210,7 +210,7 @@ geom_dag_text <- function(
 #' library(ggraph)
 #' g <- dagify(m ~ x + y, y ~ x)
 #'
-#' ggdag(g, text = FALSE) + geom_dag_label()
+#' ggdag(g, use_text = FALSE) + geom_dag_label()
 #'
 #' g |>
 #'   tidy_dagitty() |>
