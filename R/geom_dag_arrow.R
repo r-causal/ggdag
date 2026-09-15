@@ -33,8 +33,17 @@ StatDAGArrowEdges <- ggplot2::ggproto(
 # scale maps to is, and ggarrow cannot draw a shaft of no length. Such a key
 # is made half as large again, so that its shaft is half as long as its
 # ornaments, as a key with a head alone keeps. A key smaller than the
-# legend's key size is drawn with room to spare, and is left as it is.
+# legend's key size is drawn with room to spare, and is left as it is. The
+# DAG layers keep the length of their ornaments in `length`, where ggarrow's
+# own layers keep `length_head` and `length_fins`, so the key is drawn at the
+# length the layer draws its edges with (`key_ornament_length()`).
 draw_key_dag_arrow <- function(data, params, size) {
+  params$length_head <- key_ornament_length(
+    params$length_head %||% params$length$head
+  )
+  params$length_fins <- key_ornament_length(
+    params$length_fins %||% params$length$fins
+  )
   key <- ggarrow::draw_key_arrow(data, params, size)
   head <- data$arrow_head %||% params$arrow$head
   fins <- data$arrow_fins %||% params$arrow$fins
@@ -45,6 +54,20 @@ draw_key_dag_arrow <- function(data, params, size) {
     attr(key, "height") <- attr(key, "height") * 1.5
   }
   key
+}
+
+# The length an ornament of a legend key is drawn at, for a layer that draws
+# its ornaments at `length`: a multiple of the line width as it is, and a
+# unit in millimetres. ggarrow sizes a key from its lengths as millimetres,
+# so a length in points, which the plotters set, is converted first, where
+# it converts without a device; a length relative to a viewport is passed
+# on as it is.
+key_ornament_length <- function(length) {
+  if (!grid::is.unit(length)) {
+    return(length)
+  }
+  mm <- unit_length_mm(length)
+  if (is.null(mm)) length else grid::unit(mm, "mm")
 }
 
 # Lazy ggproto factories -----------------------------------------------------

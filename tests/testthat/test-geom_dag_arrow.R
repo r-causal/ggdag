@@ -2275,6 +2275,61 @@ test_that("a legend key whose arrow has a head and fins keeps a shaft", {
   }
 })
 
+test_that("a legend key draws the ornaments at the length the layer sets", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # ggarrow draws a key's ornaments at its own `length_head` and
+  # `length_fins`, 4 line widths unless set, while the DAG layers keep their
+  # length in `length`; the key drew a head 3.01 mm long whatever the layer
+  # asked for
+  key_head_mm <- function(p) {
+    with_forced_plot(p, \(built) {
+      found <- forced_grobs("arrow_path")
+      keys <- purrr::keep(found, \(one) {
+        inherits(one$grob, "arrow_path") && is.na(one$panel)
+      })
+      stopifnot(length(keys) > 0)
+      unique(purrr::map_dbl(keys, \(one) {
+        grid::upViewport(0)
+        grid::downViewport(one$vp_path)
+        on.exit(grid::upViewport(0), add = TRUE)
+        round(convert_mm_length(one$grob$length_head)[[1]], 6)
+      }))
+    })
+  }
+  width_mm <- ggplot2::.pt / ggplot2::.stroke
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point()
+  layers <- list(
+    arrow = \(...) geom_dag_arrow(aes(colour = name), ...),
+    arc = \(...) geom_dag_arrow_arc(aes(colour = name), ...),
+    routed = \(...) geom_dag_routed_arrows(aes(colour = name), ...)
+  )
+  for (name in names(layers)) {
+    expect_equal(
+      key_head_mm(base + layers[[name]]()),
+      round(4 * width_mm, 6),
+      label = paste("the default key head of", name)
+    )
+    expect_equal(
+      key_head_mm(base + layers[[name]](length = 8)),
+      round(8 * width_mm, 6),
+      label = paste("a key head 8 line widths long of", name)
+    )
+    expect_equal(
+      key_head_mm(base + layers[[name]](length = grid::unit(6, "mm"))),
+      6,
+      label = paste("a key head 6 mm long of", name)
+    )
+  }
+})
+
 test_that("a line width mapped through a scale draws on every ggarrow edge layer", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
