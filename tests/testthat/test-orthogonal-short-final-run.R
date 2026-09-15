@@ -820,6 +820,58 @@ test_that("a facet panel whose edges one routed layer draws routes as that layer
   }
 })
 
+test_that("a routed layer that draws only arcs in a panel is one of its scene's layers", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The second layer draws only the arc out of `t`, which is never rerouted,
+  # yet it draws edges of the scene in the panel: the arrivals out of the
+  # narrow gap take rows of their own, and the stubs and the caps hold that
+  # layer's reach and head resection. The label engine once built the scene
+  # from the routed edges alone and traced two arrivals 3.6 mm from where
+  # they are drawn on a 5 by 4 inch device.
+  seconds <- list(
+    `the same settings` = list(),
+    `longer heads` = list(linewidth = 2, length = 8),
+    `a head resection mapped` = list(
+      mapping = ggplot2::aes(resect_head = 14)
+    )
+  )
+  for (name in names(seconds)) {
+    for (device in list(c(7, 5), c(5, 4))) {
+      label <- sprintf(
+        "%s on a %s by %s inch device",
+        name,
+        device[[1]],
+        device[[2]]
+      )
+      plot <- narrow_curved_plot(seconds[[name]])
+      inputs <- drawn_and_traced_router_inputs(plot, device[[1]], device[[2]])
+      stopifnot(
+        length(inputs$drawn) == 4,
+        isTRUE(inputs$drawn[[1]]$opts$narrow_rows)
+      )
+      expect_equal(
+        traced_router_input_mismatches(inputs),
+        character(),
+        label = label
+      )
+      found <- label_route_deviations(plot, device[[1]], device[[2]])
+      stopifnot(nrow(found) == 3)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = paste("the routes traced for", label)
+      )
+    }
+  }
+})
+
 # No regression -------------------------------------------------------------------
 
 test_that("the scenes that keep the invariants keep their routes", {

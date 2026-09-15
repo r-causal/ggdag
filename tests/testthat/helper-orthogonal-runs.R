@@ -196,6 +196,39 @@ narrow_facet_plot <- function(second = TRUE, labels = FALSE) {
   p
 }
 
+# The narrow gap of `narrow_facet_plot()` in one panel, with the arrivals
+# into `t` drawn by one routed layer and the edge out of `t` by another,
+# which maps its curvature to 0.2 and is called with the further arguments
+# in `second`, and with automatic labels when `labels` is set. The second
+# layer draws that edge as an arc, which is never rerouted, so none of the
+# edges it draws is routed.
+narrow_curved_plot <- function(second = list(), labels = TRUE) {
+  dag <- dagitty::dagitty("dag { a -> t; b -> t; c -> t; t -> e }")
+  dagitty::coordinates(dag) <- list(
+    x = c(a = 0, b = 0, c = 0, t = 0.12, e = 1),
+    y = c(a = 0, b = 1, c = 2, t = 1.5, e = 1.5)
+  )
+  directed <- filter_direction("->")
+  into_t <- function(x) dplyr::filter(directed(x), to == "t")
+  out_of_t <- function(x) dplyr::filter(directed(x), name == "t")
+  second$mapping <- ggplot2::aes(
+    edge_curvature = ifelse(is.na(to), NA, 0.2),
+    !!!second$mapping
+  )
+  p <- ggplot2::ggplot(tidy_dagitty(dag), aes_dag()) +
+    geom_dag_point(size = 16) +
+    geom_dag_routed_arrows(route = "orthogonal", data_directed = into_t) +
+    do.call(
+      geom_dag_routed_arrows,
+      c(list(route = "orthogonal", data_directed = out_of_t), second)
+    ) +
+    theme_dag()
+  if (labels) {
+    p <- p + geom_dag_text_auto(colour = "black", size = 3)
+  }
+  p
+}
+
 # A spline scene whose two edges are routed differently together than apart:
 # `x -> y` detours around `m`, which sits on its chord, and `z -> y` arrives
 # at `y` beside it. Each edge is drawn by a routed layer of its own.
@@ -533,6 +566,82 @@ routed_router_inputs <- function(plot, width = 7, height = 5) {
     .package = "ggdag"
   )
   calls
+}
+
+# What the routed layers of `plot` and its automatic label layer hand the
+# router when the plot is drawn on a device `width` by `height` inches: the
+# calls the drawn grobs make, as `routed_router_inputs()` reads them, in
+# `drawn`, and the calls the label engine makes to trace the same routes, in
+# `traced`.
+drawn_and_traced_router_inputs <- function(plot, width = 7, height = 5) {
+  router <- get("route_edges_mm", envir = asNamespace("ggdag"))
+  calls <- list(drawn = list(), traced = list())
+  record <- function(nodes, edges, bounds, cap, mode, opts) {
+    caller <- paste(deparse(sys.call(-1)[[1]]), collapse = "")
+    grob <- if (grepl("route_label_obstacles", caller)) "traced" else "drawn"
+    calls[[grob]][[length(calls[[grob]]) + 1L]] <<- list(
+      nodes = nodes,
+      edges = edges,
+      bounds = bounds,
+      cap = cap,
+      mode = mode,
+      opts = opts
+    )
+    router(nodes, edges, bounds, cap, mode, opts)
+  }
+  testthat::with_mocked_bindings(
+    with_forced_plot(plot, \(built) NULL, width = width, height = height),
+    route_edges_mm = record,
+    .package = "ggdag"
+  )
+  calls
+}
+
+# The calls among `inputs$traced`, from `drawn_and_traced_router_inputs()`,
+# that no drawn call among `inputs$drawn` makes alike: the same nodes, cap,
+# mode, and constants, and the same edges, whatever order each grob lists
+# them in, their positions and sampled arcs within `tolerance` mm. Each is
+# described by the edges it routes.
+traced_router_input_mismatches <- function(inputs, tolerance = 1e-10) {
+  if (length(inputs$traced) == 0) {
+    return("the label engine routes nothing")
+  }
+  # a grob that shows the router no arc lists no fixed paths, or lists one
+  # of nothing for every edge, which the router reads alike
+  in_order <- function(edges) {
+    edges <- as.data.frame(edges)
+    fixed <- edges[["fixed_path"]]
+    if (!is.null(fixed) && all(vapply(fixed, is.null, logical(1)))) {
+      edges$fixed_path <- NULL
+    }
+    edges <- edges[order(edges$from, edges$to), , drop = FALSE]
+    rownames(edges) <- NULL
+    edges
+  }
+  alike <- function(traced, drawn) {
+    identical(traced$nodes, drawn$nodes) &&
+      identical(traced$cap, drawn$cap) &&
+      identical(traced$mode, drawn$mode) &&
+      identical(traced$opts, drawn$opts) &&
+      isTRUE(all.equal(traced$bounds, drawn$bounds, tolerance = tolerance)) &&
+      isTRUE(all.equal(
+        in_order(traced$edges),
+        in_order(drawn$edges),
+        tolerance = tolerance
+      ))
+  }
+  unmatched <- purrr::keep(inputs$traced, \(traced) {
+    !any(purrr::map_lgl(inputs$drawn, \(drawn) alike(traced, drawn)))
+  })
+  purrr::map_chr(unmatched, \(traced) {
+    sprintf(
+      "the label engine routes %s at a cap of %.3f mm with %s narrow rows and a head reach of %.3f mm, as no drawn grob does",
+      paste(traced$edges$from, "->", traced$edges$to, collapse = ", "),
+      traced$cap,
+      if (isTRUE(traced$opts$narrow_rows)) "" else "no",
+      traced$opts$head_reach %||% NA_real_
+    )
+  })
 }
 
 # The routed ggarrow edges `plot` draws on a device `width` by `height`

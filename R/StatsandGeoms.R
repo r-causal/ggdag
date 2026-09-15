@@ -1109,17 +1109,26 @@ routed_fixed_points <- function(
       if (!include_endpoints) {
         curve <- curve[-c(1, nrow(curve)), , drop = FALSE]
       }
-      data.frame(
+      points <- data.frame(
         edge_id = paste(key[[i]], "fixed", i, sep = "\r"),
         x = curve$x,
         y = curve$y,
         PANEL = panel,
+        route_cap = spec_column(geometry, "route_cap", NA_real_)[[i]],
+        route_follow_head = spec_column(geometry, "route_follow_head", NA)[[i]],
         route_layer = spec_column(geometry, "route_layer", NA_integer_)[[i]],
         route_scene = spec_column(geometry, "route_scene", NA_integer_)[[i]],
         route_fixed = TRUE,
         curvature = geometry$curvature[[i]],
         stringsAsFactors = FALSE
       )
+      # the layer drawing the edge is one of its scene's layers, whose cap
+      # and ornaments the scene is routed with
+      points$route_ornaments <- rep(
+        spec_column(geometry, "route_ornaments", list(NULL))[i],
+        nrow(points)
+      )
+      points
     })
   )
 }

@@ -3468,7 +3468,9 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   # scene is routed once. The scene of a panel holds the edges of more than
   # one layer only when another layer draws edges of it in that panel, and
   # then its arrivals take rows of their own, and its stubs hold the farthest
-  # reach of those layers' ornaments.
+  # reach of those layers' ornaments. An edge a layer pins to its arc counts
+  # as that layer's edge of the scene as much as an edge it routes does, so a
+  # layer whose every edge in the panel is pinned is one of its layers too.
   paths <- vector("list", nrow(chords))
   cap_head <- chords$cap_head
   cap_fins <- chords$cap_fins
@@ -3489,26 +3491,36 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     paste("scene", chords$scene, sep = "\r")
   )
   layer <- ifelse(is.na(chords$layer), 0L, chords$layer)
-  pinned_scene <- if (is.null(pinned)) {
-    character()
-  } else {
-    ifelse(
+  caps <- ifelse(is.na(chords$cap), par$edge_cap, chords$cap)
+  pinned_scene <- character()
+  pinned_layer <- integer()
+  pinned_caps <- numeric()
+  pinned_ornament_keys <- character()
+  if (!is.null(pinned)) {
+    pinned_scene <- ifelse(
       is.na(pinned$scene),
       NA_character_,
       paste("scene", pinned$scene, sep = "\r")
     )
+    pinned_layer <- ifelse(is.na(pinned$layer), 0L, pinned$layer)
+    pinned_caps <- ifelse(is.na(pinned$cap), par$edge_cap, pinned$cap)
+    pinned_ornament_keys <- route_ornaments_keys(pinned)
   }
-  caps <- ifelse(is.na(chords$cap), par$edge_cap, chords$cap)
   for (in_scene in split(seq_len(nrow(chords)), scene)) {
-    narrow_rows <- length(unique(layer[in_scene])) > 1
+    # the scene's own pinned edges, which name the layers drawing them, and
+    # the pinned edges whose layer is not known, which the router is shown
+    # in every scene
+    own_pinned <- which(pinned_scene %in% scene[[in_scene[[1]]]])
     scene_pinned <- pinned_input
     if (!is.null(pinned_input)) {
       scene_pinned <- pinned_input[
-        is.na(pinned_scene) | pinned_scene == scene[[in_scene[[1]]]],
+        is.na(pinned_scene) | pinned_scene %in% scene[[in_scene[[1]]]],
         ,
         drop = FALSE
       ]
     }
+    scene_layers <- unique(c(layer[in_scene], pinned_layer[own_pinned]))
+    narrow_rows <- length(scene_layers) > 1
     edge_input <- data.frame(
       from = chords$from[in_scene],
       to = chords$to[in_scene],
@@ -3521,16 +3533,20 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     }
 
     settings <- chords[in_scene[[1]], , drop = FALSE]
-    follow <- chords$follow_head[in_scene]
-    cap <- max(caps[in_scene])
+    follow <- c(chords$follow_head[in_scene], pinned$follow_head[own_pinned])
+    scene_caps <- c(caps[in_scene], pinned_caps[own_pinned])
+    cap <- max(scene_caps)
     router_nodes <- router_nodes_for(
       cap,
       follow = any(follow),
-      fixed_cap = if (all(follow)) NULL else max(caps[in_scene][!follow])
+      fixed_cap = if (all(follow)) NULL else max(scene_caps[!follow])
     )
-    reach <- routed_scene_reaches(
-      chords$route_ornaments[in_scene][!duplicated(ornament_keys[in_scene])]
+    ornaments <- c(
+      chords$route_ornaments[in_scene],
+      pinned$route_ornaments[own_pinned]
     )
+    keys <- c(ornament_keys[in_scene], pinned_ornament_keys[own_pinned])
+    reach <- routed_scene_reaches(ornaments[!duplicated(keys)])
     routed <- route_edges_mm(
       nodes = router_nodes,
       edges = edge_input,
