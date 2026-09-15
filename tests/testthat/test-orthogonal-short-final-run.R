@@ -536,6 +536,192 @@ test_that("the label engine routes the orthogonal layers of a plot as they are d
   }
 })
 
+test_that("orthogonal routed layers whose line widths differ route apart", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The stub a gap keeps behind a head holds the reach of the head, which
+  # grows with the line width, so two layers drawn at different widths route
+  # their scenes with different ladders. Routed as one scene, each would draw
+  # its edges off rows the other did not share out: on a 4 by 4 inch device
+  # `w2 -> z2`, drawn at 0.5, and `z1 -> x`, drawn at 2, were drawn along one
+  # run for 4.25 mm. Such layers route apart, each exactly as it routes alone.
+  thin <- list(route = "orthogonal", linewidth = 0.5)
+  thick <- list(route = "orthogonal", linewidth = 2)
+  pair <- readme_layer_pair_plot(thin, thick, labels = FALSE)
+  combined <- function(a, b) {
+    edges <- rbind(a$edges, b$edges)
+    paths <- c(a$paths, b$paths)
+    order <- order(
+      edges$panel,
+      round(edges$from_x, 6),
+      round(edges$from_y, 6),
+      round(edges$to_x, 6),
+      round(edges$to_y, 6)
+    )
+    edges <- edges[order, , drop = FALSE]
+    rownames(edges) <- NULL
+    list(edges = edges, paths = paths[order])
+  }
+
+  for (device in list(c(7, 5), c(4, 4))) {
+    drawn <- routed_path_record(pair, device[[1]], device[[2]])
+    apart <- combined(
+      routed_path_record(
+        readme_layer_pair_plot(thin, NULL, labels = FALSE),
+        device[[1]],
+        device[[2]]
+      ),
+      routed_path_record(
+        readme_layer_pair_plot(NULL, thick, labels = FALSE),
+        device[[1]],
+        device[[2]]
+      )
+    )
+    stopifnot(nrow(drawn$edges) == 11, nrow(apart$edges) == 11)
+    expect_equal(
+      drawn,
+      apart,
+      tolerance = 1e-10,
+      label = sprintf(
+        "the routes drawn on a %s by %s inch device",
+        device[[1]],
+        device[[2]]
+      )
+    )
+  }
+})
+
+test_that("the label engine traces the routes every pair of routed layers draws", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The automatic labels keep clear of the edges by routing them again, so
+  # the label grob has to route exactly the scenes the routed layers draw:
+  # one scene for orthogonal layers with the same settings, and a scene per
+  # layer otherwise. A reach the label grob measured apart from the drawn
+  # grob, from a line width the layer maps or a head length relative to the
+  # panel, would route the same scene to other rows.
+  ortho <- list(route = "orthogonal")
+  pairs <- list(
+    `the same settings` = list(ortho, ortho),
+    `heads of different shapes and equal reach` = list(
+      c(ortho, list(arrow_head = ggarrow::arrow_head_wings(offset = 20))),
+      c(ortho, list(arrow_head = ggarrow::arrow_head_wings(offset = 30)))
+    ),
+    `a node size given to one layer and found by the other` = list(
+      c(ortho, list(node_size = 16)),
+      ortho
+    ),
+    `different line widths` = list(
+      c(ortho, list(linewidth = 0.5)),
+      c(ortho, list(linewidth = 2))
+    ),
+    `a line width mapped by one layer` = list(
+      c(
+        ortho,
+        list(mapping = ggplot2::aes(linewidth = I(ifelse(name == "z1", 2, 1))))
+      ),
+      ortho
+    ),
+    `a head length relative to the panel` = list(
+      c(ortho, list(length = grid::unit(0.03, "npc"))),
+      c(ortho, list(length = grid::unit(0.03, "npc")))
+    )
+  )
+  plots <- purrr::map(pairs, \(pair) {
+    readme_layer_pair_plot(pair[[1]], pair[[2]])
+  })
+  plots$`two spline layers` <- spline_layer_pair_plot()
+
+  for (name in names(plots)) {
+    for (device in list(c(7, 5), c(4, 4))) {
+      found <- label_route_deviations(plots[[name]], device[[1]], device[[2]])
+      label <- sprintf(
+        "the routes traced for %s on a %s by %s inch device",
+        name,
+        device[[1]],
+        device[[2]]
+      )
+      stopifnot(nrow(found) >= 2)
+      expect_equal(found$traced_points, found$drawn_points, label = label)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = label
+      )
+    }
+  }
+})
+
+test_that("a facet panel whose edges one routed layer draws routes as that layer alone", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The arrivals out of a narrow gap take rows of their own only in a panel
+  # where more than one routed layer draws edges, since only there could the
+  # layer drawn later hide the other's edge. The panel where one layer draws
+  # every edge merges them onto the target's centre row, as the plot with
+  # that layer alone does, and the label engine traces each panel as it is
+  # drawn.
+  for (device in list(c(7, 5), c(5, 4))) {
+    label <- sprintf("on a %s by %s inch device", device[[1]], device[[2]])
+    two <- routed_path_record(narrow_facet_plot(), device[[1]], device[[2]])
+    one <- routed_path_record(
+      narrow_facet_plot(second = FALSE),
+      device[[1]],
+      device[[2]]
+    )
+    stopifnot(
+      sum(two$edges$panel == 1) == 4,
+      sum(two$edges$panel == 2) == 3
+    )
+    expect_equal(
+      two$paths[two$edges$panel == 2],
+      one$paths[one$edges$panel == 2],
+      tolerance = 1e-10,
+      label = paste("the one-layer panel", label)
+    )
+    second_panel <- function(record) {
+      edges <- record$edges[record$edges$panel == 2, , drop = FALSE]
+      rownames(edges) <- NULL
+      edges
+    }
+    expect_equal(
+      second_panel(two),
+      second_panel(one),
+      tolerance = 1e-10,
+      label = paste("the ends of the one-layer panel", label)
+    )
+
+    found <- label_route_deviations(
+      narrow_facet_plot(labels = TRUE),
+      device[[1]],
+      device[[2]]
+    )
+    stopifnot(length(unique(found$panel)) == 2)
+    expect_equal(
+      found$deviation,
+      rep(0, nrow(found)),
+      tolerance = 1e-10,
+      label = paste("the traced routes", label)
+    )
+  }
+})
+
 # No regression -------------------------------------------------------------------
 
 test_that("the scenes that keep the invariants keep their routes", {

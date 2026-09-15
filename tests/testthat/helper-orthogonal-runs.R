@@ -130,6 +130,92 @@ readme_middle_panel_plot <- function() {
     )
 }
 
+# The README DAG at node size 16 with its directed edges drawn by two routed
+# layers, the edges out of `w1` and `w2` by the first and the rest by the
+# second, each called with the arguments in `first` and `second`, and with
+# automatic labels when `labels` is set. A layer whose arguments are `NULL`
+# is left out, so the plot draws the other layer's edges alone.
+readme_layer_pair_plot <- function(first, second, labels = TRUE) {
+  directed <- filter_direction("->")
+  out_of_w <- function(x) dplyr::filter(directed(x), name %in% c("w1", "w2"))
+  rest <- function(x) dplyr::filter(directed(x), !name %in% c("w1", "w2"))
+  p <- ggplot2::ggplot(tidy_dagitty(readme_time_ordered_dag()), aes_dag()) +
+    geom_dag_point(size = 16) +
+    theme_dag()
+  if (!is.null(first)) {
+    p <- p +
+      do.call(geom_dag_routed_arrows, c(list(data_directed = out_of_w), first))
+  }
+  if (!is.null(second)) {
+    p <- p +
+      do.call(geom_dag_routed_arrows, c(list(data_directed = rest), second))
+  }
+  if (labels) {
+    p <- p + geom_dag_text_auto(colour = "black", size = 3)
+  }
+  p
+}
+
+# Three sources in one layer and their common target `t` just beyond them,
+# which leads on to `e`, in two facet panels: in the panel `"both"` the
+# arrivals into `t` are drawn by one routed layer and the edge out of `t` by
+# another, and in the panel `"one layer"` the edge out of `t` is not there,
+# so only the first layer draws edges. The gap between the sources and `t`
+# is too narrow for a stub. With `second = FALSE` the plot draws the first
+# layer alone.
+narrow_facet_plot <- function(second = TRUE, labels = FALSE) {
+  dag <- dagitty::dagitty("dag { a -> t; b -> t; c -> t; t -> e }")
+  dagitty::coordinates(dag) <- list(
+    x = c(a = 0, b = 0, c = 0, t = 0.12, e = 1),
+    y = c(a = 0, b = 1, c = 2, t = 1.5, e = 1.5)
+  )
+  data <- pull_dag_data(tidy_dagitty(dag))
+  both <- dplyr::mutate(data, panel = "both")
+  one <- dplyr::mutate(data, panel = "one layer")
+  gone <- one$name == "t"
+  one$to[gone] <- NA
+  one$xend[gone] <- NA
+  one$yend[gone] <- NA
+  one$direction[gone] <- NA
+
+  directed <- filter_direction("->")
+  into_t <- function(x) dplyr::filter(directed(x), to == "t")
+  out_of_t <- function(x) dplyr::filter(directed(x), name == "t")
+  p <- ggplot2::ggplot(dplyr::bind_rows(both, one), aes_dag()) +
+    geom_dag_point(size = 16) +
+    geom_dag_routed_arrows(route = "orthogonal", data_directed = into_t) +
+    ggplot2::facet_wrap(~panel) +
+    theme_dag()
+  if (second) {
+    p <- p +
+      geom_dag_routed_arrows(route = "orthogonal", data_directed = out_of_t)
+  }
+  if (labels) {
+    p <- p + geom_dag_text_auto(colour = "black", size = 3)
+  }
+  p
+}
+
+# A spline scene whose two edges are routed differently together than apart:
+# `x -> y` detours around `m`, which sits on its chord, and `z -> y` arrives
+# at `y` beside it. Each edge is drawn by a routed layer of its own.
+spline_layer_pair_plot <- function() {
+  dag <- dagitty::dagitty("dag { x -> y; z -> y; m; w }")
+  dagitty::coordinates(dag) <- list(
+    x = c(x = 0, m = 1, y = 2, z = 0, w = 1),
+    y = c(x = 0, m = 0, y = 0, z = 0.3, w = 1)
+  )
+  directed <- filter_direction("->")
+  from_x <- function(x) dplyr::filter(directed(x), name == "x")
+  from_z <- function(x) dplyr::filter(directed(x), name == "z")
+  ggplot2::ggplot(tidy_dagitty(dag), aes_dag()) +
+    geom_dag_point(size = 16) +
+    geom_dag_routed_arrows(data_directed = from_x) +
+    geom_dag_routed_arrows(data_directed = from_z) +
+    geom_dag_text_auto(colour = "black", size = 3) +
+    theme_dag()
+}
+
 # The scenes whose routed paths are pinned in
 # fixtures/orthogonal-final-runs.rds, each drawn on the device it is pinned
 # at: scenes whose paths share no stretch, and which keep the other two
@@ -494,6 +580,137 @@ routed_panel_paths <- function(drawings) {
     })
   }) |>
     purrr::list_flatten()
+}
+
+# The traced routes ---------------------------------------------------------------
+
+# The panel viewport a viewport path runs through, as ggplot2 names it:
+# `"panel.7-5-7-5"` for a plot of one panel, `"panel-1-1.10-7-10-7"` for a
+# facet's panel.
+viewport_panel <- function(path) {
+  regmatches(path, regexpr("panel[^:]*", path))
+}
+
+# The largest distance, in millimetres, from a point of either polyline to the
+# nearest point of the other, `x` and `y` of each: zero when the two paths are
+# the same points, however they are ordered along the path.
+polyline_distance_mm <- function(a, b) {
+  one_way <- function(p, q) {
+    m <- length(q$x)
+    if (m < 2) {
+      return(max(sqrt((p$x - q$x[[1]])^2 + (p$y - q$y[[1]])^2)))
+    }
+    max(vapply(
+      seq_along(p$x),
+      \(i) {
+        min(point_segment_distance(
+          p$x[[i]],
+          p$y[[i]],
+          q$x[-m],
+          q$y[-m],
+          q$x[-1],
+          q$y[-1]
+        ))
+      },
+      numeric(1)
+    ))
+  }
+  max(one_way(a, b), one_way(b, a))
+}
+
+# How far the routes the automatic label layer of `plot` traces lie from the
+# routed paths the plot draws, on a device `width` by `height` inches, read
+# from one drawing: one row per routed path drawn, with its panel, the ends of
+# the drawn path, the number of points of the drawn and of the traced path,
+# and `deviation`, the largest distance in millimetres between the two. A
+# traced route is matched to the drawn path of its panel whose ends lie
+# nearest its own, so a route traced to other ports than the drawn ones is
+# still found, and measured. A drawn path no traced route is matched to has
+# no deviation (`NA`).
+label_route_deviations <- function(plot, width = 7, height = 5) {
+  real_ink <- get("label_ink", envir = asNamespace("ggdag"))
+  traced <- list()
+  record <- function(edges, cap, ...) {
+    vp <- unclass(grid::current.vpPath())
+    traced[[viewport_panel(vp$path)]] <<- edges
+    real_ink(edges, cap, ...)
+  }
+  drawings <- testthat::with_mocked_bindings(
+    with_forced_plot(
+      plot,
+      function(built) {
+        found <- grid::grid.grep(
+          "arrow_path",
+          grep = TRUE,
+          global = TRUE,
+          viewports = TRUE
+        )
+        purrr::compact(purrr::map(found, \(path) {
+          name <- as.character(path)
+          grob <- grid::grid.get(path)
+          if (
+            !inherits(grob, "arrow_path") ||
+              !grepl("dag_routed_edges", name)
+          ) {
+            return(NULL)
+          }
+          grid::upViewport(0)
+          grid::downViewport(attr(path, "vpPath"))
+          on.exit(grid::upViewport(0), add = TRUE)
+          drawn <- arrow_grob_paths(grob)
+          drawn$panel <- viewport_panel(attr(path, "vpPath"))
+          drawn
+        }))
+      },
+      width = width,
+      height = height
+    ),
+    label_ink = record,
+    .package = "ggdag"
+  )
+  if (length(traced) == 0) {
+    stop("the plot traces no edges for its labels")
+  }
+
+  purrr::map(drawings, \(drawn) {
+    edges <- traced[[drawn$panel]]
+    routed <- if (is.null(edges)) {
+      character()
+    } else {
+      unique(edges$edge_id[grepl("\rrouted\r", edges$edge_id)])
+    }
+    routes <- purrr::map(routed, \(id) {
+      rows <- edges$edge_id == id
+      list(x = edges$x[rows], y = edges$y[rows])
+    })
+    purrr::map(drawn$paths, \(path) {
+      n <- length(path$x)
+      row <- data.frame(
+        panel = drawn$panel,
+        from_x = path$x[[1]],
+        from_y = path$y[[1]],
+        to_x = path$x[[n]],
+        to_y = path$y[[n]],
+        drawn_points = n,
+        traced_points = NA_integer_,
+        deviation = NA_real_
+      )
+      if (length(routes) == 0) {
+        return(row)
+      }
+      apart <- purrr::map_dbl(routes, \(route) {
+        m <- length(route$x)
+        sqrt((route$x[[1]] - path$x[[1]])^2 + (route$y[[1]] - path$y[[1]])^2) +
+          sqrt((route$x[[m]] - path$x[[n]])^2 + (route$y[[m]] - path$y[[n]])^2)
+      })
+      route <- routes[[which.min(apart)]]
+      row$traced_points <- length(route$x)
+      row$deviation <- polyline_distance_mm(path, route)
+      row
+    }) |>
+      purrr::list_rbind()
+  }) |>
+    purrr::list_rbind()
 }
 
 # The straight runs of a sampled path: maximal stretches of consecutive
