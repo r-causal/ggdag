@@ -2394,24 +2394,81 @@ test_that("a legend key sizes an ornament length in points as millimetres", {
   )
 })
 
-test_that("a legend key passes on an ornament length relative to its viewport", {
+test_that("a legend key draws a relative ornament length at the default length", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")
-
-  # a length relative to a viewport or to the text is drawn by ggarrow in the
-  # key's own viewport, as ggarrow draws the keys of its own layers; read
-  # against the whole device instead, a 0.03 npc head widened the legend
-  file <- tempfile(fileext = ".png")
-  open_test_ragg(file, 7, 5)
-  on.exit(
-    {
-      grDevices::dev.off()
-      unlink(file)
-    },
-    add = TRUE
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
   )
-  for (length in list(grid::unit(0.03, "npc"), grid::unit(1, "lines"))) {
-    expect_identical(key_ornament_length(length), length)
+
+  # A length in "npc" or "lines" was drawn in the key's own viewport, a few
+  # millimetres across: a 0.03 npc head was 0.18 mm long and could not be
+  # seen, and a head a line long sized its key as if it were 1 mm long and
+  # reached out of it, fins and wings alike
+  width_mm <- ggplot2::.pt / ggplot2::.stroke
+  default_mm <- round(4 * width_mm, 6)
+  key_ornaments <- function(p) {
+    with_forced_plot(p, \(built) {
+      found <- forced_grobs("arrow_path")
+      keys <- purrr::keep(found, \(one) {
+        inherits(one$grob, "arrow_path") && is.na(one$panel)
+      })
+      stopifnot(length(keys) > 0)
+      purrr::map(keys, \(one) {
+        grid::upViewport(0)
+        grid::downViewport(one$vp_path)
+        on.exit(grid::upViewport(0), add = TRUE)
+        outline <- one$grob$children[[1]]
+        x <- grid::convertX(outline$x, "npc", valueOnly = TRUE)
+        y <- grid::convertY(outline$y, "npc", valueOnly = TRUE)
+        list(
+          head = round(convert_mm_length(one$grob$length_head)[[1]], 6),
+          fins = if (is.null(one$grob$arrow_fins)) {
+            NULL
+          } else {
+            round(convert_mm_length(one$grob$length_fins)[[1]], 6)
+          },
+          inside = all(c(x, y) >= -1e-6 & c(x, y) <= 1 + 1e-6)
+        )
+      })
+    })
+  }
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point()
+  layers <- list(
+    arrow = geom_dag_arrow,
+    arc = geom_dag_arrow_arc,
+    routed = geom_dag_routed_arrows
+  )
+  lengths <- list(npc = grid::unit(0.03, "npc"), lines = grid::unit(1, "lines"))
+  for (name in names(layers)) {
+    for (unit_name in names(lengths)) {
+      what <- paste("the keys of", name, "at a length in", unit_name)
+      keys <- key_ornaments(
+        base + layers[[name]](aes(colour = name), length = lengths[[unit_name]])
+      )
+      expect_equal(
+        unique(purrr::map_dbl(keys, "head")),
+        default_mm,
+        label = paste("the heads of", what)
+      )
+      expect_true(
+        all(purrr::map_lgl(keys, "inside")),
+        label = paste(what, "stay within their boxes")
+      )
+      fins <- unlist(purrr::map(keys, "fins"))
+      if (name == "routed") {
+        expect_equal(
+          unique(fins),
+          default_mm,
+          label = paste("the fins of the bidirected key of", what)
+        )
+      } else {
+        expect_null(fins, label = paste("the fins of", what))
+      }
+    }
   }
 
   key_data <- data.frame(
@@ -2423,19 +2480,23 @@ test_that("a legend key passes on an ornament length relative to its viewport", 
     linetype = 1
   )
   head <- ggarrow::arrow_head_wings()
-  npc <- grid::unit(0.03, "npc")
   key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
-  key <- geom_dag_arrow()$geom$draw_key(
-    key_data,
-    list(arrow = list(head = head), length = list(head = npc, fins = npc)),
-    key_size_mm
-  )
   own <- ggarrow::draw_key_arrow(
     key_data,
-    list(arrow = list(head = head), length_head = npc, length_fins = npc),
+    list(arrow = list(head = head, fins = head)),
     key_size_mm
   )
-  expect_equal(attr(key, "width"), attr(own, "width"))
+  for (length in lengths) {
+    key <- geom_dag_arrow()$geom$draw_key(
+      key_data,
+      list(
+        arrow = list(head = head, fins = head),
+        length = list(head = length, fins = length)
+      ),
+      key_size_mm
+    )
+    expect_equal(attr(key, "width"), attr(own, "width"))
+  }
 })
 
 test_that("a line width mapped through a scale draws on every ggarrow edge layer", {

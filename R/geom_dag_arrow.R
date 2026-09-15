@@ -33,10 +33,14 @@ StatDAGArrowEdges <- ggplot2::ggproto(
 # scale maps to is, and ggarrow cannot draw a shaft of no length. Such a key
 # is made half as large again, so that its shaft is half as long as its
 # ornaments, as a key with a head alone keeps. A key smaller than the
-# legend's key size is drawn with room to spare, and is left as it is. The
-# DAG layers keep the length of their ornaments in `length`, where ggarrow's
-# own layers keep `length_head` and `length_fins`, so the key is drawn at the
-# length the layer draws its edges with (`key_ornament_length()`).
+# legend's key size is drawn with room to spare, and is left as it is.
+# ggarrow's key reads the length of its ornaments from `length_head` and
+# `length_fins`, which no layer sets: the DAG layers, like ggarrow's own, keep
+# the length of their ornaments in `length`, so ggarrow draws the keys of its
+# own layers at its default length whatever length they draw their edges
+# with. The key of a DAG layer is drawn at the layer's `length` where that is
+# absolute, and at ggarrow's default length where it is relative
+# (`key_ornament_length()`).
 draw_key_dag_arrow <- function(data, params, size) {
   params$length_head <- key_ornament_length(
     params$length_head %||% params$length$head
@@ -61,15 +65,16 @@ draw_key_dag_arrow <- function(data, params, size) {
 # unit in millimetres. ggarrow sizes a key from its lengths as millimetres,
 # so an absolute length, such as the length in points the plotters set, is
 # converted first. A length relative to a viewport or to the text, in `"npc"`
-# or `"lines"` say, is passed on as it is, whether or not a device is open,
-# and ggarrow draws it in the key's own viewport, as it draws the keys of its
-# own layers.
+# or `"lines"` say, is `NULL`, so ggarrow draws the key at its default length
+# of 4 line widths. Drawn in the key's own viewport, a few millimetres across,
+# a head 0.03 npc long could not be seen, and ggarrow would size the key from
+# the number alone, so a head a line long reached out of its key.
 key_ornament_length <- function(length) {
   if (!grid::is.unit(length)) {
     return(length)
   }
   mm <- absolute_length_mm(length)
-  if (is.null(mm)) length else grid::unit(mm, "mm")
+  if (is.null(mm)) NULL else grid::unit(mm, "mm")
 }
 
 # Lazy ggproto factories -----------------------------------------------------
