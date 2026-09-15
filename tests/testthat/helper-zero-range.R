@@ -103,7 +103,9 @@ node_centres_mm <- function(p, size) {
 
   viewport <- strsplit(paths[[1]], "::", fixed = TRUE)[[1]][[2]]
   grid::seekViewport(viewport)
-  on.exit(grid::upViewport(0), add = TRUE)
+  # the viewport is left before the device is closed: once it is closed,
+  # grid would open the default device to leave it, which writes Rplots.pdf
+  on.exit(grid::upViewport(0), add = TRUE, after = FALSE)
 
   nodes <- grid::grid.get(paths[[1]])
   data.frame(

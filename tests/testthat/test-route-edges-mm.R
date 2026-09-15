@@ -10875,6 +10875,9 @@ routed_grob <- function(res) {
 # The angle of every head the grob draws, in degrees off its own run, read
 # from the grob's own millimetres and its own resect.
 grob_head_tilts <- function(res) {
+  # millimetres convert on a device, and with none open grid would open the
+  # default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   grob <- routed_grob(res)
   x <- as.numeric(grid::convertX(grob$x, "mm"))
   y <- as.numeric(grid::convertY(grob$y, "mm"))

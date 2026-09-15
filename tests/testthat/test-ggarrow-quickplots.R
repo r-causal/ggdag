@@ -342,6 +342,9 @@ test_that("ggdag_equivalent_dags() takes edge_engine directly", {
 # Legend glyphs follow the engine the plot was asked for ----------------------
 
 guide_grob_classes <- function(plot) {
+  # a gtable measures its text on a device, and with none open grid would open
+  # the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   gtable <- ggplot2::ggplotGrob(plot)
   classes <- character()
   collect <- function(grob) {

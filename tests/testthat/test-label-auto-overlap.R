@@ -368,6 +368,9 @@ test_that("the same grobs drawn smaller warn about that draw", {
   # 4 x 3 leave three on the ink, and the reader who resized the window is
   # owed the warning for the picture in front of them. Drawing that picture
   # again replays a draw that has already warned and stays quiet.
+  # the gtable measures its text on a device of its own, since with none open
+  # grid would open the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   gtable <- ggplot2::ggplot_gtable(
     ggplot2::ggplot_build(perf_label_plot(perf_saturated_dag()))
   )

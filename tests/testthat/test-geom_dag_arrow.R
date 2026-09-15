@@ -518,6 +518,7 @@ test_that("edge_curvature absent uses scalar curvature param", {
     geom_dag_text() +
     theme_dag()
 
+  withr::local_pdf(NULL)
   grob <- ggplotGrob(p)
   expect_s3_class(grob, "gtable")
 })
@@ -615,6 +616,7 @@ test_that("all-NA edge_curvature is equivalent to no column", {
     geom_dag_text() +
     theme_dag()
 
+  withr::local_pdf(NULL)
   grob <- ggplotGrob(p)
   expect_s3_class(grob, "gtable")
 })

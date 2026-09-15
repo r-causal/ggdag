@@ -602,6 +602,9 @@ find_named_grob <- function(grob, pattern) {
 
 # The parameters the automatic label engine is given when the plot is drawn.
 drawn_label_params <- function(plot) {
+  # a gtable measures its text on a device, and with none open grid would open
+  # the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
   tree <- find_named_grob(gtable, "dag_labels_auto")
   expect_false(is.null(tree))

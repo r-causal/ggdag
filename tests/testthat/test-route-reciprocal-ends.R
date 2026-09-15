@@ -155,7 +155,9 @@ reciprocal_drawn_scene <- function(dag, size, route) {
   paths <- paths[grepl("arrow_path", sub(".*::", "", paths))]
   viewport <- strsplit(paths[[1]], "::", fixed = TRUE)[[1]][[2]]
   grid::seekViewport(viewport)
-  on.exit(grid::upViewport(0), add = TRUE)
+  # the viewport is left before the device is closed: once it is closed,
+  # grid would open the default device to leave it, which writes Rplots.pdf
+  on.exit(grid::upViewport(0), add = TRUE, after = FALSE)
   panel_width <- grid::convertWidth(grid::unit(1, "npc"), "mm", TRUE)
   panel_height <- grid::convertHeight(grid::unit(1, "npc"), "mm", TRUE)
 
