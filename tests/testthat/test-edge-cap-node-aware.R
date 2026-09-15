@@ -158,7 +158,7 @@ draws_square_ends <- function(plot) {
 # The arrowhead of a closed grid arrow has its tip at the end of the path.
 drawn_edge_gaps <- function(plot, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   reset_text_descent_cache()
   on.exit(
     {
@@ -952,7 +952,7 @@ test_that("the fan and the equivalence class cap their own layers by the nodes",
 # Draw `plot` off screen and report whether it drew.
 draws_on_device <- function(plot) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = 7, height = 5, units = "in", res = 72)
+  open_test_ragg(file, 7, 5, res = 72)
   on.exit(
     {
       grDevices::dev.off()
@@ -1281,6 +1281,51 @@ label_edge_caps <- function(plot) {
   )
 }
 
+test_that("a forced test draw measures its text on the device it draws on", {
+  skip_if_not_installed("ragg")
+
+  # R's graphics engine keeps the metrics of the last "M" it measured, keyed
+  # by the device's address rather than its resolution, so a device opened
+  # where a closed one of another resolution stood could read that device's
+  # text height, and draw a panel a pixel or two taller than it is
+  plot <- ggplot(data.frame(x = 1, y = 1), aes(x, y)) + geom_point()
+  panel_mm <- function(built) {
+    viewports <- grid::grid.ls(viewports = TRUE, print = FALSE)$name
+    grid::seekViewport(grep("^panel", viewports, value = TRUE)[[1]])
+    on.exit(grid::upViewport(0), add = TRUE)
+    c(
+      grid::convertWidth(grid::unit(1, "npc"), "mm", valueOnly = TRUE),
+      grid::convertHeight(grid::unit(1, "npc"), "mm", valueOnly = TRUE)
+    )
+  }
+  measure_on_other_device <- function() {
+    file <- tempfile(fileext = ".png")
+    ragg::agg_png(file, width = 7, height = 5, units = "in", res = 72)
+    on.exit(
+      {
+        grDevices::dev.off()
+        unlink(file)
+      },
+      add = TRUE
+    )
+    grid::grobHeight(grid::textGrob("M", gp = grid::gpar(fontsize = 8.8))) |>
+      grid::convertHeight("mm")
+  }
+
+  expected <- with_forced_plot(plot, panel_mm)
+  for (attempt in 1:12) {
+    measure_on_other_device()
+    # vary what the process holds, and with it where the next device lies
+    held <- raw(attempt * 97)
+    expect_equal(
+      with_forced_plot(plot, panel_mm),
+      expected,
+      tolerance = 1e-10,
+      label = paste("the panel drawn after a 72 dpi device, attempt", attempt)
+    )
+  }
+})
+
 test_that("the automatic labels cut each edge where the drawn edge stops", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 
@@ -1330,14 +1375,15 @@ test_that("the automatic labels cut each edge where the drawn edge stops", {
   # are read where the plot is drawn and their cut ends compared with the tips
   # of the drawn edges.
   skip_if_not_installed("ragg")
-  drawn <- drawn_edge_ends(p)
+  ends <- drawn_and_traced_ends(p)
+  drawn <- ends$drawn
   stopifnot(any(
     is_square_shape(drawn$shape) &
       abs(drawn$tip_dx) > 2 &
       abs(drawn$tip_dy) > 2
   ))
   expect_equal(tip_gap_mismatches(drawn), character())
-  expect_equal(label_tip_mismatches(traced_label_ends(p), drawn), character())
+  expect_equal(label_tip_mismatches(ends$traced, drawn), character())
 })
 
 test_that("hand-built automatic labels cut edges beyond the nodes", {

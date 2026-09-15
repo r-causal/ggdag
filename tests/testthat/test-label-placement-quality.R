@@ -153,13 +153,7 @@ quality_scenes <- function(build, size, route = "spline") {
   plot <- build()
 
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(
     {
       grDevices::dev.off()
@@ -1061,13 +1055,7 @@ curve_scene <- function(build, size, route = "orthogonal") {
   )
 
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   withr::defer({
     grDevices::dev.off()
     unlink(file)

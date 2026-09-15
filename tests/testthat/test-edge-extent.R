@@ -55,7 +55,7 @@ edge_ink_points <- function(grob) {
 # its npc coordinate.
 drawn_edge_extent <- function(plot, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(
     {
       grDevices::dev.off()

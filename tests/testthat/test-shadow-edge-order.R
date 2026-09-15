@@ -144,7 +144,7 @@ panels_shadowing_emphasis_by_route <- function(plot_fn) {
 # its arrows in `makeContent()`.
 panel_arrow_runs <- function(plot, width = 12, height = 10) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(
     {
       grDevices::dev.off()

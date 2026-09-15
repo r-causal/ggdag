@@ -112,7 +112,7 @@ open_panel_device <- function(device, width, height) {
     return(file)
   }
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   file
 }
 

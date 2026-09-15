@@ -9,7 +9,7 @@
 # The forced grob tree of the panel's routed edges.
 forced_routed_gtree <- function(plot, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(
     {
       grDevices::dev.off()

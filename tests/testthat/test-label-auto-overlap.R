@@ -58,13 +58,7 @@ saturated_plot <- function(overlaps = Inf, geom = geom_dag_label_auto) {
 # the calling frame exits.
 local_label_device <- function(size, .env = parent.frame()) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   withr::defer(
     {
       grDevices::dev.off()

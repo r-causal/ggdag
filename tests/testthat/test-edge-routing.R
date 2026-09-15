@@ -170,7 +170,7 @@ routed_layer_of <- function(plot) {
 # conversions have a device to measure against and no file is left behind.
 with_offscreen_device <- function(code, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(
     {
       grDevices::dev.off()
@@ -186,7 +186,7 @@ with_offscreen_device <- function(code, width = 7, height = 5) {
 # on the way out whether or not the drawing succeeds, so the file is complete
 # when this returns and no device is left behind when it is not.
 render_offscreen <- function(plot, file, width = 7, height = 5) {
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(grDevices::dev.off(), add = TRUE)
   print(plot)
   invisible(NULL)
@@ -224,7 +224,7 @@ grob_panel <- function(path) {
 # their full grob path.
 force_panel_grobs <- function(plot, pattern, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(
     {
       grDevices::dev.off()
@@ -1458,7 +1458,7 @@ bow_skip_dag <- function() {
 # would record.
 routed_scene_mm <- function(plot, width = 10, height = 8) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   on.exit(
     {
       grDevices::dev.off()

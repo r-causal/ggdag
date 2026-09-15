@@ -190,13 +190,7 @@ feedback_node_centres_mm <- function(size, route) {
   plot <- feedback_loop_plot()
 
   file <- withr::local_tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(grDevices::dev.off(), add = TRUE)
 
   grid::grid.newpage()

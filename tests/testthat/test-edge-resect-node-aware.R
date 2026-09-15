@@ -774,8 +774,9 @@ test_that("the label layer routes each routed layer with the caps that layer dra
   )
   for (name in names(scenes)) {
     p <- scenes[[name]]$plot
-    drawn <- drawn_arrow_ends(p)
-    traced <- traced_label_ends(p)
+    ends <- drawn_and_traced_ends(p)
+    drawn <- ends$drawn
+    traced <- ends$traced
     stopifnot(any(drawn$arc), nrow(traced) == nrow(drawn) / 2)
     expect_equal(
       label_cap_mismatches(traced, drawn),
@@ -1081,8 +1082,9 @@ test_that("geom_dag_edges() under the ggarrow engine takes the resection the use
       edge_route = "spline"
     ) +
     geom_dag_label_auto(aes(label = name))
-  drawn <- drawn_arrow_ends(labelled)
-  traced <- traced_label_ends(labelled)
+  ends <- drawn_and_traced_ends(labelled)
+  drawn <- ends$drawn
+  traced <- ends$traced
   expect_equal(label_cap_mismatches(traced, drawn), character())
 
   # ggarrow stops an end a distance from the end of the path, so a cap it
@@ -1146,8 +1148,9 @@ test_that("the automatic labels cut ggarrow edges where the drawn edges stop", {
     use_labels = TRUE,
     edge_engine = "ggarrow"
   )
-  drawn <- drawn_arrow_ends(circles)
-  traced <- traced_label_ends(circles)
+  ends <- drawn_and_traced_ends(circles)
+  drawn <- ends$drawn
+  traced <- ends$traced
   expect_equal(tip_gap_mismatches(drawn), character())
   expect_equal(unique(c(traced$cap_fins, traced$cap_head)), circle_cap)
   expect_equal(label_tip_mismatches(traced, drawn), character())
@@ -1159,9 +1162,10 @@ test_that("the automatic labels cut ggarrow edges where the drawn edges stop", {
     use_labels = TRUE,
     edge_engine = "ggarrow"
   )
-  drawn <- drawn_arrow_ends(squares)
+  ends <- drawn_and_traced_ends(squares)
+  drawn <- ends$drawn
   stopifnot(meets_square_at_angle(drawn))
-  traced <- traced_label_ends(squares)
+  traced <- ends$traced
   expect_equal(tip_gap_mismatches(drawn), character())
   expect_equal(label_tip_mismatches(traced, drawn), character())
 })
@@ -1193,9 +1197,9 @@ test_that("the automatic labels trace routed edges past square nodes under an ex
   # ggarrow draws a head straight from its cut, so on a route that still
   # bends into its node the tip leaves the traced path by the sagitta of that
   # chord (see `drawn_tip_point()`)
-  drawn <- drawn_arrow_ends(corner)
+  ends <- drawn_and_traced_ends(corner)
   expect_equal(
-    label_tip_mismatches(traced_label_ends(corner), drawn, tolerance = 0.35),
+    label_tip_mismatches(ends$traced, ends$drawn, tolerance = 0.35),
     character()
   )
 
@@ -1207,11 +1211,12 @@ test_that("the automatic labels trace routed edges past square nodes under an ex
       geom_dag_routed_arrows(route = "orthogonal", resect = 5),
       size = size
     ))
-    drawn <- drawn_arrow_ends(offset)
+    ends <- drawn_and_traced_ends(offset)
+    drawn <- ends$drawn
     square_heads <- drawn[is_square_shape(drawn$shape) & drawn$end == "head", ]
     stopifnot(sum(abs(square_heads$to_y - square_heads$centre_y) > 1) > 0)
     expect_equal(
-      label_tip_mismatches(traced_label_ends(offset), drawn),
+      label_tip_mismatches(ends$traced, drawn),
       character(),
       label = paste("the offset ports at size", size)
     )
@@ -1294,7 +1299,8 @@ test_that("the automatic labels cut an edge at both ggraph caps the user sets", 
 
   for (set_as in names(plots)) {
     p <- plots[[set_as]]
-    drawn <- drawn_edge_ends(p)
+    ends <- drawn_and_traced_ends(p)
+    drawn <- ends$drawn
     gaps <- sqrt(drawn$tip_dx^2 + drawn$tip_dy^2)
     stopifnot(
       nrow(drawn) > 0,
@@ -1302,7 +1308,7 @@ test_that("the automatic labels cut an edge at both ggraph caps the user sets", 
       all(abs(gaps[drawn$end == "end"] - 5) < 0.05)
     )
 
-    traced <- traced_label_ends(p)
+    traced <- ends$traced
     label <- paste("caps set as", set_as)
     expect_equal(unique(traced$cap_fins), 3, label = label)
     expect_equal(unique(traced$cap_head), 5, label = label)

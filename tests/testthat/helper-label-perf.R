@@ -174,13 +174,7 @@ with_perf_options <- function(route, expr) {
 # below depends on the viewport the tree would have been drawn in.
 perf_measure_render <- function(plot, size, measure) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(
     {
       grDevices::dev.off()

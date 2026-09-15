@@ -76,13 +76,7 @@ shallow_pair_dag <- function() {
 # rather than the data the layer carries.
 node_centres_mm <- function(p, size) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(
     {
       grDevices::dev.off()

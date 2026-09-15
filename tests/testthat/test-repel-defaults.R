@@ -56,7 +56,7 @@ padding_lines <- function(padding) {
 open_repel_device <- function(device) {
   if (identical(device, "ragg")) {
     file <- tempfile(fileext = ".png")
-    ragg::agg_png(file, width = 10, height = 8, units = "in", res = 96)
+    open_test_ragg(file, 10, 8)
     return(file)
   }
   file <- tempfile(fileext = ".svg")

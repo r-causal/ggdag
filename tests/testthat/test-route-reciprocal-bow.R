@@ -94,13 +94,7 @@ bow_drawn_scene <- function(dag, size) {
     theme_dag()
 
   file <- withr::local_tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(grDevices::dev.off(), add = TRUE)
 
   built <- ggplot2::ggplot_build(plot)

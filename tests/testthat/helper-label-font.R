@@ -25,7 +25,7 @@ reference_label_font_cache <- new.env(parent = emptyenv())
 measure_label_font <- function(family = "") {
   previous <- grDevices::dev.cur()
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = 4, height = 3, units = "in", res = 150)
+  open_test_ragg(file, 4, 3, res = 150)
   device <- grDevices::dev.cur()
   on.exit(
     {

@@ -1176,13 +1176,7 @@ orthogonal_scene <- function(dag, size) {
     theme_dag()
 
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(
     {
       grDevices::dev.off()
@@ -1430,13 +1424,7 @@ wrappable_dag <- function() {
 # The boxes `plot` draws, one row per label, sorted by key.
 wrap_boxes <- function(plot, size = c(7, 5)) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(
-    file,
-    width = size[[1]],
-    height = size[[2]],
-    units = "in",
-    res = 150
-  )
+  open_test_ragg(file, size[[1]], size[[2]], res = 150)
   on.exit(
     {
       grDevices::dev.off()

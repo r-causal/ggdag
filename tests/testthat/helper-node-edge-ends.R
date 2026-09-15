@@ -159,6 +159,33 @@ reset_text_descent_cache <- function() {
   invisible()
 }
 
+# Empty R's graphics engine cache of text metrics on the current device. The
+# engine (`GEMetricInfo()`) keeps the metrics of the last "M" it measured,
+# which is what every text height is read from, and keys them by the address
+# of the device and its close function rather than by its resolution. Two
+# ragg devices share that function, and a device opened at the address of one
+# just closed would read the closed device's text height, in its pixels,
+# until text of another size is measured. Measuring an "M" at a size no plot
+# sets makes the cache hold the current device, so the first text a plot
+# measures is measured on it.
+reset_engine_metric_cache <- function() {
+  grid::convertHeight(
+    grid::grobHeight(grid::textGrob("M", gp = grid::gpar(fontsize = 1))),
+    "mm"
+  )
+  invisible()
+}
+
+# Open an off-screen ragg device writing to `file`, `width` by `height`
+# inches at `res` dots per inch, whose text metrics are measured on it rather
+# than read from a device the process closed before (see
+# `reset_engine_metric_cache()`). The caller closes the device.
+open_test_ragg <- function(file, width, height, res = 96) {
+  ragg::agg_png(file, width = width, height = height, units = "in", res = res)
+  reset_engine_metric_cache()
+  invisible(file)
+}
+
 # Draw `plot` off screen on a device of a fixed size, force the grob tree so
 # that every `makeContent()` method has run, and evaluate `code` with the
 # drawn tree on the display list. `code` is a function of the built plot. The
@@ -166,7 +193,7 @@ reset_text_descent_cache <- function() {
 # whatever the process drew before.
 with_forced_plot <- function(plot, code, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
-  ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  open_test_ragg(file, width, height)
   reset_text_descent_cache()
   on.exit(
     {
@@ -450,50 +477,53 @@ arrow_grob_paths <- function(grob) {
   )
 }
 
-# Every ggarrow edge `plot` draws, as drawn on a device of a fixed size: one
+# Every ggarrow edge the forced plot `plot`, built as `built`, draws: one
 # element per arrow grob, holding its panel, its paths in millimetres, and the
 # resection of each end of each path, which is what ggarrow draws the edge
 # with, whether the layer settled it when the plot was built or when it was
-# drawn.
+# drawn. Call it with the forced tree on the display list.
+forced_arrow_drawings <- function(plot, built) {
+  grobs <- forced_grobs("curve_arrow|arrow_path")
+  drawings <- purrr::map(grobs, \(found) {
+    # a legend key draws its arrow outside every panel
+    if (
+      !inherits(found$grob, c("curve_arrow", "arrow_path")) ||
+        is.na(found$panel)
+    ) {
+      return(NULL)
+    }
+    grid::upViewport(0)
+    grid::downViewport(found$vp_path)
+    on.exit(grid::upViewport(0), add = TRUE)
+
+    drawn <- arrow_grob_paths(found$grob)
+    drawn$panel <- found$panel
+    drawn$nodes <- panel_nodes_mm(plot, built, found$panel)
+    drawn
+  })
+  purrr::compact(drawings)
+}
+
+# Every ggarrow edge `plot` draws, as drawn on a device of a fixed size, as
+# `forced_arrow_drawings()` reads it.
 arrow_grob_drawings <- function(plot, width = 7, height = 5) {
   with_forced_plot(
     plot,
-    function(built) {
-      grobs <- forced_grobs("curve_arrow|arrow_path")
-      drawings <- purrr::map(grobs, \(found) {
-        # a legend key draws its arrow outside every panel
-        if (
-          !inherits(found$grob, c("curve_arrow", "arrow_path")) ||
-            is.na(found$panel)
-        ) {
-          return(NULL)
-        }
-        grid::upViewport(0)
-        grid::downViewport(found$vp_path)
-        on.exit(grid::upViewport(0), add = TRUE)
-
-        drawn <- arrow_grob_paths(found$grob)
-        drawn$panel <- found$panel
-        drawn$nodes <- panel_nodes_mm(plot, built, found$panel)
-        drawn
-      })
-      purrr::compact(drawings)
-    },
+    \(built) forced_arrow_drawings(plot, built),
     width = width,
     height = height
   )
 }
 
-# One row per end of every ggarrow edge `plot` draws: the panel, which end,
-# whether the edge is an arc, the ends of the edge's path, the node the end
-# meets, with the shape and size it is drawn with and its centre, the
-# resection at the end, and where the tip is drawn, also relative to that
-# node's centre, all in millimetres. The fins end is the start of the path and
-# the head end its finish. An edge shorter than the resection and ornament at
-# an end is not drawn by ggarrow, and has no tip there (`drawn` is `FALSE`).
-drawn_arrow_ends <- function(plot, width = 7, height = 5) {
-  drawings <- arrow_grob_drawings(plot, width = width, height = height)
-
+# One row per end of every ggarrow edge among `drawings`, from
+# `forced_arrow_drawings()`: the panel, which end, whether the edge is an arc,
+# the ends of the edge's path, the node the end meets, with the shape and size
+# it is drawn with and its centre, the resection at the end, and where the tip
+# is drawn, also relative to that node's centre, all in millimetres. The fins
+# end is the start of the path and the head end its finish. An edge shorter
+# than the resection and ornament at an end is not drawn by ggarrow, and has
+# no tip there (`drawn` is `FALSE`).
+arrow_drawing_ends <- function(drawings) {
   purrr::map(drawings, \(drawn) {
     nodes <- drawn$nodes
     purrr::map(seq_along(drawn$paths), \(k) {
@@ -553,83 +583,94 @@ drawn_arrow_ends <- function(plot, width = 7, height = 5) {
     purrr::list_rbind()
 }
 
+# One row per end of every ggarrow edge `plot` draws on a device of a fixed
+# size, as `arrow_drawing_ends()` describes it.
+drawn_arrow_ends <- function(plot, width = 7, height = 5) {
+  arrow_drawing_ends(arrow_grob_drawings(plot, width = width, height = height))
+}
+
 # The ggraph edges --------------------------------------------------------------
 
-# One row per end of every ggraph edge `plot` draws, in the shape
-# `drawn_arrow_ends()` returns, with `start` and `end` for the ends and no
-# resection. A capped path grob keeps the uncut path in native units, whose
-# ends are the node centres, and draws the cut path as a child in
-# millimetres. The arrowhead of a closed grid arrow has its tip at the end of
-# the path.
+# One row per end of every ggraph edge the forced plot `plot`, built as
+# `built`, draws, in the shape `arrow_drawing_ends()` returns, with `start`
+# and `end` for the ends and no resection. A capped path grob keeps the uncut
+# path in native units, whose ends are the node centres, and draws the cut
+# path as a child in millimetres. The arrowhead of a closed grid arrow has its
+# tip at the end of the path. Call it with the forced tree on the display
+# list.
+forced_edge_ends <- function(plot, built) {
+  grobs <- forced_grobs("cappedpathgrob")
+  purrr::map(grobs, \(found) {
+    grob <- found$grob
+    if (
+      !inherits(grob, "cappedpathgrob") ||
+        length(grob$x) == 0 ||
+        is.na(found$panel)
+    ) {
+      return(NULL)
+    }
+    grid::upViewport(0)
+    grid::downViewport(found$vp_path)
+    on.exit(grid::upViewport(0), add = TRUE)
+
+    nodes <- panel_nodes_mm(plot, built, found$panel)
+    centre_x <- convert_mm_x(grob$x)
+    centre_y <- convert_mm_y(grob$y)
+    edge_ids <- unique(grob$id)
+    drawn <- grob$children[[1]]
+    drawn_ids <- if (inherits(drawn, "polyline")) unique(drawn$id)
+    if (length(drawn_ids) != length(edge_ids)) {
+      return(NULL)
+    }
+    drawn_x <- convert_mm_x(drawn$x)
+    drawn_y <- convert_mm_y(drawn$y)
+
+    purrr::map(seq_along(edge_ids), \(k) {
+      uncut <- which(grob$id == edge_ids[[k]])
+      cut <- which(drawn$id == drawn_ids[[k]])
+      from <- uncut[[1]]
+      to <- uncut[[length(uncut)]]
+      middle <- path_midpoint(centre_x[uncut], centre_y[uncut])
+      end_row <- function(end, centre, tip) {
+        node <- node_at_end(nodes, centre_x[[centre]], centre_y[[centre]])
+        data.frame(
+          panel = found$panel,
+          end = end,
+          arc = FALSE,
+          drawn = TRUE,
+          from_x = centre_x[[from]],
+          from_y = centre_y[[from]],
+          to_x = centre_x[[to]],
+          to_y = centre_y[[to]],
+          mid_x = middle[[1]],
+          mid_y = middle[[2]],
+          shape = nodes$shape[node],
+          size = nodes$size[node],
+          centre_x = nodes$x[node],
+          centre_y = nodes$y[node],
+          resect = NA_real_,
+          tip_x = drawn_x[[tip]],
+          tip_y = drawn_y[[tip]],
+          tip_dx = drawn_x[[tip]] - nodes$x[node],
+          tip_dy = drawn_y[[tip]] - nodes$y[node]
+        )
+      }
+      rbind(
+        end_row("start", from, cut[[1]]),
+        end_row("end", to, cut[[length(cut)]])
+      )
+    }) |>
+      purrr::list_rbind()
+  }) |>
+    purrr::list_rbind()
+}
+
+# One row per end of every ggraph edge `plot` draws on a device of a fixed
+# size, as `forced_edge_ends()` describes it.
 drawn_edge_ends <- function(plot, width = 7, height = 5) {
   with_forced_plot(
     plot,
-    function(built) {
-      grobs <- forced_grobs("cappedpathgrob")
-      purrr::map(grobs, \(found) {
-        grob <- found$grob
-        if (
-          !inherits(grob, "cappedpathgrob") ||
-            length(grob$x) == 0 ||
-            is.na(found$panel)
-        ) {
-          return(NULL)
-        }
-        grid::upViewport(0)
-        grid::downViewport(found$vp_path)
-        on.exit(grid::upViewport(0), add = TRUE)
-
-        nodes <- panel_nodes_mm(plot, built, found$panel)
-        centre_x <- convert_mm_x(grob$x)
-        centre_y <- convert_mm_y(grob$y)
-        edge_ids <- unique(grob$id)
-        drawn <- grob$children[[1]]
-        drawn_ids <- if (inherits(drawn, "polyline")) unique(drawn$id)
-        if (length(drawn_ids) != length(edge_ids)) {
-          return(NULL)
-        }
-        drawn_x <- convert_mm_x(drawn$x)
-        drawn_y <- convert_mm_y(drawn$y)
-
-        purrr::map(seq_along(edge_ids), \(k) {
-          uncut <- which(grob$id == edge_ids[[k]])
-          cut <- which(drawn$id == drawn_ids[[k]])
-          from <- uncut[[1]]
-          to <- uncut[[length(uncut)]]
-          middle <- path_midpoint(centre_x[uncut], centre_y[uncut])
-          end_row <- function(end, centre, tip) {
-            node <- node_at_end(nodes, centre_x[[centre]], centre_y[[centre]])
-            data.frame(
-              panel = found$panel,
-              end = end,
-              arc = FALSE,
-              drawn = TRUE,
-              from_x = centre_x[[from]],
-              from_y = centre_y[[from]],
-              to_x = centre_x[[to]],
-              to_y = centre_y[[to]],
-              mid_x = middle[[1]],
-              mid_y = middle[[2]],
-              shape = nodes$shape[node],
-              size = nodes$size[node],
-              centre_x = nodes$x[node],
-              centre_y = nodes$y[node],
-              resect = NA_real_,
-              tip_x = drawn_x[[tip]],
-              tip_y = drawn_y[[tip]],
-              tip_dx = drawn_x[[tip]] - nodes$x[node],
-              tip_dy = drawn_y[[tip]] - nodes$y[node]
-            )
-          }
-          rbind(
-            end_row("start", from, cut[[1]]),
-            end_row("end", to, cut[[length(cut)]])
-          )
-        }) |>
-          purrr::list_rbind()
-      }) |>
-        purrr::list_rbind()
-    },
+    \(built) forced_edge_ends(plot, built),
     width = width,
     height = height
   )
@@ -637,39 +678,13 @@ drawn_edge_ends <- function(plot, width = 7, height = 5) {
 
 # The automatic labels ---------------------------------------------------------
 
-# One row per edge the automatic label layer of the one-panel plot `plot`
-# traces, read where the label engine turns the traced edges into the ink it
-# keeps its labels off, when the plot is drawn on a device of a fixed size:
-# the ends of the traced path, the millimetres cut from its start
-# (`cap_fins`) and its end (`cap_head`), and the points it is cut back to.
-# The engine drops the part of a traced edge within that many millimetres of
-# either end, in a straight line from the end, which is where ggarrow cuts a
-# path it resects.
-traced_label_ends <- function(plot, width = 7, height = 5) {
-  label_ink <- get("label_ink", envir = asNamespace("ggdag"))
-  traced <- list()
-  record <- function(edges, cap, ...) {
-    traced[[length(traced) + 1L]] <<- edges
-    label_ink(edges, cap, ...)
-  }
-
-  # drawing the plot and then forcing its grob tree runs the label grob's
-  # `makeContent()` once for each, on the same panel and the same device
-  panels <- testthat::with_mocked_bindings(
-    with_forced_plot(
-      plot,
-      \(built) nrow(built$layout$layout),
-      width = width,
-      height = height
-    ),
-    label_ink = record,
-    .package = "ggdag"
-  )
-  if (panels != 1 || length(traced) == 0) {
-    stop("expected one panel of traced labels")
-  }
-
-  edges <- traced[[length(traced)]]
+# One row per edge among `edges`, the traced edges the automatic label engine
+# turns into the ink it keeps its labels off: the ends of the traced path, the
+# millimetres cut from its start (`cap_fins`) and its end (`cap_head`), and
+# the points it is cut back to. The engine drops the part of a traced edge
+# within that many millimetres of either end, in a straight line from the end,
+# which is where ggarrow cuts a path it resects.
+traced_edge_ends <- function(edges) {
   rows <- split(
     seq_len(nrow(edges)),
     factor(edges$edge_id, levels = unique(edges$edge_id))
@@ -701,15 +716,69 @@ traced_label_ends <- function(plot, width = 7, height = 5) {
     purrr::list_rbind()
 }
 
-# The drawn edge each traced edge among `traced`, from `traced_label_ends()`,
-# is drawn as, among the edges `drawn`, from `drawn_arrow_ends()` or
-# `drawn_edge_ends()`: `starts` and `ends`, the drawn ends of each drawn edge,
-# and `matched`, for each traced edge the row of its drawn edge in both, `NA`
-# where no single drawn edge matches it. The two are read from two draws of
-# the plot, so a traced edge is matched to the drawn edge by the nodes it
-# runs from and to, each the drawn node nearest its end, rather than by
-# millimetres: the edge from `x` to `y` is matched to the edge drawn from `x`
-# to `y`, and never to the one drawn from `y` to `x`. Where more than one edge
+# Draw the one-panel plot `plot` on a device of a fixed size and evaluate
+# `code`, a function of the built plot, with the forced tree on the display
+# list, recording the edges the automatic label layer traces where the label
+# engine turns them into ink. Returns the value of `code` as `value` and the
+# traced edges, as `traced_edge_ends()` describes them, as `traced`. Drawing
+# the plot and then forcing its grob tree runs the label grob's
+# `makeContent()` once for each, on the same panel and the same device, and
+# the traced edges are read from the last.
+with_traced_labels <- function(plot, code, width = 7, height = 5) {
+  label_ink <- get("label_ink", envir = asNamespace("ggdag"))
+  traced <- list()
+  record <- function(edges, cap, ...) {
+    traced[[length(traced) + 1L]] <<- edges
+    label_ink(edges, cap, ...)
+  }
+
+  drawn <- testthat::with_mocked_bindings(
+    with_forced_plot(
+      plot,
+      \(built) {
+        list(panels = nrow(built$layout$layout), value = code(built))
+      },
+      width = width,
+      height = height
+    ),
+    label_ink = record,
+    .package = "ggdag"
+  )
+  if (drawn$panels != 1 || length(traced) == 0) {
+    stop("expected one panel of traced labels")
+  }
+  list(value = drawn$value, traced = traced_edge_ends(traced[[length(traced)]]))
+}
+
+# The edges the one-panel plot `plot` draws and the edges its automatic label
+# layer traces, both read from one drawing on a device of a fixed size, so
+# the two are measured in the same panel whatever the process drew before:
+# `drawn`, one row per end of every ggarrow and ggraph edge, as
+# `arrow_drawing_ends()` and `forced_edge_ends()` describe them, and `traced`,
+# as `traced_edge_ends()` describes them.
+drawn_and_traced_ends <- function(plot, width = 7, height = 5) {
+  found <- with_traced_labels(
+    plot,
+    \(built) {
+      purrr::list_rbind(list(
+        arrow_drawing_ends(forced_arrow_drawings(plot, built)),
+        forced_edge_ends(plot, built)
+      ))
+    },
+    width = width,
+    height = height
+  )
+  list(drawn = found$value, traced = found$traced)
+}
+
+# The drawn edge each traced edge among `traced` is drawn as, among the edges
+# `drawn`, both as `drawn_and_traced_ends()` reads them: `starts` and `ends`,
+# the drawn ends of each drawn edge, and `matched`, for each traced edge the
+# row of its drawn edge in both, `NA` where no single drawn edge matches it. A
+# traced edge is matched to the drawn edge by the nodes it runs from and to,
+# each the drawn node nearest its end, rather than by millimetres: the edge
+# from `x` to `y` is matched to the edge drawn from `x` to `y`, and never to
+# the one drawn from `y` to `x`. Where more than one edge
 # is drawn from one node to the other, as a directed edge and a bidirected
 # arc are, the traced edge is matched to the one whose middle lies nearest
 # its own. A drawn edge two traced edges are matched to matches neither.
@@ -755,10 +824,10 @@ match_traced_edges <- function(traced, drawn) {
   list(starts = starts, ends = ends, matched = matched)
 }
 
-# The traced edges among `traced`, from `traced_label_ends()`, whose cut ends
-# are not where the edges among `drawn`, from `drawn_arrow_ends()` or
-# `drawn_edge_ends()`, draw their tips, within `tolerance` mm, each traced
-# edge matched to its drawn edge by `match_traced_edges()`.
+# The traced edges among `traced` whose cut ends are not where the edges among
+# `drawn`, both as `drawn_and_traced_ends()` reads them, draw their tips,
+# within `tolerance` mm, each traced edge matched to its drawn edge by
+# `match_traced_edges()`.
 label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
   if (nrow(traced) == 0) {
     return("the labels trace no edges")
@@ -810,10 +879,10 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
     purrr::discard(is.na)
 }
 
-# The traced edges among `traced`, from `traced_label_ends()`, cut back by
-# other millimetres at an end than the edge drawn there, among `drawn`, from
-# `drawn_arrow_ends()`, is resected by, each traced edge matched to its drawn
-# edge by `match_traced_edges()`. An end at a circle is cut by the resection
+# The traced edges among `traced` cut back by other millimetres at an end than
+# the ggarrow edge drawn there, among `drawn`, both as
+# `drawn_and_traced_ends()` reads them, is resected by, each traced edge
+# matched to its drawn edge by `match_traced_edges()`. An end at a circle is cut by the resection
 # itself; an end at a square is cut where the path crosses the square, and
 # its tip is what `label_tip_mismatches()` checks instead.
 label_cap_mismatches <- function(traced, drawn, tolerance = 1e-6) {

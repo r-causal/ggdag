@@ -521,13 +521,7 @@ drawing_conditions <- function(plot, size = c(10, 8)) {
   file <- withr::local_tempfile(fileext = ".png")
   withCallingHandlers(
     {
-      ragg::agg_png(
-        file,
-        width = size[[1]],
-        height = size[[2]],
-        units = "in",
-        res = 72
-      )
+      open_test_ragg(file, size[[1]], size[[2]], res = 72)
       withr::defer(grDevices::dev.off())
       print(plot)
     },
