@@ -1745,9 +1745,11 @@ engine_trace_curvature <- function(arc_curvature, edge_engine) {
 #'   layout closures raise name the argument the user actually supplied.
 #' @param node_scale Multiplier for the drawn node size, `node_size / 16`
 #'   for the default node size of 16. Scales `node_radius` and, through it,
-#'   the spacing and clearance defaults below, so larger nodes get room in
-#'   proportion. Explicit values for those arguments override the scaled
-#'   defaults.
+#'   the `min_spacing`, `node_gap`, and clearance defaults below. `layer_gap`
+#'   does not scale and positions are normalized by it, so a larger scale
+#'   widens the within-layer spread relative to the gap between layers; the
+#'   extra room is visible only where both axes are drawn to one scale.
+#'   Explicit values for those arguments override the scaled defaults.
 #' @param node_radius Node circle radius for overlap detection.
 #' @param arc_curvature Curvature the drawn bidirected arcs are modelled at,
 #'   read from the `curvature` option once when the layout is computed so the
