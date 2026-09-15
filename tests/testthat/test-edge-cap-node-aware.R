@@ -1139,6 +1139,35 @@ test_that("a cap the user maps on a hand-built edge layer wins at its end", {
   expect_equal(fixed_cap_mismatches(both, 5), character())
 })
 
+test_that("a cap the plot maps for a hand-built edge layer wins at its end", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # the layer inherits the plot's mapping, so the cap it draws at the end is
+  # the one the plot maps, and the labels cut the edges there
+  p <- ggplot(
+    tidy_dagitty(controlled_dag()),
+    aes_dag(end_cap = ggraph::circle(4, "mm"))
+  ) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link() +
+    geom_dag_label_auto(aes(label = name))
+
+  ends <- edge_end_caps(p)
+  expect_equal(unique(ends$cap_mm[ends$end == "start"]), 0.375 * 30 + 2)
+  expect_equal(unique(ends$cap_mm[ends$end == "end"]), 4)
+  expect_equal(unique(label_edge_caps(p)$cap_end), 4)
+  expect_equal(unique(label_edge_caps(p)$cap_start), 0.375 * 30 + 2)
+
+  # a layer that does not inherit the plot's mapping follows the nodes
+  own <- ggplot(
+    tidy_dagitty(controlled_dag()),
+    aes_dag(end_cap = ggraph::circle(4, "mm"))
+  ) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link(aes_dag(), inherit.aes = FALSE)
+  expect_equal(node_aware_cap_mismatches(own, 30), character())
+})
+
 test_that("a hand-built edge layer with no node layer keeps the 8 mm cap", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 
@@ -1243,45 +1272,6 @@ test_that("an edge in a panel only the edge layer adds finds that panel's nodes"
 })
 
 # The automatic labels ---------------------------------------------------------
-
-# One row per edge the automatic label layer of `plot` traces in its first
-# panel: where the edge starts and ends, in data units, the index of the
-# layer it is traced from (`layer`, `NA` for an edge traced as its chord),
-# and the cap the label engine cuts the traced edge back by at each end. The grob carries the traced
-# edges in the order the built layer holds them, so the positions are read
-# from the built layer and the caps from the grob. An edge the grob carries no
-# cap of its own for is cut by the layer's single cap.
-label_edge_caps <- function(plot) {
-  index <- which(purrr::map_lgl(plot$layers, \(layer) {
-    inherits(layer$stat, "StatNodesLabelAuto")
-  }))
-  grob <- ggplot2::layer_grob(plot, index[[1]])[[1]]
-  rows <- ggplot2::layer_data(plot, index[[1]])
-  rows <- rows[rows$ggdag_role %in% "edge" & rows$PANEL == 1, , drop = FALSE]
-  stopifnot(nrow(rows) == nrow(grob$edges))
-
-  ids <- unique(rows$edge_id)
-  first <- match(ids, rows$edge_id)
-  last <- nrow(rows) - match(ids, rev(rows$edge_id)) + 1L
-
-  cap_at <- function(column, at) {
-    caps <- grob$edges[[column]]
-    if (is.null(caps)) {
-      return(rep(grob$params$edge_cap, length(at)))
-    }
-    caps[at]
-  }
-
-  data.frame(
-    x = rows$x[first],
-    y = rows$y[first],
-    xend = rows$x[last],
-    yend = rows$y[last],
-    layer = rows$route_layer[first],
-    cap_start = cap_at("cap_fins", first),
-    cap_end = cap_at("cap_head", last)
-  )
-}
 
 test_that("a forced test draw measures its text on the device it draws on", {
   skip_if_not_installed("ragg")

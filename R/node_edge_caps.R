@@ -463,10 +463,12 @@ label_edge_end_caps <- function(layer, plot, layout) {
 
 # The caps the user set, as an aesthetic or as a fixed value, at the ends that
 # the edge layers of `plot` following the nodes leave alone, in millimetres.
-# One row per edge such a layer draws, placed on the position scales of
-# `layout` as the label stat sees it, with `NA` at an end that follows the
-# nodes, and the index of the drawing layer among the plot's layers in
-# `layer`. A layer whose ends all follow the nodes has rows as well, so that
+# One row per edge such a layer draws in each panel of `layout` it draws the
+# edge in (`PANEL`), placed on the position scales of `layout` as the label
+# stat sees it, with `NA` at an end that follows the nodes, and the index of
+# the drawing layer among the plot's layers in `layer`. A cap mapped to the
+# data is read for each row, whether the layer maps it or inherits it from
+# the plot's mapping. A layer whose ends all follow the nodes has rows as well, so that
 # an edge two layers draw is known to be drawn up to the node's own cap by
 # one of them. `NULL` when no layer follows the nodes.
 set_edge_caps <- function(plot, layout) {
@@ -496,21 +498,28 @@ set_edge_caps <- function(plot, layout) {
     if (nrow(data) == 0) {
       return(NULL)
     }
+    # each row is drawn in the panels ggplot2 places it in
+    data <- layout$facet$map_data(data, layout$layout, layout$facet_params)
+    data <- data[!is.na(data$PANEL), , drop = FALSE]
+    if (nrow(data) == 0) {
+      return(NULL)
+    }
 
     edges <- data.frame(
       x = data$x,
       y = data$y,
       xend = data$xend,
       yend = data$yend,
+      PANEL = as.character(data$PANEL),
       start = NA_real_,
       end = NA_real_,
       layer = index
     )
     if ("start_cap" %in% set) {
-      edges$start <- set_cap_mm(layer, "start_cap", data)
+      edges$start <- set_cap_mm(layer, "start_cap", data, plot$mapping)
     }
     if ("end_cap" %in% set) {
-      edges$end <- set_cap_mm(layer, "end_cap", data)
+      edges$end <- set_cap_mm(layer, "end_cap", data, plot$mapping)
     }
     edges
   })
@@ -524,26 +533,29 @@ set_edge_caps <- function(plot, layout) {
 
 # The cap `layer` draws at `end` of each edge in `data`, the rows it draws, in
 # millimetres. A ggraph layer's fixed cap is read as it is, and a mapped one
-# is evaluated against the rows the way the layer evaluates it. A cap drawn in
+# is evaluated against the rows the way the layer evaluates it, from the
+# layer's mapping or from the plot's `plot_mapping` the layer inherits. A cap drawn in
 # a shape other than a circle is taken as the circle that fits inside it. A
 # ggarrow layer's resection is read the same way from its `resect_fins` or
 # `resect_head`, as an aesthetic or as the layer's parameter. `NA` for a cap
 # that is not a ggraph geometry or a number of millimetres, or is measured in
 # units that depend on the device, such as `"npc"` or `"lines"`, which then
 # follows the nodes.
-set_cap_mm <- function(layer, end, data) {
+set_cap_mm <- function(layer, end, data, plot_mapping = NULL) {
   if (inherits(layer$geom, dag_arrow_geoms)) {
     return(set_resect_mm(
       layer,
       names(arrow_end_caps)[arrow_end_caps == end],
-      data
+      data,
+      plot_mapping
     ))
   }
 
   cap <- layer$aes_params[[end]]
-  if (is.null(cap) && !is.null(layer$mapping[[end]])) {
+  mapping <- layer_mapping(layer, end, plot_mapping)
+  if (is.null(cap) && !is.null(mapping)) {
     cap <- tryCatch(
-      rlang::eval_tidy(layer$mapping[[end]], data = data),
+      rlang::eval_tidy(mapping, data = data),
       error = function(cnd) NULL
     )
   }
@@ -574,13 +586,15 @@ dag_arrow_geoms <- c("GeomDAGArrow", "GeomDAGArrowCurve", "GeomDAGRoutedArrow")
 
 # The resection, in millimetres, a ggarrow `layer` cuts from the `end` (`"fins"`
 # or `"head"`) of each edge in `data`: the aesthetic where the layer maps it,
-# and the layer's own parameter otherwise.
-set_resect_mm <- function(layer, end, data) {
+# or inherits it from the plot's `plot_mapping`, and the layer's own
+# parameter otherwise.
+set_resect_mm <- function(layer, end, data, plot_mapping = NULL) {
   aesthetic <- paste0("resect_", end)
   resect <- layer$aes_params[[aesthetic]]
-  if (is.null(resect) && !is.null(layer$mapping[[aesthetic]])) {
+  mapping <- layer_mapping(layer, aesthetic, plot_mapping)
+  if (is.null(resect) && !is.null(mapping)) {
     resect <- tryCatch(
-      rlang::eval_tidy(layer$mapping[[aesthetic]], data = data),
+      rlang::eval_tidy(mapping, data = data),
       error = function(cnd) NULL
     )
   }
@@ -768,7 +782,8 @@ edge_end_nodes <- function(panel, x, y, nodes) {
 # point names, and takes at each end the nearest cap among them, the node's
 # own where one of them follows the node there and no set cap is nearer:
 # the label keeps clear of the ink of all of them, which reaches out to the
-# nearest. An edge with no caps found here takes the label geom's single cap,
+# nearest. Caps are read in the panel of the point, where a cap mapped to
+# the data can differ from another panel's. An edge with no caps found here takes the label geom's single cap,
 # so its caps are `NA`.
 traced_edge_caps <- function(edges, points, caps) {
   none <- rep(NA_real_, nrow(points))
@@ -816,7 +831,11 @@ traced_edge_caps <- function(edges, points, caps) {
     set_layer <- spec_column(caps$set, "layer", NA_integer_)
     set_keys <- edge_key(caps$set$x, caps$set$y, caps$set$xend, caps$set$yend)
 
-    # a point a layer traced takes the caps that layer sets
+    # a point a layer traced takes the caps that layer sets in its panel
+    point_panel <- as.character(points$PANEL)
+    set_panel <- as.character(spec_column(caps$set, "PANEL", NA_character_))
+    set_keys <- paste(set_keys, set_panel, sep = "\r")
+    point_keys <- paste(point_keys, point_panel, sep = "\r")
     set_at <- match(
       paste(point_keys, point_layer),
       paste(set_keys, set_layer)

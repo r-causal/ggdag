@@ -1170,6 +1170,110 @@ test_that("the automatic labels cut ggarrow edges where the drawn edges stop", {
   expect_equal(label_tip_mismatches(traced, drawn), character())
 })
 
+test_that("a resection the plot maps reaches the ggarrow edges and the labels", {
+  skip_if_not_installed("ragg")
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(controlled_dag())
+  circle_cap <- 0.375 * 30 + 2
+
+  # a layer inherits the plot's mapping, so the head resection the plot maps
+  # is the one drawn at each head whether or not the layer sets its own, and
+  # the labels cut the edges where they are drawn
+  for (layer_resect in list(NULL, 5)) {
+    label <- paste("a layer resection of", format(layer_resect))
+    p <- ggplot(tidy_dag, aes_dag(resect_head = ifelse(name == "z", 3, 9))) +
+      geom_dag_point(size = 30) +
+      geom_dag_arrow(resect_head = layer_resect) +
+      geom_dag_label_auto(aes(label = name))
+    ends <- drawn_and_traced_ends(p)
+    drawn <- ends$drawn
+    expect_setequal(drawn$resect[drawn$end == "head"], c(3, 9))
+    expect_equal(unique(drawn$resect[drawn$end == "fins"]), circle_cap)
+    expect_equal(
+      label_cap_mismatches(ends$traced, drawn),
+      character(),
+      label = label
+    )
+  }
+
+  # and so is a cap the plot maps for `geom_dag_edges()` under ggarrow
+  capped <- ggplot(tidy_dag, aes_dag(end_cap = ggraph::circle(4, "mm"))) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges(edge_engine = "ggarrow") +
+    geom_dag_label_auto(aes(label = name))
+  ends <- drawn_and_traced_ends(capped)
+  drawn <- ends$drawn
+  expect_equal(unique(drawn$resect[drawn$end == "head"]), 4)
+  expect_equal(unique(drawn$resect[drawn$end == "fins"]), circle_cap)
+  expect_equal(label_cap_mismatches(ends$traced, drawn), character())
+})
+
+test_that("the automatic labels read a resection mapped for each panel in that panel", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # the same DAG in two panels, whose edges a layer resects by 3 mm in one
+  # and by 9 mm in the other: the labels cut the edges of each panel by the
+  # resection drawn there, and trace the routes of each panel with the cap
+  # that panel's routes are drawn with
+  data <- pull_dag_data(tidy_dagitty(controlled_dag()))
+  data <- dplyr::bind_rows(
+    dplyr::mutate(data, panel = "A"),
+    dplyr::mutate(data, panel = "B")
+  )
+  mapped <- ggplot2::aes(resect_head = ifelse(panel == "A", 3, 9))
+  faceted <- function(edges) {
+    ggplot(data, aes_dag()) +
+      geom_dag_point(size = 16) +
+      edges +
+      ggplot2::facet_wrap(~panel) +
+      geom_dag_text_auto(aes(label = name), colour = "black", size = 3) +
+      theme_dag()
+  }
+  plots <- list(
+    straight = faceted(geom_dag_arrow(mapped)),
+    orthogonal = faceted(geom_dag_routed_arrows(mapped, route = "orthogonal")),
+    spline = faceted(geom_dag_routed_arrows(mapped, route = "spline"))
+  )
+  for (name in names(plots)) {
+    p <- plots[[name]]
+    for (panel in 1:2) {
+      caps <- label_edge_caps(p, panel)
+      expect_equal(
+        unique(caps$cap_end),
+        c(3, 9)[[panel]],
+        label = paste("the heads traced in panel", panel, "of", name)
+      )
+    }
+    if (name == "straight") {
+      next
+    }
+    inputs <- drawn_and_traced_router_inputs(p)
+    stopifnot(length(inputs$drawn) == 4)
+    expect_setequal(
+      vapply(inputs$drawn, `[[`, numeric(1), "cap"),
+      c(3, 9)
+    )
+    expect_equal(
+      traced_router_input_mismatches(inputs),
+      character(),
+      label = name
+    )
+    found <- label_route_deviations(p)
+    stopifnot(length(unique(found$panel)) == 2)
+    expect_equal(
+      found$deviation,
+      rep(0, nrow(found)),
+      tolerance = 1e-10,
+      label = paste("the routes traced for", name)
+    )
+  }
+})
+
 test_that("the automatic labels trace routed edges past square nodes under an explicit resection", {
   skip_if_not_installed("ragg")
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)

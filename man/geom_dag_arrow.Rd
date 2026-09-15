@@ -196,8 +196,9 @@ while adjacent edges stay straight.
 
 Edges are automatically shortened so that they do not run underneath the
 nodes. Resection is decided one end at a time: an end you set, through
-\code{resect} or through \code{resect_head}/\code{resect_fins}, keeps the value you gave
-it, and every end you leave unset is shortened automatically. Setting only
+\code{resect} or through \code{resect_head}/\code{resect_fins}, as a parameter or as an
+aesthetic of the layer or of the plot, keeps the value you gave it, and
+every end you leave unset is shortened automatically. Setting only
 \code{resect_head}, for instance, leaves the fins end to the automatic value.
 Pass \code{0} to an end to draw the edge all the way to the node.
 

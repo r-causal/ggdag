@@ -1201,7 +1201,7 @@ ggarrow_dag_edges <- function(
     cap_as_resect(start_cap, "start_cap", "resect_fins", call) %||%
     resect
 
-  quick_plot_arrow_edges(
+  layers <- quick_plot_arrow_edges(
     mapping = mapping,
     data_directed = data_directed,
     data_bidirected = data_bidirected,
@@ -1221,6 +1221,23 @@ ggarrow_dag_edges <- function(
     call = call,
     ...
   )
+  # a cap the plot maps, which the layers inherit, is drawn as the resection
+  # of its end too, once the plot is in view (`inherited_caps_as_resects()`)
+  caps_as_resects(layers)
+}
+
+# `layers`, ggarrow edge layers or a list of them, marked to draw the caps
+# the plot maps as resections.
+caps_as_resects <- function(layers) {
+  if (inherits(layers, "dag_arrow_layer")) {
+    layer <- .subset2(layers, "layer")
+    layer$caps_as_resects <- TRUE
+    return(layers)
+  }
+  if (is.list(layers) && !inherits(layers, "ggproto")) {
+    return(lapply(layers, caps_as_resects))
+  }
+  layers
 }
 
 # The resection, in millimetres, a ggarrow layer draws for the ggraph cap

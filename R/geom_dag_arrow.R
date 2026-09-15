@@ -872,41 +872,6 @@ routed_node_shapes <- function(nodes, data, start_keys, end_keys, has_end) {
   nodes
 }
 
-# The same millimetres, computed from a routed layer before it is drawn, so
-# that the routing spec the label engine is given names the cap the edges are
-# drawn with. The layer's own parameters are read the way `draw_panel()` reads
-# them, including a `resect_head` mapped per edge. A resection the layer has
-# not settled yet is resolved from the whole plot, the way the routed layer
-# resolves it at build, so that the answer does not depend on whether the
-# label layer or the node layer was added first.
-routed_layer_cap_mm <- function(layer, layer_data, plot = NULL) {
-  mapped <- layer$mapping$resect_head
-  head <- if (!is.null(mapped)) {
-    tryCatch(
-      rlang::eval_tidy(mapped, data = layer_data),
-      error = function(e) NULL
-    )
-  } else if ("resect_head" %in% names(layer_data)) {
-    layer_data$resect_head
-  } else {
-    NULL
-  }
-  if (!is.numeric(head)) {
-    head <- NULL
-  }
-
-  edges <- list(resect_head = head)
-  params <- layer$geom_params$resect %||% list(head = NULL, fins = NULL)
-  if (is.null(params$head) && !is.null(plot)) {
-    discovered <- discover_node_size(plot)
-    if (!is.null(discovered)) {
-      params$head <- node_size_to_cap(discovered)
-    }
-  }
-  resect <- inject_dag_resect(params, edges)
-  routed_cap_mm(edges, resect)
-}
-
 # A value that may already be a unit, as a unit of `units`.
 routed_unit <- function(value, units) {
   if (grid::is.unit(value)) value else grid::unit(value, units)
@@ -1304,14 +1269,21 @@ dag_arrow_layer <- function(layer) {
 ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
   layer <- clone_layer(.subset2(object, "layer"))
   resect <- layer$geom_params$resect
+  if (isTRUE(layer$caps_as_resects)) {
+    layer <- inherited_caps_as_resects(layer, plot$mapping)
+  }
 
   needs_resect <- c("head", "fins")[
     c(is.null(resect$head), is.null(resect$fins))
   ]
   if (!isTRUE(layer$node_aware_caps)) {
+    # a resection the layer maps, or inherits from the plot's mapping, is
+    # the user's own at that end
     follows <- needs_resect[vapply(
       needs_resect,
-      function(end) is.null(layer$mapping[[paste0("resect_", end)]]),
+      function(end) {
+        is.null(layer_mapping(layer, paste0("resect_", end), plot$mapping))
+      },
       logical(1)
     )]
     layer <- node_aware_resect_layer(
@@ -1385,6 +1357,42 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
   ggplot2::ggplot_add(layer, plot, ...)
 }
 
+# The ggarrow layer `layer`, which draws the ggraph caps it is mapped as
+# resections (`mapped_caps_as_resects()`), with the `start_cap` and `end_cap`
+# of the plot's mapping `plot_mapping` it inherits translated the same way,
+# where the layer maps no cap and no resection of its own at that end and
+# sets no resection there.
+inherited_caps_as_resects <- function(layer, plot_mapping) {
+  if (is.null(plot_mapping) || identical(layer$inherit.aes, FALSE)) {
+    return(layer)
+  }
+  own <- names(layer$mapping)
+  resect <- layer$geom_params$resect
+  inherited <- list(end_cap = "resect_head", start_cap = "resect_fins")
+  inherited <- inherited[vapply(
+    names(inherited),
+    function(cap) {
+      !is.null(plot_mapping[[cap]]) &&
+        !any(c(cap, inherited[[cap]]) %in% own)
+    },
+    logical(1)
+  )]
+  if (length(inherited) == 0) {
+    return(layer)
+  }
+  caps <- ggplot2::aes()
+  for (cap in names(inherited)) {
+    caps[[cap]] <- plot_mapping[[cap]]
+  }
+  translated <- mapped_caps_as_resects(caps, resect$head, resect$fins)
+  mapping <- layer$mapping %||% ggplot2::aes()
+  for (end in intersect(unlist(inherited), names(translated))) {
+    mapping[[end]] <- translated[[end]]
+  }
+  layer$mapping <- mapping
+  layer
+}
+
 # Constructor: geom_dag_arrow() -----------------------------------------------
 
 #' Directed DAG edges using ggarrow
@@ -1419,8 +1427,9 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
 #'
 #' Edges are automatically shortened so that they do not run underneath the
 #' nodes. Resection is decided one end at a time: an end you set, through
-#' `resect` or through `resect_head`/`resect_fins`, keeps the value you gave
-#' it, and every end you leave unset is shortened automatically. Setting only
+#' `resect` or through `resect_head`/`resect_fins`, as a parameter or as an
+#' aesthetic of the layer or of the plot, keeps the value you gave it, and
+#' every end you leave unset is shortened automatically. Setting only
 #' `resect_head`, for instance, leaves the fins end to the automatic value.
 #' Pass `0` to an end to draw the edge all the way to the node.
 #'
@@ -2030,10 +2039,7 @@ routed_row_curvatures <- function(layer, layer_data, plot) {
 # single value given to every row. `NULL` where neither maps the aesthetic
 # or the mapping cannot be evaluated before the plot is built.
 layer_mapped_values <- function(layer, aesthetic, layer_data, plot_mapping) {
-  mapping <- layer$mapping[[aesthetic]]
-  if (is.null(mapping) && !identical(layer$inherit.aes, FALSE)) {
-    mapping <- plot_mapping[[aesthetic]]
-  }
+  mapping <- layer_mapping(layer, aesthetic, plot_mapping)
   if (is.null(mapping)) {
     return(NULL)
   }
@@ -2045,6 +2051,17 @@ layer_mapped_values <- function(layer, aesthetic, layer_data, plot_mapping) {
     return(NULL)
   }
   rep_len(values, nrow(layer_data))
+}
+
+# The mapping `layer` evaluates `aesthetic` with when the plot is built: its
+# own, or the plot's `plot_mapping` where the layer inherits the plot's
+# aesthetics, and `NULL` where neither maps it.
+layer_mapping <- function(layer, aesthetic, plot_mapping = NULL) {
+  mapping <- layer$mapping[[aesthetic]]
+  if (is.null(mapping) && !identical(layer$inherit.aes, FALSE)) {
+    mapping <- plot_mapping[[aesthetic]]
+  }
+  mapping
 }
 
 # The routed edge layer itself. Its data are the plot rows, so it inherits the

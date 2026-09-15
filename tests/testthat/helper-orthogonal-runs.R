@@ -572,7 +572,7 @@ routed_router_inputs <- function(plot, width = 7, height = 5) {
 # router when the plot is drawn on a device `width` by `height` inches: the
 # calls the drawn grobs make, as `routed_router_inputs()` reads them, in
 # `drawn`, and the calls the label engine makes to trace the same routes, in
-# `traced`.
+# `traced`, each with the panel viewport it was made in (`panel`).
 drawn_and_traced_router_inputs <- function(plot, width = 7, height = 5) {
   router <- get("route_edges_mm", envir = asNamespace("ggdag"))
   calls <- list(drawn = list(), traced = list())
@@ -580,6 +580,7 @@ drawn_and_traced_router_inputs <- function(plot, width = 7, height = 5) {
     caller <- paste(deparse(sys.call(-1)[[1]]), collapse = "")
     grob <- if (grepl("route_label_obstacles", caller)) "traced" else "drawn"
     calls[[grob]][[length(calls[[grob]]) + 1L]] <<- list(
+      panel = viewport_panel(unclass(grid::current.vpPath())$path),
       nodes = nodes,
       edges = edges,
       bounds = bounds,
@@ -598,10 +599,10 @@ drawn_and_traced_router_inputs <- function(plot, width = 7, height = 5) {
 }
 
 # The calls among `inputs$traced`, from `drawn_and_traced_router_inputs()`,
-# that no drawn call among `inputs$drawn` makes alike: the same nodes, cap,
-# mode, and constants, and the same edges, whatever order each grob lists
-# them in, their positions and sampled arcs within `tolerance` mm. Each is
-# described by the edges it routes.
+# that no drawn call among `inputs$drawn` in the same panel makes alike: the
+# same nodes, cap, mode, and constants, and the same edges, whatever order
+# each grob lists them in, their positions and sampled arcs within
+# `tolerance` mm. Each is described by the edges it routes.
 traced_router_input_mismatches <- function(inputs, tolerance = 1e-10) {
   if (length(inputs$traced) == 0) {
     return("the label engine routes nothing")
@@ -619,7 +620,8 @@ traced_router_input_mismatches <- function(inputs, tolerance = 1e-10) {
     edges
   }
   alike <- function(traced, drawn) {
-    identical(traced$nodes, drawn$nodes) &&
+    identical(traced$panel, drawn$panel) &&
+      identical(traced$nodes, drawn$nodes) &&
       identical(traced$cap, drawn$cap) &&
       identical(traced$mode, drawn$mode) &&
       identical(traced$opts, drawn$opts) &&

@@ -2497,7 +2497,7 @@ StatNodesLabelAuto <- ggplot2::ggproto(
       edge_points <- repel_edge_points(
         edges,
         n_edge_points,
-        params$edge_geometry,
+        panel_edge_geometry(params$edge_geometry, layout),
         layout,
         include_endpoints = TRUE,
         trace_arrows = TRUE

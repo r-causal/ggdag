@@ -806,6 +806,32 @@ repel_edge_points <- function(
   }
 
   edge_geometry <- rescale_edge_geometry(edge_geometry, layout)
+
+  # Geometry placed in panels, as the automatic label stat places it, holds
+  # the rows each layer draws in each panel, so every panel is traced from
+  # the rows drawn there alone, deduplicated within the panel.
+  if (!is.null(edge_geometry) && "PANEL" %in% names(edge_geometry)) {
+    panels <- unique(edges$PANEL)
+    points <- lapply(seq_along(panels), function(panel_index) {
+      panel <- panels[panel_index]
+      in_panel <- as.character(edge_geometry$PANEL) == as.character(panel)
+      geometry <- edge_geometry[in_panel %in% TRUE, , drop = FALSE]
+      geometry$PANEL <- NULL
+      repel_edge_points(
+        edges[edges$PANEL == panel, , drop = FALSE],
+        n_edge_points,
+        if (nrow(geometry) > 0) dedupe_edge_geometry(geometry),
+        include_endpoints = include_endpoints,
+        trace_arrows = trace_arrows
+      )
+    })
+    points <- points[!vapply(points, is.null, logical(1))]
+    if (length(points) == 0) {
+      return(NULL)
+    }
+    return(bind_edge_points(points))
+  }
+
   geometry_type <- if (is.null(edge_geometry)) {
     character()
   } else {
@@ -1623,10 +1649,15 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
     }
   }
 
+  # the automatic labels trace each panel from the edges drawn in it
+  by_panel <- inherits(layer$stat, "StatNodesLabelAuto")
   if ("edge_geometry" %in% discover) {
     if (is.null(layer$stat_params$edge_geometry)) {
       discover_at_build <- c(discover_at_build, "edge_geometry")
-      layer$stat_params$edge_geometry <- discover_edge_geometry(plot)
+      layer$stat_params$edge_geometry <- discover_edge_geometry(
+        plot,
+        by_panel = by_panel
+      )
     }
   }
 
@@ -1644,7 +1675,10 @@ ggplot_add.dag_layer <- function(object, plot, ...) {
         self$stat_params$node_size <- discover_node_size(plot)
       }
       if ("edge_geometry" %in% discover_at_build) {
-        self$stat_params$edge_geometry <- discover_edge_geometry(plot)
+        self$stat_params$edge_geometry <- discover_edge_geometry(
+          plot,
+          by_panel = by_panel
+        )
         warn_untraced_edges(self, plot)
       }
     })
@@ -1716,8 +1750,13 @@ prefers_label_column <- function(layer, plot) {
 
 # The geometry the plot's DAG edge layers draw each edge with. Repulsion
 # obstacles follow those curves, so a label cannot be placed on top of a drawn
-# edge, and edges no bent layer claims stay straight.
-discover_edge_geometry <- function(plot) {
+# edge, and edges no bent layer claims stay straight. With `by_panel`, each
+# row also carries the values of the columns the plot's facets are computed
+# from (`facet_columns()`), and the rows are left as each layer draws them, so
+# that the automatic label stat can place every row in the panels its layer
+# draws it in (`panel_edge_geometry()`) and trace each panel from the rows
+# drawn there.
+discover_edge_geometry <- function(plot, by_panel = FALSE) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
     plot_data <- pull_dag_data(plot_data)
@@ -1728,12 +1767,19 @@ discover_edge_geometry <- function(plot) {
 
   specs <- list()
   scenes <- routed_layer_scenes(plot$layers)
+  facets <- if (by_panel) facet_columns(plot$facet) else character()
   for (i in seq_along(plot$layers)) {
     existing <- plot$layers[[i]]
-    spec <- edge_layer_geometry(existing, plot_data) %||%
-      arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
-      routed_layer_geometry(existing, plot_data, plot$mapping, plot) %||%
-      straight_layer_geometry(existing, plot_data)
+    spec <- edge_layer_geometry(existing, plot_data, facets) %||%
+      arrow_layer_geometry(existing, plot_data, plot$mapping, facets) %||%
+      routed_layer_geometry(
+        existing,
+        plot_data,
+        plot$mapping,
+        plot,
+        facets
+      ) %||%
+      straight_layer_geometry(existing, plot_data, facets)
     if (!is.null(spec)) {
       # every edge names the layer that draws it; the routed grobs route the
       # edges of one scene together, so a routed edge names its scene too
@@ -1762,7 +1808,43 @@ discover_edge_geometry <- function(plot) {
   if (nrow(geometry) == 0) {
     return(NULL)
   }
+  if (by_panel) {
+    return(geometry)
+  }
   dedupe_edge_geometry(geometry)
+}
+
+# The columns of a plot's data that `facet` computes its panels from, the
+# variables its facet expressions name.
+facet_columns <- function(facet) {
+  params <- facet$params
+  facets <- c(params$facets, params$rows, params$cols)
+  unique(unlist(lapply(facets, function(one) {
+    all.vars(rlang::quo_get_expr(one))
+  })))
+}
+
+# `geometry` with the values of the facet columns `columns` of the rows
+# `layer_data` it was built from, row for row, leaving any column the
+# geometry holds already.
+with_facet_columns <- function(geometry, layer_data, columns) {
+  for (column in setdiff(
+    intersect(columns, names(layer_data)),
+    names(geometry)
+  )) {
+    geometry[[column]] <- layer_data[[column]]
+  }
+  geometry
+}
+
+# `geometry`, discovered by panel, placed in the panels of `layout` its rows
+# are drawn in, as ggplot2 places a layer's rows: a row whose layer draws it
+# in every panel is repeated in each, and each row carries its `PANEL`.
+panel_edge_geometry <- function(geometry, layout) {
+  if (is.null(geometry) || is.null(layout) || nrow(geometry) == 0) {
+    return(geometry)
+  }
+  layout$facet$map_data(geometry, layout$layout, layout$facet_params)
 }
 
 # The geoms that draw a DAG's edges: the ggraph edge path, which every layer
@@ -1912,7 +1994,7 @@ edge_geometry_type <- function(stat) {
   drawn[[1]]
 }
 
-edge_layer_geometry <- function(layer, plot_data) {
+edge_layer_geometry <- function(layer, plot_data, facet_columns = character()) {
   type <- edge_geometry_type(layer$stat)
   if (is.null(type)) {
     return(NULL)
@@ -1947,7 +2029,7 @@ edge_layer_geometry <- function(layer, plot_data) {
   circular <- column("circular", FALSE)
   circular[is.na(circular)] <- FALSE
 
-  data.frame(
+  geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
     xend = layer_data$xend,
@@ -1964,6 +2046,7 @@ edge_layer_geometry <- function(layer, plot_data) {
     curvature = NA_real_,
     stringsAsFactors = FALSE
   )
+  with_facet_columns(geometry, layer_data, facet_columns)
 }
 
 # Which edges a ggarrow curve layer draws, with the curvature each one is
@@ -1976,7 +2059,12 @@ edge_layer_geometry <- function(layer, plot_data) {
 # both on the device: that is the column the automatic label engine traces the
 # drawn arc from at draw time. The straight ggarrow segment geom is a
 # straight layer (`straight_layer_geometry()`).
-arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
+arrow_layer_geometry <- function(
+  layer,
+  plot_data,
+  plot_mapping = NULL,
+  facet_columns = character()
+) {
   if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
     return(NULL)
   }
@@ -2012,7 +2100,7 @@ arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
   column <- function(name, default) {
     if (name %in% names(layer_data)) layer_data[[name]] else default
   }
-  data.frame(
+  geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
     xend = layer_data$xend,
@@ -2029,6 +2117,7 @@ arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
     curvature = curvature,
     stringsAsFactors = FALSE
   )
+  with_facet_columns(geometry, layer_data, facet_columns)
 }
 
 # Which edges a straight layer draws, if any: a ggraph link layer, a ggraph
@@ -2038,7 +2127,11 @@ arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
 # draw a bent edge between the same two nodes, as the arc beside a directed
 # edge is, and the tracers are told the chord is drawn as well. The rows
 # carry the layer's endpoints and direction as "straight" rows.
-straight_layer_geometry <- function(layer, plot_data) {
+straight_layer_geometry <- function(
+  layer,
+  plot_data,
+  facet_columns = character()
+) {
   straight_ggraph <- inherits(layer$geom, "GeomEdgePath") &&
     (inherits(layer$stat, "StatEdgeLink") ||
       (!is.null(edge_geometry_type(layer$stat)) &&
@@ -2061,7 +2154,7 @@ straight_layer_geometry <- function(layer, plot_data) {
   column <- function(name, default) {
     if (name %in% names(layer_data)) layer_data[[name]] else default
   }
-  data.frame(
+  geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
     xend = layer_data$xend,
@@ -2078,6 +2171,7 @@ straight_layer_geometry <- function(layer, plot_data) {
     curvature = NA_real_,
     stringsAsFactors = FALSE
   )
+  with_facet_columns(geometry, layer_data, facet_columns)
 }
 
 # Which edges a routed arrows layer draws, if any. The layer is recognised by
@@ -2089,7 +2183,8 @@ routed_layer_geometry <- function(
   layer,
   plot_data,
   plot_mapping = NULL,
-  plot = NULL
+  plot = NULL,
+  facet_columns = character()
 ) {
   if (!inherits(layer$geom, "GeomDAGRoutedArrow")) {
     return(NULL)
@@ -2137,7 +2232,10 @@ routed_layer_geometry <- function(
     curvature = curvature,
     route_style = layer$geom_params$route %||% "spline",
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
-    route_cap = routed_layer_cap_mm(layer, layer_data, plot),
+    # the cap each edge holds its scene's single cap to, as the routed grob
+    # reads the edge when it is drawn, so that each panel's scene is routed
+    # with the largest cap of the edges drawn there
+    route_cap = routed_row_caps(layer, layer_data, plot),
     # the routed grob reads the same flag from the rows the layer wrote
     route_follow_head = routed_layer_follows_head(layer),
     stringsAsFactors = FALSE
@@ -2153,7 +2251,7 @@ routed_layer_geometry <- function(
     list(routed_layer_ornaments(layer)),
     nrow(geometry)
   )
-  geometry
+  with_facet_columns(geometry, layer_data, facet_columns)
 }
 
 # The rows a layer draws, from its own data or the plot's. Every geometry
@@ -2204,14 +2302,16 @@ dag_edge_layer <- function(layer) {
   }
 }
 
-# The ends whose cap the user has not set, either as an aesthetic or as a
-# fixed value.
-unset_edge_caps <- function(layer) {
+# The ends whose cap the user has not set, either as an aesthetic, on the
+# layer or on the plot `plot_mapping` the layer inherits, or as a fixed
+# value.
+unset_edge_caps <- function(layer, plot_mapping = NULL) {
   ends <- c("start_cap", "end_cap")
   ends[vapply(
     ends,
     function(end) {
-      is.null(layer$mapping[[end]]) && is.null(layer$aes_params[[end]])
+      is.null(layer_mapping(layer, end, plot_mapping)) &&
+        is.null(layer$aes_params[[end]])
     },
     logical(1)
   )]
@@ -2233,7 +2333,7 @@ ggplot_add.dag_edge_layer <- function(object, plot, ...) {
       layer,
       gap = node_edge_gap_mm,
       fallback_extent = node_radius_mm(GeomDagPoint$default_aes$size),
-      ends = unset_edge_caps(layer)
+      ends = unset_edge_caps(layer, plot$mapping)
     )
   }
 

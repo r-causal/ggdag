@@ -771,6 +771,49 @@ drawn_and_traced_ends <- function(plot, width = 7, height = 5) {
   list(drawn = found$value, traced = found$traced)
 }
 
+# One row per edge the automatic label layer of `plot` traces in panel
+# `panel`: where the edge starts and ends, in data units, the index of the
+# layer it is traced from (`layer`, `NA` for an edge traced as its chord),
+# and the cap the label engine cuts the traced edge back by at each end. The grob carries the traced
+# edges in the order the built layer holds them, so the positions are read
+# from the built layer and the caps from the grob. An edge the grob carries no
+# cap of its own for is cut by the layer's single cap.
+label_edge_caps <- function(plot, panel = 1) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$stat, "StatNodesLabelAuto")
+  }))
+  grob <- ggplot2::layer_grob(plot, index[[1]])[[panel]]
+  rows <- ggplot2::layer_data(plot, index[[1]])
+  rows <- rows[
+    rows$ggdag_role %in% "edge" & rows$PANEL == panel,
+    ,
+    drop = FALSE
+  ]
+  stopifnot(nrow(rows) == nrow(grob$edges))
+
+  ids <- unique(rows$edge_id)
+  first <- match(ids, rows$edge_id)
+  last <- nrow(rows) - match(ids, rev(rows$edge_id)) + 1L
+
+  cap_at <- function(column, at) {
+    caps <- grob$edges[[column]]
+    if (is.null(caps)) {
+      return(rep(grob$params$edge_cap, length(at)))
+    }
+    caps[at]
+  }
+
+  data.frame(
+    x = rows$x[first],
+    y = rows$y[first],
+    xend = rows$x[last],
+    yend = rows$y[last],
+    layer = rows$route_layer[first],
+    cap_start = cap_at("cap_fins", first),
+    cap_end = cap_at("cap_head", last)
+  )
+}
+
 # The drawn edge each traced edge among `traced` is drawn as, among the edges
 # `drawn`, both as `drawn_and_traced_ends()` reads them: `starts` and `ends`,
 # the drawn ends of each drawn edge, and `matched`, for each traced edge the
