@@ -701,35 +701,29 @@ traced_label_ends <- function(plot, width = 7, height = 5) {
     purrr::list_rbind()
 }
 
-# The traced edges among `traced`, from `traced_label_ends()`, whose cut ends
-# are not where the edges among `drawn`, from `drawn_arrow_ends()` or
-# `drawn_edge_ends()`, draw their tips, within `tolerance` mm. The two are
-# read from two draws of the plot, so a traced edge is matched to the drawn
-# edge by the nodes it runs from and to, each the drawn node nearest its end,
-# rather than by millimetres: the edge from `x` to `y` is matched to the edge
-# drawn from `x` to `y`, and never to the one drawn from `y` to `x`. Where
-# more than one edge is drawn from one node to the other, as a directed edge
-# and a bidirected arc are, the traced edge is matched to the one whose
-# middle lies nearest its own. Every drawn edge is matched at most once.
-label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
-  if (nrow(traced) == 0) {
-    return("the labels trace no edges")
-  }
+# The drawn edge each traced edge among `traced`, from `traced_label_ends()`,
+# is drawn as, among the edges `drawn`, from `drawn_arrow_ends()` or
+# `drawn_edge_ends()`: `starts` and `ends`, the drawn ends of each drawn edge,
+# and `matched`, for each traced edge the row of its drawn edge in both, `NA`
+# where no single drawn edge matches it. The two are read from two draws of
+# the plot, so a traced edge is matched to the drawn edge by the nodes it
+# runs from and to, each the drawn node nearest its end, rather than by
+# millimetres: the edge from `x` to `y` is matched to the edge drawn from `x`
+# to `y`, and never to the one drawn from `y` to `x`. Where more than one edge
+# is drawn from one node to the other, as a directed edge and a bidirected
+# arc are, the traced edge is matched to the one whose middle lies nearest
+# its own. A drawn edge two traced edges are matched to matches neither.
+match_traced_edges <- function(traced, drawn) {
   # the drawn ends come in pairs, the start of each edge and then its end
   start_end <- drawn$end %in% c("fins", "start")
   starts <- drawn[start_end, , drop = FALSE]
   ends <- drawn[!start_end, , drop = FALSE]
   stopifnot(nrow(starts) == nrow(ends))
-  centres <- unique(rbind(
-    data.frame(
-      x = ifelse(is.na(starts$centre_x), starts$from_x, starts$centre_x),
-      y = ifelse(is.na(starts$centre_y), starts$from_y, starts$centre_y)
-    ),
-    data.frame(
-      x = ifelse(is.na(ends$centre_x), ends$to_x, ends$centre_x),
-      y = ifelse(is.na(ends$centre_y), ends$to_y, ends$centre_y)
-    )
-  ))
+  start_x <- ifelse(is.na(starts$centre_x), starts$from_x, starts$centre_x)
+  start_y <- ifelse(is.na(starts$centre_y), starts$from_y, starts$centre_y)
+  end_x <- ifelse(is.na(ends$centre_x), ends$to_x, ends$centre_x)
+  end_y <- ifelse(is.na(ends$centre_y), ends$to_y, ends$centre_y)
+  centres <- unique(data.frame(x = c(start_x, end_x), y = c(start_y, end_y)))
   nearest_centre <- function(x, y) {
     vapply(
       seq_along(x),
@@ -737,14 +731,8 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
       integer(1)
     )
   }
-  drawn_from <- nearest_centre(
-    ifelse(is.na(starts$centre_x), starts$from_x, starts$centre_x),
-    ifelse(is.na(starts$centre_y), starts$from_y, starts$centre_y)
-  )
-  drawn_to <- nearest_centre(
-    ifelse(is.na(ends$centre_x), ends$to_x, ends$centre_x),
-    ifelse(is.na(ends$centre_y), ends$to_y, ends$centre_y)
-  )
+  drawn_from <- nearest_centre(start_x, start_y)
+  drawn_to <- nearest_centre(end_x, end_y)
   traced_from <- nearest_centre(traced$from_x, traced$from_y)
   traced_to <- nearest_centre(traced$to_x, traced$to_y)
 
@@ -763,7 +751,22 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
     },
     integer(1)
   )
-  shared <- matched %in% matched[duplicated(matched) & !is.na(matched)]
+  matched[matched %in% matched[duplicated(matched)]] <- NA_integer_
+  list(starts = starts, ends = ends, matched = matched)
+}
+
+# The traced edges among `traced`, from `traced_label_ends()`, whose cut ends
+# are not where the edges among `drawn`, from `drawn_arrow_ends()` or
+# `drawn_edge_ends()`, draw their tips, within `tolerance` mm, each traced
+# edge matched to its drawn edge by `match_traced_edges()`.
+label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
+  if (nrow(traced) == 0) {
+    return("the labels trace no edges")
+  }
+  found <- match_traced_edges(traced, drawn)
+  starts <- found$starts
+  ends <- found$ends
+  matched <- found$matched
 
   purrr::map_chr(seq_len(nrow(traced)), \(i) {
     edge <- traced[i, ]
@@ -774,7 +777,7 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
       edge$to_x,
       edge$to_y
     )
-    if (is.na(matched[[i]]) || shared[[i]]) {
+    if (is.na(matched[[i]])) {
       return(paste(where, "matches no single drawn edge"))
     }
     start <- starts[matched[[i]], ]
@@ -796,6 +799,56 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
           "is cut at its end %.3f mm from the drawn tip (cap %.3f mm)",
           end_off,
           edge$cap_head
+        )
+      }
+    )
+    if (length(problems) == 0) {
+      return(NA_character_)
+    }
+    paste(where, paste(problems, collapse = " and "))
+  }) |>
+    purrr::discard(is.na)
+}
+
+# The traced edges among `traced`, from `traced_label_ends()`, cut back by
+# other millimetres at an end than the edge drawn there, among `drawn`, from
+# `drawn_arrow_ends()`, is resected by, each traced edge matched to its drawn
+# edge by `match_traced_edges()`. An end at a circle is cut by the resection
+# itself; an end at a square is cut where the path crosses the square, and
+# its tip is what `label_tip_mismatches()` checks instead.
+label_cap_mismatches <- function(traced, drawn, tolerance = 1e-6) {
+  if (nrow(traced) == 0) {
+    return("the labels trace no edges")
+  }
+  found <- match_traced_edges(traced, drawn)
+  purrr::map_chr(seq_len(nrow(traced)), \(i) {
+    edge <- traced[i, ]
+    where <- sprintf(
+      "the traced edge from (%.2f, %.2f) to (%.2f, %.2f) mm",
+      edge$from_x,
+      edge$from_y,
+      edge$to_x,
+      edge$to_y
+    )
+    at <- found$matched[[i]]
+    if (is.na(at)) {
+      return(paste(where, "matches no single drawn edge"))
+    }
+    start <- found$starts[at, ]
+    end <- found$ends[at, ]
+    problems <- c(
+      if (abs(edge$cap_fins - start$resect) > tolerance) {
+        sprintf(
+          "is cut by %.3f mm at its start where the drawn edge is resected by %.3f mm",
+          edge$cap_fins,
+          start$resect
+        )
+      },
+      if (abs(edge$cap_head - end$resect) > tolerance) {
+        sprintf(
+          "is cut by %.3f mm at its end where the drawn edge is resected by %.3f mm",
+          edge$cap_head,
+          end$resect
         )
       }
     )

@@ -754,6 +754,40 @@ test_that("the label layer routes each routed layer with the caps that layer dra
       )
     }
   }
+
+  # and the label layer cuts each edge back by what the layer that draws it
+  # resects it by, the arc beside the routed edges included, with two routed
+  # layers as well, one following the nodes into `y` and one fixing its
+  # resection. ggarrow draws a head straight from its cut, so on a curve the
+  # tip leaves the traced path by the sagitta of that chord (see
+  # `drawn_tip_point()`)
+  into_y <- \(x) dplyr::filter(filter_direction("->")(x), to == "y")
+  not_into_y <- \(x) dplyr::filter(filter_direction("->")(x), to != "y")
+  scenes$two_routed <- list(
+    plot = scene(
+      list(
+        routed(data_directed = into_y),
+        routed(data_directed = not_into_y, resect = 5)
+      ),
+      arcs()
+    )
+  )
+  for (name in names(scenes)) {
+    p <- scenes[[name]]$plot
+    drawn <- drawn_arrow_ends(p)
+    traced <- traced_label_ends(p)
+    stopifnot(any(drawn$arc), nrow(traced) == nrow(drawn) / 2)
+    expect_equal(
+      label_cap_mismatches(traced, drawn),
+      character(),
+      label = paste("the caps traced in", name)
+    )
+    expect_equal(
+      label_tip_mismatches(traced, drawn, tolerance = 0.35),
+      character(),
+      label = paste("the tips traced in", name)
+    )
+  }
 })
 
 test_that("an explicit edge_cap routes exactly as before the caps followed the nodes", {
@@ -1010,12 +1044,80 @@ test_that("geom_dag_edges() under the ggarrow engine takes the resection the use
       )
     )
     expect_equal(resects(caps), list(fins = 3, head = 5), label = route)
+
+    # and so is a circle cap mapped to the data, for each edge
+    expect_no_condition(
+      mapped <- edges(
+        aes(
+          start_cap = ggraph::circle(3, "mm"),
+          end_cap = ggraph::circle(ifelse(name == "z", 4, 5), "mm")
+        )
+      )
+    )
+    expect_equal(
+      lapply(resects(mapped), sort),
+      list(fins = 3, head = c(4, 5)),
+      label = route
+    )
+
+    # a resection set for an end wins over a cap at that end, and a cap over
+    # a resection set for both ends
+    expect_no_condition(
+      set_head <- edges(aes(end_cap = ggraph::circle(5, "mm")), resect_head = 6)
+    )
+    expect_equal(resects(set_head)$head, 6, label = route)
+    expect_no_condition(
+      set_both <- edges(aes(end_cap = ggraph::circle(5, "mm")), resect = 4)
+    )
+    expect_equal(resects(set_both), list(fins = 4, head = 5), label = route)
   }
+
+  # the automatic labels cut the edges back where a mapped cap resects them
+  labelled <- ggplot(tidy_dag, aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges(
+      aes(end_cap = ggraph::circle(ifelse(name == "z", 4, 5), "mm")),
+      edge_engine = "ggarrow",
+      edge_route = "spline"
+    ) +
+    geom_dag_label_auto(aes(label = name))
+  drawn <- drawn_arrow_ends(labelled)
+  traced <- traced_label_ends(labelled)
+  expect_equal(label_cap_mismatches(traced, drawn), character())
 
   # ggarrow stops an end a distance from the end of the path, so a cap it
   # cannot draw is refused rather than dropped
   expect_error(
     geom_dag_edges(edge_engine = "ggarrow", end_cap = ggraph::square(5, "mm")),
+    class = "ggdag_type_error"
+  )
+  # an ellipse is a circle geometry of different width and height, and has
+  # no single distance from its centre to stop at
+  expect_error(
+    geom_dag_edges(
+      edge_engine = "ggarrow",
+      end_cap = ggraph::ellipsis(5, 3, "mm")
+    ),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggplot2::ggplot_build(
+      ggplot(tidy_dag, aes_dag()) +
+        geom_dag_edges(
+          aes(end_cap = ggraph::ellipsis(5, 3, "mm")),
+          edge_engine = "ggarrow"
+        )
+    ),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggplot2::ggplot_build(
+      ggplot(tidy_dag, aes_dag()) +
+        geom_dag_edges(
+          aes(start_cap = ggraph::square(5, "mm")),
+          edge_engine = "ggarrow"
+        )
+    ),
     class = "ggdag_type_error"
   )
   expect_error(
@@ -1113,6 +1215,56 @@ test_that("the automatic labels trace routed edges past square nodes under an ex
       character(),
       label = paste("the offset ports at size", size)
     )
+  }
+})
+
+test_that("the automatic labels trace the adjustment set plot's two routed layers as drawn", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The adjustment set plot draws its adjusted and its unadjusted edges in
+  # two routed layers, with a square node where it adjusts. The label layer
+  # routes each as the layer that draws it, so every traced route is the
+  # drawn one, whether the heads follow the nodes or a cap fixes them. The
+  # edge from x to y was once traced to another port than the one it is drawn
+  # to, 6.75 mm away.
+  for (route in c("spline", "orthogonal")) {
+    for (size in c(16, 30)) {
+      for (cap in list(NULL, 5)) {
+        p <- withr::with_options(
+          list(ggdag.edge_route = route),
+          ggdag_adjustment_set(
+            labelled_controlled_dag(),
+            node_size = size,
+            edge_cap = cap,
+            use_labels = TRUE,
+            edge_engine = "ggarrow"
+          )
+        )
+        for (device in list(c(7, 5), c(10, 6))) {
+          found <- label_route_deviations(p, device[[1]], device[[2]])
+          label <- sprintf(
+            "the %s routes at node size %s with %s on a %s by %s inch device",
+            route,
+            size,
+            if (is.null(cap)) "the heads following" else "a 5 mm cap",
+            device[[1]],
+            device[[2]]
+          )
+          stopifnot(nrow(found) == 4)
+          expect_equal(
+            found$deviation,
+            rep(0, nrow(found)),
+            tolerance = 1e-10,
+            label = label
+          )
+        }
+      }
+    }
   }
 })
 
