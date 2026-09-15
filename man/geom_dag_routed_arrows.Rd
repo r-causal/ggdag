@@ -184,13 +184,15 @@ In orthogonal mode the routes of one panel share its rows, ports, and
 slots out among themselves, so a plot that draws its edges in more than
 one orthogonal routed layer, such as the blocked and the open edges of
 \code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}}, routes them together: each layer routes the
-edges the other routed layers draw with the same settings along with its
-own, and draws only its own. Where a gap between layers is too narrow for
-a stub, the edges that arrive at a node out of it each take a row of
-their own rather than merging onto the node's center row, since the layer
-drawn later would hide the other's edge there. The stub the gaps between
-layers keep behind an arrowhead holds the longest arrowhead or fins the
-layer draws.
+edges the other routed layers draw with the same settings, line width
+included, along with its own, and draws only its own. Where a gap between
+layers is too narrow for a stub, in a panel where more than one of those
+layers draws edges, the edges that arrive at a node out of it each take a
+row of their own rather than merging onto the node's center row, since the
+layer drawn later would hide the other's edge there. The stub the gaps
+between layers keep behind an arrowhead holds the longest arrowhead or fins
+the layer draws at the line width it sets; a line width mapped to the data
+does not move the routes.
 
 A routed path is stroked at one width along its length, so
 \code{linewidth_head} and \code{linewidth_fins} taper only the arcs drawn for

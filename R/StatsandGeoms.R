@@ -951,16 +951,19 @@ repel_edge_points <- function(
 # rebuilds the drawn path from it at draw time, with the value each column
 # holds for an edge no routed layer draws. `route_follow_head` says whether
 # the heads of the routed layer drawing the edge follow the nodes, which is
-# when that layer hands the router each node's own cap.
+# when that layer hands the router each node's own cap. `route_ornaments`
+# carries the ornaments the layer draws, `route_layer` the index of the layer
+# among the plot's layers, and `route_scene` the index of the first layer of
+# the scene the layer is routed in.
 route_spec_blanks <- list(
   route_style = NA_character_,
   route_options = list(NULL),
   route_layer_axis = NA_character_,
   route_cap = NA_real_,
   route_follow_head = NA,
-  route_head_reach = NA_real_,
-  route_fins_reach = NA_real_,
-  route_layers = NA_integer_,
+  route_ornaments = list(NULL),
+  route_layer = NA_integer_,
+  route_scene = NA_integer_,
   route_fixed = NA,
   curvature = NA_real_
 )
@@ -972,6 +975,12 @@ route_spec_columns <- names(route_spec_blanks)
 # read.
 route_options_keys <- function(spec) {
   objects <- spec_column(spec, "route_options", list(NULL))
+  vapply(objects, rlang::hash, character(1))
+}
+
+# The ornaments of each row of a spec, as one string per row, the same way.
+route_ornaments_keys <- function(spec) {
+  objects <- spec_column(spec, "route_ornaments", list(NULL))
   vapply(objects, rlang::hash, character(1))
 }
 
@@ -1002,8 +1011,7 @@ dedupe_routed_geometry <- function(geometry) {
     "route_layer_axis",
     "route_cap",
     "route_follow_head",
-    "route_head_reach",
-    "route_fins_reach",
+    "route_scene",
     "curvature"
   )
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
@@ -1012,7 +1020,12 @@ dedupe_routed_geometry <- function(geometry) {
   }
   # the whole options object identifies the routing, so it is hashed rather
   # than pasted: a field added to the constructor cannot fall out of the key
-  key <- paste(key, route_options_keys(geometry), sep = "\r")
+  key <- paste(
+    key,
+    route_options_keys(geometry),
+    route_ornaments_keys(geometry),
+    sep = "\r"
+  )
   geometry[!duplicated(key), , drop = FALSE]
 }
 
@@ -1040,26 +1053,26 @@ routed_chord_points <- function(geometry, panel) {
       spec_column(geometry, "route_follow_head", NA),
       each = 2
     ),
-    route_head_reach = rep(
-      spec_column(geometry, "route_head_reach", NA_real_),
+    route_layer = rep(
+      spec_column(geometry, "route_layer", NA_integer_),
       each = 2
     ),
-    route_fins_reach = rep(
-      spec_column(geometry, "route_fins_reach", NA_real_),
-      each = 2
-    ),
-    route_layers = rep(
-      spec_column(geometry, "route_layers", NA_integer_),
+    route_scene = rep(
+      spec_column(geometry, "route_scene", NA_integer_),
       each = 2
     ),
     route_fixed = FALSE,
     curvature = NA_real_,
     stringsAsFactors = FALSE
   )
-  # a list column cannot be built by `data.frame()`, so the object travels
+  # a list column cannot be built by `data.frame()`, so the objects travel
   # into the frame after it is made
   points$route_options <- rep(
     spec_column(geometry, "route_options", list(NULL)),
+    each = 2
+  )
+  points$route_ornaments <- rep(
+    spec_column(geometry, "route_ornaments", list(NULL)),
     each = 2
   )
   points
@@ -1097,6 +1110,8 @@ routed_fixed_points <- function(
         x = curve$x,
         y = curve$y,
         PANEL = panel,
+        route_layer = spec_column(geometry, "route_layer", NA_integer_)[[i]],
+        route_scene = spec_column(geometry, "route_scene", NA_integer_)[[i]],
         route_fixed = TRUE,
         curvature = geometry$curvature[[i]],
         stringsAsFactors = FALSE
@@ -1679,14 +1694,18 @@ discover_edge_geometry <- function(plot) {
   }
 
   specs <- list()
+  scenes <- routed_layer_scenes(plot$layers)
   for (i in seq_along(plot$layers)) {
     existing <- plot$layers[[i]]
     spec <- edge_layer_geometry(existing, plot_data) %||%
       arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
       routed_layer_geometry(existing, plot_data, plot$mapping, plot)
     if (!is.null(spec)) {
-      if ("route_union" %in% names(spec)) {
+      # the routed grobs route the edges of one scene together, and each
+      # layer draws its own, so every routed edge names both
+      if ("route_style" %in% names(spec)) {
         spec$route_layer <- i
+        spec$route_scene <- scenes[[i]]
       }
       specs[[length(specs) + 1]] <- spec
     }
@@ -1699,7 +1718,7 @@ discover_edge_geometry <- function(plot) {
   # Every type is one wide row per edge; the routing columns the other
   # builders do not fill are NA.
   geometry <- dplyr::bind_rows(specs)
-  dedupe_edge_geometry(count_routed_union_layers(geometry))
+  dedupe_edge_geometry(geometry)
 }
 
 # The geoms that draw a DAG's edges: the ggraph edge path, which every layer
@@ -2014,9 +2033,6 @@ routed_layer_geometry <- function(
   curvature <- mapped_edge_curvature(layer, layer_data, plot_mapping) %||%
     rep(NA_real_, nrow(layer_data))
 
-  # the reach of the ornaments the layer draws, measured as the routed grob
-  # measures it, so the label engine routes with the same floors
-  reach <- routed_layer_reaches(layer)
   geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
@@ -2037,42 +2053,19 @@ routed_layer_geometry <- function(
     # the routed grob reads the same flag from the rows the layer wrote
     route_follow_head = isTRUE(layer$node_aware_caps) &&
       "end_cap" %in% layer$node_cap_ends,
-    route_head_reach = reach$head,
-    route_fins_reach = reach$fins,
-    # the settings the routed grobs compare to route one scene together
-    route_union = rlang::hash(
-      layer$routed_settings %||% routed_layer_settings(layer)
-    ),
     stringsAsFactors = FALSE
   )
   geometry$route_options <- rep(
     list(layer$geom_params$edge_route_options),
     nrow(geometry)
   )
-  geometry
-}
-
-# The number of routed layers each routed edge's scene holds edges of: the
-# layers with the same settings route one scene in orthogonal mode, and the
-# router keeps the arrivals of such a scene off one another's rows, so the
-# label engine counts them as the routed grob does. The columns that
-# identify the layer and its settings are dropped once counted.
-count_routed_union_layers <- function(geometry) {
-  if (!"route_union" %in% names(geometry)) {
-    return(geometry)
-  }
-  routed <- !is.na(geometry$route_union)
-  layers <- tapply(
-    geometry$route_layer[routed],
-    geometry$route_union[routed],
-    function(at) length(unique(at))
+  # the ornaments the layer draws, whose reach the label engine measures
+  # when the plot is drawn, as the routed grob measures it, so that the two
+  # route with the same floors
+  geometry$route_ornaments <- rep(
+    list(routed_layer_ornaments(layer)),
+    nrow(geometry)
   )
-  geometry$route_layers <- NA_integer_
-  geometry$route_layers[routed] <- as.integer(
-    layers[geometry$route_union[routed]]
-  )
-  geometry$route_union <- NULL
-  geometry$route_layer <- NULL
   geometry
 }
 

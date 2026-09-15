@@ -259,6 +259,18 @@ geom_dag_routed_arrow_geom <- function() {
         stroke_width = 0.25
       ),
       draw_key = ggarrow::draw_key_arrow,
+      # the line width the router keeps room for the layer's ornaments at is
+      # the one the layer sets, or the geom's default, and never a width
+      # mapped per edge: the automatic label engine routes the layer's edges
+      # again from what it can read before the plot is drawn, and a mapped
+      # width is known only after the scales have been trained
+      setup_params = function(self, data, params) {
+        params$ornament_linewidth <- routed_linewidth(
+          params$linewidth,
+          self$default_aes$linewidth
+        )
+        params
+      },
       draw_panel = function(
         self,
         data,
@@ -278,6 +290,7 @@ geom_dag_routed_arrow_geom <- function() {
         force_arrow = FALSE,
         mid_place = 0.5,
         resect = list(head = NULL, fins = NULL),
+        ornament_linewidth = 1,
         lineend = "butt",
         linejoin = "round",
         linemitre = 10,
@@ -328,7 +341,8 @@ geom_dag_routed_arrow_geom <- function() {
         # routed layers draw with the same settings as well, so that the
         # rows and ports of one scene are shared out once: two layers
         # routed apart would draw two heads on one row. The other modes
-        # route what they draw
+        # route what they draw. `routed` names the layer that draws each
+        # row of the scene another layer draws, and is 0 elsewhere
         union <- identical(route, "orthogonal") && "routed" %in% names(data)
         routed_by <- if (union) as.numeric(data$routed) else NULL
         routed <- if (union) {
@@ -366,11 +380,14 @@ geom_dag_routed_arrow_geom <- function() {
             force_arrow = force_arrow,
             mid_place = mid_place,
             resect = resect,
+            ornament_linewidth = ornament_linewidth,
             lineend = lineend,
             linejoin = linejoin,
             linemitre = linemitre,
-            # whether the scene holds the edges of more than one layer
-            union_layers = union && any(routed_by[keep] > 1, na.rm = TRUE)
+            # whether another routed layer draws edges of the scene in this
+            # panel as well
+            union_layers = union &&
+              any(!drawn[keep] & !is.na(routed_by[keep]) & routed_by[keep] > 0)
           ),
           cl = "dag_routed_edges"
         )
@@ -493,7 +510,7 @@ makeContent.dag_routed_edges <- function(x) {
 
   # the router keeps the run at each end long enough for the ornament drawn
   # there, so it is told how far the layer's heads and fins reach
-  reach <- routed_ornament_reaches(par, edges$linewidth)
+  reach <- routed_ornament_reaches(par, par$ornament_linewidth)
   routed <- route_edges_mm(
     nodes = nodes_mm,
     edges = edge_input,
@@ -663,6 +680,8 @@ unit_length_mm <- function(length) {
 # layer's parameters `par` (`arrow`, `length`, and `justify`) and the line
 # widths of its edges, in the ggplot2 `linewidth` scale: the widest shaft
 # carries the largest ornament, and the router keeps room for that one.
+# The routed grob and the label engine both measure at the single width
+# `routed_linewidth()` gives the layer.
 routed_ornament_reaches <- function(par, linewidth) {
   linewidth <- suppressWarnings(as.numeric(linewidth))
   linewidth <- linewidth[is.finite(linewidth)]
@@ -683,21 +702,33 @@ routed_ornament_reaches <- function(par, linewidth) {
   )
 }
 
-# The same reaches read from a routed layer before it is drawn, for the label
-# engine, from the layer's parameters and the line width it sets, or the
-# geom's default where it sets none.
-routed_layer_reaches <- function(layer) {
+# The line width a routed layer's ornaments are measured at for the router:
+# the width the layer sets, `set`, or the geom's default where it sets none
+# or sets one that is not a number.
+routed_linewidth <- function(set, default = 1) {
+  width <- suppressWarnings(as.numeric(set))
+  width <- width[is.finite(width)]
+  if (length(width) == 0) {
+    width <- suppressWarnings(as.numeric(default))
+    width <- width[is.finite(width)]
+  }
+  if (length(width) == 0) 1 else max(width)
+}
+
+# The ornaments a routed layer draws, as the label engine is handed them to
+# measure their reach when the plot is drawn, where a length relative to the
+# panel converts as it does for the drawn grob: the layer's `arrow`, `length`,
+# and `justify`, and the line width the geom measures them at.
+routed_layer_ornaments <- function(layer) {
   params <- layer$geom_params
-  linewidth <- layer$aes_params$linewidth %||%
-    layer$geom$default_aes$linewidth %||%
-    1
-  routed_ornament_reaches(
-    list(
-      arrow = params$arrow,
-      length = params$length,
-      justify = params$justify
-    ),
-    linewidth
+  list(
+    arrow = params$arrow,
+    length = params$length,
+    justify = params$justify,
+    linewidth = routed_linewidth(
+      layer$aes_params$linewidth,
+      layer$geom$default_aes$linewidth
+    )
   )
 }
 
@@ -1668,7 +1699,10 @@ with_routed_draw <- function(mapping) {
 
 # The settings a routed layer routes with. Two routed layers of one plot
 # with the same settings route one scene, so each of them routes the other's
-# edges as well as its own and draws only its own.
+# edges as well as its own and draws only its own. The line width the
+# ornaments are measured at is one of them: the stubs of a scene hold the
+# reach of its heads, and two layers whose heads reach apart would share out
+# one scene's rows with two ladders.
 routed_layer_settings <- function(layer) {
   params <- layer$geom_params
   list(
@@ -1679,8 +1713,45 @@ routed_layer_settings <- function(layer) {
     resect = params$resect,
     arrow = params$arrow,
     length = params$length,
-    justify = params$justify
+    justify = params$justify,
+    linewidth = routed_linewidth(
+      layer$aes_params$linewidth,
+      layer$geom$default_aes$linewidth
+    )
   )
+}
+
+# Whether the routed layers `layer` and `other` route one scene: both draw
+# with the routed geom, in orthogonal mode, with the same settings.
+routed_layers_share_scene <- function(layer, other) {
+  if (
+    !inherits(layer$geom, "GeomDAGRoutedArrow") ||
+      !inherits(other$geom, "GeomDAGRoutedArrow")
+  ) {
+    return(FALSE)
+  }
+  settings <- layer$routed_settings %||% routed_layer_settings(layer)
+  identical(settings$route, "orthogonal") &&
+    identical(other$routed_settings %||% routed_layer_settings(other), settings)
+}
+
+# The scene each of `layers`, the layers of a plot, is routed in, as the index
+# of the first layer of that scene: an orthogonal routed layer shares the
+# scene of the first routed layer with the same settings, and every other
+# layer is a scene of its own.
+routed_layer_scenes <- function(layers) {
+  scenes <- seq_along(layers)
+  for (i in seq_along(layers)) {
+    for (j in seq_len(i - 1L)) {
+      if (
+        scenes[[j]] == j && routed_layers_share_scene(layers[[i]], layers[[j]])
+      ) {
+        scenes[[i]] <- j
+        break
+      }
+    }
+  }
+  scenes
 }
 
 # The routed layer `layer` with the rows of the plot's other routed layers
@@ -1698,40 +1769,29 @@ routed_union_layer <- function(layer) {
   )
 }
 
-# The data of the routed layer `self` with `.ggdag_route` marking the rows it
-# routes, its own and those the plot's other routed layers with the same
-# settings draw, with the number of routed layers whose edges the scene
-# holds, counting `self` when it draws an edge; a row it does not route is
-# 0. A scene that holds the edges of more than one layer gives the arrivals
-# out of a narrow gap rows of their own, since the layer drawn later would
-# hide the other's edge on a shared row.
+# The data of the routed layer `self` with `.ggdag_route` marking the rows of
+# its scene that the plot's other routed layers draw, which it routes along
+# with its own: each such row holds the index among the plot's layers of the
+# layer that draws it, and every other row holds 0. The layer draws the rows
+# `.ggdag_draw` marks, and routes those as well. A panel in which another
+# layer draws edges of the scene gives the arrivals out of a narrow gap rows
+# of their own, since the layer drawn later would hide the other's edge on a
+# shared row; the rows say which panels those are once the plot is split
+# into panels.
 mark_routed_union <- function(self, data, plot) {
   if (!is.data.frame(data) || !".ggdag_route" %in% names(data)) {
     return(data)
   }
-  own <- self$routed_settings %||% routed_layer_settings(self)
-  draws_edges <- function(rows) {
-    any(!is.na(rows$.ggdag_draw) & rows$.ggdag_draw & !is.na(rows$xend))
-  }
-  routed <- !is.na(data$.ggdag_route) & data$.ggdag_route
-  n_layers <- as.integer(draws_edges(data))
-  for (other in plot$layers) {
-    if (
-      identical(other, self) ||
-        !inherits(other$geom, "GeomDAGRoutedArrow") ||
-        !identical(
-          other$routed_settings %||% routed_layer_settings(other),
-          own
-        )
-    ) {
+  own <- !is.na(data$.ggdag_draw) & data$.ggdag_draw
+  owner <- rep(0L, nrow(data))
+  for (i in seq_along(plot$layers)) {
+    other <- plot$layers[[i]]
+    if (identical(other, self) || !routed_layers_share_scene(self, other)) {
       next
     }
     other_data <- layer_source_data(other, plot)
     if (is.null(other_data) || !".ggdag_draw" %in% names(other_data)) {
       next
-    }
-    if (!is.null(other_data$xend) && draws_edges(other_data)) {
-      n_layers <- n_layers + 1L
     }
     drawn <- other_data[
       !is.na(other_data$.ggdag_draw) & other_data$.ggdag_draw,
@@ -1746,9 +1806,10 @@ mark_routed_union <- function(self, data, plot) {
       next
     }
     row_key <- function(df) do.call(paste, c(as.list(df[shared]), sep = "\r"))
-    routed <- routed | row_key(data) %in% row_key(drawn)
+    theirs <- !own & owner == 0L & row_key(data) %in% row_key(drawn)
+    owner[theirs] <- i
   }
-  data$.ggdag_route <- ifelse(routed, max(n_layers, 1L), 0L)
+  data$.ggdag_route <- owner
   data
 }
 
@@ -1863,13 +1924,15 @@ dag_routed_arrow_layer <- function(
 #' slots out among themselves, so a plot that draws its edges in more than
 #' one orthogonal routed layer, such as the blocked and the open edges of
 #' [ggdag_adjustment_set()], routes them together: each layer routes the
-#' edges the other routed layers draw with the same settings along with its
-#' own, and draws only its own. Where a gap between layers is too narrow for
-#' a stub, the edges that arrive at a node out of it each take a row of
-#' their own rather than merging onto the node's center row, since the layer
-#' drawn later would hide the other's edge there. The stub the gaps between
-#' layers keep behind an arrowhead holds the longest arrowhead or fins the
-#' layer draws.
+#' edges the other routed layers draw with the same settings, line width
+#' included, along with its own, and draws only its own. Where a gap between
+#' layers is too narrow for a stub, in a panel where more than one of those
+#' layers draws edges, the edges that arrive at a node out of it each take a
+#' row of their own rather than merging onto the node's center row, since the
+#' layer drawn later would hide the other's edge there. The stub the gaps
+#' between layers keep behind an arrowhead holds the longest arrowhead or fins
+#' the layer draws at the line width it sets; a line width mapped to the data
+#' does not move the routes.
 #'
 #' A routed path is stroked at one width along its length, so
 #' `linewidth_head` and `linewidth_fins` taper only the arcs drawn for
