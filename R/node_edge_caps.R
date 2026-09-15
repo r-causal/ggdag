@@ -466,8 +466,9 @@ label_edge_end_caps <- function(layer, plot, layout) {
 # One row per edge such a layer draws, placed on the position scales of
 # `layout` as the label stat sees it, with `NA` at an end that follows the
 # nodes, and the index of the drawing layer among the plot's layers in
-# `layer`. `NULL` when no layer that follows the nodes has an end the user
-# set.
+# `layer`. A layer whose ends all follow the nodes has rows as well, so that
+# an edge two layers draw is known to be drawn up to the node's own cap by
+# one of them. `NULL` when no layer follows the nodes.
 set_edge_caps <- function(plot, layout) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
@@ -480,9 +481,6 @@ set_edge_caps <- function(plot, layout) {
       return(NULL)
     }
     set <- setdiff(c("start_cap", "end_cap"), layer$node_cap_ends)
-    if (length(set) == 0) {
-      return(NULL)
-    }
     data <- resolve_layer_data(layer, plot_data)
     if (is.null(data)) {
       return(NULL)
@@ -765,9 +763,13 @@ edge_end_nodes <- function(panel, x, y, nodes) {
 # panel. Two layers can draw an edge between the same two nodes, a directed
 # edge and a bidirected arc say, with caps of their own, so a point traced
 # from the edges of a layer, which carries that layer's index in
-# `route_layer`, takes the cap that layer sets, and a point traced as a
-# chord takes the cap of a layer no traced point names. An edge with no caps
-# found here takes the label geom's single cap, so its caps are `NA`.
+# `route_layer`, takes the cap that layer sets. A point traced as a chord is
+# traced once for every straight layer that draws it, the layers no traced
+# point names, and takes at each end the nearest cap among them, the node's
+# own where one of them follows the node there and no set cap is nearer:
+# the label keeps clear of the ink of all of them, which reaches out to the
+# nearest. An edge with no caps found here takes the label geom's single cap,
+# so its caps are `NA`.
 traced_edge_caps <- function(edges, points, caps) {
   none <- rep(NA_real_, nrow(points))
   no_square <- rep(FALSE, nrow(points))
@@ -812,15 +814,44 @@ traced_edge_caps <- function(edges, points, caps) {
     point_layer <- spec_column(points, "route_layer", NA_integer_)
     traced_layers <- unique(point_layer[!is.na(point_layer)])
     set_layer <- spec_column(caps$set, "layer", NA_integer_)
+    set_keys <- edge_key(caps$set$x, caps$set$y, caps$set$xend, caps$set$yend)
+
+    # a point a layer traced takes the caps that layer sets
     set_at <- match(
-      paste(point_keys, ifelse(is.na(point_layer), "chord", point_layer)),
-      paste(
-        edge_key(caps$set$x, caps$set$y, caps$set$xend, caps$set$yend),
-        ifelse(set_layer %in% traced_layers, set_layer, "chord")
-      )
+      paste(point_keys, point_layer),
+      paste(set_keys, set_layer)
     )
+    set_at[is.na(point_layer)] <- NA_integer_
     set_start <- caps$set$start[set_at]
     set_end <- caps$set$end[set_at]
+
+    # a chord takes the nearest cap of the straight layers that draw it
+    straight <- !(set_layer %in% traced_layers)
+    chord <- is.na(point_layer)
+    if (any(straight) && any(chord)) {
+      nearest <- function(values) {
+        found <- !is.na(values)
+        list(
+          set = tapply(
+            ifelse(found, values, Inf)[straight],
+            set_keys[straight],
+            min
+          ),
+          follows = tapply(!found[straight], set_keys[straight], any)
+        )
+      }
+      chord_cap <- function(values, node_cap) {
+        drawn <- nearest(values)
+        at <- match(point_keys[chord], names(drawn$set))
+        set <- unname(drawn$set[at])
+        follows <- unname(drawn$follows[at]) %in% TRUE
+        nearer <- is.finite(set) & (!follows | set < node_cap[chord])
+        ifelse(nearer, set, NA_real_)
+      }
+      set_start[chord] <- chord_cap(caps$set$start, start_cap)
+      set_end[chord] <- chord_cap(caps$set$end, end_cap)
+    }
+
     start_cap[!is.na(set_start)] <- set_start[!is.na(set_start)]
     end_cap[!is.na(set_end)] <- set_end[!is.na(set_end)]
     start_square[!is.na(set_start)] <- FALSE

@@ -151,6 +151,83 @@ test_that("a scalar-curvature ggarrow layer keeps the ggarrow_curve type", {
   expect_equal(geometry$curvature, rep(0.25, nrow(geometry)))
 })
 
+# Discovery: type "straight" -----------------------------------------------
+
+# A directed edge and a bidirected arc between the same two nodes.
+bow_dag <- function() {
+  dagify(
+    y ~ x,
+    x ~ ~y,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  ) |>
+    tidy_dagitty()
+}
+
+test_that("a straight layer beside a bent one is discovered as straight", {
+  # the straight edge shares its two nodes with the arc, so the obstacle
+  # tracers are told a layer draws it straight as well
+  edges <- ggplot(bow_dag(), aes_dag()) + geom_dag_edges() + geom_dag_point()
+  geometry <- discover_edge_geometry(edges)
+  expect_setequal(geometry$type, c("arc", "straight"))
+  straight <- geometry[geometry$type == "straight", , drop = FALSE]
+  expect_equal(nrow(straight), 1)
+  expect_equal(straight$direction, "->")
+  expect_equal(
+    straight$route_layer,
+    unname(stat_layer_index(edges, "StatEdgeLink"))
+  )
+
+  skip_if_not_installed("ggarrow")
+  arrows <- ggplot(bow_dag(), aes_dag()) + geom_dag_arrows() + geom_dag_point()
+  expect_setequal(
+    discover_edge_geometry(arrows)$type,
+    c("ggarrow_curve", "straight")
+  )
+})
+
+test_that("a plot whose every edge is straight discovers no geometry", {
+  expect_null(discover_edge_geometry(
+    ggplot(bow_dag(), aes_dag()) + geom_dag_edges_link() + geom_dag_point()
+  ))
+  expect_null(discover_edge_geometry(
+    ggplot(base_dag(), aes_dag()) + geom_dag_edges() + geom_dag_point()
+  ))
+  skip_if_not_installed("ggarrow")
+  expect_null(discover_edge_geometry(
+    ggplot(base_dag(), aes_dag()) + geom_dag_arrow() + geom_dag_point()
+  ))
+})
+
+test_that("the obstacle tracers trace a straight edge beside a bent one", {
+  # every consumer is handed the chord of the directed edge as well as the
+  # arc beside it
+  on_chord <- function(points) {
+    sum(abs(points$y) < 1e-9 & points$x > 0.2 & points$x < 0.8)
+  }
+  p <- ggplot(bow_dag(), aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point() +
+    geom_dag_label_repel(aes(label = name))
+  repel <- ggplot2::layer_data(p, stat_layer_index(p, "StatNodesRepel"))
+  expect_gt(on_chord(repel[repel$label == "", , drop = FALSE]), 0)
+
+  edges <- data.frame(x = 0, y = 0, xend = 1, yend = 0, PANEL = 1L)
+  geometry <- discover_edge_geometry(p)
+  for (trace_arrows in c(FALSE, TRUE)) {
+    points <- repel_edge_points(
+      edges,
+      10,
+      geometry,
+      NULL,
+      include_endpoints = TRUE,
+      trace_arrows = trace_arrows
+    )
+    ids <- unique(points$edge_id)
+    expect_length(ids, 2)
+    expect_gt(on_chord(points), 0)
+  }
+})
+
 # Discovery: type "routed" -------------------------------------------------
 
 test_that("a routed arrows layer is discovered as a routing spec", {

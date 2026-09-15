@@ -1245,8 +1245,9 @@ test_that("an edge in a panel only the edge layer adds finds that panel's nodes"
 # The automatic labels ---------------------------------------------------------
 
 # One row per edge the automatic label layer of `plot` traces in its first
-# panel: where the edge starts and ends, in data units, and the cap the label
-# engine cuts the traced edge back by at each end. The grob carries the traced
+# panel: where the edge starts and ends, in data units, the index of the
+# layer it is traced from (`layer`, `NA` for an edge traced as its chord),
+# and the cap the label engine cuts the traced edge back by at each end. The grob carries the traced
 # edges in the order the built layer holds them, so the positions are read
 # from the built layer and the caps from the grob. An edge the grob carries no
 # cap of its own for is cut by the layer's single cap.
@@ -1276,6 +1277,7 @@ label_edge_caps <- function(plot) {
     y = rows$y[first],
     xend = rows$x[last],
     yend = rows$y[last],
+    layer = rows$route_layer[first],
     cap_start = cap_at("cap_fins", first),
     cap_end = cap_at("cap_head", last)
   )
@@ -1468,6 +1470,120 @@ test_that("the automatic labels cut an edge at a cap the user sets at its end", 
   expect_equal(unique(caps$cap_start[from_z]), 3)
   expect_equal(unique(caps$cap_start[!from_z]), 5)
   expect_equal(unique(caps$cap_end), circle_cap)
+})
+
+test_that("the automatic labels cut each edge between two nodes by the layer that draws it", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # A directed edge and a bidirected arc between the same two nodes, drawn by
+  # two layers with caps of their own. The labels trace the arc and the
+  # straight edge, and cut each by the caps of the layer that draws it. The
+  # straight edge was once not traced at all, and the arc cut by the caps of
+  # the straight layer.
+  bow <- tidy_dagitty(dagify(
+    y ~ x,
+    x ~ ~y,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  ))
+  circle_cap <- 0.375 * 30 + 2
+  plots <- list(
+    ggraph = ggplot(bow, aes_dag()) +
+      geom_dag_point(size = 30) +
+      geom_dag_edges_link(
+        data = filter_direction("->"),
+        start_cap = ggraph::circle(3, "mm"),
+        end_cap = ggraph::circle(3, "mm")
+      ) +
+      geom_dag_edges_arc(
+        data = filter_direction("<->"),
+        start_cap = ggraph::circle(10, "mm"),
+        end_cap = ggraph::circle(10, "mm")
+      ) +
+      geom_dag_label_auto(aes(label = name)),
+    ggarrow = ggplot(bow, aes_dag()) +
+      geom_dag_point(size = 30) +
+      geom_dag_arrow(data = filter_direction("->"), resect = 3) +
+      geom_dag_arrow_arc(data = filter_direction("<->"), resect = 10) +
+      geom_dag_label_auto(aes(label = name))
+  )
+  for (engine in names(plots)) {
+    caps <- label_edge_caps(plots[[engine]])
+    caps <- caps[order(!is.na(caps$layer)), , drop = FALSE]
+    expect_equal(is.na(caps$layer), c(TRUE, FALSE), label = engine)
+    expect_equal(caps$cap_start, c(3, 10), label = engine)
+    expect_equal(caps$cap_end, c(3, 10), label = engine)
+  }
+
+  # and the plotters' own layers, whose caps follow the nodes, trace both
+  for (edges in list(
+    geom_dag_edges(),
+    geom_dag_arrows(),
+    geom_dag_edges(edge_engine = "ggarrow")
+  )) {
+    p <- ggplot(bow, aes_dag()) +
+      geom_dag_point(size = 30) +
+      edges +
+      geom_dag_label_auto(aes(label = name))
+    caps <- label_edge_caps(p)
+    expect_equal(nrow(caps), 2)
+    expect_equal(unique(c(caps$cap_start, caps$cap_end)), circle_cap)
+  }
+
+  # the edges the labels trace stop where the drawn edges do, the tip of a
+  # ggarrow arc within the sagitta of the chord its head is drawn along
+  skip_if_not_installed("ragg")
+  ends <- drawn_and_traced_ends(plots$ggraph)
+  stopifnot(nrow(ends$traced) == 2)
+  expect_equal(
+    label_tip_mismatches(ends$traced, ends$drawn, tolerance = 0.35),
+    character()
+  )
+  ends <- drawn_and_traced_ends(plots$ggarrow)
+  stopifnot(nrow(ends$traced) == 2)
+  expect_equal(label_cap_mismatches(ends$traced, ends$drawn), character())
+})
+
+test_that("the automatic labels cut an edge two layers draw by the nearer cap", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  tidy_dag <- tidy_dagitty(controlled_dag())
+  circle_cap <- 0.375 * 30 + 2
+  labelled <- function(...) {
+    ggplot(tidy_dag, aes_dag()) +
+      geom_dag_point(size = 30) +
+      list(...) +
+      geom_dag_label_auto(aes(label = name))
+  }
+
+  # the label keeps clear of the ink of both layers, which reaches out to the
+  # smaller cap at each end, whichever layer is added first
+  three <- geom_dag_edges_link(end_cap = ggraph::circle(3, "mm"))
+  six <- geom_dag_edges_link(end_cap = ggraph::circle(6, "mm"))
+  following <- geom_dag_edges_link()
+  scenes <- list(
+    `3 then 6` = list(plot = labelled(three, six), start = circle_cap),
+    `6 then 3` = list(plot = labelled(six, three), start = circle_cap),
+    `following then 3` = list(
+      plot = labelled(following, three),
+      start = circle_cap
+    ),
+    `3 then following` = list(
+      plot = labelled(three, following),
+      start = circle_cap
+    )
+  )
+  for (name in names(scenes)) {
+    caps <- label_edge_caps(scenes[[name]]$plot)
+    expect_equal(unique(caps$cap_end), 3, label = name)
+    expect_equal(unique(caps$cap_start), scenes[[name]]$start, label = name)
+  }
+
+  # a cap wider than the node's own is not the nearer one where a layer that
+  # follows the nodes draws the edge as well
+  wide <- labelled(
+    following,
+    geom_dag_edges_link(end_cap = ggraph::circle(20, "mm"))
+  )
+  expect_equal(unique(label_edge_caps(wide)$cap_end), circle_cap)
 })
 
 test_that("a fixed cap reaches the automatic labels as it reaches the edges", {

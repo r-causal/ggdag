@@ -608,13 +608,15 @@ drawn_edge_points <- function(
   path <- path[path$index %in% keep, ]
 
   # The key alone does not identify an edge: a fan draws two edges between the
-  # same pair of nodes, so the row index tells them apart.
+  # same pair of nodes, so the row index tells them apart. Each point names
+  # the layer that draws its edge, whose caps the edge is cut back by.
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
   data.frame(
     edge_id = paste(key[path$group], path$group, sep = "\r"),
     x = path$x,
     y = path$y,
     PANEL = path$PANEL,
+    route_layer = spec_column(geometry, "route_layer", NA_integer_)[path$group],
     stringsAsFactors = FALSE
   )
 }
@@ -711,6 +713,7 @@ curve_edge_points <- function(
         x = curve$x,
         y = curve$y,
         PANEL = panel,
+        route_layer = spec_column(geometry, "route_layer", NA_integer_)[[i]],
         stringsAsFactors = FALSE
       )
     })
@@ -782,7 +785,8 @@ sample_polyline <- function(x, y, n, keep_vertices = TRUE) {
 # Invisible points tracing each edge, used as obstacles in ggrepel's repulsion
 # and by the automatic label stat. The rows of `edge_geometry` are the edges
 # the plot's bent edge layers draw, one row each; an edge no such layer
-# claims is traced as a straight chord. `trace_arrows` also follows the edges
+# claims is traced as a straight chord, and so is an edge a straight layer
+# draws beside the bent edge between the same two nodes, a "straight" row. `trace_arrows` also follows the edges
 # a ggarrow curve layer draws, which reach the automatic label stat as the two
 # ends of their chord and the curvature they are drawn at, because that arc is
 # bent in millimetres when the plot is drawn. Without it a scalar-curvature
@@ -808,6 +812,7 @@ repel_edge_points <- function(
     edge_geometry$type
   }
   is_routed <- geometry_type == "routed"
+  is_straight_row <- geometry_type == "straight"
 
   # Which edges are bent on the page. `grid::curveGrob()` settles the bow of a
   # ggarrow arc in device units, so every edge such a layer draws carries the
@@ -850,15 +855,28 @@ repel_edge_points <- function(
     routed_geometry <- routed[is.na(curvature), , drop = FALSE]
     fixed_geometry <- routed[!is.na(curvature), , drop = FALSE]
   }
-  if (any(is_arrow | is_routed)) {
-    edge_geometry <- edge_geometry[!(is_arrow | is_routed), , drop = FALSE]
-  }
-
   geometry_keys <- function(geometry) {
     if (is.null(geometry) || nrow(geometry) == 0) {
       return(character())
     }
     edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  }
+  # an edge a straight layer draws is traced as its chord once, whatever
+  # bent edges share its two nodes
+  straight_keys <- character()
+  if (any(is_straight_row)) {
+    straight_keys <- geometry_keys(edge_geometry[
+      is_straight_row,
+      ,
+      drop = FALSE
+    ])
+  }
+  if (any(is_arrow | is_routed | is_straight_row)) {
+    edge_geometry <- edge_geometry[
+      !(is_arrow | is_routed | is_straight_row),
+      ,
+      drop = FALSE
+    ]
   }
   drawn_keys <- geometry_keys(edge_geometry)
   arrow_keys <- geometry_keys(arrow_geometry)
@@ -881,7 +899,8 @@ repel_edge_points <- function(
     )
 
     is_straight <- !(keys %in%
-      c(drawn_keys, arrow_keys, routed_keys, fixed_keys))
+      c(drawn_keys, arrow_keys, routed_keys, fixed_keys)) |
+      keys %in% straight_keys
     if (any(is_straight)) {
       points[[length(points) + 1]] <- straight_edge_points(
         panel_edges[is_straight, , drop = FALSE],
@@ -1390,10 +1409,11 @@ StatDebugRepelPoints <- ggplot2::ggproto(
         params$edge_geometry,
         layout
       )
-      # The traced points carry the edge they sit on, which the drawn overlay
-      # has no use for; the node points below carry no such column.
+      # The traced points carry the edge they sit on and the layer that draws
+      # it, which the drawn overlay has no use for; the node points below
+      # carry no such columns.
       if (!is.null(fake_points)) {
-        fake_points$edge_id <- NULL
+        fake_points <- fake_points[, c("x", "y", "PANEL"), drop = FALSE]
       }
     }
 
@@ -1712,7 +1732,8 @@ discover_edge_geometry <- function(plot) {
     existing <- plot$layers[[i]]
     spec <- edge_layer_geometry(existing, plot_data) %||%
       arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
-      routed_layer_geometry(existing, plot_data, plot$mapping, plot)
+      routed_layer_geometry(existing, plot_data, plot$mapping, plot) %||%
+      straight_layer_geometry(existing, plot_data)
     if (!is.null(spec)) {
       # every edge names the layer that draws it; the routed grobs route the
       # edges of one scene together, so a routed edge names its scene too
@@ -1731,6 +1752,16 @@ discover_edge_geometry <- function(plot) {
   # Every type is one wide row per edge; the routing columns the other
   # builders do not fill are NA.
   geometry <- dplyr::bind_rows(specs)
+
+  # an edge drawn straight is traced as its chord without a row of its own,
+  # so a straight row is kept only where a bent edge runs between the same
+  # two nodes, and a plot whose every edge is straight has no geometry
+  keys <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
+  straight <- geometry$type == "straight"
+  geometry <- geometry[!straight | keys %in% keys[!straight], , drop = FALSE]
+  if (nrow(geometry) == 0) {
+    return(NULL)
+  }
   dedupe_edge_geometry(geometry)
 }
 
@@ -1943,8 +1974,8 @@ edge_layer_geometry <- function(layer, plot_data) {
 # "ggarrow_curve", traced only when arrows are asked for. Either way the row
 # also carries the curvature in `curvature`, because `grid::curveGrob()` bends
 # both on the device: that is the column the automatic label engine traces the
-# drawn arc from at draw time. The straight ggarrow segment geom needs no
-# spec: an edge no layer claims is traced as a straight chord anyway.
+# drawn arc from at draw time. The straight ggarrow segment geom is a
+# straight layer (`straight_layer_geometry()`).
 arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
   if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
     return(NULL)
@@ -1996,6 +2027,55 @@ arrow_layer_geometry <- function(layer, plot_data, plot_mapping = NULL) {
     to = as.character(column("to", NA_character_)),
     direction = as.character(column("direction", NA_character_)),
     curvature = curvature,
+    stringsAsFactors = FALSE
+  )
+}
+
+# Which edges a straight layer draws, if any: a ggraph link layer, a ggraph
+# layer whose bent geometry is drawn at no strength, or the straight ggarrow
+# segment layer. An edge drawn straight needs no tracing on its own, since
+# an edge no bent layer claims is traced as its chord, but another layer can
+# draw a bent edge between the same two nodes, as the arc beside a directed
+# edge is, and the tracers are told the chord is drawn as well. The rows
+# carry the layer's endpoints and direction as "straight" rows.
+straight_layer_geometry <- function(layer, plot_data) {
+  straight_ggraph <- inherits(layer$geom, "GeomEdgePath") &&
+    (inherits(layer$stat, "StatEdgeLink") ||
+      (!is.null(edge_geometry_type(layer$stat)) &&
+        is.numeric(layer$stat_params$strength) &&
+        length(layer$stat_params$strength) == 1 &&
+        layer$stat_params$strength == 0))
+  if (!straight_ggraph && !inherits(layer$geom, "GeomDAGArrow")) {
+    return(NULL)
+  }
+
+  layer_data <- resolve_layer_data(layer, plot_data)
+  if (is.null(layer_data)) {
+    return(NULL)
+  }
+  layer_data <- layer_data[!is.na(layer_data$xend), , drop = FALSE]
+  if (nrow(layer_data) == 0) {
+    return(NULL)
+  }
+
+  column <- function(name, default) {
+    if (name %in% names(layer_data)) layer_data[[name]] else default
+  }
+  data.frame(
+    x = layer_data$x,
+    y = layer_data$y,
+    xend = layer_data$xend,
+    yend = layer_data$yend,
+    circular = FALSE,
+    type = "straight",
+    strength = NA_real_,
+    n = 100,
+    fold = FALSE,
+    flipped = FALSE,
+    from = as.character(column("name", NA_character_)),
+    to = as.character(column("to", NA_character_)),
+    direction = as.character(column("direction", NA_character_)),
+    curvature = NA_real_,
     stringsAsFactors = FALSE
   )
 }
