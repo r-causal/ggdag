@@ -919,6 +919,67 @@ test_that("a curvature one routed layer maps to a single value pins that layer's
   }
 })
 
+test_that("orthogonal routed layers that set different resections route one scene", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # A resection a layer sets is read for each of its edges, as a resection it
+  # maps is, so a layer that resects its heads by 10 mm and one whose heads
+  # follow the nodes route one scene. Routed apart, they drew three runs on
+  # one line on a 7 by 5 inch device and five on a 4 by 4 inch device.
+  ortho <- list(route = "orthogonal")
+  firsts <- list(
+    `a head resection` = list(resect_head = 10),
+    `a resection at both ends` = list(resect = 10)
+  )
+  for (name in names(firsts)) {
+    first <- c(ortho, firsts[[name]])
+    for (device in list(c(7, 5), c(4, 4))) {
+      label <- sprintf(
+        "%s on a %s by %s inch device",
+        name,
+        device[[1]],
+        device[[2]]
+      )
+      plot <- readme_layer_pair_plot(first, ortho, labels = FALSE)
+      inputs <- routed_router_inputs(plot, device[[1]], device[[2]])
+      stopifnot(length(inputs) == 4)
+      for (input in inputs[-1]) {
+        expect_identical(input, inputs[[1]], label = label)
+      }
+      expect_equal(
+        orthogonal_invariants(plot, device[[1]], device[[2]])$shared,
+        character(),
+        label = label
+      )
+
+      labelled <- readme_layer_pair_plot(first, ortho)
+      inputs <- drawn_and_traced_router_inputs(
+        labelled,
+        device[[1]],
+        device[[2]]
+      )
+      expect_equal(
+        traced_router_input_mismatches(inputs),
+        character(),
+        label = label
+      )
+      found <- label_route_deviations(labelled, device[[1]], device[[2]])
+      stopifnot(nrow(found) == 11)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = paste("the routes traced for", label)
+      )
+    }
+  }
+})
+
 # No regression -------------------------------------------------------------------
 
 test_that("the scenes that keep the invariants keep their routes", {

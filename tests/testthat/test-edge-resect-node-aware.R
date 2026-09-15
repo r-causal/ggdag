@@ -1374,6 +1374,77 @@ test_that("the automatic labels trace the adjustment set plot's two routed layer
         }
       }
     }
+
+    # the README DAG's three panels, each of whose edges one of the two
+    # layers draws and the other draws in another panel: the label layer
+    # routes each panel from the edges drawn there, where it once routed each
+    # layer's edges of every panel in each, and traced one edge per panel
+    # 2.3 mm from where it is drawn on a 10 by 6 inch device
+    readme <- withr::with_options(
+      list(ggdag.edge_route = route),
+      ggdag_adjustment_set(readme_dag(), edge_engine = "ggarrow")
+    ) +
+      geom_dag_text_auto(aes(label = name), colour = "black")
+    for (device in list(c(7, 5), c(10, 6))) {
+      found <- label_route_deviations(readme, device[[1]], device[[2]])
+      stopifnot(nrow(found) == 33, length(unique(found$panel)) == 3)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = sprintf(
+          "the %s routes of the README DAG on a %s by %s inch device",
+          route,
+          device[[1]],
+          device[[2]]
+        )
+      )
+    }
+  }
+})
+
+test_that("the label engine routes a routed layer with the node size it is given", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # A routed layer given a node size other than the node layer's clears
+  # discs of that size where it does not know a node's own and sets the
+  # router's constants from it. The label engine routes the layer's edges
+  # with the same size, where it once took the size of the nodes and traced
+  # orthogonal routes up to 49 mm from where they are drawn.
+  for (route in c("spline", "orthogonal")) {
+    p <- ggplot(tidy_dagitty(readme_time_ordered_dag()), aes_dag()) +
+      geom_dag_point(size = 16) +
+      geom_dag_routed_arrows(route = route, node_size = 30) +
+      geom_dag_text_auto(colour = "black", size = 3) +
+      theme_dag()
+    for (device in list(c(7, 5), c(4, 4))) {
+      label <- sprintf(
+        "the %s routes on a %s by %s inch device",
+        route,
+        device[[1]],
+        device[[2]]
+      )
+      inputs <- drawn_and_traced_router_inputs(p, device[[1]], device[[2]])
+      stopifnot(length(inputs$drawn) > 0)
+      expect_equal(
+        traced_router_input_mismatches(inputs),
+        character(),
+        label = label
+      )
+      found <- label_route_deviations(p, device[[1]], device[[2]])
+      stopifnot(nrow(found) == 11)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = label
+      )
+    }
   }
 })
 

@@ -3343,6 +3343,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       yend = edges$y[last],
       style = spec$route_style[first],
       layer_axis = spec$route_layer_axis[first],
+      node_size = spec_column(spec, "route_node_size", NA_real_)[first],
       cap = spec$route_cap[first],
       follow_head = spec_column(spec, "route_follow_head", NA)[first] %in% TRUE,
       layer = spec_column(spec, "route_layer", NA_integer_)[first],
@@ -3389,16 +3390,18 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
   # shape is not known, and for every node where no layer's heads follow the
   # nodes, and a node that stops the edges following it stops them no nearer
   # than the largest cap of the layers whose heads are fixed
-  radius <- node_radius_mm(par$node_size)
   outline <- nodes$outline %||% rep(NA_real_, nrow(nodes))
   square <- nodes$square %||% rep(FALSE, nrow(nodes))
   gap <- (nodes$gap %||% rep(NA_real_, nrow(nodes)))[1] %||% node_edge_gap_mm
-  router_nodes_for <- function(cap, follow, fixed_cap) {
+  # a scene whose layers route with a node size of their own clears a node
+  # it does not know the shape of by the disc of that size, as the routed
+  # grobs do, and a scene with none by each node's own
+  router_nodes_for <- function(cap, follow, fixed_cap, radius) {
     geometry <- router_node_geometry(
       outline,
       square,
       gap,
-      nodes$radius,
+      if (is.na(radius)) nodes$radius else radius,
       cap,
       follow = follow,
       fixed_cap = fixed_cap
@@ -3533,13 +3536,20 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     }
 
     settings <- chords[in_scene[[1]], , drop = FALSE]
+    scene_radius <- node_radius_mm(settings$node_size)
+    radius <- if (is.na(scene_radius)) {
+      node_radius_mm(par$node_size)
+    } else {
+      scene_radius
+    }
     follow <- c(chords$follow_head[in_scene], pinned$follow_head[own_pinned])
     scene_caps <- c(caps[in_scene], pinned_caps[own_pinned])
     cap <- max(scene_caps)
     router_nodes <- router_nodes_for(
       cap,
       follow = any(follow),
-      fixed_cap = if (all(follow)) NULL else max(scene_caps[!follow])
+      fixed_cap = if (all(follow)) NULL else max(scene_caps[!follow]),
+      radius = scene_radius
     )
     ornaments <- c(
       chords$route_ornaments[in_scene],

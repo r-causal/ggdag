@@ -1845,7 +1845,10 @@ with_routed_draw <- function(mapping) {
 # from their shape, length, justification, and the layer's line width, is
 # all the router reads of them, and a scene keeps the stubs of the farthest
 # reach among its layers (`routed_scene_reaches()`), so two layers whose
-# heads reach apart still share out one scene's rows once.
+# heads reach apart still share out one scene's rows once. The resections
+# a layer sets are not among them: each edge of a scene is routed with the
+# head resection of the layer that draws it, whether that layer sets it or
+# maps it (`routed_row_caps()`).
 routed_layer_settings <- function(layer) {
   params <- layer$geom_params
   list(
@@ -1853,7 +1856,6 @@ routed_layer_settings <- function(layer) {
     layer_axis = params$layer_axis,
     edge_route_options = params$edge_route_options,
     node_size = params$node_size,
-    resect = params$resect,
     ornaments = c(
       head = !is.null(params$arrow$head),
       fins = !is.null(params$arrow$fins)
@@ -2171,22 +2173,22 @@ dag_routed_arrow_layer <- function(
 #' automatic label geoms take their obstacles from the plot's own nodes, so a
 #' label may be placed across an edge appended this way.
 #'
-#' In orthogonal mode the routes of one panel share its rows, ports, and
-#' slots out among themselves, so a plot that draws its edges in more than
-#' one orthogonal routed layer, such as the blocked and the open edges of
-#' [ggdag_adjustment_set()], routes them together: each layer routes the
-#' edges the other routed layers draw with the same settings along with its
-#' own, each with the head resection and curvature of the layer that draws
-#' it, and draws only its own. Where a gap between layers is too narrow for a
-#' stub, in a panel where more than one of those layers draws edges, the
-#' edges that arrive at a node out of it each take a row of their own rather
-#' than merging onto the node's center row, since the layer drawn later would
-#' hide the other's edge there. The stub the gaps between layers keep behind
-#' an arrowhead holds the longest arrowhead or fins the layers drawing edges
-#' in the panel draw, each at the line width it sets, so layers whose
-#' ornaments differ only in how far they reach, at different line widths or
-#' with heads of different lengths or shapes, still route together; a line
-#' width mapped to the data does not move the routes.
+#' In orthogonal mode the routes of one panel share its rows, ports, and slots
+#' out among themselves, so a plot that draws its edges in more than one
+#' orthogonal routed layer, such as the blocked and the open edges of
+#' [ggdag_adjustment_set()], routes them together: each layer routes the edges
+#' the other routed layers draw with the same settings along with its own, each
+#' with the head resection and curvature of the layer that draws it, whether
+#' that layer sets or maps them, and draws only its own. Where a gap between
+#' layers is too narrow for a stub, in a panel where more than one of those
+#' layers draws edges, the edges that arrive at a node out of it each take a row
+#' of their own rather than merging onto the node's center row, since the layer
+#' drawn later would hide the other's edge there. The stub the gaps between
+#' layers keep behind an arrowhead holds the longest arrowhead or fins the
+#' layers drawing edges in the panel draw, each at the line width it sets, so
+#' layers whose ornaments differ only in how far they reach, at different line
+#' widths or with heads of different lengths or shapes, still route together; a
+#' line width mapped to the data does not move the routes.
 #'
 #' A routed path is stroked at one width along its length, so
 #' `linewidth_head` and `linewidth_fins` taper only the arcs drawn for

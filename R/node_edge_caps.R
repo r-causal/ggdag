@@ -462,15 +462,15 @@ label_edge_end_caps <- function(layer, plot, layout) {
 }
 
 # The caps the user set, as an aesthetic or as a fixed value, at the ends that
-# the edge layers of `plot` following the nodes leave alone, in millimetres.
-# One row per edge such a layer draws in each panel of `layout` it draws the
-# edge in (`PANEL`), placed on the position scales of `layout` as the label
-# stat sees it, with `NA` at an end that follows the nodes, and the index of
-# the drawing layer among the plot's layers in `layer`. A cap mapped to the
-# data is read for each row, whether the layer maps it or inherits it from
-# the plot's mapping. A layer whose ends all follow the nodes has rows as well, so that
-# an edge two layers draw is known to be drawn up to the node's own cap by
-# one of them. `NULL` when no layer follows the nodes.
+# the edge layers of `plot` following the nodes leave alone, in millimetres. One
+# row per edge such a layer draws in each panel of `layout` it draws the edge in
+# (`PANEL`), placed on the position scales of `layout` as the label stat sees
+# it, with `NA` at an end that follows the nodes, and the index of the drawing
+# layer among the plot's layers in `layer`. A cap mapped to the data is read for
+# each row, whether the layer maps it or inherits it from the plot's mapping. A
+# layer whose ends all follow the nodes has rows as well, so that an edge two
+# layers draw is known to be drawn up to the node's own cap by one of them.
+# `NULL` when no layer follows the nodes.
 set_edge_caps <- function(plot, layout) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
@@ -532,10 +532,10 @@ set_edge_caps <- function(plot, layout) {
 }
 
 # The cap `layer` draws at `end` of each edge in `data`, the rows it draws, in
-# millimetres. A ggraph layer's fixed cap is read as it is, and a mapped one
-# is evaluated against the rows the way the layer evaluates it, from the
-# layer's mapping or from the plot's `plot_mapping` the layer inherits. A cap drawn in
-# a shape other than a circle is taken as the circle that fits inside it. A
+# millimetres. A ggraph layer's fixed cap is read as it is, and a mapped one is
+# evaluated against the rows the way the layer evaluates it, from the layer's
+# mapping or from the plot's `plot_mapping` the layer inherits. A cap drawn in a
+# shape other than a circle is taken as the circle that fits inside it. A
 # ggarrow layer's resection is read the same way from its `resect_fins` or
 # `resect_head`, as an aesthetic or as the layer's parameter. `NA` for a cap
 # that is not a ggraph geometry or a number of millimetres, or is measured in
@@ -768,23 +768,23 @@ edge_end_nodes <- function(panel, x, y, nodes) {
 # The cap, in millimetres, at the start (`start`) and the end (`end`) of the
 # edge each row of `points` traces, for the automatic label stat, whether each
 # is the half side of a square (`start_square`, `end_square`) rather than a
-# straight-line distance, and the cap (`fallback`) of an end with no node
-# drawn at it, which the label geom cuts an edge without a cap of its own by.
-# `edges` are the edges the stat traced, one row each, and `caps` what
-# `label_edge_end_caps()` found, or `NULL`. An end the user set a cap at is
-# cut by that cap. Every tracer names the points of an edge by an id that
-# starts with the edge's key, so a point finds its edge by that key and its
-# panel. Two layers can draw an edge between the same two nodes, a directed
-# edge and a bidirected arc say, with caps of their own, so a point traced
-# from the edges of a layer, which carries that layer's index in
-# `route_layer`, takes the cap that layer sets. A point traced as a chord is
-# traced once for every straight layer that draws it, the layers no traced
-# point names, and takes at each end the nearest cap among them, the node's
-# own where one of them follows the node there and no set cap is nearer:
-# the label keeps clear of the ink of all of them, which reaches out to the
-# nearest. Caps are read in the panel of the point, where a cap mapped to
-# the data can differ from another panel's. An edge with no caps found here takes the label geom's single cap,
-# so its caps are `NA`.
+# straight-line distance, and the cap (`fallback`) of an end with no node drawn
+# at it, which the label geom cuts an edge without a cap of its own by. `edges`
+# are the edges the stat traced, one row each, and `caps` what
+# `label_edge_end_caps()` found, or `NULL`. An end the user set a cap at is cut
+# by that cap. Every tracer names the points of an edge by an id that starts
+# with the edge's key, so a point finds its edge by that key and its panel. Two
+# layers can draw an edge between the same two nodes, a directed edge and a
+# bidirected arc say, with caps of their own, so a point traced from the edges
+# of a layer, which carries that layer's index in `route_layer`, takes the cap
+# that layer sets. A point traced as a chord is traced once for every straight
+# layer that draws it, the layers no traced point names, and takes at each end
+# the nearest cap among them, the node's own where one of them follows the node
+# there and no set cap is nearer: the label keeps clear of the ink of all of
+# them, which reaches out to the nearest. Caps are read in the panel of the
+# point, where a cap mapped to the data can differ from another panel's. An edge
+# with no caps found here takes the label geom's single cap, so its caps are
+# `NA`.
 traced_edge_caps <- function(edges, points, caps) {
   none <- rep(NA_real_, nrow(points))
   no_square <- rep(FALSE, nrow(points))

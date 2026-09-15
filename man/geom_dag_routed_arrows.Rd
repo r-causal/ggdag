@@ -180,22 +180,22 @@ same node size gives the router the radius of the discs it must clear. The
 automatic label geoms take their obstacles from the plot's own nodes, so a
 label may be placed across an edge appended this way.
 
-In orthogonal mode the routes of one panel share its rows, ports, and
-slots out among themselves, so a plot that draws its edges in more than
-one orthogonal routed layer, such as the blocked and the open edges of
-\code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}}, routes them together: each layer routes the
-edges the other routed layers draw with the same settings along with its
-own, each with the head resection and curvature of the layer that draws
-it, and draws only its own. Where a gap between layers is too narrow for a
-stub, in a panel where more than one of those layers draws edges, the
-edges that arrive at a node out of it each take a row of their own rather
-than merging onto the node's center row, since the layer drawn later would
-hide the other's edge there. The stub the gaps between layers keep behind
-an arrowhead holds the longest arrowhead or fins the layers drawing edges
-in the panel draw, each at the line width it sets, so layers whose
-ornaments differ only in how far they reach, at different line widths or
-with heads of different lengths or shapes, still route together; a line
-width mapped to the data does not move the routes.
+In orthogonal mode the routes of one panel share its rows, ports, and slots
+out among themselves, so a plot that draws its edges in more than one
+orthogonal routed layer, such as the blocked and the open edges of
+\code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}}, routes them together: each layer routes the edges
+the other routed layers draw with the same settings along with its own, each
+with the head resection and curvature of the layer that draws it, whether
+that layer sets or maps them, and draws only its own. Where a gap between
+layers is too narrow for a stub, in a panel where more than one of those
+layers draws edges, the edges that arrive at a node out of it each take a row
+of their own rather than merging onto the node's center row, since the layer
+drawn later would hide the other's edge there. The stub the gaps between
+layers keep behind an arrowhead holds the longest arrowhead or fins the
+layers drawing edges in the panel draw, each at the line width it sets, so
+layers whose ornaments differ only in how far they reach, at different line
+widths or with heads of different lengths or shapes, still route together; a
+line width mapped to the data does not move the routes.
 
 A routed path is stroked at one width along its length, so
 \code{linewidth_head} and \code{linewidth_fins} taper only the arcs drawn for

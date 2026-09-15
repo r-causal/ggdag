@@ -1576,6 +1576,23 @@ test_that("the automatic labels cut an edge two layers draw by the nearer cap", 
   expect_equal(unique(label_edge_caps(wide)$cap_end), circle_cap)
 })
 
+test_that("a routed layer that draws no edges sets no caps for the labels", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+
+  # the routed layer carries every row of the plot and draws none of them,
+  # so its 3 mm resection stops no edge, and the labels cut the edges the
+  # link layer draws where they stop, beyond the nodes
+  p <- ggplot(tidy_dagitty(controlled_dag()), aes_dag()) +
+    geom_dag_point(size = 30) +
+    geom_dag_edges_link() +
+    geom_dag_routed_arrows(data_directed = \(x) x[0, ], resect = 3) +
+    geom_dag_label_auto(aes(label = name))
+
+  caps <- label_edge_caps(p)
+  stopifnot(nrow(caps) == 4)
+  expect_equal(unique(c(caps$cap_start, caps$cap_end)), 0.375 * 30 + 2)
+})
+
 test_that("a fixed cap reaches the automatic labels as it reaches the edges", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
   labelled <- dagify(y ~ x, labels = c(x = "Exposure", y = "Outcome"))

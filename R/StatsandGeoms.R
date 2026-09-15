@@ -783,16 +783,16 @@ sample_polyline <- function(x, y, n, keep_vertices = TRUE) {
 }
 
 # Invisible points tracing each edge, used as obstacles in ggrepel's repulsion
-# and by the automatic label stat. The rows of `edge_geometry` are the edges
-# the plot's bent edge layers draw, one row each; an edge no such layer
-# claims is traced as a straight chord, and so is an edge a straight layer
-# draws beside the bent edge between the same two nodes, a "straight" row. `trace_arrows` also follows the edges
-# a ggarrow curve layer draws, which reach the automatic label stat as the two
-# ends of their chord and the curvature they are drawn at, because that arc is
-# bent in millimetres when the plot is drawn. Without it a scalar-curvature
-# layer's edges are traced as chords and a "curve" spec, from a layer that
-# maps `edge_curvature`, as the arc its `strength` models in data space, which
-# is what ggrepel's repulsion has always been given.
+# and by the automatic label stat. The rows of `edge_geometry` are the edges the
+# plot's bent edge layers draw, one row each; an edge no such layer claims is
+# traced as a straight chord, and so is an edge a straight layer draws beside
+# the bent edge between the same two nodes, a "straight" row. `trace_arrows`
+# also follows the edges a ggarrow curve layer draws, which reach the automatic
+# label stat as the two ends of their chord and the curvature they are drawn at,
+# because that arc is bent in millimetres when the plot is drawn. Without it a
+# scalar-curvature layer's edges are traced as chords and a "curve" spec, from a
+# layer that maps `edge_curvature`, as the arc its `strength` models in data
+# space, which is what ggrepel's repulsion has always been given.
 repel_edge_points <- function(
   edges,
   n_edge_points,
@@ -1002,12 +1002,15 @@ repel_edge_points <- function(
 # the heads of the routed layer drawing the edge follow the nodes, which is
 # when that layer hands the router each node's own cap. `route_ornaments`
 # carries the ornaments the layer draws, `route_layer` the index of the layer
-# among the plot's layers, and `route_scene` the index of the first layer of
-# the scene the layer is routed in.
+# among the plot's layers, `route_scene` the index of the first layer of the
+# scene the layer is routed in, and `route_node_size` the node size the layer
+# routes with, which sets the router's constants and the disc of a node the
+# layer does not know the shape of.
 route_spec_blanks <- list(
   route_style = NA_character_,
   route_options = list(NULL),
   route_layer_axis = NA_character_,
+  route_node_size = NA_real_,
   route_cap = NA_real_,
   route_follow_head = NA,
   route_ornaments = list(NULL),
@@ -1095,6 +1098,10 @@ routed_chord_points <- function(geometry, panel) {
     ),
     route_layer_axis = rep(
       spec_column(geometry, "route_layer_axis", NA_character_),
+      each = 2
+    ),
+    route_node_size = rep(
+      spec_column(geometry, "route_node_size", NA_real_),
       each = 2
     ),
     route_cap = rep(spec_column(geometry, "route_cap", NA_real_), each = 2),
@@ -2232,6 +2239,11 @@ routed_layer_geometry <- function(
     curvature = curvature,
     route_style = layer$geom_params$route %||% "spline",
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
+    # the node size the routed grob routes with, which the layer settles from
+    # the whole plot when it is built where it is not given one
+    route_node_size = layer$geom_params$node_size %||%
+      discover_node_size(plot) %||%
+      ggdag_option("node_size"),
     # the cap each edge holds its scene's single cap to, as the routed grob
     # reads the edge when it is drawn, so that each panel's scene is routed
     # with the largest cap of the edges drawn there
