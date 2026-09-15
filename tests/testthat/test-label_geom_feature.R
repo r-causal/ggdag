@@ -1,3 +1,34 @@
+# Identifying the label layer ---------------------------------------------------
+#
+# `geom_dag()` maps the DAG's `label` column onto the layer it builds for the
+# labels. The node text layer maps `.data$name` instead, so the mapping names
+# the label layer whichever geom drew it.
+
+# The single label layer of `plot`.
+dag_label_layer <- function(plot) {
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    label <- layer$mapping$label
+    !is.null(label) && identical(rlang::quo_get_expr(label), quote(label))
+  }))
+  expect_length(index, 1)
+  plot$layers[[index]]
+}
+
+# The label layer of `plot` was drawn by `geom_class`. Both label repel geoms
+# draw with GeomLabelRepel and both automatic label geoms with
+# GeomDagLabelAuto, so `label_size` tells each pair apart:
+# geom_dag_label_repel2() and geom_dag_label_auto2() draw the label without a
+# box border.
+expect_label_geom <- function(plot, geom_class, label_size = NULL) {
+  expect_s3_class(plot, "gg")
+  layer <- dag_label_layer(plot)
+  expect_equal(class(layer$geom)[[1]], geom_class)
+  if (!is.null(label_size)) {
+    expect_equal(layer$geom_params$label.size, label_size)
+  }
+  invisible(layer)
+}
+
 test_that("ggdag() supports label_geom parameter", {
   dag <- dagify(
     y ~ x + z,
@@ -5,13 +36,14 @@ test_that("ggdag() supports label_geom parameter", {
     labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
   )
 
-  # Test with default (geom_dag_label_repel)
+  # Test with default (geom_dag_label_auto)
+  withr::local_options(ggdag.label_geom = NULL)
   p_default <- ggdag(dag, use_labels = TRUE)
-  expect_s3_class(p_default, "gg")
+  expect_label_geom(p_default, "GeomDagLabelAuto", label_size = 0.25)
 
   # Test with static labels
   p_static <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(p_static, "gg")
+  expect_label_geom(p_static, "GeomLabel")
 
   # Test with text repel
   p_text_repel <- ggdag(
@@ -19,7 +51,14 @@ test_that("ggdag() supports label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_text_repel, "gg")
+  expect_label_geom(p_text_repel, "GeomTextRepel")
+
+  # Test with the automatic labels, bordered and borderless
+  p_auto <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto)
+  expect_label_geom(p_auto, "GeomDagLabelAuto", label_size = 0.25)
+
+  p_auto2 <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto2)
+  expect_label_geom(p_auto2, "GeomDagLabelAuto", label_size = NA)
 })
 
 test_that("adjustment set functions support label_geom parameter", {
@@ -37,7 +76,7 @@ test_that("adjustment set functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_adj, "gg")
+  expect_label_geom(p_adj, "GeomLabel")
 
   # ggdag_adjust
   p_adjusted <- ggdag_adjust(
@@ -46,7 +85,7 @@ test_that("adjustment set functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_adjusted, "gg")
+  expect_label_geom(p_adjusted, "GeomTextRepel")
 })
 
 test_that("path functions support label_geom parameter", {
@@ -60,7 +99,7 @@ test_that("path functions support label_geom parameter", {
 
   # ggdag_paths
   p_paths <- ggdag_paths(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(p_paths, "gg")
+  expect_label_geom(p_paths, "GeomLabel")
 
   # ggdag_paths_fan
   p_fan <- ggdag_paths_fan(
@@ -68,7 +107,7 @@ test_that("path functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_fan, "gg")
+  expect_label_geom(p_fan, "GeomTextRepel")
 })
 
 test_that("status function supports label_geom parameter", {
@@ -81,7 +120,14 @@ test_that("status function supports label_geom parameter", {
   )
 
   p <- ggdag_status(dag, use_labels = TRUE, label_geom = geom_dag_label_repel2)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomLabelRepel", label_size = NA)
+
+  p_auto2 <- ggdag_status(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_auto2, "GeomDagLabelAuto", label_size = NA)
 })
 
 test_that("relation functions support label_geom parameter", {
@@ -109,7 +155,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_children, "gg")
+  expect_label_geom(p_children, "GeomLabel")
 
   p_parents <- ggdag_parents(
     dag,
@@ -117,7 +163,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_parents, "gg")
+  expect_label_geom(p_parents, "GeomTextRepel")
 
   p_ancestors <- ggdag_ancestors(
     dag,
@@ -125,7 +171,15 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_ancestors, "gg")
+  expect_label_geom(p_ancestors, "GeomLabelRepel", label_size = NA)
+
+  p_ancestors_auto2 <- ggdag_ancestors(
+    dag,
+    "x",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_ancestors_auto2, "GeomDagLabelAuto", label_size = NA)
 
   p_descendants <- ggdag_descendants(
     dag,
@@ -133,7 +187,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(p_descendants, "gg")
+  expect_label_geom(p_descendants, "GeomTextRepel")
 
   p_markov <- ggdag_markov_blanket(
     dag,
@@ -141,7 +195,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_markov, "gg")
+  expect_label_geom(p_markov, "GeomLabel")
 
   p_adjacent <- ggdag_adjacent(
     dag,
@@ -149,7 +203,7 @@ test_that("relation functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_adjacent, "gg")
+  expect_label_geom(p_adjacent, "GeomTextRepel")
 })
 
 test_that("d-relationship functions support label_geom parameter", {
@@ -165,7 +219,7 @@ test_that("d-relationship functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_drel, "gg")
+  expect_label_geom(p_drel, "GeomLabel")
 
   p_dsep <- ggdag_dseparated(
     dag,
@@ -174,7 +228,7 @@ test_that("d-relationship functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_dsep, "gg")
+  expect_label_geom(p_dsep, "GeomTextRepel")
 
   p_dconn <- ggdag_dconnected(
     dag,
@@ -183,7 +237,16 @@ test_that("d-relationship functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_dconn, "gg")
+  expect_label_geom(p_dconn, "GeomLabelRepel", label_size = NA)
+
+  p_dconn_auto2 <- ggdag_dconnected(
+    dag,
+    "x",
+    "y",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_dconn_auto2, "GeomDagLabelAuto", label_size = NA)
 })
 
 test_that("collider function supports label_geom parameter", {
@@ -194,7 +257,7 @@ test_that("collider function supports label_geom parameter", {
   )
 
   p <- ggdag_collider(dag, use_labels = TRUE, label_geom = geom_dag_text_repel2)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomTextRepel")
 })
 
 test_that("instrumental function supports label_geom parameter", {
@@ -213,7 +276,7 @@ test_that("instrumental function supports label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomLabel")
 })
 
 test_that("exogenous function supports label_geom parameter", {
@@ -224,7 +287,7 @@ test_that("exogenous function supports label_geom parameter", {
   )
 
   p <- ggdag_exogenous(dag, use_labels = TRUE, label_geom = geom_dag_text_repel)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomTextRepel")
 })
 
 test_that("equivalence functions support label_geom parameter", {
@@ -239,14 +302,14 @@ test_that("equivalence functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_dags, "gg")
+  expect_label_geom(p_dags, "GeomLabel")
 
   p_class <- ggdag_equivalent_class(
     dag,
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_class, "gg")
+  expect_label_geom(p_class, "GeomTextRepel")
 })
 
 test_that("quick plot functions support label_geom parameter", {
@@ -258,7 +321,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_mbias, "gg")
+  expect_label_geom(p_mbias, "GeomLabel")
 
   # Test butterfly_bias
   p_butterfly <- ggdag_butterfly_bias(
@@ -268,7 +331,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_butterfly, "gg")
+  expect_label_geom(p_butterfly, "GeomTextRepel")
 
   # Test confounder_triangle
   p_conf <- ggdag_confounder_triangle(
@@ -278,7 +341,16 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_conf, "gg")
+  expect_label_geom(p_conf, "GeomLabelRepel", label_size = NA)
+
+  p_conf_auto2 <- ggdag_confounder_triangle(
+    x = "X",
+    y = "Y",
+    z = "Z",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_conf_auto2, "GeomDagLabelAuto", label_size = NA)
 
   # Test collider_triangle
   p_coll <- ggdag_collider_triangle(
@@ -288,7 +360,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(p_coll, "gg")
+  expect_label_geom(p_coll, "GeomTextRepel")
 
   # Test mediation_triangle
   p_med <- ggdag_mediation_triangle(
@@ -298,7 +370,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_med, "gg")
+  expect_label_geom(p_med, "GeomLabel")
 
   # Test quartet functions
   p_q_coll <- ggdag_quartet_collider(
@@ -308,7 +380,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_q_coll, "gg")
+  expect_label_geom(p_q_coll, "GeomTextRepel")
 
   p_q_conf <- ggdag_quartet_confounder(
     x = "X",
@@ -317,7 +389,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label
   )
-  expect_s3_class(p_q_conf, "gg")
+  expect_label_geom(p_q_conf, "GeomLabel")
 
   p_q_med <- ggdag_quartet_mediator(
     x = "X",
@@ -326,7 +398,7 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel
   )
-  expect_s3_class(p_q_med, "gg")
+  expect_label_geom(p_q_med, "GeomTextRepel")
 
   p_q_mbias <- ggdag_quartet_m_bias(
     x = "X",
@@ -335,7 +407,16 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_label_repel2
   )
-  expect_s3_class(p_q_mbias, "gg")
+  expect_label_geom(p_q_mbias, "GeomLabelRepel", label_size = NA)
+
+  p_q_mbias_auto2 <- ggdag_quartet_m_bias(
+    x = "X",
+    y = "Y",
+    z = "Z",
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto2
+  )
+  expect_label_geom(p_q_mbias_auto2, "GeomDagLabelAuto", label_size = NA)
 
   p_q_time <- ggdag_quartet_time_collider(
     x2 = "X2",
@@ -343,16 +424,16 @@ test_that("quick plot functions support label_geom parameter", {
     use_labels = TRUE,
     label_geom = geom_dag_text_repel2
   )
-  expect_s3_class(p_q_time, "gg")
+  expect_label_geom(p_q_time, "GeomTextRepel")
 })
 
 test_that("canonical function supports label_geom parameter", {
-  dag <- dagify(y ~ x + z, x ~ ~z)
+  dag <- dagify(y ~ x + z, x ~ ~z, labels = c(x = "X", y = "Y", z = "Z"))
 
-  # Note: canonical creates new nodes without labels, so labels won't show
-  # but the parameter should still be accepted
+  # canonical turns the bidirected edge into a new latent node, which carries
+  # no label of its own; the labelled nodes still reach the label geom
   p <- ggdag_canonical(dag, use_labels = TRUE, label_geom = geom_dag_label)
-  expect_s3_class(p, "gg")
+  expect_label_geom(p, "GeomLabel")
 })
 
 test_that("label_geom works with custom geom functions", {
@@ -368,5 +449,393 @@ test_that("label_geom works with custom geom functions", {
   }
 
   p <- ggdag(dag, use_labels = TRUE, label_geom = custom_label_geom)
-  expect_s3_class(p, "gg")
+  layer <- expect_label_geom(p, "GeomLabel")
+  expect_equal(layer$aes_params$fill, "yellow")
+})
+
+# label_wrap on the quick plots -----------------------------------------------
+#
+# `label_wrap` reaches a quick plot's label layer the way `use_labels` and
+# `label_geom` do, whether it is written in the call or set as an option.
+
+test_that("a quick plot hands label_wrap to the auto label geom", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      x = "Physical activity",
+      y = "Cardiovascular disease",
+      z = "Socioeconomic status"
+    )
+  )
+
+  plot <- ggdag_paths(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto,
+    label_wrap = 6
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 6)
+})
+
+test_that("the label_wrap option reaches a quick plot's auto label geom", {
+  dag <- dagify(
+    y ~ x + z,
+    x ~ z,
+    exposure = "x",
+    outcome = "y",
+    labels = c(
+      x = "Physical activity",
+      y = "Cardiovascular disease",
+      z = "Socioeconomic status"
+    )
+  )
+
+  withr::local_options(ggdag.label_wrap = 8)
+  plot <- ggdag_adjustment_set(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_auto
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 8)
+})
+
+# Wrapping a label geom -------------------------------------------------------
+#
+# `geom_dag()` sets `size` and `col` on the label layer it assembles. A wrapper
+# of the shape `function(...) geom_geom(..., size = value)` writes those names a
+# second time, and the value the wrapper writes is the one the user asked for.
+
+# A small labelled DAG for the wrapper tests.
+wrapper_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    labels = c(x = "Ex", y = "Why", z = "Zed")
+  )
+}
+
+test_that("a size in a geom_dag_label_auto() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_label_auto(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a size in a geom_dag_text_auto() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_text_auto(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a size in a geom_dag_label_repel() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_label_repel(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a size in a geom_dag_text_repel() wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_text_repel(..., size = 4.6)
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$size, 4.6)
+})
+
+test_that("a col in a label geom wrapper reaches the label layer", {
+  wrapper <- function(...) geom_dag_label_auto(..., col = "navy")
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$colour, "navy")
+})
+
+test_that("a wrapper parameter geom_dag() does not set reaches the layer", {
+  wrapper <- function(...) geom_dag_label_auto(..., fill = "lightyellow")
+
+  plot <- expect_no_warning(
+    ggdag(wrapper_dag(), use_labels = TRUE, label_geom = wrapper)
+  )
+
+  expect_equal(dag_label_layer(plot)$aes_params$fill, "lightyellow")
+})
+
+# `wrap` and `edge_cap` are the two parameters `geom_dag()` threads that a
+# wrapper cannot be handed through its own dots, because they are named on
+# the call `geom_dag()` makes rather than passed to the wrapper. A wrapper is
+# the documented way to restyle labels, so it gets what a direct call gets.
+
+# The first grob under `grob` whose name matches, gtable cells included: a
+# gtable keeps its cells in `grobs` rather than in `children`, so
+# `grid::getGrob()` does not reach them.
+find_named_grob <- function(grob, pattern) {
+  if (grepl(pattern, grob$name %||% "")) {
+    return(grob)
+  }
+  for (child in c(grob$children, grob$grobs)) {
+    found <- find_named_grob(child, pattern)
+    if (!is.null(found)) {
+      return(found)
+    }
+  }
+  NULL
+}
+
+# The parameters the automatic label engine is given when the plot is drawn.
+drawn_label_params <- function(plot) {
+  # a gtable measures its text on a device, and with none open grid would open
+  # the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
+  gtable <- ggplot2::ggplot_gtable(ggplot2::ggplot_build(plot))
+  tree <- find_named_grob(gtable, "dag_labels_auto")
+  expect_false(is.null(tree))
+  tree$params
+}
+
+# A labelled DAG at a node size whose drawn edges stop well short of the
+# node, so the cap the engine traces with is visible in the picture.
+big_node_plot <- function(label_geom) {
+  ggdag(
+    dagify(
+      y ~ m + x,
+      m ~ x,
+      labels = c(
+        x = "Exposure node",
+        m = "Mediator node",
+        y = "Outcome node"
+      ),
+      coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
+    ),
+    use_labels = TRUE,
+    use_text = FALSE,
+    node_size = 30,
+    edge_cap = 15,
+    label_geom = label_geom
+  )
+}
+
+test_that("a geom_dag_label_auto() wrapper keeps the plot's label_wrap", {
+  wrapper <- function(...) geom_dag_label_auto(...)
+
+  direct <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    label_geom = geom_dag_label_auto
+  )
+  wrapped <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    label_geom = wrapper
+  )
+
+  expect_equal(auto_label_params(wrapped)[["wrap"]], 6)
+  expect_equal(
+    auto_label_params(wrapped)[["wrap"]],
+    auto_label_params(direct)[["wrap"]]
+  )
+  expect_equal(drawn_label_params(wrapped)$wrap, 6)
+})
+
+test_that("a geom_dag_text_auto() wrapper keeps the plot's label_wrap", {
+  wrapper <- function(...) geom_dag_text_auto(...)
+
+  plot <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    label_geom = wrapper
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 6)
+})
+
+test_that("a geom_dag_label_auto() wrapper keeps the plot's edge_cap", {
+  wrapper <- function(...) geom_dag_label_auto(...)
+
+  direct <- big_node_plot(geom_dag_label_auto)
+  wrapped <- big_node_plot(wrapper)
+
+  expect_equal(auto_label_params(wrapped)[["edge_cap"]], 15)
+  expect_equal(
+    auto_label_params(wrapped)[["edge_cap"]],
+    auto_label_params(direct)[["edge_cap"]]
+  )
+  # the cap decides where the traced edge ink ends, so it has to reach the
+  # engine and not only the layer
+  expect_equal(drawn_label_params(wrapped)$edge_cap, 15)
+  expect_equal(
+    drawn_label_params(wrapped)$edge_cap,
+    drawn_label_params(direct)$edge_cap
+  )
+})
+
+test_that("a wrapper's own wrap and edge_cap win over the plot's", {
+  wrapper <- function(...) geom_dag_label_auto(..., wrap = 4, edge_cap = 3)
+
+  plot <- ggdag(
+    wrapper_dag(),
+    use_labels = TRUE,
+    label_wrap = 6,
+    edge_cap = 15,
+    label_geom = wrapper
+  )
+
+  expect_equal(auto_label_params(plot)[["wrap"]], 4)
+  expect_equal(auto_label_params(plot)[["edge_cap"]], 3)
+})
+
+test_that("a wrapper around a repel label geom is unchanged", {
+  # the repel geoms take neither parameter, and a wrapper of one must not be
+  # handed either
+  wrapper <- function(...) geom_dag_label_repel(...)
+
+  plot <- expect_no_warning(
+    ggdag(
+      wrapper_dag(),
+      use_labels = TRUE,
+      label_wrap = 6,
+      edge_cap = 15,
+      label_geom = wrapper
+    )
+  )
+
+  layer <- dag_label_layer(plot)
+  expect_null(layer$geom_params$wrap)
+  expect_null(layer$geom_params$edge_cap)
+  expect_null(layer$stat_params$wrap)
+  expect_null(layer$stat_params$edge_cap)
+})
+
+# The box padding the label layer of `plot` was built with.
+label_box_padding <- function(plot) {
+  padding <- dag_label_layer(plot)$geom_params$box.padding
+  if (grid::is.unit(padding)) {
+    return(as.numeric(padding))
+  }
+
+  padding
+}
+
+# The label layer `geom_dag()` builds when `label_geom` draws the labels.
+threaded_label_layer <- function(label_geom, ...) {
+  plot <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = label_geom, ...)
+
+  dag_label_layer(plot)
+}
+
+labelled_test_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
+  )
+}
+
+# The parameter names two layers disagree on, across every kind of parameter a
+# layer carries.
+layer_differences <- function(one, other) {
+  kinds <- c("aes_params", "geom_params", "stat_params")
+  differences <- purrr::map(kinds, \(kind) {
+    names <- union(names(one[[kind]]), names(other[[kind]]))
+    names[
+      !purrr::map_lgl(names, \(name) {
+        identical(one[[kind]][[name]], other[[kind]][[name]])
+      })
+    ]
+  })
+
+  sort(purrr::list_c(differences, ptype = character()))
+}
+
+test_that("the more spaced repel geoms leave more box padding on their own", {
+  mapping <- ggplot2::aes(label = label)
+
+  expect_gt(
+    as.numeric(geom_dag_text_repel2(mapping)$layer$geom_params$box.padding),
+    as.numeric(geom_dag_text_repel(mapping)$layer$geom_params$box.padding)
+  )
+  expect_gt(
+    as.numeric(geom_dag_label_repel2(mapping)$layer$geom_params$box.padding),
+    as.numeric(geom_dag_label_repel(mapping)$layer$geom_params$box.padding)
+  )
+})
+
+test_that("geom_dag() keeps the extra padding of the more spaced repel geoms", {
+  plain <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel)
+  spaced <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_text_repel2)
+
+  expect_gt(label_box_padding(spaced), label_box_padding(plain))
+
+  plain_label <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label_repel)
+  spaced_label <- ggplot2::ggplot(labelled_test_dag(), aes_dag()) +
+    geom_dag(use_labels = TRUE, label_geom = geom_dag_label_repel2)
+
+  expect_gt(label_box_padding(spaced_label), label_box_padding(plain_label))
+})
+
+test_that("geom_dag() scales the extra padding with the plot's size", {
+  one <- threaded_label_layer(geom_dag_text_repel2)
+  double <- threaded_label_layer(geom_dag_text_repel2, size = 2)
+
+  expect_equal(
+    as.numeric(double$geom_params$box.padding),
+    2 * as.numeric(one$geom_params$box.padding)
+  )
+})
+
+test_that("the more spaced repel geoms differ from the plain ones in that alone", {
+  # The padding is the whole of what the text variant restyles, and the label
+  # variant adds the border it draws the box with. A difference anywhere else,
+  # or none at all, means the pair has drifted apart from what it documents.
+  expect_equal(
+    layer_differences(
+      threaded_label_layer(geom_dag_text_repel),
+      threaded_label_layer(geom_dag_text_repel2)
+    ),
+    "box.padding"
+  )
+  expect_equal(
+    layer_differences(
+      threaded_label_layer(geom_dag_label_repel),
+      threaded_label_layer(geom_dag_label_repel2)
+    ),
+    c("box.padding", "label.size", "linewidth")
+  )
+})
+
+test_that("the borderless automatic label geom differs from the plain one in that alone", {
+  # The automatic geoms ignore box padding, so the border is the whole of what
+  # geom_dag_label_auto2() restyles, through geom_dag() as much as on its own.
+  expect_equal(
+    layer_differences(
+      threaded_label_layer(geom_dag_label_auto),
+      threaded_label_layer(geom_dag_label_auto2)
+    ),
+    "label.size"
+  )
 })

@@ -11,7 +11,8 @@ time_ordered_coords(
   auto_sort_direction = c("right", "left"),
   fixed_time = NULL,
   adjust_exposure_outcome = TRUE,
-  force_y = TRUE
+  force_y = TRUE,
+  optimize = TRUE
 )
 }
 \arguments{
@@ -25,7 +26,10 @@ of time periods (the length of \code{.vars}). A data frame carries its own time
 points in its second column, so supplying both is an error.}
 
 \item{direction}{A character string indicating the axis along which the
-variables should be time-ordered. Either "x" or "y". Default is "x".}
+variables should be time-ordered. Either "x" or "y". Default is "x". The
+direction travels with the coordinates, so the edge router of
+\code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}} knows which axis a layout that runs down the
+panel ordered its layers along.}
 
 \item{auto_sort_direction}{If \code{.vars} is \code{NULL}: nodes will be placed as far
 \code{"left"} or \code{"right"} of in the graph as is reasonable. Default is right,
@@ -48,19 +52,36 @@ auto mode and when the DAG has exposure and outcome set.}
 minimize node-edge overlaps. If \code{FALSE}, nodes are evenly spaced within
 each layer using barycenter ordering only. Setting to \code{FALSE} is useful
 when edges will be curved or auto-routed, where tight Y positioning is
-less important. Only used in auto mode (\code{.vars = NULL}).}
+less important. Used whenever a layout is computed, that is, in auto mode
+(\code{.vars = NULL}) and when \code{.vars} is supplied with \code{optimize = TRUE}.}
+
+\item{optimize}{If \code{TRUE} (default) and \code{.vars} is supplied, return a layout
+function that routes your time periods through the layout engine. The
+time period of every variable is honored exactly as given, including any
+edge that contradicts it; such an edge is still drawn, but a warning
+names it and it takes no part in the optimization. If \code{FALSE}, return a
+tibble of coordinates that spreads each time period's variables evenly,
+as earlier versions of ggdag did. With \code{.vars = NULL}, \code{optimize} is
+ignored and the automatic layout function is returned either way.}
 }
 \value{
-A tibble with three columns: \code{name}, \code{x}, and \code{y}.
+A layout function for the \code{coords} argument of \code{\link[=dagify]{dagify()}} or the
+\code{layout} argument of \code{\link[=tidy_dagitty]{tidy_dagitty()}}, except when \code{.vars} is supplied
+with \code{optimize = FALSE}, which returns a tibble with three columns:
+\code{name}, \code{x}, and \code{y}.
 }
 \description{
 \code{time_ordered_coords()} is a helper function to create time-ordered DAGs.
 Pass the results to the \code{coords} argument of \code{dagify()}. If \code{.vars} if not
 specified, these coordinates will be determined automatically. If you want to
 be specific, you can also use a list or data frame. The default is to assume
-you want variables to go from left to right in order by time. Variables are
-spread along the y-axis using a simple algorithm to stack them. You can also
-work along the y-axis by setting \code{direction = "y"}.
+you want variables to go from left to right in order by time. By default,
+manually supplied time periods are also routed through the layout engine:
+each variable keeps the time period you gave it, while positions within and
+across time periods are optimized to reduce edge crossings and node-edge
+overlaps. Set \code{optimize = FALSE} to instead spread variables along the
+y-axis with the simple stacking algorithm earlier versions used. You can
+also work along the y-axis by setting \code{direction = "y"}.
 }
 \examples{
 

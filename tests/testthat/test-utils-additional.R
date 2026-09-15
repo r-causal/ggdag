@@ -129,11 +129,11 @@ test_that("update_dag() rejects a positionally supplied DAG", {
 test_that("update_dag() positional argument message", {
   tidy_dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
   new_dag <- dagify(y ~ x)
-  # never record a baseline from the silent no-op
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(update_dag(tidy_dag, new_dag), error = identity),
     "ggdag_type_error"
-  ))
+  )
 
   expect_ggdag_error(update_dag(tidy_dag, new_dag))
 })

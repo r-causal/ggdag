@@ -13,9 +13,76 @@
 #' `ggdag_options_set()` returns safe to restore with
 #' `do.call(ggdag_options_set, old)`.
 #'
-#' Functions that normally use `edge_cap = 10` (e.g., [ggdag_adjustment_set()],
-#' [ggdag_drelationship()]) maintain a proportional offset. If you set
-#' `ggdag.edge_cap` to a custom value, these functions scale it by `10/8`.
+#' `edge_cap` is unset by default. Under either edge engine, every `ggdag_*()`
+#' plotter, [geom_dag()], and the edge layers a plot is assembled from by
+#' hand then stop each edge 2 mm outside the outline of the node at each of
+#' its ends, following that node's size and shape, so the arrowheads keep the
+#' same distance from nodes of any size and from the sides of square nodes as
+#' from circles. Setting the option to a number fixes the cap, in millimetres,
+#' at every end of the edges the plotters and [geom_dag()] draw. An edge
+#' layer added by hand reads the option only where it has no node to follow:
+#' a ggarrow layer ([geom_dag_arrow()], [geom_dag_arrows()],
+#' [geom_dag_routed_arrows()], or [geom_dag_edges()] under that engine) on a
+#' plot with no node layer stops every end at the option, 8 mm when it is
+#' unset, while a ggraph layer ([geom_dag_edges()] under the ggraph engine and
+#' the `geom_dag_edges_*()` layers) keeps its own 8 mm cap there whatever
+#' the option says. With a node layer on the plot, both follow the nodes,
+#' and a cap set on the layer itself wins at its end either way.
+#'
+#' The plotters that draw adjusted nodes as squares ([ggdag_adjustment_set()],
+#' [ggdag_adjust()], [ggdag_instrumental()], and the d-relationship plotters)
+#' maintain a proportional offset: if you set `ggdag.edge_cap` to a custom
+#' value, these functions scale it by `10/8`.
+#'
+#' `edge_route` chooses how the ggarrow engine draws directed edges.
+#' `"straight"`, the default, draws chords. `"spline"` routes each directed
+#' edge whose path a node blocks around that node with a smooth curve.
+#' `"orthogonal"` draws every directed edge as axis-aligned runs with rounded
+#' corners, leaving each node through a port and passing the intermediate
+#' layers in the gaps between them or along a channel beyond them.
+#' Routing happens when the plot is drawn, in the units of the device, so the
+#' same DAG re-routes when the plot is resized. Curvature you set yourself,
+#' through [curved()], [curve_edge()], or DAGitty control points, is never
+#' rerouted, and bidirected edges keep the arc their edge layer draws them
+#' with. The option applies to the ggarrow engine with
+#' `edge_type = "link_arc"` or `"link"`; it is a no-op for `"arc"` and
+#' `"diagonal"`, which already bend every edge.
+#'
+#' `edge_route_options` carries the constants the router draws with, built by
+#' [edge_route_options()]. It is read only when `edge_route` names a routing
+#' mode. A field left unset is derived when the plot is drawn, from the node
+#' size the plot uses, so an object set once holds at every plot size.
+#' [geom_dag_routed_arrows()] takes the same object, and its own `clearance`,
+#' `edge_sep`, and `edge_sep_min` arguments override the object's fields for
+#' that layer.
+#'
+#' `curvature` is the bend of the arcs a packaged plot draws: the bidirected
+#' arcs of [geom_dag_edges()], every edge under `edge_type = "arc"`, and, under
+#' the ggarrow engine, every edge under `edge_type = "diagonal"`, which that
+#' engine draws as arcs. 1 approximates a half circle and 0 a straight line,
+#' and a negative value bends the other way. Both edge engines read it, but
+#' each draws that value with its own depth and to its own side, and it also
+#' sets the bow the time-ordered layout clears its nodes of. An edge layer you
+#' build yourself takes the `curvature` argument you give it, so
+#' [geom_dag_edges_arc()] called directly keeps its own default of 0.5 rather
+#' than the option's 0.3.
+#'
+#' `layout` is the layout [tidy_dagitty()], [ggdag()], and the quick plotting
+#' functions use when a DAG carries no coordinates of its own. The default,
+#' `"time_ordered"`, places the nodes in time order with
+#' [time_ordered_coords()]. `label_geom` is the geom those functions and
+#' [geom_dag()] draw labels with when `use_labels = TRUE`. The default is
+#' [geom_dag_label_auto()], which places each label deterministically when
+#' the plot is drawn. For the look of earlier versions of ggdag, the
+#' `"nicely"` layout with repelled labels, set
+#' `ggdag_options_set(layout = "nicely", label_geom = geom_dag_label_repel)`.
+#'
+#' `label_wrap` is a width in characters that [geom_dag()], [ggdag()], and the
+#' quick plotting functions that take `use_labels` hand to the automatic label
+#' geoms, [geom_dag_label_auto()] and [geom_dag_text_auto()], which wrap their
+#' text to it before the labels are measured and placed. `NULL`, the default,
+#' wraps nothing. The repel label geoms do no wrapping of their own and are not
+#' given it.
 #'
 #' `debug_repel_points` is a diagnostic rather than an appearance setting. When
 #' it is `TRUE`, every repelling label geom (see [geom_dag_label_repel()]) adds
@@ -27,10 +94,14 @@
 #'   and types.
 #' @param name Character string. The option name (without the `ggdag.` prefix).
 #'   If `NULL`, returns all currently-set ggdag options.
-#' @param default Default value to return if the option is not set.
+#' @param default Default value to return if the option is not set. Defaults
+#'   to the entry for `name` in `ggdag_defaults`.
 #' @param base_default The base default for this option (e.g., 8 for edge_cap).
 #' @param override_default The override default used by certain functions
 #'   (e.g., 10 for edge_cap in adjustment set functions).
+#' @param unset The value returned when the option is not set. Defaults to
+#'   `override_default`. The plotters that draw adjusted nodes as squares pass
+#'   `NULL`, so that an unset `edge_cap` is left to follow the nodes.
 #'
 #' @returns
 #' - `ggdag_options_set()`: Invisibly returns a named list of the previous
@@ -41,7 +112,7 @@
 #'   invisibly.
 #' - `ggdag_option()`: The option value if set, otherwise `default`.
 #' - `ggdag_option_proportional()`: The scaled option value if set, otherwise
-#'   `override_default`.
+#'   `unset`.
 #'
 #' @examples
 #' # Set global options
@@ -62,20 +133,23 @@ ggdag_defaults <- list(
   text_col = "white",
   label_col = "black",
   edge_width = 0.6,
-  edge_cap = 8,
+  edge_cap = NULL,
   arrow_length = 5,
   use_edges = TRUE,
   use_nodes = TRUE,
   use_stylized = FALSE,
   use_text = TRUE,
   use_labels = FALSE,
-  label_geom = geom_dag_label_repel,
+  label_geom = geom_dag_label_auto,
   edge_type = "link_arc",
-  layout = "nicely",
+  layout = "time_ordered",
   edge_engine = "ggraph",
   arrow_head = NULL,
   arrow_fins = NULL,
   arrow_mid = NULL,
+  edge_route = "straight",
+  edge_route_options = NULL,
+  label_wrap = NULL,
   curvature = 0.3,
   debug_repel_points = FALSE
 )
@@ -161,16 +235,21 @@ ggdag_options_reset <- function() {
 
 #' @export
 #' @rdname ggdag_options
-ggdag_option <- function(name, default) {
+ggdag_option <- function(name, default = ggdag_defaults[[name]]) {
   getOption(paste0("ggdag.", name), default = default)
 }
 
 #' @export
 #' @rdname ggdag_options
-ggdag_option_proportional <- function(name, base_default, override_default) {
+ggdag_option_proportional <- function(
+  name,
+  base_default,
+  override_default,
+  unset = override_default
+) {
   user_val <- getOption(paste0("ggdag.", name))
   if (is.null(user_val)) {
-    return(override_default)
+    return(unset)
   }
   user_val * (override_default / base_default)
 }
@@ -296,6 +375,31 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
         call = call
       )
     }
+  } else if (name == "edge_route") {
+    valid_routes <- c("straight", "spline", "orthogonal")
+    if (
+      !is.character(value) || length(value) != 1 || !value %in% valid_routes
+    ) {
+      abort(
+        c(
+          "{.arg edge_route} must be one of {.val {valid_routes}}.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
+  } else if (name == "edge_route_options") {
+    if (!inherits(value, "ggdag_edge_route_options")) {
+      abort(
+        c(
+          "{.arg edge_route_options} must be an object from {.fun edge_route_options}.",
+          "x" = "You provided {.obj_type_friendly {value}}."
+        ),
+        error_class = "ggdag_type_error",
+        call = call
+      )
+    }
   } else if (name %in% c("arrow_head", "arrow_fins", "arrow_mid")) {
     if (!is.null(value) && !is.function(value) && !is.matrix(value)) {
       abort(
@@ -307,6 +411,8 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
         call = call
       )
     }
+  } else if (name == "label_wrap") {
+    check_label_wrap(value, arg = "label_wrap", allow_na = FALSE, call = call)
   } else if (name == "curvature") {
     if (!is.numeric(value) || length(value) != 1 || is.na(value)) {
       abort(
@@ -319,4 +425,50 @@ validate_ggdag_option <- function(name, value, call = rlang::caller_env()) {
       )
     }
   }
+}
+
+#' Check a label wrapping width
+#'
+#' The width is a count of characters, so it has to be a whole number of them
+#' and at least one. The automatic label geoms also accept `NA`, which wraps
+#' nothing, because that is what their `wrap` argument has always meant; the
+#' option does not, because an option is unset with `NULL`.
+#'
+#' @param value The width to check.
+#' @param arg The name of the argument `value` was given as, for the message.
+#' @param allow_na Whether a single `NA` is accepted.
+#' @param call The calling environment, for the error message.
+#' @return `value`, invisibly.
+#' @noRd
+check_label_wrap <- function(
+  value,
+  arg = "label_wrap",
+  allow_na = FALSE,
+  call = rlang::caller_env()
+) {
+  if (is.null(value)) {
+    return(invisible(value))
+  }
+  if (allow_na && length(value) == 1 && is.na(value)) {
+    return(invisible(value))
+  }
+
+  ok <- is.numeric(value) &&
+    length(value) == 1 &&
+    !is.na(value) &&
+    value >= 1 &&
+    value == round(value)
+
+  if (!ok) {
+    abort(
+      c(
+        "{.arg {arg}} must be a single positive whole number of characters.",
+        "x" = "You provided {.obj_type_friendly {value}}."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  invisible(value)
 }

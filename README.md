@@ -3,7 +3,6 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/r-causal/ggdag/workflows/R-CMD-check/badge.svg)](https://github.com/r-causal/ggdag/actions)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/ggdag)](https://cran.r-project.org/package=ggdag)
 [![Lifecycle:
@@ -13,6 +12,8 @@ coverage](https://codecov.io/gh/r-causal/ggdag/branch/main/graph/badge.svg)](htt
 [![Total CRAN
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/ggdag)](https://cran.r-project.org/package=ggdag)
 [![R-CMD-check](https://github.com/r-causal/ggdag/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-causal/ggdag/actions/workflows/R-CMD-check.yaml)
+[![R-universe
+version](https://r-causal.r-universe.dev/ggdag/badges/version)](https://r-causal.r-universe.dev/ggdag)
 <!-- badges: end -->
 
 # ggdag: An R Package for visualizing and analyzing causal directed acyclic graphs <a href="https://r-causal.github.io/ggdag/"><img src="man/figures/logo.png" align="right" height="138" /></a>
@@ -24,24 +25,36 @@ and easy manner.
 
 ## Installation
 
-You can install `ggdag` with:
+You can install ggdag from CRAN with:
 
 ``` r
 install.packages("ggdag")
 ```
 
-Or you can install the development version from GitHub with:
+You can install the development version of ggdag from
+[r-causal.r-universe.dev](https://r-causal.r-universe.dev/) with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("r-causal/ggdag")
+install.packages(
+  "ggdag",
+  repos = c("https://r-causal.r-universe.dev", getOption("repos"))
+)
+```
+
+You can also install the development version of ggdag from source from
+[GitHub](https://github.com/r-causal/ggdag) with:
+
+``` r
+# install.packages("pak")
+pak::pak("r-causal/ggdag")
 ```
 
 ## Example
 
 `ggdag` makes it easy to use `dagitty` in the context of the tidyverse.
 You can directly tidy `dagitty` objects or use convenience functions to
-create DAGs using a more R-like syntax:
+create DAGs using a more R-like syntax. A DAG without coordinates of its
+own is laid out in time order, with causes placed before their effects:
 
 ``` r
 library(ggdag)
@@ -67,21 +80,21 @@ tidy_dag
 #> #
 #> # Data:
 #> # A tibble: 13 × 7
-#>    name       x       y direction to      xend   yend
-#>    <chr>  <dbl>   <dbl> <fct>     <chr>  <dbl>  <dbl>
-#>  1 v     -1.51   0.0323 ->        z1    -0.473  1.00 
-#>  2 v     -1.51   0.0323 ->        z2    -0.553 -0.995
-#>  3 w1     0.986  0.515  ->        x      0.368  0.518
-#>  4 w1     0.986  0.515  ->        y      0.289 -0.432
-#>  5 w1     0.986  0.515  ->        z1    -0.473  1.00 
-#>  6 w1     0.986  0.515  <->       w2     0.891 -0.641
-#>  7 w2     0.891 -0.641  ->        x      0.368  0.518
-#>  8 w2     0.891 -0.641  ->        y      0.289 -0.432
-#>  9 w2     0.891 -0.641  ->        z2    -0.553 -0.995
-#> 10 x      0.368  0.518  ->        y      0.289 -0.432
-#> 11 y      0.289 -0.432  <NA>      <NA>  NA     NA    
-#> 12 z1    -0.473  1.00   ->        x      0.368  0.518
-#> 13 z2    -0.553 -0.995  ->        y      0.289 -0.432
+#>    name      x      y direction to     xend   yend
+#>    <chr> <int>  <dbl> <fct>     <chr> <int>  <dbl>
+#>  1 v         1 -0.313 ->        z1        2 -0.626
+#>  2 v         1 -0.313 ->        z2        3 -0.258
+#>  3 w1        1  0.102 ->        x         3  0.142
+#>  4 w1        1  0.102 ->        y         4  0.452
+#>  5 w1        1  0.102 ->        z1        2 -0.626
+#>  6 w1        1  0.102 <->       w2        1  0.502
+#>  7 w2        1  0.502 ->        x         3  0.142
+#>  8 w2        1  0.502 ->        y         4  0.452
+#>  9 w2        1  0.502 ->        z2        3 -0.258
+#> 10 x         3  0.142 ->        y         4  0.452
+#> 11 y         4  0.452 <NA>      <NA>     NA NA    
+#> 12 z1        2 -0.626 ->        x         3  0.142
+#> 13 z2        3 -0.258 ->        y         4  0.452
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 
@@ -108,19 +121,19 @@ tidy_ggdag
 #> # A tibble: 13 × 7
 #>    name      x      y direction to     xend   yend
 #>    <chr> <int>  <dbl> <fct>     <chr> <int>  <dbl>
-#>  1 v         1 -0.738 ->        z1        2  0.988
-#>  2 v         1 -0.738 ->        z2        3  0.407
-#>  3 w1        1  0.031 ->        x         3 -1.06 
-#>  4 w1        1  0.031 ->        y         4 -0.431
-#>  5 w1        1  0.031 ->        z1        2  0.988
-#>  6 w1        1  0.031 <->       w2        1  0.799
-#>  7 w2        1  0.799 ->        x         3 -1.06 
-#>  8 w2        1  0.799 ->        y         4 -0.431
-#>  9 w2        1  0.799 ->        z2        3  0.407
-#> 10 x         3 -1.06  ->        y         4 -0.431
-#> 11 y         4 -0.431 <NA>      <NA>     NA NA    
-#> 12 z1        2  0.988 ->        x         3 -1.06 
-#> 13 z2        3  0.407 ->        y         4 -0.431
+#>  1 v         1 -0.313 ->        z1        2 -0.626
+#>  2 v         1 -0.313 ->        z2        3 -0.258
+#>  3 w1        1  0.102 ->        x         3  0.142
+#>  4 w1        1  0.102 ->        y         4  0.452
+#>  5 w1        1  0.102 ->        z1        2 -0.626
+#>  6 w1        1  0.102 <->       w2        1  0.502
+#>  7 w2        1  0.502 ->        x         3  0.142
+#>  8 w2        1  0.502 ->        y         4  0.452
+#>  9 w2        1  0.502 ->        z2        3 -0.258
+#> 10 x         3  0.142 ->        y         4  0.452
+#> 11 y         4  0.452 <NA>      <NA>     NA NA    
+#> 12 z1        2 -0.626 ->        x         3  0.142
+#> 13 z2        3 -0.258 ->        y         4  0.452
 #> #
 #> # ℹ Use `pull_dag() (`?pull_dag`)` to retrieve the DAG object and `pull_dag_data() (`?pull_dag_data`)` for the data frame
 ```

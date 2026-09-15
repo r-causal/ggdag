@@ -422,7 +422,7 @@ test_that("barycenter_sort: resolves known crossing", {
   )
   layer_assign <- c(A = 0L, B = 0L, C = 1L, D = 1L)
 
-  result <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  result <- barycenter_sort(layer_nodes, edges_df)
   crossings_after <- count_crossings(result, edges_df, layer_assign)
   expect_equal(crossings_after, 0L)
 })
@@ -434,9 +434,7 @@ test_that("barycenter_sort: already optimal stays unchanged", {
     to = c("C", "D"),
     stringsAsFactors = FALSE
   )
-  layer_assign <- c(A = 0L, B = 0L, C = 1L, D = 1L)
-
-  result <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  result <- barycenter_sort(layer_nodes, edges_df)
   expect_equal(result, layer_nodes)
 })
 
@@ -463,7 +461,7 @@ test_that("barycenter_sort: three-layer DAG reduces crossings", {
   layer_assign <- c(A = 0L, B = 0L, C = 1L, D = 1L, E = 2L, F = 2L)
 
   before <- count_crossings(layer_nodes, edges_df, layer_assign)
-  result <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  result <- barycenter_sort(layer_nodes, edges_df)
   after <- count_crossings(result, edges_df, layer_assign)
   expect_lte(after, before)
 })
@@ -603,7 +601,7 @@ test_that("force_directed_y: napkin DAG has 0 overlaps", {
   layer_nodes <- lapply(seq(0, max_layer), function(l) {
     names(layer_assign[layer_assign == l])
   })
-  layer_nodes <- barycenter_sort(layer_nodes, edges_df, layer_assign)
+  layer_nodes <- barycenter_sort(layer_nodes, edges_df)
 
   result <- force_directed_y(layer_nodes, layer_assign, edges_df)
   overlaps <- count_test_overlaps(result, edges_df, layer_assign)
@@ -674,7 +672,12 @@ test_that("greedy_post_correction: fixes artificial overlap", {
   )
   layer_assign <- c(Z = 0L, X = 1L, Y = 2L)
 
-  result <- greedy_post_correction(positions, edges_df, layer_assign)
+  result <- greedy_post_correction(
+    positions,
+    edges_df,
+    layer_assign,
+    trace_curvature = 0
+  )
   overlaps <- find_overlaps(result, edges_df, layer_assign, node_radius = 26)
   expect_equal(nrow(overlaps), 0)
 })
@@ -691,7 +694,12 @@ test_that("greedy_post_correction: no-op when no overlaps", {
   )
   layer_assign <- c(A = 0L, B = 1L, C = 2L)
 
-  result <- greedy_post_correction(positions, edges_df, layer_assign)
+  result <- greedy_post_correction(
+    positions,
+    edges_df,
+    layer_assign,
+    trace_curvature = 0
+  )
   # Positions should be essentially unchanged
   expect_equal(result$y[["B"]], positions$y[["B"]])
 })
@@ -713,7 +721,8 @@ test_that("greedy_post_correction: maintains spacing after correction", {
     positions,
     edges_df,
     layer_assign,
-    min_spacing = 72
+    min_spacing = 72,
+    trace_curvature = 0
   )
   gap <- abs(result$y[["C"]] - result$y[["B"]])
   expect_gte(gap, 72 - 1) # small tolerance
@@ -819,6 +828,22 @@ test_that("compute_time_ordered_layout: direction y scales the time-free axis", 
   expect_lt(diff(range(result$x)), 2 * diff(range(result$y)))
 })
 
+test_that("compute_time_ordered_layout: the coordinates carry the layout alone", {
+  # Which axis time runs along is the user's to name, and
+  # `time_ordered_coords()` records it on the coordinates it hands back. The
+  # engine's own tibble stays bare, because the pinned layouts and the
+  # invariance fixture compare it with `expect_identical()`.
+  edges_df <- make_edges_df(c("A", "B"), c("B", "C"))
+
+  expect_null(attr(compute_time_ordered_layout(edges_df), "layout_direction"))
+  expect_null(
+    attr(
+      compute_time_ordered_layout(edges_df, direction = "y"),
+      "layout_direction"
+    )
+  )
+})
+
 # Test all 22 spec DAGs produce 0 overlaps
 # Using a helper to avoid repetition
 test_zero_overlaps <- function(label, edge_pairs) {
@@ -831,9 +856,14 @@ test_zero_overlaps <- function(label, edge_pairs) {
     layer_nodes <- lapply(seq(0, max_layer), function(l) {
       names(layer_assign[layer_assign == l])
     })
-    layer_nodes <- barycenter_sort(layer_nodes, directed, layer_assign)
+    layer_nodes <- barycenter_sort(layer_nodes, directed)
     positions <- force_directed_y(layer_nodes, layer_assign, directed)
-    positions <- greedy_post_correction(positions, directed, layer_assign)
+    positions <- greedy_post_correction(
+      positions,
+      directed,
+      layer_assign,
+      trace_curvature = 0
+    )
     overlaps <- find_overlaps(positions, directed, layer_assign)
     expect_equal(nrow(overlaps), 0)
   })
@@ -1041,7 +1071,7 @@ test_that("time_ordered_coords() with no args returns a closure", {
 })
 
 test_that("time_ordered_coords(list(...)) still works (manual path)", {
-  coords <- time_ordered_coords(list("a", c("b1", "b2"), "c"))
+  coords <- time_ordered_coords(list("a", c("b1", "b2"), "c"), optimize = FALSE)
   expect_s3_class(coords, "tbl_df")
   expect_named(coords, c("name", "x", "y"))
   expect_equal(nrow(coords), 4)
@@ -1052,7 +1082,7 @@ test_that("time_ordered_coords(data.frame(...)) still works", {
     name = c("x1", "x2", "y"),
     time = c(1, 1, 2)
   )
-  coords <- time_ordered_coords(df)
+  coords <- time_ordered_coords(df, optimize = FALSE)
   expect_s3_class(coords, "tbl_df")
   expect_equal(nrow(coords), 3)
 })
@@ -2205,118 +2235,124 @@ test_that("exposure/outcome shift: integration with tidy_dagitty()", {
 
 # auto_sort_direction tests ----------------------------------------------------
 
-test_that("auto_sort_direction='right' uses longest path (default)", {
-  # a→c (direct), a→b→c (via b)
-  # right: c at layer 2 (longest path through b)
-  td <- dagify(c ~ a + b, b ~ a) |>
-    tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "right"))
-  coords <- get_node_coords(td)
+# A chain a→b→c→d→e with a second root, f→e. Every chain node has exactly one
+# valid layer, but f can sit either at the first layer (its earliest) or at the
+# last layer before e (its latest), so the two sort directions place it
+# differently. A DAG in which every node's earliest layer is also its latest
+# cannot tell the two directions apart.
+sort_direction_dag <- function(...) {
+  dagify(e ~ d + f, d ~ c, c ~ b, b ~ a, ...)
+}
 
-  x_a <- unname(coords$x[coords$name == "a"])
-  x_b <- unname(coords$x[coords$name == "b"])
-  x_c <- unname(coords$x[coords$name == "c"])
-  expect_lt(x_a, x_b)
-  expect_lt(x_b, x_c)
-  # c should be at layer 3 (a=1, b=2, c=3)
-  expect_equal(x_c, 3)
+# Helper: x positions keyed by node name
+node_x_positions <- function(td) {
+  coords <- get_node_coords(td)
+  stats::setNames(coords$x, coords$name)
+}
+
+test_that("auto_sort_direction='right' uses longest path (default)", {
+  td <- sort_direction_dag() |>
+    tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "right"))
+  x <- node_x_positions(td)
+
+  expect_equal(unname(x[c("a", "b", "c", "d", "e")]), c(1, 2, 3, 4, 5))
+  # f has no parents, so only the rightward sort puts it at layer 4, the last
+  # layer before its child
+  expect_equal(x[["f"]], 4)
 })
 
 test_that("auto_sort_direction='left' places nodes at earliest valid layer", {
-  # a→b→c, a→c (direct shortcut)
-  # left: a=0, b=1, c=2 (c must be after b, respecting topo ordering)
-  td <- dagify(c ~ a + b, b ~ a) |>
+  td <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  coords <- get_node_coords(td)
+  x <- node_x_positions(td)
 
-  x_a <- unname(coords$x[coords$name == "a"])
-  x_b <- unname(coords$x[coords$name == "b"])
-  x_c <- unname(coords$x[coords$name == "c"])
-  # c must come after b (topo ordering)
-  expect_lt(x_a, x_b)
-  expect_lt(x_b, x_c)
+  expect_equal(unname(x[c("a", "b", "c", "d", "e")]), c(1, 2, 3, 4, 5))
+  # f is a root, so its earliest valid layer is the first one, alongside a
+  expect_equal(x[["f"]], min(x))
+  expect_equal(x[["f"]], x[["a"]])
 })
 
 test_that("auto_sort_direction='right' pulls nodes toward children", {
   # a→b→c→d→e, f→e
   # left: f is a root at layer 0
   # right: f is pulled to layer 3 (one before e at layer 4)
-  td_left <- dagify(e ~ d + f, d ~ c, c ~ b, b ~ a) |>
+  td_left <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  td_right <- dagify(e ~ d + f, d ~ c, c ~ b, b ~ a) |>
+  td_right <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "right"))
 
-  coords_left <- get_node_coords(td_left)
-  coords_right <- get_node_coords(td_right)
-
-  f_left <- unname(coords_left$x[coords_left$name == "f"])
-  f_right <- unname(coords_right$x[coords_right$name == "f"])
   # In left mode, f is at layer 0 (root); in right mode, f is pulled rightward
-  expect_lt(f_left, f_right)
+  expect_lt(node_x_positions(td_left)[["f"]], node_x_positions(td_right)[["f"]])
 })
 
 test_that("auto_sort_direction='right' is the default", {
-  dag <- dagify(c ~ a + b, b ~ a)
+  dag <- sort_direction_dag()
   td_default <- tidy_dagitty(dag, layout = time_ordered_coords())
   td_right <- tidy_dagitty(
     dag,
     layout = time_ordered_coords(auto_sort_direction = "right")
   )
+  td_left <- tidy_dagitty(
+    dag,
+    layout = time_ordered_coords(auto_sort_direction = "left")
+  )
   expect_equal(pull_dag_data(td_default), pull_dag_data(td_right))
+  expect_gt(
+    node_x_positions(td_default)[["f"]],
+    node_x_positions(td_left)[["f"]]
+  )
 })
 
 test_that("auto_sort_direction works with string layout", {
   # string "time_ordered" should use the default (right)
-  dag <- dagify(c ~ a + b, b ~ a)
+  dag <- sort_direction_dag()
   td_str <- tidy_dagitty(dag, layout = "time_ordered")
   td_right <- tidy_dagitty(
     dag,
     layout = time_ordered_coords(auto_sort_direction = "right")
   )
+  td_left <- tidy_dagitty(
+    dag,
+    layout = time_ordered_coords(auto_sort_direction = "left")
+  )
   expect_equal(pull_dag_data(td_str), pull_dag_data(td_right))
+  expect_gt(node_x_positions(td_str)[["f"]], node_x_positions(td_left)[["f"]])
 })
 
 test_that("auto_sort_direction='left' still respects edge direction", {
   # Even in left mode, parents must come before children
-  td <- dagify(y ~ x + z, x ~ z) |>
+  td <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  coords <- get_node_coords(td)
+  x <- node_x_positions(td)
 
-  x_z <- unname(coords$x[coords$name == "z"])
-  x_x <- unname(coords$x[coords$name == "x"])
-  x_y <- unname(coords$x[coords$name == "y"])
-  expect_lt(x_z, x_x)
-  expect_lt(x_z, x_y)
+  # left mode is in effect: the root f sits at the earliest layer
+  expect_equal(x[["f"]], min(x))
+  edges <- dplyr::filter(pull_dag_data(td), !is.na(to))
+  expect_true(all(x[edges$name] < x[edges$to]))
 })
 
 test_that("auto_sort_direction='left' produces valid layout (no NA)", {
-  td <- dagify(
-    y ~ x + m,
-    m ~ x,
-    exposure = "x",
-    outcome = "y"
-  ) |>
+  td <- sort_direction_dag() |>
     tidy_dagitty(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_valid_time_ordered(td, c("x", "y", "m"))
+  expect_valid_time_ordered(td, c("a", "b", "c", "d", "e", "f"))
+  x <- node_x_positions(td)
+  # the root f is pulled to the earliest layer, not toward its child
+  expect_equal(x[["f"]], min(x))
 })
 
 test_that("auto_sort_direction works with coords= in dagify", {
-  dag <- dagify(
-    c ~ a + b,
-    b ~ a,
+  dag <- sort_direction_dag(
     coords = time_ordered_coords(auto_sort_direction = "left")
   )
-  td <- tidy_dagitty(dag)
-  coords <- get_node_coords(td)
-  # topo ordering: a < b < c
-  x_a <- unname(coords$x[coords$name == "a"])
-  x_b <- unname(coords$x[coords$name == "b"])
-  x_c <- unname(coords$x[coords$name == "c"])
-  expect_lt(x_a, x_b)
-  expect_lt(x_b, x_c)
+  x <- node_x_positions(tidy_dagitty(dag))
+
+  expect_equal(unname(x[c("a", "b", "c", "d", "e")]), c(1, 2, 3, 4, 5))
+  expect_equal(x[["f"]], min(x))
 })
 
 # auto_sort_direction snapshot tests -------------------------------------------
-# Paired left/right snapshots for each DAG pattern
+# One snapshot per DAG pattern, plus left/right pairs for the DAGs in which the
+# two sort directions actually produce different pictures
 
 test_that("visual: right mediation DAG", {
   withr::local_seed(1234)
@@ -2325,25 +2361,11 @@ test_that("visual: right mediation DAG", {
   expect_doppelganger("time-ordered-right-mediation", p)
 })
 
-test_that("visual: left mediation DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ x + m, m ~ x) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-mediation", p)
-})
-
 test_that("visual: right confounding DAG", {
   withr::local_seed(1234)
   p <- dagify(y ~ x + z, x ~ z) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-confounding", p)
-})
-
-test_that("visual: left confounding DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ x + z, x ~ z) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-confounding", p)
 })
 
 test_that("visual: right smoking DAG", {
@@ -2357,29 +2379,11 @@ test_that("visual: right smoking DAG", {
   expect_doppelganger("time-ordered-right-smoking", p)
 })
 
-test_that("visual: left smoking DAG", {
-  withr::local_seed(1234)
-  p <- dagify(
-    tar ~ smoking,
-    cancer ~ smoking + tar + genetics,
-    smoking ~ genetics
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-smoking", p)
-})
-
 test_that("visual: right diamond DAG", {
   withr::local_seed(1234)
   p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-diamond", p)
-})
-
-test_that("visual: left diamond DAG", {
-  withr::local_seed(1234)
-  p <- dagify(d ~ b + c, b ~ a, c ~ a) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-diamond", p)
 })
 
 test_that("visual: right deep shortcuts DAG", {
@@ -2394,18 +2398,6 @@ test_that("visual: right deep shortcuts DAG", {
   expect_doppelganger("time-ordered-right-deep-shortcuts", p)
 })
 
-test_that("visual: left deep shortcuts DAG", {
-  withr::local_seed(1234)
-  p <- dagify(
-    b ~ a,
-    c ~ b + a,
-    d ~ c + b,
-    e ~ d + a
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-deep-shortcuts", p)
-})
-
 test_that("visual: right multi-mediator chain", {
   withr::local_seed(1234)
   p <- dagify(
@@ -2416,18 +2408,6 @@ test_that("visual: right multi-mediator chain", {
   ) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-multi-mediator", p)
-})
-
-test_that("visual: left multi-mediator chain", {
-  withr::local_seed(1234)
-  p <- dagify(
-    m1 ~ x,
-    m2 ~ x + m1,
-    m3 ~ x + m2,
-    y ~ x + m1 + m2 + m3
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-multi-mediator", p)
 })
 
 test_that("visual: right napkin DAG", {
@@ -2461,13 +2441,6 @@ test_that("visual: right front-door DAG", {
   expect_doppelganger("time-ordered-right-front-door", p)
 })
 
-test_that("visual: left front-door DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ u + m, x ~ u, m ~ x) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-front-door", p)
-})
-
 test_that("visual: right IV DAG", {
   withr::local_seed(1234)
   p <- dagify(y ~ x + u, x ~ z + u) |>
@@ -2475,25 +2448,11 @@ test_that("visual: right IV DAG", {
   expect_doppelganger("time-ordered-right-iv", p)
 })
 
-test_that("visual: left IV DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ x + u, x ~ z + u) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-iv", p)
-})
-
 test_that("visual: right M-bias DAG", {
   withr::local_seed(1234)
   p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-m-bias", p)
-})
-
-test_that("visual: left M-bias DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ a, m ~ u1 + u2, a ~ u1, y ~ u2) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-m-bias", p)
 })
 
 test_that("visual: right epi DAG", {
@@ -2505,17 +2464,6 @@ test_that("visual: right epi DAG", {
   ) |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
   expect_doppelganger("time-ordered-right-epi", p)
-})
-
-test_that("visual: left epi DAG", {
-  withr::local_seed(1234)
-  p <- dagify(
-    health ~ ses + edu + income,
-    income ~ edu,
-    edu ~ ses
-  ) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-epi", p)
 })
 
 test_that("visual: right README bidirected DAG", {
@@ -2555,13 +2503,6 @@ test_that("visual: right fan-in 5 DAG", {
   expect_doppelganger("time-ordered-right-fan-in-5", p)
 })
 
-test_that("visual: left fan-in 5 DAG", {
-  withr::local_seed(1234)
-  p <- dagify(y ~ a + b + c + d + e) |>
-    ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-fan-in-5", p)
-})
-
 test_that("visual: right deep chain DAG", {
   withr::local_seed(1234)
   p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
@@ -2569,11 +2510,18 @@ test_that("visual: right deep chain DAG", {
   expect_doppelganger("time-ordered-right-deep-chain", p)
 })
 
-test_that("visual: left deep chain DAG", {
+test_that("visual: right lone root DAG", {
   withr::local_seed(1234)
-  p <- dagify(b ~ a, c ~ b, d ~ c, e ~ d, f ~ e) |>
+  p <- sort_direction_dag() |>
+    ggdag(layout = time_ordered_coords(auto_sort_direction = "right"))
+  expect_doppelganger("time-ordered-right-lone-root", p)
+})
+
+test_that("visual: left lone root DAG", {
+  withr::local_seed(1234)
+  p <- sort_direction_dag() |>
     ggdag(layout = time_ordered_coords(auto_sort_direction = "left"))
-  expect_doppelganger("time-ordered-left-deep-chain", p)
+  expect_doppelganger("time-ordered-left-lone-root", p)
 })
 
 # fixed_time snapshot tests ----------------------------------------------------
@@ -2827,8 +2775,8 @@ test_that("visual: time-ordered layout with an isolated node", {
     layout = "time_ordered"
   )
   dag_data <- pull_dag_data(tidy_dag)
-  # never record a baseline from a layout that fell back to the default
-  skip_if_not(
+  # a regression here must fail, not skip
+  expect_true(
     setequal(unique(dag_data$name), c("x", "y", "z")) &&
       identical(
         unique(dag_data$x[dag_data$name == "z"]),
@@ -2902,8 +2850,8 @@ test_that("visual: bidirected pair joined by a directed path", {
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline from a layout that still draws edges backwards
-  skip_if_not(node_x("x") < node_x("m") && node_x("m") < node_x("y"))
+  # a regression here must fail, not skip
+  expect_true(node_x("x") < node_x("m") && node_x("m") < node_x("y"))
   expect_doppelganger("time-ordered-bidirected-directed-path", ggdag(td))
 })
 
@@ -3080,8 +3028,8 @@ test_that("visual: right sort pulls a lone ancestor toward its child", {
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline while `a` is still stranded at the far left
-  skip_if_not(node_x("b") - node_x("a") == 1)
+  # a regression here must fail, not skip
+  expect_true(node_x("b") - node_x("a") == 1)
   expect_doppelganger("time-ordered-right-cascade", ggdag(td))
 })
 
@@ -3142,8 +3090,8 @@ test_that("visual: single pin inside a bidirected group", {
   ))
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline from a layout that ignored the pin
-  skip_if_not(node_x("a") == 2 && node_x("b") == 2)
+  # a regression here must fail, not skip
+  expect_true(node_x("a") == 2 && node_x("b") == 2)
   expect_doppelganger("time-ordered-bidirected-single-pin", ggdag(td))
 })
 
@@ -3191,8 +3139,8 @@ test_that("visual: exposure/outcome shift blocked by a pinned child", {
   td <- tidy_dagitty(dag)
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline that draws a cause and its effect at one time
-  skip_if_not(node_x("y") < node_x("d"))
+  # a regression here must fail, not skip
+  expect_true(node_x("y") < node_x("d"))
   expect_doppelganger("time-ordered-exp-out-pinned-child", ggdag(td))
 })
 
@@ -3269,7 +3217,496 @@ test_that("visual: exposure/outcome shift with a bidirected outcome", {
     tidy_dagitty(layout = "time_ordered")
   coords <- get_node_coords(td)
   node_x <- function(.name) unname(coords$x[coords$name == .name])
-  # never record a baseline with the bidirected pair split across layers
-  skip_if_not(node_x("y") == node_x("w"))
+  # a regression here must fail, not skip
+  expect_true(node_x("y") == node_x("w"))
   expect_doppelganger("time-ordered-exp-out-bidirected", ggdag(td))
+})
+
+# Engine-aware arc side and depth ----------------------------------------------
+
+# Every leaf grob under `grob`.
+grob_leaves <- function(grob) {
+  if (!is.null(grob$children) && length(grob$children)) {
+    return(unlist(lapply(grob$children, grob_leaves), recursive = FALSE))
+  }
+  list(grob)
+}
+
+# The ink a rendered panel puts down, in millimetres: every edge path drawn
+# in the panel, the centres of `nodes` mapped through the panel's own
+# ranges, and the radius the node points are drawn at. Both engines are read
+# off the rendered plot rather than the layer data, because ggarrow builds
+# its curve at draw time and so has no drawn path to inspect until then.
+drawn_panel_ink <- function(plot, nodes) {
+  ranges <- ggplot2::ggplot_build(plot)$layout$panel_params[[1]]
+
+  grDevices::pdf(NULL, width = 7, height = 7)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  print(plot)
+  grid::grid.force()
+
+  listing <- grid::grid.ls(viewports = TRUE, print = FALSE)
+  panel_vp <- grep(
+    "^panel\\.",
+    listing$name[listing$type == "vpListing"],
+    value = TRUE
+  )[1]
+  in_panel <- listing$type %in%
+    c("grobListing", "gTreeListing") &
+    grepl(panel_vp, listing$vpPath, fixed = TRUE)
+  grid::seekViewport(panel_vp)
+
+  radius <- NA_real_
+  paths <- list()
+  for (nm in unique(listing$name[in_panel])) {
+    grob <- tryCatch(grid::grid.get(nm), error = function(e) NULL)
+    if (is.null(grob)) {
+      next
+    }
+    for (leaf in grob_leaves(grob)) {
+      if (inherits(leaf, "points") && is.na(radius)) {
+        # R draws pch 19 at 0.375 of the fontsize the grob carries.
+        radius <- 0.375 * leaf$gp$fontsize[1] / 72.27 * 25.4
+      }
+      if (!inherits(leaf, c("pathgrob", "polyline", "lines", "segments"))) {
+        next
+      }
+      if (grepl("^panel\\.(grid|background|border)", leaf$name)) {
+        next
+      }
+      paths[[length(paths) + 1L]] <- data.frame(
+        x = as.numeric(grid::convertX(leaf$x, "mm")),
+        y = as.numeric(grid::convertY(leaf$y, "mm"))
+      )
+    }
+  }
+
+  path <- do.call(rbind, paths)
+  path <- path[stats::complete.cases(path), , drop = FALSE]
+  as_npc <- function(v, range) grid::unit((v - range[1]) / diff(range), "npc")
+
+  list(
+    radius = radius,
+    path = path,
+    nodes = data.frame(
+      name = nodes$name,
+      x = as.numeric(grid::convertX(as_npc(nodes$x, ranges$x.range), "mm")),
+      y = as.numeric(grid::convertY(as_npc(nodes$y, ranges$y.range), "mm"))
+    )
+  )
+}
+
+# The single layer `engine` draws a curved edge with under `edge_type`. The
+# diagonal type has no curvature of its own on the ggraph side: its bend is
+# ggraph's S-curve strength, which the layer defaults on its own.
+curved_edge_layer <- function(engine, edge_type, edge_data, curvature = 0.3) {
+  mapping <- ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+
+  if (identical(engine, "ggarrow")) {
+    return(geom_dag_arrow_arc(
+      mapping = mapping,
+      data = edge_data,
+      curvature = curvature
+    ))
+  }
+
+  if (identical(edge_type, "diagonal")) {
+    return(geom_dag_edges_diagonal(mapping = mapping, data = edge_data))
+  }
+
+  geom_dag_edges_arc(
+    mapping = mapping,
+    data = edge_data,
+    curvature = curvature
+  )
+}
+
+# The bow `engine` draws, as a signed fraction of the half chord, measured
+# off a rendered left-to-right edge: positive is above the chord, the left
+# of travel. The panel is pinned square because ggarrow's curve is a circle
+# in device space, so the depth it reaches in data units carries the aspect.
+drawn_arc_offset <- function(engine, curvature = 0.3) {
+  edge <- data.frame(
+    name = "a",
+    x = 0,
+    y = 0,
+    to = "b",
+    xend = 2,
+    yend = 0,
+    direction = factor("->", levels = c("->", "<->"))
+  )
+  ends <- data.frame(name = c("a", "b"), x = c(0, 2), y = c(0, 0))
+
+  ink <- drawn_panel_ink(
+    ggplot2::ggplot(
+      edge,
+      ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+    ) +
+      curved_edge_layer(engine, "arc", edge, curvature) +
+      ggplot2::coord_fixed(),
+    ends
+  )
+
+  # The drawn path is a finite sample, so the apex is averaged over the
+  # points within a twentieth of the half chord of the midpoint, which reads
+  # a few parts in a thousand shallow.
+  half_chord <- diff(ink$nodes$x) / 2
+  middle <- abs(ink$path$x - mean(ink$nodes$x)) < 0.05 * half_chord
+  (mean(ink$path$y[middle]) - ink$nodes$y[1]) / half_chord
+}
+
+# The curvature `sample_curved_edge()` traces `engine`'s drawn arc with,
+# read off the drawing: the drawn bow, signed the way the tracer signs one,
+# put back through the tracer's own depth of
+# `2 * curve_spline_depth_ratio * curvature` half chords.
+drawn_trace_curvature <- function(engine, curvature = 0.3) {
+  -drawn_arc_offset(engine, curvature) / (2 * curve_spline_depth_ratio)
+}
+
+# What the drawn edge from `from` to `to` leaves every node of `dag`, in
+# millimetres, beside the radius the nodes are drawn at. The layout is the
+# one `engine` and `edge_type` produce, and the plot draws that one edge so
+# that the measured path is unambiguously the arc under test.
+drawn_ink_clearances <- function(dag, from, to, engine, edge_type) {
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = engine,
+    ggdag.edge_type = edge_type
+  ))
+
+  tidy <- tidy_dagitty(dag)
+  dag_data <- as.data.frame(pull_dag_data(tidy))
+  edge <- dag_data[
+    !is.na(dag_data$to) & dag_data$name == from & dag_data$to == to,
+    ,
+    drop = FALSE
+  ]
+  nodes <- dplyr::distinct(dag_data, name, x, y)
+
+  ink <- drawn_panel_ink(
+    ggplot2::ggplot(
+      tidy,
+      ggplot2::aes(x = x, y = y, xend = xend, yend = yend)
+    ) +
+      curved_edge_layer(engine, edge_type, edge) +
+      geom_dag_point() +
+      ggplot2::coord_fixed(),
+    nodes
+  )
+
+  data.frame(
+    name = ink$nodes$name,
+    clearance = vapply(
+      seq_len(nrow(ink$nodes)),
+      function(i) {
+        min(sqrt(
+          (ink$nodes$x[i] - ink$path$x)^2 + (ink$nodes$y[i] - ink$path$y)^2
+        ))
+      },
+      numeric(1)
+    ),
+    radius = ink$radius
+  )
+}
+
+# Millimetres of daylight demanded between a node and the drawn edge, on top
+# of the drawn node radius. The edge caps stop the ink 2 mm beyond the
+# `0.375 * node_size` the node itself is drawn at, so the two endpoints of
+# the traced edge clear this margin along with everyone else.
+drawn_clearance_margin <- 1
+
+# Minimum distance, in data units, from a node's center to the edge from
+# `from` to `to` traced at `curvature`.
+arc_clearance <- function(coords, from, to, node, curvature) {
+  at <- function(nm, col) coords[[col]][coords$name == nm]
+  arc <- sample_curved_edge(
+    at(from, "x"),
+    at(from, "y"),
+    at(to, "x"),
+    at(to, "y"),
+    curvature
+  )
+  min(sqrt((at(node, "x") - arc$x)^2 + (at(node, "y") - arc$y)^2))
+}
+
+# The clearance floor the engine itself works to: node radius plus 8 internal
+# pixels, mapped to data units by the 180-pixel layer gap.
+arc_clearance_floor <- function(node_scale = 1) {
+  (26 * node_scale + 8) / 180
+}
+
+test_that("the engines draw arcs on opposite sides of the chord", {
+  # Everything below rests on the two engines disagreeing about which side of
+  # travel a positive arc bows to, so pin the premise itself.
+  expect_gt(drawn_arc_offset("ggraph"), 0)
+  expect_lt(drawn_arc_offset("ggarrow"), 0)
+})
+
+test_that("the engines draw arcs to the depths engine_trace_curvature() models", {
+  # The two engines do not bow to the same depth as each other: ggraph's
+  # cubic Bezier reaches (3 / 4) * sin(strength * pi / 2) half chords, while
+  # ggarrow's X-spline runs just inside the circle of sagitta `curvature`
+  # half chords that grid lays its control points on, which is the depth the
+  # tracer models.
+  expect_equal(
+    drawn_arc_offset("ggraph"),
+    0.75 * sin(0.3 * pi / 2),
+    tolerance = 5e-3
+  )
+  expect_equal(drawn_arc_offset("ggarrow"), -0.3, tolerance = 0.03)
+  expect_lt(abs(drawn_arc_offset("ggarrow")), 0.3)
+  expect_gt(drawn_arc_offset("ggraph"), abs(drawn_arc_offset("ggarrow")))
+
+  # What the layout traces with has to be what the drawing does.
+  expect_equal(
+    drawn_trace_curvature("ggraph"),
+    engine_trace_curvature(0.3, "ggraph"),
+    tolerance = 5e-3
+  )
+  expect_equal(
+    drawn_trace_curvature("ggarrow"),
+    engine_trace_curvature(0.3, "ggarrow"),
+    tolerance = 0.03
+  )
+})
+
+test_that("engine_trace_curvature() rejects an engine it cannot draw for", {
+  # A raw option reaches the layout unchecked, so a name that matches neither
+  # engine, and an abbreviation short enough to match both, have to fail here
+  # rather than quietly pick a side. An abbreviation of one engine alone
+  # resolves to that engine.
+  expect_error(engine_trace_curvature(0.3, "ggarow"))
+  expect_error(engine_trace_curvature(0.3, "gg"))
+  expect_equal(
+    engine_trace_curvature(0.3, "ggr"),
+    engine_trace_curvature(0.3, "ggraph")
+  )
+})
+
+# Drawn clearance --------------------------------------------------------------
+
+test_that("the drawn bidirected arc clears every node, ggraph engine", {
+  # x <-> y spans two layers with m between them, and its arc is the only
+  # curved edge the DAG draws. A layout that models the bow deeper than the
+  # engine draws it leaves m sitting on the arc the reader sees.
+  cleared <- drawn_ink_clearances(
+    dagify(y ~ x + m, m ~ x, x ~ ~y),
+    "x",
+    "y",
+    "ggraph",
+    "link_arc"
+  )
+  expect_gte(
+    min(cleared$clearance),
+    cleared$radius[[1]] + drawn_clearance_margin
+  )
+})
+
+test_that("the drawn bidirected arc clears every node, ggarrow engine", {
+  cleared <- drawn_ink_clearances(
+    dagify(y ~ x + m, m ~ x, x ~ ~y),
+    "x",
+    "y",
+    "ggarrow",
+    "link_arc"
+  )
+  expect_gte(
+    min(cleared$clearance),
+    cleared$radius[[1]] + drawn_clearance_margin
+  )
+})
+
+test_that("the drawn spanning arc clears every node, ggraph engine", {
+  # z -> y spans two layers with x between them, and the arc and diagonal
+  # edge types both draw it curved.
+  for (edge_type in c("arc", "diagonal")) {
+    cleared <- drawn_ink_clearances(
+      dagify(y ~ x + z, x ~ z),
+      "z",
+      "y",
+      "ggraph",
+      edge_type
+    )
+    expect_gte(
+      min(cleared$clearance),
+      cleared$radius[[1]] + drawn_clearance_margin,
+      label = paste0("ggraph ", edge_type, " clearance")
+    )
+  }
+})
+
+test_that("the drawn spanning arc clears every node, ggarrow engine", {
+  for (edge_type in c("arc", "diagonal")) {
+    cleared <- drawn_ink_clearances(
+      dagify(y ~ x + z, x ~ z),
+      "z",
+      "y",
+      "ggarrow",
+      edge_type
+    )
+    expect_gte(
+      min(cleared$clearance),
+      cleared$radius[[1]] + drawn_clearance_margin,
+      label = paste0("ggarrow ", edge_type, " clearance")
+    )
+  }
+})
+
+test_that("a bidirected arc is cleared on the side the ggraph engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggraph",
+    ggdag.node_size = 24
+  ))
+
+  # x <-> y spans two layers with m between them, and at this node size the
+  # arc decides where m settles. The drawn arc bows to one side of the chord,
+  # so a layout that traces the mirror side clears nothing the reader can
+  # see: m ends up sitting on the arc it was meant to avoid.
+  td <- tidy_dagitty(dagify(y ~ x + m, m ~ x, x ~ ~y))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "x",
+    "y",
+    "m",
+    drawn_trace_curvature("ggraph")
+  )
+  expect_gte(clearance, arc_clearance_floor(24 / 16))
+})
+
+test_that("a bidirected arc is cleared on the side the ggarrow engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggarrow",
+    ggdag.node_size = 24
+  ))
+
+  # The same DAG under the other engine: the arc is drawn on the other side
+  # of the chord, and the layout has to follow it there.
+  td <- tidy_dagitty(dagify(y ~ x + m, m ~ x, x ~ ~y))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "x",
+    "y",
+    "m",
+    drawn_trace_curvature("ggarrow")
+  )
+  expect_gte(clearance, arc_clearance_floor(24 / 16))
+})
+
+test_that("a spanning arc is cleared on the side the ggraph engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggraph",
+    ggdag.edge_type = "arc"
+  ))
+
+  # z -> y spans two layers, and under the arc edge type it is drawn curved,
+  # bowing toward x. The layout must clear the arc on the side the engine
+  # draws it.
+  td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "z",
+    "y",
+    "x",
+    drawn_trace_curvature("ggraph")
+  )
+  expect_gte(clearance, arc_clearance_floor())
+})
+
+test_that("a spanning arc is cleared on the side the ggarrow engine draws", {
+  local_ggdag_option_state()
+  withr::local_options(list(
+    ggdag.layout = "time_ordered",
+    ggdag.edge_engine = "ggarrow",
+    ggdag.edge_type = "arc"
+  ))
+
+  # The same spanning edge under the other engine bows to the other side of
+  # the chord, so the node it has to clear is on the other side too.
+  td <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+  coords <- dplyr::distinct(pull_dag_data(td), name, x, y)
+
+  clearance <- arc_clearance(
+    coords,
+    "z",
+    "y",
+    "x",
+    drawn_trace_curvature("ggarrow")
+  )
+  expect_gte(clearance, arc_clearance_floor())
+})
+
+test_that("compute_time_ordered_layout: the edge engine decides the arc side", {
+  edges <- as.data.frame(get_dagitty_edges(dagify(y ~ x + m, m ~ x, x ~ ~y)))
+
+  ggraph_coords <- compute_time_ordered_layout(
+    edges,
+    node_scale = 24 / 16,
+    edge_engine = "ggraph"
+  )
+  ggarrow_coords <- compute_time_ordered_layout(
+    edges,
+    node_scale = 24 / 16,
+    edge_engine = "ggarrow"
+  )
+
+  # The engines bow the arc to opposite sides of the chord, so the layouts
+  # that clear them are mirror images of each other.
+  expect_equal(ggraph_coords$name, ggarrow_coords$name)
+  expect_equal(ggraph_coords$x, ggarrow_coords$x)
+
+  # Every node ends up on the far side of the chord from the arc, which is
+  # the property the correction pass actually guarantees.
+  expect_equal(sign(ggraph_coords$y), -sign(ggarrow_coords$y))
+
+  # The magnitudes agree less exactly than that, and not because of
+  # rounding. Stages 1 to 3 run before either engine is consulted and hand
+  # both runs the same layout, which is not itself mirror-symmetric. The
+  # engine is read only after that, by `better_positions()` when it chooses
+  # between the even-spacing and median candidates and by the greedy
+  # correction, which pushes the offending node off that common start in
+  # opposite directions. The two runs therefore
+  # cover different distances, stop after different numbers of passes, and
+  # land a few parts in a hundred thousand apart. The tolerance below bounds
+  # that gap, not floating-point noise, which would be some ten orders of
+  # magnitude smaller.
+  expect_equal(ggraph_coords$y, -ggarrow_coords$y, tolerance = 1e-4)
+})
+
+test_that("compute_time_ordered_layout: the edge engine option sets the side", {
+  local_ggdag_option_state()
+  withr::local_options(list(ggdag.edge_engine = "ggarrow"))
+
+  edges <- as.data.frame(get_dagitty_edges(dagify(y ~ x + m, m ~ x, x ~ ~y)))
+  from_option <- compute_time_ordered_layout(edges, node_scale = 24 / 16)
+  from_argument <- compute_time_ordered_layout(
+    edges,
+    node_scale = 24 / 16,
+    edge_engine = "ggraph"
+  )
+
+  expect_equal(
+    from_option,
+    compute_time_ordered_layout(
+      edges,
+      node_scale = 24 / 16,
+      edge_engine = "ggarrow"
+    )
+  )
+  # An argument overrides the option, which mirrors the layout back. The
+  # tolerance is the correction pass stopping at slightly different places
+  # on the two sides, as above, not rounding.
+  expect_equal(sign(from_option$y), -sign(from_argument$y))
+  expect_equal(from_option$y, -from_argument$y, tolerance = 1e-4)
 })

@@ -402,7 +402,19 @@ test_that("tidy_dagitty() picks up curved_edges from dagitty attr", {
   expect_equal(c_to_y$edge_curvature, 0.5)
 })
 
-test_that("non-curved edges get edge_curvature=0 when curved() is used", {
+# The curvature each arc the layer at `index` draws is built with.
+# `GeomDAGArrowCurve` splits its rows by curvature and draws one arc grob per
+# distinct value, so this is the set of curvatures the reader actually sees.
+drawn_arc_curvatures <- function(plot, index = 1) {
+  grob <- ggplot2::layer_grob(plot, index)[[1]]
+  unname(vapply(
+    grob$children,
+    function(child) child$curve$curvature,
+    numeric(1)
+  ))
+}
+
+test_that("non-curved edges stay unset when curved() is used", {
   dag <- dagify(
     y ~ z + curved(c, 0.5),
     c ~ z,
@@ -411,8 +423,16 @@ test_that("non-curved edges get edge_curvature=0 when curved() is used", {
   td <- tidy_dagitty(dag)
   dat <- pull_dag_data(td)
 
+  # an edge nobody curved carries no curvature of its own, which leaves the
+  # routed geom free to detour it around a node in its way
   z_to_y <- dat[dat$name == "z" & dat$to == "y" & !is.na(dat$to), ]
-  expect_equal(z_to_y$edge_curvature, 0)
+  expect_true(is.na(z_to_y$edge_curvature))
+
+  # and the arc layer still draws it as a chord: curving one edge does not
+  # bend the others
+  p <- ggplot(td, aes_dag()) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature), curvature = 0.3)
+  expect_setequal(drawn_arc_curvatures(p), c(0, 0.5))
 })
 
 test_that("tidy_dagitty() picks up curved_edges without explicit coords", {
@@ -466,7 +486,7 @@ test_that("tidy_dagitty() without curved() has no edge_curvature column", {
   expect_false("edge_curvature" %in% names(dat))
 })
 
-test_that("non-curved edges default to edge_curvature=0 when curved() is used", {
+test_that("non-curved edges are drawn as chords when curved() is used", {
   dag <- dagify(
     y ~ x + curved(m, 0.5),
     m ~ x,
@@ -479,13 +499,19 @@ test_that("non-curved edges default to edge_curvature=0 when curved() is used", 
   curved_row <- dat[dat$name == "m" & dat$to == "y" & !is.na(dat$to), ]
   expect_equal(curved_row$edge_curvature, 0.5)
 
-  # Non-curved edges should be 0, not NA
+  # An edge the user never curved carries no value of its own
   straight_rows <- dat[!is.na(dat$to) & dat$name != "m", ]
-  expect_true(all(straight_rows$edge_curvature == 0))
+  expect_true(all(is.na(straight_rows$edge_curvature)))
 
   # Node-only rows (no outgoing edge) should be NA
   node_rows <- dat[is.na(dat$to), ]
   expect_true(all(is.na(node_rows$edge_curvature)))
+
+  # and the picture is what it always was: the one curved edge bends and the
+  # rest are chords, whatever the layer's own scalar curvature says
+  p <- ggplot(td, aes_dag()) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature), curvature = 0.3)
+  expect_setequal(drawn_arc_curvatures(p), c(0, 0.5))
 })
 
 test_that("curved() end-to-end with geom_dag_arrow_arc snapshot", {
@@ -717,9 +743,13 @@ test_that("set_curve_edges() on tidy_dagitty updates data", {
   curved_row <- dat[dat$name == "m" & dat$to == "y" & !is.na(dat$to), ]
   expect_equal(curved_row$edge_curvature, 0.6)
 
-  # Non-curved edges should be 0
+  # Non-curved edges stay unset, and the arc layer draws them as chords
   straight_rows <- dat[!is.na(dat$to) & !(dat$name == "m" & dat$to == "y"), ]
-  expect_true(all(straight_rows$edge_curvature == 0))
+  expect_true(all(is.na(straight_rows$edge_curvature)))
+
+  p <- ggplot(td2, aes_dag()) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature), curvature = 0.3)
+  expect_setequal(drawn_arc_curvatures(p), c(0, 0.6))
 })
 
 test_that("set_curve_edges() validates required columns", {
@@ -806,12 +836,18 @@ test_that("dagitty control points produce edge_curvature with dagitty coords", {
   xy <- dat[dat$name == "X" & dat$to == "Y" & !is.na(dat$to), ]
   expect_false(is.na(xy$edge_curvature))
 
-  # Edges without control points should be straight (0)
+  # Edges without control points carry no curvature of their own
   xm <- dat[dat$name == "X" & dat$to == "M" & !is.na(dat$to), ]
-  expect_equal(xm$edge_curvature, 0)
+  expect_true(is.na(xm$edge_curvature))
 
   my <- dat[dat$name == "M" & dat$to == "Y" & !is.na(dat$to), ]
-  expect_equal(my$edge_curvature, 0)
+  expect_true(is.na(my$edge_curvature))
+
+  # and the arc layer draws every one of them as a chord, so only the edge
+  # with a control point bends
+  p <- ggplot(td, aes_dag()) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature), curvature = 0.3)
+  expect_setequal(drawn_arc_curvatures(p), c(0, xy$edge_curvature))
 })
 
 test_that("control points are ignored with non-dagitty layout", {
@@ -869,7 +905,7 @@ test_that("curved() takes priority over dagitty control points", {
   expect_equal(zy$edge_curvature, 0.8)
 })
 
-test_that("edges without control points are straight (0)", {
+test_that("edges without control points are drawn as chords", {
   dag <- dagitty::dagitty(
     'dag {
       A [pos="0,0"]
@@ -883,10 +919,14 @@ test_that("edges without control points are straight (0)", {
   dat <- pull_dag_data(td)
 
   ab <- dat[dat$name == "A" & dat$to == "B" & !is.na(dat$to), ]
-  expect_equal(ab$edge_curvature, 0)
+  expect_true(is.na(ab$edge_curvature))
 
   bc <- dat[dat$name == "B" & dat$to == "C" & !is.na(dat$to), ]
   expect_false(is.na(bc$edge_curvature))
+
+  p <- ggplot(td, aes_dag()) +
+    geom_dag_arrow_arc(aes(edge_curvature = edge_curvature), curvature = 0.3)
+  expect_setequal(drawn_arc_curvatures(p), c(0, bc$edge_curvature))
 })
 
 test_that("dagitty control points snapshot", {

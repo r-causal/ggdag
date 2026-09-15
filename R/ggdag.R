@@ -31,20 +31,23 @@ ggdag <- function(
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   n_edge_points = NULL,
   n_node_points = NULL,
   unified_legend = TRUE,
@@ -60,12 +63,18 @@ ggdag <- function(
     edge_type <- ggdag_option("edge_type", "link_arc")
   }
 
+  # and the routing object is checked here, before `geom_dag()` sees it, so
+  # that an object that is not one names the function the user called
+  check_edge_route_options(edge_route_options, call = rlang::current_env())
+
   if_not_tidy_daggity(.tdy_dag, ...) |>
     ggplot2::ggplot(aes_dag()) +
     geom_dag(
       size = size,
       edge_type = edge_type,
       edge_engine = edge_engine,
+      edge_route = edge_route,
+      edge_route_options = edge_route_options,
       node_size = node_size,
       text_size = text_size,
       label_size = label_size,
@@ -80,6 +89,7 @@ ggdag <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       n_edge_points = n_edge_points,
       n_node_points = n_node_points,
       unified_legend = unified_legend,
@@ -147,6 +157,11 @@ ggdag_classic <- function(
     )
 
   if (use_edges) {
+    # a classic plot is drawn with ggraph whatever the engine option says, so
+    # it reports the ggarrow-only features it drops once for the whole plot
+    # and silences the report the layers make for themselves
+    warn_if_ggarrow_only_ignored(pull_dag_data(.tdy_dag))
+
     if (
       any(
         pull_dag_data(.tdy_dag)$direction == "<->" &
@@ -154,16 +169,19 @@ ggdag_classic <- function(
       )
     ) {
       p <- p +
-        geom_dag_edges(ggplot2::aes(
-          start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
-          end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
+        without_edge_route_warning(geom_dag_edges(
+          ggplot2::aes(
+            start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
+            end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
+          ),
+          edge_engine = "ggraph"
         ))
     } else {
       p <- p +
-        geom_dag_edges_link(ggplot2::aes(
+        without_edge_route_warning(geom_dag_edges_link(ggplot2::aes(
           start_cap = ggraph::label_rect(.data$name, fontsize = fontsize),
           end_cap = ggraph::label_rect(.data$to, fontsize = fontsize)
-        ))
+        )))
     }
   }
 

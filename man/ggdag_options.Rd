@@ -17,9 +17,14 @@ ggdag_options_get(name = NULL)
 
 ggdag_options_reset()
 
-ggdag_option(name, default)
+ggdag_option(name, default = ggdag_defaults[[name]])
 
-ggdag_option_proportional(name, base_default, override_default)
+ggdag_option_proportional(
+  name,
+  base_default,
+  override_default,
+  unset = override_default
+)
 }
 \arguments{
 \item{...}{Named option values to set. See \code{ggdag_defaults} for valid names
@@ -28,12 +33,17 @@ and types.}
 \item{name}{Character string. The option name (without the \code{ggdag.} prefix).
 If \code{NULL}, returns all currently-set ggdag options.}
 
-\item{default}{Default value to return if the option is not set.}
+\item{default}{Default value to return if the option is not set. Defaults
+to the entry for \code{name} in \code{ggdag_defaults}.}
 
 \item{base_default}{The base default for this option (e.g., 8 for edge_cap).}
 
 \item{override_default}{The override default used by certain functions
 (e.g., 10 for edge_cap in adjustment set functions).}
+
+\item{unset}{The value returned when the option is not set. Defaults to
+\code{override_default}. The plotters that draw adjusted nodes as squares pass
+\code{NULL}, so that an unset \code{edge_cap} is left to follow the nodes.}
 }
 \value{
 \itemize{
@@ -45,7 +55,7 @@ options if \code{name} is \code{NULL}.
 invisibly.
 \item \code{ggdag_option()}: The option value if set, otherwise \code{default}.
 \item \code{ggdag_option_proportional()}: The scaled option value if set, otherwise
-\code{override_default}.
+\code{unset}.
 }
 }
 \description{
@@ -62,9 +72,76 @@ other option alone. That also makes the previous values
 \code{ggdag_options_set()} returns safe to restore with
 \code{do.call(ggdag_options_set, old)}.
 
-Functions that normally use \code{edge_cap = 10} (e.g., \code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}},
-\code{\link[=ggdag_drelationship]{ggdag_drelationship()}}) maintain a proportional offset. If you set
-\code{ggdag.edge_cap} to a custom value, these functions scale it by \code{10/8}.
+\code{edge_cap} is unset by default. Under either edge engine, every \verb{ggdag_*()}
+plotter, \code{\link[=geom_dag]{geom_dag()}}, and the edge layers a plot is assembled from by
+hand then stop each edge 2 mm outside the outline of the node at each of
+its ends, following that node's size and shape, so the arrowheads keep the
+same distance from nodes of any size and from the sides of square nodes as
+from circles. Setting the option to a number fixes the cap, in millimetres,
+at every end of the edges the plotters and \code{\link[=geom_dag]{geom_dag()}} draw. An edge
+layer added by hand reads the option only where it has no node to follow:
+a ggarrow layer (\code{\link[=geom_dag_arrow]{geom_dag_arrow()}}, \code{\link[=geom_dag_arrows]{geom_dag_arrows()}},
+\code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}}, or \code{\link[=geom_dag_edges]{geom_dag_edges()}} under that engine) on a
+plot with no node layer stops every end at the option, 8 mm when it is
+unset, while a ggraph layer (\code{\link[=geom_dag_edges]{geom_dag_edges()}} under the ggraph engine and
+the \verb{geom_dag_edges_*()} layers) keeps its own 8 mm cap there whatever
+the option says. With a node layer on the plot, both follow the nodes,
+and a cap set on the layer itself wins at its end either way.
+
+The plotters that draw adjusted nodes as squares (\code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}},
+\code{\link[=ggdag_adjust]{ggdag_adjust()}}, \code{\link[=ggdag_instrumental]{ggdag_instrumental()}}, and the d-relationship plotters)
+maintain a proportional offset: if you set \code{ggdag.edge_cap} to a custom
+value, these functions scale it by \code{10/8}.
+
+\code{edge_route} chooses how the ggarrow engine draws directed edges.
+\code{"straight"}, the default, draws chords. \code{"spline"} routes each directed
+edge whose path a node blocks around that node with a smooth curve.
+\code{"orthogonal"} draws every directed edge as axis-aligned runs with rounded
+corners, leaving each node through a port and passing the intermediate
+layers in the gaps between them or along a channel beyond them.
+Routing happens when the plot is drawn, in the units of the device, so the
+same DAG re-routes when the plot is resized. Curvature you set yourself,
+through \code{\link[=curved]{curved()}}, \code{\link[=curve_edge]{curve_edge()}}, or DAGitty control points, is never
+rerouted, and bidirected edges keep the arc their edge layer draws them
+with. The option applies to the ggarrow engine with
+\code{edge_type = "link_arc"} or \code{"link"}; it is a no-op for \code{"arc"} and
+\code{"diagonal"}, which already bend every edge.
+
+\code{edge_route_options} carries the constants the router draws with, built by
+\code{\link[=edge_route_options]{edge_route_options()}}. It is read only when \code{edge_route} names a routing
+mode. A field left unset is derived when the plot is drawn, from the node
+size the plot uses, so an object set once holds at every plot size.
+\code{\link[=geom_dag_routed_arrows]{geom_dag_routed_arrows()}} takes the same object, and its own \code{clearance},
+\code{edge_sep}, and \code{edge_sep_min} arguments override the object's fields for
+that layer.
+
+\code{curvature} is the bend of the arcs a packaged plot draws: the bidirected
+arcs of \code{\link[=geom_dag_edges]{geom_dag_edges()}}, every edge under \code{edge_type = "arc"}, and, under
+the ggarrow engine, every edge under \code{edge_type = "diagonal"}, which that
+engine draws as arcs. 1 approximates a half circle and 0 a straight line,
+and a negative value bends the other way. Both edge engines read it, but
+each draws that value with its own depth and to its own side, and it also
+sets the bow the time-ordered layout clears its nodes of. An edge layer you
+build yourself takes the \code{curvature} argument you give it, so
+\code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} called directly keeps its own default of 0.5 rather
+than the option's 0.3.
+
+\code{layout} is the layout \code{\link[=tidy_dagitty]{tidy_dagitty()}}, \code{\link[=ggdag]{ggdag()}}, and the quick plotting
+functions use when a DAG carries no coordinates of its own. The default,
+\code{"time_ordered"}, places the nodes in time order with
+\code{\link[=time_ordered_coords]{time_ordered_coords()}}. \code{label_geom} is the geom those functions and
+\code{\link[=geom_dag]{geom_dag()}} draw labels with when \code{use_labels = TRUE}. The default is
+\code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}}, which places each label deterministically when
+the plot is drawn. For the look of earlier versions of ggdag, the
+\code{"nicely"} layout with repelled labels, set
+\code{ggdag_options_set(layout = "nicely", label_geom = geom_dag_label_repel)}.
+
+\code{label_wrap} is a width in characters that \code{\link[=geom_dag]{geom_dag()}}, \code{\link[=ggdag]{ggdag()}}, and the
+quick plotting functions that take \code{use_labels} hand to the automatic label
+geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and \code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, which wrap their
+text to it before the labels are measured and placed. \code{NULL}, the default,
+wraps nothing. The repel label geoms do no wrapping of their own and are not
+given it.
 
 \code{debug_repel_points} is a diagnostic rather than an appearance setting. When
 it is \code{TRUE}, every repelling label geom (see \code{\link[=geom_dag_label_repel]{geom_dag_label_repel()}}) adds

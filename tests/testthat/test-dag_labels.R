@@ -123,14 +123,14 @@ test_that("labels naming the same node twice are rejected", {
 })
 
 test_that("duplicated label names produce an informative message", {
-  # never record a baseline from the pre-fix duplicated join rows
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(
       dagify(y ~ x, labels = c("x" = "The Exposure", "x" = "Also x")),
       error = identity
     ),
     "ggdag_type_error"
-  ))
+  )
 
   expect_ggdag_error(
     dagify(y ~ x, labels = c("x" = "The Exposure", "x" = "Also x"))
@@ -138,14 +138,14 @@ test_that("duplicated label names produce an informative message", {
 })
 
 test_that("unnamed labels produce an informative message", {
-  # never record a baseline from the pre-fix dplyr join error
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(
       dagify(y ~ x, labels = c("The Exposure", "The Outcome")),
       error = identity
     ),
     "ggdag_type_error"
-  ))
+  )
 
   expect_ggdag_error(dagify(y ~ x, labels = c("The Exposure", "The Outcome")))
 })
@@ -190,14 +190,14 @@ test_that("labels naming nodes not in the DAG are rejected", {
 })
 
 test_that("unknown label names produce an informative message", {
-  # never record a baseline from the pre-fix silent drop
-  skip_if_not(inherits(
+  # a regression here must fail, not skip
+  expect_s3_class(
     tryCatch(
       dagify(y ~ x, labels = c("x" = "The Exposure", "nope" = "Ghost")),
       error = identity
     ),
     "ggdag_missing_nodes_error"
-  ))
+  )
 
   expect_ggdag_error(
     dagify(y ~ x, labels = c("x" = "The Exposure", "nope" = "Ghost"))

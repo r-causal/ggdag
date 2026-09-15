@@ -5,6 +5,15 @@
 #' @inheritParams dag_params
 #' @param ... additional arguments to `adjustmentSets`
 #' @param shadow logical. Show paths blocked by adjustment?
+#' @param collider_lines Logical or `NULL`. Should the plot show the paths that
+#'   adjusting for a collider activates? `NULL`, the default, shows them only
+#'   when such paths exist and no adjustment set closes the backdoor paths,
+#'   which is the case where they explain why. `TRUE` shows them whenever they
+#'   exist, and `FALSE` never shows them. These paths are drawn as dashed
+#'   ggraph curves whatever `edge_engine` is in use: they mark an association
+#'   rather than an edge of the DAG, so they stay visibly apart from the arrows
+#'   the engine draws.
+#' @inheritParams path_params
 #' @inheritParams geom_dag
 #' @inheritParams expand_plot
 #'
@@ -64,24 +73,49 @@ dag_adjustment_sets <- function(
       ),
       warning_class = "ggdag_failed_to_close_backdoor_warning"
     )
-    sets <- "(No Way to Block Backdoor Paths)"
+    sets <- no_adjustment_set_label
   } else {
     sets <- extract_sets(sets)
   }
 
+  # Each panel normally reports the membership of the set it is named for. The
+  # panel for a DAG with no adjustment set names no set, so it reports the
+  # adjustment the DAG already carries instead: that adjustment is what
+  # activates the collider paths the plot draws as dashed curves, and blanking
+  # it would leave the plot showing their consequence with no sign of the cause.
+  adjusted_nodes <- if (is_empty_set) {
+    list(as.character(dagitty::adjustedNodes(pull_dag(.tdy_dag))))
+  } else {
+    sets
+  }
+
   update_dag_data(.tdy_dag) <-
-    purrr::map_df(
+    purrr::map2_df(
       sets,
-      \(.x) {
+      adjusted_nodes,
+      \(.set, .adjusted) {
         dplyr::mutate(
           pull_dag_data(.tdy_dag),
-          adjusted = ifelse(.data$name %in% .x, "adjusted", "unadjusted"),
-          set = paste0("{", paste(.x, collapse = ", "), "}")
+          adjusted = ifelse(
+            .data$name %in% .adjusted,
+            "adjusted",
+            "unadjusted"
+          ),
+          set = format_adjustment_set(.set)
         )
       }
     )
 
   .tdy_dag
+}
+
+# The `set` label `dag_adjustment_sets()` writes for a DAG whose backdoor paths
+# no adjustment set closes.
+no_adjustment_set_label <- "(No Way to Block Backdoor Paths)"
+
+# How the `set` column names one adjustment set: its variables inside braces.
+format_adjustment_set <- function(.x) {
+  paste0("{", paste(.x, collapse = ", "), "}")
 }
 
 extract_sets <- function(sets) {
@@ -109,14 +143,15 @@ ggdag_adjustment_set <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -125,9 +160,11 @@ ggdag_adjustment_set <- function(
   node = deprecated(),
   stylized = deprecated(),
   expand_x = expansion(c(0.25, 0.25)),
-  expand_y = expansion(c(0.2, 0.2))
+  expand_y = expansion(c(0.2, 0.2)),
+  collider_lines = NULL
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  check_collider_lines(collider_lines)
 
   .tdy_dag <- if_not_tidy_daggity(.tdy_dag) |>
     dag_adjustment_sets(exposure = exposure, outcome = outcome, ...) |>
@@ -137,15 +174,21 @@ ggdag_adjustment_set <- function(
         NA,
         "blocked by\nadjustment"
       )
-    )
+    ) |>
+    shadow_rows_first(\(x) !is.na(x$blocked), panel = "set")
+
+  adjusted_breaks <- present_levels(
+    pull_dag_data(.tdy_dag)$adjusted,
+    c("adjusted", "unadjusted")
+  )
 
   p <- ggplot2::ggplot(
     .tdy_dag,
     aes_dag(shape = .data$adjusted, color = .data$adjusted)
   ) +
     ggplot2::facet_wrap(~set) +
-    scale_adjusted() +
-    expand_plot(expand_x = expand_x, expand_y = expand_y)
+    scale_adjusted(breaks = adjusted_breaks) +
+    expand_dag_plot(.tdy_dag, expand_x = expand_x, expand_y = expand_y)
 
   if (use_edges) {
     if (identical(edge_engine, "ggarrow")) {
@@ -153,7 +196,7 @@ ggdag_adjustment_set <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- edge_cap * size
+      resect <- single_edge_cap(edge_cap, node_size) * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
@@ -161,31 +204,13 @@ ggdag_adjustment_set <- function(
       blocked_colour <- if (shadow) "grey80" else "#FFFFFF00"
       edge_mapping <- with_edge_curvature(NULL, p$data)
 
-      p <- p +
+      # the blocked edges are the context the open ones are read against, so
+      # they are added first and the open ones are drawn over them
+      edge_layers <- c(
         quick_plot_arrow_edges(
           mapping = edge_mapping,
-          data_directed = function(x) {
-            dplyr::filter(x, is.na(.data$blocked), .data$direction == "->")
-          },
-          data_bidirected = function(x) {
-            dplyr::filter(x, is.na(.data$blocked), .data$direction == "<->")
-          },
-          arrow_head = arrow_head,
-          arrow_fins = arrow_fins,
-          resect = resect,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          colour = "black",
-          show.legend = FALSE
-        ) +
-        quick_plot_arrow_edges(
-          mapping = edge_mapping,
-          data_directed = function(x) {
-            dplyr::filter(x, !is.na(.data$blocked), .data$direction == "->")
-          },
-          data_bidirected = function(x) {
-            dplyr::filter(x, !is.na(.data$blocked), .data$direction == "<->")
-          },
+          data_directed = filter_blocked_direction("->", blocked = TRUE),
+          data_bidirected = filter_blocked_direction("<->", blocked = TRUE),
           arrow_head = arrow_head,
           arrow_fins = arrow_fins,
           resect = resect,
@@ -193,9 +218,23 @@ ggdag_adjustment_set <- function(
           length = arrow_length_unit(arrow_length * size),
           colour = blocked_colour,
           show.legend = FALSE
+        ),
+        quick_plot_arrow_edges(
+          mapping = edge_mapping,
+          data_directed = filter_blocked_direction("->", blocked = FALSE),
+          data_bidirected = filter_blocked_direction("<->", blocked = FALSE),
+          arrow_head = arrow_head,
+          arrow_fins = arrow_fins,
+          resect = resect,
+          linewidth = edge_width * size,
+          length = arrow_length_unit(arrow_length * size),
+          colour = "black",
+          show.legend = FALSE
         )
+      )
+      p <- p + follow_nodes_when_unset(edge_layers, edge_cap, node_size, size)
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       vals <- if (shadow) {
         c("blocked by\nadjustment" = "grey80")
@@ -211,6 +250,7 @@ ggdag_adjustment_set <- function(
             edge_width = edge_width,
             arrow_length = arrow_length,
             size = size,
+            node_size = node_size,
             show.legend = if (shadow) NA else FALSE
           ),
           pull_dag_data(.tdy_dag)
@@ -222,8 +262,13 @@ ggdag_adjustment_set <- function(
           drop = TRUE,
           values = vals,
           limits = names(vals),
+          breaks = present_levels(pull_dag_data(.tdy_dag)$blocked, names(vals)),
           na.value = "black"
         )
+    }
+
+    if (draws_collider_lines(collider_lines, p$data)) {
+      p <- p + geom_dag_collider_edges()
     }
   }
 
@@ -245,6 +290,7 @@ ggdag_adjustment_set <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),
@@ -254,6 +300,82 @@ ggdag_adjustment_set <- function(
     )
 
   p
+}
+
+# The rows one edge layer of the adjustment set plot draws: the edges of a
+# single direction, split by whether adjustment blocks them.
+# `filter_direction()` also sets aside the curves that adjusting for a collider
+# activates, which mark an association rather than an edge of the DAG and are
+# drawn by `geom_dag_collider_edges()` instead.
+filter_blocked_direction <- function(.direction, blocked) {
+  direction_filter <- filter_direction(.direction)
+
+  function(x) {
+    x <- if (blocked) {
+      dplyr::filter(x, !is.na(.data$blocked))
+    } else {
+      dplyr::filter(x, is.na(.data$blocked))
+    }
+
+    direction_filter(x)
+  }
+}
+
+# Do the edge rows include a path that adjusting for a collider has activated?
+# A DAG that has not been adjusted for anything carries no `collider_line`
+# column at all.
+has_activated_collider_paths <- function(.data) {
+  "collider_line" %in% names(.data) && any(.data$collider_line, na.rm = TRUE)
+}
+
+# Does no adjustment set close the backdoor paths? `dag_adjustment_sets()`
+# records that case as the single set `no_adjustment_set_label`, the same case
+# it warns about, so the `set` column names it and nothing else.
+has_no_adjustment_set <- function(.data) {
+  if (!"set" %in% names(.data)) {
+    return(FALSE)
+  }
+
+  identical(unique(.data$set), format_adjustment_set(no_adjustment_set_label))
+}
+
+# Should the plot draw the paths that adjusting for a collider activates?
+# `NULL` draws them only where they explain something the adjustment sets
+# cannot: a set that closes the backdoor paths leaves the activated paths
+# nothing to say, so drawing them is noise.
+draws_collider_lines <- function(collider_lines, .data) {
+  if (!has_activated_collider_paths(.data)) {
+    return(FALSE)
+  }
+
+  if (is.null(collider_lines)) {
+    return(has_no_adjustment_set(.data))
+  }
+
+  collider_lines
+}
+
+check_collider_lines <- function(collider_lines, call = rlang::caller_env()) {
+  if (is.null(collider_lines)) {
+    return(invisible(collider_lines))
+  }
+
+  if (
+    !is.logical(collider_lines) ||
+      length(collider_lines) != 1 ||
+      is.na(collider_lines)
+  ) {
+    abort(
+      c(
+        "{.arg collider_lines} must be {.code NULL}, {.val {TRUE}}, or {.val {FALSE}}.",
+        "x" = "You provided {.obj_type_friendly {collider_lines}}."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+
+  invisible(collider_lines)
 }
 
 #' Assess if a variable confounds a relationship
@@ -366,7 +488,7 @@ control_for <- function(
   validate_nodes_exist(.tdy_dag, var, arg = "var")
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- var
-  update_dag(.tdy_dag) <- updated_dag
+  update_dag(.tdy_dag) <- keep_layout_direction(updated_dag, pull_dag(.tdy_dag))
   if (isTRUE(activate_colliders)) {
     .tdy_dag <- activate_collider_paths(.tdy_dag, var)
   }
@@ -401,14 +523,15 @@ ggdag_adjust <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -446,8 +569,14 @@ ggdag_adjust <- function(
 
   p <- .tdy_dag |>
     ggplot2::ggplot(aes_dag(col = .data$adjusted, shape = .data$adjusted)) +
-    scale_adjusted(include_alpha = TRUE) +
-    expand_plot(expand_y = expansion(c(0.2, 0.2)))
+    scale_adjusted(
+      include_alpha = TRUE,
+      breaks = present_levels(
+        pull_dag_data(.tdy_dag)$adjusted,
+        c("adjusted", "unadjusted")
+      )
+    ) +
+    expand_dag_plot(.tdy_dag, expand_y = expansion(c(0.2, 0.2)))
 
   if (use_edges) {
     if (identical(edge_engine, "ggarrow")) {
@@ -457,23 +586,28 @@ ggdag_adjust <- function(
       )
 
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = with_edge_curvature(
-            ggplot2::aes(alpha = .data$adjusted),
-            p$data
+        follow_nodes_when_unset(
+          quick_plot_arrow_edges(
+            mapping = with_edge_curvature(
+              ggplot2::aes(alpha = .data$adjusted),
+              p$data
+            ),
+            data_directed = filter_direction("->"),
+            data_bidirected = filter_direction("<->"),
+            arrow_head = ggdag_option("arrow_head", NULL) %||%
+              ggarrow::arrow_head_wings(),
+            arrow_fins = ggdag_option("arrow_fins", NULL),
+            resect = single_edge_cap(edge_cap, node_size) * size,
+            linewidth = edge_width * size,
+            length = arrow_length_unit(arrow_length * size),
+            show.legend = FALSE
           ),
-          data_directed = filter_direction("->"),
-          data_bidirected = filter_direction("<->"),
-          arrow_head = ggdag_option("arrow_head", NULL) %||%
-            ggarrow::arrow_head_wings(),
-          arrow_fins = ggdag_option("arrow_fins", NULL),
-          resect = edge_cap * size,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          show.legend = FALSE
+          edge_cap,
+          node_size,
+          size
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       p <- p +
         drop_empty_edge_layers(
@@ -483,7 +617,8 @@ ggdag_adjust <- function(
             edge_cap = edge_cap,
             edge_width = edge_width,
             arrow_length = arrow_length,
-            size = size
+            size = size,
+            node_size = node_size
           ),
           pull_dag_data(.tdy_dag)
         )
@@ -513,6 +648,7 @@ ggdag_adjust <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),

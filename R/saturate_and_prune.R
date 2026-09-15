@@ -10,7 +10,9 @@
 #' Bidirected edges carry no time-ordering information, so `dag_saturate()`
 #' assigns time order from the directed edges alone and then passes the input's
 #' bidirected edges through to the saturated DAG unchanged. A saturated model
-#' therefore never implies an independence that the input denies.
+#' therefore never implies an independence that the input denies. A node with
+#' no edges at all carries no time-ordering information either, so it takes no
+#' part in the saturation and is kept as an isolated node.
 #'
 #' `dag_prune()` errors if `edges` is empty, and if it names an edge the DAG
 #' does not contain, including an edge written in the reverse direction. A node
@@ -50,15 +52,18 @@
 dag_saturate <- function(
   .tdy_dag,
   use_existing_coords = FALSE,
-  layout = "time_ordered",
+  layout = ggdag_option("layout", "time_ordered"),
   seed = NULL,
   ...
 ) {
   .dag <- pull_dag(.tdy_dag)
   edges_df <- .dag |>
     get_dagitty_edges() |>
-    edges2df() |>
-    add_isolated_nodes(names(.dag))
+    edges2df()
+
+  # a node with no edges at all says nothing about its time order, so it takes
+  # no part in the saturation and is added back as an isolated node below
+  edged_nodes <- intersect(names(.dag), all_node_names(edges_df))
 
   bidirected_edges <- edges_df |>
     dplyr::filter(!is.na(.data$to), .data$direction == "<->")
@@ -67,8 +72,8 @@ dag_saturate <- function(
   # ordering comes from the directed edges alone; the bidirected edges are
   # added back to the saturated DAG below
   layer_assign <- edges_df |>
-    dplyr::filter(is.na(.data$to) | .data$direction != "<->") |>
-    add_isolated_nodes(names(.dag)) |>
+    dplyr::filter(.data$direction != "<->") |>
+    add_isolated_nodes(edged_nodes) |>
     longest_path_layers()
 
   df_time_order <- tibble::tibble(
@@ -82,6 +87,8 @@ dag_saturate <- function(
   .adjusted <- dagitty::adjustedNodes(.dag)
 
   saturated_dag <- split(df_time_order$name, df_time_order$order) |>
+    time_points_to_edges() |>
+    add_isolated_nodes(names(.dag)) |>
     as_tidy_dagitty(
       exposure = dagitty::exposures(.dag),
       outcome = dagitty::outcomes(.dag),
@@ -104,6 +111,10 @@ dag_saturate <- function(
 #' if it were a real layout leaves the layout unresolved further down the
 #' pipeline, so treat it as no coordinates at all.
 #'
+#' `dagitty::coordinates()` builds a fresh list, so the axis the layout that
+#' computed these coordinates ran its layers along is copied onto it: the
+#' saturated DAG is laid out with the coordinates the axis describes.
+#'
 #' @param .dag A `dagitty` object.
 #' @param use_existing_coords Whether the caller asked for the stored
 #'   coordinates.
@@ -119,7 +130,7 @@ stored_coordinates <- function(.dag, use_existing_coords) {
     return(NULL)
   }
 
-  coords
+  keep_layout_direction(coords, .dag)
 }
 
 #' Add the input's bidirected edges to a saturated DAG
@@ -212,7 +223,7 @@ add_adjusted_nodes <- function(.tdy_dag, .adjusted) {
 
   updated_dag <- pull_dag(.tdy_dag)
   dagitty::adjustedNodes(updated_dag) <- .adjusted
-  update_dag(.tdy_dag) <- updated_dag
+  update_dag(.tdy_dag) <- keep_layout_direction(updated_dag, pull_dag(.tdy_dag))
 
   dplyr::mutate(
     .tdy_dag,

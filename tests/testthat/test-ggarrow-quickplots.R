@@ -55,6 +55,7 @@ test_that("ggdag_paths() with ggarrow supports edge_engine parameter", {
     edge_engine = "ggarrow"
   )
   expect_s3_class(p, "ggplot")
+  expect_true(uses_ggarrow_edges(p))
 })
 
 # ggdag_adjustment_set() with ggarrow engine --------------------------------
@@ -82,6 +83,7 @@ test_that("ggdag_adjustment_set() with ggarrow supports edge_engine parameter", 
 
   p <- ggdag_adjustment_set(confounder_dag, edge_engine = "ggarrow")
   expect_s3_class(p, "ggplot")
+  expect_true(uses_ggarrow_edges(p))
 })
 
 # ggdag_equivalent_class() with ggarrow engine ------------------------------
@@ -102,6 +104,7 @@ test_that("ggdag_equivalent_class() with ggarrow supports edge_engine parameter"
   dag <- dagify(y ~ x + z, x ~ z)
   p <- ggdag_equivalent_class(dag, edge_engine = "ggarrow")
   expect_s3_class(p, "ggplot")
+  expect_true(uses_ggarrow_edges(p))
 })
 
 # Legend key glyphs with ggarrow engine ------------------------------------
@@ -259,10 +262,11 @@ test_that("ggdag_paths() draws per-edge curvature with the ggarrow engine", {
   drawn <- arrow_edge_curvature(p)
 
   expect_gt(nrow(drawn), 0)
-  # the x -> y edge was curved; the two z edges were not
+  # the x -> y edge was curved; the two z edges were not, so they carry no
+  # curvature of their own and their layer draws them as chords
   x_to_y <- drawn[drawn$x == 0 & drawn$xend == 2, ]
   expect_equal(unique(x_to_y$edge_curvature), 0.6)
-  expect_setequal(unique(drawn$edge_curvature), c(0, 0.6))
+  expect_setequal(unique(drawn$edge_curvature), c(NA, 0.6))
 })
 
 test_that("ggdag_adjustment_set() draws per-edge curvature with the ggarrow engine", {
@@ -338,6 +342,9 @@ test_that("ggdag_equivalent_dags() takes edge_engine directly", {
 # Legend glyphs follow the engine the plot was asked for ----------------------
 
 guide_grob_classes <- function(plot) {
+  # a gtable measures its text on a device, and with none open grid would open
+  # the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   gtable <- ggplot2::ggplotGrob(plot)
   classes <- character()
   collect <- function(grob) {

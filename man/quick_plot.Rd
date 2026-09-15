@@ -91,14 +91,15 @@ ggdag_m_bias(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -123,14 +124,15 @@ ggdag_butterfly_bias(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -153,14 +155,15 @@ ggdag_confounder_triangle(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -183,14 +186,15 @@ ggdag_collider_triangle(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -213,14 +217,15 @@ ggdag_mediation_triangle(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -243,14 +248,15 @@ ggdag_quartet_collider(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -271,14 +277,15 @@ ggdag_quartet_confounder(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -299,14 +306,15 @@ ggdag_quartet_mediator(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -329,14 +337,15 @@ ggdag_quartet_m_bias(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -363,14 +372,15 @@ ggdag_quartet_time_collider(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   unified_legend = TRUE,
   key_glyph = NULL,
@@ -400,7 +410,8 @@ ignored.}
 allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
-"diagonal".}
+"diagonal". \code{edge_route} applies to \code{"link_arc"} and \code{"link"} only:
+\code{"arc"} and \code{"diagonal"} bend every edge already, so they ignore it.}
 
 \item{node_size}{The size of the nodes.}
 
@@ -414,8 +425,14 @@ allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_width}{The width of the edges.}
 
-\item{edge_cap}{The size of edge caps (the distance between the arrowheads
-and the node borders).}
+\item{edge_cap}{The distance, in millimetres, that each edge stops short of
+the center of the node at either end, scaled by \code{size}. When neither this
+argument nor the \code{ggdag.edge_cap} option is set, either edge engine
+stops each end of an edge 2 mm outside the outline of the node drawn
+there, a gap also scaled by \code{size}, following that node's size and
+shape, so an arrowhead keeps the same distance from a large node as from
+a small one, and from the side of a square node as from a circle. A
+number fixes the cap at every end.}
 
 \item{arrow_length}{The length of arrows on edges.}
 
@@ -429,18 +446,35 @@ and the node borders).}
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
 \item{use_labels}{A logical value. Include a label geom? The specific geom
-used is controlled by \code{label_geom}.}
+used is controlled by \code{label_geom}. A DAG that carries no labels has
+nothing for the geom to draw, and the layer is left out rather than
+drawn empty, so the plot is the one you would get without the argument.}
 
 \item{label_geom}{A geom function to use for drawing labels when
-\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
-include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
-and \code{geom_dag_text_repel2}.}
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_auto}. Other options
+include \code{geom_dag_label_auto2}, \code{geom_dag_text_auto}, \code{geom_dag_label},
+\code{geom_dag_label_repel}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+and \code{geom_dag_text_repel2}. To change a parameter that \code{geom_dag()} sets
+on the label layer itself, such as \code{size} or \code{col}, wrap the label geom
+and write your value after the dots:
+\code{label_geom = function(...) geom_dag_label_auto(..., size = 4.6)}. The
+value written last is the one the layer uses, so yours takes effect. The
+mirror shape, \code{function(...) geom_dag_label_auto(size = 4.6, ...)}, writes
+your value first and therefore loses to the value \code{geom_dag()} writes.}
+
+\item{label_wrap}{Width in characters to wrap the label text to. Only the
+automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, wrap their text; the repel label geoms are not
+given it. \code{NULL}, the default, wraps nothing, and the \code{ggdag.label_wrap}
+option sets it for every plot.}
 
 \item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
 (default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
 \link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
-customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
-\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
+customization via the \code{arrow_head}, \code{arrow_fins}, and \code{arrow_mid} global
+options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}). The \code{curvature} option is read by
+both engines, but each engine draws that value with its own depth and to
+its own side.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

@@ -51,14 +51,15 @@ ggdag_drelationship(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -82,14 +83,15 @@ ggdag_dseparated(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -113,14 +115,15 @@ ggdag_dconnected(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -148,7 +151,8 @@ character vector of variable names, a list of the form \code{list(c(...))}, or
 \item{...}{additional arguments passed to \code{tidy_dagitty()}}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
-"diagonal".}
+"diagonal". \code{edge_route} applies to \code{"link_arc"} and \code{"link"} only:
+\code{"arc"} and \code{"diagonal"} bend every edge already, so they ignore it.}
 
 \item{size}{A numeric value scaling the size of all elements in the DAG. This
 allows you to change the scale of the DAG without changing the proportions.}
@@ -165,8 +169,14 @@ allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_width}{The width of the edges.}
 
-\item{edge_cap}{The size of edge caps (the distance between the arrowheads
-and the node borders).}
+\item{edge_cap}{The distance, in millimetres, that each edge stops short of
+the center of the node at either end, scaled by \code{size}. When neither this
+argument nor the \code{ggdag.edge_cap} option is set, each end of an edge stops
+2 mm outside the outline of the node drawn there, a gap also scaled by
+\code{size}, following that node's size and shape under either edge engine, so
+an arrowhead keeps the same distance from a large node as from a small
+one, and from the side of a square node as from a circle. A number fixes
+the cap at every end.}
 
 \item{arrow_length}{The length of arrows on edges.}
 
@@ -180,12 +190,27 @@ and the node borders).}
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
 \item{use_labels}{A logical value. Include a label geom? The specific geom
-used is controlled by \code{label_geom}.}
+used is controlled by \code{label_geom}. A DAG that carries no labels has
+nothing for the geom to draw, and the layer is left out rather than
+drawn empty, so the plot is the one you would get without the argument.}
 
 \item{label_geom}{A geom function to use for drawing labels when
-\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
-include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
-and \code{geom_dag_text_repel2}.}
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_auto}. Other options
+include \code{geom_dag_label_auto2}, \code{geom_dag_text_auto}, \code{geom_dag_label},
+\code{geom_dag_label_repel}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+and \code{geom_dag_text_repel2}. To change a parameter that \code{geom_dag()} sets
+on the label layer itself, such as \code{size} or \code{col}, wrap the label geom
+and write your value after the dots:
+\code{label_geom = function(...) geom_dag_label_auto(..., size = 4.6)}. The
+value written last is the one the layer uses, so yours takes effect. The
+mirror shape, \code{function(...) geom_dag_label_auto(size = 4.6, ...)}, writes
+your value first and therefore loses to the value \code{geom_dag()} writes.}
+
+\item{label_wrap}{Width in characters to wrap the label text to. Only the
+automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, wrap their text; the repel label geoms are not
+given it. \code{NULL}, the default, wraps nothing, and the \code{ggdag.label_wrap}
+option sets it for every plot.}
 
 \item{unified_legend}{A logical value. When \code{TRUE} and both \code{use_edges} and
 \code{use_nodes} are \code{TRUE}, creates a unified legend entry showing both nodes

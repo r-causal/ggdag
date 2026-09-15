@@ -4,9 +4,13 @@
 #' Pass the results to the `coords` argument of `dagify()`. If `.vars` if not
 #' specified, these coordinates will be determined automatically. If you want to
 #' be specific, you can also use a list or data frame. The default is to assume
-#' you want variables to go from left to right in order by time. Variables are
-#' spread along the y-axis using a simple algorithm to stack them. You can also
-#' work along the y-axis by setting `direction = "y"`.
+#' you want variables to go from left to right in order by time. By default,
+#' manually supplied time periods are also routed through the layout engine:
+#' each variable keeps the time period you gave it, while positions within and
+#' across time periods are optimized to reduce edge crossings and node-edge
+#' overlaps. Set `optimize = FALSE` to instead spread variables along the
+#' y-axis with the simple stacking algorithm earlier versions used. You can
+#' also work along the y-axis by setting `direction = "y"`.
 #'
 #' @param .vars A list of character vectors, where each vector represents a
 #'   single time period. Alternatively, a data frame where the first column is
@@ -16,7 +20,10 @@
 #'   of time periods (the length of `.vars`). A data frame carries its own time
 #'   points in its second column, so supplying both is an error.
 #' @param direction A character string indicating the axis along which the
-#'   variables should be time-ordered. Either "x" or "y". Default is "x".
+#'   variables should be time-ordered. Either "x" or "y". Default is "x". The
+#'   direction travels with the coordinates, so the edge router of
+#'   [geom_dag_routed_arrows()] knows which axis a layout that runs down the
+#'   panel ordered its layers along.
 #' @param auto_sort_direction If `.vars` is `NULL`: nodes will be placed as far
 #'   `"left"` or `"right"` of in the graph as is reasonable. Default is right,
 #'   meaning the nodes will be as close as possible in time to their
@@ -36,9 +43,21 @@
 #'   minimize node-edge overlaps. If `FALSE`, nodes are evenly spaced within
 #'   each layer using barycenter ordering only. Setting to `FALSE` is useful
 #'   when edges will be curved or auto-routed, where tight Y positioning is
-#'   less important. Only used in auto mode (`.vars = NULL`).
+#'   less important. Used whenever a layout is computed, that is, in auto mode
+#'   (`.vars = NULL`) and when `.vars` is supplied with `optimize = TRUE`.
+#' @param optimize If `TRUE` (default) and `.vars` is supplied, return a layout
+#'   function that routes your time periods through the layout engine. The
+#'   time period of every variable is honored exactly as given, including any
+#'   edge that contradicts it; such an edge is still drawn, but a warning
+#'   names it and it takes no part in the optimization. If `FALSE`, return a
+#'   tibble of coordinates that spreads each time period's variables evenly,
+#'   as earlier versions of ggdag did. With `.vars = NULL`, `optimize` is
+#'   ignored and the automatic layout function is returned either way.
 #'
-#' @return A tibble with three columns: `name`, `x`, and `y`.
+#' @return A layout function for the `coords` argument of [dagify()] or the
+#'   `layout` argument of [tidy_dagitty()], except when `.vars` is supplied
+#'   with `optimize = FALSE`, which returns a tibble with three columns:
+#'   `name`, `x`, and `y`.
 #'
 #' @examples
 #'
@@ -91,22 +110,25 @@ time_ordered_coords <- function(
   auto_sort_direction = c("right", "left"),
   fixed_time = NULL,
   adjust_exposure_outcome = TRUE,
-  force_y = TRUE
+  force_y = TRUE,
+  optimize = TRUE
 ) {
   direction <- match.arg(direction)
   auto_sort_direction <- match.arg(auto_sort_direction)
 
   if (is.null(.vars)) {
     auto_time_ordered_coords <- function(.df, ...) {
-      compute_time_ordered_layout(
+      coords <- compute_time_ordered_layout(
         .df,
         direction = direction,
         sort_direction = auto_sort_direction,
         fixed_time = fixed_time,
         adjust_exposure_outcome = adjust_exposure_outcome,
         force_y = force_y,
+        node_scale = ggdag_option("node_size") / 16,
         ...
       )
+      record_layout_direction(coords, direction)
     }
 
     return(auto_time_ordered_coords)
@@ -149,12 +171,73 @@ time_ordered_coords <- function(
     .vars <- split(.vars[[1]], times)
   }
 
-  purrr::map2_dfr(
-    time_points %||% seq_along(.vars),
-    .vars,
-    spread_coords,
-    direction = direction
+  # `.vars` and `time_points` describe the same time periods whether or not the
+  # layout is optimized, so both paths validate them here. Left to the
+  # unoptimized path, a longer `time_points` reaches `purrr::map2_dfr()` as a
+  # recycling error and a shorter one is recycled, putting every variable at the
+  # first time point.
+  tiers <- lapply(.vars, as.character)
+
+  all_names <- unlist(tiers)
+  dupes <- unique(all_names[duplicated(all_names)])
+  if (length(dupes) > 0) {
+    abort(
+      c(
+        "Every variable in {.arg .vars} must appear in exactly one time period.",
+        "x" = "{.val {dupes}} {?is/are} listed more than once."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  tier_points <- time_points %||% seq_along(tiers)
+  if (length(tier_points) != length(tiers)) {
+    abort(
+      c(
+        "{.arg time_points} must have one value per time period.",
+        "x" = "{.arg time_points} has {length(tier_points)} value{?s}, but
+               {.arg .vars} has {length(tiers)} time period{?s}."
+      ),
+      error_class = "ggdag_type_error"
+    )
+  }
+
+  if (!isTRUE(optimize)) {
+    spread <- purrr::map2_dfr(
+      tier_points,
+      .vars,
+      spread_coords,
+      direction = direction
+    )
+    return(record_layout_direction(spread, direction))
+  }
+
+  # An empty time period holds no variables but keeps its place on the axis:
+  # with default time points, list("a", character(0), "b") puts "b" at 3
+  keep <- lengths(tiers) > 0
+  tiers <- tiers[keep]
+  tier_points <- tier_points[keep]
+
+  fixed_layers <- stats::setNames(
+    rep(seq_along(tiers), lengths(tiers)),
+    unlist(tiers)
   )
+
+  manual_time_ordered_coords <- function(.df, ...) {
+    coords <- compute_time_ordered_layout(
+      .df,
+      direction = direction,
+      fixed_layers = fixed_layers,
+      time_points = tier_points,
+      fixed_layers_arg = ".vars",
+      force_y = force_y,
+      node_scale = ggdag_option("node_size") / 16,
+      ...
+    )
+    record_layout_direction(coords, direction)
+  }
+
+  manual_time_ordered_coords
 }
 
 spread_coords <- function(.time, .vars, direction) {
@@ -185,4 +268,186 @@ calculate_spread <- function(n) {
   }
 
   spread
+}
+
+# The axis a layout ordered time along -----------------------------------------
+
+#' Record the direction a layout laid its layers out along
+#'
+#' `time_ordered_coords()` is where the direction is named, so it is where the
+#' coordinates are marked with it. The layout engine's own tibble is left
+#' alone: the pinned layouts and the invariance fixture compare it by value.
+#'
+#' @param coords A data frame of coordinates.
+#' @param direction `"x"` or `"y"`.
+#' @return `coords`, marked with the direction.
+#' @noRd
+record_layout_direction <- function(coords, direction) {
+  attr(coords, "layout_direction") <- direction
+  coords
+}
+
+#' The direction a layout laid its layers out along
+#'
+#' [time_ordered_coords()] records the direction on the coordinates it hands
+#' back, [dagify()] and [tidy_dagitty()] copy it onto the `dagitty` object,
+#' where the dplyr methods keep it, and `ggplot()` carries it onto the data a
+#' plot is drawn from. Anything that has to know which axis the layers run
+#' along asks here, whichever of those it is holding.
+#'
+#' @param x A `tidy_dagitty`, a `dagitty` object, a data frame of coordinates,
+#'   or anything else, including `NULL`.
+#' @return `"x"` or `"y"`, or `NULL` when no layout recorded a direction.
+#' @noRd
+layout_direction <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+
+  if (is.tidy_dagitty(x)) {
+    x <- pull_dag(x)
+  }
+
+  direction <- attr(x, "layout_direction", exact = TRUE)
+  if (identical(direction, "x") || identical(direction, "y")) {
+    direction
+  } else {
+    NULL
+  }
+}
+
+# Layouts ggdag resolves itself ------------------------------------------------
+
+#' Is this layout one ggdag resolves itself?
+#'
+#' A built-in layout is named by a string, like a `ggraph` layout, but it is
+#' computed here rather than passed on, so its own arguments are ones ggdag
+#' has to route to it.
+#'
+#' @param layout A layout name, data frame, or function.
+#' @return `TRUE` for a built-in layout name.
+#' @noRd
+is_built_in_layout <- function(layout) {
+  is.character(layout) &&
+    length(layout) == 1 &&
+    layout %in% built_in_layout_names
+}
+
+built_in_layout_names <- "time_ordered"
+
+#' The function a built-in layout name stands for
+#'
+#' `layout = "time_ordered"` is shorthand for the layout function
+#' [time_ordered_coords()] returns, so the arguments the string takes are the
+#' ones that function takes.
+#'
+#' @param layout A built-in layout name.
+#' @return The function the name stands for.
+#' @noRd
+built_in_layout_fn <- function(layout) {
+  switch(layout, time_ordered = time_ordered_coords)
+}
+
+#' Build the layout a built-in name stands for
+#'
+#' @param layout A built-in layout name.
+#' @param layout_args A named list of arguments for it.
+#' @return A layout function, or a data frame of coordinates when the
+#'   arguments ask for one.
+#' @noRd
+resolve_built_in_layout <- function(layout, layout_args = list()) {
+  rlang::exec(built_in_layout_fn(layout), !!!layout_args)
+}
+
+#' Split `...` between a built-in layout and `ggraph::create_layout()`
+#'
+#' An argument named after one of the layout's own formals belongs to the
+#' layout; everything else keeps going to `ggraph::create_layout()`, as the
+#' documentation for `...` promises. Names match exactly, so an argument
+#' neither one takes reaches `ggraph::create_layout()` and errors there,
+#' rather than becoming a silent no-op.
+#'
+#' @param dots A list of the arguments in `...`.
+#' @param layout A layout name, data frame, or function.
+#' @return A list with the arguments for the `layout` and the `rest`.
+#' @noRd
+split_layout_args <- function(dots, layout) {
+  if (!is_built_in_layout(layout)) {
+    return(list(layout = list(), rest = dots))
+  }
+
+  layout_formals <- names(formals(built_in_layout_fn(layout)))
+  dot_names <- names(dots) %||% rep("", length(dots))
+  is_layout_arg <- nzchar(dot_names) & dot_names %in% layout_formals
+
+  list(layout = dots[is_layout_arg], rest = dots[!is_layout_arg])
+}
+
+#' The layer axis a routed layer takes from the layout
+#'
+#' The edge router infers the axis its layers run along from the node
+#' positions, and the inference reads a scene it cannot separate as layers
+#' across the panel. A layout that ran down the panel is the case it can get
+#' wrong, so that is the one it is told about; a layout across the panel is
+#' what it assumes already.
+#'
+#' @param x Anything `layout_direction()` reads.
+#' @return `"y"`, or `"auto"` to leave the axis to the router.
+#' @noRd
+layout_layer_axis <- function(x) {
+  if (identical(layout_direction(x), "y")) {
+    "y"
+  } else {
+    "auto"
+  }
+}
+
+#' Coordinates for a `dagitty` object, keeping the direction they were laid
+#' out along
+#'
+#' [coords2list()] builds a fresh list, so the direction the layout recorded
+#' is copied onto it here.
+#'
+#' @param coords A data frame of coordinates.
+#' @return A list of `x` and `y` coordinates named by node.
+#' @noRd
+layout_coords_list <- function(coords) {
+  as_list <- coords2list(coords)
+  direction <- layout_direction(coords)
+  if (!is.null(direction)) {
+    attr(as_list, "layout_direction") <- direction
+  }
+  as_list
+}
+
+#' Mark a `dagitty` object with the axis its layout ran its layers along
+#'
+#' The mark belongs to the coordinates, so it is written whenever they are:
+#' the axis a new layout names replaces the one before it, and coordinates
+#' that name no axis leave the object unmarked.
+#'
+#' @param x A `dagitty` object.
+#' @param direction `"x"`, `"y"`, or `NULL` to leave it unmarked.
+#' @return `x`, marked.
+#' @noRd
+set_layout_direction <- function(x, direction) {
+  attr(x, "layout_direction") <- direction
+  x
+}
+
+#' Carry the layout direction across a `dagitty` setter
+#'
+#' `dagitty`'s replacement functions rebuild the object from its text, which
+#' drops the attributes ggdag keeps on it. The rebuilt object holds the node
+#' positions the original did, either because the attribute being set says
+#' nothing about where the nodes sit or because the coordinates written into
+#' it are the ones the mark describes, so the axis the layout ran along still
+#' describes the rebuilt object and goes back onto it.
+#'
+#' @param x The rebuilt `dagitty` object.
+#' @param from The object it was built from.
+#' @return `x`, marked as `from` was.
+#' @noRd
+keep_layout_direction <- function(x, from) {
+  set_layout_direction(x, layout_direction(from))
 }

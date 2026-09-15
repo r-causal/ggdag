@@ -130,7 +130,10 @@ plot specification, e.g. borders().}
 
 \item{curvature}{The bend of the curve. 1 approximates a halfcircle while 0
 will give a straight line. Negative number will change the direction of the
-curve. Only used if layout circular = FALSE.}
+curve. Only used if layout circular = FALSE. \code{geom_dag_edges_arc()} keeps
+its own default rather than reading the \code{curvature} option: the option
+sets the bend of the arcs the packaged plots draw, and a layer you build
+yourself takes the value you give it.}
 
 \item{fold}{Logical. Should arcs appear on the same side of the nodes despite
 different directions. Default to FALSE.}

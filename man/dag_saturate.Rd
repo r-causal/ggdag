@@ -8,7 +8,7 @@
 dag_saturate(
   .tdy_dag,
   use_existing_coords = FALSE,
-  layout = "time_ordered",
+  layout = ggdag_option("layout", "time_ordered"),
   seed = NULL,
   ...
 )
@@ -21,16 +21,24 @@ dag_prune(.tdy_dag, edges)
 \item{use_existing_coords}{Logical, indicating whether to use existing node
 coordinates.}
 
-\item{layout}{a layout available in \code{ggraph}. See \code{\link[ggraph:create_layout]{ggraph::create_layout()}}
-for details. Alternatively, \code{"time_ordered"} will use
-\code{time_ordered_coords()} to algorithmically sort the graph by time. You can
-also pass the result of \code{time_ordered_coords()} directly: either the
-function returned when called with no arguments, or the coordinate tibble
-returned when called with arguments.}
+\item{layout}{the layout to use. The default, \code{"time_ordered"}, uses
+\code{time_ordered_coords()} to algorithmically sort the graph by time. The
+\code{layout} option of \code{\link[=ggdag_options_set]{ggdag_options_set()}} changes that default.
+Alternatively, name a layout available in \code{ggraph}, such as \code{"nicely"};
+see \code{\link[ggraph:create_layout]{ggraph::create_layout()}} for details. You can also pass the result of
+\code{time_ordered_coords()} directly: either the function returned when called
+with no arguments, or the coordinate tibble returned when called with
+arguments.}
 
 \item{seed}{a numeric seed for reproducible layout generation}
 
-\item{...}{optional arguments passed to \code{ggraph::create_layout()}}
+\item{...}{optional arguments for the layout. When \code{layout} names a layout
+ggdag computes itself, an argument named after one of that layout's own
+arguments is passed to it: \code{"time_ordered"} takes the arguments of
+\code{\link[=time_ordered_coords]{time_ordered_coords()}}, so, for instance,
+\verb{layout = "time_ordered", adjust_exposure_outcome = FALSE} leaves a
+contemporaneous exposure and outcome in the same time period. Every other
+argument is passed to \code{ggraph::create_layout()}.}
 
 \item{edges}{The edges to remove, in either of two forms. A named character
 vector where the name is the starting node and the value is the end node,
@@ -53,7 +61,9 @@ together with saturated DAG.
 Bidirected edges carry no time-ordering information, so \code{dag_saturate()}
 assigns time order from the directed edges alone and then passes the input's
 bidirected edges through to the saturated DAG unchanged. A saturated model
-therefore never implies an independence that the input denies.
+therefore never implies an independence that the input denies. A node with
+no edges at all carries no time-ordering information either, so it takes no
+part in the saturation and is kept as an isolated node.
 
 \code{dag_prune()} errors if \code{edges} is empty, and if it names an edge the DAG
 does not contain, including an edge written in the reverse direction. A node

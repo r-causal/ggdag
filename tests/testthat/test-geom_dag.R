@@ -381,6 +381,7 @@ test_that("repel node_size parameter sets point.size for node-aware repelling", 
     )
 
   expect_doppelganger("repel text with node_size 20", p_text)
+  expect_equal(repel_node_sizes(p_text), 20)
 
   # node_size flows through geom_dag_label_repel
   p_label <- g |>
@@ -394,6 +395,33 @@ test_that("repel node_size parameter sets point.size for node-aware repelling", 
     )
 
   expect_doppelganger("repel label with node_size 20", p_label)
+  expect_equal(repel_node_sizes(p_label), 20)
+
+  # the argument decides, not the node layer: a node_size auto-discovery would
+  # never supply reaches the layer unchanged
+  p_text_32 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point(size = 20) +
+    geom_dag_text_repel(
+      aes(label = name),
+      node_size = 32
+    )
+
+  expect_equal(repel_node_sizes(p_text_32), 32)
+
+  p_label_32 <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag_edges() +
+    geom_dag_point(size = 20) +
+    geom_dag_label_repel(
+      aes(label = name),
+      node_size = 32
+    )
+
+  expect_equal(repel_node_sizes(p_label_32), 32)
 })
 
 test_that("geom_dag() threads node_size to repel labels", {
@@ -413,11 +441,28 @@ test_that("geom_dag() threads node_size to repel labels", {
     ggplot(aes_dag()) +
     geom_dag(
       use_labels = TRUE,
+      label_geom = geom_dag_label_repel,
       node_size = 20,
       size = 1
     )
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 20)
+
+  # with no node layer drawn there is nothing for the repel layer to discover,
+  # so a node size it carries can only have come from geom_dag()
+  p_no_nodes <- g |>
+    tidy_dagitty() |>
+    ggplot(aes_dag()) +
+    geom_dag(
+      use_labels = TRUE,
+      label_geom = geom_dag_label_repel,
+      use_nodes = FALSE,
+      node_size = 30,
+      size = 1
+    )
+
+  expect_equal(repel_node_sizes(p_no_nodes), 30)
 
   # Build the plot to verify no errors during rendering
   built <- ggplot2::ggplot_build(p)
@@ -438,6 +483,7 @@ test_that("repel geoms auto-discover node_size via ggplot_add", {
     geom_dag_text_repel(aes(label = name))
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 25)
   built <- ggplot2::ggplot_build(p)
   expect_s3_class(built, "ggplot_built")
 })
@@ -455,6 +501,7 @@ test_that("repel geoms auto-discover node_size from geom_dag_point", {
     geom_dag_label_repel(aes(label = name))
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 20)
   built <- ggplot2::ggplot_build(p)
   expect_s3_class(built, "ggplot_built")
 })
@@ -473,6 +520,7 @@ test_that("explicit node_size overrides auto-discovery in repel geoms", {
     geom_dag_text_repel(aes(label = name), node_size = 30)
 
   expect_s3_class(p, "gg")
+  expect_equal(repel_node_sizes(p), 30)
   built <- ggplot2::ggplot_build(p)
   expect_s3_class(built, "ggplot_built")
 })
@@ -514,12 +562,16 @@ test_that("repel2 functions with custom defaults work visually", {
 
 test_that("different edge types work", {
   withr::local_seed(1234)
+  # w1 -> y and w1 <-> y run between the same pair of nodes. Only the fan
+  # spreads a parallel pair apart; every other edge type draws one edge on top
+  # of the other.
   p <- dagify(
     y ~ x + z2 + w2 + w1,
     x ~ z1 + w1,
     z1 ~ w1 + v,
     z2 ~ w2 + v,
-    L ~ w1 + w2
+    L ~ w1 + w2,
+    y ~ ~w1
   ) |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
     geom_dag_point() +
@@ -765,42 +817,27 @@ test_that("nudge parameters work with vectors", {
 })
 
 test_that("node_size_to_cap converts node size in pt to edge cap radius in mm", {
-  # Default node_size of 16 should give 8mm cap (the current default)
+  # the cap stops the edge 2 mm beyond the node's radius of 0.375 mm per unit
+  # of size, so the default node_size of 16 gives the 8 mm cap it always had
   expect_equal(node_size_to_cap(16), 8)
   # Larger nodes need larger caps
-  expect_equal(node_size_to_cap(32), 16)
-  # Zero should give zero
-  expect_equal(node_size_to_cap(0), 0)
+  expect_equal(node_size_to_cap(32), 14)
+  # a node of no size leaves the gap alone
+  expect_equal(node_size_to_cap(0), 2)
 })
 
 test_that("edge layers auto-discover node_size and sync edge caps", {
   g <- dagify(y ~ x, z ~ x)
 
-  # When node layer has size=24, edge caps should auto-sync to 12mm
+  # When the node layer has size = 24, each edge stops 2 mm beyond the 9 mm
+  # radius of the node drawn at its end
   p <- g |>
     tidy_dagitty() |>
     ggplot(aes_dag()) +
     geom_dag_point(size = 24) +
     geom_dag_edges_link()
 
-  # Find the edge layer and check its start_cap
-  edge_layer <- NULL
-  for (layer in p$layers) {
-    if (
-      inherits(layer$geom, "GeomDAGEdgePath") ||
-        inherits(layer$geom, "GeomEdgePath")
-    ) {
-      edge_layer <- layer
-      break
-    }
-  }
-
-  expect_false(is.null(edge_layer))
-  cap_quo <- edge_layer$mapping$start_cap
-  expect_false(is.null(cap_quo))
-  cap <- rlang::eval_tidy(cap_quo)
-  # circle(12, "mm") stores width = 24 (diameter)
-  expect_equal(unclass(cap)$width / 2, 12)
+  expect_equal(edge_cap_radii(p), 11)
 })
 
 test_that("edge layer auto-sync uses default when no node layer present", {
@@ -884,14 +921,8 @@ test_that("geom_dag_edges auto-syncs caps for both link and arc layers", {
     p$layers
   )
 
-  expect_true(length(edge_layers) >= 1)
-  for (layer in edge_layers) {
-    cap_quo <- layer$mapping$start_cap
-    if (!is.null(cap_quo)) {
-      cap <- rlang::eval_tidy(cap_quo)
-      expect_equal(unclass(cap)$width / 2, 12)
-    }
-  }
+  expect_length(edge_layers, 2)
+  expect_equal(edge_cap_radii(p), 11)
 })
 
 test_that("geom_dag() label_geom parameter produces correct visuals", {
@@ -948,7 +979,7 @@ test_that("edge_cap auto-sync adjusts caps based on node_size", {
 
   expect_doppelganger("auto-sync-default-node-size", p_default)
 
-  # Large node_size (32) → auto cap = 16mm (edges stop further from center)
+  # Large node_size (32) → auto cap = 14mm (edges stop further from center)
   p_large <- dag |>
     tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -958,7 +989,7 @@ test_that("edge_cap auto-sync adjusts caps based on node_size", {
 
   expect_doppelganger("auto-sync-large-node-size", p_large)
 
-  # Small node_size (8) → auto cap = 4mm (edges closer to center)
+  # Small node_size (8) → auto cap = 5mm (edges closer to center)
   p_small <- dag |>
     tidy_dagitty() |>
     ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
@@ -971,7 +1002,8 @@ test_that("edge_cap auto-sync adjusts caps based on node_size", {
 
 test_that("edge_cap auto-sync works with all edge types", {
   withr::local_seed(1234)
-  dag <- dagify(y ~ x + z, x ~ z)
+  # z -> x and z <-> x are parallel, so the fan has a pair to spread
+  dag <- dagify(y ~ x + z, x ~ z, x ~ ~z)
 
   p_base <- dag |>
     tidy_dagitty() |>
@@ -1047,10 +1079,13 @@ test_that("geom_dag_node (stylized) also triggers auto-sync", {
   expect_doppelganger("auto-sync-with-stylized-node", p_stylized)
 })
 
-test_that("geom_dag_edges_fan() leaves unrelated edges straight", {
+test_that("geom_dag_edges_fan() spreads only the parallel edges", {
   withr::local_seed(1234)
+  # a -> z and a <-> z share a node pair and fan apart; b -> w shares its pair
+  # with nothing and stays on the straight chord
   dag <- dagify(
     z ~ a,
+    z ~ ~a,
     w ~ b,
     coords = list(
       x = c(a = 0, b = 0, z = 1, w = 1),
@@ -1063,7 +1098,7 @@ test_that("geom_dag_edges_fan() leaves unrelated edges straight", {
     geom_dag_edges_fan() +
     geom_dag_text()
 
-  expect_doppelganger("geom_dag_edges_fan() with no parallel edges", p)
+  expect_doppelganger("geom_dag_edges_fan() with one parallel pair", p)
 })
 
 test_that("repel geoms honour the British spelling of segment.colour", {
@@ -1449,6 +1484,69 @@ for (plotter_name in names(curved_plotters)) {
   })
 }
 
+# -- the curvature option reaches the ggraph arc layers -----------------------
+
+test_that("geom_dag() bends its ggraph arcs by the curvature option", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+
+  p <- ggplot(test_dag, aes_dag()) + geom_dag(edge_type = "arc")
+
+  expect_equal(arc_edge_strengths(p$layers), ggdag_option("curvature"))
+  expect_equal(arc_edge_strengths(p$layers), 0.3)
+})
+
+test_that("a set curvature option moves the ggraph arcs geom_dag() draws", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+  local_ggdag_option_state()
+  ggdag_options_set(curvature = 0.5)
+
+  p <- ggplot(test_dag, aes_dag()) + geom_dag(edge_type = "arc")
+
+  expect_equal(arc_edge_strengths(p$layers), 0.5)
+})
+
+test_that("geom_dag_edges() bends its bidirected arc by the curvature option", {
+  local_ggdag_option_state()
+
+  expect_equal(arc_edge_strengths(geom_dag_edges()), ggdag_option("curvature"))
+  expect_equal(arc_edge_strengths(geom_dag_edges()), 0.3)
+
+  ggdag_options_set(curvature = 0.5)
+
+  expect_equal(arc_edge_strengths(geom_dag_edges()), 0.5)
+})
+
+test_that("the diagonal edge type keeps ggraph's own strength", {
+  withr::local_options(ggdag.edge_engine = "ggraph")
+  local_ggdag_option_state()
+  ggdag_options_set(curvature = 0.5)
+
+  p <- ggplot(test_dag, aes_dag()) + geom_dag(edge_type = "diagonal")
+  diagonals <- purrr::keep(
+    p$layers,
+    \(layer) inherits(layer$stat, "StatEdgeDiagonal")
+  )
+
+  expect_equal(diagonals[[1]]$stat_params$strength, 1)
+})
+
+test_that("both edge engines read one plot's curvature option", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+  ggdag_options_set(curvature = 0.45)
+
+  ggraph_arcs <- ggplot(test_dag, aes_dag()) +
+    geom_dag(edge_type = "arc", edge_engine = "ggraph")
+  ggarrow_arcs <- ggplot(test_dag, aes_dag()) +
+    geom_dag(edge_type = "arc", edge_engine = "ggarrow")
+
+  expect_equal(
+    unique(arc_edge_strengths(ggraph_arcs$layers)),
+    unique(arrow_arc_curvatures(ggarrow_arcs$layers))
+  )
+  expect_equal(unique(arc_edge_strengths(ggraph_arcs$layers)), 0.45)
+})
+
 # -- edge caps sync to the node layer in either layer order -------------------
 
 built_edge_cap <- function(plot) {
@@ -1481,9 +1579,9 @@ test_that("edge caps sync to the node layer whichever order the layers arrive", 
     geom_dag_edges_link() +
     geom_dag_point(size = 24)
 
-  expect_equal(built_edge_cap(nodes_first), 12)
+  expect_equal(built_edge_cap(nodes_first), 11)
   # the order every layer-by-layer example uses; the caps must still sync
-  expect_equal(built_edge_cap(edges_first), 12)
+  expect_equal(built_edge_cap(edges_first), 11)
 })
 
 test_that("an edge layer inside a geom_dag() layer list still syncs its caps", {
@@ -1495,10 +1593,7 @@ test_that("an edge layer inside a geom_dag() layer list still syncs its caps", {
     geom_dag_point(size = 32) +
     structure(list(geom_dag_edges_link()), class = "geom_dag_layers")
 
-  edge_layer <- p$layers[[2]]
-  expect_false(is.null(edge_layer$mapping$start_cap))
-  cap <- rlang::eval_tidy(edge_layer$mapping$start_cap)
-  expect_equal(unclass(cap)$width / 2, 16)
+  expect_equal(built_edge_cap(p), 14)
 })
 
 test_that("one stored edge layer reads each plot it joins", {
@@ -1510,10 +1605,10 @@ test_that("one stored edge layer reads each plot it joins", {
     edge_layer
   without_nodes <- ggplot(tidy_dag, aes_dag()) + edge_layer
 
-  cap <- rlang::eval_tidy(with_nodes$layers[[2]]$mapping$start_cap)
-  expect_equal(unclass(cap)$width / 2, 16)
+  expect_equal(built_edge_cap(with_nodes), 14)
 
   # the second plot has no node layer, so its caps stay at the geom default
+  expect_equal(built_edge_cap(without_nodes), 8)
   expect_null(without_nodes$layers[[1]]$mapping$start_cap)
   # and the stored layer is still the blank one that was created
   expect_null(edge_layer$layer$mapping$start_cap)
@@ -1655,4 +1750,69 @@ test_that("the edge geoms silently drop missing values by default", {
   }
 
   expect_false(formals(geom_dag_collider_edges)$na.rm)
+})
+
+test_that("geom_dag() errors when the plot maps no DAG aesthetics", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_error(
+    ggplot2::ggplot_build(ggplot(dag) + geom_dag()),
+    class = "ggdag_missing_error"
+  )
+
+  expect_error(
+    ggplot2::ggplot_build(ggplot(pull_dag_data(dag)) + geom_dag()),
+    class = "ggdag_missing_error"
+  )
+
+  expect_ggdag_error(ggplot2::ggplot_build(ggplot(dag) + geom_dag()))
+})
+
+test_that("geom_dag() errors when the plot maps only some DAG aesthetics", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_error(
+    ggplot2::ggplot_build(
+      ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag()
+    ),
+    class = "ggdag_missing_error"
+  )
+
+  expect_ggdag_error(ggplot2::ggplot_build(
+    ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag()
+  ))
+})
+
+test_that("geom_dag() accepts a plot mapped with aes_dag()", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  p <- ggplot(dag, aes_dag()) + geom_dag()
+  expect_no_error(ggplot2::ggplot_build(p))
+
+  # the fast path: a layer whose aesthetics are already mapped is added
+  # unwrapped, rather than through a `setup_layer()` override
+  expect_equal(
+    unique(vapply(p$layers, function(layer) class(layer)[[1]], character(1))),
+    "LayerInstance"
+  )
+})
+
+test_that("geom_dag(use_edges = FALSE) asks only for the node aesthetics", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_no_error(ggplot2::ggplot_build(
+    ggplot(dag, aes(x = .data$x, y = .data$y)) + geom_dag(use_edges = FALSE)
+  ))
+
+  # the node, text, and label layers still need somewhere to sit
+  expect_error(
+    ggplot2::ggplot_build(ggplot(dag) + geom_dag(use_edges = FALSE)),
+    class = "ggdag_missing_error"
+  )
+})
+
+test_that("geom_dag() sees the DAG aesthetics mapped after it", {
+  dag <- tidy_dagitty(dagify(y ~ x + z, x ~ z))
+
+  expect_no_error(ggplot2::ggplot_build(ggplot(dag) + geom_dag() + aes_dag()))
 })

@@ -9,7 +9,8 @@ scale_adjusted(
   include_linetype = TRUE,
   include_shape = TRUE,
   include_color = TRUE,
-  include_alpha = FALSE
+  include_alpha = FALSE,
+  breaks = ggplot2::waiver()
 )
 
 scale_dag(breaks = ggplot2::waiver())
@@ -27,13 +28,12 @@ Default is TRUE.}
 \item{include_alpha}{Logical. Include alpha scales for de-emphasizing edges
 from adjusted variables? Default is FALSE.}
 
-\item{breaks}{One of:
-\itemize{
-\item NULL for no breaks
-\item waiver() for the default breaks computed by the transformation object
-\item A numeric vector of positions
-\item A function that takes the limits as input and returns breaks as output
-}}
+\item{breaks}{The adjustment statuses to list in the legend. The default,
+\code{waiver()}, lists both. A plot whose layers have no rows of one status
+should leave it out: ggplot2 builds each legend key from the rows carrying
+its value, so a status with no rows draws a label beside an empty box.
+The scale keeps both statuses as its limits either way, so the colours and
+shapes do not move when one is left out.}
 }
 \description{
 \code{scale_adjusted()} is a convenience function that implements ways of

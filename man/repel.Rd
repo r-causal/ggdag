@@ -18,18 +18,18 @@ geom_dag_text_repel(
   node_size = NULL,
   n_edge_points = NULL,
   n_node_points = NULL,
-  box.padding = 1.25,
-  point.padding = 1,
-  min.segment.length = 0.5,
+  box.padding = 0.5,
+  point.padding = 0.5,
+  min.segment.length = 1,
   segment.color = "#666666",
   segment.alpha = 1,
   fontface = "bold",
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
-  force_pull = 1,
-  max.time = 0.5,
-  max.iter = 2000,
+  force_pull = 2,
+  max.time = 1,
+  max.iter = 10000,
   max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
@@ -38,7 +38,7 @@ geom_dag_text_repel(
   na.rm = FALSE,
   show.legend = NA,
   direction = c("both", "y", "x"),
-  seed = NA,
+  seed = 1234,
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
@@ -53,20 +53,20 @@ geom_dag_label_repel(
   node_size = NULL,
   n_edge_points = NULL,
   n_node_points = NULL,
-  box.padding = grid::unit(1.25, "lines"),
+  box.padding = grid::unit(0.5, "lines"),
   label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1, "lines"),
+  point.padding = grid::unit(0.5, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
-  min.segment.length = 0.5,
+  min.segment.length = 1,
   segment.color = "grey50",
   segment.alpha = 1,
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
-  force_pull = 1,
-  max.time = 0.5,
-  max.iter = 2000,
+  force_pull = 2,
+  max.time = 1,
+  max.iter = 10000,
   max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
@@ -75,7 +75,7 @@ geom_dag_label_repel(
   na.rm = FALSE,
   show.legend = NA,
   direction = c("both", "y", "x"),
-  seed = NA,
+  seed = 1234,
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 )
@@ -83,7 +83,7 @@ geom_dag_label_repel(
 geom_dag_label_repel2(
   mapping = NULL,
   data = NULL,
-  box.padding = 2,
+  box.padding = 0.75,
   max.overlaps = Inf,
   label.size = NA,
   linewidth = 0,
@@ -93,7 +93,7 @@ geom_dag_label_repel2(
 geom_dag_text_repel2(
   mapping = NULL,
   data = NULL,
-  box.padding = 2,
+  box.padding = 0.75,
   max.overlaps = Inf,
   ...
 )
@@ -148,17 +148,15 @@ same 25 points per node and the parameter only starts to take effect
 above 16. Defaults to \code{NULL}, which uses the \code{StatNodesRepel} default of
 12. Set to 0 to disable node skeleton repulsion.}
 
-\item{box.padding}{Amount of padding around bounding box, as unit or number.
-Defaults to 0.25. (Default unit is lines, but other units can be specified
-by passing \code{unit(x, "units")}).}
+\item{box.padding}{Amount of padding around the label's bounding box, as a
+unit or number. Defaults to 0.5 lines, and to 0.75 in
+\code{geom_dag_label_repel2()} and \code{geom_dag_text_repel2()}.}
 
-\item{point.padding}{Amount of padding around labeled point, as unit or
-number. Defaults to 0. (Default unit is lines, but other units can be
-specified by passing \code{unit(x, "units")}).}
+\item{point.padding}{Amount of padding around the labeled node, as a unit
+or number. Defaults to 0.5 lines.}
 
-\item{min.segment.length}{Skip drawing segments shorter than this, as unit or
-number. Defaults to 0.5. (Default unit is lines, but other units can be
-specified by passing \code{unit(x, "units")}).}
+\item{min.segment.length}{Skip drawing segments shorter than this, as a
+unit or number. Defaults to 1 line; set to 0 to always draw segments.}
 
 \item{segment.color, segment.size}{See \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}}
 
@@ -172,19 +170,19 @@ use ggrepel's default behavior, or provide a value between 0 and 1}
 \item{force}{Force of repulsion between overlapping text labels. Defaults
 to 1.}
 
-\item{force_pull}{Force of attraction between a text label and its
-corresponding data point. Defaults to 1.}
+\item{force_pull}{Force of attraction between a label and its node.
+Defaults to 2, which holds labels closer to their nodes than ggrepel's
+default of 1.}
 
-\item{max.time}{Maximum number of seconds to try to resolve overlaps.
-Defaults to 0.5.}
+\item{max.time}{Maximum number of seconds to spend resolving overlaps.
+Defaults to 1, so the iteration cap in \code{max.iter} usually ends the
+simulation rather than the wall clock.}
 
 \item{max.iter}{Maximum number of iterations to try to resolve overlaps.
 Defaults to 10000.}
 
-\item{max.overlaps}{Exclude text labels when they overlap too many other
-things. For each text label, we count how many other text labels or other
-data points it overlaps, and exclude the text label if it has too many overlaps.
-Defaults to 10.}
+\item{max.overlaps}{Exclude a label when it overlaps too many other things.
+Defaults to \code{Inf}, so every label is drawn.}
 
 \item{nudge_x, nudge_y}{Horizontal and vertical adjustments to nudge the
 starting position of each text label. The units for \code{nudge_x} and
@@ -203,8 +201,9 @@ a warning.  If \code{TRUE} silently removes missing values.}
 
 \item{direction}{"both", "x", or "y" -- direction in which to adjust position of labels}
 
-\item{seed}{Random seed passed to \code{\link[base]{set.seed}}. Defaults to
-\code{NA}, which means that \code{set.seed} will not be called.}
+\item{seed}{Random seed for the repel simulation. Defaults to 1234, so the
+same plot draws its labels the same way in every session. Set to \code{NA}
+for ggrepel's default behavior, a new arrangement on every draw.}
 
 \item{verbose}{If \code{TRUE}, some diagnostics of the repel algorithm are printed}
 
@@ -242,6 +241,11 @@ These geoms are wrappers around \code{\link[ggrepel:geom_text_repel]{ggrepel::ge
 for better handling of DAG data. All arguments available in ggrepel
 functions are supported.
 
+The text comes from the \code{label} aesthetic. When neither the layer nor the
+plot maps one, these geoms draw the labels the DAG carries, and fall back
+to the node names when it carries none. Mapping \code{label} yourself, on the
+layer or on the plot, overrides both.
+
 Labels are kept off nodes and edges by two mechanisms. The \code{point.size}
 aesthetic, computed from \code{node_size}, is converted by ggrepel at draw time
 and so describes the same circle at every device size. The invisible points
@@ -256,9 +260,9 @@ one it is larger and labels are pushed further away than they need to be.
 Set \code{n_node_points = 0} to rely on \code{point.size} alone.
 
 Points along an edge trace the path that edge is drawn along, including the
-arc of a bidirected edge and of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}}. Edges drawn by
-\code{\link[=geom_dag_edges_diagonal]{geom_dag_edges_diagonal()}}, \code{\link[=geom_dag_edges_fan]{geom_dag_edges_fan()}}, and the ggarrow engine
-are traced along the straight line between their nodes.
+arc of a bidirected edge and of \code{\link[=geom_dag_edges_arc]{geom_dag_edges_arc()}} and the curves of
+\code{\link[=geom_dag_edges_diagonal]{geom_dag_edges_diagonal()}} and \code{\link[=geom_dag_edges_fan]{geom_dag_edges_fan()}}. Edges drawn by the
+ggarrow engine are traced along the straight line between their nodes.
 
 Additional segment parameters can be passed through \code{...}, including:
 \itemize{

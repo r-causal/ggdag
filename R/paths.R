@@ -100,6 +100,13 @@ strip_path_results <- function(.tdy_dag) {
 #' `ggdag_paths` and `ggdag_paths_fan` plot all open paths. See
 #' [dagitty::paths()] for details.
 #'
+#' `ggdag_paths_fan()` draws one copy of each edge per open path and spreads
+#' the copies apart by giving each one a curvature. Edge routing draws an edge
+#' along the path the router chooses instead, which leaves the copies on top
+#' of one another, so this plotter draws the fan and warns that an
+#' `edge_route` asked for is dropped. Use `ggdag_paths()` to draw the same
+#' paths with routed edges.
+#'
 #' @inheritParams dag_params
 #' @inheritParams path_params
 #' @inheritParams dagitty::paths
@@ -313,14 +320,15 @@ ggdag_paths <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
   text = NULL,
   label = NULL,
@@ -333,7 +341,7 @@ ggdag_paths <- function(
   edge_type <- check_edge_type(edge_type)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
-  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+  path_dag <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
       to = to,
@@ -341,10 +349,23 @@ ggdag_paths <- function(
       limit = limit,
       directed = directed
     ) |>
+    shadow_rows_first(\(x) is.na(x$path_type), panel = "set")
+
+  # The plot keeps the whole path vocabulary as its colour limits so a path type
+  # is drawn in the same colour whatever else the DAG contains, and lists only
+  # the types it has rows for: a legend key is built from those rows, so a type
+  # with none draws a label beside an empty box.
+  path_type_breaks <- present_levels(
+    pull_dag_data(path_dag)$path_type,
+    c("direct", "backdoor", "other")
+  )
+
+  p <- path_dag |>
     ggplot2::ggplot(aes_dag(color = .data$path_type)) +
     ggplot2::facet_wrap(~ forcats::fct_inorder(as.factor(set))) +
-    breaks(c("direct", "backdoor", "other"), name = "path") +
-    expand_plot(
+    breaks(path_type_breaks, name = "path") +
+    expand_dag_plot(
+      path_dag,
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
     )
@@ -379,25 +400,30 @@ ggdag_paths <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- edge_cap * size
+      resect <- single_edge_cap(edge_cap, node_size) * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
 
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = with_edge_curvature(
-            ggplot2::aes(colour = .data$path_type),
-            p$data
+        follow_nodes_when_unset(
+          quick_plot_arrow_edges(
+            mapping = with_edge_curvature(
+              ggplot2::aes(colour = .data$path_type),
+              p$data
+            ),
+            data_directed = f_directed,
+            data_bidirected = f_bidirected,
+            arrow_head = arrow_head,
+            arrow_fins = arrow_fins,
+            resect = resect,
+            linewidth = edge_width * size,
+            length = arrow_length_unit(arrow_length * size),
+            show.legend = FALSE
           ),
-          data_directed = f_directed,
-          data_bidirected = f_bidirected,
-          arrow_head = arrow_head,
-          arrow_fins = arrow_fins,
-          resect = resect,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          show.legend = FALSE
+          edge_cap,
+          node_size,
+          size
         )
 
       p <- p +
@@ -406,10 +432,11 @@ ggdag_paths <- function(
           drop = FALSE,
           na.value = if (shadow) "grey80" else "#FFFFFF00",
           na.translate = TRUE,
-          limits = c("direct", "backdoor", "other")
+          limits = c("direct", "backdoor", "other"),
+          breaks = path_type_breaks
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       p <- p +
         drop_empty_edge_layers(
@@ -420,6 +447,7 @@ ggdag_paths <- function(
             edge_width = edge_width,
             arrow_length = arrow_length,
             size = size,
+            node_size = node_size,
             data = if (!shadow) {
               function(x) dplyr::filter(x, .data$path == "open path")
             },
@@ -443,7 +471,8 @@ ggdag_paths <- function(
           drop = FALSE,
           na.value = if (shadow) "grey80" else "#FFFFFF00",
           na.translate = TRUE,
-          limits = c("direct", "backdoor", "other")
+          limits = c("direct", "backdoor", "other"),
+          breaks = path_type_breaks
         )
     }
   }
@@ -469,6 +498,7 @@ ggdag_paths <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = TRUE,
       key_glyph = draw_key_dag_combined,
       text = !!rlang::enquo(text),
@@ -499,14 +529,15 @@ ggdag_paths_fan <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -517,7 +548,7 @@ ggdag_paths_fan <- function(
 ) {
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
 
-  p <- if_not_tidy_daggity(.tdy_dag, ...) |>
+  path_dag <- if_not_tidy_daggity(.tdy_dag, ...) |>
     dag_paths(
       from = from,
       to = to,
@@ -525,8 +556,9 @@ ggdag_paths_fan <- function(
       limit = limit,
       directed = directed,
       paths_only = !shadow
-    ) |>
-    ggplot2::ggplot(aes_dag())
+    )
+
+  p <- ggplot2::ggplot(path_dag, aes_dag())
 
   if (use_edges) {
     if (identical(edge_engine, "ggarrow")) {
@@ -535,22 +567,35 @@ ggdag_paths_fan <- function(
         reason = "to use edge_engine = \"ggarrow\"."
       )
 
+      # The fan is the picture this plotter draws: one copy of every edge per
+      # open path, spread by a curvature each. The router draws one path per
+      # edge, so a routed fan is no fan at all, and the copies would coincide.
+      # The fan is kept and the routing is reported dropped, once for the
+      # plot, as the ggraph-only edge layers report one they cannot draw.
+      warn_dropped_fan_edge_route()
+
       p <- p +
-        quick_plot_arrow_edges(
-          mapping = ggplot2::aes(
-            colour = .data$set,
-            alpha = .data$path,
-            edge_curvature = .data$edge_curvature
+        follow_nodes_when_unset(
+          quick_plot_arrow_edges(
+            mapping = ggplot2::aes(
+              colour = .data$set,
+              alpha = .data$path,
+              edge_curvature = .data$edge_curvature
+            ),
+            data_directed = fan_edges(spread, "->"),
+            data_bidirected = fan_edges(spread, "<->"),
+            edge_route = "straight",
+            arrow_head = ggdag_option("arrow_head", NULL) %||%
+              ggarrow::arrow_head_wings(),
+            arrow_fins = ggdag_option("arrow_fins", NULL),
+            resect = single_edge_cap(edge_cap, node_size) * size,
+            linewidth = edge_width * size,
+            length = arrow_length_unit(arrow_length * size),
+            show.legend = TRUE
           ),
-          data_directed = fan_edges(spread, "->"),
-          data_bidirected = fan_edges(spread, "<->"),
-          arrow_head = ggdag_option("arrow_head", NULL) %||%
-            ggarrow::arrow_head_wings(),
-          arrow_fins = ggdag_option("arrow_fins", NULL),
-          resect = edge_cap * size,
-          linewidth = edge_width * size,
-          length = arrow_length_unit(arrow_length * size),
-          show.legend = TRUE
+          edge_cap,
+          node_size,
+          size
         ) +
         ggplot2::scale_alpha_manual(
           drop = FALSE,
@@ -561,19 +606,27 @@ ggdag_paths_fan <- function(
         ) +
         ggplot2::scale_color_discrete(name = "open path", drop = FALSE)
     } else {
-      p <- p +
-        geom_dag_edges_fan(
-          with_edge_caps(
-            ggplot2::aes(edge_colour = .data$set, edge_alpha = .data$path),
-            edge_cap * size
+      warn_if_ggarrow_only_ignored(pull_dag_data(path_dag))
+
+      fan_layer <- without_edge_route_warning(geom_dag_edges_fan(
+        with_edge_caps(
+          ggplot2::aes(
+            edge_colour = .data$set,
+            edge_alpha = .data$path,
+            group = shadow_first_rank(is.na(.data$path))
           ),
-          spread = spread,
-          edge_width = edge_width * size,
-          arrow = grid::arrow(
-            length = grid::unit(arrow_length * size, "pt"),
-            type = "closed"
-          )
-        ) +
+          single_edge_cap(edge_cap, node_size) * size
+        ),
+        spread = spread,
+        edge_width = edge_width * size,
+        arrow = grid::arrow(
+          length = grid::unit(arrow_length * size, "pt"),
+          type = "closed"
+        )
+      ))
+
+      p <- p +
+        follow_nodes_when_unset(fan_layer, edge_cap, node_size, size) +
         ggplot2::scale_alpha_manual(
           drop = FALSE,
           values = c("open path" = 1),
@@ -595,7 +648,8 @@ ggdag_paths_fan <- function(
   }
 
   p <- p +
-    expand_plot(
+    expand_dag_plot(
+      path_dag,
       expand_x = expansion(c(0.25, 0.25)),
       expand_y = expansion(c(0.1, 0.1))
     )
@@ -617,6 +671,7 @@ ggdag_paths_fan <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       edge_engine = edge_engine,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
@@ -645,7 +700,12 @@ fan_edges <- function(spread, .direction) {
     x |>
       dplyr::group_by(.data$name, .data$to) |>
       dplyr::mutate(edge_curvature = fan_offsets(dplyr::n()) * spread) |>
-      dplyr::ungroup()
+      dplyr::ungroup() |>
+      # the arrow geom draws the rows in the order it receives them, so the
+      # faded copies come first and the paths are the ink on top. The offsets
+      # are worked out before the sort, so each copy keeps the place in the
+      # fan that the order of the paths gave it
+      dplyr::arrange(!is.na(.data$path))
   }
 }
 

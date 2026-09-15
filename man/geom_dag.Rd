@@ -9,20 +9,23 @@ geom_dag(
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   n_edge_points = NULL,
   n_node_points = NULL,
   unified_legend = TRUE,
@@ -53,13 +56,27 @@ from a \code{formula} (e.g. \code{~ head(.x, 10)}).}
 allows you to change the scale of the DAG without changing the proportions.}
 
 \item{edge_type}{The type of edge, one of "link_arc", "link", "arc",
-"diagonal".}
+"diagonal". \code{edge_route} applies to \code{"link_arc"} and \code{"link"} only:
+\code{"arc"} and \code{"diagonal"} bend every edge already, so they ignore it.}
 
 \item{edge_engine}{The engine used to draw edges. Either \code{"ggraph"}
 (default) or \code{"ggarrow"}. When \code{"ggarrow"}, edges are drawn using
 \link[ggarrow:ggarrow-package]{ggarrow} geoms, which support additional
-customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, and
-\code{curvature} global options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}).}
+customization via the \code{arrow_head}, \code{arrow_fins}, and \code{arrow_mid} global
+options (see \code{\link[=ggdag_options_set]{ggdag_options_set()}}). The \code{curvature} option is read by
+both engines, but each engine draws that value with its own depth and to
+its own side.}
+
+\item{edge_route}{How the ggarrow engine draws directed edges, one of
+\code{"straight"} (the default), \code{"spline"}, or \code{"orthogonal"}. \code{"spline"}
+detours an edge whose path a node blocks around that node with a smooth
+curve; \code{"orthogonal"} draws every edge as axis-aligned runs with rounded
+corners. Both decide the geometry in the units of the device when the
+plot is drawn. The ggraph engine cannot route and warns when asked to.}
+
+\item{edge_route_options}{An object from \code{\link[=edge_route_options]{edge_route_options()}} carrying
+the constants the router draws with, or \code{NULL} (the default) for the
+router's own. It is read only when \code{edge_route} names a routing mode.}
 
 \item{node_size}{The size of the nodes.}
 
@@ -73,8 +90,14 @@ customization via the \code{arrow_head}, \code{arrow_fins}, \code{arrow_mid}, an
 
 \item{edge_width}{The width of the edges.}
 
-\item{edge_cap}{The size of edge caps (the distance between the arrowheads
-and the node borders).}
+\item{edge_cap}{The distance, in millimetres, that each edge stops short of
+the center of the node at either end, scaled by \code{size}. When neither this
+argument nor the \code{ggdag.edge_cap} option is set, either edge engine
+stops each end of an edge 2 mm outside the outline of the node drawn
+there, a gap also scaled by \code{size}, following that node's size and
+shape, so an arrowhead keeps the same distance from a large node as from
+a small one, and from the side of a square node as from a circle. A
+number fixes the cap at every end.}
 
 \item{arrow_length}{The length of arrows on edges.}
 
@@ -88,12 +111,27 @@ and the node borders).}
 \item{use_text}{A logical value. Include \code{geom_dag_text()}?}
 
 \item{use_labels}{A logical value. Include a label geom? The specific geom
-used is controlled by \code{label_geom}.}
+used is controlled by \code{label_geom}. A DAG that carries no labels has
+nothing for the geom to draw, and the layer is left out rather than
+drawn empty, so the plot is the one you would get without the argument.}
 
 \item{label_geom}{A geom function to use for drawing labels when
-\code{use_labels = TRUE}. Default is \code{geom_dag_label_repel}. Other options
-include \code{geom_dag_label}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
-and \code{geom_dag_text_repel2}.}
+\code{use_labels = TRUE}. Default is \code{geom_dag_label_auto}. Other options
+include \code{geom_dag_label_auto2}, \code{geom_dag_text_auto}, \code{geom_dag_label},
+\code{geom_dag_label_repel}, \code{geom_dag_text_repel}, \code{geom_dag_label_repel2},
+and \code{geom_dag_text_repel2}. To change a parameter that \code{geom_dag()} sets
+on the label layer itself, such as \code{size} or \code{col}, wrap the label geom
+and write your value after the dots:
+\code{label_geom = function(...) geom_dag_label_auto(..., size = 4.6)}. The
+value written last is the one the layer uses, so yours takes effect. The
+mirror shape, \code{function(...) geom_dag_label_auto(size = 4.6, ...)}, writes
+your value first and therefore loses to the value \code{geom_dag()} writes.}
+
+\item{label_wrap}{Width in characters to wrap the label text to. Only the
+automatic label geoms, \code{\link[=geom_dag_label_auto]{geom_dag_label_auto()}} and
+\code{\link[=geom_dag_text_auto]{geom_dag_text_auto()}}, wrap their text; the repel label geoms are not
+given it. \code{NULL}, the default, wraps nothing, and the \code{ggdag.label_wrap}
+option sets it for every plot.}
 
 \item{n_edge_points}{Number of invisible points to interpolate along each
 edge for label repulsion. Passed to repel label geoms. Defaults to \code{NULL}
@@ -160,7 +198,7 @@ dag_labeled <- dagify(
   labels = c(x = "Exposure", y = "Outcome", z = "Mediator")
 )
 
-# Default: repelling labels
+# Default: automatically placed labels
 ggplot(dag_labeled, aes_dag()) +
   geom_dag(use_labels = TRUE)
 

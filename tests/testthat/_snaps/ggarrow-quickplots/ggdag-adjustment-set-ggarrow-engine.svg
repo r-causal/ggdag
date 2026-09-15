@@ -27,15 +27,15 @@
 </defs>
 <g clip-path='url(#cpMzUuMjR8NjM3Ljc0fDM5LjQzfDU0NS4xMQ==)'>
 <rect x='35.24' y='39.43' width='602.50' height='505.68' style='stroke-width: 1.07; stroke: none; fill: #FFFFFF;' />
-<path d='M 508.98 472.87 L 501.80 470.26 L 503.45 472.23 L 164.00 472.23 L 164.00 473.51 L 503.45 473.52 L 501.80 475.48 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 155.20 443.10 L 152.68 443.58 L 323.27 136.76 L 322.71 136.45 L 322.15 136.14 L 151.55 442.96 L 150.63 440.56 L 149.43 448.10 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
-<path d='M 522.34 440.56 L 521.43 442.96 L 350.82 136.14 L 350.26 136.45 L 349.70 136.76 L 520.30 443.58 L 517.78 443.10 L 523.55 448.10 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 152.44 448.05 L 149.92 448.54 L 324.44 134.66 L 323.32 134.04 L 148.79 447.91 L 147.88 445.52 L 146.67 453.05 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 525.10 445.52 L 524.18 447.91 L 349.66 134.04 L 348.54 134.66 L 523.05 448.54 L 520.54 448.05 L 526.30 453.05 Z' style='fill-rule: evenodd; fill: #CCCCCC; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 514.64 472.87 L 507.47 470.26 L 509.12 472.23 L 158.33 472.23 L 158.33 473.51 L 509.12 473.52 L 507.47 475.48 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<polygon points='319.06,129.10 353.91,129.10 353.91,94.25 319.06,94.25 ' style='stroke-width: 0.71; stroke: none; fill: #F8766D;' />
 <circle cx='135.65' cy='472.87' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
 <circle cx='537.32' cy='472.87' r='17.43' style='stroke-width: 0.71; stroke: #00BFC4; fill: #00BFC4;' />
-<polygon points='319.06,129.10 353.91,129.10 353.91,94.25 319.06,94.25 ' style='stroke-width: 0.71; stroke: none; fill: #F8766D;' />
+<text x='336.49' y='115.47' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <text x='135.65' y='476.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>x</text>
 <text x='537.32' y='476.67' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>y</text>
-<text x='336.49' y='115.47' text-anchor='middle' style='font-size: 11.04px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.52px' lengthAdjust='spacingAndGlyphs'>z</text>
 <rect x='35.24' y='39.43' width='602.50' height='505.68' style='stroke-width: 1.07; stroke: #333333;' />
 </g>
 <g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>

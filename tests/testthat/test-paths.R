@@ -1032,3 +1032,144 @@ test_that("ggdag_paths() rejects an edge type it cannot draw on either engine", 
     "gg"
   )
 })
+
+# Routing the fan --------------------------------------------------------------
+#
+# `ggdag_paths_fan()` draws one copy of every edge per open path and spreads
+# the copies by curvature. The router draws one path per edge, so under a
+# routing the copies would coincide and the fan would be gone. The fan is the
+# picture this plotter is for, so it keeps the fan and reports the routing it
+# dropped, as the ggraph-only edge layers do.
+
+# Every `ggdag_edge_route_warning` that `code` emits. They are muffled as they
+# are collected, so the count is exact and none escapes as stray output.
+fan_routing_warnings <- function(code) {
+  collected <- list()
+  withCallingHandlers(
+    force(code),
+    warning = function(w) {
+      collected[[length(collected) + 1L]] <<- w
+      invokeRestart("muffleWarning")
+    }
+  )
+  purrr::keep(collected, \(w) inherits(w, "ggdag_edge_route_warning"))
+}
+
+# The built data of the layer that draws the fan.
+fan_layer_data <- function(plot) {
+  built <- ggplot2::ggplot_build(plot)
+  index <- which(purrr::map_lgl(plot$layers, \(layer) {
+    inherits(layer$geom, "GeomDAGArrowCurve")
+  }))
+  expect_gt(length(index), 0)
+  built$data[[index[[1]]]]
+}
+
+fan_dag <- function() {
+  dagify(
+    y ~ x + z,
+    x ~ z,
+    m ~ x,
+    y ~ m,
+    exposure = "x",
+    outcome = "y",
+    coords = list(
+      x = c(x = 0, z = 1, m = 1, y = 2),
+      y = c(x = 0, z = 1, m = -1, y = 0)
+    )
+  )
+}
+
+test_that("ggdag_paths_fan() reports the routing it drops on the ggarrow engine", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+
+  for (route in c("spline", "orthogonal")) {
+    ggdag_options_set(edge_engine = "ggarrow", edge_route = route)
+
+    # once for the whole plot, whether the report is made as the plot is
+    # assembled or as it is built
+    warned <- fan_routing_warnings({
+      plot <- ggdag_paths_fan(fan_dag())
+      invisible(ggplot2::ggplot_build(plot))
+    })
+    expect_length(warned, 1)
+    expect_s3_class(warned[[1]], "ggdag_edge_route_warning")
+    expect_match(conditionMessage(warned[[1]]), route)
+  }
+})
+
+test_that("ggdag_paths_fan() still spreads the fan under a routing", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "straight")
+  straight <- suppressWarnings(fan_layer_data(ggdag_paths_fan(fan_dag())))
+
+  for (route in c("spline", "orthogonal")) {
+    ggdag_options_set(edge_route = route)
+    routed <- suppressWarnings(fan_layer_data(ggdag_paths_fan(fan_dag())))
+
+    # the fan is one copy of each edge per open path, spread by curvature,
+    # and the routing changes neither
+    expect_equal(nrow(routed), nrow(straight))
+    expect_equal(
+      sort(unique(routed$edge_curvature)),
+      sort(unique(straight$edge_curvature))
+    )
+    expect_gt(length(unique(routed$edge_curvature)), 1)
+  }
+})
+
+test_that("ggdag_paths_fan() says nothing about a straight routing", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "straight")
+
+  warned <- fan_routing_warnings({
+    plot <- ggdag_paths_fan(fan_dag())
+    invisible(ggplot2::ggplot_build(plot))
+  })
+  expect_length(warned, 0)
+})
+
+test_that("ggdag_paths_fan() draws the fan under a routing", {
+  skip_if_not_installed("ggarrow")
+  local_ggdag_option_state()
+
+  ggdag_options_set(edge_engine = "ggarrow", edge_route = "spline")
+  plot <- suppressWarnings(ggdag_paths_fan(fan_dag()))
+
+  expect_doppelganger("ggdag-paths-fan-routing-dropped", plot)
+})
+
+# The colours a path plot maps each path type to, whether or not it has paths
+# of that type. Dropping an absent type from the scale's limits would shift the
+# hues of the types that remain, so the plot keeps the full vocabulary as its
+# limits and trims only the legend.
+path_palette <- function(plot) {
+  scale <- ggplot2::ggplot_build(plot)$plot$scales$get_scales("colour")
+
+  stats::setNames(
+    scale$map(c("direct", "backdoor", "other")),
+    c("direct", "backdoor", "other")
+  )
+}
+
+test_that("ggdag_paths() draws no legend key it has no rows for", {
+  p <- ggdag_paths(dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y"))
+
+  expect_equal(empty_legend_keys(p), character())
+})
+
+test_that("ggdag_paths() keeps the path colours when a path type is absent", {
+  absent <- path_palette(
+    ggdag_paths(dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y"))
+  )
+
+  expect_equal(
+    absent,
+    c("direct" = "#F8766D", "backdoor" = "#00BA38", "other" = "#619CFF")
+  )
+})

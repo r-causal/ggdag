@@ -10,6 +10,7 @@
 #' @param ... additional arguments passed to `tidy_dagitty()`, which lays out
 #'   the canonical DAG. `use_existing_coords` is not among them: the latent
 #'   variables that the canonical form introduces have no coordinates to reuse.
+#' @inheritParams edge_cap_params
 #' @inheritParams geom_dag
 #'
 #' @return a `tidy_dagitty` that includes L or a `ggplot`
@@ -69,14 +70,15 @@ ggdag_canonical <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
   text = NULL,
@@ -108,6 +110,7 @@ ggdag_canonical <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),

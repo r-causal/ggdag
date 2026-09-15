@@ -36,7 +36,13 @@ test_that("ggdag() forwards edge_engine for a DAG that carries coordinates", {
 test_that("ggdag() forwards the repel point counts to the label layer", {
   dag <- dagify(y ~ x + z, x ~ z, labels = c(x = "X", y = "Y", z = "Z"))
 
-  p <- ggdag(dag, use_labels = TRUE, n_edge_points = 0, n_node_points = 4)
+  p <- ggdag(
+    dag,
+    use_labels = TRUE,
+    label_geom = geom_dag_label_repel,
+    n_edge_points = 0,
+    n_node_points = 4
+  )
   repel_layers <- purrr::keep(p$layers, \(layer) {
     inherits(layer$stat, "StatNodesRepel")
   })

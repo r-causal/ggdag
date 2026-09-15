@@ -147,13 +147,14 @@ test_that("arrows resect to the node layer whichever order they arrive in", {
     geom_dag_point(size = 32) +
     geom_dag_arrow()
   # the order the layer-by-layer examples use; the resection must still follow
-  # the node size rather than the 8mm option
+  # the node size rather than the 8mm option: a node of size 32 is 12 mm in
+  # radius, and the edge stops 2 mm beyond it
   arrows_first <- ggplot(tidy_dag, aes_dag()) +
     geom_dag_arrow() +
     geom_dag_point(size = 32)
 
-  expect_equal(built_resect(nodes_first)$head, 16)
-  expect_equal(built_resect(arrows_first)$head, 16)
+  expect_equal(built_resect(nodes_first)$head, 14)
+  expect_equal(built_resect(arrows_first)$head, 14)
 
   # a plot with no node layer at all still falls back to the option
   no_nodes <- ggplot(tidy_dag, aes_dag()) + geom_dag_arrow()
@@ -517,6 +518,7 @@ test_that("edge_curvature absent uses scalar curvature param", {
     geom_dag_text() +
     theme_dag()
 
+  withr::local_pdf(NULL)
   grob <- ggplotGrob(p)
   expect_s3_class(grob, "gtable")
 })
@@ -556,7 +558,7 @@ test_that("edge_curvature column gives each edge its own curvature", {
   expect_doppelganger("geom_dag_arrow_arc mixed edge_curvature", p)
 })
 
-test_that("NA edge_curvature falls back to curvature param", {
+test_that("an unset edge_curvature is drawn as a chord beside a mapped value", {
   skip_if_not_installed("ggarrow")
 
   add_partial_curvature <- function(x) {
@@ -579,6 +581,17 @@ test_that("NA edge_curvature falls back to curvature param", {
     geom_dag_text() +
     theme_dag()
 
+  # once one edge carries a value, the edges left unset are the ones the user
+  # chose not to bend, so they are chords whatever the layer's scalar says
+  grob <- ggplot2::layer_grob(p, 1)[[1]]
+  curvatures <- vapply(
+    grob$children,
+    function(child) child$curve$curvature,
+    numeric(1)
+  )
+  expect_setequal(unname(curvatures), c(-0.8, 0))
+
+  # the baseline keeps the name it was recorded under
   expect_doppelganger("geom_dag_arrow_arc NA fallback curvature", p)
 })
 
@@ -603,6 +616,7 @@ test_that("all-NA edge_curvature is equivalent to no column", {
     geom_dag_text() +
     theme_dag()
 
+  withr::local_pdf(NULL)
   grob <- ggplotGrob(p)
   expect_s3_class(grob, "gtable")
 })
@@ -1512,7 +1526,7 @@ test_that("geom_dag_arrow_arc() skewed angle snapshot", {
 
 test_that("geom_dag() with edge_engine='ggraph' returns ggraph edge layers (default)", {
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggraph")
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggraph")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # Should contain ggraph edge geoms, not ggarrow
   expect_false(any(grepl("DAGArrow", layer_classes)))
@@ -1522,7 +1536,7 @@ test_that("geom_dag() with edge_engine='ggarrow' returns ggarrow edge layers", {
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow")
+  p <- ggplot(dag, aes_dag()) + geom_dag(edge_engine = "ggarrow")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # Should contain ggarrow-based geoms
 
@@ -1533,7 +1547,8 @@ test_that("geom_dag() with edge_engine='ggarrow' and edge_type='link' uses strai
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow", edge_type = "link")
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "link")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true(any(grepl("DAGArrow", layer_classes)))
   # Should NOT have curve geom for link-only
@@ -1544,7 +1559,8 @@ test_that("geom_dag() with edge_engine='ggarrow' and edge_type='arc' uses curved
   skip_if_not_installed("ggarrow")
 
   dag <- dagify(y ~ x + z, x ~ z)
-  p <- ggplot(dag) + geom_dag(edge_engine = "ggarrow", edge_type = "arc")
+  p <- ggplot(dag, aes_dag()) +
+    geom_dag(edge_engine = "ggarrow", edge_type = "arc")
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true(any(grepl("DAGArrowCurve", layer_classes)))
 })
@@ -1554,7 +1570,7 @@ test_that("geom_dag() picks up global edge_engine option", {
 
   dag <- dagify(y ~ x + z, x ~ z)
   withr::local_options(ggdag.edge_engine = "ggarrow")
-  p <- ggplot(dag) + geom_dag()
+  p <- ggplot(dag, aes_dag()) + geom_dag()
   layer_classes <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true(any(grepl("DAGArrow", layer_classes)))
 })
@@ -2093,6 +2109,88 @@ test_that("curving one edge leaves bidirected edges on their own arc", {
   expect_true(all(is.na(bidirected_arc_curvature(ggdag(curved)))))
 })
 
+# The curvature each arc the bidirected layer of `plot` draws is built with.
+# `GeomDAGArrowCurve` draws one arc grob per distinct curvature, so this is
+# the set of arcs the reader sees on that layer.
+drawn_bidirected_curvatures <- function(plot) {
+  for (i in seq_along(plot$layers)) {
+    layer <- plot$layers[[i]]
+    if (!inherits(layer$geom, "GeomDAGArrowCurve")) {
+      next
+    }
+    if (!identical(layer$geom_params$unset, "curvature")) {
+      next
+    }
+    grob <- ggplot2::layer_grob(plot, i)[[1]]
+    if (inherits(grob, "curve_arrow")) {
+      return(grob$curve$curvature)
+    }
+    return(unname(vapply(
+      grob$children,
+      function(child) child$curve$curvature,
+      numeric(1)
+    )))
+  }
+  NULL
+}
+
+test_that("curving one bidirected edge leaves the others on their arc", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  dag <- dagify(
+    u ~ ~v,
+    s ~ ~t,
+    b ~ a,
+    coords = list(
+      x = c(a = 0, b = 1, u = 0, v = 1, s = 0, t = 1),
+      y = c(a = 0, b = 0, u = 1, v = 1, s = 2, t = 2)
+    )
+  )
+  tidy_dag <- curve_edge(tidy_dagitty(dag), "u", "v", 0.6)
+
+  # an arc is how a bidirected edge is read, so the sibling the user never
+  # touched keeps the layer's own curvature rather than flattening to a chord
+  expect_setequal(drawn_bidirected_curvatures(ggdag(tidy_dag)), c(0.3, 0.6))
+
+  p <- ggplot(tidy_dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_arrows()
+  expect_setequal(drawn_bidirected_curvatures(p), c(0.3, 0.6))
+
+  routed <- ggplot(tidy_dag, aes_dag(edge_curvature = edge_curvature)) +
+    geom_dag_routed_arrows()
+  expect_setequal(drawn_bidirected_curvatures(routed), c(0.3, 0.6))
+})
+
+test_that("a control point on one bidirected edge leaves the others on their arc", {
+  skip_if_not_installed("ggarrow")
+  withr::local_options(ggdag.edge_engine = "ggarrow")
+
+  dag <- dagitty::dagitty(
+    'dag {
+      bb="-1,-1,3,3"
+      u [pos="0.000,1.000"]
+      v [pos="2.000,1.000"]
+      s [pos="0.000,2.000"]
+      t [pos="2.000,2.000"]
+      u <-> v [pos="1.000,1.800"]
+      s <-> t
+    }'
+  )
+  tidy_dag <- tidy_dagitty(dag)
+
+  edges <- pull_dag_data(tidy_dag)
+  from_control <- edges$edge_curvature[edges$name == "u" & !is.na(edges$to)]
+  expect_false(is.na(from_control))
+
+  # the edge with a control point follows it; the one without keeps the
+  # layer's curvature
+  expect_setequal(
+    drawn_bidirected_curvatures(ggdag(tidy_dag)),
+    c(from_control, 0.3)
+  )
+})
+
 test_that("ggdag() ggarrow curved directed edge with bidirected arc snapshot", {
   skip_if_not_installed("ggarrow")
   withr::local_options(ggdag.edge_engine = "ggarrow")
@@ -2120,9 +2218,308 @@ test_that("one stored arrow layer reads each plot it joins", {
     arrow_layer
   without_nodes <- ggplot(tidy_dag, aes_dag()) + arrow_layer
 
-  expect_equal(with_nodes$layers[[2]]$geom_params$resect$head, 16)
+  # a node of size 32 is 12 mm in radius, and the edge stops 2 mm beyond it
+  expect_equal(with_nodes$layers[[2]]$geom_params$resect$head, 14)
   # the second plot has no node layer, so nothing is discovered there
   expect_null(without_nodes$layers[[1]]$geom_params$resect$head)
   # and the stored layer is still the blank one that was created
   expect_null(arrow_layer$layer$geom_params$resect$head)
+})
+
+# -- a line width mapped through a scale has a legend to draw ------------------
+
+test_that("a legend key whose arrow has a head and fins keeps a shaft", {
+  skip_if_not_installed("ggarrow")
+
+  # ggarrow sizes a key to hold its arrow's head and fins along the
+  # diagonal, which leaves a shaft only when one of the two is not drawn:
+  # an arrow with both is all ornament wherever its key sets the size of the
+  # legend, and ggarrow cannot draw a shaft of no length. The key of an arrow
+  # with both holds half as much again there, and a key smaller than the
+  # legend's key size, 17.28 points by default, is left as ggarrow sizes it.
+  key_data <- function(width) {
+    data.frame(
+      linewidth = width,
+      colour = "black",
+      alpha = NA,
+      stroke_colour = NA,
+      stroke_width = 0.25,
+      linetype = 1
+    )
+  }
+  ornaments <- function(fins) {
+    list(
+      arrow = list(head = ggarrow::arrow_head_wings(), fins = fins),
+      length = list(head = 4, fins = 4)
+    )
+  }
+  key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
+  diagonal_mm <- function(key) {
+    0.8 * sqrt(2) * 10 * as.numeric(attr(key, "width"))
+  }
+  reach_mm <- function(width) 2 * 4 * width * ggplot2::.pt / ggplot2::.stroke
+
+  geoms <- list(
+    geom_dag_arrow()$geom,
+    geom_dag_arrow_arc()$geom,
+    geom_dag_routed_arrows()[[1]]$geom
+  )
+  wings <- ggarrow::arrow_head_wings()
+  for (geom in geoms) {
+    both <- geom$draw_key(key_data(6), ornaments(wings), key_size_mm)
+    expect_equal(diagonal_mm(both), 1.5 * reach_mm(6))
+    head_only <- geom$draw_key(key_data(6), ornaments(NULL), key_size_mm)
+    expect_equal(diagonal_mm(head_only), reach_mm(6))
+    thin <- geom$draw_key(key_data(1), ornaments(wings), key_size_mm)
+    expect_equal(diagonal_mm(thin), reach_mm(1))
+  }
+})
+
+test_that("a legend key draws the ornaments at the length the layer sets", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # ggarrow draws a key's ornaments at its own `length_head` and
+  # `length_fins`, 4 line widths unless set, while the DAG layers keep their
+  # length in `length`; the key drew a head 3.01 mm long whatever the layer
+  # asked for
+  key_head_mm <- function(p) {
+    with_forced_plot(p, \(built) {
+      found <- forced_grobs("arrow_path")
+      keys <- purrr::keep(found, \(one) {
+        inherits(one$grob, "arrow_path") && is.na(one$panel)
+      })
+      stopifnot(length(keys) > 0)
+      unique(purrr::map_dbl(keys, \(one) {
+        grid::upViewport(0)
+        grid::downViewport(one$vp_path)
+        on.exit(grid::upViewport(0), add = TRUE)
+        round(convert_mm_length(one$grob$length_head)[[1]], 6)
+      }))
+    })
+  }
+  width_mm <- ggplot2::.pt / ggplot2::.stroke
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point()
+  layers <- list(
+    arrow = \(...) geom_dag_arrow(aes(colour = name), ...),
+    arc = \(...) geom_dag_arrow_arc(aes(colour = name), ...),
+    routed = \(...) geom_dag_routed_arrows(aes(colour = name), ...)
+  )
+  for (name in names(layers)) {
+    expect_equal(
+      key_head_mm(base + layers[[name]]()),
+      round(4 * width_mm, 6),
+      label = paste("the default key head of", name)
+    )
+    expect_equal(
+      key_head_mm(base + layers[[name]](length = 8)),
+      round(8 * width_mm, 6),
+      label = paste("a key head 8 line widths long of", name)
+    )
+    expect_equal(
+      key_head_mm(base + layers[[name]](length = grid::unit(6, "mm"))),
+      6,
+      label = paste("a key head 6 mm long of", name)
+    )
+  }
+})
+
+test_that("a legend key sizes an ornament length in points as millimetres", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The plotters draw their heads 5 points long, and ggarrow sizes a key from
+  # its lengths as millimetres, so a key given the length in points read the
+  # 5 pt head as 5 mm and grew to 8.8 mm along its side
+  head_mm <- 5 * 25.4 / 72.27
+  key_units <- function(p) {
+    with_forced_plot(p, \(built) {
+      found <- forced_grobs("arrow_path")
+      keys <- purrr::keep(found, \(one) {
+        inherits(one$grob, "arrow_path") && is.na(one$panel)
+      })
+      stopifnot(length(keys) > 0)
+      unique(purrr::map_chr(keys, \(one) {
+        paste(
+          grid::unitType(one$grob$length_head),
+          round(as.numeric(one$grob$length_head), 6)
+        )
+      }))
+    })
+  }
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point()
+  layers <- list(
+    arrow = geom_dag_arrow,
+    arc = geom_dag_arrow_arc,
+    routed = geom_dag_routed_arrows
+  )
+  for (name in names(layers)) {
+    layer <- layers[[name]](aes(colour = name), length = arrow_length_unit(5))
+    expect_equal(
+      key_units(base + layer),
+      paste("mm", round(head_mm, 6)),
+      label = paste("the key head of", name)
+    )
+  }
+
+  key_data <- data.frame(
+    linewidth = 1,
+    colour = "black",
+    alpha = NA,
+    stroke_colour = NA,
+    stroke_width = 0.25,
+    linetype = 1
+  )
+  params <- list(
+    arrow = list(head = ggarrow::arrow_head_wings(), fins = NULL),
+    length = list(head = arrow_length_unit(5), fins = arrow_length_unit(5))
+  )
+  key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
+  key <- geom_dag_arrow()$geom$draw_key(key_data, params, key_size_mm)
+  expect_equal(
+    as.numeric(attr(key, "width")),
+    2 * head_mm * 1.25 / (sqrt(2) * 10)
+  )
+})
+
+test_that("a legend key draws a relative ornament length at the default length", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # A length in "npc" or "lines" was drawn in the key's own viewport, a few
+  # millimetres across: a 0.03 npc head was 0.18 mm long and could not be
+  # seen, and a head a line long sized its key as if it were 1 mm long and
+  # reached out of it, fins and wings alike
+  width_mm <- ggplot2::.pt / ggplot2::.stroke
+  default_mm <- round(4 * width_mm, 6)
+  key_ornaments <- function(p) {
+    with_forced_plot(p, \(built) {
+      found <- forced_grobs("arrow_path")
+      keys <- purrr::keep(found, \(one) {
+        inherits(one$grob, "arrow_path") && is.na(one$panel)
+      })
+      stopifnot(length(keys) > 0)
+      purrr::map(keys, \(one) {
+        grid::upViewport(0)
+        grid::downViewport(one$vp_path)
+        on.exit(grid::upViewport(0), add = TRUE)
+        outline <- one$grob$children[[1]]
+        x <- grid::convertX(outline$x, "npc", valueOnly = TRUE)
+        y <- grid::convertY(outline$y, "npc", valueOnly = TRUE)
+        list(
+          head = round(convert_mm_length(one$grob$length_head)[[1]], 6),
+          fins = if (is.null(one$grob$arrow_fins)) {
+            NULL
+          } else {
+            round(convert_mm_length(one$grob$length_fins)[[1]], 6)
+          },
+          inside = all(c(x, y) >= -1e-6 & c(x, y) <= 1 + 1e-6)
+        )
+      })
+    })
+  }
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point()
+  layers <- list(
+    arrow = geom_dag_arrow,
+    arc = geom_dag_arrow_arc,
+    routed = geom_dag_routed_arrows
+  )
+  lengths <- list(npc = grid::unit(0.03, "npc"), lines = grid::unit(1, "lines"))
+  for (name in names(layers)) {
+    for (unit_name in names(lengths)) {
+      what <- paste("the keys of", name, "at a length in", unit_name)
+      keys <- key_ornaments(
+        base + layers[[name]](aes(colour = name), length = lengths[[unit_name]])
+      )
+      expect_equal(
+        unique(purrr::map_dbl(keys, "head")),
+        default_mm,
+        label = paste("the heads of", what)
+      )
+      expect_true(
+        all(purrr::map_lgl(keys, "inside")),
+        label = paste(what, "stay within their boxes")
+      )
+      fins <- unlist(purrr::map(keys, "fins"))
+      if (name == "routed") {
+        expect_equal(
+          unique(fins),
+          default_mm,
+          label = paste("the fins of the bidirected key of", what)
+        )
+      } else {
+        expect_null(fins, label = paste("the fins of", what))
+      }
+    }
+  }
+
+  key_data <- data.frame(
+    linewidth = 1,
+    colour = "black",
+    alpha = NA,
+    stroke_colour = NA,
+    stroke_width = 0.25,
+    linetype = 1
+  )
+  head <- ggarrow::arrow_head_wings()
+  key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
+  own <- ggarrow::draw_key_arrow(
+    key_data,
+    list(arrow = list(head = head, fins = head)),
+    key_size_mm
+  )
+  for (length in lengths) {
+    key <- geom_dag_arrow()$geom$draw_key(
+      key_data,
+      list(
+        arrow = list(head = head, fins = head),
+        length = list(head = length, fins = length)
+      ),
+      key_size_mm
+    )
+    expect_equal(attr(key, "width"), attr(own, "width"))
+  }
+})
+
+test_that("a line width mapped through a scale draws on every ggarrow edge layer", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The bidirected arcs are drawn with a head and fins, and the key of the
+  # widest line width the scale maps to was drawn without room for a shaft.
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point(size = 16)
+  plots <- list(
+    spline = base +
+      geom_dag_routed_arrows(aes(linewidth = x), route = "spline"),
+    orthogonal = base +
+      geom_dag_routed_arrows(aes(linewidth = x), route = "orthogonal"),
+    straight = base + geom_dag_arrows(aes(linewidth = x))
+  )
+  for (name in names(plots)) {
+    expect_no_error(with_forced_plot(plots[[name]], \(built) NULL))
+  }
 })

@@ -684,3 +684,384 @@ test_that("ggdag_adjust() rejects an edge type it cannot draw on either engine",
     "gg"
   )
 })
+
+# A DAG whose only backdoor path is blocked at the collider `m`. Adjusting for
+# `m` activates the path between its parents, so the tidy data carries
+# `collider_line` rows, and every adjustment set contains `m`: the paths that
+# adjustment activates are ones an adjustment set still closes.
+collider_adjusted_dag <- function() {
+  dagify(
+    m ~ a + b,
+    x ~ a,
+    y ~ b + x,
+    exposure = "x",
+    outcome = "y"
+  ) |>
+    adjust_for("m")
+}
+
+# A DAG where `showed_up` is both a collider and a descendant of the exposure.
+# Adjusting for it activates paths that no set of the remaining variables
+# closes, so `dag_adjustment_sets()` reports no adjustment set at all.
+unclosable_collider_dag <- function() {
+  dagify(
+    podcast ~ mood + humor + prepared,
+    exam ~ mood + prepared + showed_up,
+    showed_up ~ podcast + mood + prepared,
+    exposure = "podcast",
+    outcome = "exam"
+  ) |>
+    adjust_for("showed_up")
+}
+
+# `dag_adjustment_sets()` warns whenever no adjustment set closes the backdoor
+# paths, which is the case `unclosable_collider_dag()` is built for. The
+# warning itself is pinned by its own test below.
+adjustment_set_plot <- function(...) {
+  suppressWarnings(
+    ggdag_adjustment_set(...),
+    classes = "ggdag_failed_to_close_backdoor_warning"
+  )
+}
+
+# The rows the edge layers drawn by `geom_class` are handed, one element per
+# layer.
+edge_layer_rows <- function(plot, geom_class) {
+  purrr::map(
+    layers_by_geom(plot, geom_class),
+    \(layer) edge_layer_data(layer, plot$data)
+  )
+}
+
+# The geom the edge layers of `engine` are drawn with.
+engine_edge_geom <- function(engine) {
+  if (identical(engine, "ggarrow")) "GeomDAGArrowCurve" else "GeomDAGEdgePath"
+}
+
+test_that("ggdag_adjustment_set() warns when no adjustment set closes the backdoor paths", {
+  expect_warning(
+    ggdag_adjustment_set(unclosable_collider_dag()),
+    class = "ggdag_failed_to_close_backdoor_warning"
+  )
+})
+
+test_that("ggdag_adjustment_set() draws activated collider paths when nothing closes the backdoor paths", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    p <- adjustment_set_plot(unclosable_collider_dag(), edge_engine = engine)
+
+    collider_layers <- layers_by_geom(p, "GeomCurve")
+    expect_length(collider_layers, 1)
+
+    drawn <- edge_layer_data(collider_layers[[1]], p$data)
+    expect_gt(nrow(drawn), 0)
+    expect_equal(
+      drawn,
+      dplyr::filter(p$data, .data$direction == "<->", .data$collider_line)
+    )
+  })
+})
+
+test_that("ggdag_adjustment_set() leaves out activated collider paths when an adjustment set closes the backdoor paths", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    p <- ggdag_adjustment_set(collider_adjusted_dag(), edge_engine = engine)
+    expect_length(layers_by_geom(p, "GeomCurve"), 0)
+  })
+})
+
+test_that("ggdag_adjustment_set() draws activated collider paths on request whatever the adjustment sets", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    plots <- list(
+      ggdag_adjustment_set(
+        collider_adjusted_dag(),
+        collider_lines = TRUE,
+        edge_engine = engine
+      ),
+      adjustment_set_plot(
+        unclosable_collider_dag(),
+        collider_lines = TRUE,
+        edge_engine = engine
+      )
+    )
+
+    purrr::walk(plots, \(p) {
+      collider_layers <- layers_by_geom(p, "GeomCurve")
+      expect_length(collider_layers, 1)
+
+      drawn <- edge_layer_data(collider_layers[[1]], p$data)
+      expect_gt(nrow(drawn), 0)
+      expect_true(all(drawn$collider_line))
+    })
+  })
+})
+
+test_that("ggdag_adjustment_set() suppresses activated collider paths on request", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    plots <- list(
+      ggdag_adjustment_set(
+        collider_adjusted_dag(),
+        collider_lines = FALSE,
+        edge_engine = engine
+      ),
+      adjustment_set_plot(
+        unclosable_collider_dag(),
+        collider_lines = FALSE,
+        edge_engine = engine
+      )
+    )
+
+    purrr::walk(plots, \(p) expect_length(layers_by_geom(p, "GeomCurve"), 0))
+  })
+})
+
+test_that("ggdag_adjustment_set() keeps activated collider paths out of its edges", {
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    purrr::walk(list(NULL, TRUE, FALSE), \(collider_lines) {
+      plots <- list(
+        ggdag_adjustment_set(
+          collider_adjusted_dag(),
+          collider_lines = collider_lines,
+          edge_engine = engine
+        ),
+        adjustment_set_plot(
+          unclosable_collider_dag(),
+          collider_lines = collider_lines,
+          edge_engine = engine
+        )
+      )
+
+      purrr::walk(plots, \(p) {
+        edge_rows <- edge_layer_rows(p, engine_edge_geom(engine))
+        expect_gt(length(edge_rows), 0)
+        expect_false(any(purrr::map_lgl(edge_rows, \(rows) {
+          any(rows$collider_line)
+        })))
+      })
+    })
+  })
+})
+
+test_that("ggdag_adjustment_set() rejects a collider_lines it cannot read", {
+  td <- collider_adjusted_dag()
+
+  expect_error(
+    ggdag_adjustment_set(td, collider_lines = "yes"),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_adjustment_set(td, collider_lines = NA),
+    class = "ggdag_type_error"
+  )
+  expect_error(
+    ggdag_adjustment_set(td, collider_lines = c(TRUE, FALSE)),
+    class = "ggdag_type_error"
+  )
+})
+
+test_that("ggdag_adjustment_set() adds no collider layer without activated paths", {
+  dag <- dagify(y ~ x + z, x ~ z, exposure = "x", outcome = "y")
+
+  p <- ggdag_adjustment_set(dag)
+  expect_length(layers_by_geom(p, "GeomCurve"), 0)
+  expect_equal(
+    unname(purrr::map_chr(p$layers, \(layer) class(layer$geom)[[1]])),
+    c("GeomDAGEdgePath", "GeomDagPoint", "GeomDagText")
+  )
+
+  # adjusting for a non-collider adds the column but activates no path
+  adjusted <- adjust_for(dag, "z")
+  expect_length(layers_by_geom(ggdag_adjustment_set(adjusted), "GeomCurve"), 0)
+})
+
+test_that("ggdag_adjust() draws activated collider paths on either engine", {
+  td <- collider_adjusted_dag()
+
+  purrr::walk(c("ggraph", "ggarrow"), \(engine) {
+    p <- ggdag_adjust(td, edge_engine = engine)
+
+    collider_layers <- layers_by_geom(p, "GeomCurve")
+    expect_length(collider_layers, 1)
+
+    drawn <- edge_layer_data(collider_layers[[1]], p$data)
+    expect_gt(nrow(drawn), 0)
+    expect_true(all(drawn$collider_line))
+
+    edge_rows <- edge_layer_rows(p, engine_edge_geom(engine))
+    expect_gt(length(edge_rows), 0)
+    expect_false(any(purrr::map_lgl(edge_rows, \(rows) {
+      any(rows$collider_line)
+    })))
+  })
+})
+
+test_that("ggdag_adjust() draws activated collider paths where ggdag_adjustment_set() does not", {
+  td <- collider_adjusted_dag()
+
+  expect_length(layers_by_geom(ggdag_adjust(td), "GeomCurve"), 1)
+  expect_length(layers_by_geom(ggdag_adjustment_set(td), "GeomCurve"), 0)
+})
+
+test_that("ggdag_adjustment_set() renders activated collider paths", {
+  expect_doppelganger(
+    "ggdag_adjustment_set() with activated collider paths",
+    ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = TRUE)
+  )
+})
+
+test_that("ggdag_adjustment_set() renders no collider paths where a set closes the backdoors", {
+  expect_doppelganger(
+    "ggdag_adjustment_set() with no collider paths",
+    ggdag_adjustment_set(collider_adjusted_dag())
+  )
+})
+
+# The index of the single layer `plot` draws its activated collider paths with.
+collider_layer_index <- function(plot) {
+  which(purrr::map_lgl(plot$layers, \(layer) inherits(layer$geom, "GeomCurve")))
+}
+
+# The rows the activated collider path layer of `plot` is drawn from, after the
+# scales have resolved every aesthetic.
+built_collider_data <- function(plot) {
+  index <- collider_layer_index(plot)
+  expect_length(index, 1)
+  ggplot2::ggplot_build(plot)$data[[index]]
+}
+
+# The colours the `adjusted` scale of `plot` puts on its nodes.
+built_adjusted_colours <- function(plot) {
+  sort(unique(built_node_data(plot)$colour))
+}
+
+# The colour `geom_dag_collider_edges()` draws with where no `adjusted` colour
+# scale is in force, which is the neutral default the annotation keeps.
+neutral_collider_colour <- function(tidy_dag) {
+  plot <- ggplot2::ggplot(node_collider(tidy_dag), aes_dag()) +
+    geom_dag_collider_edges()
+
+  unique(built_collider_data(plot)$colour)
+}
+
+test_that("activated collider paths draw in their own neutral colour", {
+  td <- unclosable_collider_dag()
+  p <- adjustment_set_plot(td)
+
+  drawn <- built_collider_data(p)
+  expect_gt(nrow(drawn), 0)
+  expect_length(unique(drawn$colour), 1)
+  expect_false(unique(drawn$colour) %in% built_adjusted_colours(p))
+  expect_equal(unique(drawn$colour), neutral_collider_colour(td))
+})
+
+test_that("activated collider paths take no colour from the adjustment scale", {
+  td <- collider_adjusted_dag()
+  p <- ggdag_adjustment_set(td, collider_lines = TRUE)
+
+  drawn <- built_collider_data(p)
+  expect_gt(nrow(drawn), 0)
+  expect_length(unique(drawn$colour), 1)
+  expect_false(unique(drawn$colour) %in% built_adjusted_colours(p))
+  expect_equal(unique(drawn$colour), neutral_collider_colour(td))
+})
+
+test_that("activated collider paths look the same with and without an adjustment set", {
+  no_set <- built_collider_data(adjustment_set_plot(unclosable_collider_dag()))
+  with_set <- built_collider_data(
+    ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = TRUE)
+  )
+
+  expect_equal(unique(no_set$colour), unique(with_set$colour))
+})
+
+test_that("a caller colour overrides the activated collider path colour", {
+  p <- ggdag_adjustment_set(collider_adjusted_dag(), collider_lines = FALSE) +
+    geom_dag_collider_edges(colour = "purple")
+
+  expect_equal(unique(built_collider_data(p)$colour), "purple")
+})
+
+test_that("activated collider paths stay dashed and draw no arrowheads", {
+  p <- adjustment_set_plot(unclosable_collider_dag())
+
+  expect_equal(unique(built_collider_data(p)$linetype), "dashed")
+
+  collider_layers <- layers_by_geom(p, "GeomCurve")
+  expect_length(collider_layers, 1)
+  expect_null(collider_layers[[1]]$geom_params$arrow)
+})
+
+test_that("ggdag_adjustment_set() renders collider paths with no way to block the backdoor paths", {
+  expect_doppelganger(
+    "collider paths with no way to block backdoor paths",
+    adjustment_set_plot(unclosable_collider_dag())
+  )
+})
+
+# A DAG with no backdoor path at all, so every adjustment set is empty and no
+# node is ever adjusted or has an edge blocked.
+nothing_to_adjust_dag <- function() {
+  dagify(y ~ x, exposure = "x", outcome = "y")
+}
+
+# The colours a plot's `adjusted` scale puts on each adjustment status, whether
+# or not the plot has nodes of that status.
+adjusted_palette <- function(plot) {
+  scale <- ggplot2::ggplot_build(plot)$plot$scales$get_scales("colour")
+
+  scale$map(c("adjusted", "unadjusted"))
+}
+
+test_that("dag_adjustment_sets() keeps the adjustment that activated the collider paths", {
+  sets <- suppressWarnings(
+    dag_adjustment_sets(unclosable_collider_dag()),
+    classes = "ggdag_failed_to_close_backdoor_warning"
+  )
+
+  dag_data <- pull_dag_data(sets)
+  adjusted <- unique(dag_data$name[dag_data$adjusted == "adjusted"])
+
+  expect_equal(adjusted, "showed_up")
+})
+
+test_that("ggdag_adjustment_set() draws the adjustment the collider paths come from", {
+  p <- adjustment_set_plot(unclosable_collider_dag())
+
+  expect_gt(nrow(built_collider_data(p)), 0)
+
+  nodes <- built_node_data(p)
+  expect_length(unique(nodes$shape), 2)
+  expect_length(unique(nodes$colour), 2)
+})
+
+test_that("ggdag_adjustment_set() draws no legend key it has no rows for", {
+  expect_equal(
+    empty_legend_keys(ggdag_adjustment_set(nothing_to_adjust_dag())),
+    character()
+  )
+  expect_equal(
+    empty_legend_keys(adjustment_set_plot(unclosable_collider_dag())),
+    character()
+  )
+})
+
+test_that("ggdag_adjustment_set() keeps its colours when no node is adjusted", {
+  nothing_adjusted <- adjusted_palette(
+    ggdag_adjustment_set(nothing_to_adjust_dag())
+  )
+  something_adjusted <- adjusted_palette(
+    ggdag_adjustment_set(dagify(
+      y ~ x + z,
+      x ~ z,
+      exposure = "x",
+      outcome = "y"
+    ))
+  )
+
+  expect_equal(nothing_adjusted, something_adjusted)
+})
+
+test_that("ggdag_adjustment_set() renders a DAG with nothing to adjust for", {
+  expect_doppelganger(
+    "ggdag_adjustment_set() with nothing to adjust for",
+    ggdag_adjustment_set(nothing_to_adjust_dag())
+  )
+})

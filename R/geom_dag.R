@@ -210,7 +210,7 @@ geom_dag_text <- function(
 #' library(ggraph)
 #' g <- dagify(m ~ x + y, y ~ x)
 #'
-#' ggdag(g, text = FALSE) + geom_dag_label()
+#' ggdag(g, use_text = FALSE) + geom_dag_label()
 #'
 #' g |>
 #'   tidy_dagitty() |>
@@ -297,6 +297,24 @@ geom_dag_label <- function(
 #'   same 25 points per node and the parameter only starts to take effect
 #'   above 16. Defaults to `NULL`, which uses the `StatNodesRepel` default of
 #'   12. Set to 0 to disable node skeleton repulsion.
+#' @param box.padding Amount of padding around the label's bounding box, as a
+#'   unit or number. Defaults to 0.5 lines, and to 0.75 in
+#'   `geom_dag_label_repel2()` and `geom_dag_text_repel2()`.
+#' @param point.padding Amount of padding around the labeled node, as a unit
+#'   or number. Defaults to 0.5 lines.
+#' @param min.segment.length Skip drawing segments shorter than this, as a
+#'   unit or number. Defaults to 1 line; set to 0 to always draw segments.
+#' @param max.overlaps Exclude a label when it overlaps too many other things.
+#'   Defaults to `Inf`, so every label is drawn.
+#' @param force_pull Force of attraction between a label and its node.
+#'   Defaults to 2, which holds labels closer to their nodes than ggrepel's
+#'   default of 1.
+#' @param max.time Maximum number of seconds to spend resolving overlaps.
+#'   Defaults to 1, so the iteration cap in `max.iter` usually ends the
+#'   simulation rather than the wall clock.
+#' @param seed Random seed for the repel simulation. Defaults to 1234, so the
+#'   same plot draws its labels the same way in every session. Set to `NA`
+#'   for ggrepel's default behavior, a new arrangement on every draw.
 #' @param segment.color,segment.size See [ggrepel::geom_text_repel()]
 #' @param segment.alpha Transparency of the line segment. Set to NULL (default) to
 #'   use ggrepel's default behavior, or provide a value between 0 and 1
@@ -306,6 +324,11 @@ geom_dag_label <- function(
 #' [ggrepel::geom_label_repel()] that use the custom `StatNodesRepel`
 #' for better handling of DAG data. All arguments available in ggrepel
 #' functions are supported.
+#'
+#' The text comes from the `label` aesthetic. When neither the layer nor the
+#' plot maps one, these geoms draw the labels the DAG carries, and fall back
+#' to the node names when it carries none. Mapping `label` yourself, on the
+#' layer or on the plot, overrides both.
 #'
 #' Labels are kept off nodes and edges by two mechanisms. The `point.size`
 #' aesthetic, computed from `node_size`, is converted by ggrepel at draw time
@@ -321,9 +344,9 @@ geom_dag_label <- function(
 #' Set `n_node_points = 0` to rely on `point.size` alone.
 #'
 #' Points along an edge trace the path that edge is drawn along, including the
-#' arc of a bidirected edge and of [geom_dag_edges_arc()]. Edges drawn by
-#' [geom_dag_edges_diagonal()], [geom_dag_edges_fan()], and the ggarrow engine
-#' are traced along the straight line between their nodes.
+#' arc of a bidirected edge and of [geom_dag_edges_arc()] and the curves of
+#' [geom_dag_edges_diagonal()] and [geom_dag_edges_fan()]. Edges drawn by the
+#' ggarrow engine are traced along the straight line between their nodes.
 #'
 #' Additional segment parameters can be passed through `...`, including:
 #' - `segment.linetype`: Line style
@@ -443,18 +466,18 @@ geom_dag_text_repel <- function(
   node_size = NULL,
   n_edge_points = NULL,
   n_node_points = NULL,
-  box.padding = 1.25,
-  point.padding = 1,
-  min.segment.length = 0.5,
+  box.padding = 0.5,
+  point.padding = 0.5,
+  min.segment.length = 1,
   segment.color = "#666666",
   segment.alpha = 1,
   fontface = "bold",
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
-  force_pull = 1,
-  max.time = 0.5,
-  max.iter = 2000,
+  force_pull = 2,
+  max.time = 1,
+  max.iter = 10000,
   max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
@@ -463,11 +486,11 @@ geom_dag_text_repel <- function(
   na.rm = FALSE,
   show.legend = NA,
   direction = c("both", "y", "x"),
-  seed = NA,
+  seed = 1234,
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
-  dots <- rlang::list2(...)
+  dots <- keep_last_named(rlang::list2(...))
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
   stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
@@ -545,9 +568,12 @@ geom_dag_text_repel <- function(
     } else {
       character()
     },
+    default_label = TRUE,
     debug = uses_repel_stat
   )
 }
+
+geom_dag_text_repel <- dag_node_aware(geom_dag_text_repel)
 
 #' @rdname repel
 #' @export
@@ -563,20 +589,20 @@ geom_dag_label_repel <- function(
   node_size = NULL,
   n_edge_points = NULL,
   n_node_points = NULL,
-  box.padding = grid::unit(1.25, "lines"),
+  box.padding = grid::unit(0.5, "lines"),
   label.padding = grid::unit(0.25, "lines"),
-  point.padding = grid::unit(1, "lines"),
+  point.padding = grid::unit(0.5, "lines"),
   label.r = grid::unit(0.15, "lines"),
   label.size = 0.25,
-  min.segment.length = 0.5,
+  min.segment.length = 1,
   segment.color = "grey50",
   segment.alpha = 1,
   segment.size = 0.5,
   arrow = NULL,
   force = 1,
-  force_pull = 1,
-  max.time = 0.5,
-  max.iter = 2000,
+  force_pull = 2,
+  max.time = 1,
+  max.iter = 10000,
   max.overlaps = Inf,
   nudge_x = 0,
   nudge_y = 0,
@@ -585,11 +611,11 @@ geom_dag_label_repel <- function(
   na.rm = FALSE,
   show.legend = NA,
   direction = c("both", "y", "x"),
-  seed = NA,
+  seed = 1234,
   verbose = getOption("verbose", default = FALSE),
   inherit.aes = TRUE
 ) {
-  dots <- rlang::list2(...)
+  dots <- keep_last_named(rlang::list2(...))
 
   # Use StatNodesRepel if stat is "identity", otherwise use provided stat
   stat_to_use <- if (identical(stat, "identity")) StatNodesRepel else stat
@@ -669,16 +695,24 @@ geom_dag_label_repel <- function(
     } else {
       character()
     },
+    default_label = TRUE,
     debug = uses_repel_stat
   )
 }
+
+geom_dag_label_repel <- dag_node_aware(geom_dag_label_repel)
+
+# How much more box padding the more spaced repel geoms leave than the plain
+# ones: `geom_dag_label_repel2()` and `geom_dag_text_repel2()` default to 0.75
+# where `geom_dag_label_repel()` and `geom_dag_text_repel()` default to 0.5.
+repel2_box_padding_ratio <- 1.5
 
 #' @rdname repel
 #' @export
 geom_dag_label_repel2 <- function(
   mapping = NULL,
   data = NULL,
-  box.padding = 2,
+  box.padding = 0.75,
   max.overlaps = Inf,
   label.size = NA,
   linewidth = 0,
@@ -695,12 +729,17 @@ geom_dag_label_repel2 <- function(
   )
 }
 
+geom_dag_label_repel2 <- dag_node_aware(
+  geom_dag_label_repel2,
+  box_padding = repel2_box_padding_ratio
+)
+
 #' @rdname repel
 #' @export
 geom_dag_text_repel2 <- function(
   mapping = NULL,
   data = NULL,
-  box.padding = 2,
+  box.padding = 0.75,
   max.overlaps = Inf,
   ...
 ) {
@@ -712,6 +751,12 @@ geom_dag_text_repel2 <- function(
     ...
   )
 }
+
+geom_dag_text_repel2 <- dag_node_aware(
+  geom_dag_text_repel2,
+  box_padding = repel2_box_padding_ratio
+)
+
 
 # ggrepel accepts either spelling of the segment colour, and so do these
 # wrappers. `segment.color` has a documented default here, so it can only give
@@ -733,6 +778,42 @@ filter_direction <- function(.direction) {
 
     x
   }
+}
+
+# A plot that greys out the whole DAG and emphasises a subset of it draws both
+# from the same rows, and an edge geom draws the rows in the order it receives
+# them. Ink drawn later covers ink drawn earlier, so the greyed rows are sorted
+# to the front and the emphasis is the ink on top wherever the two share a
+# channel. `is_shadow()` says which rows are the greyed ones, and `panel` names
+# the column the plot facets by, so that the sort stays inside a panel and
+# leaves the panels in the order they arrived in. The sort is stable, so rows
+# that are alike keep the order the analysis left them in.
+shadow_rows_first <- function(.tdy_dag, is_shadow, panel = NULL) {
+  dag_data <- pull_dag_data(.tdy_dag)
+  shadow <- is_shadow(dag_data)
+  shadow[is.na(shadow)] <- FALSE
+
+  panels <- if (is.null(panel)) {
+    rep(1L, nrow(dag_data))
+  } else {
+    match(dag_data[[panel]], unique(dag_data[[panel]]))
+  }
+
+  update_dag_data(.tdy_dag) <- dag_data[order(panels, !shadow), , drop = FALSE]
+  .tdy_dag
+}
+
+# The fan draws its edges in the order of their groups, and every copy of an
+# edge is a group of its own, so the group is where a fan's drawing order is
+# set rather than the order of the rows. The greyed copies rank first and the
+# emphasised ones last; edges that are alike keep the order they arrived in,
+# which is the order the fan spreads them apart in, so ranking them changes
+# which of them is the ink on top and nothing else.
+shadow_first_rank <- function(shadow) {
+  shadow[is.na(shadow)] <- FALSE
+  rank <- integer(length(shadow))
+  rank[order(!shadow)] <- seq_along(shadow)
+  rank
 }
 
 # The cap an edge layer leaves at each of its ends, as an aesthetic on the
@@ -773,6 +854,7 @@ quick_plot_dag_edges <- function(
   edge_width,
   arrow_length,
   size,
+  node_size = ggdag_option("node_size", 16),
   data = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
@@ -783,14 +865,23 @@ quick_plot_dag_edges <- function(
     edge_type,
     c("link_arc", "link", "arc", "diagonal")
   )
-  mapping <- with_edge_caps(mapping, edge_cap * size)
   arrow_size <- grid::unit(arrow_length * size, "pt")
 
-  if (identical(edge_type, "link_arc")) {
-    return(geom_dag_edges(
+  # an unset cap stops each edge end beyond the node drawn there, and maps the
+  # cap of a circle node of `node_size` where no node is drawn
+  mapping <- with_edge_caps(
+    mapping,
+    single_edge_cap(edge_cap, node_size) * size
+  )
+
+  # every caller reports an ignored routing once for the whole plot, through
+  # `warn_if_ggarrow_only_ignored()`, so the layers do not report it again
+  layers <- if (identical(edge_type, "link_arc")) {
+    without_edge_route_warning(geom_dag_edges(
       mapping,
       data_directed = data_directed,
       data_bidirected = data_bidirected,
+      edge_engine = "ggraph",
       edge_width = edge_width * size,
       arrow_directed = grid::arrow(length = arrow_size, type = "closed"),
       arrow_bidirected = grid::arrow(
@@ -801,16 +892,39 @@ quick_plot_dag_edges <- function(
       show.legend = show.legend,
       ...
     ))
+  } else {
+    without_edge_route_warning(do.call(
+      edge_type_switch(edge_type),
+      c(
+        list(
+          mapping,
+          data = data,
+          edge_width = edge_width * size,
+          arrow = grid::arrow(length = arrow_size, type = "closed"),
+          show.legend = show.legend,
+          ...
+        ),
+        arc_curvature_args(edge_type)
+      )
+    ))
   }
 
-  edge_type_switch(edge_type)(
-    mapping,
-    data = data,
-    edge_width = edge_width * size,
-    arrow = grid::arrow(length = arrow_size, type = "closed"),
-    show.legend = show.legend,
-    ...
-  )
+  follow_nodes_when_unset(layers, edge_cap, node_size, size)
+}
+
+# The ggraph arc layers a packaged plot builds bend by the amount `curvature`
+# resolves to, so that a user who moves the option moves the ggraph pictures
+# as well as the ggarrow ones. Each engine draws that amount with its own
+# depth and to its own side; `engine_trace_curvature()` holds the pair. Only
+# the arc type takes it here: the diagonal type's curvature is ggraph's
+# S-curve strength, a different quantity, and the link types have no bend at
+# all.
+arc_curvature_args <- function(edge_type) {
+  if (!identical(edge_type, "arc")) {
+    return(list())
+  }
+
+  list(curvature = ggdag_option("curvature"))
 }
 
 # `geom_dag_edges()` builds a layer for directed edges and one for bidirected
@@ -878,9 +992,11 @@ expand_edge_aes <- function(mapping) {
 #'   produce a data frame. See fortify() for which variables will be created. A
 #'   function will be called with a single argument, the plot data. The return
 #'   value must be a data.frame., and will be used as the layer data.
-#' @param curvature The bend of the curve. 1 approximates a halfcircle while 0
-#'   will give a straight line. Negative number will change the direction of the
-#'   curve. Only used if layout circular = FALSE.
+#' @param curvature The bend of the bidirected arc. 1 approximates a halfcircle
+#'   while 0 will give a straight line. Negative number will change the
+#'   direction of the curve. Only used if layout circular = FALSE. Defaults to
+#'   the `curvature` option, which both edge engines read, though each engine
+#'   draws that value with its own depth and to its own side.
 #' @param arrow_directed,arrow_bidirected specification for arrow heads, as
 #'   created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
@@ -928,6 +1044,26 @@ expand_edge_aes <- function(mapping) {
 #' `geom_dag_edges` also uses `geom_dag_edges_arc`, which requires the
 #' **circular** aesthetic, but this is automatically set.
 #'
+#' @section Edge engines:
+#' `geom_dag_edges()` draws with the engine `edge_engine` names, so a plot you
+#' assemble yourself gets the same edges the packaged plots draw. Under the
+#' `"ggraph"` engine it builds [geom_dag_edges_link()] and
+#' [geom_dag_edges_arc()]. Under the `"ggarrow"` engine it builds the ggarrow
+#' edge layers instead, routed when `edge_route` names a routing mode, and
+#' takes its ornaments from the `arrow_head` and `arrow_fins` options rather
+#' than from `arrow_directed` and `arrow_bidirected`, which are
+#' [grid::arrow()] specifications no ggarrow layer can draw. The ggarrow
+#' layers take `resect`, `resect_head`, and `resect_fins` in millimetres, as
+#' [geom_dag_arrow()] does, and read a `start_cap` or `end_cap` given as a
+#' [ggraph::circle()] in absolute units, such as `ggraph::circle(5, "mm")`,
+#' as the resection of that end, whether it is set for the layer or mapped to
+#' the data. ggarrow stops an edge a distance from its end, so any other cap,
+#' an ellipse from [ggraph::ellipsis()] included, is an error under that
+#' engine. At each end, `resect_head` or `resect_fins` wins, then the cap
+#' given for that end, `end_cap` at the head and `start_cap` at the fins,
+#' then `resect`; an end given none of them stops 2 mm outside its node.
+#'
+#' @inheritParams geom_dag
 #' @export
 #'
 #' @examples
@@ -949,7 +1085,10 @@ geom_dag_edges <- function(
   mapping = NULL,
   data_directed = filter_direction("->"),
   data_bidirected = filter_direction("<->"),
-  curvature = 0.3,
+  curvature = ggdag_option("curvature"),
+  edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   arrow_directed = grid::arrow(length = grid::unit(5, "pt"), type = "closed"),
   arrow_bidirected = grid::arrow(
     length = grid::unit(5, "pt"),
@@ -963,9 +1102,37 @@ geom_dag_edges <- function(
   fold = FALSE,
   ...
 ) {
+  edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  check_edge_route_options(edge_route_options, call = rlang::current_env())
+
+  if (identical(edge_engine, "ggarrow")) {
+    # `arrow_directed` and `arrow_bidirected` are `grid::arrow()`
+    # specifications, and a ggarrow layer takes an ornament object instead, so
+    # there is nothing to translate a supplied one into. Say so rather than
+    # dropping it silently; the formal defaults are nobody's request.
+    if (!missing(arrow_directed) || !missing(arrow_bidirected)) {
+      warn_ignored_edge_arrows()
+    }
+
+    return(ggarrow_dag_edges(
+      mapping = mapping,
+      data_directed = data_directed,
+      data_bidirected = data_bidirected,
+      curvature = curvature,
+      edge_route = edge_route,
+      edge_route_options = edge_route_options,
+      show.legend = show.legend,
+      inherit.aes = inherit.aes,
+      call = rlang::current_env(),
+      ...
+    ))
+  }
+
   mapping <- expand_edge_aes(mapping)
 
-  list(
+  # Each of the two layers would report the ignored routing for itself, and a
+  # user who asked for one routing hears about it once.
+  layers <- without_edge_route_warning(list(
     geom_dag_edges_link(
       mapping,
       data = data_directed,
@@ -988,7 +1155,194 @@ geom_dag_edges <- function(
       fold = fold,
       ...
     )
+  ))
+
+  if (!identical(edge_route, "straight")) {
+    warn_ignored_edge_route(edge_route)
+  }
+
+  layers
+}
+
+# The ggarrow edge layers `geom_dag_edges()` builds when `edge_engine` names
+# that engine: the same pair the packaged ggarrow plots draw, so a plot
+# assembled by hand out of `geom_dag_edges()` routes exactly as `geom_dag()`
+# does. An end the user leaves unset is resected by the value discovered from
+# the node layer, the way the ggraph caps are. An end the user sets takes its
+# `resect_head` or `resect_fins`, then the ggraph cap written for that end,
+# `end_cap` at the head and `start_cap` at the fins, then `resect`.
+ggarrow_dag_edges <- function(
+  mapping,
+  data_directed,
+  data_bidirected,
+  curvature,
+  edge_route,
+  edge_route_options,
+  show.legend,
+  inherit.aes,
+  resect = NULL,
+  resect_head = NULL,
+  resect_fins = NULL,
+  start_cap = NULL,
+  end_cap = NULL,
+  call = rlang::caller_env(),
+  ...
+) {
+  rlang::check_installed(
+    "ggarrow",
+    reason = "to use edge_engine = \"ggarrow\"."
   )
+
+  mapping <- mapped_caps_as_resects(mapping, resect_head, resect_fins)
+  resect_head <- resect_head %||%
+    cap_as_resect(end_cap, "end_cap", "resect_head", call) %||%
+    resect
+  resect_fins <- resect_fins %||%
+    cap_as_resect(start_cap, "start_cap", "resect_fins", call) %||%
+    resect
+
+  layers <- quick_plot_arrow_edges(
+    mapping = mapping,
+    data_directed = data_directed,
+    data_bidirected = data_bidirected,
+    curvature = curvature,
+    edge_route = edge_route,
+    edge_route_options = edge_route_options,
+    arrow_head = ggdag_option("arrow_head", NULL) %||%
+      ggarrow::arrow_head_wings(),
+    arrow_fins = ggdag_option("arrow_fins", NULL),
+    resect = NULL,
+    resect_head = resect_head,
+    resect_fins = resect_fins,
+    linewidth = ggdag_option("edge_width", 0.6),
+    length = arrow_length_unit(ggdag_option("arrow_length", 5)),
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    call = call,
+    ...
+  )
+  # a cap the plot maps, which the layers inherit, is drawn as the resection
+  # of its end too, once the plot is in view (`inherited_caps_as_resects()`)
+  caps_as_resects(layers)
+}
+
+# `layers`, ggarrow edge layers or a list of them, marked to draw the caps
+# the plot maps as resections.
+caps_as_resects <- function(layers) {
+  if (inherits(layers, "dag_arrow_layer")) {
+    layer <- .subset2(layers, "layer")
+    layer$caps_as_resects <- TRUE
+    return(layers)
+  }
+  if (is.list(layers) && !inherits(layers, "ggproto")) {
+    return(lapply(layers, caps_as_resects))
+  }
+  layers
+}
+
+# The resection, in millimetres, a ggarrow layer draws for the ggraph cap
+# `cap` given as the argument `arg`. ggarrow stops an end a straight-line
+# distance from the end of the path, which is the radius of a circle cap, so
+# a single `ggraph::circle()` measured in units that are the same on every
+# device is read as its radius. Any other cap is refused, pointing at the
+# resection argument `instead`, rather than drawn at a distance it does not
+# describe.
+cap_as_resect <- function(cap, arg, instead, call) {
+  if (is.null(cap)) {
+    return(NULL)
+  }
+  radius <- circle_cap_radius_mm(cap)
+  if (length(radius) != 1) {
+    abort(
+      c(
+        "{.arg {arg}} must be a single {.fn ggraph::circle} in absolute units, such as {.code ggraph::circle(5, \"mm\")}, under the ggarrow edge engine.",
+        "i" = "ggarrow stops an edge a distance from its end. Set {.arg {instead}} in millimetres for any other cap."
+      ),
+      error_class = "ggdag_type_error",
+      call = call
+    )
+  }
+  radius
+}
+
+# The radius, in millimetres, of each circle in the ggraph cap `cap`, or
+# `NULL` when `cap` is not a ggraph cap, holds a geometry other than a
+# circle, is measured in units that depend on the device, or is an ellipse:
+# ggraph builds `ggraph::ellipsis()` as a circle geometry whose width and
+# height differ, and an ellipse lies no single distance from its centre.
+circle_cap_radius_mm <- function(cap) {
+  if (!inherits(cap, "ggraph_geometry")) {
+    return(NULL)
+  }
+  fields <- unclass(cap)
+  width <- fields$width * absolute_unit_mm[fields$width_unit]
+  height <- fields$height * absolute_unit_mm[fields$height_unit]
+  circle <- all(fields$geometry == "circle") &&
+    !anyNA(width) &&
+    !anyNA(height) &&
+    isTRUE(all.equal(unname(width), unname(height)))
+  if (!circle || length(width) == 0) {
+    return(NULL)
+  }
+  unname(width) / 2
+}
+
+# `mapping` with each `start_cap` or `end_cap` it maps translated into the
+# resection of that end, `resect_fins` or `resect_head`, which the ggarrow
+# layers read for each edge: the radius of the circle cap the mapping gives
+# each row. A resection the user set for that end, as a parameter or as an
+# aesthetic, wins over the cap, which is then dropped.
+mapped_caps_as_resects <- function(mapping, resect_head, resect_fins) {
+  ends <- list(
+    end_cap = list(resect = "resect_head", set = resect_head),
+    start_cap = list(resect = "resect_fins", set = resect_fins)
+  )
+  for (cap in names(ends)) {
+    mapped <- mapping[[cap]]
+    if (is.null(mapped)) {
+      next
+    }
+    mapping[[cap]] <- NULL
+    resect <- ends[[cap]]$resect
+    if (!is.null(ends[[cap]]$set) || !is.null(mapping[[resect]])) {
+      next
+    }
+    # the translation is named in an environment of its own above the one
+    # the cap was mapped in, since ggplot2 reads a mapping as an expression
+    # and a function written into one is not an expression it can read
+    mapping[[resect]] <- rlang::new_quosure(
+      rlang::call2(
+        ".ggdag_cap_resect",
+        rlang::quo_get_expr(mapped),
+        cap,
+        resect
+      ),
+      rlang::new_environment(
+        list(.ggdag_cap_resect = mapped_cap_resect),
+        parent = rlang::quo_get_env(mapped)
+      )
+    )
+  }
+  mapping
+}
+
+# The resection of each edge whose cap a mapping gives as `cap`, as
+# `mapped_caps_as_resects()` evaluates it: the radius of each circle, or an
+# error naming the aesthetic `arg` and the resection `instead` for a cap
+# ggarrow cannot draw.
+mapped_cap_resect <- function(cap, arg, instead) {
+  radius <- circle_cap_radius_mm(cap)
+  if (is.null(radius)) {
+    abort(
+      c(
+        "The {.field {arg}} aesthetic must map to {.fn ggraph::circle} caps in absolute units, such as {.code ggraph::circle(5, \"mm\")}, under the ggarrow edge engine.",
+        "i" = "ggarrow stops an edge a distance from its end. Map {.field {instead}} in millimetres for any other cap."
+      ),
+      error_class = "ggdag_type_error",
+      call = NULL
+    )
+  }
+  radius
 }
 
 #' Directed DAG edges
@@ -1006,7 +1360,10 @@ geom_dag_edges <- function(
 #'   value must be a data.frame., and will be used as the layer data.
 #' @param curvature The bend of the curve. 1 approximates a halfcircle while 0
 #'   will give a straight line. Negative number will change the direction of the
-#'   curve. Only used if layout circular = FALSE.
+#'   curve. Only used if layout circular = FALSE. `geom_dag_edges_arc()` keeps
+#'   its own default rather than reading the `curvature` option: the option
+#'   sets the bend of the arcs the packaged plots draw, and a layer you build
+#'   yourself takes the value you give it.
 #' @param arrow specification for arrow heads, as created by arrow()
 #' @param position Position adjustment, either as a string, or the result of a
 #'   call to a position adjustment function.
@@ -1090,6 +1447,7 @@ geom_dag_edges_link <- function(
   inherit.aes = TRUE,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   mapping <- expand_edge_aes(mapping)
 
   layer <- ggplot2::layer(
@@ -1133,6 +1491,7 @@ geom_dag_edges_arc <- function(
   label_push = NULL,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
@@ -1200,6 +1559,7 @@ geom_dag_edges_diagonal <- function(
   label_push = NULL,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
@@ -1266,6 +1626,7 @@ geom_dag_edges_fan <- function(
   label_push = NULL,
   ...
 ) {
+  warn_layer_ignored_edge_route()
   if (is.null(mapping)) {
     mapping <- ggplot2::aes(from = .data$name, to = .data$to)
   } else if (is.null(mapping$from)) {
@@ -1392,7 +1753,7 @@ geom_dag_collider_edges <- function(
     ...
   )
 
-  ggplot2::layer(
+  layer <- ggplot2::layer(
     data = data,
     mapping = mapping,
     stat = stat,
@@ -1402,6 +1763,27 @@ geom_dag_collider_edges <- function(
     inherit.aes = inherit.aes,
     params = params
   )
+
+  drop_inherited_colour(layer)
+}
+
+# The colour of an activated collider path is an annotation about the path
+# itself, not a statement about the adjustment status of the nodes it joins. A
+# plot that maps `colour` to `adjusted`, as the quick plotters do, would
+# otherwise hand these curves whichever palette colour the row they were drawn
+# from carries, so an inherited colour is dropped and the geom's own neutral
+# default stands. A colour the caller maps or sets on the layer itself is
+# their own and is kept: the layer's mapping is consulted before the plot's,
+# and a colour passed as a parameter is applied after the mapped one either
+# way.
+drop_inherited_colour <- function(layer) {
+  own <- names(layer$mapping)
+
+  plot_aware_layer(layer, function(self, plot) {
+    inherited <- setdiff(c("colour", "color"), own)
+    mapping <- self$computed_mapping
+    self$computed_mapping <- mapping[setdiff(names(mapping), inherited)]
+  })
 }
 
 #' Define Aesthetics for Directed Acyclic Graphs (DAGs)
@@ -1447,6 +1829,11 @@ compose_edge_data <- function(user_data, dir_filter) {
   if (is.null(user_data)) {
     return(dir_filter)
   }
+  # data named for one direction rather than a filter of it is that
+  # direction's data as it stands, and there is nothing to compose onto
+  if (!is.function(dir_filter)) {
+    return(dir_filter)
+  }
   if (is.function(user_data)) {
     return(function(x) dir_filter(user_data(x)))
   }
@@ -1481,29 +1868,61 @@ quick_plot_arrow_edges <- function(
   resect,
   linewidth,
   length,
+  curvature = ggdag_option("curvature"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   show.legend = NA,
+  resect_head = resect,
+  resect_fins = resect,
+  call = rlang::caller_env(),
   ...
 ) {
-  list(
+  directed <- if (identical(edge_route, "straight")) {
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_directed,
       curvature = 0,
       arrow_head = arrow_head,
       arrow_fins = arrow_fins,
-      resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
       linewidth = linewidth,
       length = length,
       show.legend = show.legend,
       ...
-    ),
+    )
+  } else {
+    routed_directed_layer(
+      mapping = mapping,
+      data_directed = data_directed,
+      edge_route = edge_route,
+      edge_route_options = edge_route_options,
+      arrow_head = arrow_head,
+      arrow_fins = arrow_fins,
+      arrow_mid = NULL,
+      arrow_length = length,
+      resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
+      linewidth = linewidth,
+      node_size = NULL,
+      show.legend = show.legend,
+      call = call,
+      ...
+    )
+  }
+
+  list(
+    directed,
     geom_dag_arrow_arc(
       mapping = mapping,
       data = data_bidirected,
-      curvature = ggdag_option("curvature", 0.3),
+      curvature = curvature,
+      unset = "curvature",
       arrow_head = arrow_head,
       arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
-      resect = resect,
+      resect_head = resect_head,
+      resect_fins = resect_fins,
       linewidth = linewidth,
       length = length,
       show.legend = show.legend,
@@ -1518,12 +1937,68 @@ arrow_length_unit <- function(arrow_length) {
   grid::unit(arrow_length, "pt")
 }
 
+# The routed directed edge layer the packaged edge rendering swaps in when
+# `edge_route` names a routing mode. It draws the same edges the straight
+# layer would, with the same ornaments, resection, and width, and decides its
+# geometry in millimetres at draw time.
+routed_directed_layer <- function(
+  mapping,
+  data_directed,
+  edge_route,
+  edge_route_options,
+  arrow_head,
+  arrow_fins,
+  arrow_mid,
+  arrow_length,
+  resect,
+  linewidth,
+  node_size,
+  show.legend,
+  resect_head = resect,
+  resect_fins = resect,
+  call = rlang::caller_env(),
+  ...
+) {
+  dag_routed_arrow_layer(
+    mapping = mapping,
+    data_directed = data_directed,
+    route = edge_route,
+    edge_route_options = edge_route_options,
+    call = call,
+    node_size = node_size,
+    arrow_head = arrow_head,
+    arrow_fins = arrow_fins,
+    arrow_mid = arrow_mid,
+    length = list(
+      head = arrow_length,
+      fins = arrow_length,
+      mid = arrow_length
+    ),
+    justify = 0,
+    force_arrow = FALSE,
+    mid_place = 0.5,
+    resect_head = resect_head,
+    resect_fins = resect_fins,
+    lineend = "butt",
+    linejoin = "round",
+    linemitre = 10,
+    position = "identity",
+    na.rm = TRUE,
+    show.legend = show.legend,
+    linewidth = linewidth,
+    ...
+  )
+}
+
 # Build ggarrow edge layers for geom_dag()
 geom_dag_ggarrow_edges <- function(
   edge_type,
   sizes,
   show.legend = NA,
-  data = NULL
+  data = NULL,
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
+  call = rlang::caller_env()
 ) {
   rlang::check_installed(
     "ggarrow",
@@ -1534,19 +2009,38 @@ geom_dag_ggarrow_edges <- function(
     ggarrow::arrow_head_wings()
   arrow_fins <- ggdag_option("arrow_fins", NULL)
   arrow_mid <- ggdag_option("arrow_mid", NULL)
-  curvature <- ggdag_option("curvature", 0.3)
+  curvature <- ggdag_option("curvature")
   resect <- sizes[["cap"]]
   linewidth <- sizes[["edge"]]
   arrow_length <- arrow_length_unit(sizes[["arrow"]])
 
   dag_mapping <- aes_dag()
 
-  switch(
-    edge_type,
-    "link_arc" = list(
+  # Under `edge_route`, the straight directed layer is swapped for the routed
+  # layer, which detours a blocked edge around the node on its path; the
+  # bidirected edges stay on their arc layer.
+  routed <- !identical(edge_route, "straight")
+  directed_layer <- function(data_fn) {
+    if (routed) {
+      routed_directed_layer(
+        mapping = dag_mapping,
+        data_directed = data_fn,
+        edge_route = edge_route,
+        edge_route_options = edge_route_options,
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        arrow_length = arrow_length,
+        resect = resect,
+        linewidth = linewidth,
+        node_size = sizes[["node"]],
+        show.legend = show.legend,
+        call = call
+      )
+    } else {
       geom_dag_arrow_arc(
         mapping = dag_mapping,
-        data = compose_edge_data(data, filter_direction("->")),
+        data = data_fn,
         arrow_head = arrow_head,
         arrow_fins = arrow_fins,
         arrow_mid = arrow_mid,
@@ -1555,7 +2049,14 @@ geom_dag_ggarrow_edges <- function(
         linewidth = linewidth,
         length = arrow_length,
         show.legend = show.legend
-      ),
+      )
+    }
+  }
+
+  switch(
+    edge_type,
+    "link_arc" = list(
+      directed_layer(compose_edge_data(data, filter_direction("->"))),
       geom_dag_arrow_arc(
         mapping = dag_mapping,
         data = compose_edge_data(data, filter_direction("<->")),
@@ -1563,23 +2064,42 @@ geom_dag_ggarrow_edges <- function(
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
+        unset = "curvature",
         resect = resect,
         linewidth = linewidth,
         length = arrow_length,
         show.legend = show.legend
       )
     ),
-    "link" = geom_dag_arrow(
-      mapping = dag_mapping,
-      data = data,
-      arrow_head = arrow_head,
-      arrow_fins = arrow_fins,
-      arrow_mid = arrow_mid,
-      resect = resect,
-      linewidth = linewidth,
-      length = arrow_length,
-      show.legend = show.legend
-    ),
+    "link" = if (routed) {
+      routed_directed_layer(
+        mapping = dag_mapping,
+        data_directed = data,
+        edge_route = edge_route,
+        edge_route_options = edge_route_options,
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        arrow_length = arrow_length,
+        resect = resect,
+        linewidth = linewidth,
+        node_size = sizes[["node"]],
+        show.legend = show.legend,
+        call = call
+      )
+    } else {
+      geom_dag_arrow(
+        mapping = dag_mapping,
+        data = data,
+        arrow_head = arrow_head,
+        arrow_fins = arrow_fins,
+        arrow_mid = arrow_mid,
+        resect = resect,
+        linewidth = linewidth,
+        length = arrow_length,
+        show.legend = show.legend
+      )
+    },
     "arc" = list(
       geom_dag_arrow_arc(
         mapping = dag_mapping,
@@ -1600,6 +2120,7 @@ geom_dag_ggarrow_edges <- function(
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
+        unset = "curvature",
         resect = resect,
         linewidth = linewidth,
         length = arrow_length,
@@ -1626,6 +2147,7 @@ geom_dag_ggarrow_edges <- function(
         arrow_fins = arrow_fins %||% ggarrow::arrow_head_wings(),
         arrow_mid = arrow_mid,
         curvature = curvature,
+        unset = "curvature",
         resect = resect,
         linewidth = linewidth,
         length = arrow_length,
@@ -1651,20 +2173,38 @@ geom_dag_ggarrow_edges <- function(
 #' @param size A numeric value scaling the size of all elements in the DAG. This
 #'   allows you to change the scale of the DAG without changing the proportions.
 #' @param edge_type The type of edge, one of "link_arc", "link", "arc",
-#'   "diagonal".
+#'   "diagonal". `edge_route` applies to `"link_arc"` and `"link"` only:
+#'   `"arc"` and `"diagonal"` bend every edge already, so they ignore it.
 #' @param edge_engine The engine used to draw edges. Either `"ggraph"`
 #'   (default) or `"ggarrow"`. When `"ggarrow"`, edges are drawn using
 #'   [ggarrow][ggarrow::ggarrow-package] geoms, which support additional
-#'   customization via the `arrow_head`, `arrow_fins`, `arrow_mid`, and
-#'   `curvature` global options (see [ggdag_options_set()]).
+#'   customization via the `arrow_head`, `arrow_fins`, and `arrow_mid` global
+#'   options (see [ggdag_options_set()]). The `curvature` option is read by
+#'   both engines, but each engine draws that value with its own depth and to
+#'   its own side.
+#' @param edge_route How the ggarrow engine draws directed edges, one of
+#'   `"straight"` (the default), `"spline"`, or `"orthogonal"`. `"spline"`
+#'   detours an edge whose path a node blocks around that node with a smooth
+#'   curve; `"orthogonal"` draws every edge as axis-aligned runs with rounded
+#'   corners. Both decide the geometry in the units of the device when the
+#'   plot is drawn. The ggraph engine cannot route and warns when asked to.
+#' @param edge_route_options An object from [edge_route_options()] carrying
+#'   the constants the router draws with, or `NULL` (the default) for the
+#'   router's own. It is read only when `edge_route` names a routing mode.
 #' @param node_size The size of the nodes.
 #' @param text_size The size of the text.
 #' @param label_size The size of the labels.
 #' @param text_col The color of the text.
 #' @param label_col The color of the labels.
 #' @param edge_width The width of the edges.
-#' @param edge_cap The size of edge caps (the distance between the arrowheads
-#'   and the node borders).
+#' @param edge_cap The distance, in millimetres, that each edge stops short of
+#'   the center of the node at either end, scaled by `size`. When neither this
+#'   argument nor the `ggdag.edge_cap` option is set, either edge engine
+#'   stops each end of an edge 2 mm outside the outline of the node drawn
+#'   there, a gap also scaled by `size`, following that node's size and
+#'   shape, so an arrowhead keeps the same distance from a large node as from
+#'   a small one, and from the side of a square node as from a circle. A
+#'   number fixes the cap at every end.
 #' @param arrow_length The length of arrows on edges.
 #' @param use_edges A logical value. Include a `geom_dag_edges*()` function? If
 #'   `TRUE`, which is determined by `edge_type`.
@@ -1672,11 +2212,25 @@ geom_dag_ggarrow_edges <- function(
 #' @param use_stylized A logical value. Include `geom_dag_node()`?
 #' @param use_text A logical value. Include `geom_dag_text()`?
 #' @param use_labels A logical value. Include a label geom? The specific geom
-#'   used is controlled by `label_geom`.
+#'   used is controlled by `label_geom`. A DAG that carries no labels has
+#'   nothing for the geom to draw, and the layer is left out rather than
+#'   drawn empty, so the plot is the one you would get without the argument.
 #' @param label_geom A geom function to use for drawing labels when
-#'   `use_labels = TRUE`. Default is `geom_dag_label_repel`. Other options
-#'   include `geom_dag_label`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
-#'   and `geom_dag_text_repel2`.
+#'   `use_labels = TRUE`. Default is `geom_dag_label_auto`. Other options
+#'   include `geom_dag_label_auto2`, `geom_dag_text_auto`, `geom_dag_label`,
+#'   `geom_dag_label_repel`, `geom_dag_text_repel`, `geom_dag_label_repel2`,
+#'   and `geom_dag_text_repel2`. To change a parameter that `geom_dag()` sets
+#'   on the label layer itself, such as `size` or `col`, wrap the label geom
+#'   and write your value after the dots:
+#'   `label_geom = function(...) geom_dag_label_auto(..., size = 4.6)`. The
+#'   value written last is the one the layer uses, so yours takes effect. The
+#'   mirror shape, `function(...) geom_dag_label_auto(size = 4.6, ...)`, writes
+#'   your value first and therefore loses to the value `geom_dag()` writes.
+#' @param label_wrap Width in characters to wrap the label text to. Only the
+#'   automatic label geoms, [geom_dag_label_auto()] and
+#'   [geom_dag_text_auto()], wrap their text; the repel label geoms are not
+#'   given it. `NULL`, the default, wraps nothing, and the `ggdag.label_wrap`
+#'   option sets it for every plot.
 #' @param n_edge_points Number of invisible points to interpolate along each
 #'   edge for label repulsion. Passed to repel label geoms. Defaults to `NULL`
 #'   (uses `StatNodesRepel` default of 50). Set to 0 to disable.
@@ -1723,7 +2277,7 @@ geom_dag_ggarrow_edges <- function(
 #'   labels = c(x = "Exposure", y = "Outcome", z = "Mediator")
 #' )
 #'
-#' # Default: repelling labels
+#' # Default: automatically placed labels
 #' ggplot(dag_labeled, aes_dag()) +
 #'   geom_dag(use_labels = TRUE)
 #'
@@ -1741,20 +2295,23 @@ geom_dag <- function(
   size = 1,
   edge_type = c("link_arc", "link", "arc", "diagonal"),
   edge_engine = ggdag_option("edge_engine", "ggraph"),
+  edge_route = ggdag_option("edge_route", "straight"),
+  edge_route_options = ggdag_option("edge_route_options", NULL),
   node_size = ggdag_option("node_size", 16),
   text_size = ggdag_option("text_size", 3.88),
   label_size = ggdag_option("label_size", text_size),
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   n_edge_points = NULL,
   n_node_points = NULL,
   unified_legend = TRUE,
@@ -1767,6 +2324,14 @@ geom_dag <- function(
   use_nodes <- check_arg_node(node, use_nodes)
   use_stylized <- check_arg_stylized(stylized, use_stylized)
   edge_engine <- match.arg(edge_engine, c("ggraph", "ggarrow"))
+  check_edge_route_options(edge_route_options, call = rlang::current_env())
+
+  # An unset cap stops each edge end beyond the node drawn there, under
+  # either engine, and the automatic label geoms cut the edges they trace at
+  # the same ends. The edges take the cap of a circle node of this size for
+  # an end with no node drawn at it.
+  node_aware_caps <- is.null(edge_cap)
+  edge_cap <- single_edge_cap(edge_cap, node_size)
 
   sizes <- c(
     cap = edge_cap,
@@ -1775,7 +2340,7 @@ geom_dag <- function(
     label = label_size,
     edge = edge_width,
     arrow = arrow_length,
-    box_padding = 1.5
+    box_padding = 0.5
   ) *
     size
 
@@ -1793,17 +2358,23 @@ geom_dag <- function(
         edge_type = edge_type,
         sizes = sizes,
         show.legend = edge_show_legend,
-        data = data
+        data = data,
+        edge_route = edge_route,
+        edge_route_options = edge_route_options
       )
     } else {
+      # the layers report an ignored routing for themselves, for the sake of
+      # the plots a user assembles from them; here the whole plot reports it
+      # once, through the `ignored_edge_route` attribute below
       if (edge_type == "link_arc") {
-        edge_geom <- geom_dag_edges(
+        edge_geom <- without_edge_route_warning(geom_dag_edges(
           ggplot2::aes(
             start_cap = ggraph::circle(sizes[["cap"]], "mm"),
             end_cap = ggraph::circle(sizes[["cap"]], "mm")
           ),
           data_directed = compose_edge_data(data, filter_direction("->")),
           data_bidirected = compose_edge_data(data, filter_direction("<->")),
+          edge_engine = "ggraph",
           edge_width = sizes[["edge"]],
           arrow_directed = grid::arrow(
             length = grid::unit(sizes[["arrow"]], "pt"),
@@ -1815,23 +2386,37 @@ geom_dag <- function(
             type = "closed"
           ),
           show.legend = edge_show_legend
-        )
+        ))
       } else {
         edge_function <- edge_type_switch(edge_type)
-        edge_geom <- edge_function(
-          ggplot2::aes(
-            start_cap = ggraph::circle(sizes[["cap"]], "mm"),
-            end_cap = ggraph::circle(sizes[["cap"]], "mm")
-          ),
-          data = data,
-          edge_width = sizes[["edge"]],
-          arrow = grid::arrow(
-            length = grid::unit(sizes[["arrow"]], "pt"),
-            type = "closed"
-          ),
-          show.legend = edge_show_legend
-        )
+        edge_geom <- without_edge_route_warning(do.call(
+          edge_function,
+          c(
+            list(
+              ggplot2::aes(
+                start_cap = ggraph::circle(sizes[["cap"]], "mm"),
+                end_cap = ggraph::circle(sizes[["cap"]], "mm")
+              ),
+              data = data,
+              edge_width = sizes[["edge"]],
+              arrow = grid::arrow(
+                length = grid::unit(sizes[["arrow"]], "pt"),
+                type = "closed"
+              ),
+              show.legend = edge_show_legend
+            ),
+            arc_curvature_args(edge_type)
+          )
+        ))
       }
+    }
+
+    if (node_aware_caps) {
+      edge_geom <- with_node_aware_caps(
+        edge_geom,
+        gap = node_edge_gap_mm * size,
+        fallback_extent = node_radius_mm(sizes[["node"]])
+      )
     }
   } else {
     edge_geom <- NULL
@@ -1923,7 +2508,12 @@ geom_dag <- function(
   if (isTRUE(use_labels)) {
     label <- rlang::enquo(label)
 
-    if (rlang::quo_is_null(label)) {
+    # A caller who names no column asks for the DAG's labels, and the mapping
+    # to the `label` column is written here rather than by the caller. A DAG
+    # that carries no labels has no such column, and the layer is dropped when
+    # the plot it joins turns out to be one of those.
+    generated_label <- rlang::quo_is_null(label)
+    if (generated_label) {
       label <- rlang::quo(label)
     }
 
@@ -1940,33 +2530,40 @@ geom_dag <- function(
       show.legend = FALSE
     )
 
-    # Add parameters that might be used by repel functions
-    # These will be ignored by geoms that don't use them
-    if (
-      identical(label_geom, geom_dag_label_repel) ||
-        identical(label_geom, geom_dag_label_repel2)
-    ) {
+    # A label geom tagged with dag_node_aware() places its labels around the
+    # drawn nodes and edges, so it is handed the node geometry parameters; a
+    # geom without the tag gets only the common parameters. The tag's extra
+    # names add the parameters only some of the tagged geoms take.
+    if (isTRUE(attr(label_geom, "dag_node_aware"))) {
       common_params$node_size <- sizes[["node"]]
       common_params$n_edge_points <- n_edge_points
       common_params$n_node_points <- n_node_points
-      common_params$box.padding <- sizes[["box_padding"]]
+      common_params$box.padding <- sizes[["box_padding"]] *
+        (attr(label_geom, "dag_node_aware_box_padding") %||% 1)
       common_params$max.overlaps <- Inf
-      common_params$label.padding <- 0.1
-    } else if (
-      identical(label_geom, geom_dag_text_repel) ||
-        identical(label_geom, geom_dag_text_repel2)
-    ) {
-      common_params$node_size <- sizes[["node"]]
-      common_params$n_edge_points <- n_edge_points
-      common_params$n_node_points <- n_node_points
-      common_params$box.padding <- sizes[["box_padding"]]
-      common_params$max.overlaps <- Inf
+      extra <- attr(label_geom, "dag_node_aware_extra")
+      # the edges that follow the nodes hand the label stat their caps at
+      # each end instead of a single cap
+      if ("edge_cap" %in% extra && !node_aware_caps) {
+        common_params$edge_cap <- sizes[["cap"]]
+      }
+      if ("wrap" %in% extra && !is.null(label_wrap)) {
+        common_params$wrap <- label_wrap
+      }
     }
 
     # The label layer stays wrapped so that it can read the edge layers of the
     # plot it is added to; `node_size` is already threaded here, so the wrapper
     # leaves it alone.
     label_geom_result <- do.call(label_geom, common_params)
+    label_geom_result <- fill_auto_label_params(
+      label_geom_result,
+      edge_cap = if (!node_aware_caps) sizes[["cap"]],
+      wrap = label_wrap
+    )
+    if (generated_label && !is.null(label_geom_result)) {
+      attr(label_geom_result, "dag_generated_label") <- TRUE
+    }
   } else {
     label_geom_result <- NULL
   }
@@ -1978,7 +2575,107 @@ geom_dag <- function(
     label_geom_result
   )
 
-  structure(result, class = "geom_dag_layers")
+  # `edge_route` is a ggarrow feature; the ggraph engine has nowhere to put a
+  # detour, so the layers carry the value they could not draw and
+  # `ggplot_add()` says so once for the whole plot.
+  ignored_route <- if (
+    isTRUE(use_edges) &&
+      identical(edge_engine, "ggraph") &&
+      !identical(edge_route, "straight")
+  ) {
+    edge_route
+  } else {
+    NULL
+  }
+
+  structure(
+    result,
+    class = "geom_dag_layers",
+    ignored_edge_route = ignored_route
+  )
+}
+
+# `geom_dag()` takes no mapping of its own and every layer it builds inherits
+# from the plot, so the plot mapping is the only place the DAG aesthetics can
+# come from. Without them the edge stats reach a layer with no positions and
+# fail on the empty subscript, so say what is missing instead. A layer needs
+# only the aesthetics it reads, and the mapping it reads them from is settled
+# when the plot is built rather than when the layer is added, because
+# `aes_dag()` can follow `geom_dag()`.
+check_dag_mapping <- function(layer, plot, needed) {
+  plot_data <- plot$data
+  if (inherits(plot_data, "tidy_dagitty")) {
+    plot_data <- pull_dag_data(plot_data)
+  }
+  missing_aes <- setdiff(needed, resolved_layer_aes(layer, plot))
+
+  # data without the DAG columns is not a tidy DAG at all, and `aes_dag()`
+  # would not fix it, so leave that plot to ggplot2 to report
+  dag_columns <- c("x", "y", "xend", "yend")
+  is_dag_data <- is.data.frame(plot_data) &&
+    all(dag_columns %in% names(plot_data))
+  if (length(missing_aes) == 0 || !is_dag_data) {
+    return(invisible(NULL))
+  }
+
+  abort(
+    c(
+      "{.fun geom_dag} needs the DAG aesthetics on the plot.",
+      "x" = "The plot mapping does not set {.field {missing_aes}}.",
+      "i" = "Build the plot with {.code ggplot(dag, aes_dag()) + geom_dag()}."
+    ),
+    error_class = "ggdag_missing_error",
+    call = quote(geom_dag())
+  )
+}
+
+# The aesthetics a layer has once it inherits the plot's, which is where
+# `aes_dag()` puts the DAG aesthetics. Only the names are asked for, so a
+# mapping is never evaluated here.
+resolved_layer_aes <- function(layer, plot) {
+  mapped <- names(layer$mapping)
+  if (!identical(layer$inherit.aes, FALSE)) {
+    mapped <- union(mapped, names(plot$mapping))
+  }
+  mapped
+}
+
+# The DAG aesthetics a layer reads: an edge runs from one node to another, and
+# everything else `geom_dag()` draws sits on a single node.
+dag_layer_needs <- function(item) {
+  if (inherits(item, c("dag_edge_layer", "dag_arrow_layer"))) {
+    c("x", "y", "xend", "yend")
+  } else {
+    c("x", "y")
+  }
+}
+
+# A layer already holding the aesthetics it needs can only keep them, since a
+# plot mapping grows as more of it is added, so it is left as it is. A layer
+# still missing one waits for the finished plot to say whether the mapping
+# ever arrived, and the wrapper is what carries the question there.
+defer_dag_mapping_check <- function(item, plot) {
+  needed <- dag_layer_needs(item)
+  wrapped <- inherits(
+    item,
+    c("dag_layer", "dag_edge_layer", "dag_arrow_layer")
+  )
+  layer <- if (wrapped) .subset2(item, "layer") else item
+
+  if (all(needed %in% resolved_layer_aes(layer, plot))) {
+    return(item)
+  }
+
+  layer <- plot_aware_layer(layer, function(self, plot) {
+    check_dag_mapping(self, plot, needed)
+  })
+
+  if (!wrapped) {
+    return(layer)
+  }
+
+  item[["layer"]] <- layer
+  item
 }
 
 #' @exportS3Method ggplot2::ggplot_add
@@ -1991,6 +2688,8 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
   wants_curve <- wants_edge_curvature(plot_data)
   curvature_ignored <- FALSE
 
+  object <- drop_empty_label_layer(object, plot)
+
   for (item in flatten_dag_layers(object)) {
     if (has_curvature && inherits(item, "dag_arrow_layer")) {
       item <- inject_edge_curvature(item)
@@ -1998,6 +2697,7 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
     if (wants_curve && inherits(item, "dag_edge_layer")) {
       curvature_ignored <- TRUE
     }
+    item <- defer_dag_mapping_check(item, plot)
     plot <- ggplot2::ggplot_add(item, plot, ...)
   }
 
@@ -2005,7 +2705,35 @@ ggplot_add.geom_dag_layers <- function(object, plot, ...) {
     warn_ignored_edge_curvature()
   }
 
+  ignored_route <- attr(object, "ignored_edge_route")
+  if (!is.null(ignored_route)) {
+    warn_ignored_edge_route(ignored_route)
+  }
+
   plot
+}
+
+# `geom_dag(use_labels = TRUE)` maps the `label` column whether or not the
+# DAG carries labels, and a DAG without them has no such column for the label
+# layer to draw. `use_labels` on that DAG asks for labels the DAG does not
+# have, so the layer is dropped and the plot draws as it would without the
+# argument, rather than failing on a column that is not in the data. The
+# layer is dropped whichever geom draws it, because the mapping that names
+# the column is written by `geom_dag()` rather than by the geom.
+drop_empty_label_layer <- function(object, plot) {
+  for (i in seq_along(object)) {
+    item <- object[[i]]
+    if (!isTRUE(attr(item, "dag_generated_label"))) {
+      next
+    }
+
+    data <- layer_source_data(item, plot)
+    if (!is.null(data) && !"label" %in% names(data)) {
+      object[i] <- list(NULL)
+    }
+  }
+
+  object
 }
 
 # `geom_dag()` hands back a list that can hold further lists, because an edge
@@ -2050,15 +2778,93 @@ wants_edge_curvature <- function(dag_data) {
     any(dag_data$edge_curvature != 0, na.rm = TRUE)
 }
 
-# Report a per-edge curvature that the ggraph edge layers about to be added
-# cannot draw. Called by each function that builds ggraph edge layers of its
-# own, so that the plotters which pass `use_edges = FALSE` to `geom_dag()` are
-# as loud about it as `geom_dag()` itself.
-warn_if_curvature_ignored <- function(dag_data) {
+# Report the per-edge curvature and the edge routing that the ggraph edge
+# layers about to be added cannot draw. Called by each function that builds
+# ggraph edge layers of its own, so that the plotters which pass
+# `use_edges = FALSE` to `geom_dag()` are as loud about the two ggarrow-only
+# features as `geom_dag()` itself.
+warn_if_ggarrow_only_ignored <- function(dag_data) {
   if (wants_edge_curvature(dag_data)) {
     warn_ignored_edge_curvature()
   }
+  edge_route <- ggdag_option("edge_route", "straight")
+  if (!identical(edge_route, "straight")) {
+    warn_ignored_edge_route(edge_route)
+  }
   invisible(NULL)
+}
+
+# The four layers named after a ggraph edge geom draw every edge along the path
+# of that geom, so none of them can route one. A plot built by hand out of them
+# has nowhere else to hear that, so each of them says it for itself. The
+# package's own ggraph plots report the routing once for the whole plot and
+# silence this with `without_edge_route_warning()`.
+warn_layer_ignored_edge_route <- function() {
+  edge_route <- ggdag_option("edge_route", "straight")
+  if (!identical(edge_route, "straight")) {
+    warn_ignored_edge_route(edge_route)
+  }
+  invisible(NULL)
+}
+
+# Build ggraph edge layers without letting each of them report the ignored
+# routing, for a caller that reports it once for the whole plot instead.
+without_edge_route_warning <- function(expr) {
+  withCallingHandlers(
+    expr,
+    ggdag_edge_route_warning = function(cnd) rlang::cnd_muffle(cnd)
+  )
+}
+
+# The ggarrow edge layers take an ornament object, from `arrow_head_wings()`
+# and its siblings, rather than a `grid::arrow()` specification, and no
+# faithful translation between the two exists. A specification the caller
+# wrote would otherwise be dropped without a word.
+warn_ignored_edge_arrows <- function() {
+  warn(
+    c(
+      "Arrow specifications from {.fun grid::arrow} are drawn by the ggraph edge engine only.",
+      "x" = "The {.val ggarrow} engine is drawing these edges, so {.arg arrow_directed} and {.arg arrow_bidirected} are ignored.",
+      "i" = "Set the ornaments with {.code ggdag_options_set(arrow_head = , arrow_fins = )}, or draw with {.code edge_engine = \"ggraph\"}."
+    ),
+    warning_class = "ggdag_edge_arrow_warning"
+  )
+}
+
+# The ggraph edge geoms draw each edge along the path of their own edge type
+# and have no draw-time hook to route one, so a routing the plot asked for
+# would otherwise disappear without a word.
+warn_ignored_edge_route <- function(edge_route) {
+  warn(
+    c(
+      "Edge routing is drawn by the ggarrow edge engine only.",
+      "x" = "The {.val ggraph} engine is drawing these edges, so the {.field edge_route} value {.val {edge_route}} is ignored.",
+      "i" = 'Set {.code edge_engine = "ggarrow"}, or {.code ggdag_options_set(edge_engine = "ggarrow")}, to draw them.'
+    ),
+    warning_class = "ggdag_edge_route_warning"
+  )
+}
+
+# The fan spreads one copy of each edge per open path by giving each copy a
+# curvature, and a routed edge is drawn along the path the router chooses
+# rather than along a curvature, so the two cannot both be drawn. The fan is
+# the picture `ggdag_paths_fan()` exists to draw, so the routing gives way,
+# and it says so with the class every dropped routing is reported under.
+warn_dropped_fan_edge_route <- function() {
+  edge_route <- ggdag_option("edge_route", "straight")
+  if (identical(edge_route, "straight")) {
+    return(invisible(FALSE))
+  }
+
+  warn(
+    c(
+      "The fan is drawn rather than the edge routing.",
+      "x" = "{.fun ggdag_paths_fan} spreads one copy of each edge per open path by curvature, which a routed edge cannot carry, so the {.field edge_route} value {.val {edge_route}} is dropped.",
+      "i" = "Use {.fun ggdag_paths} to draw the same paths with routed edges."
+    ),
+    warning_class = "ggdag_edge_route_warning"
+  )
+  invisible(TRUE)
 }
 
 # The ggraph edge geoms draw each edge with the curvature of their own edge
@@ -2086,12 +2892,23 @@ is_quo_logical <- function(x) {
 #' @rdname ggplot.tidy_dagitty
 #' @importFrom ggplot2 ggplot aes
 ggplot.tidy_dagitty <- function(data = NULL, mapping = aes(), ...) {
-  p <- ggplot2::ggplot(fortify(data), mapping = mapping, ...)
+  dag_data <- fortify(data)
+
+  # A layer that routes around the nodes needs the axis the layers run along,
+  # which the layout that placed them recorded; the plot's own data is where
+  # every layer can see it.
+  direction <- layout_direction(data)
+  if (!is.null(direction)) {
+    attr(dag_data, "layout_direction") <- direction
+  }
+
+  p <- ggplot2::ggplot(dag_data, mapping = mapping, ...)
 
   p <- silence_scales(p)
 
   p +
-    expand_plot(
+    expand_dag_plot(
+      dag_data,
       expand_x = expansion(c(0.10, 0.10)),
       expand_y = expansion(c(0.10, 0.10))
     )

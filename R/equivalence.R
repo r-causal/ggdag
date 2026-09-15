@@ -43,7 +43,7 @@
 node_equivalent_dags <- function(
   .dag,
   n = 100,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
@@ -59,7 +59,7 @@ node_equivalent_dags <- function(
 
   updated_dag <- pull_dag(.dag)
   dagitty::coordinates(updated_dag) <- layout_coords
-  update_dag(.dag) <- updated_dag
+  update_dag(.dag) <- keep_layout_direction(updated_dag, pull_dag(.dag))
 
   if (extra_columns) {
     # extra columns come from edge-level rows, so keep one row per node to
@@ -123,14 +123,15 @@ ggdag_equivalent_dags <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -170,6 +171,7 @@ ggdag_equivalent_dags <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),
@@ -181,7 +183,8 @@ ggdag_equivalent_dags <- function(
   if (dplyr::n_distinct(pull_dag_data(.tdy_dag)$dag) > 1) {
     p <- p +
       ggplot2::facet_wrap(~dag) +
-      expand_plot(
+      expand_dag_plot(
+        .tdy_dag,
         expand_x = expansion(c(0.25, 0.25)),
         expand_y = expansion(c(0.25, 0.25))
       )
@@ -194,7 +197,7 @@ ggdag_equivalent_dags <- function(
 #' @export
 node_equivalent_class <- function(
   .dag,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   .dag <- if_not_tidy_daggity(.dag, layout = layout, ...)
@@ -249,14 +252,15 @@ ggdag_equivalent_class <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option("edge_cap", 8),
+  edge_cap = ggdag_option("edge_cap", NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = NULL,
   edge_engine = ggdag_option("edge_engine", "ggraph"),
@@ -292,7 +296,7 @@ ggdag_equivalent_class <- function(
         "ggarrow",
         reason = "to use edge_engine = \"ggarrow\"."
       )
-      resect <- edge_cap * size
+      resect <- single_edge_cap(edge_cap, node_size) * size
       arrow_head <- ggdag_option("arrow_head", NULL) %||%
         ggarrow::arrow_head_wings()
       arrow_fins <- ggdag_option("arrow_fins", NULL)
@@ -302,7 +306,7 @@ ggdag_equivalent_class <- function(
         p$data
       )
 
-      p <- p +
+      edge_layers <- c(
         quick_plot_arrow_edges(
           mapping = edge_mapping,
           data_directed = function(x) {
@@ -317,8 +321,8 @@ ggdag_equivalent_class <- function(
           linewidth = edge_width * size,
           length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
-        ) +
-        geom_dag_arrow_arc(
+        ),
+        list(geom_dag_arrow_arc(
           mapping = edge_mapping,
           data = reversable_lines,
           curvature = 0,
@@ -328,7 +332,11 @@ ggdag_equivalent_class <- function(
           linewidth = edge_width * size,
           length = arrow_length_unit(arrow_length * size),
           show.legend = TRUE
-        ) +
+        ))
+      )
+
+      p <- p +
+        follow_nodes_when_unset(edge_layers, edge_cap, node_size, size) +
         breaks() +
         ggplot2::scale_alpha_manual(
           name = "Reversable",
@@ -337,7 +345,7 @@ ggdag_equivalent_class <- function(
           limits = c("FALSE", "TRUE")
         )
     } else {
-      warn_if_curvature_ignored(p$data)
+      warn_if_ggarrow_only_ignored(p$data)
 
       edge_layers <- c(
         quick_plot_dag_edges(
@@ -345,6 +353,7 @@ ggdag_equivalent_class <- function(
           edge_width = edge_width,
           arrow_length = arrow_length,
           size = size,
+          node_size = node_size,
           data_directed = dplyr::filter(
             non_reversable_lines,
             .data$direction != "<->"
@@ -355,11 +364,16 @@ ggdag_equivalent_class <- function(
           )
         ),
         list(
-          geom_dag_edges_link(
-            with_edge_caps(NULL, edge_cap * size),
-            data = reversable_lines,
-            edge_width = edge_width * size,
-            arrow = NULL
+          follow_nodes_when_unset(
+            without_edge_route_warning(geom_dag_edges_link(
+              with_edge_caps(NULL, single_edge_cap(edge_cap, node_size) * size),
+              data = reversable_lines,
+              edge_width = edge_width * size,
+              arrow = NULL
+            )),
+            edge_cap,
+            node_size,
+            size
           )
         )
       )
@@ -393,6 +407,7 @@ ggdag_equivalent_class <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),

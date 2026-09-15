@@ -44,6 +44,9 @@ count_edge_layers <- function(plot) {
 
 # Count total edges across all layers using unique groups
 count_total_edges <- function(plot) {
+  # a ggraph label cap measures its text when the plot is built, and with no
+  # device open grid would open the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   built_plot <- ggplot2::ggplot_build(plot)
   edge_layers <- purrr::map_lgl(plot$layers, is_edge_layer)
   edge_layer_indices <- which(edge_layers)
@@ -79,6 +82,8 @@ count_total_edges <- function(plot) {
 
 # Detect overlapping edges by comparing coordinates
 detect_duplicate_edges <- function(plot) {
+  # as in `count_total_edges()`, the build measures label caps on a device
+  withr::local_pdf(NULL)
   built_plot <- ggplot2::ggplot_build(plot)
   edge_layers <- purrr::map_lgl(plot$layers, is_edge_layer)
   edge_layer_indices <- which(edge_layers)

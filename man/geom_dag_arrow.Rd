@@ -38,6 +38,7 @@ geom_dag_arrow_arc(
   curvature = 0.3,
   angle = 90,
   ncp = 5,
+  unset = c("chord", "curvature"),
   arrow_head = ggarrow::arrow_head_wings(),
   arrow_fins = NULL,
   arrow_mid = NULL,
@@ -149,6 +150,13 @@ control points of the curve.}
 \item{ncp}{The number of control points used to draw the curve. More control
 points creates a smoother curve.}
 
+\item{unset}{What an edge whose \code{edge_curvature} is unset (\code{NA}) is drawn
+as, once some other edge of the layer carries a value. \code{"chord"} (the
+default) draws it straight, which is what a directed layer wants:
+curving one edge does not bend the others. \code{"curvature"} draws it at the
+layer's own \code{curvature}, which is what a bidirected layer wants: curving
+one bidirected edge does not flatten the rest.}
+
 \item{data_directed, data_bidirected}{The data to be displayed for directed
 and bidirected edges respectively. By default, these filter the plot data
 by edge direction.}
@@ -175,24 +183,33 @@ ggraph-based edge geoms, these use ggarrow's native parameter names
 aesthetic. Map a numeric column to \code{aes(edge_curvature = ...)} to give each
 edge its own curvature value. Edges with \code{edge_curvature = 0} are drawn as
 straight lines; positive values curve right, negative values curve left.
-Any \code{NA} values fall back to the scalar \code{curvature} parameter. This is
-useful in time-ordered DAGs where some edges need to curve around
-intermediate nodes while adjacent edges stay straight.
+Once any edge carries a value, the edges left unset (\code{NA}) are drawn as
+straight lines too, unless \code{unset = "curvature"} asks for the layer's own
+\code{curvature} instead, as the bidirected layers of \code{\link[=geom_dag_arrows]{geom_dag_arrows()}} and
+\code{\link[=geom_dag]{geom_dag()}} do. The scalar \code{curvature} parameter is also the layer's
+value for the case where no edge carries one. This is useful in
+time-ordered DAGs where some edges need to curve around intermediate nodes
+while adjacent edges stay straight.
 }
 
 \subsection{Auto-resection}{
 
 Edges are automatically shortened so that they do not run underneath the
 nodes. Resection is decided one end at a time: an end you set, through
-\code{resect} or through \code{resect_head}/\code{resect_fins}, keeps the value you gave
-it, and every end you leave unset is shortened automatically. Setting only
+\code{resect} or through \code{resect_head}/\code{resect_fins}, as a parameter or as an
+aesthetic of the layer or of the plot, keeps the value you gave it, and
+every end you leave unset is shortened automatically. Setting only
 \code{resect_head}, for instance, leaves the fins end to the automatic value.
 Pass \code{0} to an end to draw the edge all the way to the node.
 
-The automatic value comes from the node size when the plot has a node layer
-(\code{geom_dag_point()} or \code{geom_dag_node()}), whichever order the two layers
-were added in, and from the \code{ggdag.edge_cap} option (default: 8mm) when the
-plot has none.
+An end left to the automatic value stops 2 mm outside the outline of the
+node drawn there, following the size and shape of that node whichever
+order the layers were added in: on the circle 2 mm wider than a circle
+node, and on the square 2 mm wider on every side than a square node,
+wherever the edge meets it. An end with no node drawn at it stops 2 mm
+beyond a circle of the plot's node size, or 8 mm from the end when the
+plot has no node layer (\code{geom_dag_point()} or \code{geom_dag_node()}) at all,
+which the \code{ggdag.edge_cap} option sets.
 }
 }
 \examples{

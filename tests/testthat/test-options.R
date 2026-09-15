@@ -1,3 +1,7 @@
+# The layout option as this file finds it, which the last test in the file
+# checks is still in place once every test above has run.
+layout_option_at_start <- getOption("ggdag.layout")
+
 test_that("ggdag_defaults contains all expected options", {
   expected_names <- c(
     "node_size",
@@ -20,10 +24,59 @@ test_that("ggdag_defaults contains all expected options", {
     "arrow_head",
     "arrow_fins",
     "arrow_mid",
+    "edge_route",
+    "edge_route_options",
+    "label_wrap",
     "curvature",
     "debug_repel_points"
   )
   expect_named(ggdag_defaults, expected_names, ignore.order = TRUE)
+})
+
+test_that("a new option keeps the option list cli prints in its error", {
+  # `ggdag_options_set()` names the valid options through cli, which elides
+  # the middle of a vector longer than twenty: it prints the first eighteen
+  # names, an ellipsis, and the last two. The snapshot of that message is
+  # unchanged only while a new entry goes in between, so the position of
+  # `label_wrap` in `ggdag_defaults` is part of the contract.
+  option_names <- names(ggdag_defaults)
+
+  expect_identical(
+    option_names[1:18],
+    c(
+      "node_size",
+      "text_size",
+      "label_size",
+      "text_col",
+      "label_col",
+      "edge_width",
+      "edge_cap",
+      "arrow_length",
+      "use_edges",
+      "use_nodes",
+      "use_stylized",
+      "use_text",
+      "use_labels",
+      "label_geom",
+      "edge_type",
+      "layout",
+      "edge_engine",
+      "arrow_head"
+    )
+  )
+  expect_identical(
+    utils::tail(option_names, 2),
+    c("curvature", "debug_repel_points")
+  )
+  expect_true(match("label_wrap", option_names) > 18)
+
+  # `edge_route_options` goes in beside the option it configures, which puts
+  # it in the elided middle as well
+  expect_true(match("edge_route_options", option_names) > 18)
+  expect_identical(
+    match("edge_route_options", option_names),
+    match("edge_route", option_names) + 1L
+  )
 })
 
 test_that("ggdag_options_set() sets options and returns old values invisibly", {
@@ -70,6 +123,15 @@ test_that("ggdag_option() returns global option when set, default otherwise", {
 
   withr::local_options(ggdag.node_size = 24)
   expect_equal(ggdag_option("node_size", 16), 24)
+})
+
+test_that("ggdag_option() falls back to the packaged default", {
+  withr::local_options(ggdag.node_size = NULL, ggdag.curvature = NULL)
+  expect_equal(ggdag_option("node_size"), 16)
+  expect_equal(ggdag_option("curvature"), 0.3)
+
+  withr::local_options(ggdag.node_size = 24)
+  expect_equal(ggdag_option("node_size"), 24)
 })
 
 test_that("ggdag_option_proportional() returns override_default when unset", {
@@ -459,7 +521,7 @@ test_that("layout option validation rejects invalid types", {
 
 test_that("ggdag_option returns layout default when unset", {
   withr::local_options(ggdag.layout = NULL)
-  expect_equal(ggdag_option("layout", "nicely"), "nicely")
+  expect_equal(ggdag_option("layout"), "time_ordered")
 })
 
 test_that("ggdag_option returns layout value when set", {
@@ -480,8 +542,11 @@ test_that("tidy_dagitty() respects global layout option", {
   expect_equal(sqrt(coords$x^2 + coords$y^2), rep(1, nrow(coords)))
 })
 
+# A hub with five children, rather than a three-node chain: the star layout
+# puts a collinear DAG on a single line, and the shape that identifies it is a
+# hub at the centre with its spokes around it.
 test_that("explicit layout arg overrides global layout option", {
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(a ~ b + c + d + e + f)
   withr::local_options(ggdag.layout = "circle")
   td_circle <- tidy_dagitty(dag, use_existing_coords = FALSE)
   td_star <- tidy_dagitty(dag, layout = "star", use_existing_coords = FALSE)
@@ -491,8 +556,24 @@ test_that("explicit layout arg overrides global layout option", {
   coords_star <- pull_dag_data(td_star) |>
     dplyr::select(name, x, y) |>
     dplyr::distinct()
-  # Different layouts should produce different coordinates
-  expect_false(all(coords_circle$x == coords_star$x))
+  # The circle layout the option names puts every node, hub included, on the
+  # unit circle. The star layout the argument names centres the hub instead,
+  # so the hub at the origin with its five spokes at unit radius is what tells
+  # the explicit argument through from the option overriding it. Any weaker
+  # comparison of the two sets of coordinates would pass for a layout that is
+  # merely not the circle.
+  expect_equal(
+    sqrt(coords_circle$x^2 + coords_circle$y^2),
+    rep(1, nrow(coords_circle))
+  )
+
+  hub <- coords_star$name == "a"
+  expect_equal(coords_star$x[hub], 0)
+  expect_equal(coords_star$y[hub], 0)
+  expect_equal(
+    sqrt(coords_star$x[!hub]^2 + coords_star$y[!hub]^2),
+    rep(1, sum(!hub))
+  )
 })
 
 test_that("existing dagitty coords take precedence over global layout option", {
@@ -532,8 +613,12 @@ test_that("ggdag() respects global layout option (linear)", {
   expect_doppelganger("opts-ggdag-linear-layout", p)
 })
 
+# A hub with five children, rather than a three-node chain: the star layout
+# puts a collinear DAG on a single line, which is indistinguishable from the
+# other layouts by eye. Five spokes around a centred hub make the baseline
+# evidence that the option reached the layout, not just a record of drift.
 test_that("ggdag() respects global layout option (star)", {
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(a ~ b + c + d + e + f)
   withr::local_options(ggdag.layout = "star")
   p <- ggdag(dag, use_existing_coords = FALSE)
   expect_doppelganger("opts-ggdag-star-layout", p)
@@ -680,8 +765,12 @@ test_that("ggdag_canonical() respects global layout option", {
 })
 
 # Explicit layout arg overrides global layout option
+# A hub with five children, rather than a three-node chain: the star layout
+# puts a collinear DAG on a single line, which is indistinguishable from the
+# circle layout named by the option. Five spokes around a centred hub make the
+# baseline evidence that the explicit argument won, not just a record of drift.
 test_that("explicit layout arg overrides global layout option in ggdag()", {
-  dag <- dagify(y ~ x + z, x ~ z)
+  dag <- dagify(a ~ b + c + d + e + f)
   withr::local_options(ggdag.layout = "circle")
   p <- ggdag(dag, layout = "star", use_existing_coords = FALSE)
   expect_doppelganger("opts-ggdag-layout-explicit-override", p)
@@ -779,6 +868,105 @@ test_that("curvature option rejects non-numeric", {
   expect_ggdag_error(ggdag_options_set(curvature = TRUE))
 })
 
+test_that("edge_route_options option stores, retrieves, and unsets", {
+  local_ggdag_option_state()
+
+  expect_true("edge_route_options" %in% names(ggdag_defaults))
+  expect_null(ggdag_defaults$edge_route_options)
+  expect_null(ggdag_option("edge_route_options", NULL))
+
+  opts <- edge_route_options(max_bow = 0.12, corners = "sharp")
+  ggdag_options_set(edge_route_options = opts)
+  expect_identical(ggdag_options_get("edge_route_options"), opts)
+  expect_identical(ggdag_option("edge_route_options", NULL), opts)
+
+  ggdag_options_set(edge_route_options = NULL)
+  expect_null(ggdag_option("edge_route_options", NULL))
+})
+
+test_that("edge_route_options option takes the object and nothing else", {
+  local_ggdag_option_state()
+  # the registration has to exist before the message is asserted on, or the
+  # unknown-option error would stand in for the validation message
+  expect_true("edge_route_options" %in% names(ggdag_defaults))
+
+  # the message is asserted here rather than snapshotted so that
+  # `_snaps/options.md`, which records the elided list of valid names, stays
+  # exactly as it is
+  expect_error(
+    ggdag_options_set(edge_route_options = "bad"),
+    class = "ggdag_type_error",
+    regexp = "must be an object from"
+  )
+
+  # a bare named list carrying the right names is still not the object: one
+  # type means one place where the fields are validated
+  expect_error(
+    ggdag_options_set(edge_route_options = list(max_bow = 0.12)),
+    class = "ggdag_type_error",
+    regexp = "must be an object from"
+  )
+})
+
+test_that("label_wrap option stores and retrieves correctly", {
+  local_ggdag_option_state()
+
+  expect_no_error(ggdag_options_set(label_wrap = 12))
+  expect_equal(ggdag_options_get("label_wrap"), 12)
+
+  # A width is a count of characters, so a whole number given as an integer
+  # is as good as one given as a double.
+  expect_no_error(ggdag_options_set(label_wrap = 8L))
+  expect_equal(ggdag_options_get("label_wrap"), 8L)
+
+  # `NULL` is the built-in default: no wrapping, and the option unset.
+  expect_no_error(ggdag_options_set(label_wrap = NULL))
+  expect_null(ggdag_options_get("label_wrap"))
+})
+
+test_that("label_wrap option rejects a width that is not a whole count", {
+  local_ggdag_option_state()
+
+  # The unknown-option error carries the same class as a validation error, so
+  # each rejection is checked to be a complaint about the value rather than
+  # about the name.
+  reject <- function(value) {
+    cnd <- rlang::catch_cnd(
+      ggdag_options_set(label_wrap = value),
+      classes = "error"
+    )
+    expect_s3_class(cnd, "ggdag_type_error")
+    expect_false(grepl("Unknown", conditionMessage(cnd), fixed = TRUE))
+  }
+
+  reject(2.5)
+  reject(0)
+  reject(-3)
+  reject(NA_integer_)
+  reject("twelve")
+  reject(c(10, 12))
+})
+
+test_that("ggdag() threads the label_wrap option to the auto label geom", {
+  withr::local_options(ggdag.label_wrap = 12)
+
+  dag <- dagify(
+    y ~ x,
+    labels = c(x = "Physical activity", y = "Cardiovascular disease"),
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  )
+  p <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_auto)
+
+  index <- which(vapply(
+    p$layers,
+    function(layer) inherits(layer$stat, "StatNodesLabelAuto"),
+    logical(1)
+  ))
+  expect_length(index, 1)
+  params <- c(p$layers[[index]]$stat_params, p$layers[[index]]$geom_params)
+  expect_equal(params[["wrap"]], 12)
+})
+
 test_that("debug_repel_points is settable through the options API", {
   local_ggdag_option_state()
 
@@ -860,6 +1048,7 @@ test_that("ggdag_options_set() rejects NA for numeric options", {
 
 test_that("ggdag_options_set() rejects NA for logical, character, and layout options", {
   local_ggdag_option_state()
+  layout_before <- ggdag_options_get("layout")
 
   expect_error(ggdag_options_set(use_edges = NA), class = "ggdag_type_error")
   expect_error(
@@ -878,9 +1067,9 @@ test_that("ggdag_options_set() rejects NA for logical, character, and layout opt
   expect_null(ggdag_options_get("use_edges"))
   expect_null(ggdag_options_get("text_col"))
   expect_null(ggdag_options_get("curvature"))
-  # helper-load_dag.R sets a layout for the whole suite, so what the rejected
-  # value must not have done is replace it
-  expect_equal(ggdag_options_get("layout"), "time_ordered")
+  # a layout may already be set, so what the rejected value must not have done
+  # is replace whatever was there
+  expect_identical(ggdag_options_get("layout"), layout_before)
 })
 
 test_that("ggdag_options_set() reports NA values through cli", {
@@ -920,10 +1109,10 @@ test_that("ggdag_options_set() reports an unnamed value through cli", {
   expect_ggdag_error(ggdag_options_set(20))
 })
 
-# Keep this test last: it guards the suite-wide layout option that
-# helper-load_dag.R sets, which the tests above are free to change but must
-# restore. A failure here means a test in this file leaked an option change into
-# every file that runs after it in the same worker.
+# Keep this test last: it guards the layout option this file found when it
+# started, which the tests above are free to change but must restore. A failure
+# here means a test in this file leaked an option change into every file that
+# runs after it in the same worker.
 test_that("this file leaves the suite-wide layout option intact", {
-  expect_equal(getOption("ggdag.layout"), "time_ordered")
+  expect_identical(getOption("ggdag.layout"), layout_option_at_start)
 })

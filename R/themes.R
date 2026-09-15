@@ -7,7 +7,11 @@
 #' @param expand_x,expand_y Vector of range expansion constants used to add some
 #'   padding around the data, to ensure that they are placed some distance away
 #'   from the axes. Use the convenience function `ggplot2::expansion()` to
-#'   generate the values for the expand argument.
+#'   generate the values for the expand argument. The DAG plotting functions
+#'   replace this value on an axis whose nodes all share one coordinate,
+#'   exactly or to within floating-point noise: a multiplicative expansion of
+#'   a zero-width range adds nothing, so such an axis takes an additive
+#'   expansion of an eighth of the other axis's span on each side instead.
 #' @export
 expand_plot <- function(
   expand_x = expansion(c(0.10, 0.10)),
@@ -17,6 +21,88 @@ expand_plot <- function(
     ggplot2::scale_x_continuous(expand = expand_x),
     ggplot2::scale_y_continuous(expand = expand_y)
   )
+}
+
+# `expand_plot()` for a plot of `data`, the tidy DAG the plot is drawn from.
+#
+# A DAG whose nodes all share one coordinate, a chain along a single line for
+# instance, trains that axis to a zero-width range, as does one whose nodes
+# share it to within floating-point noise. A multiplicative expansion
+# of a zero-width range adds nothing, so ggplot2 falls back to a placeholder a
+# tenth of a unit on each side of the value under the expansion used here (a
+# twentieth under ggplot2's own default), and under `coord_fixed()` the panel
+# is then only millimetres tall and the node discs are clipped flat. A
+# degenerate axis instead takes an additive expansion of an eighth of the
+# other axis's raw span on each side.
+#
+# The other axis keeps the expansion the caller asked for, and when both axes
+# are degenerate there is no span to borrow from, so nothing changes. The
+# adjustment is made here rather than in a coord, so that a user's own
+# `coord_fixed()` still composes.
+expand_dag_plot <- function(
+  data,
+  expand_x = expansion(c(0.10, 0.10)),
+  expand_y = expansion(c(0.10, 0.10))
+) {
+  if (is.tidy_dagitty(data)) {
+    data <- pull_dag_data(data)
+  }
+
+  range_x <- dag_axis_range(data, "x")
+  range_y <- dag_axis_range(data, "y")
+  flat_x <- is_zero_range(range_x)
+  flat_y <- is_zero_range(range_y)
+
+  if (flat_x && !flat_y) {
+    expand_x <- expansion(mult = 0, add = diff(range_y) / 8)
+  }
+  if (flat_y && !flat_x) {
+    expand_y <- expansion(mult = 0, add = diff(range_x) / 8)
+  }
+
+  expand_plot(expand_x = expand_x, expand_y = expand_y)
+}
+
+# The raw range of one axis of tidy DAG data, node positions and edge ends
+# together, before any expansion. `NULL` when the data holds no finite value
+# on that axis, which leaves its expansion alone.
+dag_axis_range <- function(data, axis) {
+  values <- c(data[[axis]], data[[paste0(axis, "end")]])
+  values <- values[is.finite(values)]
+  if (length(values) == 0) {
+    return(NULL)
+  }
+  range(values)
+}
+
+# Whether a range is zero-width: endpoints that are equal, endpoints equal to
+# within a relative tolerance, or a span no wider than the noise of
+# representing the values themselves. The first two are the rule ggplot2
+# applies when it expands a range, and they are not enough here. A relative
+# test has nothing to divide by when the smaller endpoint is exactly zero, so
+# it gives up, and an axis whose values come out of trigonometry is often
+# anchored at zero: the circle layout puts a pair of nodes at `0` and
+# `sin(pi)`, which is 1.224647e-16 rather than 0. The absolute floor catches
+# those, at one unit in the last place of the larger endpoint, or of 1 where
+# the values are smaller than that. Across the layouts a DAG is drawn with,
+# the widest such span measures a little over half the floor, while the
+# narrowest span of real coordinates measures 1e15 times it.
+is_zero_range <- function(range) {
+  if (is.null(range) || anyNA(range)) {
+    return(FALSE)
+  }
+  if (range[[1]] == range[[2]]) {
+    return(TRUE)
+  }
+  noise <- .Machine$double.eps * max(1, max(abs(range)))
+  if (abs(diff(range)) <= noise) {
+    return(TRUE)
+  }
+  smallest <- min(abs(range))
+  if (smallest == 0) {
+    return(FALSE)
+  }
+  abs(diff(range) / smallest) < 1000 * .Machine$double.eps
 }
 
 #' Minimalist DAG themes
@@ -164,16 +250,12 @@ dag_theme <- function(presets, ...) {
 #'   Default is TRUE.
 #' @param include_alpha Logical. Include alpha scales for de-emphasizing edges
 #'   from adjusted variables? Default is FALSE.
-#' @param breaks One of:
-#'
-#'   - NULL for no breaks
-#'
-#'   - waiver() for the default breaks computed by the transformation object
-#'
-#'   - A numeric vector of positions
-#'
-#'   - A function that takes the limits as input and returns breaks as output
-#'
+#' @param breaks The adjustment statuses to list in the legend. The default,
+#'   `waiver()`, lists both. A plot whose layers have no rows of one status
+#'   should leave it out: ggplot2 builds each legend key from the rows carrying
+#'   its value, so a status with no rows draws a label beside an empty box.
+#'   The scale keeps both statuses as its limits either way, so the colours and
+#'   shapes do not move when one is left out.
 #'
 #' @export
 #' @rdname scale_adjusted
@@ -181,7 +263,8 @@ scale_adjusted <- function(
   include_linetype = TRUE,
   include_shape = TRUE,
   include_color = TRUE,
-  include_alpha = FALSE
+  include_alpha = FALSE,
+  breaks = ggplot2::waiver()
 ) {
   # Guides that share an `order` still merge into a single legend, so the shape
   # and colour scales stay together, as do the two alpha scales. Without an
@@ -197,21 +280,25 @@ scale_adjusted <- function(
     ggplot2::scale_shape_manual(
       values = c("adjusted" = 15, "unadjusted" = 19),
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 1)
     ),
     ggplot2::scale_color_discrete(
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 1)
     ),
     ggplot2::scale_alpha_manual(
       values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 2)
     ),
     ggraph::scale_edge_alpha_manual(
       name = NULL,
       values = c("adjusted" = 0.30, "unadjusted" = 1),
       limits = c("adjusted", "unadjusted"),
+      breaks = breaks,
       guide = ggplot2::guide_legend(order = 2)
     )
   )

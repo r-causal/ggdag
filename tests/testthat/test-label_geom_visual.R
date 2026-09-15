@@ -9,8 +9,8 @@ test_that("ggdag() visual output with different label geoms", {
     labels = c(x = "Exposure", y = "Outcome", z = "Confounder")
   )
 
-  # Test default behavior (geom_dag_label_repel)
-  p_default <- ggdag(dag, use_labels = TRUE)
+  # Test the repel label geom
+  p_default <- ggdag(dag, use_labels = TRUE, label_geom = geom_dag_label_repel)
   expect_doppelganger("ggdag default label_repel", p_default)
 
   # Test with static labels
@@ -37,7 +37,7 @@ test_that("ggdag_adjustment_set() visual output with different label geoms", {
     )
   )
 
-  # Test with default repelled labels
+  # Test with the default label geom
   p_default <- ggdag_adjustment_set(dag, use_labels = TRUE)
   expect_doppelganger("adjustment_set default labels", p_default)
 
@@ -61,7 +61,7 @@ test_that("ggdag_paths() visual output with different label geoms", {
     labels = c(x = "X", y = "Y", z = "Z", m = "Mediator")
   )
 
-  # Test with default repelled labels
+  # Test with the default label geom
   p_default <- ggdag_paths(dag, use_labels = TRUE)
   expect_doppelganger("paths default labels", p_default)
 
@@ -82,7 +82,7 @@ test_that("ggdag_collider() visual output with different label geoms", {
     labels = c(x = "Exposure", y = "Outcome", m = "Collider")
   )
 
-  # Test with default repelled labels
+  # Test with the default label geom
   p_default <- ggdag_collider(dag, use_labels = TRUE)
   expect_doppelganger("collider default labels", p_default)
 
@@ -194,4 +194,34 @@ test_that("label size and color parameters work correctly", {
     label_col = "blue"
   )
   expect_doppelganger("ggdag custom label params", p_custom)
+})
+
+test_that("a label geom wrapper draws what a direct call draws", {
+  withr::local_seed(1234)
+  dag <- dagify(
+    y ~ m + x,
+    m ~ x,
+    labels = c(
+      x = "Exposure node",
+      m = "Mediator node",
+      y = "Outcome node"
+    ),
+    coords = list(x = c(x = 0, m = 1, y = 2), y = c(x = 0, m = 1, y = 0))
+  )
+
+  # `label_wrap` wraps the text and `edge_cap` decides where the traced edge
+  # ink ends, so both are visible in the picture
+  wrapper <- function(...) geom_dag_label_auto(...)
+  plot <- ggdag(
+    dag,
+    use_labels = TRUE,
+    use_text = FALSE,
+    node_size = 30,
+    edge_cap = 15,
+    label_wrap = 8,
+    label_geom = wrapper
+  ) +
+    theme_dag()
+
+  expect_doppelganger("label auto wrapper keeps wrap and cap", plot)
 })

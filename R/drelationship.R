@@ -11,6 +11,7 @@
 #' @inheritParams dag_params
 #' @param ... additional arguments passed to `tidy_dagitty()`
 #' @inheritParams path_params
+#' @inheritParams edge_cap_params
 #' @inheritParams geom_dag
 #' @inheritParams path_params
 #' @inheritParams dag_params
@@ -251,14 +252,15 @@ ggdag_drelationship <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -306,6 +308,7 @@ ggdag_drelationship <- function(
       use_text = use_text,
       use_labels = use_labels,
       label_geom = label_geom,
+      label_wrap = label_wrap,
       unified_legend = unified_legend,
       key_glyph = key_glyph,
       text = !!rlang::enquo(text),
@@ -315,7 +318,7 @@ ggdag_drelationship <- function(
     ) +
     scale_adjusted(include_color = FALSE) +
     breaks(c("d-connected", "d-separated"), name = "d-relationship") +
-    expand_plot(expand_y = expansion(c(0.2, 0.2)))
+    expand_dag_plot(df, expand_y = expansion(c(0.2, 0.2)))
 
   p
 }
@@ -336,14 +339,15 @@ ggdag_dseparated <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -374,6 +378,7 @@ ggdag_dseparated <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    label_wrap = label_wrap,
     label = !!rlang::enquo(label),
     text = !!rlang::enquo(text),
     node = node,
@@ -400,14 +405,15 @@ ggdag_dconnected <- function(
   text_col = ggdag_option("text_col", "white"),
   label_col = ggdag_option("label_col", "black"),
   edge_width = ggdag_option("edge_width", 0.6),
-  edge_cap = ggdag_option_proportional("edge_cap", 8, 10),
+  edge_cap = ggdag_option_proportional("edge_cap", 8, 10, unset = NULL),
   arrow_length = ggdag_option("arrow_length", 5),
   use_edges = ggdag_option("use_edges", TRUE),
   use_nodes = ggdag_option("use_nodes", TRUE),
   use_stylized = ggdag_option("use_stylized", FALSE),
   use_text = ggdag_option("use_text", TRUE),
   use_labels = ggdag_option("use_labels", FALSE),
-  label_geom = ggdag_option("label_geom", geom_dag_label_repel),
+  label_geom = ggdag_option("label_geom", geom_dag_label_auto),
+  label_wrap = ggdag_option("label_wrap", NULL),
   unified_legend = TRUE,
   key_glyph = draw_key_dag_point,
   label = NULL,
@@ -438,6 +444,7 @@ ggdag_dconnected <- function(
     use_text = use_text,
     use_labels = use_labels,
     label_geom = label_geom,
+    label_wrap = label_wrap,
     label = !!rlang::enquo(label),
     text = !!rlang::enquo(text),
     node = node,

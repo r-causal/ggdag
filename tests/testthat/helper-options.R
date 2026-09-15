@@ -1,7 +1,7 @@
-# `ggdag_options_reset()` nulls every `ggdag.*` option, including the layout
-# option that helper-load_dag.R sets for the whole suite. Any test that calls it
-# must put the surrounding state back, or every file that runs afterwards in the
-# same worker silently gets a different default layout.
+# `ggdag_options_reset()` nulls every `ggdag.*` option, including any that the
+# surrounding code set before the test ran. Any test that calls it must put the
+# surrounding state back, or every file that runs afterwards in the same worker
+# silently loses those options.
 ggdag_option_names <- function() {
   option_names <- names(options())
   option_names[grepl("^ggdag\\.", option_names)]

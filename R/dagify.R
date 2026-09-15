@@ -152,25 +152,25 @@ dagify <- function(
   if (!is.null(latent)) {
     dagitty::latents(dgty) <- latent
   }
+  # A layout records the axis it ordered time along on the coordinates it
+  # returns; coordinates from anywhere else name no axis.
+  coord_direction <- NULL
   if (!is.null(coords)) {
     if (is.data.frame(coords)) {
+      coord_direction <- layout_direction(coords)
       dagitty::coordinates(dgty) <- coords2list(coords)
     } else if (is.list(coords)) {
+      coord_direction <- layout_direction(coords)
       dagitty::coordinates(dgty) <- coords
     } else if (is.function(coords)) {
-      edge_df <- dgty |>
-        get_dagitty_edges() |>
-        edges2df()
-      coord_result <- if ("..." %in% names(formals(coords))) {
-        coords(
-          edge_df,
-          exposure = dagitty::exposures(dgty),
-          outcome = dagitty::outcomes(dgty)
-        )
-      } else {
-        coords(edge_df)
-      }
-      dagitty::coordinates(dgty) <- coords2list(coord_result)
+      computed <- compute_layout_coords(
+        coords,
+        get_dagitty_edges(dgty),
+        names(dgty),
+        dag = dgty
+      )
+      coord_direction <- layout_direction(computed)
+      dagitty::coordinates(dgty) <- computed
     } else {
       abort(
         c(
@@ -186,6 +186,11 @@ dagify <- function(
   }
   if (nrow(curved_edges) > 0) {
     attr(dgty, "curved_edges") <- curved_edges
+  }
+  # `dagitty::coordinates<-` strips custom attributes, so the direction is
+  # written after the coordinates it describes.
+  if (!is.null(coord_direction)) {
+    attr(dgty, "layout_direction") <- coord_direction
   }
   dgty
 }
@@ -360,6 +365,14 @@ validate_dag_inputs <- function(
 #' curves the edge to the same side of the page: the sign is flipped to match
 #' the direction the edge is drawn in.
 #'
+#' Curving one edge leaves the others alone. An edge you do not curve keeps an
+#' unset (`NA`) curvature rather than a zero, and each layer decides what that
+#' means: a directed layer draws it as a chord, and a bidirected layer draws
+#' it at the layer's own curvature, so it keeps the arc a bidirected edge is
+#' read by. An unset curvature is also the one a routed edge is free to detour
+#' around a node in its way; an explicit `0` pins an edge straight through
+#' whatever sits on it. See the `edge_route` option in [ggdag_options_set()].
+#'
 #' @return This function is not intended to be called directly. It is detected
 #'   in the formula AST by [dagify()].
 #'
@@ -475,10 +488,6 @@ curve_edge.tidy_dagitty <- function(.dag, from, to, curvature = 0.3) {
     dag_data,
     attr(dag, "curved_edges")
   )
-  # Non-curved edges should be 0 when any curvature is set, except bidirected
-  # ones, which keep the arc their edge layer draws them with
-  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
-  dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
   .dag
@@ -572,10 +581,6 @@ set_curve_edges.tidy_dagitty <- function(.dag, edges) {
   # Remove existing edge_curvature and re-match
   dag_data$edge_curvature <- NULL
   dag_data$edge_curvature <- match_edge_curvature(dag_data, curved_edges)
-  # Non-curved edges should be 0, except bidirected ones, which keep the arc
-  # their edge layer draws them with
-  edge_rows <- !is.na(dag_data$to) & !is_bidirected_edge(dag_data)
-  dag_data$edge_curvature[edge_rows & is.na(dag_data$edge_curvature)] <- 0
   update_dag_data(.dag) <- dag_data
 
   .dag
@@ -968,12 +973,13 @@ get_dagitty_edges <- function(.dag) {
 
 edges2df <- function(.edges) {
   # a DAG with no edges at all can arrive with an all-`NA` logical `to` column,
-  # which would otherwise make the node-only rows below logical as well
+  # which cannot bind to the character `to` of the node-only rows below, so the
+  # edge frame is coerced before the two are combined
   .to <- as.character(.edges$to)
   no_outgoing_edges <- unique(.to[!(.to %in% .edges$name)])
   no_outgoing_edges <- no_outgoing_edges[!is.na(no_outgoing_edges)]
   dplyr::bind_rows(
-    .edges,
+    dplyr::mutate(.edges, to = .to),
     tibble::tibble(
       name = no_outgoing_edges,
       to = rep(NA_character_, length(no_outgoing_edges))

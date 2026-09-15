@@ -2,13 +2,21 @@
 #'
 #' @param .dagitty a `dagitty`
 #' @param seed a numeric seed for reproducible layout generation
-#' @param layout a layout available in `ggraph`. See [ggraph::create_layout()]
-#'   for details. Alternatively, `"time_ordered"` will use
-#'   `time_ordered_coords()` to algorithmically sort the graph by time. You can
-#'   also pass the result of `time_ordered_coords()` directly: either the
-#'   function returned when called with no arguments, or the coordinate tibble
-#'   returned when called with arguments.
-#' @param ... optional arguments passed to `ggraph::create_layout()`
+#' @param layout the layout to use. The default, `"time_ordered"`, uses
+#'   `time_ordered_coords()` to algorithmically sort the graph by time. The
+#'   `layout` option of [ggdag_options_set()] changes that default.
+#'   Alternatively, name a layout available in `ggraph`, such as `"nicely"`;
+#'   see [ggraph::create_layout()] for details. You can also pass the result of
+#'   `time_ordered_coords()` directly: either the function returned when called
+#'   with no arguments, or the coordinate tibble returned when called with
+#'   arguments.
+#' @param ... optional arguments for the layout. When `layout` names a layout
+#'   ggdag computes itself, an argument named after one of that layout's own
+#'   arguments is passed to it: `"time_ordered"` takes the arguments of
+#'   [time_ordered_coords()], so, for instance,
+#'   `layout = "time_ordered", adjust_exposure_outcome = FALSE` leaves a
+#'   contemporaneous exposure and outcome in the same time period. Every other
+#'   argument is passed to `ggraph::create_layout()`.
 #' @param use_existing_coords (Advanced). Logical. Use the coordinates produced
 #'   by `dagitty::coordinates(.dagitty)`? If the coordinates are empty,
 #'   `tidy_dagitty()` will generate a layout. Generally, setting this to `FALSE`
@@ -42,7 +50,7 @@
 tidy_dagitty <- function(
   .dagitty,
   seed = NULL,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...,
   use_existing_coords = TRUE
 ) {
@@ -79,30 +87,31 @@ tidy_dagitty <- function(
   # custom attributes from the dagitty object.
   curved_edges <- attr(.dagitty, "curved_edges")
 
+  # The axis the layers run along belongs to the coordinates: it is kept while
+  # they are and replaced whenever a layout computes new ones.
+  recorded_direction <- layout_direction(.dagitty)
+
+  # A layout ggdag resolves itself takes its own arguments, so those are split
+  # out of `...` here; the rest go on to `ggraph::create_layout()`.
+  dots <- split_layout_args(rlang::list2(...), layout)
+
   # Track whether we just computed coords in this call — if so, always pass
 
   # them to generate_layout regardless of use_existing_coords.
   computed_coords <- FALSE
   if (is.function(layout)) {
-    # isolated nodes never appear in the edge list, so add them explicitly or
-    # the user's layout function will not position them
-    edge_df <- dag_edges |>
-      edges2df() |>
-      add_isolated_nodes(names(.dagitty))
-    coords <- if ("..." %in% names(formals(layout))) {
-      layout(
-        edge_df,
-        exposure = dagitty::exposures(.dagitty),
-        outcome = dagitty::outcomes(.dagitty)
-      )
-    } else {
-      layout(edge_df)
-    }
-    coords <- coords2list(coords)
-    dagitty::coordinates(.dagitty) <- coords
+    computed <- compute_layout_coords(
+      layout,
+      dag_edges,
+      names(.dagitty),
+      dag = .dagitty
+    )
+    recorded_direction <- layout_direction(computed)
+    dagitty::coordinates(.dagitty) <- computed
     computed_coords <- TRUE
     layout <- "nicely"
   } else if (is.data.frame(layout)) {
+    recorded_direction <- layout_direction(layout)
     dagitty::coordinates(.dagitty) <- coords2list(layout)
     computed_coords <- TRUE
     layout <- "nicely"
@@ -111,15 +120,17 @@ tidy_dagitty <- function(
     has_coords <- !is.null(existing) &&
       !all(is.na(unlist(existing)))
     if (!isTRUE(use_existing_coords) || !has_coords) {
+      # whatever the DAG was laid out with before, these coordinates replace
+      # it, and only the layout that computes them names an axis
+      recorded_direction <- NULL
       time_ordered_coords <- tryCatch(
-        dag_edges |>
-          edges2df() |>
-          add_isolated_nodes(names(.dagitty)) |>
-          compute_time_ordered_layout(
-            exposure = dagitty::exposures(.dagitty),
-            outcome = dagitty::outcomes(.dagitty)
-          ) |>
-          coords2list(),
+        compute_layout_coords(
+          "time_ordered",
+          dag_edges,
+          names(.dagitty),
+          dag = .dagitty,
+          layout_args = dots$layout
+        ),
         error = function(e) {
           # The package's own errors describe a DAG or an argument the user
           # can fix, such as a time pin no ordering can satisfy. Falling back
@@ -138,6 +149,7 @@ tidy_dagitty <- function(
       covers_all <- !is.null(time_ordered_coords) &&
         all(all_nodes %in% names(time_ordered_coords$x))
       if (covers_all) {
+        recorded_direction <- layout_direction(time_ordered_coords)
         dagitty::coordinates(.dagitty) <- time_ordered_coords
         computed_coords <- TRUE
       } else if (!is.null(time_ordered_coords)) {
@@ -152,28 +164,29 @@ tidy_dagitty <- function(
     layout <- "nicely"
   } else {
     check_verboten_layout(layout)
+    if (!isTRUE(use_existing_coords)) {
+      recorded_direction <- NULL
+    }
   }
 
   pass_coords <- computed_coords || isTRUE(use_existing_coords)
-  coords_df <- dag_edges |>
-    dplyr::select("name", "to") |>
-    generate_layout(
-      layout = layout,
-      vertices = names(.dagitty),
-      coords = if (pass_coords) dagitty::coordinates(.dagitty),
-      ...
-    )
+  coords_df <- rlang::exec(
+    generate_layout,
+    dplyr::select(dag_edges, "name", "to"),
+    layout = layout,
+    vertices = names(.dagitty),
+    coords = if (pass_coords) dagitty::coordinates(.dagitty),
+    !!!dots$rest
+  )
 
   tidy_dag <- dag_edges |>
     tidy_dag_edges_and_coords(coords_df)
 
+  # An edge the user has not curved keeps an `NA` curvature, which the arc
+  # geom draws as a chord and the routed geom is free to route around a node.
+  # Only an explicit `0` pins an edge straight through whatever sits on it.
   if (!is.null(curved_edges) && nrow(curved_edges) > 0) {
     tidy_dag$edge_curvature <- match_edge_curvature(tidy_dag, curved_edges)
-    # Non-curved edges should be straight, not inherit geom scalar fallback.
-    # Bidirected edges are the exception: their edge layer arcs them by
-    # default, and a zero here would flatten them.
-    edge_rows <- !is.na(tidy_dag$to) & !is_bidirected_edge(tidy_dag)
-    tidy_dag$edge_curvature[edge_rows & is.na(tidy_dag$edge_curvature)] <- 0
   }
 
   # Convert dagitty control points to edge_curvature (only when using
@@ -198,12 +211,6 @@ tidy_dagitty <- function(
       } else {
         tidy_dag$edge_curvature <- ctrl_curvature
       }
-      # Edges without control points should be straight (0), not NA, so the
-      # scalar curvature fallback doesn't curve them unexpectedly. Bidirected
-      # edges keep the arc their edge layer draws them with.
-      straighten <- is.na(tidy_dag$edge_curvature) &
-        !is_bidirected_edge(tidy_dag)
-      tidy_dag$edge_curvature[straighten] <- 0
     }
   }
 
@@ -220,6 +227,11 @@ tidy_dagitty <- function(
   # Restore curved_edges attr stripped by dagitty::coordinates<-
   if (!is.null(curved_edges)) {
     attr(.dagitty, "curved_edges") <- curved_edges
+  }
+
+  # Same for the direction the layers were laid out along
+  if (!is.null(recorded_direction)) {
+    attr(.dagitty, "layout_direction") <- recorded_direction
   }
 
   new_tidy_dagitty(tidy_dag, .dagitty)
@@ -276,7 +288,7 @@ as_tidy_dagitty <- function(x, ...) {
 as_tidy_dagitty.dagitty <- function(
   x,
   seed = NULL,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   tidy_dagitty(x, seed = seed, layout = layout, ...)
@@ -292,13 +304,27 @@ as_tidy_dagitty.data.frame <- function(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = ggdag_option("layout", "nicely"),
+  layout = ggdag_option("layout", "time_ordered"),
   saturate = FALSE,
   ...
 ) {
   if (!is.null(seed)) {
     set.seed(seed)
   }
+
+  # the axis the layers run along belongs to the coordinates the data is laid
+  # out with, so the layout is resolved here, whether it was handed in or is
+  # about to be computed, and the coordinates are passed on rather than
+  # computed a second time. Data that arrives with its coordinates is laid
+  # out by them, and `prep_dag_data()` never reaches for the ones handed in,
+  # so a grid it leaves unused names no axis.
+  rebuilding <- incomplete_coordinates(x)
+
+  if (rebuilding && is.null(coords)) {
+    coords <- rebuilt_coordinates(dplyr::ungroup(x), layout, dag = NULL)$coords
+  }
+
+  recorded_direction <- if (rebuilding) layout_direction(coords) else NULL
 
   tidy_dag <- prep_dag_data(x, layout = layout, coords = coords, ...)
   .dagitty <- compile_dag_from_df(x)
@@ -340,10 +366,12 @@ as_tidy_dagitty.data.frame <- function(
   dagitty::coordinates(.dagitty) <- coords2list(all_node_coords)
 
   # `dagitty::coordinates<-` rebuilds the object and strips custom attributes,
-  # so labels have to be set afterwards
+  # so labels and the axis the layout ran along have to be set afterwards
   if (!is.null(labels)) {
     label(.dagitty) <- labels
   }
+
+  .dagitty <- set_layout_direction(.dagitty, recorded_direction)
 
   .tdy_dagitty <- new_tidy_dagitty(tidy_dag, .dagitty)
 
@@ -364,7 +392,7 @@ as_tidy_dagitty.list <- function(
   labels = NULL,
   coords = NULL,
   seed = NULL,
-  layout = "time_ordered",
+  layout = ggdag_option("layout", "time_ordered"),
   ...
 ) {
   if (!is.null(seed)) {
@@ -398,19 +426,7 @@ as_tidy_dagitty.list <- function(
     )
   }
 
-  dag_edges <- if (length(x) == 1) {
-    # a single time point has no future to point at, so the nodes stand alone
-    tibble::tibble(name = as.character(x[[1]]), to = NA_character_)
-  } else {
-    purrr::map(
-      seq_len(length(x) - 1),
-      saturate_edges,
-      time_points = x
-    ) |>
-      dplyr::bind_rows()
-  }
-
-  dag_edges |>
+  time_points_to_edges(x) |>
     as_tidy_dagitty(
       exposure = exposure,
       outcome = outcome,
@@ -421,6 +437,35 @@ as_tidy_dagitty.list <- function(
       layout = layout,
       ...
     )
+}
+
+#' Complete a list of time points into a saturated edge list
+#'
+#' Each time point's nodes point at every node of every later time point. A
+#' single time point has no future to point at, so its nodes stand alone as
+#' node-only rows, and no time points at all give an empty edge list.
+#'
+#' @param time_points A list of character vectors, one per time point.
+#' @return A data frame with `name` and `to` columns.
+#' @noRd
+time_points_to_edges <- function(time_points) {
+  if (length(time_points) == 0) {
+    return(tibble::tibble(name = character(), to = character()))
+  }
+
+  if (length(time_points) == 1) {
+    return(tibble::tibble(
+      name = as.character(time_points[[1]]),
+      to = NA_character_
+    ))
+  }
+
+  purrr::map(
+    seq_len(length(time_points) - 1),
+    saturate_edges,
+    time_points = time_points
+  ) |>
+    dplyr::bind_rows()
 }
 
 saturate_edges <- function(.x, time_points) {
