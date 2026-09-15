@@ -342,7 +342,10 @@ layout_coordinates <- function(value, layout, dag = NULL) {
 #' verb removes the coordinate columns. Sharing it keeps the two paths in
 #' step: the engine's input always lists edge rows first, then terminal
 #' nodes, then isolated nodes, and the layout always sees the DAG's exposure,
-#' outcome, and the node size option.
+#' outcome, and the node size option. After a DAG is rebuilt, an exposure or
+#' outcome name that is no longer among the nodes, as after the nodes are
+#' renamed in the data, is still passed to the layout, which silently ignores
+#' it.
 #'
 #' @param layout A layout function, or the string `"time_ordered"`.
 #' @param edges_df A data frame with `name` and `to` columns; rows with a

@@ -87,10 +87,10 @@ smoking_ca_dag <- dagify(
   smoking ~ unhealthy,
   weight ~ unhealthy,
   labels = c(
-    "cardiacarrest" = "Cardiac\n Arrest",
+    "cardiacarrest" = "Cardiac\nArrest",
     "smoking" = "Smoking",
     "cholesterol" = "Cholesterol",
-    "unhealthy" = "Unhealthy\n Lifestyle",
+    "unhealthy" = "Unhealthy\nLifestyle",
     "weight" = "Weight"
   ),
   latent = "unhealthy",
