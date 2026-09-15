@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' data-engine-version='2.0' width='720.00pt' height='576.00pt' viewBox='0 0 720.00 576.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA='>
+    <rect x='0.00' y='0.00' width='720.00' height='576.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<rect x='0.00' y='0.00' width='720.00' height='576.00' style='stroke-width: 1.16; stroke: none; fill: #FFFFFF;' />
+</g>
+<defs>
+  <clipPath id='cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy'>
+    <rect x='5.98' y='24.85' width='708.04' height='545.17' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNS45OHw3MTQuMDJ8MjQuODV8NTcwLjAy)'>
+<polygon points='327.64,329.80 392.36,329.80 392.36,265.07 327.64,265.07 ' style='stroke-width: 0.71; stroke: none; fill: #000000;' />
+<circle cx='64.98' cy='297.44' r='32.36' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='655.02' cy='297.44' r='32.36' style='stroke-width: 0.71; fill: #000000;' />
+<path d='M 617.46 297.44 L 605.17 292.97 L 608.02 296.36 L 397.56 296.37 L 397.56 298.51 L 608.02 298.51 L 605.17 301.91 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 322.44 297.44 L 310.15 292.97 L 313.00 296.36 L 102.54 296.37 L 102.54 298.51 L 313.00 298.51 L 310.15 301.91 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<path d='M 66.05 228.02 L 66.10 226.87 L 66.26 225.88 L 66.51 225.03 L 66.85 224.31 L 67.27 223.70 L 67.78 223.19 L 68.38 222.77 L 69.11 222.43 L 69.96 222.18 L 70.95 222.02 L 72.09 221.97 L 647.91 221.97 L 649.05 222.02 L 650.04 222.18 L 650.89 222.43 L 651.62 222.77 L 652.22 223.19 L 652.73 223.70 L 653.15 224.31 L 653.49 225.03 L 653.74 225.88 L 653.90 226.87 L 653.95 228.02 L 653.95 250.45 L 650.55 247.59 L 655.02 259.88 L 659.49 247.59 L 656.09 250.45 L 656.09 227.96 L 656.02 226.65 L 655.83 225.41 L 655.49 224.27 L 655.01 223.24 L 654.38 222.33 L 653.60 221.54 L 652.68 220.91 L 651.65 220.43 L 650.51 220.09 L 649.27 219.90 L 647.96 219.84 L 72.04 219.84 L 70.73 219.90 L 69.49 220.09 L 68.35 220.43 L 67.32 220.91 L 66.40 221.54 L 65.62 222.33 L 64.99 223.24 L 64.51 224.27 L 64.17 225.41 L 63.98 226.65 L 63.91 227.96 L 63.91 259.88 L 66.05 259.88 Z' style='fill-rule: evenodd; fill: #000000; stroke-width: 0.53; stroke: none; stroke-linecap: butt;' />
+<text x='360.00' y='301.35' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='9.49px' lengthAdjust='spacingAndGlyphs'>m</text>
+<text x='64.98' y='301.35' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>x</text>
+<text x='655.02' y='301.35' text-anchor='middle' style='font-size: 11.38px; font-weight: bold; fill: #FFFFFF; font-family: sans;' textLength='5.70px' lengthAdjust='spacingAndGlyphs'>y</text>
+</g>
+<g clip-path='url(#cpMC4wMHw3MjAuMDB8MC4wMHw1NzYuMDA=)'>
+<text x='5.98' y='15.89' style='font-size: 14.40px; font-family: sans;' textLength='224.18px' lengthAdjust='spacingAndGlyphs'>orthogonal routes to a square node</text>
+</g>
+</svg>
