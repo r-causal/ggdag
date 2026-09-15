@@ -139,16 +139,40 @@ node_row_at <- function(nodes, x, y) {
 
 # Reading a drawn plot ---------------------------------------------------------
 
+# Empty ggplot2's cache of text descents. ggplot2 caches the descent of each
+# font size under the name of the device it was measured on, not under the
+# device's resolution, and ragg rounds a descent to whole pixels, so the first
+# ragg device a process drew text on would otherwise fix the height of the
+# legend and axis text, and with it the millimetres of every later panel,
+# whatever resolution a later draw is made at. Emptied before a draw, the
+# cache holds only the descents measured on the device drawn on. A ggplot2
+# without the cache has nothing to empty.
+reset_text_descent_cache <- function() {
+  cache <- get0(
+    "descent_cache",
+    envir = asNamespace("ggplot2"),
+    inherits = FALSE
+  )
+  if (is.environment(cache)) {
+    rm(list = ls(cache, all.names = TRUE), envir = cache)
+  }
+  invisible()
+}
+
 # Draw `plot` off screen on a device of a fixed size, force the grob tree so
 # that every `makeContent()` method has run, and evaluate `code` with the
-# drawn tree on the display list. `code` is a function of the built plot.
+# drawn tree on the display list. `code` is a function of the built plot. The
+# text is measured afresh on the device, so the panel is the same size
+# whatever the process drew before.
 with_forced_plot <- function(plot, code, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
   ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  reset_text_descent_cache()
   on.exit(
     {
       grDevices::dev.off()
       unlink(file)
+      reset_text_descent_cache()
     },
     add = TRUE
   )
@@ -265,6 +289,18 @@ node_at_end <- function(nodes, x, y) {
     return(NA_integer_)
   }
   nearest
+}
+
+# The point halfway along a path of points `x`, `y`, by arc length. Two edges
+# drawn between the same two nodes, such as a directed edge and a bidirected
+# arc, are told apart by where their middles lie.
+path_midpoint <- function(x, y) {
+  arc <- cumsum(c(0, sqrt(diff(x)^2 + diff(y)^2)))
+  half <- arc[[length(arc)]] / 2
+  c(
+    stats::approx(arc, x, xout = half, ties = "ordered")$y,
+    stats::approx(arc, y, xout = half, ties = "ordered")$y
+  )
 }
 
 # The point ggarrow cuts a path back to when it resects `resect` mm from the
@@ -463,6 +499,7 @@ drawn_arrow_ends <- function(plot, width = 7, height = 5) {
     purrr::map(seq_along(drawn$paths), \(k) {
       path <- drawn$paths[[k]]
       n <- length(path$x)
+      middle <- path_midpoint(path$x, path$y)
       end_row <- function(end) {
         at <- if (end == "fins") 1L else n
         node <- node_at_end(nodes, path$x[[at]], path$y[[at]])
@@ -496,6 +533,8 @@ drawn_arrow_ends <- function(plot, width = 7, height = 5) {
           from_y = path$y[[1]],
           to_x = path$x[[n]],
           to_y = path$y[[n]],
+          mid_x = middle[[1]],
+          mid_y = middle[[2]],
           shape = nodes$shape[node],
           size = nodes$size[node],
           centre_x = nodes$x[node],
@@ -557,6 +596,7 @@ drawn_edge_ends <- function(plot, width = 7, height = 5) {
           cut <- which(drawn$id == drawn_ids[[k]])
           from <- uncut[[1]]
           to <- uncut[[length(uncut)]]
+          middle <- path_midpoint(centre_x[uncut], centre_y[uncut])
           end_row <- function(end, centre, tip) {
             node <- node_at_end(nodes, centre_x[[centre]], centre_y[[centre]])
             data.frame(
@@ -568,6 +608,8 @@ drawn_edge_ends <- function(plot, width = 7, height = 5) {
               from_y = centre_y[[from]],
               to_x = centre_x[[to]],
               to_y = centre_y[[to]],
+              mid_x = middle[[1]],
+              mid_y = middle[[2]],
               shape = nodes$shape[node],
               size = nodes$size[node],
               centre_x = nodes$x[node],
@@ -640,11 +682,14 @@ traced_label_ends <- function(plot, width = 7, height = 5) {
     cap_head <- edges$cap_head[i][[1]]
     start <- resect_cut_point(rev(x), rev(y), cap_fins)
     end <- resect_cut_point(x, y, cap_head)
+    middle <- path_midpoint(x, y)
     data.frame(
       from_x = x[[1]],
       from_y = y[[1]],
       to_x = x[[n]],
       to_y = y[[n]],
+      mid_x = middle[[1]],
+      mid_y = middle[[2]],
       cap_fins = cap_fins,
       cap_head = cap_head,
       start_x = start[[1]],
@@ -658,20 +703,70 @@ traced_label_ends <- function(plot, width = 7, height = 5) {
 
 # The traced edges among `traced`, from `traced_label_ends()`, whose cut ends
 # are not where the edges among `drawn`, from `drawn_arrow_ends()` or
-# `drawn_edge_ends()`, draw their tips, within `tolerance` mm. A traced edge
-# is matched to the drawn edge that runs between the same node centres.
+# `drawn_edge_ends()`, draw their tips, within `tolerance` mm. The two are
+# read from two draws of the plot, so a traced edge is matched to the drawn
+# edge by the nodes it runs from and to, each the drawn node nearest its end,
+# rather than by millimetres: the edge from `x` to `y` is matched to the edge
+# drawn from `x` to `y`, and never to the one drawn from `y` to `x`. Where
+# more than one edge is drawn from one node to the other, as a directed edge
+# and a bidirected arc are, the traced edge is matched to the one whose
+# middle lies nearest its own. Every drawn edge is matched at most once.
 label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
   if (nrow(traced) == 0) {
     return("the labels trace no edges")
   }
+  # the drawn ends come in pairs, the start of each edge and then its end
   start_end <- drawn$end %in% c("fins", "start")
+  starts <- drawn[start_end, , drop = FALSE]
+  ends <- drawn[!start_end, , drop = FALSE]
+  stopifnot(nrow(starts) == nrow(ends))
+  centres <- unique(rbind(
+    data.frame(
+      x = ifelse(is.na(starts$centre_x), starts$from_x, starts$centre_x),
+      y = ifelse(is.na(starts$centre_y), starts$from_y, starts$centre_y)
+    ),
+    data.frame(
+      x = ifelse(is.na(ends$centre_x), ends$to_x, ends$centre_x),
+      y = ifelse(is.na(ends$centre_y), ends$to_y, ends$centre_y)
+    )
+  ))
+  nearest_centre <- function(x, y) {
+    vapply(
+      seq_along(x),
+      \(i) which.min((centres$x - x[[i]])^2 + (centres$y - y[[i]])^2),
+      integer(1)
+    )
+  }
+  drawn_from <- nearest_centre(
+    ifelse(is.na(starts$centre_x), starts$from_x, starts$centre_x),
+    ifelse(is.na(starts$centre_y), starts$from_y, starts$centre_y)
+  )
+  drawn_to <- nearest_centre(
+    ifelse(is.na(ends$centre_x), ends$to_x, ends$centre_x),
+    ifelse(is.na(ends$centre_y), ends$to_y, ends$centre_y)
+  )
+  traced_from <- nearest_centre(traced$from_x, traced$from_y)
+  traced_to <- nearest_centre(traced$to_x, traced$to_y)
+
+  matched <- vapply(
+    seq_len(nrow(traced)),
+    \(i) {
+      same <- which(drawn_from == traced_from[[i]] & drawn_to == traced_to[[i]])
+      if (length(same) <= 1) {
+        return(if (length(same) == 1) same else NA_integer_)
+      }
+      apart <- sqrt(
+        (starts$mid_x[same] - traced$mid_x[[i]])^2 +
+          (starts$mid_y[same] - traced$mid_y[[i]])^2
+      )
+      same[[which.min(apart)]]
+    },
+    integer(1)
+  )
+  shared <- matched %in% matched[duplicated(matched) & !is.na(matched)]
 
   purrr::map_chr(seq_len(nrow(traced)), \(i) {
     edge <- traced[i, ]
-    same <- abs(drawn$from_x - edge$from_x) < 1e-3 &
-      abs(drawn$from_y - edge$from_y) < 1e-3 &
-      abs(drawn$to_x - edge$to_x) < 1e-3 &
-      abs(drawn$to_y - edge$to_y) < 1e-3
     where <- sprintf(
       "the traced edge from (%.2f, %.2f) to (%.2f, %.2f) mm",
       edge$from_x,
@@ -679,11 +774,11 @@ label_tip_mismatches <- function(traced, drawn, tolerance = 0.05) {
       edge$to_x,
       edge$to_y
     )
-    if (sum(same & start_end) != 1 || sum(same & !start_end) != 1) {
+    if (is.na(matched[[i]]) || shared[[i]]) {
       return(paste(where, "matches no single drawn edge"))
     }
-    start <- drawn[same & start_end, ]
-    end <- drawn[same & !start_end, ]
+    start <- starts[matched[[i]], ]
+    end <- ends[matched[[i]], ]
     start_off <- sqrt(
       (edge$start_x - start$tip_x)^2 + (edge$start_y - start$tip_y)^2
     )

@@ -159,10 +159,12 @@ draws_square_ends <- function(plot) {
 drawn_edge_gaps <- function(plot, width = 7, height = 5) {
   file <- tempfile(fileext = ".png")
   ragg::agg_png(file, width = width, height = height, units = "in", res = 96)
+  reset_text_descent_cache()
   on.exit(
     {
       grDevices::dev.off()
       unlink(file)
+      reset_text_descent_cache()
     },
     add = TRUE
   )

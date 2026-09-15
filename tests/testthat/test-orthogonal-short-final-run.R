@@ -615,5 +615,5 @@ test_that("the README's middle panel keeps its orthogonal edges apart", {
     length(found$shared) == 0
   )
 
-  expect_doppelganger("readme middle panel heads on runs", p)
+  expect_doppelganger("readme middle panel edges kept apart", p)
 })

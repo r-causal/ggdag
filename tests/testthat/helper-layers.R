@@ -66,6 +66,9 @@ edge_widths <- function(plot) {
 # The arrowhead lengths, in points, of the edge layers of `plot` that draw
 # arrowheads at all.
 edge_arrow_lengths <- function(plot) {
+  # converting a unit to points needs a device, and with none open grid would
+  # open the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   arrow_lengths <- purrr::map(dag_edge_layer_indices(plot), \(i) {
     arrow <- plot$layers[[i]]$geom_params$arrow
     if (is.null(arrow)) {
@@ -184,6 +187,9 @@ arrow_arc_curvatures <- function(layers) {
 # name a level none of its layers has rows for renders that key as a label
 # beside an empty box.
 empty_legend_keys <- function(plot) {
+  # a gtable measures its text on a device, and with none open grid would open
+  # the default one, which writes Rplots.pdf
+  withr::local_pdf(NULL)
   boxes <- ggplot2::ggplotGrob(plot) |>
     (\(gtable) gtable$grobs[grepl("guide-box", gtable$layout$name)])()
 
