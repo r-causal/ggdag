@@ -458,14 +458,17 @@ label_edge_end_caps <- function(layer, plot, layout) {
 # the edge layers of `plot` following the nodes leave alone, in millimetres.
 # One row per edge such a layer draws, placed on the position scales of
 # `layout` as the label stat sees it, with `NA` at an end that follows the
-# nodes. `NULL` when no layer that follows the nodes has an end the user set.
+# nodes, and the index of the drawing layer among the plot's layers in
+# `layer`. `NULL` when no layer that follows the nodes has an end the user
+# set.
 set_edge_caps <- function(plot, layout) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
     plot_data <- pull_dag_data(plot_data)
   }
 
-  caps <- purrr::map(plot$layers, \(layer) {
+  caps <- purrr::map(seq_along(plot$layers), \(index) {
+    layer <- plot$layers[[index]]
     if (!isTRUE(layer$node_aware_caps)) {
       return(NULL)
     }
@@ -477,7 +480,14 @@ set_edge_caps <- function(plot, layout) {
     if (is.null(data)) {
       return(NULL)
     }
-    data <- data[!is.na(data$xend), , drop = FALSE]
+    # a routed layer carries every row of the plot and marks the rows it
+    # draws, and its caps stop those alone
+    drawn <- if (".ggdag_draw" %in% names(data)) {
+      !is.na(data$.ggdag_draw) & data$.ggdag_draw
+    } else {
+      rep(TRUE, nrow(data))
+    }
+    data <- data[drawn & !is.na(data$xend), , drop = FALSE]
     if (nrow(data) == 0) {
       return(NULL)
     }
@@ -488,7 +498,8 @@ set_edge_caps <- function(plot, layout) {
       xend = data$xend,
       yend = data$yend,
       start = NA_real_,
-      end = NA_real_
+      end = NA_real_,
+      layer = index
     )
     if ("start_cap" %in% set) {
       edges$start <- set_cap_mm(layer, "start_cap", data)
@@ -744,8 +755,12 @@ edge_end_nodes <- function(panel, x, y, nodes) {
 # `label_edge_end_caps()` found, or `NULL`. An end the user set a cap at is
 # cut by that cap. Every tracer names the points of an edge by an id that
 # starts with the edge's key, so a point finds its edge by that key and its
-# panel. An edge with no caps found here takes the label geom's single cap,
-# so its caps are `NA`.
+# panel. Two layers can draw an edge between the same two nodes, a directed
+# edge and a bidirected arc say, with caps of their own, so a point traced
+# from the edges of a layer, which carries that layer's index in
+# `route_layer`, takes the cap that layer sets, and a point traced as a
+# chord takes the cap of a layer no traced point names. An edge with no caps
+# found here takes the label geom's single cap, so its caps are `NA`.
 traced_edge_caps <- function(edges, points, caps) {
   none <- rep(NA_real_, nrow(points))
   no_square <- rep(FALSE, nrow(points))
@@ -770,19 +785,6 @@ traced_edge_caps <- function(edges, points, caps) {
   start_square <- start$square
   end_square <- end$square
 
-  if (!is.null(caps$set)) {
-    set_at <- match(
-      edge_key(edges$x, edges$y, edges$xend, edges$yend),
-      edge_key(caps$set$x, caps$set$y, caps$set$xend, caps$set$yend)
-    )
-    set_start <- caps$set$start[set_at]
-    set_end <- caps$set$end[set_at]
-    start_cap[!is.na(set_start)] <- set_start[!is.na(set_start)]
-    end_cap[!is.na(set_end)] <- set_end[!is.na(set_end)]
-    start_square[!is.na(set_start)] <- FALSE
-    end_square[!is.na(set_end)] <- FALSE
-  }
-
   edge_ids <- paste(
     edge_key(edges$x, edges$y, edges$xend, edges$yend),
     edges$PANEL,
@@ -794,12 +796,35 @@ traced_edge_caps <- function(edges, points, caps) {
     points$edge_id
   )
   at <- match(paste(point_keys, points$PANEL, sep = "\r"), edge_ids)
+  start_cap <- start_cap[at]
+  end_cap <- end_cap[at]
+  start_square <- start_square[at] %in% TRUE
+  end_square <- end_square[at] %in% TRUE
+
+  if (!is.null(caps$set)) {
+    point_layer <- spec_column(points, "route_layer", NA_integer_)
+    traced_layers <- unique(point_layer[!is.na(point_layer)])
+    set_layer <- spec_column(caps$set, "layer", NA_integer_)
+    set_at <- match(
+      paste(point_keys, ifelse(is.na(point_layer), "chord", point_layer)),
+      paste(
+        edge_key(caps$set$x, caps$set$y, caps$set$xend, caps$set$yend),
+        ifelse(set_layer %in% traced_layers, set_layer, "chord")
+      )
+    )
+    set_start <- caps$set$start[set_at]
+    set_end <- caps$set$end[set_at]
+    start_cap[!is.na(set_start)] <- set_start[!is.na(set_start)]
+    end_cap[!is.na(set_end)] <- set_end[!is.na(set_end)]
+    start_square[!is.na(set_start)] <- FALSE
+    end_square[!is.na(set_end)] <- FALSE
+  }
 
   list(
-    start = start_cap[at],
-    end = end_cap[at],
-    start_square = start_square[at] %in% TRUE,
-    end_square = end_square[at] %in% TRUE,
+    start = start_cap,
+    end = end_cap,
+    start_square = start_square,
+    end_square = end_square,
     fallback = rep(caps$fallback + caps$gap, nrow(points))
   )
 }

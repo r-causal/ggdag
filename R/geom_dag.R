@@ -1056,8 +1056,12 @@ expand_edge_aes <- function(mapping) {
 #' layers take `resect`, `resect_head`, and `resect_fins` in millimetres, as
 #' [geom_dag_arrow()] does, and read a `start_cap` or `end_cap` given as a
 #' [ggraph::circle()] in absolute units, such as `ggraph::circle(5, "mm")`,
-#' as the resection of that end. ggarrow stops an edge a distance from its
-#' end, so any other cap is an error under that engine.
+#' as the resection of that end, whether it is set for the layer or mapped to
+#' the data. ggarrow stops an edge a distance from its end, so any other cap,
+#' an ellipse from [ggraph::ellipsis()] included, is an error under that
+#' engine. At each end, `resect_head` or `resect_fins` wins, then the cap
+#' given for that end, `end_cap` at the head and `start_cap` at the fins,
+#' then `resect`; an end given none of them stops 2 mm outside its node.
 #'
 #' @inheritParams geom_dag
 #' @export
@@ -1189,6 +1193,7 @@ ggarrow_dag_edges <- function(
     reason = "to use edge_engine = \"ggarrow\"."
   )
 
+  mapping <- mapped_caps_as_resects(mapping, resect_head, resect_fins)
   resect_head <- resect_head %||%
     cap_as_resect(end_cap, "end_cap", "resect_head", call) %||%
     resect
@@ -1229,10 +1234,8 @@ cap_as_resect <- function(cap, arg, instead, call) {
   if (is.null(cap)) {
     return(NULL)
   }
-  circle <- inherits(cap, "ggraph_geometry") &&
-    all(unclass(cap)$geometry == "circle")
-  radius <- if (circle) ggraph_cap_radius_mm(cap)
-  if (length(radius) != 1 || is.na(radius)) {
+  radius <- circle_cap_radius_mm(cap)
+  if (length(radius) != 1) {
     abort(
       c(
         "{.arg {arg}} must be a single {.fn ggraph::circle} in absolute units, such as {.code ggraph::circle(5, \"mm\")}, under the ggarrow edge engine.",
@@ -1240,6 +1243,86 @@ cap_as_resect <- function(cap, arg, instead, call) {
       ),
       error_class = "ggdag_type_error",
       call = call
+    )
+  }
+  radius
+}
+
+# The radius, in millimetres, of each circle in the ggraph cap `cap`, or
+# `NULL` when `cap` is not a ggraph cap, holds a geometry other than a
+# circle, is measured in units that depend on the device, or is an ellipse:
+# ggraph builds `ggraph::ellipsis()` as a circle geometry whose width and
+# height differ, and an ellipse lies no single distance from its centre.
+circle_cap_radius_mm <- function(cap) {
+  if (!inherits(cap, "ggraph_geometry")) {
+    return(NULL)
+  }
+  fields <- unclass(cap)
+  width <- fields$width * absolute_unit_mm[fields$width_unit]
+  height <- fields$height * absolute_unit_mm[fields$height_unit]
+  circle <- all(fields$geometry == "circle") &&
+    !anyNA(width) &&
+    !anyNA(height) &&
+    isTRUE(all.equal(unname(width), unname(height)))
+  if (!circle || length(width) == 0) {
+    return(NULL)
+  }
+  unname(width) / 2
+}
+
+# `mapping` with each `start_cap` or `end_cap` it maps translated into the
+# resection of that end, `resect_fins` or `resect_head`, which the ggarrow
+# layers read for each edge: the radius of the circle cap the mapping gives
+# each row. A resection the user set for that end, as a parameter or as an
+# aesthetic, wins over the cap, which is then dropped.
+mapped_caps_as_resects <- function(mapping, resect_head, resect_fins) {
+  ends <- list(
+    end_cap = list(resect = "resect_head", set = resect_head),
+    start_cap = list(resect = "resect_fins", set = resect_fins)
+  )
+  for (cap in names(ends)) {
+    mapped <- mapping[[cap]]
+    if (is.null(mapped)) {
+      next
+    }
+    mapping[[cap]] <- NULL
+    resect <- ends[[cap]]$resect
+    if (!is.null(ends[[cap]]$set) || !is.null(mapping[[resect]])) {
+      next
+    }
+    # the translation is named in an environment of its own above the one
+    # the cap was mapped in, since ggplot2 reads a mapping as an expression
+    # and a function written into one is not an expression it can read
+    mapping[[resect]] <- rlang::new_quosure(
+      rlang::call2(
+        ".ggdag_cap_resect",
+        rlang::quo_get_expr(mapped),
+        cap,
+        resect
+      ),
+      rlang::new_environment(
+        list(.ggdag_cap_resect = mapped_cap_resect),
+        parent = rlang::quo_get_env(mapped)
+      )
+    )
+  }
+  mapping
+}
+
+# The resection of each edge whose cap a mapping gives as `cap`, as
+# `mapped_caps_as_resects()` evaluates it: the radius of each circle, or an
+# error naming the aesthetic `arg` and the resection `instead` for a cap
+# ggarrow cannot draw.
+mapped_cap_resect <- function(cap, arg, instead) {
+  radius <- circle_cap_radius_mm(cap)
+  if (is.null(radius)) {
+    abort(
+      c(
+        "The {.field {arg}} aesthetic must map to {.fn ggraph::circle} caps in absolute units, such as {.code ggraph::circle(5, \"mm\")}, under the ggarrow edge engine.",
+        "i" = "ggarrow stops an edge a distance from its end. Map {.field {instead}} in millimetres for any other cap."
+      ),
+      error_class = "ggdag_type_error",
+      call = NULL
     )
   }
   radius

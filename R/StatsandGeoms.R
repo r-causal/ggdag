@@ -665,6 +665,10 @@ arrow_chord_points <- function(geometry, panel) {
     x = as.vector(rbind(geometry$x, geometry$xend)),
     y = as.vector(rbind(geometry$y, geometry$yend)),
     PANEL = panel,
+    route_layer = rep(
+      spec_column(geometry, "route_layer", NA_integer_),
+      each = 2
+    ),
     curvature = rep(curvature, each = 2),
     stringsAsFactors = FALSE
   )
@@ -1701,10 +1705,10 @@ discover_edge_geometry <- function(plot) {
       arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
       routed_layer_geometry(existing, plot_data, plot$mapping, plot)
     if (!is.null(spec)) {
-      # the routed grobs route the edges of one scene together, and each
-      # layer draws its own, so every routed edge names both
+      # every edge names the layer that draws it; the routed grobs route the
+      # edges of one scene together, so a routed edge names its scene too
+      spec$route_layer <- i
       if ("route_style" %in% names(spec)) {
-        spec$route_layer <- i
         spec$route_scene <- scenes[[i]]
       }
       specs[[length(specs) + 1]] <- spec

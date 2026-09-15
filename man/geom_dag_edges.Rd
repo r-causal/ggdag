@@ -134,8 +134,12 @@ than from \code{arrow_directed} and \code{arrow_bidirected}, which are
 layers take \code{resect}, \code{resect_head}, and \code{resect_fins} in millimetres, as
 \code{\link[=geom_dag_arrow]{geom_dag_arrow()}} does, and read a \code{start_cap} or \code{end_cap} given as a
 \code{\link[ggraph:circle]{ggraph::circle()}} in absolute units, such as \code{ggraph::circle(5, "mm")},
-as the resection of that end. ggarrow stops an edge a distance from its
-end, so any other cap is an error under that engine.
+as the resection of that end, whether it is set for the layer or mapped to
+the data. ggarrow stops an edge a distance from its end, so any other cap,
+an ellipse from \code{\link[ggraph:ellipsis]{ggraph::ellipsis()}} included, is an error under that
+engine. At each end, \code{resect_head} or \code{resect_fins} wins, then the cap
+given for that end, \code{end_cap} at the head and \code{start_cap} at the fins,
+then \code{resect}; an end given none of them stops 2 mm outside its node.
 }
 
 \examples{
