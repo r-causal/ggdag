@@ -763,10 +763,11 @@ polyline_distance_mm <- function(a, b) {
 # from one drawing: one row per routed path drawn, with its panel, the ends of
 # the drawn path, the number of points of the drawn and of the traced path,
 # and `deviation`, the largest distance in millimetres between the two. A
-# traced route is matched to the drawn path of its panel whose ends lie
-# nearest its own, so a route traced to other ports than the drawn ones is
-# still found, and measured. A drawn path no traced route is matched to has
-# no deviation (`NA`).
+# traced route, or the traced path of an edge the layer pins straight, is
+# matched to the drawn path of its panel whose ends lie nearest its own, so a
+# route traced to other ports than the drawn ones is still found, and
+# measured. A drawn path no traced route is matched to has no deviation
+# (`NA`).
 label_route_deviations <- function(plot, width = 7, height = 5) {
   real_ink <- get("label_ink", envir = asNamespace("ggdag"))
   traced <- list()
@@ -817,7 +818,7 @@ label_route_deviations <- function(plot, width = 7, height = 5) {
     routed <- if (is.null(edges)) {
       character()
     } else {
-      unique(edges$edge_id[grepl("\rrouted\r", edges$edge_id)])
+      unique(edges$edge_id[grepl("\r(routed|fixed)\r", edges$edge_id)])
     }
     routes <- purrr::map(routed, \(id) {
       rows <- edges$edge_id == id

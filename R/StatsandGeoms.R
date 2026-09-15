@@ -1849,22 +1849,17 @@ dedupe_edge_geometry <- function(geometry) {
 # aesthetic gives it one. A mapping on the layer wins; a layer inheriting the
 # plot's aesthetics also sees a mapping set there, which is where
 # `aes_dag(edge_curvature = ...)` puts it. The mapping is evaluated against
-# the layer's data, so a column of any name reaches the trace the way it
+# the layer's data as ggplot2 evaluates it (`layer_mapped_values()`), a single
+# value included, so a column of any name reaches the trace the way it
 # reaches the drawn edge.
 mapped_edge_curvature <- function(layer, layer_data, plot_mapping = NULL) {
-  mapping <- layer$mapping$edge_curvature
-  if (is.null(mapping) && !identical(layer$inherit.aes, FALSE)) {
-    mapping <- plot_mapping$edge_curvature
-  }
-  if (is.null(mapping)) {
-    return(NULL)
-  }
-
-  values <- tryCatch(
-    rlang::eval_tidy(mapping, data = layer_data),
-    error = function(e) NULL
+  values <- layer_mapped_values(
+    layer,
+    "edge_curvature",
+    layer_data,
+    plot_mapping
   )
-  if (!is.numeric(values) || length(values) != nrow(layer_data)) {
+  if (!is.numeric(values)) {
     return(NULL)
   }
 

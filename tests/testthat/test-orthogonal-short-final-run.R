@@ -872,6 +872,53 @@ test_that("a routed layer that draws only arcs in a panel is one of its scene's 
   }
 })
 
+test_that("a curvature one routed layer maps to a single value pins that layer's edges", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # ggplot2 gives a mapping to a single value to every row, so the layer
+  # draws each of its edges as that arc, or straight at zero, and never
+  # reroutes them. The label engine once read a single value as no mapping
+  # and routed those edges as well, and traced the other layer's routes
+  # 4.5 mm from where they are drawn on a 7 by 5 inch device.
+  ortho <- list(route = "orthogonal")
+  for (curvature in c(0.3, 0)) {
+    first <- c(
+      ortho,
+      list(mapping = ggplot2::aes(edge_curvature = !!curvature))
+    )
+    for (device in list(c(7, 5), c(4, 4))) {
+      label <- sprintf(
+        "a curvature of %s on a %s by %s inch device",
+        curvature,
+        device[[1]],
+        device[[2]]
+      )
+      plot <- readme_layer_pair_plot(first, ortho)
+      inputs <- drawn_and_traced_router_inputs(plot, device[[1]], device[[2]])
+      pinned <- inputs$drawn[[1]]$edges$curvature %in% curvature
+      stopifnot(length(inputs$drawn) == 4, sum(pinned) == 6)
+      expect_equal(
+        traced_router_input_mismatches(inputs),
+        character(),
+        label = label
+      )
+      found <- label_route_deviations(plot, device[[1]], device[[2]])
+      stopifnot(nrow(found) == if (curvature == 0) 11 else 5)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = paste("the routes traced for", label)
+      )
+    }
+  }
+})
+
 # No regression -------------------------------------------------------------------
 
 test_that("the scenes that keep the invariants keep their routes", {
