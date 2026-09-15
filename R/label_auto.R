@@ -3345,6 +3345,9 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       layer_axis = spec$route_layer_axis[first],
       cap = spec$route_cap[first],
       follow_head = spec_column(spec, "route_follow_head", NA)[first] %in% TRUE,
+      head_reach = spec_column(spec, "route_head_reach", NA_real_)[first],
+      fins_reach = spec_column(spec, "route_fins_reach", NA_real_)[first],
+      union_layers = spec_column(spec, "route_layers", NA_integer_)[first],
       curvature = spec$curvature[first],
       cap_head = (edges$cap_head %||% rep(par$edge_cap, nrow(edges)))[first],
       cap_fins = (edges$cap_fins %||% rep(par$edge_cap, nrow(edges)))[first],
@@ -3463,6 +3466,9 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
     chords$layer_axis,
     chords$cap,
     chords$follow_head,
+    chords$head_reach,
+    chords$fins_reach,
+    chords$union_layers,
     route_options_keys(chords),
     sep = "\r"
   )
@@ -3492,7 +3498,18 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
           "auto"
         } else {
           settings$layer_axis
-        }
+        },
+        head_reach = if (is.na(settings$head_reach)) {
+          NULL
+        } else {
+          settings$head_reach
+        },
+        fins_reach = if (is.na(settings$fins_reach)) {
+          NULL
+        } else {
+          settings$fins_reach
+        },
+        narrow_rows = isTRUE(settings$union_layers > 1)
       )
     )
     paths[rows] <- routed$paths[seq_along(rows)]

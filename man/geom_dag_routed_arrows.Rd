@@ -180,6 +180,18 @@ same node size gives the router the radius of the discs it must clear. The
 automatic label geoms take their obstacles from the plot's own nodes, so a
 label may be placed across an edge appended this way.
 
+In orthogonal mode the routes of one panel share its rows, ports, and
+slots out among themselves, so a plot that draws its edges in more than
+one orthogonal routed layer, such as the blocked and the open edges of
+\code{\link[=ggdag_adjustment_set]{ggdag_adjustment_set()}}, routes them together: each layer routes the
+edges the other routed layers draw with the same settings along with its
+own, and draws only its own. Where a gap between layers is too narrow for
+a stub, the edges that arrive at a node out of it each take a row of
+their own rather than merging onto the node's center row, since the layer
+drawn later would hide the other's edge there. The stub the gaps between
+layers keep behind an arrowhead holds the longest arrowhead or fins the
+layer draws.
+
 A routed path is stroked at one width along its length, so
 \code{linewidth_head} and \code{linewidth_fins} taper only the arcs drawn for
 curvature the user set.

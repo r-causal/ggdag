@@ -14,8 +14,8 @@
 # 2. No path passes within the outline of a node other than the two it runs
 #    between (`orthogonal_pass_throughs()`).
 # 3. No two paths share a straight stretch, other than the trunk out of one
-#    port or the run into one port that the router merges on purpose
-#    (`orthogonal_coincidences()`).
+#    port or the run into one port that the router merges on purpose for the
+#    paths of one layer (`orthogonal_coincidences()`).
 
 # The DAG of the README, laid out in time order as the README lays it out.
 readme_time_ordered_dag <- function() {
@@ -132,9 +132,10 @@ readme_middle_panel_plot <- function() {
 
 # The scenes whose routed paths are pinned in
 # fixtures/orthogonal-final-runs.rds, each drawn on the device it is pinned
-# at: scenes in which every orthogonal ornament is drawn on its final run.
-# Each is drawn with `theme_dag()`, so that the panel does not depend on the
-# axis text of the session's default theme.
+# at: scenes whose paths share no stretch, and which keep the other two
+# invariants but where their gaps are too narrow for them. Each is drawn
+# with `theme_dag()`, so that the panel does not depend on the axis text of
+# the session's default theme.
 orthogonal_run_fixture_scenes <- list(
   readme_16_10x6 = list(
     plot = \() readme_orthogonal_plot(16, dag_theme = TRUE),
@@ -706,8 +707,10 @@ shared_stretch <- function(a, b, tolerance, from_end = FALSE) {
 # shared stretch. The router merges edges on purpose in two places, and
 # those are passed over: the edges leaving one port share a trunk out of it,
 # and the edges entering one port share the run into it. A shared stretch
-# is one of those merges when the two paths coincide from their common
-# start, or to their common end, over the whole of it.
+# is one of those merges when the two paths are drawn by one layer and
+# coincide from their common start, or to their common end, over the whole
+# of it. Paths of two layers are drawn in two colours, so one merged into
+# the other's run hides it, and that counts.
 orthogonal_coincidences <- function(paths, min_length = 1, tolerance = 0.05) {
   if (length(paths) < 2) {
     return(character())
@@ -751,8 +754,19 @@ orthogonal_coincidences <- function(paths, min_length = 1, tolerance = 0.05) {
       if (length(hit) == 0) {
         next
       }
-      prefix_a <- shared_stretch(paths[[i]], paths[[j]], tolerance)
-      suffix_a <- shared_stretch(paths[[i]], paths[[j]], tolerance, TRUE)
+      # only the paths one layer draws merge on purpose: a path of one layer
+      # merged into a run of another is drawn on top of it
+      same_layer <- paths[[i]]$grob == paths[[j]]$grob
+      prefix_a <- if (same_layer) {
+        shared_stretch(paths[[i]], paths[[j]], tolerance)
+      } else {
+        0
+      }
+      suffix_a <- if (same_layer) {
+        shared_stretch(paths[[i]], paths[[j]], tolerance, TRUE)
+      } else {
+        0
+      }
       for (k in hit) {
         # the shared stretch in the arc length of path `i`
         run <- ra[k, ]
@@ -782,25 +796,115 @@ orthogonal_coincidences <- function(paths, min_length = 1, tolerance = 0.05) {
   unlist(found) %||% character()
 }
 
+# The heads among `drawings`, from `routed_arrow_drawings()`, that another
+# edge covers, described by panel and the two edges. A head is drawn from
+# the point ggarrow cuts its path back to towards its tip, and it is covered
+# when another path of the same panel, from any layer, comes within
+# `clearance` mm of that axis along the stretch ggarrow draws of it: the
+# other path's resected ends are not drawn, and its own head lies on what is
+# left. Two heads on one row, or a run drawn across a head, cover it.
+orthogonal_covered_heads <- function(drawings, clearance = 0.5) {
+  drawn_paths <- purrr::imap(drawings, \(drawn, g) {
+    purrr::map(seq_along(drawn$paths), \(k) {
+      path <- drawn$paths[[k]]
+      n <- length(path$x)
+      nodes <- drawn$nodes
+      from <- node_at_end(nodes, path$x[[1]], path$y[[1]])
+      to <- node_at_end(nodes, path$x[[n]], path$y[[n]])
+      to_start <- sqrt((path$x - path$x[[1]])^2 + (path$y - path$y[[1]])^2)
+      to_end <- sqrt((path$x - path$x[[n]])^2 + (path$y - path$y[[n]])^2)
+      ink <- to_start >= drawn$fins[[k]] & to_end >= drawn$head[[k]]
+      list(
+        panel = drawn$panel,
+        facet = drawn$facet,
+        id = paste(g, k),
+        edge = paste(nodes$name[from], "->", nodes$name[to]),
+        x = path$x,
+        y = path$y,
+        ink_x = path$x[ink],
+        ink_y = path$y[ink],
+        head = drawn$head[[k]],
+        reach = drawn$head_reach[[k]]
+      )
+    })
+  }) |>
+    purrr::list_flatten()
+
+  found <- list()
+  for (path in drawn_paths) {
+    if (path$reach <= 0) {
+      next
+    }
+    tip <- drawn_tip_point(path$x, path$y, path$head, path$reach)
+    cut <- resect_cut_point(path$x, path$y, path$head + path$reach)
+    if (anyNA(tip) || anyNA(cut)) {
+      next
+    }
+    along <- seq(0, 1, length.out = 11)
+    axis_x <- cut[[1]] + along * (tip[[1]] - cut[[1]])
+    axis_y <- cut[[2]] + along * (tip[[2]] - cut[[2]])
+    for (other in drawn_paths) {
+      if (
+        other$id == path$id ||
+          other$panel != path$panel ||
+          length(other$ink_x) < 2
+      ) {
+        next
+      }
+      m <- length(other$ink_x)
+      nearest <- min(vapply(
+        seq_along(axis_x),
+        \(i) {
+          min(point_segment_distance(
+            axis_x[[i]],
+            axis_y[[i]],
+            other$ink_x[-m],
+            other$ink_y[-m],
+            other$ink_x[-1],
+            other$ink_y[-1]
+          ))
+        },
+        numeric(1)
+      ))
+      if (nearest < clearance) {
+        found[[length(found) + 1L]] <- sprintf(
+          "panel %s (%s), the head of %s is covered by %s, drawn %.2f mm from its axis",
+          path$panel,
+          path$facet,
+          path$edge,
+          other$edge,
+          nearest
+        )
+      }
+    }
+  }
+  unlist(found) %||% character()
+}
+
 # The three invariants over the drawn orthogonal paths of `plot` on a device
 # `width` by `height` inches, read from one drawing: `ends`, from
-# `orthogonal_run_ends()`; `paths`, from `routed_panel_paths()`; and
-# `failures`, every failure of the three, which is an ornament off its run
-# (`orthogonal_run_mismatches()`), a path within another node's outline
-# (`orthogonal_pass_throughs()`), or two paths sharing a stretch
-# (`orthogonal_coincidences()`).
+# `orthogonal_run_ends()`; `paths`, from `routed_panel_paths()`; the failures
+# of each invariant, `off_run` (an ornament off its run,
+# `orthogonal_run_mismatches()`), `inside` (a path within another node's
+# outline, `orthogonal_pass_throughs()`), and `shared` (two paths sharing a
+# stretch, `orthogonal_coincidences()`); `failures`, every failure of the
+# three; and `covered`, the heads another edge covers
+# (`orthogonal_covered_heads()`).
 orthogonal_invariants <- function(plot, width = 7, height = 5) {
   drawings <- routed_arrow_drawings(plot, width = width, height = height)
   ends <- orthogonal_run_ends(drawings)
   paths <- routed_panel_paths(drawings)
+  off_run <- orthogonal_run_mismatches(ends)
+  inside <- orthogonal_pass_throughs(paths)
+  shared <- orthogonal_coincidences(paths)
   list(
     ends = ends,
     paths = paths,
-    failures = c(
-      orthogonal_run_mismatches(ends),
-      orthogonal_pass_throughs(paths),
-      orthogonal_coincidences(paths)
-    )
+    off_run = off_run,
+    inside = inside,
+    shared = shared,
+    failures = c(off_run, inside, shared),
+    covered = orthogonal_covered_heads(drawings)
   )
 }
 

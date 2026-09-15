@@ -4,12 +4,12 @@
 # each scene is pinned at: the paths and the resection of each end, in
 # millimetres.
 #
-# Every orthogonal ornament in these scenes is drawn on the straight run its
-# path enters the node along, so test-orthogonal-short-final-run.R requires
-# the drawings to match this file to within floating-point noise (1e-10): a
-# change that lengthens the runs other scenes end on must leave these routes
-# as they are. Regenerate it only when the routes of these scenes are meant
-# to change.
+# The paths of these scenes share no stretch, and test-orthogonal-short-final-run.R
+# requires the drawings to match this file to within floating-point noise
+# (1e-10): a change that lengthens the runs other scenes end on must leave
+# these routes as they are. Regenerate it only when the routes of these
+# scenes are meant to change, in a fresh R process, so that the first plot
+# drawn is drawn at the resolution the fixture is read at.
 #
 # Run non-interactively from the package root:
 #   Rscript tests/testthat/fixtures/make-orthogonal-run-fixtures.R

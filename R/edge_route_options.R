@@ -483,7 +483,14 @@ route_opts_field_map <- function() {
 # The router's constants for one reference radius under a user object. An
 # object is a partial specification, so a field it does not set reaches the
 # router exactly as no object at all does.
-route_opts_from <- function(options, r_ref, layer_axis = "auto") {
+route_opts_from <- function(
+  options,
+  r_ref,
+  layer_axis = "auto",
+  head_reach = NULL,
+  fins_reach = NULL,
+  narrow_rows = FALSE
+) {
   options <- options %||% edge_route_options()
   field_map <- route_opts_field_map()
   constructor_argument <- vapply(
@@ -494,8 +501,16 @@ route_opts_from <- function(options, r_ref, layer_axis = "auto") {
 
   # the fields a derivation reads have to be in place before the derivation
   # runs, so they travel as arguments; the rest are leaf constants, exact
-  # under a substitution after the fact
-  args <- list(r_ref = r_ref, layer_axis = layer_axis %||% "auto")
+  # under a substitution after the fact. The reach of the drawn ornaments,
+  # and whether the scene holds the edges of several layers, are the
+  # caller's to know, since they depend on the layers that draw the edges
+  args <- list(
+    r_ref = r_ref,
+    layer_axis = layer_axis %||% "auto",
+    head_reach = head_reach,
+    fins_reach = fins_reach,
+    narrow_rows = narrow_rows
+  )
   for (name in names(field_map)[constructor_argument]) {
     if (!is.null(options[[name]])) {
       args[[field_map[[name]]]] <- options[[name]]

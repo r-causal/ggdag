@@ -231,6 +231,7 @@ geom_dag_routed_arrow_geom <- function() {
         "yend",
         "edge_curvature",
         "draw",
+        "routed",
         "linewidth_head",
         "linewidth_fins",
         "arrow_head",
@@ -323,8 +324,20 @@ geom_dag_routed_arrow_geom <- function() {
         } else {
           rep(TRUE, nrow(data))
         }
-        keep <- which(has_end & drawn)
-        if (length(keep) == 0) {
+        # in orthogonal mode the layer routes the edges the plot's other
+        # routed layers draw with the same settings as well, so that the
+        # rows and ports of one scene are shared out once: two layers
+        # routed apart would draw two heads on one row. The other modes
+        # route what they draw
+        union <- identical(route, "orthogonal") && "routed" %in% names(data)
+        routed_by <- if (union) as.numeric(data$routed) else NULL
+        routed <- if (union) {
+          drawn | (!is.na(routed_by) & routed_by > 0)
+        } else {
+          drawn
+        }
+        keep <- which(has_end & routed)
+        if (length(keep) == 0 || !any(drawn[keep])) {
           return(ggplot2::zeroGrob())
         }
 
@@ -336,6 +349,7 @@ geom_dag_routed_arrow_geom <- function() {
         edges$yend <- ends$y[end_index]
         edges$.ggdag_from <- start_keys[keep]
         edges$.ggdag_to <- end_keys[end_index]
+        edges$.ggdag_draw <- drawn[keep]
 
         grid::gTree(
           nodes = nodes,
@@ -354,7 +368,9 @@ geom_dag_routed_arrow_geom <- function() {
             resect = resect,
             lineend = lineend,
             linejoin = linejoin,
-            linemitre = linemitre
+            linemitre = linemitre,
+            # whether the scene holds the edges of more than one layer
+            union_layers = union && any(routed_by[keep] > 1, na.rm = TRUE)
           ),
           cl = "dag_routed_edges"
         )
@@ -475,6 +491,9 @@ makeContent.dag_routed_edges <- function(x) {
     })
   }
 
+  # the router keeps the run at each end long enough for the ornament drawn
+  # there, so it is told how far the layer's heads and fins reach
+  reach <- routed_ornament_reaches(par, edges$linewidth)
   routed <- route_edges_mm(
     nodes = nodes_mm,
     edges = edge_input,
@@ -484,12 +503,19 @@ makeContent.dag_routed_edges <- function(x) {
     opts = route_opts_from(
       par$edge_route_options,
       radius,
-      layer_axis = par$layer_axis %||% "auto"
+      layer_axis = par$layer_axis %||% "auto",
+      head_reach = reach$head,
+      fins_reach = reach$fins,
+      narrow_rows = isTRUE(par$union_layers)
     )
   )
 
+  # the rows the layer routes but does not draw are the edges of the other
+  # routed layers of the plot, placed here so that the layers agree
+  drawn <- edges$.ggdag_draw %||% rep(TRUE, nrow(edges))
+  drawn <- !is.na(drawn) & drawn
   children <- list()
-  paths <- which(!is_arc)
+  paths <- which(!is_arc & drawn)
   if (length(paths) > 0) {
     children <- c(
       children,
@@ -502,7 +528,7 @@ makeContent.dag_routed_edges <- function(x) {
       ))
     )
   }
-  for (group in split(which(is_arc), curvature[is_arc])) {
+  for (group in split(which(is_arc & drawn), curvature[is_arc & drawn])) {
     arc_edges <- edges[group, , drop = FALSE]
     children <- c(
       children,
@@ -564,6 +590,115 @@ routed_cap_mm <- function(edges, resect) {
     return(0)
   }
   max(cap)
+}
+
+# How far the ornament ggarrow draws at the end of a path reaches back along
+# it from the point the layer cuts the path at, in millimetres, for a shaft
+# `width` mm wide and an ornament `length` (a multiple of the width, or a
+# unit). ggarrow scales a matrix ornament to the larger of the length and the
+# width over the shape's height, takes its reach from the shape's own
+# `resect` and `length` attributes or its extent along x, and cuts the path
+# back by that reach times the part of the ornament that lies beyond the
+# cut, `1 - justify`. A function ornament declares its reach in the
+# `resect` attribute of what it draws; a list of ornaments, one per edge,
+# reaches as far as the farthest of them. No ornament reaches at all.
+arrow_ornament_reach_mm <- function(ornament, length, width, justify = 0) {
+  if (is.null(ornament)) {
+    return(0)
+  }
+  if (is.list(ornament) && !is.matrix(ornament)) {
+    reaches <- vapply(
+      ornament,
+      function(one) arrow_ornament_reach_mm(one, length, width, justify),
+      numeric(1)
+    )
+    return(if (length(reaches) == 0) 0 else max(reaches))
+  }
+  length_mm <- if (grid::is.unit(length)) {
+    unit_length_mm(length) %||% (4 * width)
+  } else {
+    (length %||% 4) * width
+  }
+  reach <- if (is.function(ornament)) {
+    drawn <- tryCatch(
+      ornament(length = length_mm, width = width, resect = 0),
+      error = function(e) NULL
+    )
+    attr(drawn, "resect") %||% 0
+  } else {
+    scale <- max(length_mm, width / diff(range(ornament[, "y"])))
+    (attr(ornament, "length") %||% max(ornament[, "x"])) *
+      scale *
+      (attr(ornament, "resect") %||% 1)
+  }
+  reach * (1 - (justify %||% 0))
+}
+
+# A length given as a grid unit, in millimetres. An absolute unit converts
+# on its own, so the label engine can ask before any device is open without
+# opening one; a unit relative to a viewport needs the device the layer is
+# drawn on, and is `NULL` when none is open yet.
+unit_length_mm <- function(length) {
+  mm_per_unit <- c(
+    mm = 1,
+    cm = 10,
+    inches = 25.4,
+    points = 25.4 / 72.27,
+    bigpts = 25.4 / 72,
+    picas = 12 * 25.4 / 72.27,
+    dida = 25.4 / 72.27 * 1238 / 1157,
+    cicero = 12 * 25.4 / 72.27 * 1238 / 1157
+  )
+  type <- grid::unitType(length)
+  if (all(type %in% names(mm_per_unit))) {
+    return(max(as.numeric(length) * mm_per_unit[type]))
+  }
+  if (grDevices::dev.cur() == 1L) {
+    return(NULL)
+  }
+  max(grid::convertWidth(length, "mm", valueOnly = TRUE))
+}
+
+# The reach of the head and of the fins a routed layer draws, from the
+# layer's parameters `par` (`arrow`, `length`, and `justify`) and the line
+# widths of its edges, in the ggplot2 `linewidth` scale: the widest shaft
+# carries the largest ornament, and the router keeps room for that one.
+routed_ornament_reaches <- function(par, linewidth) {
+  linewidth <- suppressWarnings(as.numeric(linewidth))
+  linewidth <- linewidth[is.finite(linewidth)]
+  width <- (if (length(linewidth) == 0) 1 else max(linewidth)) * .pt / .stroke
+  list(
+    head = arrow_ornament_reach_mm(
+      par$arrow$head,
+      par$length$head,
+      width,
+      par$justify
+    ),
+    fins = arrow_ornament_reach_mm(
+      par$arrow$fins,
+      par$length$fins,
+      width,
+      par$justify
+    )
+  )
+}
+
+# The same reaches read from a routed layer before it is drawn, for the label
+# engine, from the layer's parameters and the line width it sets, or the
+# geom's default where it sets none.
+routed_layer_reaches <- function(layer) {
+  params <- layer$geom_params
+  linewidth <- layer$aes_params$linewidth %||%
+    layer$geom$default_aes$linewidth %||%
+    1
+  routed_ornament_reaches(
+    list(
+      arrow = params$arrow,
+      length = params$length,
+      justify = params$justify
+    ),
+    linewidth
+  )
 }
 
 # The routed layer's nodes with the outline and shape each is drawn with, as
@@ -1100,6 +1235,12 @@ ggplot_add.dag_arrow_layer <- function(object, plot, ...) {
     })
   }
 
+  # a routed layer routes the edges of the plot's other routed layers with
+  # the same settings along with its own
+  if (inherits(layer$geom, "GeomDAGRoutedArrow")) {
+    layer <- routed_union_layer(layer)
+  }
+
   ggplot2::ggplot_add(layer, plot, ...)
 }
 
@@ -1490,12 +1631,16 @@ routed_edge_data <- function(data_directed) {
     shared <- intersect(names(plot_data), names(drawn))
     if (length(shared) == 0 || nrow(drawn) == 0) {
       plot_data$.ggdag_draw <- rep(FALSE, nrow(plot_data))
+      plot_data$.ggdag_route <- plot_data$.ggdag_draw
       return(plot_data)
     }
 
     plot_keys <- row_key(plot_data, shared)
     drawn_keys <- row_key(drawn, shared)
     plot_data$.ggdag_draw <- plot_keys %in% drawn_keys
+    # the rows the layer routes: its own, until the plot is built and the
+    # other routed layers' rows join them (`mark_routed_union()`)
+    plot_data$.ggdag_route <- plot_data$.ggdag_draw
 
     # A caller may hand the layer edges of its own, positioned wherever it
     # likes; those rows are not among the plot's, so they are appended rather
@@ -1505,18 +1650,106 @@ routed_edge_data <- function(data_directed) {
       return(plot_data)
     }
     extra$.ggdag_draw <- TRUE
+    extra$.ggdag_route <- TRUE
     dplyr::bind_rows(plot_data, extra)
   }
 }
 
-# The `draw` aesthetic tells the routed geom which of its rows to draw. The
-# rest are the panel's obstacles.
+# The `draw` aesthetic tells the routed geom which of its rows to draw, and
+# `routed` which of its rows to route. The rest are the panel's obstacles.
 with_routed_draw <- function(mapping) {
   if (is.null(mapping)) {
     mapping <- ggplot2::aes()
   }
   mapping$draw <- rlang::quo(.data$.ggdag_draw)
+  mapping$routed <- rlang::quo(.data$.ggdag_route)
   mapping
+}
+
+# The settings a routed layer routes with. Two routed layers of one plot
+# with the same settings route one scene, so each of them routes the other's
+# edges as well as its own and draws only its own.
+routed_layer_settings <- function(layer) {
+  params <- layer$geom_params
+  list(
+    route = params$route,
+    layer_axis = params$layer_axis,
+    edge_route_options = params$edge_route_options,
+    node_size = params$node_size,
+    resect = params$resect,
+    arrow = params$arrow,
+    length = params$length,
+    justify = params$justify
+  )
+}
+
+# The routed layer `layer` with the rows of the plot's other routed layers
+# marked for routing when the plot is built, which is the first point at
+# which every layer of the plot is in view. A row is matched by the columns
+# the two layers' data share, so the row of one panel matches only itself.
+routed_union_layer <- function(layer) {
+  ggplot2::ggproto(
+    "DagRoutedUnionLayer",
+    layer,
+    setup_layer = function(self, data, plot) {
+      data <- ggplot2::ggproto_parent(layer, self)$setup_layer(data, plot)
+      mark_routed_union(self, data, plot)
+    }
+  )
+}
+
+# The data of the routed layer `self` with `.ggdag_route` marking the rows it
+# routes, its own and those the plot's other routed layers with the same
+# settings draw, with the number of routed layers whose edges the scene
+# holds, counting `self` when it draws an edge; a row it does not route is
+# 0. A scene that holds the edges of more than one layer gives the arrivals
+# out of a narrow gap rows of their own, since the layer drawn later would
+# hide the other's edge on a shared row.
+mark_routed_union <- function(self, data, plot) {
+  if (!is.data.frame(data) || !".ggdag_route" %in% names(data)) {
+    return(data)
+  }
+  own <- self$routed_settings %||% routed_layer_settings(self)
+  draws_edges <- function(rows) {
+    any(!is.na(rows$.ggdag_draw) & rows$.ggdag_draw & !is.na(rows$xend))
+  }
+  routed <- !is.na(data$.ggdag_route) & data$.ggdag_route
+  n_layers <- as.integer(draws_edges(data))
+  for (other in plot$layers) {
+    if (
+      identical(other, self) ||
+        !inherits(other$geom, "GeomDAGRoutedArrow") ||
+        !identical(
+          other$routed_settings %||% routed_layer_settings(other),
+          own
+        )
+    ) {
+      next
+    }
+    other_data <- layer_source_data(other, plot)
+    if (is.null(other_data) || !".ggdag_draw" %in% names(other_data)) {
+      next
+    }
+    if (!is.null(other_data$xend) && draws_edges(other_data)) {
+      n_layers <- n_layers + 1L
+    }
+    drawn <- other_data[
+      !is.na(other_data$.ggdag_draw) & other_data$.ggdag_draw,
+      ,
+      drop = FALSE
+    ]
+    shared <- setdiff(
+      intersect(names(data), names(drawn)),
+      c(".ggdag_draw", ".ggdag_route")
+    )
+    if (length(shared) == 0 || nrow(drawn) == 0) {
+      next
+    }
+    row_key <- function(df) do.call(paste, c(as.list(df[shared]), sep = "\r"))
+    routed <- routed | row_key(data) %in% row_key(drawn)
+  }
+  data$.ggdag_route <- ifelse(routed, max(n_layers, 1L), 0L)
+  data
 }
 
 # The routed edge layer itself. Its data are the plot rows, so it inherits the
@@ -1562,7 +1795,7 @@ dag_routed_arrow_layer <- function(
     call = call
   )
 
-  dag_arrow_layer(ggplot2::layer(
+  layer <- ggplot2::layer(
     data = routed_edge_data(data_directed),
     mapping = with_routed_draw(mapping),
     stat = ggplot2::StatIdentity,
@@ -1587,7 +1820,12 @@ dag_routed_arrow_layer <- function(
       na.rm = na.rm,
       ...
     )
-  ))
+  )
+  # the settings as the call gave them, before the plot fills in the node
+  # size and resections: the layers of one plot are resolved one at a time
+  # when it is built, so only these compare alike from every layer
+  layer$routed_settings <- routed_layer_settings(layer)
+  dag_arrow_layer(layer)
 }
 
 #' Routed DAG edges that detour around nodes
@@ -1620,6 +1858,18 @@ dag_routed_arrow_layer <- function(
 #' same node size gives the router the radius of the discs it must clear. The
 #' automatic label geoms take their obstacles from the plot's own nodes, so a
 #' label may be placed across an edge appended this way.
+#'
+#' In orthogonal mode the routes of one panel share its rows, ports, and
+#' slots out among themselves, so a plot that draws its edges in more than
+#' one orthogonal routed layer, such as the blocked and the open edges of
+#' [ggdag_adjustment_set()], routes them together: each layer routes the
+#' edges the other routed layers draw with the same settings along with its
+#' own, and draws only its own. Where a gap between layers is too narrow for
+#' a stub, the edges that arrive at a node out of it each take a row of
+#' their own rather than merging onto the node's center row, since the layer
+#' drawn later would hide the other's edge there. The stub the gaps between
+#' layers keep behind an arrowhead holds the longest arrowhead or fins the
+#' layer draws.
 #'
 #' A routed path is stroked at one width along its length, so
 #' `linewidth_head` and `linewidth_fins` taper only the arcs drawn for

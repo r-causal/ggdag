@@ -96,7 +96,10 @@
 # slots its runs take are ordered on those ports rather than on the node
 # centres, which is the order that draws the pair without a crossing. So no stub carries two edges in opposite
 # directions and every arrowhead is drawn on a row of its own, along the
-# run it arrives on: a path into an offset port ends on the port's own
+# run it arrives on. A scene that holds the edges of several drawn layers
+# gives the arrivals out of a narrow gap rows as well, since an edge merged
+# into another layer's run is drawn under it. A path into an offset port
+# ends on the port's own
 # line, never at the centre, and its resect puts the tip the same distance
 # past the disc face as a centre port's. Bends are then rounded with a
 # quadratic Bezier, the runs are sampled, and the result is verified
@@ -150,6 +153,18 @@
 #'   default of `0.22`; `sagitta_max_spanning` is the spanning tier's, which
 #'   is `Inf` unless a value was written here, so that a caller who names no
 #'   cap leaves the tier's choice of slot unconstrained.
+#' @param head_reach,fins_reach In orthogonal mode, how far the ornament
+#'   drawn at the head and at the fins of every edge reaches back along the
+#'   path from the point the arrow layer cuts it at, in mm, or `NULL` for a
+#'   2 mm head and no fins. The orthogonal ladder's stub floor, `head`,
+#'   grows to the longer of the two, so that the run past a slot holds the
+#'   ornament drawn on it. `head` itself stays 2 mm, the head the spline
+#'   router keeps other edges clear of.
+#' @param narrow_rows In orthogonal mode, whether the arrivals out of a gap
+#'   too narrow for a stub take rows at their targets as the arrivals out of
+#'   wider gaps do, rather than merging onto the centre row. The arrow layer
+#'   sets it when the scene holds the edges of more than one layer, where an
+#'   edge merged into the run of another layer's edge is drawn under it.
 #' @return A named list of constants.
 #' @noRd
 route_constants <- function(
@@ -163,7 +178,10 @@ route_constants <- function(
   head_penalty = 4,
   tight_penalty = NULL,
   crossing_saturation = TRUE,
-  sagitta_max = NULL
+  sagitta_max = NULL,
+  head_reach = NULL,
+  fins_reach = NULL,
+  narrow_rows = FALSE
 ) {
   layer_axis <- if (identical(layer_axis, c("auto", "x", "y"))) {
     "auto"
@@ -191,6 +209,9 @@ route_constants <- function(
     # other edge's slot is drawn across it
     rc_min = 0.8,
     head = 2,
+    head_reach = head_reach %||% 2,
+    fins_reach = fins_reach %||% 0,
+    narrow_rows = isTRUE(narrow_rows),
     head_w = 1.3,
     head_margin = sep_e / 2,
     R = r_ref + m,
@@ -3765,7 +3786,8 @@ route_reciprocal_bow <- function(job, shift, placed) {
 #'
 #' Every drawn segment belongs to one edge unless two edges share a port.
 #' Edges leaving one port form a hyperedge trunk and edges entering one port
-#' merge into their last run; two segments from different sources never
+#' merge into their last run, unless `opts$narrow_rows` gives the arrivals
+#' out of a narrow gap rows of their own; two segments from different sources never
 #' share a slot, even when their y-intervals only meet; a node whose N (or
 #' S) side carries both an arrival and a departure gives them ports
 #' `sep_e / 2` on either side of its centre line, the departure toward the
@@ -3795,6 +3817,9 @@ route_orthogonal_scene <- function(
   opts,
   layers
 ) {
+  # the stub floor behind a head grows to hold the longest ornament the
+  # arrow layer draws, whichever end it is drawn at
+  opts$head <- max(opts$head, opts$head_reach, opts$fins_reach)
   n_edges <- length(from)
   waypoints <- rep(list(empty_waypoints()), n_edges)
   routed <- logical(n_edges)
@@ -4340,10 +4365,13 @@ route_orthogonal_scene <- function(
   # the ties from the source's position, so a scene drawn leftwards takes
   # the mirror image of the rows the same scene drawn rightwards takes
   slot_order <- ifelse(rev_e, -1, 1) * arrival_slot
+  # an arrival out of a narrow gap keeps the centre row unless the scene
+  # holds the edges of several layers: merged there into another layer's
+  # run, an edge would be drawn under it, head and all
   arrival <- kind == "ew" &
     !is.na(arrival_slot) &
     shift == 0 &
-    !arrival_narrow
+    (!arrival_narrow | isTRUE(opts$narrow_rows))
   level_chord <- kind == "straight" & routable & horizontal & !vertical
   own_line <- kind == "ew" &
     via_last &

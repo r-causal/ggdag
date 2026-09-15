@@ -958,6 +958,9 @@ route_spec_blanks <- list(
   route_layer_axis = NA_character_,
   route_cap = NA_real_,
   route_follow_head = NA,
+  route_head_reach = NA_real_,
+  route_fins_reach = NA_real_,
+  route_layers = NA_integer_,
   route_fixed = NA,
   curvature = NA_real_
 )
@@ -999,6 +1002,8 @@ dedupe_routed_geometry <- function(geometry) {
     "route_layer_axis",
     "route_cap",
     "route_follow_head",
+    "route_head_reach",
+    "route_fins_reach",
     "curvature"
   )
   key <- edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend)
@@ -1033,6 +1038,18 @@ routed_chord_points <- function(geometry, panel) {
     route_cap = rep(spec_column(geometry, "route_cap", NA_real_), each = 2),
     route_follow_head = rep(
       spec_column(geometry, "route_follow_head", NA),
+      each = 2
+    ),
+    route_head_reach = rep(
+      spec_column(geometry, "route_head_reach", NA_real_),
+      each = 2
+    ),
+    route_fins_reach = rep(
+      spec_column(geometry, "route_fins_reach", NA_real_),
+      each = 2
+    ),
+    route_layers = rep(
+      spec_column(geometry, "route_layers", NA_integer_),
       each = 2
     ),
     route_fixed = FALSE,
@@ -1662,11 +1679,15 @@ discover_edge_geometry <- function(plot) {
   }
 
   specs <- list()
-  for (existing in plot$layers) {
+  for (i in seq_along(plot$layers)) {
+    existing <- plot$layers[[i]]
     spec <- edge_layer_geometry(existing, plot_data) %||%
       arrow_layer_geometry(existing, plot_data, plot$mapping) %||%
       routed_layer_geometry(existing, plot_data, plot$mapping, plot)
     if (!is.null(spec)) {
+      if ("route_union" %in% names(spec)) {
+        spec$route_layer <- i
+      }
       specs[[length(specs) + 1]] <- spec
     }
   }
@@ -1677,7 +1698,8 @@ discover_edge_geometry <- function(plot) {
 
   # Every type is one wide row per edge; the routing columns the other
   # builders do not fill are NA.
-  dedupe_edge_geometry(dplyr::bind_rows(specs))
+  geometry <- dplyr::bind_rows(specs)
+  dedupe_edge_geometry(count_routed_union_layers(geometry))
 }
 
 # The geoms that draw a DAG's edges: the ggraph edge path, which every layer
@@ -1992,6 +2014,9 @@ routed_layer_geometry <- function(
   curvature <- mapped_edge_curvature(layer, layer_data, plot_mapping) %||%
     rep(NA_real_, nrow(layer_data))
 
+  # the reach of the ornaments the layer draws, measured as the routed grob
+  # measures it, so the label engine routes with the same floors
+  reach <- routed_layer_reaches(layer)
   geometry <- data.frame(
     x = layer_data$x,
     y = layer_data$y,
@@ -2012,12 +2037,42 @@ routed_layer_geometry <- function(
     # the routed grob reads the same flag from the rows the layer wrote
     route_follow_head = isTRUE(layer$node_aware_caps) &&
       "end_cap" %in% layer$node_cap_ends,
+    route_head_reach = reach$head,
+    route_fins_reach = reach$fins,
+    # the settings the routed grobs compare to route one scene together
+    route_union = rlang::hash(
+      layer$routed_settings %||% routed_layer_settings(layer)
+    ),
     stringsAsFactors = FALSE
   )
   geometry$route_options <- rep(
     list(layer$geom_params$edge_route_options),
     nrow(geometry)
   )
+  geometry
+}
+
+# The number of routed layers each routed edge's scene holds edges of: the
+# layers with the same settings route one scene in orthogonal mode, and the
+# router keeps the arrivals of such a scene off one another's rows, so the
+# label engine counts them as the routed grob does. The columns that
+# identify the layer and its settings are dropped once counted.
+count_routed_union_layers <- function(geometry) {
+  if (!"route_union" %in% names(geometry)) {
+    return(geometry)
+  }
+  routed <- !is.na(geometry$route_union)
+  layers <- tapply(
+    geometry$route_layer[routed],
+    geometry$route_union[routed],
+    function(at) length(unique(at))
+  )
+  geometry$route_layers <- NA_integer_
+  geometry$route_layers[routed] <- as.integer(
+    layers[geometry$route_union[routed]]
+  )
+  geometry$route_union <- NULL
+  geometry$route_layer <- NULL
   geometry
 }
 
