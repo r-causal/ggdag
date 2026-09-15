@@ -2225,3 +2225,74 @@ test_that("one stored arrow layer reads each plot it joins", {
   # and the stored layer is still the blank one that was created
   expect_null(arrow_layer$layer$geom_params$resect$head)
 })
+
+# -- a line width mapped through a scale has a legend to draw ------------------
+
+test_that("a legend key whose arrow has a head and fins keeps a shaft", {
+  skip_if_not_installed("ggarrow")
+
+  # ggarrow sizes a key to hold its arrow's head and fins along the
+  # diagonal, which leaves a shaft only when one of the two is not drawn:
+  # an arrow with both is all ornament, and ggarrow cannot draw a shaft of
+  # no length. The key of an arrow with both holds half as much again.
+  width <- 6
+  data <- data.frame(
+    linewidth = width,
+    colour = "black",
+    alpha = NA,
+    stroke_colour = NA,
+    stroke_width = 0.25,
+    linetype = 1
+  )
+  ornaments <- function(fins) {
+    list(
+      arrow = list(head = ggarrow::arrow_head_wings(), fins = fins),
+      length = list(head = 4, fins = 4)
+    )
+  }
+  diagonal_mm <- function(key) {
+    0.8 * sqrt(2) * 10 * as.numeric(attr(key, "width"))
+  }
+  reach_mm <- 2 * 4 * width * ggplot2::.pt / ggplot2::.stroke
+
+  geoms <- list(
+    geom_dag_arrow()$geom,
+    geom_dag_arrow_arc()$geom,
+    geom_dag_routed_arrows()[[1]]$geom
+  )
+  for (geom in geoms) {
+    both <- geom$draw_key(
+      data,
+      ornaments(ggarrow::arrow_head_wings()),
+      c(17.28, 17.28)
+    )
+    expect_equal(diagonal_mm(both), 1.5 * reach_mm)
+    head_only <- geom$draw_key(data, ornaments(NULL), c(17.28, 17.28))
+    expect_equal(diagonal_mm(head_only), reach_mm)
+  }
+})
+
+test_that("a line width mapped through a scale draws on every ggarrow edge layer", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The bidirected arcs are drawn with a head and fins, and the key of the
+  # widest line width the scale maps to was drawn without room for a shaft.
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point(size = 16)
+  plots <- list(
+    spline = base +
+      geom_dag_routed_arrows(aes(linewidth = x), route = "spline"),
+    orthogonal = base +
+      geom_dag_routed_arrows(aes(linewidth = x), route = "orthogonal"),
+    straight = base + geom_dag_arrows(aes(linewidth = x))
+  )
+  for (name in names(plots)) {
+    expect_no_error(with_forced_plot(plots[[name]], \(built) NULL))
+  }
+})

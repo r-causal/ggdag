@@ -504,6 +504,37 @@ orthogonal_run_mismatches <- function(
   )
 }
 
+# What each routed layer of `plot` hands the router when the plot is drawn
+# on a device `width` by `height` inches, one element per call the drawn
+# grobs make, in the order they are drawn: the `nodes`, `edges`, `bounds`,
+# `cap`, `mode`, and constants (`opts`) of the call. Each grob routes twice,
+# once when the plot is drawn and once when it is forced, and the routes the
+# automatic label engine traces are left out.
+routed_router_inputs <- function(plot, width = 7, height = 5) {
+  router <- get("route_edges_mm", envir = asNamespace("ggdag"))
+  calls <- list()
+  record <- function(nodes, edges, bounds, cap, mode, opts) {
+    caller <- paste(deparse(sys.call(-1)[[1]]), collapse = "")
+    if (!grepl("route_label_obstacles", caller)) {
+      calls[[length(calls) + 1L]] <<- list(
+        nodes = nodes,
+        edges = edges,
+        bounds = bounds,
+        cap = cap,
+        mode = mode,
+        opts = opts
+      )
+    }
+    router(nodes, edges, bounds, cap, mode, opts)
+  }
+  testthat::with_mocked_bindings(
+    with_forced_plot(plot, \(built) NULL, width = width, height = height),
+    route_edges_mm = record,
+    .package = "ggdag"
+  )
+  calls
+}
+
 # The routed ggarrow edges `plot` draws on a device `width` by `height`
 # inches: one row per edge with its panel, the ends of its path, and the
 # resection of each end, and the path itself, in millimetres, sorted by where

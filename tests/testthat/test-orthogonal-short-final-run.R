@@ -536,7 +536,7 @@ test_that("the label engine routes the orthogonal layers of a plot as they are d
   }
 })
 
-test_that("orthogonal routed layers whose line widths differ route apart", {
+test_that("orthogonal routed layers whose ornaments reach apart route one scene", {
   skip_if_not_installed("ragg")
   withr::local_options(
     ggdag.edge_cap = NULL,
@@ -545,54 +545,144 @@ test_that("orthogonal routed layers whose line widths differ route apart", {
   )
 
   # The stub a gap keeps behind a head holds the reach of the head, which
-  # grows with the line width, so two layers drawn at different widths route
-  # their scenes with different ladders. Routed as one scene, each would draw
-  # its edges off rows the other did not share out: on a 4 by 4 inch device
-  # `w2 -> z2`, drawn at 0.5, and `z1 -> x`, drawn at 2, were drawn along one
-  # run for 4.25 mm. Such layers route apart, each exactly as it routes alone.
-  thin <- list(route = "orthogonal", linewidth = 0.5)
-  thick <- list(route = "orthogonal", linewidth = 2)
-  pair <- readme_layer_pair_plot(thin, thick, labels = FALSE)
-  combined <- function(a, b) {
-    edges <- rbind(a$edges, b$edges)
-    paths <- c(a$paths, b$paths)
-    order <- order(
-      edges$panel,
-      round(edges$from_x, 6),
-      round(edges$from_y, 6),
-      round(edges$to_x, 6),
-      round(edges$to_y, 6)
+  # grows with the line width and the head's length. Two layers whose heads
+  # reach apart and whose settings are otherwise alike still route one
+  # scene, with the stubs of the longer reach: routed apart, each shares out
+  # the rows and slots of the gaps afresh, and a 0.5 and a 2 wide layer drew
+  # three runs on one line on a 7 by 5 inch device, the longest 24.7 mm, and
+  # five on a 4 by 4 inch device. Each layer hands the router the same scene,
+  # the two share no run, and the label engine traces what they draw.
+  ortho <- list(route = "orthogonal")
+  pairs <- list(
+    `different line widths` = list(
+      c(ortho, list(linewidth = 0.5)),
+      c(ortho, list(linewidth = 2))
+    ),
+    `heads of different lengths` = list(
+      c(ortho, list(length = 3)),
+      c(ortho, list(arrow_head = ggarrow::arrow_head_line(), length = 6))
     )
-    edges <- edges[order, , drop = FALSE]
-    rownames(edges) <- NULL
-    list(edges = edges, paths = paths[order])
-  }
+  )
 
-  for (device in list(c(7, 5), c(4, 4))) {
-    drawn <- routed_path_record(pair, device[[1]], device[[2]])
-    apart <- combined(
-      routed_path_record(
-        readme_layer_pair_plot(thin, NULL, labels = FALSE),
+  for (name in names(pairs)) {
+    pair <- pairs[[name]]
+    for (device in list(c(7, 5), c(5, 4), c(4, 4))) {
+      label <- sprintf(
+        "%s on a %s by %s inch device",
+        name,
         device[[1]],
         device[[2]]
+      )
+      plot <- readme_layer_pair_plot(pair[[1]], pair[[2]], labels = FALSE)
+      inputs <- routed_router_inputs(plot, device[[1]], device[[2]])
+      stopifnot(length(inputs) == 4)
+      for (input in inputs[-1]) {
+        expect_identical(input, inputs[[1]], label = label)
+      }
+      expect_equal(
+        orthogonal_invariants(plot, device[[1]], device[[2]])$shared,
+        character(),
+        label = label
+      )
+    }
+    for (device in list(c(7, 5), c(4, 4))) {
+      label <- sprintf(
+        "the routes traced for %s on a %s by %s inch device",
+        name,
+        device[[1]],
+        device[[2]]
+      )
+      found <- label_route_deviations(
+        readme_layer_pair_plot(pair[[1]], pair[[2]]),
+        device[[1]],
+        device[[2]]
+      )
+      stopifnot(nrow(found) == 11)
+      expect_equal(found$traced_points, found$drawn_points, label = label)
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = label
+      )
+    }
+  }
+})
+
+test_that("orthogonal routed layers of one scene route each edge as its own layer does", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # Two layers of one scene each route the other's edges with their own, so
+  # every edge reaches the router as the layer that draws it resolves it: a
+  # head resection or a curvature one layer maps is read from that layer's
+  # mapping, and the other layer's mapping, or its lack of one, never applies
+  # to it. Otherwise the two copies of the scene differ, and each draws its
+  # edges off rows and slots the other did not share out.
+  ortho <- list(route = "orthogonal")
+  pairs <- list(
+    `a head resection mapped by one layer` = list(
+      c(
+        ortho,
+        list(
+          mapping = ggplot2::aes(resect_head = ifelse(name == "w1", 10, 6))
+        )
       ),
-      routed_path_record(
-        readme_layer_pair_plot(NULL, thick, labels = FALSE),
+      ortho
+    ),
+    `a curvature mapped by one layer` = list(
+      c(
+        ortho,
+        list(
+          mapping = ggplot2::aes(
+            edge_curvature = ifelse(
+              name %in% c("w1", "z1") & to == "x",
+              0.3,
+              NA
+            )
+          )
+        )
+      ),
+      ortho
+    )
+  )
+
+  for (name in names(pairs)) {
+    pair <- pairs[[name]]
+    for (device in list(c(7, 5), c(5, 4))) {
+      label <- sprintf(
+        "%s on a %s by %s inch device",
+        name,
         device[[1]],
         device[[2]]
       )
-    )
-    stopifnot(nrow(drawn$edges) == 11, nrow(apart$edges) == 11)
-    expect_equal(
-      drawn,
-      apart,
-      tolerance = 1e-10,
-      label = sprintf(
-        "the routes drawn on a %s by %s inch device",
+      plot <- readme_layer_pair_plot(pair[[1]], pair[[2]], labels = FALSE)
+      inputs <- routed_router_inputs(plot, device[[1]], device[[2]])
+      stopifnot(length(inputs) == 4)
+      for (input in inputs[-1]) {
+        expect_identical(input, inputs[[1]], label = label)
+      }
+      expect_equal(
+        orthogonal_invariants(plot, device[[1]], device[[2]])$shared,
+        character(),
+        label = label
+      )
+      found <- label_route_deviations(
+        readme_layer_pair_plot(pair[[1]], pair[[2]]),
         device[[1]],
         device[[2]]
       )
-    )
+      expect_equal(
+        found$deviation,
+        rep(0, nrow(found)),
+        tolerance = 1e-10,
+        label = paste("the routes traced for", label)
+      )
+    }
   }
 })
 
