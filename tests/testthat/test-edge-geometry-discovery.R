@@ -740,6 +740,72 @@ test_that("a plain facet keeps one spec row per drawn edge", {
   expect_equal(nrow(geometry), 2)
 })
 
+test_that("discovered rows are placed in the panels their layer draws them in", {
+  # The rows of a layer whose data lack a facet variable are drawn in every
+  # panel, and a facet variable named like a column of the discovered rows
+  # places them by its own values rather than by that column's
+  dag_data <- pull_dag_data(base_dag())
+  edges <- dag_data[!is.na(dag_data$to), , drop = FALSE]
+  two_panels <- function(column) {
+    dplyr::bind_rows(
+      dplyr::mutate(dag_data, "{column}" := "A"),
+      dplyr::mutate(dag_data, "{column}" := "B")
+    )
+  }
+  placed <- function(p) {
+    geometry <- discover_edge_geometry(p, by_panel = TRUE)
+    layout <- ggplot2::ggplot_build(p)$layout
+    panel_edge_geometry(geometry, layout)
+  }
+  panel_types <- function(geometry) {
+    as.data.frame(table(
+      type = geometry$type,
+      PANEL = geometry$PANEL
+    ))
+  }
+
+  missing_column <- ggplot(two_panels("panel"), aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges_link(data = edges) +
+    geom_dag_edges_arc(data = \(x) dplyr::filter(x, panel == "B")) +
+    ggplot2::facet_wrap(~panel)
+  counts <- panel_types(placed(missing_column))
+  expect_equal(counts$type, factor(c("arc", "straight", "arc", "straight")))
+  expect_equal(counts$PANEL, factor(c(1, 1, 2, 2)))
+  expect_equal(counts$Freq, c(0, nrow(edges), nrow(edges), nrow(edges)))
+
+  named_type <- ggplot(two_panels("type"), aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges_arc(data = \(x) dplyr::filter(x, !is.na(to))) +
+    ggplot2::facet_wrap(~type)
+  geometry <- placed(named_type)
+  expect_equal(unique(geometry$type), "arc")
+  expect_equal(as.vector(table(geometry$PANEL)), rep(nrow(edges), 2))
+
+  grid_data <- dplyr::bind_rows(
+    dplyr::mutate(two_panels("row"), column = "c1"),
+    dplyr::mutate(two_panels("row"), column = "c2")
+  )
+  missing_one <- ggplot(grid_data, aes_dag()) +
+    geom_dag_point() +
+    geom_dag_edges_link() +
+    geom_dag_edges_arc(
+      data = \(x) {
+        dplyr::select(dplyr::filter(x, row == "A", column == "c1"), -column)
+      }
+    ) +
+    ggplot2::facet_grid(row ~ column)
+  geometry <- placed(missing_one)
+  geometry <- geometry[geometry$type == "arc", , drop = FALSE]
+  layout <- ggplot2::ggplot_build(missing_one)$layout$layout
+  drawn_in <- layout[match(geometry$PANEL, layout$PANEL), c("row", "column")]
+  expect_equal(unique(as.character(drawn_in$row)), "A")
+  expect_equal(
+    as.vector(table(as.character(drawn_in$column))),
+    rep(nrow(edges), 2)
+  )
+})
+
 test_that("parallel edges between one pair of nodes keep a spec row each", {
   # a directed and a bidirected edge run between the same two nodes on the
   # same coordinates; a fan spreads them apart only because there are two of

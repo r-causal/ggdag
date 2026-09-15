@@ -59,14 +59,16 @@ draw_key_dag_arrow <- function(data, params, size) {
 # The length an ornament of a legend key is drawn at, for a layer that draws
 # its ornaments at `length`: a multiple of the line width as it is, and a
 # unit in millimetres. ggarrow sizes a key from its lengths as millimetres,
-# so a length in points, which the plotters set, is converted first, where
-# it converts without a device; a length relative to a viewport is passed
-# on as it is.
+# so an absolute length, such as the length in points the plotters set, is
+# converted first. A length relative to a viewport or to the text, in `"npc"`
+# or `"lines"` say, is passed on as it is, whether or not a device is open,
+# and ggarrow draws it in the key's own viewport, as it draws the keys of its
+# own layers.
 key_ornament_length <- function(length) {
   if (!grid::is.unit(length)) {
     return(length)
   }
-  mm <- unit_length_mm(length)
+  mm <- absolute_length_mm(length)
   if (is.null(mm)) length else grid::unit(mm, "mm")
 }
 
@@ -767,10 +769,23 @@ arrow_ornament_reach_mm <- function(ornament, length, width, justify = 0) {
 }
 
 # A length given as a grid unit, in millimetres. An absolute unit converts
-# on its own, so the label engine can ask before any device is open without
-# opening one; a unit relative to a viewport needs the device the layer is
-# drawn on, and is `NULL` when none is open yet.
+# on its own (`absolute_length_mm()`), so the label engine can ask before any
+# device is open without opening one; a unit relative to a viewport needs the
+# device the layer is drawn on, and is `NULL` when none is open yet.
 unit_length_mm <- function(length) {
+  absolute <- absolute_length_mm(length)
+  if (!is.null(absolute)) {
+    return(absolute)
+  }
+  if (grDevices::dev.cur() == 1L) {
+    return(NULL)
+  }
+  max(grid::convertWidth(length, "mm", valueOnly = TRUE))
+}
+
+# A length given as a grid unit in absolute units, in millimetres, without a
+# device, or `NULL` for a unit that is not absolute.
+absolute_length_mm <- function(length) {
   mm_per_unit <- c(
     mm = 1,
     cm = 10,
@@ -782,13 +797,10 @@ unit_length_mm <- function(length) {
     cicero = 12 * 25.4 / 72.27 * 1238 / 1157
   )
   type <- grid::unitType(length)
-  if (all(type %in% names(mm_per_unit))) {
-    return(max(as.numeric(length) * mm_per_unit[type]))
-  }
-  if (grDevices::dev.cur() == 1L) {
+  if (!all(type %in% names(mm_per_unit))) {
     return(NULL)
   }
-  max(grid::convertWidth(length, "mm", valueOnly = TRUE))
+  max(as.numeric(length) * mm_per_unit[type])
 }
 
 # The reach of the head and of the fins a routed layer draws, from the

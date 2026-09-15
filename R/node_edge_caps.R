@@ -781,11 +781,15 @@ edge_end_nodes <- function(panel, x, y, nodes) {
 # layer that draws it, the layers no traced point names, and takes at each end
 # the nearest cap among them, the node's own where one of them follows the node
 # there and no set cap is nearer: the label keeps clear of the ink of all of
-# them, which reaches out to the nearest. Caps are read in the panel of the
-# point, where a cap mapped to the data can differ from another panel's. An edge
-# with no caps found here takes the label geom's single cap, so its caps are
-# `NA`.
-traced_edge_caps <- function(edges, points, caps) {
+# them, which reaches out to the nearest. So does a bent edge two layers draw
+# along one path, which is traced once, from the layer its points name, and
+# takes the nearest cap among the layers that draw it: `geometry`, the edge
+# geometry the points were traced from, placed in panels and on the position
+# scales of the points, says which layers those are (`traced_edge_layers()`).
+# Caps are read in the panel of the point, where a cap mapped to the data can
+# differ from another panel's. An edge with no caps found here takes the label
+# geom's single cap, so its caps are `NA`.
+traced_edge_caps <- function(edges, points, caps, geometry = NULL) {
   none <- rep(NA_real_, nrow(points))
   no_square <- rep(FALSE, nrow(points))
   if (is.null(caps) || nrow(edges) == 0) {
@@ -831,45 +835,48 @@ traced_edge_caps <- function(edges, points, caps) {
     set_layer <- spec_column(caps$set, "layer", NA_integer_)
     set_keys <- edge_key(caps$set$x, caps$set$y, caps$set$xend, caps$set$yend)
 
-    # a point a layer traced takes the caps that layer sets in its panel
     point_panel <- as.character(points$PANEL)
     set_panel <- as.character(spec_column(caps$set, "PANEL", NA_character_))
     set_keys <- paste(set_keys, set_panel, sep = "\r")
     point_keys <- paste(point_keys, point_panel, sep = "\r")
-    set_at <- match(
-      paste(point_keys, point_layer),
-      paste(set_keys, set_layer)
-    )
-    set_at[is.na(point_layer)] <- NA_integer_
-    set_start <- caps$set$start[set_at]
-    set_end <- caps$set$end[set_at]
 
-    # a chord takes the nearest cap of the straight layers that draw it
-    straight <- !(set_layer %in% traced_layers)
-    chord <- is.na(point_layer)
-    if (any(straight) && any(chord)) {
-      nearest <- function(values) {
-        found <- !is.na(values)
-        list(
-          set = tapply(
-            ifelse(found, values, Inf)[straight],
-            set_keys[straight],
-            min
-          ),
-          follows = tapply(!found[straight], set_keys[straight], any)
-        )
-      }
-      chord_cap <- function(values, node_cap) {
-        drawn <- nearest(values)
-        at <- match(point_keys[chord], names(drawn$set))
-        set <- unname(drawn$set[at])
-        follows <- unname(drawn$follows[at]) %in% TRUE
-        nearer <- is.finite(set) & (!follows | set < node_cap[chord])
-        ifelse(nearer, set, NA_real_)
-      }
-      set_start[chord] <- chord_cap(caps$set$start, start_cap)
-      set_end[chord] <- chord_cap(caps$set$end, end_cap)
+    # the caps a layer sets on a bent edge another layer's points trace cut
+    # those points
+    traced <- traced_edge_layers(geometry)
+    if (!is.null(traced)) {
+      at <- match(
+        paste(set_keys, set_layer),
+        paste(traced$key, traced$layer)
+      )
+      set_layer[!is.na(at)] <- traced$traced_layer[at[!is.na(at)]]
     }
+
+    # a point a layer traced takes the nearest cap among the layers its
+    # points stand for in its panel, and a chord the nearest cap of the
+    # straight layers that draw it
+    straight <- !(set_layer %in% traced_layers)
+    set_group <- ifelse(
+      straight,
+      set_keys,
+      paste(set_keys, set_layer, sep = "\r")
+    )
+    point_group <- ifelse(
+      is.na(point_layer),
+      point_keys,
+      paste(point_keys, point_layer, sep = "\r")
+    )
+    nearest_cap <- function(values, node_cap) {
+      found <- !is.na(values)
+      set <- tapply(ifelse(found, values, Inf), set_group, min)
+      follows <- tapply(!found, set_group, any)
+      at <- match(point_group, names(set))
+      set <- unname(set[at])
+      follows <- unname(follows[at]) %in% TRUE
+      nearer <- is.finite(set) & (!follows | set < node_cap)
+      ifelse(nearer, set, NA_real_)
+    }
+    set_start <- nearest_cap(caps$set$start, start_cap)
+    set_end <- nearest_cap(caps$set$end, end_cap)
 
     start_cap[!is.na(set_start)] <- set_start[!is.na(set_start)]
     end_cap[!is.na(set_end)] <- set_end[!is.na(set_end)]

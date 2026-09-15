@@ -1759,10 +1759,10 @@ prefers_label_column <- function(layer, plot) {
 # obstacles follow those curves, so a label cannot be placed on top of a drawn
 # edge, and edges no bent layer claims stay straight. With `by_panel`, each
 # row also carries the values of the columns the plot's facets are computed
-# from (`facet_columns()`), and the rows are left as each layer draws them, so
-# that the automatic label stat can place every row in the panels its layer
-# draws it in (`panel_edge_geometry()`) and trace each panel from the rows
-# drawn there.
+# from that its layer's data hold (`with_facet_columns()`), and the rows are
+# left as each layer draws them, so that the automatic label stat can place
+# every row in the panels its layer draws it in (`panel_edge_geometry()`) and
+# trace each panel from the rows drawn there.
 discover_edge_geometry <- function(plot, by_panel = FALSE) {
   plot_data <- plot$data
   if (inherits(plot_data, "tidy_dagitty")) {
@@ -1832,26 +1832,71 @@ facet_columns <- function(facet) {
 }
 
 # `geometry` with the values of the facet columns `columns` of the rows
-# `layer_data` it was built from, row for row, leaving any column the
-# geometry holds already.
+# `layer_data` it was built from, row for row, for the columns those data
+# hold. A facet column can share its name with a column of the geometry, a
+# facet on `type` say, so the values are carried under names of their own
+# (`facet_value_column()`), and the names of the columns the data hold are
+# carried in `.ggdag_facet_columns`, since the rows of a layer whose data lack
+# a facet column are drawn in every panel, which is not where rows holding a
+# missing value are drawn.
 with_facet_columns <- function(geometry, layer_data, columns) {
-  for (column in setdiff(
-    intersect(columns, names(layer_data)),
-    names(geometry)
-  )) {
-    geometry[[column]] <- layer_data[[column]]
+  if (length(columns) == 0) {
+    return(geometry)
   }
+  held <- intersect(columns, names(layer_data))
+  for (column in held) {
+    geometry[[facet_value_column(column)]] <- layer_data[[column]]
+  }
+  geometry$.ggdag_facet_columns <- rep(list(held), nrow(geometry))
   geometry
 }
 
+# The name the values of the facet column `column` are carried under in a
+# discovered geometry.
+facet_value_column <- function(column) {
+  paste0(".ggdag_facet_value:", column)
+}
+
 # `geometry`, discovered by panel, placed in the panels of `layout` its rows
-# are drawn in, as ggplot2 places a layer's rows: a row whose layer draws it
-# in every panel is repeated in each, and each row carries its `PANEL`.
+# are drawn in, as ggplot2 places a layer's rows: the rows of each layer are
+# placed on their own, from the facet columns that layer's data hold, so that
+# a row whose layer's data lack a facet column is repeated in every panel,
+# and each row carries its `PANEL`.
 panel_edge_geometry <- function(geometry, layout) {
   if (is.null(geometry) || is.null(layout) || nrow(geometry) == 0) {
     return(geometry)
   }
-  layout$facet$map_data(geometry, layout$layout, layout$facet_params)
+
+  carried <- c(
+    grep(facet_value_column(""), names(geometry), fixed = TRUE, value = TRUE),
+    ".ggdag_facet_columns"
+  )
+  held <- spec_column(geometry, ".ggdag_facet_columns", list(character()))
+  layers <- spec_column(geometry, "route_layer", NA_integer_)
+  placed <- lapply(
+    split(seq_len(nrow(geometry)), match(layers, unique(layers))),
+    function(rows) {
+      facets <- data.frame(.ggdag_row = rows)
+      for (column in held[[rows[[1]]]]) {
+        facets[[column]] <- geometry[[facet_value_column(column)]][rows]
+      }
+      facets <- layout$facet$map_data(
+        facets,
+        layout$layout,
+        layout$facet_params
+      )
+      piece <- geometry[
+        facets$.ggdag_row,
+        setdiff(names(geometry), carried),
+        drop = FALSE
+      ]
+      piece$PANEL <- facets$PANEL
+      piece
+    }
+  )
+  geometry <- dplyr::bind_rows(placed)
+  rownames(geometry) <- NULL
+  geometry
 }
 
 # The geoms that draw a DAG's edges: the ggraph edge path, which every layer
@@ -1944,6 +1989,15 @@ dedupe_edge_geometry <- function(geometry) {
     return(geometry)
   }
 
+  key <- edge_geometry_identity(geometry)
+  is_routed <- !is.na(geometry$type) & geometry$type == "routed"
+  geometry[is_routed | !duplicated(key), , drop = FALSE]
+}
+
+# One string per row of a discovered geometry naming the edge it draws and
+# everything that decides where the edge goes, which `dedupe_edge_geometry()`
+# tells rows apart by.
+edge_geometry_identity <- function(geometry) {
   fields <- c(
     "type",
     "strength",
@@ -1960,9 +2014,40 @@ dedupe_edge_geometry <- function(geometry) {
   for (field in fields) {
     key <- paste(key, spec_column(geometry, field, NA), sep = "\r")
   }
+  key
+}
 
-  is_routed <- !is.na(geometry$type) & geometry$type == "routed"
-  geometry[is_routed | !duplicated(key), , drop = FALSE]
+# The layer whose traced points stand for each bent edge a layer draws in a
+# panel. `geometry` is placed in panels, as `panel_edge_geometry()` places
+# it, and on the position scales the label stat traces it on. Two layers can
+# draw an edge along one path, and each panel traces that path once, from
+# the first row that draws it (`dedupe_edge_geometry()`), whose layer the
+# traced points name. One row for each bent row: the edge's key and panel,
+# joined as the automatic label stat keys the caps of an edge, the layer
+# that draws it (`layer`), and the layer its traced points name
+# (`traced_layer`). `NULL` where nothing is bent.
+traced_edge_layers <- function(geometry) {
+  if (is.null(geometry) || !"PANEL" %in% names(geometry)) {
+    return(NULL)
+  }
+  bent <- !is.na(geometry$type) & !geometry$type %in% c("routed", "straight")
+  geometry <- geometry[bent, , drop = FALSE]
+  if (nrow(geometry) == 0) {
+    return(NULL)
+  }
+
+  panel <- as.character(geometry$PANEL)
+  identity <- paste(edge_geometry_identity(geometry), panel, sep = "\r")
+  layer <- spec_column(geometry, "route_layer", NA_integer_)
+  data.frame(
+    key = paste(
+      edge_key(geometry$x, geometry$y, geometry$xend, geometry$yend),
+      panel,
+      sep = "\r"
+    ),
+    layer = layer,
+    traced_layer = layer[match(identity, identity)]
+  )
 }
 
 # The curvature a layer draws each row of its data at, or `NULL` when no

@@ -2494,10 +2494,11 @@ StatNodesLabelAuto <- ggplot2::ggproto(
         !is.na(data$xend),
         c("x", "y", "xend", "yend", "PANEL")
       ])
+      geometry <- panel_edge_geometry(params$edge_geometry, layout)
       edge_points <- repel_edge_points(
         edges,
         n_edge_points,
-        panel_edge_geometry(params$edge_geometry, layout),
+        geometry,
         layout,
         include_endpoints = TRUE,
         trace_arrows = TRUE
@@ -2525,7 +2526,12 @@ StatNodesLabelAuto <- ggplot2::ggproto(
         # where the plot's edges stop beyond the node at each end, each traced
         # edge is cut back there; an edge left `NA` takes the geom's cap, which
         # is the cap those edges stop at where no node is drawn
-        caps <- traced_edge_caps(edges, edge_points, params$edge_end_caps)
+        caps <- traced_edge_caps(
+          edges,
+          edge_points,
+          params$edge_end_caps,
+          rescale_edge_geometry(geometry, layout)
+        )
         edge_rows$cap_fins <- caps$start
         edge_rows$cap_head <- caps$end
         edge_rows$square_fins <- caps$start_square

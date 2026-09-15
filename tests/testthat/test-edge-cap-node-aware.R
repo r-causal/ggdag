@@ -1576,6 +1576,156 @@ test_that("the automatic labels cut an edge two layers draw by the nearer cap", 
   expect_equal(unique(label_edge_caps(wide)$cap_end), circle_cap)
 })
 
+test_that("the automatic labels cut an edge two bent layers draw alike by the nearer cap", {
+  withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
+  circle_cap <- 0.375 * 30 + 2
+  bow <- tidy_dagitty(dagify(
+    y ~ x,
+    x ~ ~y,
+    coords = list(x = c(x = 0, y = 1), y = c(x = 0, y = 0))
+  ))
+  arc <- function(cap) {
+    geom_dag_edges_arc(
+      data = filter_direction("<->"),
+      end_cap = ggraph::circle(cap, "mm")
+    )
+  }
+  labelled <- function(...) {
+    ggplot(bow, aes_dag()) +
+      geom_dag_point(size = 30) +
+      geom_dag_edges_link(data = filter_direction("->")) +
+      list(...) +
+      geom_dag_label_auto(aes(label = name))
+  }
+
+  # Two arc layers draw the bidirected edge along one path, beside the
+  # straight edge a layer following the nodes draws between the same nodes.
+  # The arc is traced once, and the label keeps clear of the ink of both arc
+  # layers, which reaches out to the nearer of their caps, whichever layer is
+  # added first. The caps of the second arc layer are not those of a straight
+  # layer, so the straight edge keeps the node's own cap.
+  for (order in list(c(4, 10), c(10, 4))) {
+    label <- paste("arc caps of", order[[1]], "then", order[[2]])
+    caps <- label_edge_caps(labelled(arc(order[[1]]), arc(order[[2]])))
+    stopifnot(nrow(caps) == 2)
+    caps <- caps[order(!is.na(caps$layer)), , drop = FALSE]
+    expect_equal(is.na(caps$layer), c(TRUE, FALSE), label = label)
+    expect_equal(caps$cap_end, c(circle_cap, 4), label = label)
+    expect_equal(caps$cap_start, c(circle_cap, circle_cap), label = label)
+  }
+})
+
+test_that("the automatic labels trace the edges of a layer in every panel it is drawn in", {
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # ggplot2 draws a layer whose data lack a facet variable in every panel,
+  # and a facet variable may share its name with a column of the traced
+  # edges. In each panel the labels trace every edge drawn there, cut where
+  # the drawn edge stops. ggarrow draws the head of an arc straight from its
+  # cut, so its tip leaves the traced arc by the sagitta of that chord, half a
+  # millimetre on the short, strongly bent arcs of these narrow panels (see
+  # `drawn_tip_point()`), and the caps of the ggarrow edges are checked
+  # exactly.
+  dag_data <- pull_dag_data(tidy_dagitty(controlled_dag()))
+  edges <- dag_data[!is.na(dag_data$to), , drop = FALSE]
+  two_panels <- function(column) {
+    dplyr::bind_rows(
+      dplyr::mutate(dag_data, "{column}" := "A"),
+      dplyr::mutate(dag_data, "{column}" := "B")
+    )
+  }
+  panelled <- two_panels("panel")
+  in_panel <- function(which) {
+    \(x) dplyr::filter(x, panel == which, !is.na(to))
+  }
+  faceted <- function(data, ..., facet = ggplot2::facet_wrap(~panel)) {
+    ggplot(data, aes_dag()) +
+      geom_dag_point(size = 16) +
+      list(...) +
+      facet +
+      geom_dag_text_auto(aes(label = name), colour = "black", size = 3) +
+      theme_dag()
+  }
+
+  typed <- two_panels("type")
+  gridded <- dplyr::bind_rows(
+    dplyr::mutate(two_panels("row"), column = "c1"),
+    dplyr::mutate(two_panels("row"), column = "c2")
+  )
+  scenes <- list(
+    `a ggarrow arc layer without the facet column` = faceted(
+      panelled,
+      geom_dag_arrow(data = in_panel("A")),
+      geom_dag_arrow_arc(data = edges, curvature = 0.5)
+    ),
+    `a ggraph arc layer without the facet column` = faceted(
+      panelled,
+      geom_dag_edges_link(data = in_panel("A")),
+      geom_dag_edges_arc(data = edges)
+    ),
+    `a ggraph straight layer without the facet column` = faceted(
+      panelled,
+      geom_dag_edges_link(data = edges),
+      geom_dag_edges_arc(data = in_panel("B"))
+    ),
+    `a ggarrow straight layer without the facet column` = faceted(
+      panelled,
+      geom_dag_arrow(data = edges),
+      geom_dag_arrow_arc(data = in_panel("B"), curvature = 0.3)
+    ),
+    `a facet variable named type` = faceted(
+      typed,
+      geom_dag_arrow_arc(aes(resect_head = ifelse(type == "A", 3, 9))),
+      facet = ggplot2::facet_wrap(~type)
+    ),
+    `a grid facet variable missing from a layer` = faceted(
+      gridded,
+      geom_dag_edges_link(data = \(x) dplyr::filter(x, !is.na(to))),
+      geom_dag_edges_arc(
+        data = \(x) {
+          dplyr::select(dplyr::filter(x, row == "A", column == "c1"), -column)
+        }
+      ),
+      facet = ggplot2::facet_grid(row ~ column)
+    )
+  )
+  drawn_panels <- c(2, 2, 2, 2, 2, 4)
+
+  for (i in seq_along(scenes)) {
+    name <- names(scenes)[[i]]
+    panels <- drawn_and_traced_panel_ends(scenes[[i]])
+    stopifnot(length(panels) == drawn_panels[[i]])
+    for (panel in names(panels)) {
+      label <- paste(name, "in panel", panel)
+      drawn <- panels[[panel]]$drawn
+      traced <- panels[[panel]]$traced %||% data.frame()
+      stopifnot(nrow(drawn) > 0)
+      expect_equal(
+        nrow(traced),
+        sum(drawn$end %in% c("fins", "start")),
+        label = paste("the edges traced for", label)
+      )
+      expect_equal(
+        label_tip_mismatches(traced, drawn, tolerance = 0.6),
+        character(),
+        label = paste("the tips traced for", label)
+      )
+      if (all(drawn$end %in% c("fins", "head"))) {
+        expect_equal(
+          label_cap_mismatches(traced, drawn),
+          character(),
+          label = paste("the caps traced for", label)
+        )
+      }
+    }
+  }
+})
+
 test_that("a routed layer that draws no edges sets no caps for the labels", {
   withr::local_options(ggdag.edge_cap = NULL, ggdag.node_size = NULL)
 

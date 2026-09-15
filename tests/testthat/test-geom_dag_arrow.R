@@ -2330,6 +2330,114 @@ test_that("a legend key draws the ornaments at the length the layer sets", {
   }
 })
 
+test_that("a legend key sizes an ornament length in points as millimetres", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+  withr::local_options(
+    ggdag.edge_cap = NULL,
+    ggdag.node_size = NULL,
+    ggdag.edge_route = NULL
+  )
+
+  # The plotters draw their heads 5 points long, and ggarrow sizes a key from
+  # its lengths as millimetres, so a key given the length in points read the
+  # 5 pt head as 5 mm and grew to 8.8 mm along its side
+  head_mm <- 5 * 25.4 / 72.27
+  key_units <- function(p) {
+    with_forced_plot(p, \(built) {
+      found <- forced_grobs("arrow_path")
+      keys <- purrr::keep(found, \(one) {
+        inherits(one$grob, "arrow_path") && is.na(one$panel)
+      })
+      stopifnot(length(keys) > 0)
+      unique(purrr::map_chr(keys, \(one) {
+        paste(
+          grid::unitType(one$grob$length_head),
+          round(as.numeric(one$grob$length_head), 6)
+        )
+      }))
+    })
+  }
+  dag <- tidy_dagitty(readme_time_ordered_dag())
+  base <- ggplot(dag, aes_dag()) + geom_dag_point()
+  layers <- list(
+    arrow = geom_dag_arrow,
+    arc = geom_dag_arrow_arc,
+    routed = geom_dag_routed_arrows
+  )
+  for (name in names(layers)) {
+    layer <- layers[[name]](aes(colour = name), length = arrow_length_unit(5))
+    expect_equal(
+      key_units(base + layer),
+      paste("mm", round(head_mm, 6)),
+      label = paste("the key head of", name)
+    )
+  }
+
+  key_data <- data.frame(
+    linewidth = 1,
+    colour = "black",
+    alpha = NA,
+    stroke_colour = NA,
+    stroke_width = 0.25,
+    linetype = 1
+  )
+  params <- list(
+    arrow = list(head = ggarrow::arrow_head_wings(), fins = NULL),
+    length = list(head = arrow_length_unit(5), fins = arrow_length_unit(5))
+  )
+  key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
+  key <- geom_dag_arrow()$geom$draw_key(key_data, params, key_size_mm)
+  expect_equal(
+    as.numeric(attr(key, "width")),
+    2 * head_mm * 1.25 / (sqrt(2) * 10)
+  )
+})
+
+test_that("a legend key passes on an ornament length relative to its viewport", {
+  skip_if_not_installed("ggarrow")
+  skip_if_not_installed("ragg")
+
+  # a length relative to a viewport or to the text is drawn by ggarrow in the
+  # key's own viewport, as ggarrow draws the keys of its own layers; read
+  # against the whole device instead, a 0.03 npc head widened the legend
+  file <- tempfile(fileext = ".png")
+  open_test_ragg(file, 7, 5)
+  on.exit(
+    {
+      grDevices::dev.off()
+      unlink(file)
+    },
+    add = TRUE
+  )
+  for (length in list(grid::unit(0.03, "npc"), grid::unit(1, "lines"))) {
+    expect_identical(key_ornament_length(length), length)
+  }
+
+  key_data <- data.frame(
+    linewidth = 1,
+    colour = "black",
+    alpha = NA,
+    stroke_colour = NA,
+    stroke_width = 0.25,
+    linetype = 1
+  )
+  head <- ggarrow::arrow_head_wings()
+  npc <- grid::unit(0.03, "npc")
+  key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
+  key <- geom_dag_arrow()$geom$draw_key(
+    key_data,
+    list(arrow = list(head = head), length = list(head = npc, fins = npc)),
+    key_size_mm
+  )
+  own <- ggarrow::draw_key_arrow(
+    key_data,
+    list(arrow = list(head = head), length_head = npc, length_fins = npc),
+    key_size_mm
+  )
+  expect_equal(attr(key, "width"), attr(own, "width"))
+})
+
 test_that("a line width mapped through a scale draws on every ggarrow edge layer", {
   skip_if_not_installed("ggarrow")
   skip_if_not_installed("ragg")

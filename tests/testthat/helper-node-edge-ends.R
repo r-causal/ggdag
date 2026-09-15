@@ -771,6 +771,60 @@ drawn_and_traced_ends <- function(plot, width = 7, height = 5) {
   list(drawn = found$value, traced = found$traced)
 }
 
+# The edges each panel of the faceted plot `plot` draws and the edges its
+# automatic label layer traces there, read from one drawing on a device of a
+# fixed size: one element per panel that draws an edge, named by the panel's
+# index, holding `drawn` and `traced` as `drawn_and_traced_ends()` describes
+# them, with `traced` `NULL` where the labels trace nothing in that panel. The
+# label engine is found in a panel by the viewport it draws in, which the edge
+# grobs of the panel are drawn in too.
+drawn_and_traced_panel_ends <- function(plot, width = 7, height = 5) {
+  label_ink <- get("label_ink", envir = asNamespace("ggdag"))
+  traced <- list()
+  record <- function(edges, cap, ...) {
+    viewport <- viewport_panel(unclass(grid::current.vpPath())$path)
+    traced[[viewport]] <<- edges
+    label_ink(edges, cap, ...)
+  }
+
+  found <- testthat::with_mocked_bindings(
+    with_forced_plot(
+      plot,
+      \(built) {
+        grobs <- forced_grobs("curve_arrow|arrow_path|cappedpathgrob")
+        grobs <- purrr::keep(grobs, \(one) !is.na(one$panel))
+        list(
+          viewports = unique(data.frame(
+            panel = purrr::map_int(grobs, "panel"),
+            viewport = purrr::map_chr(grobs, \(one) {
+              viewport_panel(as.character(one$vp_path))
+            })
+          )),
+          drawn = purrr::list_rbind(list(
+            arrow_drawing_ends(forced_arrow_drawings(plot, built)),
+            forced_edge_ends(plot, built)
+          ))
+        )
+      },
+      width = width,
+      height = height
+    ),
+    label_ink = record,
+    .package = "ggdag"
+  )
+
+  viewports <- found$viewports
+  stopifnot(!anyDuplicated(viewports$panel))
+  panels <- lapply(seq_len(nrow(viewports)), \(i) {
+    edges <- traced[[viewports$viewport[[i]]]]
+    list(
+      drawn = found$drawn[found$drawn$panel == viewports$panel[[i]], ],
+      traced = if (!is.null(edges)) traced_edge_ends(edges)
+    )
+  })
+  stats::setNames(panels, viewports$panel)
+}
+
 # One row per edge the automatic label layer of `plot` traces in panel
 # `panel`: where the edge starts and ends, in data units, the index of the
 # layer it is traced from (`layer`, `NA` for an edge traced as its chord),
