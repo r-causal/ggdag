@@ -2055,8 +2055,7 @@ routed_layer_geometry <- function(
     route_layer_axis = layer$geom_params$layer_axis %||% "auto",
     route_cap = routed_layer_cap_mm(layer, layer_data, plot),
     # the routed grob reads the same flag from the rows the layer wrote
-    route_follow_head = isTRUE(layer$node_aware_caps) &&
-      "end_cap" %in% layer$node_cap_ends,
+    route_follow_head = routed_layer_follows_head(layer),
     stringsAsFactors = FALSE
   )
   geometry$route_options <- rep(

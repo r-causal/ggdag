@@ -2233,42 +2233,45 @@ test_that("a legend key whose arrow has a head and fins keeps a shaft", {
 
   # ggarrow sizes a key to hold its arrow's head and fins along the
   # diagonal, which leaves a shaft only when one of the two is not drawn:
-  # an arrow with both is all ornament, and ggarrow cannot draw a shaft of
-  # no length. The key of an arrow with both holds half as much again.
-  width <- 6
-  data <- data.frame(
-    linewidth = width,
-    colour = "black",
-    alpha = NA,
-    stroke_colour = NA,
-    stroke_width = 0.25,
-    linetype = 1
-  )
+  # an arrow with both is all ornament wherever its key sets the size of the
+  # legend, and ggarrow cannot draw a shaft of no length. The key of an arrow
+  # with both holds half as much again there, and a key smaller than the
+  # legend's key size, 17.28 points by default, is left as ggarrow sizes it.
+  key_data <- function(width) {
+    data.frame(
+      linewidth = width,
+      colour = "black",
+      alpha = NA,
+      stroke_colour = NA,
+      stroke_width = 0.25,
+      linetype = 1
+    )
+  }
   ornaments <- function(fins) {
     list(
       arrow = list(head = ggarrow::arrow_head_wings(), fins = fins),
       length = list(head = 4, fins = 4)
     )
   }
+  key_size_mm <- rep(17.28 * 25.4 / 72.27, 2)
   diagonal_mm <- function(key) {
     0.8 * sqrt(2) * 10 * as.numeric(attr(key, "width"))
   }
-  reach_mm <- 2 * 4 * width * ggplot2::.pt / ggplot2::.stroke
+  reach_mm <- function(width) 2 * 4 * width * ggplot2::.pt / ggplot2::.stroke
 
   geoms <- list(
     geom_dag_arrow()$geom,
     geom_dag_arrow_arc()$geom,
     geom_dag_routed_arrows()[[1]]$geom
   )
+  wings <- ggarrow::arrow_head_wings()
   for (geom in geoms) {
-    both <- geom$draw_key(
-      data,
-      ornaments(ggarrow::arrow_head_wings()),
-      c(17.28, 17.28)
-    )
-    expect_equal(diagonal_mm(both), 1.5 * reach_mm)
-    head_only <- geom$draw_key(data, ornaments(NULL), c(17.28, 17.28))
-    expect_equal(diagonal_mm(head_only), reach_mm)
+    both <- geom$draw_key(key_data(6), ornaments(wings), key_size_mm)
+    expect_equal(diagonal_mm(both), 1.5 * reach_mm(6))
+    head_only <- geom$draw_key(key_data(6), ornaments(NULL), key_size_mm)
+    expect_equal(diagonal_mm(head_only), reach_mm(6))
+    thin <- geom$draw_key(key_data(1), ornaments(wings), key_size_mm)
+    expect_equal(diagonal_mm(thin), reach_mm(1))
   }
 })
 

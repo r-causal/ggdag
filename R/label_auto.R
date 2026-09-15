@@ -3383,26 +3383,25 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       error_class = "ggdag_type_error"
     )
   }
-  # the discs and caps are the ones the routed layer routes with, so the
-  # router draws the same paths here. Each group of edges is routed as the
-  # routed layer that draws it routes them: the group's single cap stands for
-  # a node whose shape is not known, and for every node where that layer's
-  # heads do not follow the nodes
+  # the discs and caps are the ones the routed layers route with, so the
+  # router draws the same paths here. Each scene is routed as its routed
+  # layers route it: the largest cap among its layers stands for a node whose
+  # shape is not known, and for every node where no layer's heads follow the
+  # nodes, and a node that stops the edges following it stops them no nearer
+  # than the largest cap of the layers whose heads are fixed
   radius <- node_radius_mm(par$node_size)
-  single_cap <- function(settings) {
-    if (is.na(settings$cap)) par$edge_cap else settings$cap
-  }
   outline <- nodes$outline %||% rep(NA_real_, nrow(nodes))
   square <- nodes$square %||% rep(FALSE, nrow(nodes))
   gap <- (nodes$gap %||% rep(NA_real_, nrow(nodes)))[1] %||% node_edge_gap_mm
-  router_nodes_for <- function(settings) {
+  router_nodes_for <- function(cap, follow, fixed_cap) {
     geometry <- router_node_geometry(
       outline,
       square,
       gap,
       nodes$radius,
-      single_cap(settings),
-      follow = settings$follow_head
+      cap,
+      follow = follow,
+      fixed_cap = fixed_cap
     )
     data.frame(
       name = nodes$name,
@@ -3465,21 +3464,22 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
 
   # The routed grobs route one scene per routed layer, but orthogonal layers
   # with the same settings share one: each routes the edges of every layer of
-  # the scene with its own settings, and draws its own. The scene of a panel
-  # holds the edges of more than one layer only when another layer draws
-  # edges of it in that panel, and then its arrivals take rows of their own.
-  # Layers of one scene whose settings resolve alike route alike, so a scene
-  # is routed once for each distinct way its layers route it.
+  # the scene as the layer that draws them does, and draws its own, so the
+  # scene is routed once. The scene of a panel holds the edges of more than
+  # one layer only when another layer draws edges of it in that panel, and
+  # then its arrivals take rows of their own, and its stubs hold the farthest
+  # reach of those layers' ornaments.
   paths <- vector("list", nrow(chords))
   cap_head <- chords$cap_head
   cap_fins <- chords$cap_fins
+  ornament_keys <- route_ornaments_keys(chords)
   settings_key <- paste(
     chords$style,
     chords$layer_axis,
     chords$cap,
     chords$follow_head,
     route_options_keys(chords),
-    route_ornaments_keys(chords),
+    ornament_keys,
     sep = "\r"
   )
   # an edge whose layer is not known is routed with the edges routed alike
@@ -3498,6 +3498,7 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       paste("scene", pinned$scene, sep = "\r")
     )
   }
+  caps <- ifelse(is.na(chords$cap), par$edge_cap, chords$cap)
   for (in_scene in split(seq_len(nrow(chords)), scene)) {
     narrow_rows <- length(unique(layer[in_scene])) > 1
     scene_pinned <- pinned_input
@@ -3519,52 +3520,56 @@ route_label_obstacles <- function(edges, spec, nodes, par, bounds) {
       edge_input <- rbind(edge_input, scene_pinned)
     }
 
-    for (rows in split(in_scene, settings_key[in_scene])) {
-      settings <- chords[rows[[1]], , drop = FALSE]
-      router_nodes <- router_nodes_for(settings)
-      ornaments <- settings$route_ornaments[[1]]
-      reach <- if (is.null(ornaments)) {
-        list(head = NULL, fins = NULL)
-      } else {
-        routed_ornament_reaches(ornaments, ornaments$linewidth)
-      }
-      routed <- route_edges_mm(
-        nodes = router_nodes,
-        edges = edge_input,
-        bounds = bounds,
-        cap = single_cap(settings),
-        mode = settings$style,
-        opts = route_opts_from(
-          settings$route_options[[1]],
-          radius,
-          layer_axis = if (is.na(settings$layer_axis)) {
-            "auto"
-          } else {
-            settings$layer_axis
-          },
-          head_reach = reach$head,
-          fins_reach = reach$fins,
-          narrow_rows = narrow_rows
-        )
+    settings <- chords[in_scene[[1]], , drop = FALSE]
+    follow <- chords$follow_head[in_scene]
+    cap <- max(caps[in_scene])
+    router_nodes <- router_nodes_for(
+      cap,
+      follow = any(follow),
+      fixed_cap = if (all(follow)) NULL else max(caps[in_scene][!follow])
+    )
+    reach <- routed_scene_reaches(
+      chords$route_ornaments[in_scene][!duplicated(ornament_keys[in_scene])]
+    )
+    routed <- route_edges_mm(
+      nodes = router_nodes,
+      edges = edge_input,
+      bounds = bounds,
+      cap = cap,
+      mode = settings$style,
+      opts = route_opts_from(
+        settings$route_options[[1]],
+        radius,
+        layer_axis = if (is.na(settings$layer_axis)) {
+          "auto"
+        } else {
+          settings$layer_axis
+        },
+        head_reach = reach$head,
+        fins_reach = reach$fins,
+        narrow_rows = narrow_rows
       )
-      at <- match(rows, in_scene)
-      paths[rows] <- routed$paths[at]
-      # the arrow layer moves each routed end's cut by the amount the router
-      # moved the cap of the node there for its port, where the router
-      # reports a resect
-      if (!is.null(routed$meta$resect_head)) {
-        node_head <- router_nodes$cap[match(chords$to[rows], router_nodes$name)]
-        node_fins <- router_nodes$cap[match(
-          chords$from[rows],
-          router_nodes$name
-        )]
-        cap_head[rows] <- cap_head[rows] +
-          routed$meta$resect_head[at] -
-          node_head
-        cap_fins[rows] <- cap_fins[rows] +
-          routed$meta$resect_fins[at] -
-          node_fins
-      }
+    )
+    at <- seq_along(in_scene)
+    paths[in_scene] <- routed$paths[at]
+    # the arrow layer moves each routed end's cut by the amount the router
+    # moved the cap of the node there for its port, where the router
+    # reports a resect
+    if (!is.null(routed$meta$resect_head)) {
+      node_head <- router_nodes$cap[match(
+        chords$to[in_scene],
+        router_nodes$name
+      )]
+      node_fins <- router_nodes$cap[match(
+        chords$from[in_scene],
+        router_nodes$name
+      )]
+      cap_head[in_scene] <- cap_head[in_scene] +
+        routed$meta$resect_head[at] -
+        node_head
+      cap_fins[in_scene] <- cap_fins[in_scene] +
+        routed$meta$resect_fins[at] -
+        node_fins
     }
   }
 

@@ -375,14 +375,18 @@ square_entry <- function(x0, y0, x1, y1, half) {
 # the nodes, and the layer's single `cap` otherwise, which is what an end
 # the user or the plotter fixed is resected by whatever node it meets, so
 # that the head zones, arrival arms, and bows the router keeps agree with
-# the ink. An unknown node takes the single cap either way.
+# the ink. An unknown node takes the single cap either way. A scene whose
+# edges follow the nodes but for those of a layer whose heads are fixed
+# stops the edges at a known node at the farther of its own cap and the
+# largest cap of those layers, `fixed_cap`.
 router_node_geometry <- function(
   outline,
   square,
   gap,
   radius,
   cap,
-  follow = TRUE
+  follow = TRUE,
+  fixed_cap = NULL
 ) {
   known <- !is.na(outline)
   square <- known & square %in% TRUE
@@ -392,6 +396,9 @@ router_node_geometry <- function(
     ifelse(known, outline + gap, cap)
   } else {
     rep_len(cap, length(outline))
+  }
+  if (isTRUE(follow) && !is.null(fixed_cap)) {
+    node_cap[known] <- pmax(node_cap[known], fixed_cap)
   }
   list(r = r, face = face, cap = node_cap, square = square)
 }
